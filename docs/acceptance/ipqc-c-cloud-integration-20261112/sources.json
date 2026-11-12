@@ -68,12 +68,18 @@
     "basis": "current direct instruction and delegated Frank excerpts: 11/4 editing cannot directly switch product; 11/9 page/line/stage silent discard; 11/4 Dot proposal is not confirmation",
     "originalThreadIndependentlyRead": false,
     "sourceBefore": "21925339e4acee6543a9e32453713c022f690dcf",
-    "restoreFrontendFrom": "f7925ad869426e4dd36e5eb67dde68810b0102c3",
-    "frontendSHA256": "039dcc7d35a04b386c3567d23f4d66a0d04fe20a1f8ed1411a7dde503bbce851",
+    "restoreFrontendFrom": "f7925ad three work-selection discard handlers; additional two old cross-work-context locate paths guarded",
+    "frontendSHA256": "a450090fd4e867718adf1553ba5badc3a859fe85fa61ff97583fdc351dfcf986",
     "cacheTag": "20261112-c-discard3",
-    "semantics": "ordinary search preserves target/input; product/stage/coverage work changes silently discard unsent RAM/photos; stored C identity and original sent receipt retained",
+    "semantics": "ordinary search preserves target/input; product/stage/coverage work changes silently discard unsent RAM/photos; stored C identity and original sent receipt retained; pending/validation locate uses same discard on changed product/stage, then re-resolves target from stored draft; same-context locate preserves input",
     "correctRed": "2192533 actual1 expected0 staged changes after selecting another product",
     "sharedDependency": "only C/index exact successor inverses refreshed; original beforeHash and negatives retained",
-    "oldBranchesChanged": false
+    "oldBranchesChanged": false,
+    "additionalGapRed": {
+      "sourceCommit": "cf368bc08969a29abd373f7c4aa804d23c4c2b9f",
+      "actual": 1,
+      "expected": 0,
+      "case": "pending-item correction link selects another product but retained journal"
+    }
   }
 }

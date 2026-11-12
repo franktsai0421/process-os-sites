@@ -4,6 +4,8 @@ const {fixture}=require('./ipqc-c-operation-fixture.cjs');
 const initial={schemaVersion:1,activeVersionId:null,source:null,issues:[],reservedErrorCodes:[],reservedItemCodes:[],versions:[{id:'initial',number:1,status:'draft',snapshot:{errors:[{id:'legacy-error',code:'C100-C-CUT-001',productCode:'C100',stageCode:'C-CUT',name:'Original',note:'retained legacy note',reason:'',deleted:false}],items:[]},baseVersionId:null,revision:1,creatorId:'fixture',creatorName:'fixture',createdAt:'fixture',updatedAt:'fixture',history:[]}]};
 // Independent existing groups exercise both local operation orders without peers.
 for(const [index,id]of ['delete-1440-create-first','delete-1440-delete-first','delete-390-create-first','delete-390-delete-first','delete-peer-conflict'].entries())initial.versions[0].snapshot.errors.push({...initial.versions[0].snapshot.errors[0],id,code:'C100-C-CUT-'+String(index+2).padStart(3,'0'),name:id});
+initial.versions[0].snapshot.errors.push({...initial.versions[0].snapshot.errors[0],id:'context-error',code:'C200-C-OTHER-001',productCode:'C200',stageCode:'C-OTHER',name:'Other working context'});
+initial.versions[0].snapshot.items.push({id:'context-item',code:'C200-C-OTHER-001-001',errorId:'context-error',productCode:'C200',stageCode:'C-OTHER',description:'Stored other context',standard:'',note:'',reason:'',frequency:'',standardEnabled:false,cpkEnabled:false,notApplicable:false,deleted:false,mediaItems:[]});
 const profile=process.env.IPQCC_PROFILE==='1',networkProfile=[],browserProfile=[];
 const evidence=process.env.IPQCC_EVIDENCE_DIR;if(evidence){assert(require('node:path').isAbsolute(evidence));fs.mkdirSync(evidence,{recursive:true,mode:0o700});}
 function syntheticProfilePhoto(){
@@ -17,7 +19,7 @@ function syntheticProfilePhoto(){
 if(profile){
  const seed=initial.versions[0].snapshot;
  for(let i=seed.errors.length;i<869;i++)seed.errors.push({...seed.errors[0],id:'synthetic-error-'+i,code:'SYN-E-'+i,name:'Synthetic error '+i});
- for(let i=0;i<866;i++)seed.items.push({id:'synthetic-item-'+i,code:'SYN-I-'+i,errorId:seed.errors[i].id,productCode:'C100',stageCode:'C-CUT',standard:'10 mm',description:'Synthetic inspection '+i,note:'',reason:'',tool:'',method:'',frequency:'',standardEnabled:true,cpkEnabled:false,notApplicable:false,deleted:false,equipmentId:'',equipmentGroupId:'',equipmentSnapshot:null,mediaItems:[],rule:{cadence:'batch',batchKind:'fixed_count',fixedCount:'3'}});
+ for(let i=seed.items.length;i<866;i++)seed.items.push({id:'synthetic-item-'+i,code:'SYN-I-'+i,errorId:seed.errors[i].id,productCode:'C100',stageCode:'C-CUT',standard:'10 mm',description:'Synthetic inspection '+i,note:'',reason:'',tool:'',method:'',frequency:'',standardEnabled:true,cpkEnabled:false,notApplicable:false,deleted:false,equipmentId:'',equipmentGroupId:'',equipmentSnapshot:null,mediaItems:[],rule:{cadence:'batch',batchKind:'fixed_count',fixedCount:'3'}});
 }
 (async()=>{
  const h=await fixture({routineEquipmentControl:JSON.stringify({activeVersionId:'eq-active',versions:[{id:'eq-active',status:'approved',categories:[],subcategories:[],groups:[],equipment:[{id:'eq-one',enabled:true,assetCode:'SYN-1',pieceMark:'1',name:'Synthetic one'},{id:'eq-two',enabled:true,assetCode:'SYN-2',pieceMark:'2',name:'Synthetic two'}]}]}),ipqcCMasterControl:JSON.stringify(initial),masterDataControl:JSON.stringify({active:{C:{products:[{code:'C100',name:'Fixture',stages:['C-CUT','C-OTHER']},{code:'C200',name:'Other product',stages:['C-OTHER']}],lines:[{code:'C',stages:[{code:'C-CUT',name:'Cut'},{code:'C-OTHER',name:'Other'}]}]}}})});
@@ -31,7 +33,7 @@ if(profile){
  if(receiptMissing&&url.searchParams.has('operationId')){res.writeHead(404,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'OPERATION_NOT_FOUND'}));return;}
  if(url.pathname==='/favicon.ico'){res.writeHead(204);res.end();return;}
  if(url.pathname==='/fixture'){res.setHeader('Content-Type','text/html');res.end(`<!doctype html><html lang="zh"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/process/styles.css"><link rel="stylesheet" href="/process/ipqc-c.css"><link rel="stylesheet" href="/process/version-draft-ui.css"><main id="data-content" data-active-tab="quality-ipqc-c"></main><script>window.__delivery=1;window.ProcessSync={captureDelivery:()=>window.__delivery,isCurrentDelivery:value=>value===window.__delivery,identity:{id:'preview-editor',name:'Synthetic editor',role:'staff'},identityGeneration:()=>1,platformHeaders:()=>({'Content-Type':'application/json'})};window.hasPermission=()=>true;window.toast=()=>{};window.state={};window.bindDataInner=()=>{};window.ProcessIPQC={mountReferences(){},referenceMarkup:()=>''};</script>${scripts.map(name=>'<script src="/process/'+name+'"></script>').join('')}<script>IPQCCUI.mount(document.querySelector('main'));</script></html>`);return;}
- if(url.pathname.startsWith('/process/')){const name=url.pathname.slice(9);if(!/^[\w.-]+$/.test(name))throw Error('BAD_ASSET');let source=fs.readFileSync('public/process/'+name,'utf8');if(name==='ipqc-c.js')source=source.replace('  window.IPQCCUI={',`  window.__localTest={read:()=>read(false),state:()=>({working,localChanges,message,busy,selectedVersionId,productCode,stageCode,flowScope:control?.workflow?.scope,generation:control?.workflow?.generation,draftId:open()?.id,photoCount:localPhotos.size,unknown:sharedClient?.hasUnknown()}),client:sharedTransport,edit:()=>startEditor('error',working.errors[0])};\n  window.IPQCCUI={`);if(profile&&name==='ipqc-c.js'){
+ if(url.pathname.startsWith('/process/')){const name=url.pathname.slice(9);if(!/^[\w.-]+$/.test(name))throw Error('BAD_ASSET');let source=fs.readFileSync('public/process/'+name,'utf8');if(name==='ipqc-c.js')source=source.replace('  window.IPQCCUI={',`  window.__localTest={read:()=>read(false),state:()=>({working,localChanges,message,busy,selectedVersionId,productCode,stageCode,flowScope:control?.workflow?.scope,generation:control?.workflow?.generation,draftId:open()?.id,photoCount:localPhotos.size,unknown:sharedClient?.hasUnknown()}),client:sharedTransport,edit:()=>startEditor('error',working.errors[0])};\n  window.IPQCCUI={`);if(name==='ipqc-c.js')source=source.replace('language,onLocate:issue=>{','language,onLocate:window.__validationLocate=issue=>{');if(profile&&name==='ipqc-c.js'){
  const functions={draw:false,stageLocal:false,read:true,upload:true,writeShared:true,submitEditor:true};let wrappers='';
  for(const [fn,async]of Object.entries(functions)){source=source.replace((async?'async ':'')+'function '+fn+'(', (async?'async ':'')+'function measured_'+fn+'(');wrappers+=(async?'async ':'')+'function '+fn+'(...args){const start=performance.now();try{return '+(async?'await ':'')+'measured_'+fn+'(...args);}finally{(window.__ipqccProfile ||= []).push({phase:'+JSON.stringify(fn)+',ms:performance.now()-start});}}\n';}
  source=source.replace('  window.IPQCCUI={',wrappers+'  window.IPQCCUI={');}
@@ -70,11 +72,24 @@ if(profile){
  for(const destination of ['stage','coverage']){
   await page.evaluate(()=>__localTest.edit());await page.locator('[name="note"]').fill('Unsent '+destination+' '+width);await page.locator('#ipqcc-editor button[type="submit"]').click();
   if(destination==='stage')await page.locator('[data-ipqcc-stage="C-OTHER"]').click();
-  else{await page.locator('.ipqcc-pending summary').click();await page.locator('[data-ipqcc-coverage="C200"]').first().click();}
+  else{await page.locator('.ipqcc-pending').filter({has:page.locator('[data-ipqcc-coverage="C200"]')}).locator('summary').click();await page.locator('[data-ipqcc-coverage="C200"]').first().click();}
   assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),0,destination+' work selection discards unsent changes');
   assert.deepEqual(await scopeState(),scopeBefore,'discarding RAM does not split the stored C draft');
   assert.equal(mutations.length,writesBeforeSelections,'work selection cannot secretly Save or Begin');assert.deepEqual(h.snapshot(),persistedBeforeSelections);
   await page.locator('[data-ipqcc-product="C100"]').click();await page.locator('[data-ipqcc-stage="C-CUT"]').click();
+ }
+ for(const destination of ['pending-item','validation']){
+  await page.evaluate(()=>__localTest.edit());await page.locator('[name="note"]').fill('Unsent locate '+destination+' '+width);await page.locator('#ipqcc-editor button[type="submit"]').click();
+  await page.evaluate(()=>window.__validationLocate({path:['errors',{id:'legacy-error'}]}));
+  assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),1,'locating within the same work context retains staged input');await page.locator('#ipqcc-cancel').click();
+  if(destination==='pending-item'){
+   const pending=page.locator('.ipqcc-pending').filter({has:page.locator('[data-ipqcc-fix-item="context-item"]')});await pending.locator('summary').click();await page.locator('[data-ipqcc-fix-item="context-item"]').click();
+  }else await page.evaluate(()=>window.__validationLocate({path:['items',{id:'context-item'}]}));
+  assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),0,destination+' across work contexts discards unsent changes');
+  assert.equal(await page.locator('[name="description"]').inputValue(),'Stored other context','target row is re-read from retained stored draft');
+  assert.equal(await page.evaluate(()=>__localTest.state().productCode),'C200');assert.equal(await page.evaluate(()=>__localTest.state().stageCode),'C-OTHER');
+  assert.deepEqual(await scopeState(),scopeBefore);assert.equal(mutations.length,writesBeforeSelections);assert.deepEqual(h.snapshot(),persistedBeforeSelections);
+  await page.locator('#ipqcc-cancel').click();await page.locator('[data-ipqcc-product="C100"]').click();await page.locator('[data-ipqcc-stage="C-CUT"]').click();
  }
  page.off('dialog',dismissWorkPrompt);assert.equal(workDialogs,0,'discard is silent');
  // Consecutive new errors after legacy adoption and after receipt-only recovery.
@@ -265,6 +280,6 @@ if(profile){
  await historyPage.locator('#ipqcc-version').selectOption('shared-'+h.flow(await h.read('ipqc-c')).generation);await historyPage.locator('#ipqcc-save').waitFor();
  assert.equal(mutations.length,0,'return to draft rechecks only');await historyPage.close();
  if(profile)console.log('IPQCC_PROFILE '+JSON.stringify({rowsAtStart:1735,browserProfile,networkProfile,limits:'Synthetic loopback HTTP; function timings overlap and are not additive. Browser requests include controlled fault/delay scenarios, never live latency. Resource entries are from the final document after reload; earlier phases are retained separately.'}));
- assert.deepEqual(errors,[]);console.log('PASS Chromium 1440/390: local edit, filter/read preservation, one Save POST, shared saved result, silent departure and reload; both create-item/delete-other-error orders, group choices/cancel, choice/upload/CAS peer races and immutable same-page approved history');
+ assert.deepEqual(errors,[]);console.log('PASS Chromium 1440/390: local edit, ordinary search/read preservation, five work-selection entry points discard unsent input without writes, one Save POST, shared saved result, silent departure and reload; both create-item/delete-other-error orders, group choices/cancel, choice/upload/CAS peer races and immutable same-page approved history');
  }finally{releaseRecoveryRead?.();releaseSaveACK?.();await browser.close();await new Promise(resolve=>server.close(resolve));h.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -920,7 +920,7 @@
     sharedClient?.gatePermissions?.();
     window.renderSharedDraftValidation?.({client:sharedClient,flow:control?.workflow,after:host.querySelector('#ipqcc-shared-status'),language,onLocate:issue=>{
       const id=issue.path?.[1]?.id,item=snapshot().items.find(row=>row.id===id),error=snapshot().errors.find(row=>row.id===id),row=item||error;if(!row||!editing())return;
-      search='';productCode=row.productCode;stageCode=row.stageCode;errorId=item?.errorId||error.id;startEditor(item?'item':'error',row);
+      locateWorkingEditor(item?'item':'error',id);
     }});
     window.VersionDraftUI?.mount(host,{header:'.ipqcc-header',historyClient:approvedHistoryClient,historyVersionStatuses:['approved','superseded'],selectVersion:selectPageVersion,module:'IPQC-C',scope:t('Toàn bộ IPQC-C','IPQC-C 全庫'),version:version(),versions:control?.versions,active:control?.versions.find(v=>v.id===control.activeVersionId),flow:control?.workflow,localUnsaved:!!localChanges.length||!!modal?.dirty,busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#ipqcc-begin',save:'#ipqcc-save',submit:'#ipqcc-submit',withdraw:'#ipqcc-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-shared-issue-kind="error"]',missing:'.ipqcc-pending,[data-shared-issue-kind="missing"]',checked:{missing:true},history:['.ipqcc-history','#ipqcc-case-history','[data-shared-issue-kind="warning"]'],status:['#ipqcc-shared-status'],remove:['.ipqcc-meta']});
     const saveButton=host?.querySelector('#ipqcc-save');if(saveButton)saveButton.textContent=t('Lưu','存取');
@@ -1134,6 +1134,19 @@
     }catch(error){if(current()){selectedVersionId=previousVersion;working=previousVersion===open()?.id?copy(open().snapshot):null;message=error.message;draw();}}
   }
   let historySelection=0;
+  function locateWorkingEditor(kind,id){
+    if(modal||!editing())return;
+    const rows=()=>snapshot()?.[kind==='item'?'items':'errors']||[];
+    let row=rows().find(value=>value.id===id&&!value.deleted);if(!row)return;
+    if(row.productCode!==productCode||row.stageCode!==stageCode){
+      // A correction link can select another working context just like its tabs.
+      // Resolve again after discard: an unsent-only row must not be resurrected.
+      discardUnsentScope();row=rows().find(value=>value.id===id&&!value.deleted);
+      if(!row){draw();return;}
+    }
+    search='';productCode=row.productCode;stageCode=row.stageCode;errorId=kind==='item'?row.errorId:row.id;
+    startEditor(kind,row);
+  }
   function discardUnsentScope(){
     // Retire presentation only. The primary transport keeps its in-flight
     // command/receipt marker and may settle it; old callbacks cannot own this view.
@@ -1190,8 +1203,7 @@
       }
       if(button.dataset.ipqccCoverage){discardUnsentScope();search='';productCode=button.dataset.ipqccCoverage;stageCode=button.dataset.stage;errorId='';draw();return;}
       if(button.dataset.ipqccProduct){discardUnsentScope();productCode=button.dataset.ipqccProduct;stageCode='';errorId='';draw();return;}
-      if(button.dataset.ipqccFixItem){const item=snapshot().items.find(row=>row.id===button.dataset.ipqccFixItem);if(!item)return;
-        search='';productCode=item.productCode;stageCode=item.stageCode;errorId=item.errorId;startEditor('item',item);return;}
+      if(button.dataset.ipqccFixItem){locateWorkingEditor('item',button.dataset.ipqccFixItem);return;}
       if(button.dataset.ipqccStage){discardUnsentScope();stageCode=button.dataset.ipqccStage;errorId='';draw();return;}
       if(button.dataset.ipqccError){errorId=button.dataset.ipqccError;draw();return;}
       if(button.dataset.ipqccAdd){startEditor(button.dataset.ipqccAdd);return;}

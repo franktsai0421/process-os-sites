@@ -348,44 +348,13 @@
     "document": "requirements-audit.zh-TW.md",
     "requirements": 24,
     "scopeIsolationEvidence": "PASS33 direct handler assertions retained; backend scope identity does not authorize UI retention",
-    "productSHA256": "039dcc7d35a04b386c3567d23f4d66a0d04fe20a1f8ed1411a7dde503bbce851",
-    "policy": "actual product/stage/coverage work changes silently discard unsent RAM/photos without Save; ordinary search retains target/input; stored versions and sent UNKNOWN receipt protected",
+    "productSHA256": "a450090fd4e867718adf1553ba5badc3a859fe85fa61ff97583fdc351dfcf986",
+    "policy": "actual product/stage/coverage work changes silently discard unsent RAM/photos without Save; ordinary search retains target/input; stored versions and sent UNKNOWN receipt protected; pending/validation correction links discard only across actual product/stage contexts, with fresh target resolution",
     "correctRed": {
       "sourceCommit": "21925339e4acee6543a9e32453713c022f690dcf",
       "expected": 0,
       "actual": 1,
       "log": "private /tmp/ipqc-c-discard-red.log"
-    },
-    "localValidation": {
-      "native": "PASS IPQCC_PROFILE=1,1735 rows,Chromium1440/390: search target/input preserved; modal prevents direct product switch; product/stage/coverage discard with no prompt/write; pending photos discarded; stored C identity and DB/R2 unchanged; existing UNKNOWN/lateACK/conflict/readonly history retained",
-      "CcoreSourceControllerTests": 53,
-      "departureTests": 451,
-      "sharedMediaBackgroundRoutineTests": 123,
-      "navigationBeginHistoryTests": 291,
-      "comparisonAssertions": 33,
-      "existingHandlerProjectionReadApplyGaugeScripts": 5,
-      "typedLint": "PASS independent clean clone",
-      "typescript": "PASS nonincremental independent clean clone",
-      "cleanCloneSourceTests": 10,
-      "cleanCloneLockfile": "identical to working candidate",
-      "build": "PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK",
-      "CrawAsset": "exact source bytes SHA256039dcc7d35a04b386c3567d23f4d66a0d04fe20a1f8ed1411a7dde503bbce851",
-      "CcompiledBundle": "shell-scripts.cad2668680b743b012bf.js",
-      "CcompiledBundleProof": "exact existing standard bundler output and compiled index reference; withdrawn3928781c23ebfdfffb8e not referenced",
-      "sourceScan": {
-        "status": "PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE",
-        "head": "81c3549366d98fe9cd1ab851cb5d31a8ac7f4aa3",
-        "commits": 615,
-        "uniqueBlobs": 5404,
-        "bytesTotal": 128622634,
-        "workingFiles": 2018,
-        "classifiedHistoricalFindings": 32,
-        "realDataOpened": false,
-        "credentialValuesReturned": false
-      },
-      "diffCheck": "PASS",
-      "logs": "Private task logs in /tmp/ipqc-c-discard-checks and /tmp/ipqc-c-discard-clean; no source/data packages committed",
-      "acceptanceDocumentLinks": 65
     },
     "githubCI": "Evaluate corrected PR HEAD after upload",
     "unverified": [
@@ -566,6 +535,44 @@
         "head": "81c3549366d98fe9cd1ab851cb5d31a8ac7f4aa3"
       }
     ],
-    "documentationFollowup": "Only requirement/implementation/evidence documents after product81c3549; product/build inputs unchanged."
+    "documentationFollowup": "Only requirement/implementation/evidence documents after product81c3549; product/build inputs unchanged.",
+    "intermediateValidation81c3549": {
+      "native": "PASS IPQCC_PROFILE=1,1735 rows,Chromium1440/390: search target/input preserved; modal prevents direct product switch; product/stage/coverage discard with no prompt/write; pending photos discarded; stored C identity and DB/R2 unchanged; existing UNKNOWN/lateACK/conflict/readonly history retained",
+      "CcoreSourceControllerTests": 53,
+      "departureTests": 451,
+      "sharedMediaBackgroundRoutineTests": 123,
+      "navigationBeginHistoryTests": 291,
+      "comparisonAssertions": 33,
+      "existingHandlerProjectionReadApplyGaugeScripts": 5,
+      "typedLint": "PASS independent clean clone",
+      "typescript": "PASS nonincremental independent clean clone",
+      "cleanCloneSourceTests": 10,
+      "cleanCloneLockfile": "identical to working candidate",
+      "build": "PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK",
+      "CrawAsset": "exact source bytes SHA256039dcc7d35a04b386c3567d23f4d66a0d04fe20a1f8ed1411a7dde503bbce851",
+      "CcompiledBundle": "shell-scripts.cad2668680b743b012bf.js",
+      "CcompiledBundleProof": "exact existing standard bundler output and compiled index reference; withdrawn3928781c23ebfdfffb8e not referenced",
+      "sourceScan": {
+        "status": "PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE",
+        "head": "81c3549366d98fe9cd1ab851cb5d31a8ac7f4aa3",
+        "commits": 615,
+        "uniqueBlobs": 5404,
+        "bytesTotal": 128622634,
+        "workingFiles": 2018,
+        "classifiedHistoricalFindings": 32,
+        "realDataOpened": false,
+        "credentialValuesReturned": false
+      },
+      "diffCheck": "PASS",
+      "logs": "Private task logs in /tmp/ipqc-c-discard-checks and /tmp/ipqc-c-discard-clean; no source/data packages committed",
+      "acceptanceDocumentLinks": 65
+    },
+    "localValidation": "IN_PROGRESS final additional-locate candidate",
+    "additionalGapRed": {
+      "sourceCommit": "cf368bc08969a29abd373f7c4aa804d23c4c2b9f",
+      "expected": 0,
+      "actual": 1,
+      "case": "pending-item crosses work context"
+    }
   }
 }

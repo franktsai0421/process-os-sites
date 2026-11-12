@@ -2,7 +2,7 @@
 
 此台帳對照本工作此前完整交接與 Frank 後續要求，補入原 PR #106。不是只核對最後幾點，也不是將既有 PASS 重新標成待開發。
 
-盤點起點為 `f5c4154426869166091607273129c7f993c14924`（當時五項 CI 成功），完整台帳補證為 `f7925ad869426e4dd36e5eb67dde68810b0102c3`。**撤回 `5df6f865`／`2192533` 的未核准 UX 延伸**：把同一個 C server scope 誤解為可跨產品／工段保留未 Save 內容，並以錯誤測試判準稱為修正。舊測試 f792 實際0／預期1不是需求缺漏；該預期撤回。正確判準在2192533重現為實際1／預期0。本輪恢復 f792 的 C 前端精確來源，只刷新 C cache tag 與對應來源證據、補正測試／台帳；server/schema/package 不變。
+盤點起點為 `f5c4154426869166091607273129c7f993c14924`（當時五項 CI 成功），完整台帳補證為 `f7925ad869426e4dd36e5eb67dde68810b0102c3`。**撤回 `5df6f865`／`2192533` 的未核准 UX 延伸**：把同一個 C server scope 誤解為可跨產品／工段保留未 Save 內容，並以錯誤測試判準稱為修正。舊測試 f792 實際0／預期1不是需求缺漏；該預期撤回。正確判準在2192533重現為實際1／預期0。本輪恢復 f792 的三個工作切換捨棄入口，另補齊原有待補／驗證定位跨工作切換的漏項；同步 C cache tag、精確來源證據、測試與台帳，server/schema/package 不變。
 
 ## 核定依據與工作選擇分類
 
@@ -11,7 +11,7 @@
 - Frank 11/4「如果沒有按存取 我覺得不需要保留」。11/4 09:43「切產品／類別丟棄、搜尋篩選保留」是 Dot 提案，Frank 隨後要求解釋情境，不能當作已核定。
 - Frank 11/4 09:48 糾正 IPQC 編輯中不能直接切另一產品；保留既有 modal 遮罩與焦點限制，原生測試驗證另一產品按鈕被遮擋。
 - Frank 11/9 明確委託確認切頁／線別／工段未存內容直接放棄、不提醒；已套用／同步但未存的差異可丟，已存草稿／待審／正式／歷史保留。最新直接指示要求撤回未核准跨工作切換保留，沒有更晚明確同意該保留 UX 的證據。
-- C 的 product 按鈕改 `productCode` 並重設工段；stage 改實際編輯 `stageCode`；coverage「前往修正」同時選產品與工段。三者更換工作內容，使用 `discardUnsentScope`。普通搜尋只改 `search`／`refreshProducts()`，不選另一個編輯對象，保留目前輸入。
+- C 的 product 按鈕改 `productCode` 並重設工段；stage 改實際編輯 `stageCode`；coverage「前往修正」同時選產品與工段。三者更換工作內容，使用 `discardUnsentScope`。待補與驗證定位跨產品／工段時亦先捨棄，並重新從已存草稿取得目標；同工作內容定位保留輸入。普通搜尋只改 `search`／`refreshProducts()`，不選另一個編輯對象，保留目前輸入。
 - 「不拆 C 草稿」指同一已存 module scope／generation／draft identity，不等於跨工作選擇保留未送 RAM。不偷做 Save，不刪已存版本，不清或重送已送 UNKNOWN 原收據。
 
 狀態：**已涵蓋**＝程式及指定合成／CI 證據存在；**本輪更正**＝撤回錯誤 UX 判準並回歸；**未驗收**＝不能用模擬或 CI 宣稱真人／測試站已通過。所有測試使用隔離資料。
@@ -24,7 +24,7 @@
 | C02 Save／送審慢：不能把合併視作部署，也不能把 V41 的20／48秒直接報已解決 | [C workflow](../../../lib/ipqc-c-workflow.ts)與[API](../../../app/api/ipqc-c/workflow/route.ts)保留單次 atomic Save、compact ACK、revision/CAS | [local Save benchmark](../../../scripts/benchmark-ipqc-c-local-save.cjs)、[完整路徑 benchmark](../../../scripts/benchmark-ipqc-c-local-path.cjs)、1735列原生 profile；既有合成 handler Save／Submit 中位數233／264ms，非實站延遲 | 程式與合成效能已涵蓋；**測試站延遲未驗收**，V41 現場延遲不結案。沒有部署授權，因此未以部署或正式資料補測 |
 | C03 Save guard、完整 Save／送審流程保留，不因本次比較而自動儲存或重做已過成果 | [writeShared](../../../public/process/ipqc-c.js)保留明確 Save、未存不送審及 fixed savedId | [十模組實際 handler 流程](../../../scripts/test-integrated-workflow-cycles.cjs)：C Save／Submit／撤回／再送／核准、舊 cutoff、pending、no-change 與競爭拒絕 | 已涵蓋。重用 #89／#91 基礎；目前行為以新來源回歸證明，不宣稱舊真人測試等同本版驗收 |
 | C04 C 頁獨立草稿，不與 A/B 或其他頁混用 | [beginIpqcWorkflow](../../../lib/ipqc-c-workflow.ts)固定 `createSharedDraft('ipqc-c',...)`；[API](../../../app/api/ipqc-c/workflow/route.ts)固定 `ipqcCMasterControl`；transport endpoint 固定 C | [compare-save](../../../scripts/test-ipqc-c-compare-save.cjs)新增兩產品共用 scope/generation、直接 handler 一次 Save 含兩產品內容、所有非 C persisted values 完全不變；另測無關 scope 查詢不能另拆草稿 | **本輪補證**。原先行為已正確，但缺少直接同時比對 A/B、BOM、FQC 與其他 persisted values 的斷言；新增。此為後端 scope 隔離證據，不授權 UI 跨工作選擇保留未送內容 |
-| C05 C 已存草稿不拆分；普通搜尋保留輸入，真正產品／工段／coverage 工作切換靜默捨棄未送內容 | [discardUnsentScope／bind](../../../public/process/ipqc-c.js)：三個工作選擇重設 RAM journal／working／pending photos，不送 Save；搜尋只刷新列表；server scope 固定 C | [原生 C browser](../../../scripts/test-ipqc-c-local-browser.cjs)：1440／390，搜尋不換工作對象且保留輸入；modal 阻擋直接切產品；Finish 後產品／工段／coverage 切換丟棄、零提示／零寫入、DB/R2與 C scope/generation/draftId 不變；pending 照片同樣捨棄 | **本輪更正**。2192533 正確 red 為實際1／預期0；恢復原 f792 C frontend。先前 f792 實際0／預期1是錯誤測試判準，撤回「真實缺漏／保留修正」結論。已存資料、原 UNKNOWN receipt 與真正離頁邊界保留 |
+| C05 C 已存草稿不拆分；普通搜尋保留輸入，真正產品／工段／coverage 工作切換靜默捨棄未送內容 | [discardUnsentScope／bind](../../../public/process/ipqc-c.js)：三個工作選擇及跨產品／工段的待補／驗證定位重設 RAM journal／working／pending photos，不送 Save；搜尋只刷新列表；server scope 固定 C | [原生 C browser](../../../scripts/test-ipqc-c-local-browser.cjs)：1440／390，搜尋不換工作對象且保留輸入；modal 阻擋直接切產品；Finish 後產品／工段／coverage／待補定位／驗證定位切換丟棄、零提示／零寫入、DB/R2與 C scope/generation/draftId 不變；pending 照片同樣捨棄 | **本輪更正**。2192533 正確 red 為實際1／預期0；恢復 f792 三入口，並補原有跨工作定位漏項（cf368bc red 實際1／預期0）。先前 f792 實際0／預期1是錯誤測試判準，撤回「真實缺漏／保留修正」結論。已存資料、原 UNKNOWN receipt 與真正離頁邊界保留 |
 | C06 Save／送審前比較 base／mine／最新 server，整組一次我的／對方／取消，不逐欄位選擇 | [compareLocalSave／chooseSaveConflicts／compareBeforeSave](../../../public/process/ipqc-c.js)：只有整組按鈕，所有 clash key 同一選擇；Submit保留先Save及固定savedId/revision守衛，不自動套用未送內容 | [原生 browser](../../../scripts/test-ipqc-c-local-browser.cjs)兩欄位衝突、零逐欄位 input、整組兩方向選擇；[compare-save](../../../scripts/test-ipqc-c-compare-save.cjs)實際比較函式與 handler | 已涵蓋。Dot 原逐項選擇已在既有提交修正，本輪不重寫 |
 | C07 整組選擇保留雙方無衝突修改，不能拿整份歷史覆蓋 | [compareLocalSave](../../../public/process/ipqc-c.js)從最新內容逐欄產生 guarded patches／必要 module actions；沒有提交歷史 body 作為替換 | [compare-save](../../../scripts/test-ipqc-c-compare-save.cjs)不同欄位、不同 item、相同值收斂；原生選我的保留獨立 peer item；[tombstone](../../../scripts/test-ipqc-c-tombstone-revival.cjs)拒絕 replacement／patch smuggling／history selector | 已涵蓋。非衝突來自雙方；歷史快照不是復活來源 |
 | C08 取消零寫入且保留目前內容 | [chooseSaveConflicts](../../../public/process/ipqc-c.js)取消返回 null；初次衝突選擇位於照片上傳與 Save POST 之前，取消不送 Save | [原生 browser](../../../scripts/test-ipqc-c-local-browser.cjs)open choice 時 mutation0、DB/R2 snapshot 不變；Cancel 後 mutation0 且本機衝突內容仍在 | 已涵蓋。取消比較不是切頁捨棄；兩種使用者動作分開。已送出的照片上傳或結果不明操作不以取消抹除，也不當作未送內容 |
@@ -49,8 +49,10 @@
 
 1. 保留 24 項完整台帳與來源盤點，已涵蓋的比較、原 ID／矩陣、照片／檢具、只讀歷史、權限分離不重寫。
 2. 保留 compare-save 的兩產品同一後端 scope／generation、GET 零寫入、所有非 C persisted values 不變證據；明確限定為直接 handler 性質，不能據此推導 UI 未送輸入的保留政策。
-3. 撤回5df6f865的 closeFilterEditors 與2192533「已核准保留修正」結論，恢復 f792 精確 C 前端 SHA-256 `039dcc7d35a04b386c3567d23f4d66a0d04fe20a1f8ed1411a7dde503bbce851`。C cache tag 改為 `20261112-c-discard3`，防止載入被撤回候選。舊 beforeHash、negative proof、其他模組來源不變。
-4. 正確 red：2192533 實際另一產品仍保留1筆／預期0；更正後完整原生 suite 與來源／導航／UNKNOWN／晚 ACK／歷史回歸另記於 [verification.json](verification.json)。先前保留測試即使 PASS 也不是需求合格證據。新候選集中預檢與 GitHub CI 必須分開核對。
+3. 撤回5df6f865的 closeFilterEditors 與2192533「已核准保留修正」結論，恢復 f792 三入口，另補原有待補／驗證定位跨工作切換；目前 C 前端 SHA-256 `a450090fd4e867718adf1553ba5badc3a859fe85fa61ff97583fdc351dfcf986`。C cache tag 改為 `20261112-c-discard3`，防止載入被撤回候選。舊 beforeHash、negative proof、其他模組來源不變。
+4. 正確 red：2192533 實際另一產品仍保留1筆／預期0；更正後完整原生 suite 與來源／導航／UNKNOWN／晚 ACK／歷史回歸另記於 [verification.json](verification.json)。另在 cf368bc 重現待補定位跨產品實際1／預期0，兩個定位入口已共用先捨棄、再從已存內容重新取目標的規則；同工作定位不捨棄。先前保留測試即使 PASS 也不是需求合格證據。新候選集中預檢與 GitHub CI 必須分開核對。
 5. **未補成 PASS 的項目**：C02/C23真人／測試站／實體裝置／真 IME／實站延遲與 C24 舊 UNKNOWN32。未部署、未改正式資料或帳號、未重送 UNKNOWN。
 
 本輪集中預檢：產品候選 `81c3549366d98fe9cd1ab851cb5d31a8ac7f4aa3` 的1735列原生1440/390、C53、離頁451、共用123、導航／Begin／歷史291、比較33與既有五組projection/read/Apply/gauge均PASS。獨立乾淨clone同lockfile、lint、非增量types、來源10項、guarded build及實際C bundle/reference核對PASS。來源安全掃描615 commits／5404 blobs／2018檔PASS。這些是本機合成與build證據；上傳後HEAD／tree／CI另驗，不表示測試站或真人驗收。
+
+補掃所有工作選擇賦值後，發現待補項目與驗證定位兩個原有入口亦可跨產品／工段。合成 fixture 先補未涵蓋的 C200 待補項目；首次探針因多個 summary 及 coverage fixture 條件不符而失敗，修正測試定位後才得到真正產品 red（cf368bc 實際1／預期0）。不把 fixture 探針失敗算成產品缺陷。最終集中預檢以補齊兩入口後的候選另驗。
