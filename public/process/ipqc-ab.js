@@ -82,7 +82,7 @@
     if(target.type==='item')captureModal();
     else if(['error','new-error'].includes(target.type)){const value=host?.querySelector('#ab-error-name')?.value;if(value!==undefined){if(target.type==='error'){const row=working?.errors.find(e=>e.id===target.id);if(row)row.name=value;}else target.name=value;}}
   }
-  function hasPrivateInput(){if(localScopes.size)return localDirty()||!!modal&&!modal.readonly;return !!localBatch||!!modal&&!modal.readonly||!!working&&!sameInput(working,opened()?.snapshot);}
+  function hasPrivateInput(){if(localScopes.size)return localDirty()||hasLocalFilterForm()||!!modal&&!modal.readonly;return !!localBatch||!!modal&&!modal.readonly||!!working&&!sameInput(working,opened()?.snapshot);}
   function retainInputBase(owner=inputBasisOwner||inputOwner()){
     if(localScopes.size)return;
     if(!localBatch&&working&&!sameInput(working,opened()?.snapshot))localBatch={owner:{...owner,module:false,client:sharedClient},base:clone(modalBase||opened()?.snapshot||working)};
@@ -437,7 +437,7 @@
     finally { busy = false;if(!cancelled){draw();drawReview();}restoreView(); }
   }
   // Page-local snapshots. The original group bases are never replaced by polls.
-  const localScopes=new Map(),localPhotos=new Map(),legacyClients=new Map(),unknownPhotoFingerprints=new Set();let localModuleGeneration=null,localBeginReceipt=null,localBeginExpectation=null,lineageView=null,localBusinessBase=null,localSent=null,localConflict=null,localAttempt=null,localSaveIntent=null;let conflictEscapeCleanup=null;
+  const localScopes=new Map(),localPhotos=new Map(),localFilterViews=new Map(),localScopeSelections=new Map(),legacyClients=new Map(),unknownPhotoFingerprints=new Set();let localModuleGeneration=null,localBeginReceipt=null,localBeginExpectation=null,lineageView=null,localBusinessBase=null,localSent=null,localConflict=null,localAttempt=null,localSaveIntent=null;let conflictEscapeCleanup=null;
   const localEntry=()=>localScopes.get(key());
   const localDirty=()=>[...localScopes.values()].some(e=>!sameInput(e.base,e.snapshot));
   function localOwnerCurrent(){const sync=window.ProcessSync;if(typeof sync?.identityGeneration!=='function'||typeof sync.captureDelivery!=='function'||typeof sync.isCurrentDelivery!=='function')return false;const epoch=sync.identityGeneration(),delivery=sync.captureDelivery();return Number.isSafeInteger(epoch)&&epoch>=0&&delivery!==null&&delivery!==undefined&&sync.isCurrentDelivery(delivery)===true&&!sync.requiresReload&&host?.isConnected&&host.dataset.activeTab==='quality-ipqc-ab'&&[...localScopes.values()].every(e=>e.owner===actor()&&e.epoch===epoch&&e.lifetime===mutationLifetime&&e.host===host&&sync.isCurrentDelivery(e.delivery)===true);}
@@ -462,8 +462,24 @@
     if(!localOwnerCurrent())throw Error('IDENTITY_CHANGED');
     working=entry.snapshot;versionId=entry.version.id;inputBasisOwner=inputOwner(transport());return entry;
   }
-  function clearLocalEditing(){clearConflictEscape();for(const p of localPhotos.values())URL.revokeObjectURL(p.preview);localPhotos.clear();localScopes.clear();localModuleGeneration=null;localBeginReceipt=null;localBeginExpectation=null;localBusinessBase=null;localConflict=null;localSaveIntent=null;localBatch=null;modal=null;viewer=null;modalBase=null;modalGeneration=null;working=null;}
+  function clearLocalEditing(){clearConflictEscape();localFilterViews.clear();localScopeSelections.clear();for(const p of localPhotos.values())URL.revokeObjectURL(p.preview);localPhotos.clear();localScopes.clear();localModuleGeneration=null;localBeginReceipt=null;localBeginExpectation=null;localBusinessBase=null;localConflict=null;localSaveIntent=null;localBatch=null;modal=null;viewer=null;modalBase=null;modalGeneration=null;working=null;}
   function abandonLocalEditing(){clearLocalEditing();if(moduleClient&&!moduleClient.hasUnknown())localSent=null;}
+  // Filters share one module batch. Only module departure/confirmed Save clears it.
+  const localFilterKey=()=>JSON.stringify([key(),stage]);
+  const hasLocalFilterForm=()=>[...localFilterViews.values()].some(view=>view.entry===localScopes.get(view.entry.scope)&&view.modal&&!view.modal.readonly);
+  function switchLocalFilter(nextLine,nextGroup,nextStage=null){
+    if(busy||accessBlocked||rejectForeignBatch())return false;
+    if(localBatch&&!localScopes.size){message=batchNotice();draw();return false;}
+    const entry=localEntry();if(entry){captureBatchInput();localFilterViews.set(localFilterKey(),{entry,modal:modal?.type==='equipment'?{...modal,loading:false}:modal,viewer,modalBase,modalGeneration,errorId,reason});}
+    localScopeSelections.set(key(),{stage,showRouteExtras});
+    // Retire callbacks even for A -> B -> A; never renew an original receipt.
+    historyDisplayEpoch++;loadGeneration++;equipmentLoadGeneration++;clearConflictEscape();localConflict=null;localSaveIntent=null;
+    line=nextLine;group=nextGroup;stage='';showRouteExtras=false;errorId='';versionId='';working=null;modal=null;viewer=null;modalBase=null;modalGeneration=null;reason='';selectDefaults();
+    const previous=localScopeSelections.get(key());stage=nextStage??previous?.stage??stage;showRouteExtras=previous?.showRouteExtras||false;selectDefaults();
+    working=localEntry()?.snapshot||(opened()?.status==='draft'?clone(opened().snapshot):null);
+    const view=localFilterViews.get(localFilterKey());if(view&&view.entry===localEntry()&&localOwnerCurrent())({modal,viewer,modalBase,modalGeneration,errorId,reason}=view);
+    localFilterViews.delete(localFilterKey());inputBasisOwner=inputOwner(transport());draw();return true;
+  }
   function localScopeChanges(entry){
     const result=[],base=entry.base,next=entry.snapshot;
     for(const kind of ['errors','items'])for(const row of next[kind])if(!row.deleted&&!base[kind].some(r=>r.id===row.id))result.push({moduleAction:kind==='errors'?'create-error':'create-item',localId:row.id,input:kind==='errors'?{stageCode:row.stageCode,name:row.name}:{errorId:row.errorId,item:Object.fromEntries(createItemFields.map(f=>[f,clone(row[f])]))}});
@@ -734,7 +750,7 @@
     if(busy||accessBlocked)return null;if(!localOwnerCurrent()){rejectForeignBatch();message='IDENTITY_CHANGED';return null;}const client=moduleTransport();
     if(localSent){message='LOCAL_BATCH_RECONFIRM';draw();return null;}
     if(localPending()){message='PREVIOUS_OPERATION_UNKNOWN';draw();return null;}
-    if(modal&&!modal.readonly){message=t('請先完成或取消目前表單。','Hãy hoàn tất hoặc hủy biểu mẫu.');draw();return null;}
+    if(modal&&!modal.readonly||hasLocalFilterForm()){message=t('請先完成或取消各篩選下保留的表單。','Hãy hoàn tất hoặc hủy biểu mẫu được giữ trong các bộ lọc.');draw();return null;}
     if(!permittedAction('edit')){message='FORBIDDEN';draw();return null;}
     if(!localSaveScopes().length&&!moduleDrafts().length){message=t('沒有待存取的修改。','Không có thay đổi cần lưu.');draw();return null;}
     if(continuation&&!localSaveIntentCurrent(continuation))return null;
@@ -817,7 +833,7 @@
   async function moduleSave(action,detail={}){
     assertCurrentDisplay();
     if(action==='save')return saveLocalModule();
-    if(action==='submit'&&(localDirty()||modal&&!modal.readonly||localPending())){message='UNSAVED_CHANGES_SAVE_REQUIRED';draw();return null;}
+    if(action==='submit'&&(localDirty()||hasLocalFilterForm()||modal&&!modal.readonly||localPending())){message='UNSAVED_CHANGES_SAVE_REQUIRED';draw();return null;}
 
     if(accessBlocked||busy||rejectForeignBatch())return null;
     captureBatchInput();retainInputBase();
@@ -1050,7 +1066,7 @@
       if(sharedClient?.hasUnknown())for(const [label,method]of [[t('查詢上次操作','Kiểm tra thao tác trước'),'resolveUnknown'],[t('重試同一操作','Thử lại cùng thao tác'),'retryUnknown']]){const button=document.createElement('button');button.textContent=label;const reservation=createdReservations.has(localBatch?.created)?localBatch.created:null;button.onclick=async()=>{if(reservation)return checkCreatedResult(reservation);try{await transport()[method]();if(await load()===false)return;}catch(e){message=e.message;}draw();};status.append(button);}
     }
     for(const node of host.querySelectorAll('input,select,button,textarea'))for(const property of ['oninput','onchange','onclick','oncompositionstart','oncompositionend'])if(typeof node[property]==='function')node[property]=guardWorking(node,node[property]);
-    window.VersionDraftUI?.mount(host,{localUnsaved:localDirty()||!!modal&&!modal.readonly,header:'.ipqcab-version',historyClient:()=>moduleTransport(),mountApprovedHistory,module:'IPQC-AB',moduleActions:true,scope:t('全部 IPQC-AB 草稿；A／B 全部群組與工段','Tất cả bản nháp IPQC-AB; mọi nhóm và công đoạn A/B'),version:version(),versions:scope()?.versions,active:active(),flow:control?.moduleDraft?.workflow||scope()?.workflow,busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#ipqcab-begin',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-ab-issue-kind="error"],[data-shared-issue-kind="error"]',missing:'[data-ab-issue-kind="missing"],[data-shared-issue-kind="missing"]',checked:{missing:true},history:['[data-shared-issue-kind="warning"]'],remove:['.ipqcab-history','#ab-case-history'],status:['#ipqcab-shared-status']});
+    window.VersionDraftUI?.mount(host,{localUnsaved:localDirty()||hasLocalFilterForm()||!!modal&&!modal.readonly,header:'.ipqcab-version',historyClient:()=>moduleTransport(),mountApprovedHistory,module:'IPQC-AB',moduleActions:true,scope:t('全部 IPQC-AB 草稿；A／B 全部群組與工段','Tất cả bản nháp IPQC-AB; mọi nhóm và công đoạn A/B'),version:version(),versions:scope()?.versions,active:active(),flow:control?.moduleDraft?.workflow||scope()?.workflow,busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#ipqcab-begin',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-ab-issue-kind="error"],[data-shared-issue-kind="error"]',missing:'[data-ab-issue-kind="missing"],[data-shared-issue-kind="missing"]',checked:{missing:true},history:['[data-shared-issue-kind="warning"]'],remove:['.ipqcab-history','#ab-case-history'],status:['#ipqcab-shared-status']});
     const body = host.querySelector('.ipqcab-dialog-body');
     if (body && modal) {
       body.dataset.scrollKey = `${modal.type}:${modal.id||modal.itemId||''}`;
@@ -1095,8 +1111,7 @@
   function bind() {
     const q = selector => host.querySelector(selector);
     const switchScope=async(nextLine,nextGroup)=>{
-      if(busy)return;abandonLocalEditing();line=nextLine;group=nextGroup;stage='';errorId='';versionId='';working=null;showRouteExtras=false;selectDefaults();
-      working=localEntry()?.snapshot||(opened()?.status==='draft'?clone(opened().snapshot):null);inputBasisOwner=inputOwner(transport());draw();
+      if(!switchLocalFilter(nextLine,nextGroup))return;
       const displayCurrent=captureHistoryDisplay(),owner=inputOwner(transport()),owns=()=>displayCurrent()&&inputOwnerCurrent(owner);
       try{await owner.client.permissions({isCurrent:owns});if(owns()){captureBatchInput();draw();}}
       catch(error){if(owns()){captureBatchInput();message=error.message;draw();}}
@@ -1104,7 +1119,7 @@
     listenWorking(q('#ipqcab-line'),'change',e=>switchScope(e.target.value,''));
     listenWorking(q('#ipqcab-group'),'change',e=>switchScope(line,e.target.value));
     listenWorking(q('#ipqcab-route-extras'),'click',()=>{showRouteExtras=!showRouteExtras;selectDefaults();draw();});
-    listenWorking(q('#ipqcab-stage'),'change',e=>{if(busy)return;abandonLocalEditing();versionId='';stage=e.target.value;errorId='';selectDefaults();working=opened()?.status==='draft'?clone(opened().snapshot):null;inputBasisOwner=inputOwner(transport());draw();});
+    listenWorking(q('#ipqcab-stage'),'change',e=>switchLocalFilter(line,group,e.target.value));
     listenWorking(q('#ipqcab-version'),'change',e=>{if(busy||hasPrivateInput()){message=batchNotice();draw();return;}versionId=e.target.value;working=version()?.status==='draft'?clone(version().snapshot):null;inputBasisOwner=inputOwner(transport());draw();});
     const displayedConflict=localConflict;host.querySelectorAll('[data-ab-conflict-choice]').forEach(el=>listenWorking(el,'click',()=>chooseLocalConflict(el.dataset.abConflictChoice,displayedConflict)));
     listenWorking(q('#ipqcab-begin'),'click',()=>write('begin'));
@@ -1312,7 +1327,7 @@
     root:()=>host,flow:()=>control?.moduleDraft?.workflow,sharedDirty:()=>false,sharedOwned:()=>false,ownsRuntimeLocal:()=>true,
     context:()=>[mutationLifetime,actor(),window.ProcessSync?.identityGeneration?.()],current:()=>!accessBlocked,busy:()=>busy,
     unknown:()=>localPending(),failed:()=>false,unknownTransports:()=>[moduleClient,...legacyABClients(),photoDepartureTransport].filter(Boolean),unknownReady:()=>!busy,
-    local:()=>localDirty()||!!modal&&!modal.readonly,canSave:()=>historyAllowsMutation()&&permittedAction('edit'),canDiscard:()=>true,save:()=>saveLocalModule(),
+    local:()=>localDirty()||hasLocalFilterForm()||!!modal&&!modal.readonly,canSave:()=>historyAllowsMutation()&&permittedAction('edit'),canDiscard:()=>true,save:()=>saveLocalModule(),
     discardUnknown(){abandonLocalEditing();},discard(){abandonLocalEditing();},closeClean(){abandonLocalEditing();},dialogs:()=>[...document.querySelectorAll('.ipqcab-overlay')],
   }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>saveLocalModule(),canLeave:()=>!busy,error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;abandonLocalEditing();mutationLifetime++;mutationSequence++;activeMutation=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class="ipqcab-page" id="ipqcab-page">IPQC-AB…</section>',
     openItemView(requestedVersion,itemId,requestedScope=''){

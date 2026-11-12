@@ -1,3 +1,12 @@
+## 2026-11-12 — IPQC A/B filter retention (RAM only)
+
+All A/B scopes remain one module draft. Filter views retain original page-local
+snapshots/bases, unfinished dialogs and original File/preview references under
+the same actor/epoch/delivery/host/lifetime. These view maps are never persisted
+or sent as separate drafts; confirmed Save or module departure clears them.
+Original UNKNOWN operation metadata remains separate. No schema, SQL, server
+protocol, role, saved/approved snapshot or persistent photo format change.
+
 ## 2026-11-12 — IPQC A/B photo operation outcomes (candidate)
 
 Optional `X-Process-Upload-Id` binds a photo attempt to an opaque UUID. R2

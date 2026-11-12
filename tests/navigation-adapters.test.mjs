@@ -121,7 +121,7 @@ void test('changed persistent-navigation executable references have coherent new
   'dual-system.js':'20261025-navigation2',
   'effective-version-notice.js':'20261109-explicit-checks1',
   'fqc-master.js':'20261104-begin-generation2',
-  'ipqc-ab.js':'20261112-ipqc-ab-cloud1',
+  'ipqc-ab.js':'20261112-ipqc-ab-filters2',
   'ipqc-c.js':'20261106-c-local-gauge-preview1',
   'iqc-master.js':'20261106-number-hint1',
   'master-data.js':'20261105-process-local-save1',

@@ -212,7 +212,7 @@ void test('a new modal opened during Save is never closed or captured by its old
   assert.equal((await s.state()).modal?.name, 'Different local form');
   assert.equal(writes(s).length, 1);
 });
-void test('filter departure discards unsent A and B input without creating a second shared draft or writing', async (t) => {
+void test('A/B filter roundtrip retains both scopes without writes then saves one module draft', async (t) => {
   const s = await fixture(t), stored=s.f.snapshot();
   await s.edit('standard', 'A private');
   await s.page.locator('#ipqcab-line').selectOption('B');
@@ -221,10 +221,9 @@ void test('filter departure discards unsent A and B input without creating a sec
   await s.page.locator('#ab-error-name').fill('B private');
   await s.page.locator('#ab-apply').click();
   await s.page.locator('#ipqcab-line').selectOption('A');
-  assert.equal((await s.state()).localScopes.length,0);
-  await s.apiSave();
-  assert.equal(writes(s).length,0);assert.deepEqual(s.f.snapshot(),stored);
-  assert.notEqual((await s.group()).control.workflow.working.items[0].standard,'A private');
+  assert.equal((await s.state()).localScopes.length,2);assert.equal(writes(s).length,0);assert.deepEqual(s.f.snapshot(),stored);
+  await s.apiSave();assert.equal(writes(s).length,1);assert.equal(writes(s)[0].status,200);
+  assert.equal((await s.group()).control.workflow.working.items[0].standard,'A private');const root=await s.root();assert.equal(root.moduleDraft.workflow.saved.content.scopes['B:G'].errors.at(-1).name,'B private');
   s.cleanErrors();
 });
 void test('a GET already in flight cannot replace local edits started while it waited', async (t) => {

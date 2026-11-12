@@ -67,7 +67,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
   'fqc-master.css':'20261104-single-save1',
   'tooling.js':'20261105-tooling-local-save1',
   'tooling.css':'20261007-2',
-  'ipqc-ab.js':'20261112-ipqc-ab-cloud1',
+  'ipqc-ab.js':'20261112-ipqc-ab-filters2',
   'routine-equipment.js':'20261112-ab-transfer-actor1',
   'process-equipment.js':'20261105-process-local-save1',
   'app.js':'20261105-process-local-save1',

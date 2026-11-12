@@ -4,7 +4,7 @@ The A/B transfer client now pins its expected actor to the original equipment di
 
 ## 2026-11-12 — Isolated IPQC A/B integration candidate
 
-A/B grouped Save conflicts, original-ID retention, approved readonly history, explicit-check performance and completeness parity are integrated as a candidate based on main #100. Latest filter policy discards unsent RAM/Files. Photo ACK loss retains owner-scoped operation metadata, supports GET-only recovery and permits silent departure without restoring private forms. Whole-set mine retains multiple selected original identities with unchanged restore gates. No merge/deployment/live acceptance. [Sources, seven-scope coverage and test limits](../../docs/acceptance/ipqc-ab-integration-20261112/README.md).
+A/B grouped Save conflicts, original-ID retention, approved readonly history, explicit-check performance and completeness parity are integrated as a candidate based on main #100. Latest policy retains unsent RAM/Files/forms across A/B line/group/stage filters; only departure to another module discards unsent input. Photo ACK loss retains owner-scoped operation metadata, supports GET-only recovery and permits silent departure without restoring private forms. Whole-set mine retains multiple selected original identities with unchanged restore gates. No merge/deployment/live acceptance. [Sources, seven-scope coverage and test limits](../../docs/acceptance/ipqc-ab-integration-20261112/README.md).
 
 ## 2026-11-08 — Equipment explicit recheck and structural ACK candidate
 

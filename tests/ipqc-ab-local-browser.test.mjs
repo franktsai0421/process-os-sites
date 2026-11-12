@@ -7,7 +7,7 @@ for(const [width,lang]of [[1280,'zh'],[390,'vi']])void test(`AB local forms and 
   await addError(s);await addItem(s);const cell=s.page.locator('[data-ab-matrix-item]').first();await cell.check();assert.equal(writes(s).length,0);
   const start=performance.now();await save(s);const firstMs=performance.now()-start;assert.deepEqual(writes(s).map(r=>r.body.action||r.body.command.action),['begin-v1','save']);assert(writes(s).every(r=>r.status===200),JSON.stringify(writes(s)));
   const g=await s.f.read('ipqc-ab','editor','&scope=A%3AG');assert.equal(g.control.workflow.working.items.length,1);assert.deepEqual(g.control.workflow.working.items[0].productCodes,['A1']);
-  await s.page.locator('[data-ab-matrix-item]').last().check();await s.page.locator('#ipqcab-line').selectOption('B');await s.page.locator('#ipqcab-line').selectOption('A');assert.equal(await s.page.locator('[data-ab-matrix-item]').last().isChecked(),false,'filter departure silently discards unsent matrix input');await s.page.locator('[data-ab-matrix-item]').last().check();
+  await s.page.locator('[data-ab-matrix-item]').last().check();await s.page.locator('#ipqcab-line').selectOption('B');await s.page.locator('#ipqcab-line').selectOption('A');assert.equal(await s.page.locator('[data-ab-matrix-item]').last().isChecked(),true,'same-module filter retains unsent matrix input');await s.page.locator('[data-ab-matrix-item]').last().check();
   const next=performance.now();await save(s);const nextMs=performance.now()-next;assert.equal(writes(s).length,3);assert.equal(writes(s)[2].body.command.action,'save');assert.equal(writes(s)[2].status,200);assert.deepEqual(s.errors,[]);
   assert(await s.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));t.diagnostic(JSON.stringify({width,lang,firstMs,nextMs,firstWrites:2,nextWrites:1,synthetic:true}));
  }finally{await s.close();}
@@ -64,7 +64,7 @@ void test('AB composition input survives language change and polling while editi
 void test('AB photo selection is local; Save uploads synthetic photo before atomic draft Save',async()=>{
  const s=await setup();try{
   await addError(s);await s.page.locator('#ipqcab-add-item').click();await s.page.locator('#ab-standard').fill('Photo check');
-  await s.page.locator('[data-ab-upload=standard]').setInputFiles({name:'synthetic.png',mimeType:'image/png',buffer:Buffer.from(pngFixture({width:8,height:8}))});await s.page.locator('.ipqcab-photo-row').waitFor();await s.page.locator('#ab-apply').click();assert.equal(s.requests.filter(r=>['POST','PUT'].includes(r.method)).length,0);
+  await s.page.locator('[data-ab-upload=standard]').setInputFiles({name:'synthetic.png',mimeType:'image/png',buffer:Buffer.from(pngFixture({width:8,height:8}))});await s.page.locator('.ipqcab-photo-row').waitFor();await s.page.locator('#ab-apply').click();await s.page.locator('#ipqcab-line').selectOption('B');await s.page.locator('#ipqcab-line').selectOption('A');await s.page.locator('[data-ab-edit-item]').first().click();assert.equal(await s.page.locator('.ipqcab-photo-row').count(),1);await s.page.locator('#ab-apply').click();assert.equal(s.requests.filter(r=>['POST','PUT'].includes(r.method)).length,0);
   await save(s);assert.equal(s.requests.filter(r=>r.method==='PUT').length,1);assert.equal(s.requests.find(r=>r.method==='PUT').status,200);assert.equal(writes(s).length,2);const group=await s.f.read('ipqc-ab','editor','&scope=A%3AG'),photo=group.control.workflow.working.items[0].standardPhotos[0];assert.match(photo.id,/^[a-f0-9]{64}$/);assert.equal(photo.preview,undefined);assert.deepEqual(s.errors,[]);
  }finally{await s.close();}
 });
@@ -88,5 +88,18 @@ void test('current AB page stays idle with private input across five minutes and
   await s.page.clock.fastForward(300000);
   assert.equal(s.requests.length,count,'idle/focus must never create background GET or POST');assert.equal(writes(s).length,0);
   assert.equal(await s.page.locator('#ab-error-name').inputValue(),'保留未送出 / Giữ nội dung');assert.deepEqual(s.f.snapshot(),before);assert.deepEqual(s.errors,[]);
+ }finally{await s.close();}
+});
+
+for(const [width,lang] of [[1280,'zh'],[390,'vi']])void test(`same-module A/B filters retain unfinished forms and Files; departure drops unsent only ${width} ${lang}`,async()=>{
+ const s=await setup({width,lang});try{
+  await addError(s,'A saved');await addItem(s,'Saved baseline');await save(s);const baseline=s.f.snapshot(),sent=writes(s).length;
+  await s.page.locator('[data-ab-edit-item]').first().click();await s.page.locator('#ab-standard').fill('保留 / Giữ');await s.page.locator('[data-ab-upload=standard]').setInputFiles({name:'retained.png',mimeType:'image/png',buffer:Buffer.from(pngFixture({width:8,height:8}))});await s.page.locator('.ipqcab-photo-row').waitFor();
+  const preview=await s.page.locator('.ipqcab-photo-row img').getAttribute('src');
+  await s.page.evaluate(()=>{const n=document.querySelector('#ipqcab-line');n.value='B';n.dispatchEvent(new Event('change'));});await s.page.locator('#ipqcab-group').waitFor();
+  await s.page.evaluate(()=>{const n=document.querySelector('#ipqcab-line');n.value='A';n.dispatchEvent(new Event('change'));});await s.page.locator('#ab-standard').waitFor();assert.equal(await s.page.locator('#ab-standard').inputValue(),'保留 / Giữ');assert.equal(await s.page.locator('.ipqcab-photo-row img').getAttribute('src'),preview);assert.equal(s.requests.filter(r=>r.method==='PUT').length,0);assert.equal(writes(s).length,sent);assert.deepEqual(s.f.snapshot(),baseline);
+  await s.page.locator('#ab-apply').click();await save(s);const saved=s.f.snapshot();assert.equal(writes(s).length,sent+1);assert.equal(s.requests.filter(r=>r.method==='PUT').length,1);
+  await s.page.locator('[data-ab-edit-item]').first().click();await s.page.locator('#ab-standard').fill('離開丟棄 / Bỏ khi rời');await s.page.locator('[data-ab-upload=standard]').setInputFiles({name:'discard.png',mimeType:'image/png',buffer:Buffer.from(pngFixture({width:9,height:9}))});await s.page.locator('.ipqcab-photo-row').nth(1).waitFor();await s.page.locator('#ab-apply').click();await s.page.locator('#ipqcab-line').selectOption('B');
+  await s.page.evaluate(async()=>{await IPQCABUI.navigation.departure.abandon();IPQCABUI.navigation.departure.closeClean();IPQCABUI.navigation.reset();});await s.boot();await s.page.locator('#ipqcab-line').selectOption('A');await s.page.locator('[data-ab-edit-item]').first().click();assert.equal(await s.page.locator('#ab-standard').inputValue(),'保留 / Giữ');assert.equal(await s.page.locator('.ipqcab-photo-row').count(),1);assert.equal(s.requests.filter(r=>r.method==='PUT').length,1);assert.equal(writes(s).length,sent+1);assert.deepEqual(s.f.snapshot(),saved);assert.deepEqual(s.errors,[]);
  }finally{await s.close();}
 });

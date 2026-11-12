@@ -8,7 +8,7 @@ Received and verified all 41 source patches, reused main/old-branch changes sele
 
 ## 2026-11-12 — Isolated IPQC A/B integration candidate
 
-A/B grouped Save conflicts, original-ID retention, approved readonly history, explicit-check performance and completeness parity are integrated on main #100. Latest filter policy discards unsent RAM/Files. No merge/deployment/live acceptance. [Sources, seven-scope coverage and test limits](../docs/acceptance/ipqc-ab-integration-20261112/README.md).
+A/B grouped Save conflicts, original-ID retention, approved readonly history, explicit-check performance and completeness parity are integrated on main #100. Latest policy retains unsent RAM/Files/forms across A/B line/group/stage filters; only departure to another module discards unsent input. No merge/deployment/live acceptance. [Sources, seven-scope coverage and test limits](../docs/acceptance/ipqc-ab-integration-20261112/README.md).
 
 ## 2026-11-09 — Retire periodic web checks
 

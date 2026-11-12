@@ -202,25 +202,23 @@ for (const [width, lang] of [
             await page.locator('[data-ab-matrix-item]').last().check();
             scopes.push(line + ':' + group);
             mark('local forms and matrix ' + line + ':' + group);
-            const priorWrites=requests.filter(r=>r.url.startsWith('/api/ipqc-ab')&&r.body?.command?.action==='save').length;
-            assert.equal(priorWrites,scopes.length-1);
-            await page.locator('#ipqcab-save').click();
-            await waitIdle();
-            assert.equal(requests.filter(r=>r.url.startsWith('/api/ipqc-ab')&&r.body?.command?.action==='save').length,scopes.length);
-            mark('explicit whole-module Save before changing filter '+line+':'+group);
+            assert.equal(requests.filter(r=>r.url.startsWith('/api/ipqc-ab')).length,0,'all four filtered scopes remain RAM-only before Save');
           }
+        await page.locator('#ipqcab-line').selectOption('A');await page.locator('#ipqcab-group').selectOption('GROUP-1');
+        await page.locator('[data-ab-edit-item]').first().click();assert.equal(await page.locator('.ipqcab-photo-row').count(),1,'original staged photo survives four-scope filter roundtrip');await page.locator('#ab-apply').click();
+        await page.locator('#ipqcab-save').click();await waitIdle();mark('one explicit whole-module Save after all A/B filter edits');
         const mutations = requests.filter((r) =>
           r.url.startsWith('/api/ipqc-ab'),
         );
         assert.deepEqual(
           mutations.map((r) => r.method),
-          ['POST', 'PUT', 'POST', 'POST', 'POST', 'POST'],
+          ['POST', 'PUT', 'POST'],
         );
         assert.deepEqual(
           mutations
             .filter((r) => r.method === 'POST')
             .map((r) => r.body.action || r.body.command.action),
-          ['begin-v1', 'save', 'save', 'save', 'save'],
+          ['begin-v1', 'save'],
         );
         let root = await read();
         const snapshot = root.moduleDraft.workflow.saved.content;

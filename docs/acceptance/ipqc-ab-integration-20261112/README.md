@@ -21,8 +21,8 @@ real-account change or business-data write is authorized or performed.
   (`codex/process-platform-integration-20261110`) remain separate. Common
   history/transport/server files require semantic coordination at later merge.
   Their unmerged role-policy changes are not replaced by this PR.
-- New differences from the old candidate: line/group/stage changes silently
-  discard unsent input; confirmed raced Save rejections re-enter comparison;
+- Latest confirmed difference: line/group/stage filters retain unsent RAM/Files/forms;
+  only leaving A/B abandons unsent input; confirmed raced Save rejections re-enter comparison;
   UI completeness follows submission applicability and includes required gauges.
 
 The user-reported 2026-11-06 PHAODIEN B-line V11 submit/withdraw/resubmit/approve
@@ -39,7 +39,7 @@ and all 24 groups' 517 are different scopes, not an asserted arithmetic defect.
 | Shared draft/conflicts | One A/B module; disposable conflict plan, one mine/theirs/cancel decision; nonconflicting fields and stable-ID list edits survive. Cancel leaves RAM/base/Files/receipts unchanged. | Actual-handler + synthetic DOM two-actor tests. Confirmed revision rejection is retired before fresh comparison; no unknown payload resend. At most two automatic read continuations prevent unbounded churn. |
 | Delete/retain | Persistent tombstones; authorized mine restores each selected original ID/parent/product association, never a new item or entire snapshot | Existing exact guards, edit/create/restore gates, pending/generation/CAS and per-item identity/parent guards retained. A whole-set mine choice retains each affected original item within one atomic Save; it never restores a snapshot. |
 | Photos | RAM preview; upload only during Save after comparison; original File pins, content hash/provenance, actor-bound upload outcomes and durable unknown-ACK markers | Conflict/cancel/revocation/unknown photo cases in actual-handler DOM suite. No C-only duplicate-photo claim. |
-| Navigation/background | Line/group/stage changes abandon unsent RAM/Files silently; persisted module and original sent operation markers remain. Existing actual module departure retained; no fixed polling introduced | Three actual filter-event tests plus inherited departure/receipt tests. Equipment picker filtering remains inside the open form. |
+| Navigation/background | Line/group/stage filters retain unsent RAM/Files/forms; only leaving A/B abandons them silently; persisted module and original sent operation markers remain. Existing actual module departure retained; no fixed polling introduced | Filter roundtrip, cross-A/B Save, unfinished-form, owner/late/UNKNOWN and module-departure tests. Equipment picker filtering remains inside the open form. |
 | Permission/history | Edit permits Save; create/delete/restore/submit/withdraw independently checked. Approved versions are original-page readonly selections backed by immutable approval evidence | Synthetic normal signed actor sessions; permission/revocation and approved-history suites. Real employee accounts and hosted acceptance NOT_RUN. No rollback/restore UI added. |
 
 ## Cloud handoff and current verification
@@ -80,7 +80,7 @@ Cloud follow-up fixes:
   authorize another PUT. Confirmed success allows the original File's photo ID
   to be reused; definitive pre-write format refusals permit a corrected attempt.
 - A photo-only unknown outcome participates in the existing departure protocol.
-  Leaving drops all form/File RAM while owner-scoped receipt metadata remains;
+  Leaving the A/B module drops all form/File RAM while owner-scoped receipt metadata remains;
   returning offers GET-only outcome verification without reupload or auto-Save.
 - Whole-set mine handles multiple deleted items with exact per-item ID, parent,
   source and permission checks in the same CAS; general history restore is not
@@ -277,3 +277,60 @@ genuine CI; they remain unchanged and must run on GitHub. Compiled owner setup,
 bootstrap, delivery, original Begin recovery, PROCESS lifecycle, snapshot/import/
 observation/native-capability and photo policies all pass with ephemeral data.
 No CI environment was forged and no capability guard was changed.
+
+## Latest confirmed filter policy and 19-item gap audit
+
+Frank's latest instruction supersedes the earlier candidate's filter-discard
+policy. Same-module A/B line, group and stage selection retains original
+snapshots, comparison bases, matrix edits, unfinished forms, File objects and
+blob previews in RAM. Only departure to another function/module discards unsent
+input. It never deletes a saved snapshot or an original UNKNOWN operation.
+Filter views are not separate drafts and are never stored in sessionStorage.
+Hidden unfinished forms must be revisited and completed/cancelled before Save
+or Submit; switching must not implicitly apply or send a form.
+
+`switchLocalFilter` first verifies the original owner, captures only owned
+input, retains view metadata, then retires callbacks with a new display epoch.
+A/B/A cannot revive an earlier scope permission completion. Busy Save flights
+refuse filter events; actor object/ID, epoch, delivery, host, generation, pending,
+CAS and original receipt gates remain. Confirmed Save and module departure clear
+all RAM view maps. No backend, schema, migration, role or persistent format
+change is introduced by this follow-up.
+
+| # | Requirement | Program evidence | Test evidence / gap result |
+|---|---|---|---|
+| 1 | One independent A/B module draft across every filter | `moduleTransport`, `saveLocalModule`, `abModuleWorkflowAdapter` | Cross-A/B two-scope Save and compiled four-scope single Save; no per-filter Begin/Save. |
+| 2 | Same-module switch retains unsaved content and photos | `switchLocalFilter`, `localScopes`, `localFilterViews`, `localPhotos` | **Old discard behavior corrected.** Line/group/stage roundtrips retain exact base/File/preview/form; outside-module departure alone discards. |
+| 3 | One whole-set mine/server/cancel decision | `planLocalConflictChoice`, `chooseLocalConflict` | Existing whole-set multi-field/multi-item cases rerun; no per-item repeated choices. |
+| 4 | Keep both sides' nonconflicting fields/lists/matrix | `mergeAbLocalFields`, `localListPlan` | Existing independent cells, fields, IDs, photo/rule edits and order cases rerun. |
+| 5 | Cancel/Close/Escape writes nothing, retains input | `chooseLocalConflict`, `bindConflictEscape` | Existing zero Begin/PUT/POST/operation-allocation and unchanged RAM/base/File/receipt cases retained. |
+| 6 | Delete/retain keeps original identities and associations | `applyAbLocalScopes` restore guard | Existing ID/code/errorId/source/parent/permission tests; no whole-history restoration or replacement ID. |
+| 7 | Photo selection remains RAM; upload only on Save | `upload`, `uploadLocalPhotos` | Original File/preview roundtrip, two-worker/dedup and actual browser Save-only tests. |
+| 8 | Unknown photo ACK queries original outcome only | photo route actor-scoped outcomes; `queryLocalOperation` | New filter roundtrip plus existing 404/revoked/wrong-owner/corrupt outcome cases; no repeated PUT or implicit Save. |
+| 9 | Photo success followed by revision drift safely continues | `saveLocalModule` bounded recompare | Existing post-PUT conflict/mine/server/cancel and same-value-resolution cases rerun. |
+| 10 | Begin/Save UNKNOWN survives filtering/departure/reentry | original bounded client journal and receipt lookup | New A/B roundtrip + 404 + original success settlement; existing lost Begin/Save departure/reload cases retained. No UNKNOWN command is resent. |
+| 11 | Late callbacks never adopt new owner/input | display epoch, `inputOwnerCurrent`, `pinLocalOperation` | New A/B/A response, same-ID actor/epoch/delivery and busy late ACK counterexamples; existing private DOM/readback cases rerun. |
+| 12 | Completeness agrees within the same scope | `issueHTML`, module validator | Existing seven-state/24-group synthetic parity rerun. Real BOSEN/PHAODIEN counts are not independently verified. |
+| 13 | Atomic Save retains revision/CAS/generation/pending gates | module/local Save adapters, shared kernel | Existing stale revision, actual peer CAS, cross-scope rollback, allocation-once and pending denials rerun. |
+| 14 | Independent edit/create/delete/restore/submit/review rights | fresh permissions and nested action guards | Existing role matrix/denials retained; actual extracted fixtures load the new RAM-only helper. No permissions are broadened. |
+| 15 | Submit uses last successful manual whole-module Save | `moduleSave`, fixed saved case | Hidden unfinished forms now also prevent Submit; existing unsaved-input/fixed-snapshot/confirmation tests retained. |
+| 16 | Approved history is readonly in the original page | approved-history view/immutable source | Existing strict module/legacy union, no Save/startLocal, stale handler and immutable-body tests rerun. No restore-to-draft UI. |
+| 17 | Bounded reads and no fixed background polling | existing request bounds, explicit actions | Current idle five-minute/focus case retained. Historical synthetic timings remain tied to their stated commits; no new real-site speed claim. |
+| 18 | Shared compatibility, equipment transfer and cache | original expected-actor transfer; A/B asset version | Shared departure/confirmation/recovery checks plus navigation/cache pins; no unrelated branch or workflow edits. |
+| 19 | Bilingual desktop/mobile-width behavior | original controller and compiled entry | Chinese 1280px and Vietnamese 390px filter/File/Save/departure checks. Physical phone, native IME and live employee sessions remain NOT_RUN. |
+
+Evidence uses synthetic, nonpersistent SQLite/R2 and system Chromium. The first
+new fixture run found a missing departure-controller port and a circular-DOM
+serialization mistake; both were corrected without weakening product guards.
+The browser reentry fixture now creates a fresh entry after the original
+controller's departure cleanup, rather than reusing its retired/inert host.
+These exploratory failures remain in private temporary logs. The compiled
+full-app suite exercises the actual router separately.
+
+The predecessor `c382fad` has six successful workflows and one original
+conditional diagnostic skip. Its CI does not validate this follow-up: new HEAD,
+current tests and remote CI receipts are recorded in the existing Draft PR #107.
+No old unknown operation, original transfer, merge, deployment or formal data /
+account mutation is repeated. No real BOSEN/PHAODIEN source count, live latency,
+physical phone or native IME result is invented; all remain pending real-site
+acceptance with their original scope/measurement conditions.
