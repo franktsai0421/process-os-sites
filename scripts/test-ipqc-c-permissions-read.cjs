@@ -23,12 +23,14 @@ function request(who='reader',query='?permissions=1',{epoch=1,expired=false,forg
 async function run(req,baseline=false){events=[];selects=0;revocations=0;const state=db.prepare('SELECT * FROM shared_state').get(),snapshot=new Map(objects);testing=true;let response;try{response=await(baseline?prior:api).GET(req);}finally{testing=false;}const body=await response.json();if(!onGet&&!onRevocation)assert.deepEqual(db.prepare('SELECT * FROM shared_state').get(),state);assert.deepEqual(objects,snapshot);return{status:response.status,headers:[...response.headers],body,metrics:{gets:events.length,bytes:events.reduce((n,k)=>n+(objects.get(k)?.length||0),0),selects,revocations},keys:[...events]};}
 const comparable=({status,headers,body})=>({status,headers,body});
 // #44's existing explicit cells: no implicit withdraw from view, and restore
-// remains opt-in for the ordinary admin. Keep all other historical DTO fields.
+// is retired for new requests. Keep every other historical DTO field.
 // Identity checks follow workflowAccess's seven explicit cells plus the three
-// restore and two create/delete checks when edit is present; no authority cache.
-const extraRevocations=who=>['frank','admin-two'].includes(who)?6:['reader','custom'].includes(who)?3:who==='approval-reader'?1:who==='approval'?-5:who?-1:0;
+// restore and two create/delete checks when edit is present, plus two independent
+// platform-review readers; no authority cache.
+const extraRevocations=who=>(who?2:0)+(['frank','admin-two'].includes(who)?6:['reader','custom'].includes(who)?3:who==='approval-reader'?1:who==='approval'?-5:who?-1:0);
 function policyParity(actual,prior,who='reader'){
  const expected=structuredClone(comparable(prior));
+ if(prior.status===200&&prior.body.restoreSaveId){assert.deepEqual(comparable(actual),{status:422,headers:prior.headers,body:{error:'DRAFT_RESTORE_NOT_SUPPORTED'}},'new restores are retired without returning any body snapshot');return;}
  if(who==='approval'){
   assert.equal(prior.status,200,'historical approval-only read');assert.equal(prior.body.permissions.view,true);
   assert.deepEqual(comparable(actual),{status:403,headers:[['cache-control','no-store'],['content-type','application/json; charset=utf-8'],['x-content-type-options','nosniff']],body:{error:'FORBIDDEN'}},'module-view denial contains no data or permissions DTO');
@@ -79,7 +81,7 @@ await check('P6 legacy inline/chunk/R2 and absent archive preserve behavior',asy
  const original=env.STATE_ARCHIVE;try{env.STATE_ARCHIVE=undefined;install(inline);assert.equal((await run(request())).status,200);install(raw);assert.equal((await run(request())).status,503);}finally{env.STATE_ARCHIVE=original;install(raw);}
 });
 await check('P7 non-permissions GET preserves data/I/O with exact permission DTO and restore-check deltas',async()=>{
- for(const query of ['?caseMetadata=1','?since=not-current','?history=cases','?caseId=case0','?uiHistory=1','?legacyHistory=1','?versionId=active','?restoreSaveId=save0','?operationId=not-found']){const req=request('frank',query),a=await run(req),b=await run(req,true);policyParity(a,b,'frank');assert.deepEqual(a.metrics,{...b.metrics,revocations:b.metrics.revocations+extraRevocations('frank')+(query==='?restoreSaveId=save0'?3:0)},query);}
+ for(const query of ['?caseMetadata=1','?since=not-current','?history=cases','?caseId=case0','?uiHistory=1','?legacyHistory=1','?versionId=active','?restoreSaveId=save0','?operationId=not-found']){const req=request('frank',query),a=await run(req),b=await run(req,true);policyParity(a,b,'frank');assert.deepEqual(a.metrics,{...b.metrics,revocations:b.metrics.revocations+extraRevocations('frank')},query);}
  // Existing permissions precedence remains, even with unrelated selectors present.
  const req=request('frank','?permissions=1&caseId=missing&restoreSaveId=missing');policyParity(await run(req),await run(req,true),'frank');
  const denied=request('admin-two','?restoreSaveId=save0'),a=await run(denied),b=await run(denied,true);assert.equal(b.status,200);assert.deepEqual(comparable(a),{status:403,headers:b.headers,body:{error:'FORBIDDEN'}},'ordinary admin cannot inherit restore from edit');assert.equal(a.metrics.revocations,b.metrics.revocations+extraRevocations('admin-two'));
@@ -94,5 +96,5 @@ await check('P8 exact composed performance plus #44 permission/restore spans and
  const candidateBytes=withoutApprovedOperationAlignment(route,withoutExplicitPermissionReadAlignment(explicitBytes)),delta=Buffer.from("...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:{}),"),at=candidateBytes.indexOf(delta);assert(at>=0);assert.equal(candidateBytes.indexOf(delta,at+delta.length),-1);assert.deepEqual(Buffer.concat([candidateBytes.subarray(0,at),candidateBytes.subarray(at+delta.length)]),priorBytes);
  const marker=Buffer.from('export async function POST('),a=priorBytes.indexOf(marker),b=candidateBytes.indexOf(marker);assert(a>=0&&b>=0);assert.deepEqual(candidateBytes.subarray(b),priorBytes.subarray(a));
 });
-console.log(JSON.stringify({status:'PASS',groups:checks.length,checks,baseline,reduced,grownBaseline,baselineCommit:base,baselineHashes:baselineHashes(),network:false,handlerWrites:0,limits:['Synthetic storage work counts, not live latency','Exact existing #44 view/operation/restore permission deltas; composed Save/performance spans reverse to native #44 before historical proof; other response data and read boundaries retained','Unrelated records failure isolation deliberately differs; required records remain fail closed','No authority cache; exact per-actor identity-check deltas are pinned, including denied actors and three extra checks for an authorized restore preview']}));
+console.log(JSON.stringify({status:'PASS',groups:checks.length,checks,baseline,reduced,grownBaseline,baselineCommit:base,baselineHashes:baselineHashes(),network:false,handlerWrites:0,limits:['Synthetic storage work counts, not live latency','Exact #44 view/operation deltas plus independent platform review readers; new restore previews are retired; composed Save/performance spans reverse to native #44; other response data and read boundaries retained','Unrelated records failure isolation deliberately differs; required records remain fail closed','No authority cache; exact per-actor identity-check deltas include denied actors and two platform review readers; retired restores perform no preview authorization reads']}));
 }finally{db.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

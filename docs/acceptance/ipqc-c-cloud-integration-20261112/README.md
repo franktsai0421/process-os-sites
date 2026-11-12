@@ -33,4 +33,23 @@ No data migration, package replacement or real-account change is needed for thes
 
 ## Verification status
 
-Final local and remote evidence pending the pinned candidate checks. Preliminary tests must not substitute for the final source state. No test-site deployment or human acceptance has occurred.
+Local final product inputs match ab07ad80f1455ec49308bcca2bb8a96e116baf26 (tree dc81402ee2f55d8f5d79f706181ca4f0be5bb0c4); subsequent changes are tests, source-proof composition and evidence documentation only. They do not invalidate the successful typed lint/TypeScript/guarded build for those identical inputs.
+
+| Check | Evidence/status |
+| --- | --- |
+| C controller, permissions, readonly history, receipt/UNKNOWN, source proofs | PASS53 tests; original43 plus10 source-chain tests |
+| Shared no-poll, media and reporting contracts | PASS117 tests |
+| Begin/receipt contracts across modules | PASS103 tests |
+| Entry/cache/build contracts and cross-module Submit/pagehide fences | PASS100 tests; counts overlap and are not a combined coverage percentage |
+| Actual handler scripts | All24 concentrated command groups pass after focused follow-up. C permissions/history:7 groups/231 direct calls; comparison31 assertions, same-ID tombstone/references/ACL/CAS cases, fixed-snapshot lifecycle, projections, bounded reads and permission reads |
+| Shared approved-history helper | PASS13 groups, strict-C negatives plus default AB/PROCESS compatibility |
+| Native Chromium | PASS1440/390, Chinese/Vietnamese, local photo/gauge display, single atomic Save, silent navigation, lost ACK/404/no resend, group mine/theirs/cancel, peer changes during choice/upload/CAS, two approvals and same-page immutable history/return to draft |
+| Performance | PASS retained atomic benchmark:10 edits,11 CAS vs1, in-process median195.73ms vs18.84ms; this is the existing protocol comparison, not a new live improvement claim.1735-row current handler medians:local Save233.06ms,Submit264.21ms,withdraw202.49ms. Full-library Chromium profile and480x240 image decode passed; controlled waits/faults are included in UI timings. |
+| Source safety | PASS604 commits/5346 blobs/2016 worktree source files at ab07ad8; no real data opened or credential values returned. Final follow-up scan is required before upload. |
+| Clean clone | See final pre-upload verification receipt; source install/build only, no real data import or login/bootstrap |
+| GitHub CI | Evaluate the actual Draft PR checks at its current HEAD/merge tree. Local results do not establish remote success. |
+| Test site/human | NOT_RUN: no deployment, real two-person sessions, real IME, physical iPhone/cross-computer or current live Save/Submit latency acceptance |
+
+The first concentrated run exposed old expected contracts rather than hidden successes: the history-denial fixture now asserts the prior authorized clean draft remains selected and the denied version is absent; the native gauge fixture waits for completed readonly selection; fixed source pins are reached through the exact successor inverse; permission read counts include two independent platform-review readers and new restore previews return422 with no snapshot. Paired PROCESS readers use the same pinned ca664797 baseline as existing CI. Full original failures remain in private execution logs; follow-ups passed without removing cases, loosening budgets, changing old source hashes or altering product permissions to satisfy a test.
+
+No storage/schema migration or development-data package is changed. A clean source build does not imply employee-data initialization or Site acceptance. Screenshots are synthetic local evidence, kept outside public source; mobile viewport simulation is not a physical device.

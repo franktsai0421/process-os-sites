@@ -150,10 +150,10 @@ if(profile){
  mutations.length=0;await page.evaluate(()=>__localTest.edit());await page.locator('input[name="name"]').fill('Unsent scope edit');await page.locator('#ipqcc-editor button[type="submit"]').click();
  const scopeSnapshot=h.snapshot();let navigationDialogs=0;const rejectPrompt=dialog=>{navigationDialogs++;void dialog.dismiss();};page.on('dialog',rejectPrompt);
  await page.locator('#ipqcc-search').fill('');await page.locator('[data-ipqcc-product="C200"]').click();await page.locator('[data-ipqcc-product="C100"]').click();await page.locator('[data-ipqcc-stage="C-OTHER"]').click();await page.locator('[data-ipqcc-stage="C-CUT"]').click();page.off('dialog',rejectPrompt);
- if(evidence)await page.screenshot({path:require('node:path').join(evidence,'c-'+width+'-zh.png'),fullPage:true});
+ if(evidence)await page.screenshot({path:require('node:path').join(evidence,'c-'+width+'-zh.png'),fullPage:false});
  assert.equal(navigationDialogs,0);assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),0);assert.equal(mutations.length,0);assert.deepEqual(h.snapshot(),scopeSnapshot);
  await page.evaluate(()=>{document.documentElement.lang='vi';dispatchEvent(new CustomEvent('process-language-change',{detail:{language:'vi'}}));});assert.equal(await page.locator('#ipqcc-save').innerText(),'Lưu');
- if(evidence)await page.screenshot({path:require('node:path').join(evidence,'c-'+width+'-vi.png'),fullPage:true});
+ if(evidence)await page.screenshot({path:require('node:path').join(evidence,'c-'+width+'-vi.png'),fullPage:false});
  if(width===390){
  mutations.length=0;await page.evaluate(()=>__localTest.edit());await page.locator('input[name="name"]').fill('Recovered receipt');await page.locator('#ipqcc-editor button[type="submit"]').click();dropSave=true;
  const recoveryReadHeld=new Promise(resolve=>{notifyRecoveryRead=resolve;});holdRecoveryRead=true;receiptReads=0;
@@ -200,7 +200,7 @@ if(profile){
  await historyPage.locator('option[value="history:'+first.receipt.caseId+'"]').waitFor({state:'attached'});
  await historyPage.locator('#ipqcc-version').selectOption('history:'+first.receipt.caseId);
  await historyPage.waitForFunction(id=>__localTest.state().selectedVersionId===id,first.receipt.caseId);
- if(evidence)await historyPage.screenshot({path:require('node:path').join(evidence,'c-390-approved-history-zh.png'),fullPage:true});
+ if(evidence)await historyPage.screenshot({path:require('node:path').join(evidence,'c-390-approved-history-zh.png'),fullPage:false});
  assert.equal(await historyPage.locator('#ipqcc-save,#ipqcc-submit,[data-ipqcc-add],[data-ipqcc-edit-error],[data-ipqcc-edit-item]').count(),0,'approved history is readonly on the same page');
  assert.equal(await historyPage.evaluate(()=>__localTest.state().working),null);assert.equal(await historyPage.evaluate(()=>__localTest.state().localChanges.length),0);
  assert.equal(await historyPage.locator('[id*="restore"],[data-restore]').count(),0,'no history restore');assert.equal(mutations.length,0);assert.deepEqual(h.snapshot(),beforeHistory);

@@ -53,6 +53,29 @@ const initial={schemaVersion:1,activeVersionId:null,source:null,issues:[],reserv
  await send(flow,compare(flow.working,mine,flow.working).changes);flow=await state();check(flow.working.items[0].deleted,'gauge then delete actual handler succeeds without snapshot forgery');
  const optional=copy(flow.working);optional.items[1].notApplicableReason='Optional field';
  await send(flow,compare(flow.working,optional,flow.working).changes);flow=await state();check(flow.working.items[1].notApplicableReason==='Optional field','optional field remains guarded');
+ // Compose comparison choices with the real handler: a peer-added child is
+ // guarded and deleted only after explicit whole-group mine consent.
+ let groupBase=copy(flow.working),groupMine=copy(groupBase),groupPeer=copy(groupBase);
+ groupMine.errors[0].deleted=true;for(const row of groupMine.items)if(row.errorId==='e1')row.deleted=true;
+ groupPeer.items.push(item('local-peer-child-000001','e1'));
+ await send(flow,compare(groupBase,groupPeer,groupBase).changes);flow=await state();
+ let grouped=compare(groupBase,groupMine,flow.working);check(grouped.clashes.length===1,'actual peer child creates one group conflict');
+ check(compare(groupBase,groupMine,flow.working,Object.fromEntries(grouped.clashes.map(row=>[row.key,'theirs']))).changes.length===0,'whole-group theirs retains peer children');
+ const peerChild=flow.working.items.find(row=>row.errorId==='e1'&&!row.deleted);assert(peerChild&&!peerChild.id.startsWith('local-'));
+ grouped=compare(groupBase,groupMine,flow.working,Object.fromEntries(grouped.clashes.map(row=>[row.key,'mine'])));await send(flow,grouped.changes);flow=await state();
+ check(flow.working.errors[0].deleted&&flow.working.items.find(row=>row.id===peerChild.id).deleted,'consented cascade deletes peer child and preserves its original ID');
+ // Peer tombstones the other group. Mine revives only the required same IDs,
+ // with retained identity/relationships rather than an old snapshot replacement.
+ groupBase=copy(flow.working);groupMine=copy(groupBase);groupPeer=copy(groupBase);
+ groupMine.errors[1].name='Original-ID mine';groupMine.items.find(row=>row.id==='i2').note='Retained child mine';
+ groupPeer.errors[1].deleted=true;for(const row of groupPeer.items)if(row.errorId==='e2')row.deleted=true;
+ await send(flow,compare(groupBase,groupPeer,groupBase).changes);flow=await state();
+ grouped=compare(groupBase,groupMine,flow.working);check(grouped.clashes.length===1,'deleted parent/child is one conflict group');
+ grouped=compare(groupBase,groupMine,flow.working,Object.fromEntries(grouped.clashes.map(row=>[row.key,'mine'])));
+ await send(flow,grouped.changes);flow=await state();
+ check(flow.working.errors.find(row=>row.id==='e2').name==='Original-ID mine'&&!flow.working.errors.find(row=>row.id==='e2').deleted,'same parent ID revived');
+ const revived=flow.working.items.find(row=>row.id==='i2');check(!revived.deleted&&revived.errorId==='e2'&&revived.note==='Retained child mine','same child ID/relation revived with mine content');
+ check(flow.working.items.find(row=>row.id===peerChild.id).deleted,'unrelated deleted group stays deleted');
  const pending=await h.command('ipqc-c','submit',{savedId:flow.saved.id,reason:'Synthetic'},'editor');
  const locked=h.snapshot();await send(await state(),[],'editor',409);assert.deepEqual(h.snapshot(),locked);
  await h.command('ipqc-c','withdraw',{caseId:pending.receipt.caseId,reason:'Synthetic'},'editor');

@@ -1,0 +1,210 @@
+{
+  "productCommit": "ab07ad80f1455ec49308bcca2bb8a96e116baf26",
+  "localCommandGroups": [
+    {
+      "command": [
+        "node",
+        "--test",
+        "tests/ipqc-c-integration-source-contract.test.cjs",
+        "tests/ipqc-c-read-io-source-contract.test.mjs",
+        "tests/ipqc-c-operation-admission.test.cjs",
+        "tests/multiuser-ipqc-c-local-recovery-actual-stack.test.mjs",
+        "tests/ipqc-c-local-save-rejection.test.mjs",
+        "tests/ipqc-c-case-comparison.test.mjs",
+        "tests/ipqc-c-equipment-display.test.mjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "--test",
+        "tests/bounded-media-loading.test.mjs",
+        "tests/access-event-main-integration.test.cjs",
+        "tests/global-background-checks.test.mjs",
+        "tests/background-check-source-proof.test.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "--test",
+        "tests/workflow-begin-contract.test.cjs",
+        "tests/workflow-begin-receipt.test.cjs",
+        "tests/shared-draft-begin-v1.test.mjs",
+        "tests/module-begin-recovery.test.mjs",
+        "tests/iqc-begin-generation.test.mjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-compare-save.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-tombstone-revival.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-operation-permissions.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-local-save.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-local-gauge-browser.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-read-recovery.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-coverage-parity.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-entry-apply.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-submit-coverage.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-save-boundary.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-create-mutation.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-save-projection-server.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-save-projection-client.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-bounded-read.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-permissions-read.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-local-read-io.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-approved-history-evidence.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-workflow-begin-old-server.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-process-ipqc-c-query.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-process-ipqc-choice-read.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-process-ipqc-choice-dom.cjs"
+      ],
+      "status": "PASS"
+    }
+  ],
+  "nodeTestGroups": [
+    53,
+    117,
+    103,
+    100
+  ],
+  "comparisonAssertions": 31,
+  "permissionHandlerCalls": 231,
+  "approvedHistoryGroups": 13,
+  "performance": {
+    "syntheticRows": 1735,
+    "localSaveMedianMs": 233.06,
+    "submitMedianMs": 264.21,
+    "withdrawMedianMs": 202.49,
+    "environment": "in-process SQLite/in-memory R2; no remote latency"
+  },
+  "liveSite": "NOT_RUN",
+  "humanAcceptance": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "cleanClone": "PENDING",
+  "githubCI": "See PR current checks"
+}

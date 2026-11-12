@@ -158,7 +158,7 @@ void test('same-page approved history is read-only, draft return rereads rights,
  const f=fixture({permissions:perms({edit:true,save:true,history:true})});await f.hydrate();f.setModal();
  await f.ui.selectPageVersion('approved-c');assert.equal(f.state().selectedVersionId,'approved-c');assert.equal(f.state().working,null);assert.equal(f.state().modal,null);assert.equal(f.ui.editing(),false);assert.equal(f.mutations().length,0);
  await f.ui.selectPageVersion('draft-c');assert.equal(f.state().selectedVersionId,'draft-c');assert.equal(f.ui.editing(),true);assert.equal(f.mutations().length,0);
- f.setCaps(perms({edit:true,save:true,history:false}));await f.ui.selectPageVersion('approved-denied');assert.equal(f.state().message,'FORBIDDEN');assert.equal(f.ui.editing(),false);assert.equal(f.mutations().length,0);
+ f.setCaps(perms({edit:true,save:true,history:false}));await f.ui.selectPageVersion('approved-denied');assert.equal(f.state().message,'FORBIDDEN');assert.equal(f.state().selectedVersionId,'draft-c','failed history selection retains the prior authorized page');assert.equal(f.ui.editing(),true,'fresh view/edit rights still allow the clean current draft');assert(!f.state().control.versions.some(row=>row.id==='approved-denied'));assert.equal(f.mutations().length,0);
 });
 
 void test('401 and 403 permission refresh fail closed without discarding unsaved input or unknown receipt',async()=>{
