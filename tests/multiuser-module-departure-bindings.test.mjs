@@ -17,7 +17,7 @@ function stageAB(box,key='A:G'){const base=structuredClone(box.flow().working),s
 function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
  const source=fs.readFileSync(`public/process/${name}.js`,'utf8');
  const ast=ts.createSourceFile(name+'.js',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);let config;
- function visit(node){if(ts.isCallExpression(node)&&node.expression.getText(ast)===(name==='routine-equipment'?'equipmentDeparture':'window.VersionDraftUI.createDeparture')){assert.equal(config,undefined,'one departure factory per module');config=node.arguments[0].getText(ast);}ts.forEachChild(node,visit);}
+ function visit(node){if(ts.isCallExpression(node)&&node.expression.getText(ast)===(name==='routine-equipment'?'equipmentDeparture':name==='routine-fqc'?'routineDeparture':'window.VersionDraftUI.createDeparture')){assert.equal(config,undefined,'one departure factory per module');config=node.arguments[0].getText(ast);}ts.forEachChild(node,visit);}
  visit(ast);assert(config,name+' departure config');
  let writes=0,unknown=false,failed=false,allowed=true;
  const identity={id:'user'},root={isConnected:true,inert:false,dataset:{activeTab:name},querySelector:()=>null,querySelectorAll:()=>[]};
@@ -85,8 +85,11 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
   vm.runInNewContext(sourceBlock(source,'  function equipmentDeparture(config){','  let navigationError='),box);
  }
  vm.createContext(box);vm.runInContext(helper.replaceAll('host.','window.')+'\nwindow.VersionDraftUI.createDeparture=createDeparture;',box);
- if(name==='routine-fqc')vm.runInContext(source.slice(source.indexOf('  const departureSharedOwned='),source.indexOf('  window.RoutineFQCUI =')),box);
- const adapter=vm.runInContext((name==='routine-equipment'?'equipmentDeparture':'window.VersionDraftUI.createDeparture')+'('+config+')',box);
+ if(name==='routine-fqc'){
+  Object.assign(box,{receiptInvalid:false,receiptRecord:null,receiptSuspended:false,receiptLifecycle:0});
+  vm.runInContext(sourceBlock(source,'  let historyDisplayEpoch=','  function retireApprovedHistory(')+sourceDeclaration(ast,'routineDeparture')+source.slice(source.indexOf('  const departureSharedOwned='),source.indexOf('  window.RoutineFQCUI =')),box);
+ }
+ const adapter=vm.runInContext((name==='routine-equipment'?'equipmentDeparture':name==='routine-fqc'?'routineDeparture':'window.VersionDraftUI.createDeparture')+'('+config+')',box);
  return {adapter,box,flow:f,get writes(){return writes;},unknown:value=>unknown=value,failed:value=>failed=value,allowed:value=>{allowed=value;box.data.permissions={save:value,edit:value};}};
 }
 for(const name of decisionModules){

@@ -1,0 +1,166 @@
+## Local continuation after published 22567b26
+
+The exact four-file legacy test correction is published; the independent-page, Routine and review-policy integration is currently local. [Current implementation, explicit pre-adoption line ACL effect, tests and remaining gates](../../AI_CONTEXT/ACCOUNT_PERMISSION_INTEGRATION_LOCAL.md) is the continuation source. The concrete local proposal was applied once after owner confirmation. This does not activate real flags or authorize publishing the larger candidate under the four-file approval. Original UNKNOWN-32 remains unresolved and untouched. Earlier head/build/CI results below retain their original scope.
+
+# 帳號與權限獨立整合（2026-11-10）
+
+以 main `9fbba823090f03da8385c8d92f5e59293d19d2f1` 為基底，工作分支 `codex/accounts-permissions-cleanup-20261110`。從已關閉、未合併的 #102 `55d4672cb8004d0b01715714cbc91fbce6b22d2b` 逐項抽取帳號相關成果；沒有合入整包草稿架構。這是帳號優先的小範圍候選，不能表示所有模組／草稿審核權限已完成。
+
+## 修改、風險與驗證
+
+| 範圍 | 變更與保護 | 驗證及限制 |
+| --- | --- | --- |
+| 登入與既有人員排查 | 保留 exact legacy/Unicode/空白密碼；格式異常 fail closed；對匿名失敗統一回應；服務端只記固定原因碼。可重設目標的管理者才得到 credentialState，無 password/hash/salt | 實際 TS handlers + 隔離 SQLite/Map R2；不以相同角色推定密碼相同；沒有讀取或修改 phung 等真帳號，根因及實站仍未驗收 |
+| 管理者重設／本人改密碼 | 管理者重設他人不要求目標原密碼；所有本人變更包含 Frank 均驗證原密碼；輸入型別與長度檢查；crypto 故障在寫入前回明確 503；維持 scrypt 參數與 authEpoch | 新密碼可登入、舊密碼／舊 session 失效，停用者重設不自動啟用；crypto 隔離故障零帳號/audit/archive 修改 |
+| 人員與角色操作 | 提交前 fresh GET 比較 actor/target；保存、讀回、相符後才顯示持續成功提示；保存中鎖定控制與離頁；角色／個別權限繼承、主要／同級保護保留 | 新增／編輯／角色模板／個別權限、啟停、刪除、角色 CAS 及 caller/target session 的來源測試；授權不超過操作者 |
+| 刪除代碼與歷史 | 沿用 tombstone、保留 ID 和業務引用；確認視窗明示代碼不能重建；沒有恢復／重用新功能 | 隔離 fixture：刪除隱藏清單、不允許同 ID 重建、歷史不變；沒有資料移轉或刪除歷史 |
+| 操作結果、雙語及版面 | 區分未送出、已拒絕、回覆成功但未讀回、UNKNOWN；UNKNOWN 不重 POST，僅允許 GET-only 核對。中／越文跟隨目前頁語言；驗證錯誤與操作結果分開；延用 main 已合入 #92 的矩陣及手機版面 | 66 定向測試；原生畫面、真 IME、實體手機及實站兩人驗收 NOT_RUN。這次只新增驗證訊息共用版面，不聲稱原生版面全通過 |
+
+## 舊分支盤點及保全
+
+逐層比較 cloud 分支的真正 base/head，沒有把每條 branch 都盲合到 main。精確分支與 SHA 在 [branch inventory](account-permissions-branch-inventory-20261110.json)。
+
+- `cloud/users-permissions-29102026`：帳號、角色及明確權限基礎；IQC/FQC/IPQC/檢具/線別/發送分支：各頁既有權限與 legacy writer 保護；review-polish：雙語；verified/layout：驗收及矩陣展開。
+- 遠端 cloud 最上層 `e6abe5d96fb413f884541504e72d71a033514b6f` 的 app/lib/public/scripts/tests **1,046 個 blob** 與 main 祖先 source-only import `7f5bb72c4e81995b58b41ac61bcdffe6f62ef08d` 全部相同，差異零；因此這批程式早已保存在 main 及本分支。舊截圖與歷史文件仍保存在原 branch，不能因 Git ancestry diverged 就重合或刪掉。
+- `fix/users-permissions-source-only-20261029` `4c44eca`、`fix/role-template-layout-20261106` `200dc03` 均為 main 祖先，既有成果已保留。
+- `codex/login-performance-20261101` `f0532fe` 有獨有 CSS 掃描範圍、量測與測試，並未修正密碼驗證；讀取其說明及差異後留待獨立處理，不混入帳號正確性修復。
+- #101 `8f1f243` 是畫布計數；#102 含大量草稿／其他模組成果。兩者保持關閉、不刪分支。
+- **未刪除任何分支。** 新 PR 驗證後，逐條核對完整內容、可復原位置及當次確切刪除授權，才提出清理清單。
+
+## 驗證收據（Linux／Node 24.22.1，隔離來源）
+
+PASS：66 個新定向測試；既有 user-access 51 個斷言群、projection 140 人次、角色有效授權/session、搜尋取消、同身分回應 fence、initial read、login marker 11 群、reentry 24 群、JSON coercion 47 案例；各組有重疊，不相加為覆蓋率。lint 無 findings；TypeScript 非增量檢查通過。安全 build 回 exit 0，postbuild auth 檢查通過。build 的 PROCESS_PROGRAM_COMMIT 指向基底 main，驗證的是本次未提交候選工作樹，不能稱 exact-head build。
+
+重用 #102 過去 compiled 帳密 CI 只能作相容參考，沒有用它代替本分支驗收。新增獨立帳號 CI，遠端狀態以 PR 最新 head 為準。
+
+NOT_RUN：真人帳號、原生瀏覽器／cookie、IME、實體手機、實站兩人及端到端延遲。沿用已知原生 socket 限制，沒有重試或換路。新資料表／schema／資料包／真帳號移轉：不適用。未合併、未部署、未重開 #101/#102。
+
+## 原 UNKNOWN 操作與本次上傳界線
+
+原 32 檔 create_tree `5005cba09d970cec70334d6bd540db1b599858d2` 仍 UNKNOWN；原 staged patch SHA256 `279f030c238c919f9fb8585946a03f7f353436cda9e48eb98168888ba75d0912` 已只讀核對，沒有重送、拆分或換通道。
+
+本次是從 main 抽出的帳號變更。與原 32 檔只有公共入口 `public/process/index.html` 和 CHANGELOG 路徑相交：入口僅更新三個帳號資源 tag；CHANGELOG 僅加入這份帳號紀錄。原 UNKNOWN 的產品修復、測試、workflow 與其歷史內容均不帶入；其餘原 32 檔保持 main。這不是該舊操作的補傳。
+
+## 尚需協調
+
+新的逐頁草稿邊界、查看／編輯／Save 權限政策、模組送審／撤回與版本平台最終核准分離，與 #102 的 page-v1 架構相依；本 PR 不啟用政策標記、不授予真帳號高階權限、不移除既有 restore 格或實作恢復。需要另立有完整相依與逐頁驗收的整合，不能宣稱本帳號 PR 已完成全站權限切換。
+
+## Local safety CI follow-up: status regions and composed source evidence
+
+Read the complete #103 f6081ea Local safety run 42802175203/job 129782242429. Step 9 failed at the unchanged role fixture's capturePayload assertion: fresh account prewrite GET displayed a pending message in .ua-error before POST had occurred. The corresponding step 9 on #104 e6a6472/run 42804470301/job 129789989411 passed. This identifies an account UI status/alert regression, not a reason to bypass the fresh read or relax the payload assertion.
+
+The product now has a separate .ua-progress status/live region. Error alerts remain empty during the prewrite and pending POST, become visible for actual failures, and retain UNKNOWN/readback recovery protections. Both languages are covered with held prewrite and POST responses, zero premature writes, double-submit blocking and disabled-control restoration. The role browser test and all original UNKNOWN-32 repair paths remain unchanged except this branch's already independent account index/CHANGELOG content; no original request is retried.
+
+Step 31 failed because the exact background source proof expected the original main index hash 41474215..., while the account-only cache layer yielded 54601dc7.... The fix follows #104's explicit source-layer composition pattern, using an account-only helper rather than importing its process count code. It retains the original background contracts and hashes, and reconstructs genuine main 9fbba823 bytes before the unchanged d4ac309 background inverse. The historical published f6081ea index blob and current status-region cache layer each have pinned raw hashes, lengths, offsets and spans. Partial/duplicate tags, wrong paths, nonraw inputs and any unrelated drift are rejected. Routine now uses this same exact layer instead of its earlier ad hoc tag replacement.
+
+Data-model/schema/business data: unchanged. No real account, merge, deployment, original UNKNOWN retry, guard relaxation or native executor retry. Local deterministic and source checks are recorded with the follow-up commit; final remote step 9/31 outcomes must be reported separately.
+
+## 2026-11-10 擴充需求核對與本批結果
+
+這節取代上文「所有查看／編輯／Save 政策均未納入」的概括限制；原帳號抽取及 CI 根因證據仍保留。已完成和未完成分開驗收，不能以本次帳號 PR 宣稱整個 page-v1 遷移完成。
+
+| Frank 新要求 | 本 PR 已納入 | 未完成／相依 |
+| --- | --- | --- |
+| 角色範本、詳細設定、中越文、訊息時間、桌機與手機 | 保留既有響應式矩陣、展開其他權限、角色來源／例外／依賴摘要；新增「修改包含保存」、固定回報查看、篩選不切 scope 說明。成功／失敗／UNKNOWN 均不靠短暫 toast 判定，操作結果持續保留；pending 使用獨立 status | f1ecc 的原生 role layout/payload 步驟通過，中越文 × 1440/1024/768/390/320；本批新文字仍須最新 head CI 重驗，不代表實體手機／IME 或實站驗收 |
+| 逐頁 view/edit/save/submit/withdraw、前後端一致 | 27 個矩陣項目、24 個獨立目的地逐頁檢查；10 個已有原子保存的模組將既有後端 Edit→Save 結果同步至共同 resolver、帳號投影及角色／個別設定預覽。原始 Save=false 不被改寫，撤掉 Edit 後仍按原 Save 值；Save 可獨立授予，沒有自動補 view、submit 或 approve。無功能格保留 —；框架頁只提供現有 view，不新增空操作格。同頁 line/group/stage 參數不產生新權限 | lines 使用 AB/C 共用流程；只有 lines.view 的目的地可進、AB API 403，是尚未建立獨立頁面資料邊界的缺口。editor 為 process:platform，routine 多文件 scope；不將這三者假裝切成獨立頁草稿或擴大底層資料可見性 |
+| 模組送審／撤回 vs 平台最終核准、舊 reviewer 映射、發回規則、已核准不可撤回 | 保留現行固定案件、pending、理由、世代、CAS 與收據，另驗證核心核准後不可撤回、發回／撤回已終結案件不可再審 | **新分離政策未啟用。** main 缺少 #102 的完整 page-v1 scope/adapter 與可信主要管理員最終核准授權證據鏈；legacy approval.approve/reject 仍沿用舊解析。因此舊模組 reviewer 仍可能得到目前核准能力，不能宣稱已解決。須與 13 頁邊界及平台入口一起整合，不能僅重命名勾選格、清掉舊值或自動授予最終核准 |
+| 有效帳號查看錯誤回報；操作／匯出依權限；原圖／封存不越權 | feedback.view 固定給已啟用、未刪除、有效角色的登入帳號，矩陣為唯讀；停用／刪除／未知角色／匿名仍拒絕。新增帳號選單入口，沿既有 delivery coordinator；嚴格 feature flag 維持不變。feedback-only 不衍生泛用 view:data，避免打開其他業務 API。編輯／create／exchange 與現行 admin-only 限制保留。原圖須來源模組查看及原始 access envelope，普通 ADMIN 也不能繞過。歷史與兩種 ZIP 全部核對每筆案件與圖片來源；混合歷史不能透過重新匯出洩漏其他案件。未授權歷史隱藏並顯示雙語提示；下載前後 fresh 授權、雜湊及大小校驗 | 不改真實帳號、不啟用 WEB_FEEDBACK_ENABLED 或 access-event 功能旗標。主要管理員的既有全權身分保留；缺少 access envelope 的舊原圖只由有效主要管理員讀取。原匯出收據可回最小相同結果供未知操作追查，但原圖／ZIP 每次另驗目前授權，不藉重送產生新檔 |
+
+10 個 Edit→Save 對齊模組：AB、C、流程資料（templates）、BOM、FQC、IQC、IPQC-AB、IPQC-C、模具設備（tooling）、檢具與測試設備（equipment）。這是將產品已存在的原子 Save 判定如實顯示，不修改真帳號或持久 ACL。新增依賴仍拒絕、舊不一致值不批次覆寫。
+
+### 本批隔離證據與接受界線
+
+- 修改前同一稽核：648 cells 一致，108 組 workflow metadata 中 38 處 Save 配置／API 落差。修改後：161 次合成帳號設定、283 次 API、648 cells、24 目的地、108 workflow metadata 全一致；11 個撤權舊 session 均拒絕。另核對 dispatch view-only 寫入 403 且零修改、IPQC-C 不因 approval.view 跨頁開放。這不是每個業務 action 的完整端到端驗收。
+- 新增 policy／實際角色事件／帳號入口／原圖／兩種封存／混合歷史／下載中途撤權／收據保護測試；既有回報 API（72 項）、嚴格 bootstrap、access-event 的私密投影及 CAS 回歸一起執行。匿名、停用、普通使用者操作及越權圖片／ZIP 均有負向驗證，未放寬測試斷言來通過。
+- 保留 69 個帳密／操作結果定向測試、原 49 個 exact source/navigation 檢查；新快取層另增加第 3 個 exact raw-byte inverse 變體，原 main/hash、舊兩個 account 變體和 background inverse 不變。所有新版 JS 入口鏈一致更新，無背景自動重送。
+- lint、非增量 TypeScript、安全 build 與 preflight 按最新提交執行；最新 CI 狀態另以 GitHub head/run 為準。真人帳號（含 phung）、實站、cookie 實際重登入、實體手機及 IME 仍未驗收；沒有另啟本機原生 executor 繞過限制。
+
+儲存模型／schema／migration／業務資料：無變更。衍生權限有兩項明確變更：有效帳號固定 feedback.view；10 個現有原子流程 Edit 包含 Save。未導入 #102 草稿架構、最終核准授權證據、#104 製程計數、原 UNKNOWN 32 檔修復或任何真帳號設定；原 UNKNOWN 操作保持未定、不重送、不拆分。
+
+與 #104 的共同入口只有各自獨立的 index 快取層及來源證明需語意合成；合併整合時須保留兩邊精確 layer，不能以一邊 index／hash 覆蓋另一邊。此 PR 未變更 process app/master/version draft 產品檔，也未帶入 #104 的製程計數。
+
+## 8c06cb8 CI 相容修正（產品授權不放寬）
+
+已完整讀取 Feedback run 42816052697/job 129829311437、AB C run 42816052695/job 129829312166、PROCESS run 42816052839/job 129829312049 的終態日誌。Account permissions 42816052670 已成功；這不抵銷其他 workflow 的失敗。舊 f1ecc 的 Local safety 因新提交取消，step 29 未完成、31 未跑，僅可引用已完成的 role step 9。
+
+- Feedback 舊案例同時缺案件來源 dashboard.view 與原圖捕捉範圍 bom.view，新增產品來源閘門正確先拒絕 EXPORT_SOURCE_PERMISSION_REQUIRED。保留此產品規則及錯誤碼；現在先驗含圖／不含圖均不得越過案件來源，再只授予來源頁查看、保留原圖範圍缺權限，驗證 EXPORT_IMAGE_PERMISSION_REQUIRED。來源合法時明確排除圖片的安全預覽仍 200，無 locator/context 私密原值、無 R2 寫入。不是單改預期錯誤碼或讓無圖片匯出繞過來源授權。
+- AB/PROCESS 的 172 列歷史矩陣還原把新 effective Save 當成原始 Save，因此沒有真正反轉 Edit→Save。修正只從同一 production policy 的 basePermissionCells 取原始 Save；保留原始完整 digest a80751bb12f51ef0685bc05a1ee12c6989dbb425abafe3e948d2136143ed3633、每列 DTO／無 DTO 拒絕及零寫入斷言，沒有改 hash 或 route 權限。
+- 額外核對既有 access-template 性能／來源證明：新增兩個權限檔的精確 raw-byte account inverse，還原 genuine main 9fbba823 後再進原 PR44 六個 span。原契約/hash 與 session/identity/revocation 保護不動，新增位移、錯路徑、重複／部分／外部 bytes 變異拒絕。歷史性能比較只扣掉已禁止的 feedback-only 泛用 data 別名，其餘完整物件相等、4→2 次同一請求角色解析、114 組比較及跨請求撤權仍必須通過。
+- 更新合成 import-pending fixture 的唯一 policy import 為此次真快取版本，保留 unknown module 拒絕；15 個啟動／身分／讀取順序場景通過。
+
+本機已重跑三個失敗 CI 的完整受影響 source test 命令（AB/PROCESS 合併一組、Feedback 一組）均 exit 0；55 個根因定向測試、3 個權限來源 inverse 測試及性能 reuse 通過。最新 head 的遠端 CI 仍以其獨立結果為準，不能稱取消／尚未執行的原生步驟通過。此輪只改測試、精確來源證明及 CI；產品權限／原圖／封存保護保持 8c06cb8。
+
+## 6f2bf38 原生員工回報入口修正
+
+Feedback 42817524858/job 129834291274 的 293 項來源測試、schema、API、build 均通過；原生第六階段在員工登入後等待 .wf-row 逾時，前五個階段均通過。原因是 feedback-only 帳號已不再取得泛用 views:data，但 dual-system 舊的 data shell 仍只看這個泛用別名，所以 API 可讀、列表畫面卻無法進入。
+
+產品只為目前已驗證的 data:web-feedback delivery 放行 data 畫面容器：protected/projected、目前身分相符、有效帳號、feature flag、feedback.view、目的地 view/tab/module/key 全部相符，且無 expired/requiresReload。沒有改 API view:data、currentUser.views、其他頁面、圖片／封存／private notes 或寫入權限。測試涵蓋正常入口及逐項身分／目的地／旗標／失效反例；既有 bootstrap 仍驗 feedback-only 的泛用 data API 權限為 false。原生案例、逾時與拒絕斷言均不改，等待新 head CI 驗證。
+
+## Editor／Routine Save 獨立續作
+
+進一步讀取既有 route 後確認：將修改包含 Save 套用在已安裝的 process:platform 與 routine-fqc:<documentId> 交易，不必先切換 page-v1 或全頁草稿。先前把這項 Save 語意整項列為邊界相依過於概括，本批已補做；共用 resolver 的適用範圍由 10 個增至 12 個模組。沒有改任何草稿 ownership、pending、案件、scope、資料或 real account ACL。
+
+實際 authoring／routine HTTP handlers 以合成登入及 inline／records-v1 驗證：Edit=true、原始 Save=false 仍可保存；僅 Save=true、Edit=false 亦可保存目前共享內容；成功重播不重寫，收回實際授權後新 Save 及原 Save POST 重播均 403；submit/withdraw/approve/return/create/delete 不因 Save 變為允許；其他 sentinel 與原始 ACL 保留。這些是現有交易的保存權限驗收，不是 whole-page cutover 驗收。保留舊 policy/index exact hash 為歷史層，新後繼仍逐 span 還原 genuine main，原 PR44 矩陣及來源證據不變。
+
+仍需整合的是：線別頁需把 AB/C 的 products/catalog 與 lines/stages 從同一 legacy aggregate 分出權威；routine 的多文件草稿若要改為整頁一份，需另處理固定案件、原收據及既有引用。editor 本來就是 process:platform，不需為同頁線別／工段再分可見範圍。版本平台最終核准分離仍另行盤點，不以本 Save 續作當完成。
+
+
+## 線別獨立查看與 AB/C 保存讀回續作
+
+只有 lines.view、沒有 ab.view/c.view 的帳號，現在使用既有已驗證 bootstrap runtime catalog 顯示全部已核准線別／工段。main 的 line-admin read plan 本來就提供這項唯讀依賴；不新增 AB/C API 權限，不讀工作中 products、不建立草稿，不提供新增／修改／保存控制。身分、目的地、權限、catalog 格式或載入範圍不符時顯示核對失敗，不能假裝空白即正式資料。中越文與窄螢幕卡片已加入；12 個實際 selector／bootstrap／拒絕測試通過。新增 compiled Chromium 案例由 GitHub Account permissions 執行，涵蓋正常登入、1365/390/320、中越文、AB/C 403 與零業務修改；本機未跑原生瀏覽器，尚待該 head CI。這補完獨立查看，線別編輯仍共用 AB/C legacy aggregate，不能宣稱 lines 專屬寫入邊界已完成。
+
+fda9122f 的 Feedback workflow 已由 parent 確認全套成功。AB C run 42821504084/job 129847898721 後段 C group and product routes 保存後仍為 RESULT_UNKNOWN_CHECK_BEFORE_RETRY；原 fixture 已清理，不能重送原 POST 或臆測已拒絕。本批只在現有失敗 catch 增加同一 ephemeral fixture 的唯讀 original operation／receipt、HTTP status、working/saved hash 與語意相等診斷，不改等待條件、逾時、斷言或呼叫 recovery。
+
+另以實際 AB/C bridge、shared transport 與 HTTP handlers 重現：相同 JSON 內容只改物件鍵順序，既有 masterSaveReadback 的 JSON.stringify 比較會誤鎖 UNKNOWN。改用檔案內既有遞迴 JSON 比較函式，仍完整比對 key、值、型別、陣列順序；opid、世代、版本、savedId、最新查看權限及 ownership 條件全部保留。AB/C × 正常／遺失 ACK 四個正向案例，及值／型別／缺 key／陣列反序八個負向案例均通過：每次只有原始一個 POST；真正不同時保留原 operation marker，第二次 Save 拒絕且零重送。這是獨立可重現的讀回缺陷，**尚不能認定就是已清理 C 原生案例的根因**，需最新 CI 診斷驗證。
+
+來源證明新增 shared-draft-client 單一比較 expression 的精確 inverse；保留 genuine main、所有既有 account/policy/cache 變體與 background hashes，先精確移除此獨立 layer 再檢查既有 predecessor。原 UNKNOWN-32 補丁未套用／重送；shared-draft-client、master-data、新 AB/C browser 診斷均非原 32 檔操作內容。與 #104 共用 index、navigation pins、background proof、HANDOFF，後續需語意合成；不整檔覆蓋。
+
+## 最終核准與剩餘草稿邊界：實際依賴盤點
+
+- main 的 app/api/user-access/route.ts 已有 schemaVersion 2、primaryAdminId 與 actor/action/target/before/after 稽核。缺的是可信最終核准來源證據的驗證／撤權策略及每個前後端入口執行，不能說資料模型完全沒有稽核，也不能直接把歷史 reviewer 當新的主要管理員明確授權。
+- lib/delivery-read-plan.mjs 的 identityKeys 目前不含 processAccessControl。若啟用依賴稽核的 policy，bootstrap、權限讀取與交易端必須取得一致且新鮮的證據，否則同帳號可能前後端判斷分歧；不可只在 account UI 改勾選。
+- #102 55d4672 的 draft-review-policy.mjs 有 createDraftReviewPolicy、draftReviewReceiptAllowed、routinePageReceiptAllowed 定義；git grep 顯示這三個名稱沒有其他 production consumer。舊成果是候選工具，不能整包當作已完成的執行保護。其 lib/user-access.ts 也只在 draftReviewPolicy=page-v1 時啟用新語意。
+- 舊 page-v1 registry 涵蓋 13 頁。editor 現有 process:platform 已是整頁交易，12 模組 Edit→Save 已獨立補完；routine 仍是 routine-fqc:<documentId>，整頁 routine-fqc:page endpoint 尚未安裝。AB/C/lines 的 master:AB.catalog、master:C.catalog、master:LINES pages route／adapter 尚未安裝；main 刻意拒絕 inactive split selector，須保留。
+- 線別獨立寫入需 master-page-boundary／master-line-page-workflow、原版本與案件引用、草稿命名／收據兼容，以及實際 master UI adapter 一起落地；routine 整頁需舊文件 ownership、固定案件與原收據保留。直接搬舊 app/master-admin/version-draft 大包亦會碰原 UNKNOWN-32 操作與其他未完成功能，不能以本次小批次繞過。
+
+因此本 PR 尚未完成 legacy reviewer→僅送審撤回、平台最終核准明確授權與全入口一致執行；既有已核准不可撤回等保護持續保留。這是待整合的功能依賴，並非已獲准改動真帳號、清掉舊 ACL 或重送 UNKNOWN。
+
+
+## 72dfacf5 來源契約續修（不變更產品授權）
+
+parent 讀取 AB C 42826165045/job 129863906955、PROCESS 42826164830/job 129863906358 與 Feedback 42826164805/job 129863905136 終態日誌；本機重現相同兩個失敗：shared-draft-receipt-recovery 仍釘住 shared client 舊 tag，與 master-data 線別唯讀增量未納入歷史安全來源的精確還原。相同測試還有 master-data 的舊 tag，已一併對齊實際入口，保留每項引用恰好一次的斷言。
+
+- 原 master-data 基準 64760 bytes、SHA256 79dd392e82f176a7ee2ae4c73b0fc71068b4fdb70b285e2b8fa0df7f94faf470，與 genuine main 9fbba823 及歷史 bad0463 相同。新版 66669 bytes、cedfd7a7b9bac1cc121f2d12bef84a989bc86c4d222cbfabab0576daf7bba5f5；新增三個 positioned raw-byte inverse spans，只還原先前已授權的 approvedLinesOnly／selector／語言刷新增量，完整原 pin 不變。
+- reporting composition 對這個檔案必須先通過精確 successor 契約，再進原歷史證明。新增整檔 rollback、inverse 重複套用、錯路徑、非 Buffer、EOL 漂移、缺失／重複／移動 span、查看權／身分／目的地／catalog／escape 條件變更，以及契約 offset／span／length／predecessor hash 損壞的拒絕測試。原其他安全 bytes、UNKNOWN／receipt／ownership 保護與負向案例保留，不靠換 hash 或略過比較通過。
+- Feedback paths 納入 master-data 與 account proof 的所有新依賴；checkout 取得 history 供真正 git preimage 核對，停用持久憑證。Account permissions 也納入這兩個完整來源測試，避免只跑新專用 proof 漏掉既有 reporting／cache gates。
+- 147 項定向契約／收據／導覽檢查通過；AB C／PROCESS 失敗來源 step 的完整合併命令，以及 Feedback 失敗 step 的完整來源命令均 exit 0。這一批只改測試、test-only source evidence、CI 與文件，產品 JS／API／權限及資料模型完全維持 72dfacf5；此前精確 product tree 的安全 build 通過仍有效，不另做無意義產品重建。
+
+parent 已確認 72dfacf5 Account permissions 與 IPQC C 成功，包含新增 lines-only 原生案例；AB C／PROCESS／Feedback 此次來源 gate 修正後仍須新 head CI，不可宣稱原生 C 後段已通過。Local safety 該次尚在執行；舊 fda Local 已取消，不算成功。role 原生 15 個 payload／雙語／角色保護案例已過，但 before screenshot 的 baseline is not defined 限制仍需如實保留。未重送原 UNKNOWN-32，也沒有合併、部署或真帳號操作。
+
+
+## a9b33d83 Local safety 根因與續修
+
+已核對終態日誌 SHA256 054ad1b997a0277555235eca3d87985b94b38e5d43f0ca8b17bae858f3ec308b（run 42827633128/job 129869038851）。七套為五成功、一 Local safety 失敗、一 PR87 專用 diagnostic 跳過；AB C、PROCESS、Feedback 的完整原生 workflow 已成功，包含原 C group/product routes。Local safety 只有 step9 與 step31 失敗；step15 已完成。14:09:59→14:29:34 的 1175 秒沉默發生在來源負向 fixture proof，最終明確 PASS，不能據沉默推斷掛住或成功；未取消或重跑舊 job。
+
+### 個別權限 reset 的產品錯誤
+
+role browser 把 pageerror 累積到最後 assert(errors=[]), 因而顯示在 before screenshots 結尾；實際錯誤是當前 user-access.js 的 editUser.set(null) 仍呼叫已移除的 baseline()。用實際 editUser 及 click handler 重現：九個新場景中八個發生同樣 ReferenceError，未允許更動的單格仍被原閘門拒絕。產品只移除那個已過時的中間賦值，原本緊接的 effectiveCells 會根據剩餘 raw overrides／角色重新計算所有有效格與 Edit→Save。中文／越文 × 單格／單列／全表恢復，以及不可編輯格保留九項通過；payload 只送 null choices，原模型不變，衍生 Save 不寫成新 ACL。保留原 native browser／截圖／errors=[]，未改 tests/role-template-layout-browser.mjs 或任何 UNKNOWN-32 候選內容。
+
+### CAS 重試與 paired policy
+
+原 Process Save 場景只把 editor.save 設 false，保留 Edit，按已確認 Edit→Save 規則有效保存權仍在；本機重現 200≠403。不是取消撤權檢查。新完整 full-read／record-mutation 配對保留目前同一權限 resolver，涵蓋七種 CAS 中途狀態：Save 撤掉但 Edit 保留、Edit 撤掉但原 Save 保留均可；兩來源皆撤掉、原先無 Save 再撤 Edit、查看撤掉均 403；epoch 變更 401、maintenance 503。首次 CAS 必須撞到 concurrent ACL 更新；拒絕時只有那次失敗 CAS 嘗試，row 與 concurrent snapshot 完全相同，無新 Save／receipt；成功只在重新讀取後第二次 CAS 發布，保留 raw ACL、sentinel、舊歷史與固定案件。原四次 CAS 上限、未知 ACK 後原 receipt GET 不重送及故障策略保留；完整 44 組通過。
+
+續跑此前被 step31 首個失敗遮住的案例，另發現 FQC lifecycle8 的舊 kernel（848be13）雖有精確 pin，卻透過當前全域 resolver 取得新 Edit→Save，舊側因而也 200。現明確為舊側載入 genuine main 9fbba823 的原 access-policy.mjs，SHA256 de42a8cb53deaeae2b17295dcfbe013401c84c59f9a6b26637873a66b14ea28f 逐 byte 校驗，沒有改舊 kernel/hash 或模擬權限。保留原 edit-only Save 舊 403／新 200 斷言，並直接驗兩側的有效格及新側 Submit 403；完整 FQC 套件通過。Process flow、IPQC assignment reuse、contentIssues readscope 的後續隔離契約亦通過。
+
+可選 PROCESS_SAVE_BASELINE_REF=9fceccc… 歷史三檔模式本機無法執行：該 ref 的 lib/state-records.ts 路徑不可取得；原 pin 與限制未修改。這不影響 CI 預設的 current ordinary full-read vs record-mutation 44 組比較，不能把可選歷史模式算成功。
+
+已將 reset 與兩個完整 paired 套件加入 Account permissions gate，更新 account JS 快取、既有 exact cache inverse 及 Routine 負向 tag fixture，保留所有歷史變體／原 predecessor，以及每項錯版／重複／部分漂移的拒絕斷言。無資料／schema／真帳號／部署異動；最新 head 原生角色與完整 Local safety 仍待 CI，前一 head 的五套成功不能取代新 head 結果。
+
+
+## 81791d18 legacy 權限矩陣續修
+
+終態 Local safety run 42837910698/job 129904952371 只有 step31 的 legacy rights suite 失敗；完整 log SHA256 958d58dde4243bd72203e4807809f9520ae439dbcb0a0e2f23184cd5ddefbe0f。step9 原角色瀏覽器／errors=[]、CAS 新場景及其餘 1–30 通過，另外五套 CI 成功；固定 PR87 diagnostic 跳過，不計成功。
+
+精確失敗列為 IQC 的 view+edit→legacy Save；新 resolver 正確給出 effective Save=true，原測試卻一律要求403。測試現在對 IQC 與 equipment 各驗：view-only Save403、Save-only完整快照 Save403（缺 Edit）、未授 Submit403、缺 create403、快照刪除缺 delete403；所有拒絕另驗 DB/R2 寫入計數及全部儲存 bytes 不變。view+edit與view+edit+save均以真正變更欄位驗200及精確讀回，原始 Save=false／其他操作false仍保留，沒有改產品授權。具 Submit授權但無V3固定已存證據時，原產品明確拒絕409 WORKFLOW_V3_REQUIRED；保留此失敗規則與零變更斷言，不改成成功，也不靠舊403掩蓋已通過的權限檢查。
+
+兩模組16個具體場景與 Local safety 該處完整六檔帳號／還原／legacy／initial-read／response-fence／projection-reuse來源命令通過。本批只改測試與CI依賴，產品輸入維持81791d18，先前精確安全build仍有效。較大的#104頁面相依與routine整頁整合另行進行，不以此次矩陣修正宣稱整體完成。

@@ -7,7 +7,21 @@ const source=fs.readFileSync('public/process/shared-draft-client.js','utf8');
 const ui=fs.readFileSync('public/process/version-draft-ui.js','utf8');
 const helper=ui.slice(ui.indexOf('  function createDeparture(config){'),ui.indexOf('  host.VersionDraftUI='));
 const ab=fs.readFileSync('public/process/ipqc-ab.js','utf8');
-const abHelper=ab.slice(ab.indexOf('  function departureSharedState(){'),ab.indexOf('  window.IPQCABUI ='));
+const navigationStart=ab.indexOf('  window.IPQCABUI = { navigation:{');
+const navigationEnd=ab.indexOf('},html:()=>',navigationStart);
+assert(navigationStart>=0&&navigationEnd>navigationStart,'Extract the actual complete AB navigation object');
+const abNavigation=ab.slice(navigationStart,navigationEnd+1)+'};';
+function installABNavigation(f,control){
+ // Execute the real navigation object; only module-local state/action ports are synthetic.
+ Object.assign(f.box,{control,mutationLifetime:1,actor:()=>f.sync.identity.id,busy:false,accessBlocked:null,
+  host:{},modal:null,localInput:false,localDirty:()=>f.box.localInput,localPending:()=>f.client.hasUnknown(),
+  moduleClient:f.client,legacyABClients:()=>[],permittedAction:()=>true,
+  saveLocalModule:()=>assert.fail('Navigation inspection must never Save'),
+  abandonLocalEditing(){f.box.localInput=false;f.box.modal=null;}});
+ f.window.VersionDraftUI={createDeparture:f.window.createDeparture};
+ vm.runInContext('let moduleDeparture;'+abNavigation,f.box);
+ return f.window.IPQCABUI.navigation;
+}
 const flow=(scope='fqc',revision=3)=>({scope,generation:'g',revision,pendingId:null,working:{value:'unsaved'},saved:{id:'s',revision:1,content:{value:'saved'}},contributors:{field:{actor:{id:'same-user'}}}});
 const receipt=(command,extra={})=>({operationId:command.operationId,generation:command.generation,revision:3,savedId:null,caseId:null,unchanged:false,...extra});
 function fixture(endpoint='/api/fqc/workflow?caseMetadata=1'){
@@ -84,10 +98,18 @@ for(const missing of ['apply-global','save-global','cas','saved-id','generation'
  await save.command(missing==='generation'?'older':'m','save',missing==='cas'?{}:{input:{stateRevision:501}});
  assert.equal(groupOwns(f,g,m),true);g.working=m.saved.content.scopes['A:G'];assert.equal(groupOwns(f,g,m),false);
 });
-void test('AB actual aggregate adapter sees own writes across group switch, but not same-account other tabs',async()=>{
+void test('AB actual RAM-only navigation ignores shared ACKs across groups, while tab ownership and UNKNOWN remain exact',async()=>{
  const f=fixture('/api/ipqc-ab/workflow?scope=A%3AG');f.revisions(100,501);await apply(f);const g=groupFlow(),m=moduleFlow();
- Object.assign(f.box,{control:{scopes:{'A:G':{workflow:g},'B:other':{workflow:flow('ipqc-ab:B:other')}},moduleDraft:{workflow:m}},revision:501,departureSharedCache:null,key:()=> 'B:other',scope:()=>null});vm.runInContext(abHelper,f.box);assert.equal(f.box.departureOwnShared(),true);
- const other=fixture('/api/ipqc-ab/workflow?scope=B%3Aother');Object.assign(other.box,{control:f.box.control,revision:501,key:()=> 'B:other',scope:()=>null});vm.runInContext(abHelper,other.box);assert.equal(other.box.departureOwnShared(),false);
+ const control={scopes:{'A:G':{workflow:g},'B:other':{workflow:flow('ipqc-ab:B:other')}},moduleDraft:{workflow:m}};
+ const nav=installABNavigation(f,control),other=fixture('/api/ipqc-ab/workflow?scope=B%3Aother'),peer=installABNavigation(other,control);
+ other.create('/api/ipqc-ab/workflow?scope=A%3AG'); // Register the shared scope without establishing a write.
+ assert.equal(groupOwns(f,g,m),true);assert.equal(groupOwns(other,g,m),false);
+ assert.equal(nav.departure.inspect().state,'clean');assert.equal(peer.departure.inspect().state,'clean');assert.equal(nav.departure.autoAbandon,true);assert.equal(nav.requiresSave(),false);
+ const before=f.calls.length;f.box.localInput=true;assert.equal(nav.departure.inspect().state,'dirty');f.box.localInput=false;
+ f.box.modal={readonly:false};assert.equal(nav.departure.inspect().state,'dirty');f.box.modal.readonly=true;assert.equal(nav.departure.inspect().state,'clean');assert.equal(f.calls.length,before);
+ f.reply(()=>{throw Error('synthetic lost ACK');});await assert.rejects(apply(f),/RESULT_UNKNOWN/);
+ const marker=[...f.memory];assert(marker.length);assert.equal(nav.departure.inspect().state,'unknown');assert.deepEqual([...f.memory],marker);
+ assert.equal(f.calls.filter(row=>row.method==='POST').length,2);assert.equal(peer.departure.inspect().state,'clean');assert.equal(other.calls.length,0);
 });
 void test('unsupported or malformed legacy flow retains conservative fallback, not guessed no-own',()=>{const f=fixture();assert.equal(f.tracker.owns({...flow(),scope:'unknown'}),null);const d=flow();delete d.revision;assert.equal(f.adapter(d).inspect().state,'dirty');});
 void test('1000 repeated departure ownership checks add no requests and compare the shared snapshot once',async()=>{
@@ -135,13 +157,16 @@ for(const action of ['apply','restore'])for(const method of ['resolveUnknown','r
  assert.equal(f.client.hasUnknown(),true);assert.deepEqual([...f.memory],bytes);assert.equal(f.calls.filter(c=>c.method==='POST').length,1);
 });
 for(const action of ['apply','restore'])void test(`valid no-op ${action} revision zero establishes no write and is not unknown`,async()=>{const f=fixture();f.reply((_u,b)=>Response.json({receipt:receipt(b.command,{revision:0,unchanged:true})}));await f.client.command('g',action,{patches:[]});assert.equal(f.client.hasUnknown(),false);assert.equal(f.tracker.owns(flow()),false);});
-void test('AB group ownership cache avoids repeated scans and invalidates on ACK, Save and identity epoch',async()=>{
- const f=fixture('/api/ipqc-ab/workflow?scope=A%3AG'),g=groupFlow(),m=moduleFlow();Object.assign(f.box,{control:{scopes:{'A:G':{workflow:g}},moduleDraft:{workflow:m}},revision:501,key:()=> 'A:G',scope:()=>null});vm.runInContext(abHelper,f.box);
- let scans=0;const owns=f.tracker.owns;f.tracker.owns=(...args)=>{scans++;return owns(...args);};for(let n=0;n<1000;n++)assert.equal(f.box.departureOwnShared(),false);assert.equal(scans,1);
- f.revisions(100,501);await apply(f);assert.equal(f.box.departureOwnShared(),true);assert.equal(scans,2);
+void test('AB actual RAM-only navigation does not scan shared groups; ACK, Save and identity proofs remain in the tracker',async()=>{
+ const f=fixture('/api/ipqc-ab/workflow?scope=A%3AG'),g=groupFlow(),m=moduleFlow();
+ const nav=installABNavigation(f,{scopes:{'A:G':{workflow:g}},moduleDraft:{workflow:m}});
+ let scans=0;const owns=f.tracker.owns;f.tracker.owns=(...args)=>{scans++;return owns(...args);};
+ for(let n=0;n<1000;n++)assert.equal(nav.departure.inspect().state,'clean');assert.equal(scans,0);assert.equal(f.calls.length,0);assert.equal(groupOwns(f,g,m),false);
+ f.revisions(100,501);await apply(f);assert.equal(groupOwns(f,g,m),true);assert.equal(nav.departure.inspect().state,'clean');
  const save=f.create('/api/ipqc-ab/workflow?module=1');f.reply((_u,b)=>Response.json({receipt:receipt(b.command,{savedId:m.saved.id}),revision:502}));await save.command('m','save',{input:{stateRevision:501}});
- assert.equal(f.box.departureOwnShared(),false);assert.equal(scans,3);assert.equal(f.box.departureOwnShared(),false);assert.equal(scans,3);
- f.epoch();assert.equal(f.box.departureOwnShared(),false);assert.equal(scans,4);
- f.box.revision++;assert.equal(f.box.departureOwnShared(),false);assert.equal(scans,5);
+ assert.equal(groupOwns(f,g,m),false);assert.equal(nav.departure.inspect().state,'clean');
+ // A later genuine ACK is owned again, then an identity epoch change retires it.
+ f.reply(null);f.revisions(101,503);await apply(f);g.revision=101;assert.equal(groupOwns(f,g,m),true);f.epoch();assert.equal(groupOwns(f,g,m),false);
+ const calls=f.calls.length,scanCount=scans;for(let n=0;n<1000;n++)assert.equal(nav.departure.inspect().state,'clean');assert.equal(f.calls.length,calls);assert.equal(scans,scanCount);
 });
 void test('AB malformed group or module scope is conservative even with no own receipt',()=>{const f=fixture('/api/ipqc-ab/workflow?scope=A%3AG'),g=groupFlow(),m=moduleFlow();assert.equal(f.tracker.owns(g,{key:'B:other',moduleFlow:m}),null);assert.equal(f.tracker.owns(g,{key:'A:G',moduleFlow:{...m,scope:'other-module'}}),null);assert.equal(f.tracker.owns(g,{key:'A:G',moduleFlow:{...m,scope:undefined}}),null);assert.equal(groupOwns(f,g,m),false);});

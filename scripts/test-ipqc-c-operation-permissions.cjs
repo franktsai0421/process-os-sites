@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { createHash } = require('node:crypto');
 const { fixture, json } = require('./ipqc-c-operation-fixture.cjs');
-const checks = [], trace = [];
+const checks = [], trace = [], legacySaveMatrix = [], legacySubmitMatrix = [];
 const record = name => { checks.push({ name, status: 'PASS' }); console.log(JSON.stringify(checks.at(-1))); };
 const insert = (collection, value) => ({ op: 'insert', path: [collection], value });
 const gif = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
@@ -146,9 +146,20 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
     try {
       // The referenced bytes are copied only into this separate private R2 map.
       for (const [key, bytes] of originalObjects) legacy.objects.set(key, Buffer.from(bytes));
-      const legacyCall = async (action, who, expected = 200, details = {}) => {
+      const oldPolicy = require('./read-performance-harness.cjs').makeLoader(legacy.env, {baseline:['public/process/access-policy.mjs']})('app/api/ipqc-c/route.ts');
+      const effects = {db:0,r2:0}, prepare = legacy.env.DB.prepare.bind(legacy.env.DB), put = legacy.env.STATE_ARCHIVE.put.bind(legacy.env.STATE_ARCHIVE);
+      legacy.env.DB.prepare = sql => { const statement=prepare(sql); return { ...statement,
+        bind(...args){statement.bind(...args);return this;},
+        async run(){if(/^\s*(?:INSERT|UPDATE|DELETE|REPLACE)\b/i.test(sql))effects.db++;return statement.run();},
+      }; };
+      legacy.env.STATE_ARCHIVE.put = async (...args) => { effects.r2++; return put(...args); };
+      const legacyUnchanged = async task => {const before={...effects},result=await unchanged(legacy,task);assert.deepEqual(effects,before,'legacy denial attempts zero D1/R2 writes');return result;};
+      const legacyCall = async (action, who, expected = 200, details = {}, api) => {
         const state = await legacy.core.readState(), control = JSON.parse(state.values.ipqcCMasterControl), open = control.versions.find(row => row.status === 'draft' || row.status === 'pending');
-        return legacy.call('ipqc-c', 'POST', { action, baseRevision: state.revision, versionId: open?.id, versionRevision: open?.revision, ...details }, who, expected);
+        const body={ action, baseRevision: state.revision, versionId: open?.id, versionRevision: open?.revision, ...details };
+        if(!api)return legacy.call('ipqc-c', 'POST', body, who, expected);
+        const response=await api.POST(new Request('http://fixture/api/ipqc-c',{method:'POST',headers:legacy.sessions[who],body:JSON.stringify(body)})),data=await response.json();
+        legacy.trace.push({endpoint:'ipqc-c',method:'POST',action,who,policy:'genuine pre-Edit-Save',status:response.status});assert.equal(response.status,expected,JSON.stringify(data));return data;
       };
       // Only stored pre-policy cases may still be decided through legacy routes.
       // This explicit isolated fixture admission is not a successful new Submit.
@@ -162,37 +173,65 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
         const stored=await full(legacy);assert.deepEqual(stored.versions.find(row=>row.id===draft.id).snapshot,content);assert.deepEqual(stored.versions.filter(row=>row.id!==draft.id),otherVersions);
         return legacy.call('ipqc-c');
       }
-      async function rejectNewLegacySubmit() {
-        const rejected=await unchanged(legacy,()=>legacyCall('submit','editor',409,{snapshot:legacySnapshot}));
+      async function rejectNewLegacySubmit(who='editor') {
+        const rejected=await legacyUnchanged(()=>legacyCall('submit',who,409,{snapshot:legacySnapshot}));
         assert.equal(rejected.code,'WORKFLOW_V3_REQUIRED');assert.equal(rejected.details.reason,'LEGACY_SUBMIT_CANNOT_VERIFY_SAVED_VERSION');
+        legacySubmitMatrix.push({who,status:409,code:rejected.code,unchanged:true});
       }
-      for (const who of ['viewer', 'save-only', 'submit-only', 'no-view']) await unchanged(legacy, () => legacyCall('begin', who, 403));
+      for (const who of ['viewer', 'save-only', 'submit-only', 'no-view']) await legacyUnchanged(() => legacyCall('begin', who, 403));
       await legacyCall('begin', 'edit-only');
-      await unchanged(legacy, () => legacyCall('create-error', 'submit-only', 403, { productCode: 'C100', stageCode: 'C-CUT', name: 'Denied' }));
-      await unchanged(legacy,()=>legacyCall('create-error','edit-only',403,{productCode:'C100',stageCode:'C-CUT',name:'Denied without create'}));
+      await legacyUnchanged(() => legacyCall('create-error', 'submit-only', 403, { productCode: 'C100', stageCode: 'C-CUT', name: 'Denied' }));
+      await legacyUnchanged(()=>legacyCall('create-error','edit-only',403,{productCode:'C100',stageCode:'C-CUT',name:'Denied without create'}));
       await legacyCall('create-error', 'editor', 200, { productCode: 'C100', stageCode: 'C-CUT', name: 'Synthetic legacy added' });
       let l = await full(legacy);const draft = l.versions.find(row => row.status === 'draft'),extraError = draft.snapshot.errors.at(-1);
-      for (const who of ['delete-only', 'edit-only']) await unchanged(legacy, () => legacyCall('delete-error', who, 403, { id: extraError.id }));
+      for (const who of ['delete-only', 'edit-only']) await legacyUnchanged(() => legacyCall('delete-error', who, 403, { id: extraError.id }));
       await legacyCall('delete-error', 'edit-delete', 200, { id: extraError.id });
       const legacySnapshot = json((await full(legacy)).versions.find(row => row.status === 'draft').snapshot); legacySnapshot.items[0].standard = '11 mm';
-      for (const who of ['viewer', 'edit-only', 'save-only', 'submit-only', 'edit-submit', 'no-view']) await unchanged(legacy, () => legacyCall('save', who, 403, { snapshot: legacySnapshot }));
-      await legacyCall('save', 'edit-save', 200, { snapshot: legacySnapshot });
-      for (const who of ['viewer', 'save-only', 'submit-only', 'edit-save', 'edit-submit', 'no-view']) await unchanged(legacy, () => legacyCall('submit', who, 403, { snapshot: legacySnapshot }));
+      // The real old policy still rejects all six original negative rows.
+      // Current Edit supplies effective Save; legacy full-snapshot Save still
+      // requires View+Edit, so V3 Save-only does not authorize this replacement.
+      for (const who of ['viewer','edit-only','save-only','submit-only','edit-submit','no-view']) {
+        await legacyUnchanged(()=>legacyCall('save',who,403,{snapshot:legacySnapshot},oldPolicy));
+        legacySaveMatrix.push({who,policy:'old',status:403,unchanged:true});
+      }
+      for (const who of ['viewer','save-only','submit-only','no-view']) {
+        await legacyUnchanged(()=>legacyCall('save',who,403,{snapshot:legacySnapshot}));
+        legacySaveMatrix.push({who,policy:'current',status:403,unchanged:true});
+      }
+      async function verifiedLegacySave(who,standard,api) {
+        const before=await legacy.core.readState(),control=JSON.parse(before.values.ipqcCMasterControl),objects=new Map(legacy.objects),user=JSON.parse(before.values.platformUsers).find(row=>row.id==='preview-'+who),cells=legacy.load('lib/user-access.ts').effectiveAccess(user,before.values).cells;
+        assert.equal(user.accessOverrides['ipqc-c.save'],who==='edit-save','explicit raw Save choice retained');assert.equal(cells['ipqc-c.save'],true);
+        legacySnapshot.items[0].standard=standard;await legacyCall('save',who,200,{snapshot:legacySnapshot},api);
+        const after=await legacy.core.readState(),next=JSON.parse(after.values.ipqcCMasterControl);assert.deepEqual(next.versions.find(row=>row.status==='draft').snapshot,legacySnapshot,'full saved snapshot exactly reread');
+        assert.deepEqual(next.versions.filter(row=>row.status==='approved'),control.versions.filter(row=>row.status==='approved'));assert.equal(next.activeVersionId,control.activeVersionId);
+        assert.deepEqual(Object.keys(after.values),Object.keys(before.values));for(const key of Object.keys(before.values))if(key!=='ipqcCMasterControl')assert.equal(after.values[key],before.values[key],'Save does not rewrite '+key);
+        for(const [key,bytes]of objects)assert(legacy.objects.get(key)?.equals(bytes),'existing R2 and original photo bytes retained');
+        legacySaveMatrix.push({who,policy:api?'old':'current',status:200,rawSave:user.accessOverrides['ipqc-c.save'],readback:true,aclUnchanged:true});
+      }
+      await verifiedLegacySave('edit-save','10.99 mm',oldPolicy);
+      await verifiedLegacySave('edit-only','11.01 mm');await verifiedLegacySave('edit-submit','11.02 mm');await verifiedLegacySave('edit-save','11 mm');
+      const forbiddenDelete=json(legacySnapshot);forbiddenDelete.items[0].deleted=true;
+      await legacyUnchanged(()=>legacyCall('save','edit-only',403,{snapshot:forbiddenDelete}));
+      for (const who of ['viewer','edit-only','save-only','submit-only','edit-save','no-view']) {
+        await legacyUnchanged(()=>legacyCall('submit',who,403,{snapshot:legacySnapshot}));legacySubmitMatrix.push({who,status:403,unchanged:true});
+      }
+      await legacyUnchanged(()=>legacyCall('submit','edit-submit',403,{snapshot:legacySnapshot},oldPolicy));
+      await rejectNewLegacySubmit('edit-submit');
       await rejectNewLegacySubmit();const legacyPending = await installHistoricalPendingFixture();
       const pending = legacyPending.control.versions.find(row => row.status === 'pending'); assert(pending);
-      await unchanged(legacy, () => legacyCall('begin', 'editor', 409));
-      await unchanged(legacy, () => legacyCall('save', 'editor', 409, { snapshot: legacySnapshot }));
-      await unchanged(legacy, () => legacy.begin('ipqc-c', 'editor', 409));
-      await unchanged(legacy, () => legacyCall('approve', 'viewer', 403));
-      await unchanged(legacy, () => legacyCall('withdraw', 'reviewer', 403));
-      await unchanged(legacy, () => legacyCall('withdraw', 'editor', 403));
+      await legacyUnchanged(() => legacyCall('begin', 'editor', 409));
+      await legacyUnchanged(() => legacyCall('save', 'editor', 409, { snapshot: legacySnapshot }));
+      await legacyUnchanged(() => legacy.begin('ipqc-c', 'editor', 409));
+      await legacyUnchanged(() => legacyCall('approve', 'viewer', 403));
+      await legacyUnchanged(() => legacyCall('withdraw', 'reviewer', 403));
+      await legacyUnchanged(() => legacyCall('withdraw', 'editor', 403));
       await legacyCall('withdraw', 'edit-only');
       await rejectNewLegacySubmit();await installHistoricalPendingFixture();await legacyCall('reject', 'reviewer');
       await rejectNewLegacySubmit();await installHistoricalPendingFixture();await legacyCall('approve', 'reviewer');
       l = await full(legacy); assert.equal(l.versions.find(row => row.id === l.activeVersionId).snapshot.items[0].standard, '11 mm');
       assert.deepEqual(l.versions.find(row => row.id === originalCaseId).snapshot, original.workflow.active.content);
-      await unchanged(legacy, () => legacyCall('seed', 'editor', 403));
-      record('Derived legacy compatibility: edit-only Begin/Create/delete and compound Save/Submit403 gates retained; authorized new legacy Submit409 with no mutation; explicit historical pending fixtures retain review/withdraw/seed boundaries and old approved content');
+      await legacyUnchanged(() => legacyCall('seed', 'editor', 403));
+      record('Derived legacy compatibility: genuine old-policy Save403/current Edit-derived Save200 exact readback with unchanged raw ACL; no-edit/no-view/forged-delete and missing-Submit403 zero writes; authorized legacy Submit409; historical review/withdraw/seed and approved/photo bytes retained');
       trace.push(...legacy.trace);
     } finally { legacy.close(); }
     const version = (await full(h)).versions.find(row => row.status === 'draft');
@@ -200,12 +239,13 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
       versionId: version.id, versionRevision: version.revision, snapshot: version.snapshot }, 'editor', 409)).then(body => assert.equal(body.code, 'WORKFLOW_V3_REQUIRED'));
     record('Adopted V3 still refuses fully authorized legacy whole-snapshot writes');
     trace.push(...h.trace);
-    const result = { status: 'PASS_C_OPERATION_ALIGNMENT_BOUNDED', groups: checks.length, directHandlerInvocations: trace.length, checks, permissionMatrix, trace,
+    const result = { status: 'PASS_C_OPERATION_ALIGNMENT_BOUNDED', groups: checks.length, directHandlerInvocations: trace.length, checks, permissionMatrix, legacySaveMatrix, legacySubmitMatrix, legacyPolicyBaseline:{commit:require('./read-performance-harness.cjs').baselineCommits['public/process/access-policy.mjs'],sha256:require('./read-performance-harness.cjs').baselineHashes()['public/process/access-policy.mjs']}, trace,
       limits: ['Private normal-login synthetic handlers, not native UI/live speed or real-user role audit.',
         'C requires an explicit empty legacy draft bootstrap in this fixture; not blank-install acceptance.',
         'Legacy compatibility source derives from normal approvals; no legacy import/seed performed.',
         'Revocation injection changes only ephemeral synthetic account cells; not account-admin UI acceptance.',
-        'Snapshot assertions compare shared_state row and R2 key/body hashes, not every DB table or metadata.'] };
+        'Snapshot assertions compare shared_state row and R2 key/body hashes, not every DB table or metadata.',
+        'Legacy denials additionally assert zero intercepted mutating D1 run and R2 put attempts.'] };
     if (process.env.IPQCC_OPERATION_EVIDENCE_PATH) fs.writeFileSync(process.env.IPQCC_OPERATION_EVIDENCE_PATH, JSON.stringify(result, null, 2));
     console.log(JSON.stringify({ status: result.status, groups: result.groups, directHandlerInvocations: result.directHandlerInvocations }));
   } finally { h.close(); }

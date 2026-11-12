@@ -1,3 +1,4 @@
+import {processApprovedGET} from '@/lib/process-approved-history';
 import {processAuthoringAdapter} from '@/lib/process-authoring-workflow';
 import {versionedWorkflowRoute} from '@/lib/versioned-shared-workflow';
 import {workflowAccess} from '@/lib/versioned-shared-workflow';
@@ -5,6 +6,7 @@ import {readState,identity,responseHeaders} from '@/lib/process-state';
 import {DraftConflict} from '@/lib/shared-draft';
 export async function GET(request:Request){
  const query=new URL(request.url).searchParams;
+ if(query.has('approvedOnly'))return processApprovedGET(request);
  if(query.has('contentIssues')){
   try{
    const state=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','processAuthoringControl','masterDataControl','bomOverrides','ipqcABMasterControl','ipqcCMasterControl'],modelKey:'processAuthoringControl',deferDependencyHistory:true,deferHistory:true,caseId:query.get('contentCaseId')}),actor=await identity(request,state),adapter=processAuthoringAdapter(),permissions=await adapter.access!(request,state,await workflowAccess(request,state));

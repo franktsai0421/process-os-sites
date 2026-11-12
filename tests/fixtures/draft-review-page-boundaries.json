@@ -1,0 +1,108 @@
+{
+  "sourceCommit": "e5c3c780fac8413ede01809d5fc871ad0477a225",
+  "sourceFile": "lib/draft-page-boundaries.ts",
+  "workingSourceSHA256": "c7e2a312cdb2d8a04246ca56e5418ba590927d4cd72b9a1a685dede9a888aad7",
+  "runtimeIntegrated": false,
+  "boundaries": [
+    {
+      "page": "PROCESS_EDITOR",
+      "scope": "process:platform",
+      "permissionModule": "editor",
+      "endpoint": "/api/process-authoring/workflow",
+      "stateKey": "processAuthoringControl"
+    },
+    {
+      "page": "AB",
+      "scope": "master:AB.catalog",
+      "permissionModule": "ab",
+      "endpoint": "/api/master/pages?scope=AB",
+      "stateKey": "masterDataControl"
+    },
+    {
+      "page": "C",
+      "scope": "master:C.catalog",
+      "permissionModule": "c",
+      "endpoint": "/api/master/pages?scope=C",
+      "stateKey": "masterDataControl"
+    },
+    {
+      "page": "LINES",
+      "scope": "master:LINES",
+      "permissionModule": "lines",
+      "endpoint": "/api/master/pages?scope=LINES",
+      "stateKey": "masterDataControl"
+    },
+    {
+      "page": "PROCESS",
+      "scope": "master:PROCESS",
+      "permissionModule": "templates",
+      "endpoint": "/api/master/workflow?scope=PROCESS",
+      "stateKey": "masterDataControl"
+    },
+    {
+      "page": "FQC",
+      "scope": "fqc",
+      "permissionModule": "fqc",
+      "endpoint": "/api/fqc/workflow",
+      "stateKey": "qualityMasterControl"
+    },
+    {
+      "page": "IQC",
+      "scope": "iqc",
+      "permissionModule": "iqc",
+      "endpoint": "/api/iqc/workflow",
+      "stateKey": "iqcMasterControl"
+    },
+    {
+      "page": "IPQC_AB",
+      "scope": "ipqc-ab:module",
+      "permissionModule": "ipqc-ab",
+      "endpoint": "/api/ipqc-ab/workflow?module=1",
+      "stateKey": "ipqcABMasterControl"
+    },
+    {
+      "page": "IPQC_C",
+      "scope": "ipqc-c",
+      "permissionModule": "ipqc-c",
+      "endpoint": "/api/ipqc-c/workflow",
+      "stateKey": "ipqcCMasterControl"
+    },
+    {
+      "page": "BOM",
+      "scope": "bom",
+      "permissionModule": "bom",
+      "endpoint": "/api/bom/workflow",
+      "stateKey": "bomMasterControl"
+    },
+    {
+      "page": "EQUIPMENT",
+      "scope": "routine-equipment",
+      "permissionModule": "equipment",
+      "endpoint": "/api/routine-equipment/workflow",
+      "stateKey": "routineEquipmentControl"
+    },
+    {
+      "page": "TOOLING",
+      "scope": "tooling",
+      "permissionModule": "tooling",
+      "endpoint": "/api/tooling/workflow",
+      "stateKey": "toolingMasterControl"
+    },
+    {
+      "page": "ROUTINE_FQC",
+      "scope": "routine-fqc:page",
+      "permissionModule": "routine",
+      "endpoint": "/api/routine-fqc/page",
+      "stateKey": "routineFqcControl"
+    }
+  ],
+  "routineReceiptSource": {
+    "commit": "e5c3c780fac8413ede01809d5fc871ad0477a225",
+    "sourceFile": "lib/routine-fqc-page.ts",
+    "moduleSHA256": "36a8132ff7f9a5dd3e02f0b1a12a4c10364f1a98982fe878a9d9664d8e065cfb",
+    "function": "assertRoutinePageReceiptAccess",
+    "fixture": "routine-page-receipt-access.source.txt",
+    "functionSHA256": "312ac31b6be32f641ac9d7ab96154b7c6288d02a0488272250f89a0a0c4e3b9b",
+    "fullRouteExecuted": false
+  }
+}

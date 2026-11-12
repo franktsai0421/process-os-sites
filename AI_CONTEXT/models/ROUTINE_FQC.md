@@ -1,3 +1,7 @@
+## 2026-11-10 — Local permission/page composition
+
+整頁候選從已知 #102 head 選取，使用獨立 routine-fqc:page owner、固定 saved/case、核准歷史與原照片結果查詢。版本平台與原頁指同一整頁案件；generic shared-state 不可覆蓋採用頁，原生成時機與其他未建置入口不擴張。 尚未啟用真資料或宣稱原生／實站驗收。[來源與驗證界線](../ACCOUNT_PERMISSION_INTEGRATION_LOCAL.md)。
+
 ## 2026-11-09 — Explicit entry and Update generation
 
 Normal entry and the normal page's 更新 / Cập nhật button perform state GET, eligible generate POST, then state GET. Fresh view/edit permission, enabled state and start date gate generation. No idle, focus or fixed-second scheduler remains. History, review, previews and denied-read recovery are read-only. Dirty document buffers/bases are preserved; an unresolved original write, including receipt 404, never authorizes resend. View/identity/epoch/delivery ownership fences both successful and rejected responses. Backend, persistent model and schema are unchanged. [Current behavior and limits](../../docs/acceptance/routine-fqc-explicit-generation-20261109.md).

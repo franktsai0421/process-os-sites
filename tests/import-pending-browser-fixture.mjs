@@ -4,6 +4,7 @@ import fs from 'node:fs';import vm from 'node:vm';
 import * as accessPolicy from '../public/process/access-policy.mjs';
 import * as deliveryPolicy from '../public/process/delivery-purpose.mjs';
 import * as ownedDraft from '../public/process/owned-draft-ledger.mjs';
+import * as accountReview from '../public/process/account-review-preview.mjs';
 const source=name=>fs.readFileSync(new URL('../public/process/'+name,import.meta.url),'utf8');
 export const activeBootResponse=values=>Response.json({deliveryProjection:true,writableKeys:[],destination:{system:'process',view:'editor',module:'editor',dataTab:null},catalog:{format:'PROCESS_RUNTIME_CATALOG_V1',imported:{products:[]},routing:{lines:[]},lineC:{products:[]}},...values});
 export async function runImportBoot({response=()=>Response.json({error:'IMPORT_TARGET_NOT_ACTIVE'},{status:503}),language='vi',failScript=false,sharedSource=source('shared-state.js'),bootSource=source('bootstrap.js'),seed={},authoringReady}={}){
@@ -20,7 +21,7 @@ export async function runImportBoot({response=()=>Response.json({error:'IMPORT_T
  new vm.Script(sharedSource,{filename:'shared-state.js'}).runInContext(context,{timeout:1000});await window.ProcessSync.ready;
  // Expose the existing discarded IIFE promise only to await completion. No
  // implementation branch, response or script-loader logic is replaced.
- const bootScript=new vm.Script(bootSource.replace('void (async () => {','(async () => {'),{filename:'bootstrap.js',importModuleDynamically:async specifier=>{moduleImports.push(specifier);const exports=specifier==='./access-policy.mjs?v=20261029-fqc-dependencies1'?accessPolicy:specifier==='./delivery-purpose.mjs?v=20261026-feedback1'?deliveryPolicy:specifier==='./owned-draft-ledger.mjs?v=20261030-platform5'?ownedDraft:null;if(!exports)throw Error('UNEXPECTED_BOOTSTRAP_IMPORT');const policy=new vm.SyntheticModule(Object.keys(exports),function(){for(const[key,value]of Object.entries(exports))this.setExport(key,value);},{context});await policy.link(()=>{});await policy.evaluate();return policy;}});
+ const bootScript=new vm.Script(bootSource.replace('void (async () => {','(async () => {'),{filename:'bootstrap.js',importModuleDynamically:async specifier=>{moduleImports.push(specifier);const exports=specifier==='./access-policy.mjs?v=20261110-account-pages1'?accessPolicy:specifier==='./account-review-preview.mjs?v=20261110-account-pages1'?accountReview:specifier==='./delivery-purpose.mjs?v=20261026-feedback1'?deliveryPolicy:specifier==='./owned-draft-ledger.mjs?v=20261030-platform5'?ownedDraft:null;if(!exports)throw Error('UNEXPECTED_BOOTSTRAP_IMPORT');const policy=new vm.SyntheticModule(Object.keys(exports),function(){for(const[key,value]of Object.entries(exports))this.setExport(key,value);},{context});await policy.link(()=>{});await policy.evaluate();return policy;}});
  await bootScript.runInContext(context,{timeout:1000});
  return{api:window.ProcessSync,document,boot,root,attributes,requests,preloads,preloadLinks,moduleImports,executed,events,localStorage,sessionStorage,storageWrites,removedSeeds,navigations};
 }

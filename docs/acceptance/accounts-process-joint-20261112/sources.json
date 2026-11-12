@@ -1,0 +1,996 @@
+{
+  "recordedAt": "2026-11-12T07:31:16.724982+00:00",
+  "branch": "codex/accounts-process-joint-20261112",
+  "remoteChecked": true,
+  "remoteBranchAbsent": true,
+  "existingJointPR": false,
+  "sources": {
+    "main": {
+      "commit": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+      "tree": "6eee3963fec61a540c144a920fbb3f65949d5e10"
+    },
+    "pr103": {
+      "commit": "fb62c25929fd6b6c117aa66a3fd8f2e4dd72cc37",
+      "tree": "7ad1ae6830cece8210ee7bcf4634f7479294dfa9"
+    },
+    "pr104": {
+      "commit": "15a5acb404edb1d4f1826b13430f61376e3accb4",
+      "tree": "d385752707bddc857442d446c37c8d30e50d8ae3"
+    }
+  },
+  "excludedPRs": [
+    105,
+    106,
+    107
+  ],
+  "unknown32": "unchanged; no replay",
+  "files": {
+    "pr103": [
+      ".github/workflows/account-permissions.yml",
+      ".github/workflows/feedback-queues.yml",
+      ".github/workflows/process-platform-integration.yml",
+      "AI_CONTEXT/ACCOUNT_PERMISSION_INTEGRATION_LOCAL.md",
+      "AI_CONTEXT/ACCOUNT_PROCESS_JOINT_LOCAL.md",
+      "AI_CONTEXT/CHANGELOG.md",
+      "AI_CONTEXT/DATA_MODEL.md",
+      "AI_CONTEXT/models/ROUTINE_FQC.md",
+      "AI_CONTEXT/modules/MASTER_DATA.md",
+      "AI_CONTEXT/modules/PROCESS.md",
+      "AI_CONTEXT/modules/QUALITY.md",
+      "AI_CONTEXT/modules/RUNTIME.md",
+      "HANDOFF.md",
+      "app/api/master/pages/route.ts",
+      "app/api/master/workflow/route.ts",
+      "app/api/platform-login/route.ts",
+      "app/api/process-authoring/workflow/route.ts",
+      "app/api/routine-fqc/page/photo/route.ts",
+      "app/api/routine-fqc/page/route.ts",
+      "app/api/routine-fqc/route.ts",
+      "app/api/shared-state/route.ts",
+      "app/api/user-access/route.ts",
+      "docs/acceptance/account-permissions-20261110.md",
+      "docs/acceptance/account-permissions-branch-inventory-20261110.json",
+      "docs/acceptance/process-platform-branch-inventory-20261110.json",
+      "docs/acceptance/process-platform-integration-20261110.md",
+      "docs/specs/current/PERMISSIONS_ADMIN.md",
+      "docs/specs/current/PROCESS_EDITOR.md",
+      "docs/specs/current/SHARED_DRAFT.md",
+      "lib/approved-history-query.ts",
+      "lib/approved-history.ts",
+      "lib/draft-page-boundaries.ts",
+      "lib/master-approved-pages.ts",
+      "lib/master-catalog.ts",
+      "lib/master-document-boundary.ts",
+      "lib/master-line-page-workflow.ts",
+      "lib/master-page-approved-history.ts",
+      "lib/master-page-boundary.ts",
+      "lib/master-page-name-save.ts",
+      "lib/master-page-workflow.ts",
+      "lib/master-stage-reference-response.ts",
+      "lib/master-stage-references.ts",
+      "lib/master-workflow.ts",
+      "lib/passwords.ts",
+      "lib/process-approved-history.ts",
+      "lib/process-authoring-workflow.ts",
+      "lib/process-state.ts",
+      "lib/routine-fqc-approved-history.ts",
+      "lib/routine-fqc-page-save.ts",
+      "lib/routine-fqc-page.ts",
+      "lib/routine-fqc.ts",
+      "lib/routine-page-approved-history.ts",
+      "lib/shared-draft.ts",
+      "lib/snapshot-files.mjs",
+      "lib/user-access.ts",
+      "lib/versioned-shared-workflow.ts",
+      "lib/web-feedback.ts",
+      "public/process/access-policy.mjs",
+      "public/process/account-review-preview.mjs",
+      "public/process/bootstrap.js",
+      "public/process/canvas-approved-history.js",
+      "public/process/canvas-local.js",
+      "public/process/canvas-recovery-store.js",
+      "public/process/data-safety-ui.js",
+      "public/process/draft-review-policy.mjs",
+      "public/process/dual-system.js",
+      "public/process/editor-line-selection.js",
+      "public/process/index.html",
+      "public/process/master-data.js",
+      "public/process/master-page-approved-history.js",
+      "public/process/master-page-editor.js",
+      "public/process/master-page-transfer.js",
+      "public/process/master-review.js",
+      "public/process/master-shared-client.js",
+      "public/process/page-draft-merge.js",
+      "public/process/process-authoring-v3.js",
+      "public/process/process-editor.js",
+      "public/process/process-ipqc.js",
+      "public/process/routine-fqc-page.js",
+      "public/process/routine-fqc.js",
+      "public/process/routine-page-approved-history.js",
+      "public/process/shared-draft-client.js",
+      "public/process/user-access.css",
+      "public/process/user-access.js",
+      "public/process/version-draft-ui.css",
+      "public/process/version-draft-ui.js",
+      "public/process/web-feedback-entry.js",
+      "public/process/web-feedback-loader.js",
+      "public/process/web-feedback.js",
+      "scripts/access-template-source-contract.cjs",
+      "scripts/account-cache-source-contract.cjs",
+      "scripts/account-cache-source-contract.json",
+      "scripts/account-page-source-contract.cjs",
+      "scripts/account-page-source-contract.json",
+      "scripts/account-permission-source-contract.cjs",
+      "scripts/account-permission-source-contract.json",
+      "scripts/account-process-joint-source-contract.cjs",
+      "scripts/account-process-joint-source-contract.json",
+      "scripts/audit-users-page-permissions.mjs",
+      "scripts/background-check-source-contract.cjs",
+      "scripts/bootstrap-restore-projection-contract.cjs",
+      "scripts/entry-performance/editor-readiness.test.mjs",
+      "scripts/entry-performance/poll-wiring.test.mjs",
+      "scripts/entry-performance/source-eol.test.cjs",
+      "scripts/ipqc-ab-import-harness.cjs",
+      "scripts/master-route-successor-source-contract.cjs",
+      "scripts/process-platform-canvas-contract.cjs",
+      "scripts/process-platform-canvas-contract.json",
+      "scripts/process-platform-count-contract.cjs",
+      "scripts/process-platform-count-contract.json",
+      "scripts/read-performance-harness.cjs",
+      "scripts/routine-fqc-source-contract.cjs",
+      "scripts/test-access-template-reuse.cjs",
+      "scripts/test-authoring-contentissues-readscope.cjs",
+      "scripts/test-authoring-panel-local-unsaved.cjs",
+      "scripts/test-bootstrap-read-reduction.cjs",
+      "scripts/test-canvas-fit-origin.cjs",
+      "scripts/test-canvas-silent-discard.cjs",
+      "scripts/test-draft-page-boundaries.cjs",
+      "scripts/test-editor-line-selection.mjs",
+      "scripts/test-feedback-cloud-admission.cjs",
+      "scripts/test-fqc-lifecycle8-record-mutation.cjs",
+      "scripts/test-ipqc-c-operation-permissions.cjs",
+      "scripts/test-legacy-draft-rights.mjs",
+      "scripts/test-master-line-page-workflow.cjs",
+      "scripts/test-master-page-boundary.cjs",
+      "scripts/test-master-page-name-save.cjs",
+      "scripts/test-master-page-review-regressions.cjs",
+      "scripts/test-master-page-runtime.cjs",
+      "scripts/test-master-page-tools-ui.cjs",
+      "scripts/test-master-page-transfer.cjs",
+      "scripts/test-master-page-ui.cjs",
+      "scripts/test-master-public-page-authority.cjs",
+      "scripts/test-media-fast-path-routes.cjs",
+      "scripts/test-process-flow-record-mutation.cjs",
+      "scripts/test-process-ipqc-choice-dom.cjs",
+      "scripts/test-process-page-lifecycle.cjs",
+      "scripts/test-process-page-roles.cjs",
+      "scripts/test-process-save-record-mutation.cjs",
+      "scripts/test-routine-fqc-page-save.cjs",
+      "scripts/test-routine-page-domain-helpers.cjs",
+      "scripts/test-routine-page-photo-outcome.cjs",
+      "scripts/test-routine-whole-page-route.cjs",
+      "scripts/test-routine-whole-page-ui.cjs",
+      "scripts/test-routine-whole-page.cjs",
+      "scripts/test-scoped-read-pause.cjs",
+      "scripts/test-shared-access-default-regression.cjs",
+      "scripts/test-shared-access-optin-regression.cjs",
+      "scripts/test-shared-draft-client-v3.cjs",
+      "scripts/test-user-access-projection-reuse.mjs",
+      "scripts/test-web-feedback.cjs",
+      "scripts/test-workflow-begin-old-server.cjs",
+      "scripts/workflow-begin-source-contract.cjs",
+      "tests/abc-local-save-browser.mjs",
+      "tests/access-event-main-integration.test.cjs",
+      "tests/access-events-api.test.cjs",
+      "tests/account-cache-source-proof.test.cjs",
+      "tests/account-dialog-feedback.test.mjs",
+      "tests/account-editor-routine-save.test.cjs",
+      "tests/account-feedback-shell.test.cjs",
+      "tests/account-feedback-source-security.test.cjs",
+      "tests/account-final-approval.test.cjs",
+      "tests/account-lines-save-adoption.test.cjs",
+      "tests/account-lines-view-browser.mjs",
+      "tests/account-lines-view.test.cjs",
+      "tests/account-login-language.test.mjs",
+      "tests/account-master-page-review.test.cjs",
+      "tests/account-master-readback.test.mjs",
+      "tests/account-module-review-access.test.cjs",
+      "tests/account-page-entry.test.cjs",
+      "tests/account-page-source-proof.test.cjs",
+      "tests/account-permission-alignment.test.cjs",
+      "tests/account-permission-source-proof.test.cjs",
+      "tests/account-policy-source-loader.test.mjs",
+      "tests/account-priority-api.test.mjs",
+      "tests/account-process-joint-source.test.cjs",
+      "tests/account-result-notice.test.mjs",
+      "tests/account-review-preview.test.cjs",
+      "tests/account-routine-save-ui.test.cjs",
+      "tests/account-user-reset.test.cjs",
+      "tests/background-check-source-proof.test.cjs",
+      "tests/batch3-workflow-source-contract.test.cjs",
+      "tests/begin-recovery-browser.mjs",
+      "tests/canvas-approved-history-fixture.mjs",
+      "tests/canvas-approved-history.test.mjs",
+      "tests/canvas-deletion-groups.test.mjs",
+      "tests/canvas-departure.test.mjs",
+      "tests/canvas-manual-sync.test.mjs",
+      "tests/canvas-pending-form-admission.test.mjs",
+      "tests/canvas-save-conflict-choice.test.mjs",
+      "tests/canvas-silent-handoff.test.mjs",
+      "tests/draft-review-policy.test.mjs",
+      "tests/editor-projected-count.test.mjs",
+      "tests/fixtures/draft-review-page-boundaries.json",
+      "tests/fixtures/routine-fqc-durable.mjs",
+      "tests/fixtures/routine-page-receipt-access.source.txt",
+      "tests/fqc-draft-lifecycle-route-fixture.mjs",
+      "tests/fqc-draft-lifecycle-route.test.mjs",
+      "tests/global-background-checks.test.mjs",
+      "tests/helpers/native-worker-source.mjs",
+      "tests/import-pending-browser-fixture.mjs",
+      "tests/integrated-bootstrap-client.test.mjs",
+      "tests/master-ab-auth-phase-fixture.mjs",
+      "tests/master-ab-auth-phase.test.mjs",
+      "tests/master-page-approved-history-fixture.mjs",
+      "tests/master-page-approved-history-ui-fixture.mjs",
+      "tests/master-page-approved-history-ui.test.mjs",
+      "tests/master-page-approved-history.test.mjs",
+      "tests/master-page-retention-snapshot.test.mjs",
+      "tests/multiuser-canvas-recovery-authority.test.mjs",
+      "tests/multiuser-canvas-recovery-store.test.mjs",
+      "tests/multiuser-module-departure-bindings.test.mjs",
+      "tests/multiuser-module-departure-routine-save.test.mjs",
+      "tests/native-ab-startup.test.mjs",
+      "tests/navigation-adapters.test.mjs",
+      "tests/problem-export.test.cjs",
+      "tests/process-canvas-atomic-save-client.test.mjs",
+      "tests/process-canvas-atomic-save-stack.test.mjs",
+      "tests/process-draft-lifecycle-browser-contract.test.mjs",
+      "tests/process-draft-lifecycle-browser.mjs",
+      "tests/process-draft-lifecycle-route-fixture.mjs",
+      "tests/process-ipqc-source-adopt.test.mjs",
+      "tests/process-platform-canvas-contract.test.cjs",
+      "tests/process-platform-count-contract.test.cjs",
+      "tests/process-scripts-build.test.mjs",
+      "tests/process-shell-bundle-oracle.mjs",
+      "tests/process-shell-bundle-oracle.test.mjs",
+      "tests/quality-submission-fences.test.mjs",
+      "tests/routine-fqc-departure-attribution.test.mjs",
+      "tests/routine-fqc-durable-receipt.test.mjs",
+      "tests/routine-fqc-durable-route.test.mjs",
+      "tests/routine-fqc-explicit-refresh.test.mjs",
+      "tests/routine-fqc-source-contract.test.cjs",
+      "tests/routine-fqc-unload-contract.test.mjs",
+      "tests/routine-page-approved-history-fixture.mjs",
+      "tests/routine-page-approved-history-ui.test.mjs",
+      "tests/routine-page-approved-history.test.mjs",
+      "tests/routine-page-review-policy.test.mjs",
+      "tests/shared-draft-begin-v1.test.mjs",
+      "tests/shared-draft-receipt-recovery.test.mjs",
+      "tests/shared-unknown-departure-native.test.mjs",
+      "tests/sites-import-pending.test.mjs",
+      "tests/sites-root-entry-native.test.mjs",
+      "tests/sites-security.test.mjs",
+      "tests/snapshot-adapters.test.mjs",
+      "tests/user-permissions-native.test.mjs"
+    ],
+    "pr104": [
+      ".github/workflows/process-platform-integration.yml",
+      "AI_CONTEXT/CHANGELOG.md",
+      "AI_CONTEXT/DATA_MODEL.md",
+      "AI_CONTEXT/modules/MASTER_DATA.md",
+      "AI_CONTEXT/modules/PROCESS.md",
+      "AI_CONTEXT/modules/QUALITY.md",
+      "HANDOFF.md",
+      "app/api/master/pages/route.ts",
+      "app/api/master/workflow/route.ts",
+      "app/api/process-authoring/workflow/route.ts",
+      "app/api/shared-state/route.ts",
+      "docs/acceptance/process-platform-branch-inventory-20261110.json",
+      "docs/acceptance/process-platform-integration-20261110.md",
+      "docs/specs/current/PROCESS_EDITOR.md",
+      "docs/specs/current/SHARED_DRAFT.md",
+      "lib/approved-history-query.ts",
+      "lib/approved-history.ts",
+      "lib/draft-page-boundaries.ts",
+      "lib/master-approved-pages.ts",
+      "lib/master-catalog.ts",
+      "lib/master-document-boundary.ts",
+      "lib/master-line-page-workflow.ts",
+      "lib/master-page-approved-history.ts",
+      "lib/master-page-boundary.ts",
+      "lib/master-page-name-save.ts",
+      "lib/master-page-workflow.ts",
+      "lib/master-stage-reference-response.ts",
+      "lib/master-stage-references.ts",
+      "lib/master-workflow.ts",
+      "lib/process-approved-history.ts",
+      "lib/process-authoring-workflow.ts",
+      "lib/process-state.ts",
+      "lib/shared-draft.ts",
+      "lib/user-access.ts",
+      "lib/versioned-shared-workflow.ts",
+      "public/process/access-policy.mjs",
+      "public/process/canvas-approved-history.js",
+      "public/process/canvas-local.js",
+      "public/process/canvas-recovery-store.js",
+      "public/process/draft-review-policy.mjs",
+      "public/process/editor-line-selection.js",
+      "public/process/index.html",
+      "public/process/master-data.js",
+      "public/process/master-page-approved-history.js",
+      "public/process/master-page-editor.js",
+      "public/process/master-page-transfer.js",
+      "public/process/page-draft-merge.js",
+      "public/process/process-authoring-v3.js",
+      "public/process/process-editor.js",
+      "public/process/process-ipqc.js",
+      "public/process/shared-draft-client.js",
+      "public/process/version-draft-ui.css",
+      "public/process/version-draft-ui.js",
+      "scripts/background-check-source-contract.cjs",
+      "scripts/bootstrap-restore-projection-contract.cjs",
+      "scripts/entry-performance/poll-wiring.test.mjs",
+      "scripts/entry-performance/source-eol.test.cjs",
+      "scripts/process-platform-canvas-contract.cjs",
+      "scripts/process-platform-canvas-contract.json",
+      "scripts/process-platform-count-contract.cjs",
+      "scripts/process-platform-count-contract.json",
+      "scripts/test-access-template-reuse.cjs",
+      "scripts/test-authoring-contentissues-readscope.cjs",
+      "scripts/test-authoring-panel-local-unsaved.cjs",
+      "scripts/test-bootstrap-read-reduction.cjs",
+      "scripts/test-canvas-fit-origin.cjs",
+      "scripts/test-canvas-silent-discard.cjs",
+      "scripts/test-draft-page-boundaries.cjs",
+      "scripts/test-editor-line-selection.mjs",
+      "scripts/test-fqc-lifecycle8-record-mutation.cjs",
+      "scripts/test-master-line-page-workflow.cjs",
+      "scripts/test-master-page-boundary.cjs",
+      "scripts/test-master-page-name-save.cjs",
+      "scripts/test-master-page-review-regressions.cjs",
+      "scripts/test-master-page-runtime.cjs",
+      "scripts/test-master-page-tools-ui.cjs",
+      "scripts/test-master-page-transfer.cjs",
+      "scripts/test-master-page-ui.cjs",
+      "scripts/test-master-public-page-authority.cjs",
+      "scripts/test-process-flow-record-mutation.cjs",
+      "scripts/test-process-ipqc-choice-dom.cjs",
+      "scripts/test-process-page-lifecycle.cjs",
+      "scripts/test-process-page-roles.cjs",
+      "scripts/test-scoped-read-pause.cjs",
+      "scripts/test-shared-access-default-regression.cjs",
+      "scripts/test-shared-access-optin-regression.cjs",
+      "scripts/test-shared-draft-client-v3.cjs",
+      "scripts/test-workflow-begin-old-server.cjs",
+      "scripts/workflow-begin-source-contract.cjs",
+      "tests/access-event-main-integration.test.cjs",
+      "tests/background-check-source-proof.test.cjs",
+      "tests/batch3-workflow-source-contract.test.cjs",
+      "tests/begin-recovery-browser.mjs",
+      "tests/canvas-approved-history-fixture.mjs",
+      "tests/canvas-approved-history.test.mjs",
+      "tests/canvas-deletion-groups.test.mjs",
+      "tests/canvas-departure.test.mjs",
+      "tests/canvas-manual-sync.test.mjs",
+      "tests/canvas-pending-form-admission.test.mjs",
+      "tests/canvas-save-conflict-choice.test.mjs",
+      "tests/canvas-silent-handoff.test.mjs",
+      "tests/draft-review-policy.test.mjs",
+      "tests/editor-projected-count.test.mjs",
+      "tests/equipment-transfer-compiled.test.mjs",
+      "tests/equipment-transfer-setup-cleanup.test.mjs",
+      "tests/fixtures/draft-review-page-boundaries.json",
+      "tests/global-background-checks.test.mjs",
+      "tests/helpers/native-worker-source.mjs",
+      "tests/master-page-approved-history-fixture.mjs",
+      "tests/master-page-approved-history-ui-fixture.mjs",
+      "tests/master-page-approved-history-ui.test.mjs",
+      "tests/master-page-approved-history.test.mjs",
+      "tests/master-page-retention-snapshot.test.mjs",
+      "tests/multiuser-canvas-recovery-authority.test.mjs",
+      "tests/multiuser-canvas-recovery-store.test.mjs",
+      "tests/navigation-adapters.test.mjs",
+      "tests/process-canvas-atomic-save-client.test.mjs",
+      "tests/process-canvas-atomic-save-stack.test.mjs",
+      "tests/process-draft-lifecycle-browser-contract.test.mjs",
+      "tests/process-draft-lifecycle-browser.mjs",
+      "tests/process-ipqc-source-adopt.test.mjs",
+      "tests/process-platform-canvas-contract.test.cjs",
+      "tests/process-platform-count-contract.test.cjs",
+      "tests/process-scripts-build.test.mjs",
+      "tests/process-shell-bundle-oracle.mjs",
+      "tests/process-shell-bundle-oracle.test.mjs",
+      "tests/shared-draft-begin-v1.test.mjs",
+      "tests/shared-draft-receipt-recovery.test.mjs",
+      "tests/shared-draft-tab-attribution.test.mjs",
+      "tests/sites-root-entry-native.test.mjs"
+    ]
+  },
+  "overlap": [
+    {
+      "path": ".github/workflows/process-platform-integration.yml",
+      "same": false
+    },
+    {
+      "path": "AI_CONTEXT/CHANGELOG.md",
+      "same": false
+    },
+    {
+      "path": "AI_CONTEXT/DATA_MODEL.md",
+      "same": false
+    },
+    {
+      "path": "AI_CONTEXT/modules/MASTER_DATA.md",
+      "same": false
+    },
+    {
+      "path": "AI_CONTEXT/modules/PROCESS.md",
+      "same": false
+    },
+    {
+      "path": "AI_CONTEXT/modules/QUALITY.md",
+      "same": true
+    },
+    {
+      "path": "HANDOFF.md",
+      "same": false
+    },
+    {
+      "path": "app/api/master/pages/route.ts",
+      "same": true
+    },
+    {
+      "path": "app/api/master/workflow/route.ts",
+      "same": true
+    },
+    {
+      "path": "app/api/process-authoring/workflow/route.ts",
+      "same": true
+    },
+    {
+      "path": "app/api/shared-state/route.ts",
+      "same": false
+    },
+    {
+      "path": "docs/acceptance/process-platform-branch-inventory-20261110.json",
+      "same": true
+    },
+    {
+      "path": "docs/acceptance/process-platform-integration-20261110.md",
+      "same": true
+    },
+    {
+      "path": "docs/specs/current/PROCESS_EDITOR.md",
+      "same": true
+    },
+    {
+      "path": "docs/specs/current/SHARED_DRAFT.md",
+      "same": false
+    },
+    {
+      "path": "lib/approved-history-query.ts",
+      "same": true
+    },
+    {
+      "path": "lib/approved-history.ts",
+      "same": true
+    },
+    {
+      "path": "lib/draft-page-boundaries.ts",
+      "same": true
+    },
+    {
+      "path": "lib/master-approved-pages.ts",
+      "same": true
+    },
+    {
+      "path": "lib/master-catalog.ts",
+      "same": true
+    },
+    {
+      "path": "lib/master-document-boundary.ts",
+      "same": true
+    },
+    {
+      "path": "lib/master-line-page-workflow.ts",
+      "same": true
+    },
+    {
+      "path": "lib/master-page-approved-history.ts",
+      "same": true
+    },
+    {
+      "path": "lib/master-page-boundary.ts",
+      "same": true
+    },
+    {
+      "path": "lib/master-page-name-save.ts",
+      "same": true
+    },
+    {
+      "path": "lib/master-page-workflow.ts",
+      "same": false
+    },
+    {
+      "path": "lib/master-stage-reference-response.ts",
+      "same": true
+    },
+    {
+      "path": "lib/master-stage-references.ts",
+      "same": true
+    },
+    {
+      "path": "lib/master-workflow.ts",
+      "same": true
+    },
+    {
+      "path": "lib/process-approved-history.ts",
+      "same": true
+    },
+    {
+      "path": "lib/process-authoring-workflow.ts",
+      "same": true
+    },
+    {
+      "path": "lib/process-state.ts",
+      "same": true
+    },
+    {
+      "path": "lib/shared-draft.ts",
+      "same": true
+    },
+    {
+      "path": "lib/user-access.ts",
+      "same": false
+    },
+    {
+      "path": "lib/versioned-shared-workflow.ts",
+      "same": true
+    },
+    {
+      "path": "public/process/access-policy.mjs",
+      "same": false
+    },
+    {
+      "path": "public/process/canvas-approved-history.js",
+      "same": true
+    },
+    {
+      "path": "public/process/canvas-local.js",
+      "same": true
+    },
+    {
+      "path": "public/process/canvas-recovery-store.js",
+      "same": true
+    },
+    {
+      "path": "public/process/draft-review-policy.mjs",
+      "same": false
+    },
+    {
+      "path": "public/process/editor-line-selection.js",
+      "same": true
+    },
+    {
+      "path": "public/process/index.html",
+      "same": false
+    },
+    {
+      "path": "public/process/master-data.js",
+      "same": false
+    },
+    {
+      "path": "public/process/master-page-approved-history.js",
+      "same": true
+    },
+    {
+      "path": "public/process/master-page-editor.js",
+      "same": false
+    },
+    {
+      "path": "public/process/master-page-transfer.js",
+      "same": true
+    },
+    {
+      "path": "public/process/page-draft-merge.js",
+      "same": true
+    },
+    {
+      "path": "public/process/process-authoring-v3.js",
+      "same": true
+    },
+    {
+      "path": "public/process/process-editor.js",
+      "same": true
+    },
+    {
+      "path": "public/process/process-ipqc.js",
+      "same": true
+    },
+    {
+      "path": "public/process/shared-draft-client.js",
+      "same": false
+    },
+    {
+      "path": "public/process/version-draft-ui.css",
+      "same": true
+    },
+    {
+      "path": "public/process/version-draft-ui.js",
+      "same": true
+    },
+    {
+      "path": "scripts/background-check-source-contract.cjs",
+      "same": false
+    },
+    {
+      "path": "scripts/bootstrap-restore-projection-contract.cjs",
+      "same": false
+    },
+    {
+      "path": "scripts/entry-performance/poll-wiring.test.mjs",
+      "same": true
+    },
+    {
+      "path": "scripts/entry-performance/source-eol.test.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/process-platform-canvas-contract.cjs",
+      "same": false
+    },
+    {
+      "path": "scripts/process-platform-canvas-contract.json",
+      "same": false
+    },
+    {
+      "path": "scripts/process-platform-count-contract.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/process-platform-count-contract.json",
+      "same": true
+    },
+    {
+      "path": "scripts/test-access-template-reuse.cjs",
+      "same": false
+    },
+    {
+      "path": "scripts/test-authoring-contentissues-readscope.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-authoring-panel-local-unsaved.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-bootstrap-read-reduction.cjs",
+      "same": false
+    },
+    {
+      "path": "scripts/test-canvas-fit-origin.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-canvas-silent-discard.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-draft-page-boundaries.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-editor-line-selection.mjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-fqc-lifecycle8-record-mutation.cjs",
+      "same": false
+    },
+    {
+      "path": "scripts/test-master-line-page-workflow.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-master-page-boundary.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-master-page-name-save.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-master-page-review-regressions.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-master-page-runtime.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-master-page-tools-ui.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-master-page-transfer.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-master-page-ui.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-master-public-page-authority.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-process-flow-record-mutation.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-process-ipqc-choice-dom.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-process-page-lifecycle.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-process-page-roles.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-scoped-read-pause.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-shared-access-default-regression.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-shared-access-optin-regression.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-shared-draft-client-v3.cjs",
+      "same": true
+    },
+    {
+      "path": "scripts/test-workflow-begin-old-server.cjs",
+      "same": false
+    },
+    {
+      "path": "scripts/workflow-begin-source-contract.cjs",
+      "same": false
+    },
+    {
+      "path": "tests/access-event-main-integration.test.cjs",
+      "same": false
+    },
+    {
+      "path": "tests/background-check-source-proof.test.cjs",
+      "same": false
+    },
+    {
+      "path": "tests/batch3-workflow-source-contract.test.cjs",
+      "same": false
+    },
+    {
+      "path": "tests/begin-recovery-browser.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/canvas-approved-history-fixture.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/canvas-approved-history.test.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/canvas-deletion-groups.test.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/canvas-departure.test.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/canvas-manual-sync.test.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/canvas-pending-form-admission.test.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/canvas-save-conflict-choice.test.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/canvas-silent-handoff.test.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/draft-review-policy.test.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/editor-projected-count.test.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/fixtures/draft-review-page-boundaries.json",
+      "same": true
+    },
+    {
+      "path": "tests/global-background-checks.test.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/helpers/native-worker-source.mjs",
+      "same": false
+    },
+    {
+      "path": "tests/master-page-approved-history-fixture.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/master-page-approved-history-ui-fixture.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/master-page-approved-history-ui.test.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/master-page-approved-history.test.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/master-page-retention-snapshot.test.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/multiuser-canvas-recovery-authority.test.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/multiuser-canvas-recovery-store.test.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/navigation-adapters.test.mjs",
+      "same": false
+    },
+    {
+      "path": "tests/process-canvas-atomic-save-client.test.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/process-canvas-atomic-save-stack.test.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/process-draft-lifecycle-browser-contract.test.mjs",
+      "same": false
+    },
+    {
+      "path": "tests/process-draft-lifecycle-browser.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/process-ipqc-source-adopt.test.mjs",
+      "same": true
+    },
+    {
+      "path": "tests/process-platform-canvas-contract.test.cjs",
+      "same": false
+    },
+    {
+      "path": "tests/process-platform-count-contract.test.cjs",
+      "same": true
+    },
+    {
+      "path": "tests/process-scripts-build.test.mjs",
+      "same": false
+    },
+    {
+      "path": "tests/process-shell-bundle-oracle.mjs",
+      "same": false
+    },
+    {
+      "path": "tests/process-shell-bundle-oracle.test.mjs",
+      "same": false
+    },
+    {
+      "path": "tests/shared-draft-begin-v1.test.mjs",
+      "same": false
+    },
+    {
+      "path": "tests/shared-draft-receipt-recovery.test.mjs",
+      "same": false
+    },
+    {
+      "path": "tests/sites-root-entry-native.test.mjs",
+      "same": true
+    }
+  ],
+  "runtimeDecisions": [
+    {
+      "path": "app/api/shared-state/route.ts",
+      "selectedOrigin": "pr103",
+      "sha256": "da2892160c1bbb6ca208c7c728a93fcfd5cc9b70287d4a80dd529f8c58b8ea12",
+      "processSha256": "1e9c95510c43808d09df196970fa6792e1eb61e32523b68da4977492710ec155",
+      "reason": "Preserve reviewed account/independent-page addition over the process predecessor; see semantic decisions."
+    },
+    {
+      "path": "lib/master-page-workflow.ts",
+      "selectedOrigin": "pr103",
+      "sha256": "e29319a3ec68ba8cf75ac2d47aabb994725624006a5e954bf03a25031c913015",
+      "processSha256": "dc0fdbbd8fefdcf8df9e81af608a0deb21f53b2c589d81b613043fabc2adccc6",
+      "reason": "Preserve reviewed account/independent-page addition over the process predecessor; see semantic decisions."
+    },
+    {
+      "path": "lib/user-access.ts",
+      "selectedOrigin": "pr103",
+      "sha256": "badd9f0a8d649eb8a4c1e05129d48e604dc7e02ade872132f3bcab5a11fba397",
+      "processSha256": "3a468f82280a5d78519f60d0ebf621b277f9356e6d7161cf80d32e1bf7c7760a",
+      "reason": "Preserve reviewed account/independent-page addition over the process predecessor; see semantic decisions."
+    },
+    {
+      "path": "public/process/access-policy.mjs",
+      "selectedOrigin": "pr103",
+      "sha256": "05a8589b91f4b3e62648f80bb5d3be7642825932277ffe5b9d7a539df8060607",
+      "processSha256": "8dba5279c30745ad17464460c1fc3fb41c6afc91c392f0392b3c6fbf93727bb7",
+      "reason": "Preserve reviewed account/independent-page addition over the process predecessor; see semantic decisions."
+    },
+    {
+      "path": "public/process/draft-review-policy.mjs",
+      "selectedOrigin": "pr103",
+      "sha256": "dc986667410f180de125e9ca09107f4e1591884483980a176941063ca9b69f8c",
+      "processSha256": "042594effe9ee0510b19f68bfcd05d9c204c98e425f07590abc36553bf98f38f",
+      "reason": "Preserve reviewed account/independent-page addition over the process predecessor; see semantic decisions."
+    },
+    {
+      "path": "public/process/index.html",
+      "selectedOrigin": "pr103",
+      "sha256": "ff4b6a98d58f6de8d0d8020e7d397d7274bb3a447bca78d06cdcd347ef731cc6",
+      "processSha256": "104ba1e7d33a8430112e5ac0bd4c341cad7fee74ecb5a232707ec0e58775c728",
+      "reason": "Preserve reviewed account/independent-page addition over the process predecessor; see semantic decisions."
+    },
+    {
+      "path": "public/process/master-data.js",
+      "selectedOrigin": "pr103",
+      "sha256": "6ef5e2502ad4803815c7ca4a926a21ce87d05f3b101bcb583f408964a22d46a8",
+      "processSha256": "452e0b8352bdf9b5c56405717bda71d474fc22cc3880a739fbf50b2ed5addb05",
+      "reason": "Preserve reviewed account/independent-page addition over the process predecessor; see semantic decisions."
+    },
+    {
+      "path": "public/process/master-page-editor.js",
+      "selectedOrigin": "pr103",
+      "sha256": "86d18cc053c713a511c5c06ef0d4bb45de88ac37dcd3704e38ecb036d6218983",
+      "processSha256": "66842695c3701a44eb412ff7f976d453f75069c06dd44406ec199690f57af176",
+      "reason": "Preserve reviewed account/independent-page addition over the process predecessor; see semantic decisions."
+    },
+    {
+      "path": "public/process/shared-draft-client.js",
+      "selectedOrigin": "pr103",
+      "sha256": "ac56eb94ef7c9ad670df961f1423898cf723369bec961411e90fdacff897f9c2",
+      "processSha256": "4a4b8006019462b84ea0fd511dce571a3c51ff026aab2a4139357c56db190c7e",
+      "reason": "Preserve reviewed account/independent-page addition over the process predecessor; see semantic decisions."
+    }
+  ],
+  "semanticDecisions": {
+    "lib/user-access.ts": "Central account review resolver; explicit primary proof; no inactive metadata; do not regress Feedback projection.",
+    "public/process/access-policy.mjs": "Thirteen Edit→Save modules, no new view/submit/final approval grants; enforce new line dependencies only on installed page adoption.",
+    "public/process/draft-review-policy.mjs": "Validate primary confirmation stamps and later denials; pin account dependency.",
+    "app/api/shared-state/route.ts": "Keep fail-closed Routine page cutover protection.",
+    "lib/master-page-workflow.ts": "Independent Save-only empty batch; fresh Edit still required for any actual patch.",
+    "public/process/master-page-editor.js": "Preserve fresh permission/generation/pending checks before and after choice; discard empty batches.",
+    "public/process/shared-draft-client.js": "Both heads contain authoring early guard. Keep Routine routes/history and structural JSON readback; UNKNOWN receipt/owner protections unchanged.",
+    "public/process/master-data.js": "Keep approved Lines-only authorized projection, without granting AB/C workflows.",
+    "public/process/index.html": "Retain account and Routine dependency order, 57 sources. Canvas/authoring runtime bytes already identical to #104; exact reviewed asset pins retained.",
+    "other": "All app/lib/public bytes exactly #103; identical #104 changes retained. No #105–107 commits added. Latest #104 test additions retained and incompatible fixture deltas adapted explicitly."
+  }
+}

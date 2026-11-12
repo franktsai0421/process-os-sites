@@ -23,10 +23,25 @@ for (const test of cases) {
   const prefix = code.slice(0, code.indexOf(test.boundary));
   const raw = canonical(fs.readFileSync(target, 'utf8'));
   assert.equal(raw.split(test.marker).length, 2, test.name + ' unique mutation marker');
-  function execute(source) {
+  function execute(source, transformProjection) {
     const requireFixture = createRequire(fixture), mod = { exports: {} };
     const readFileSync = (file, ...args) => path.resolve(String(file)) === target ? source : fs.readFileSync(file, ...args);
-    const requirePort = id => id === 'node:fs' ? { ...fs, readFileSync } : requireFixture(id);
+    const requirePort = id => {
+      if (id === 'node:fs') return { ...fs, readFileSync };
+      const actual = requireFixture(id);
+      if (transformProjection && id === './background-check-source-contract.cjs') {
+        assert.equal(test.name, 'panel', 'only the departure inverse input is injected');
+        return { ...actual, projectKnown(bytes, file) {
+          assert.equal(file, test.target);
+          const projected = actual.projectKnown(bytes, file);
+          assert(Buffer.isBuffer(projected), 'actual projection retains raw bytes');
+          const before = canonical(projected.toString()), after = transformProjection(before);
+          assert.notEqual(after, before, 'departure inverse mutation is effective');
+          return Buffer.from(after);
+        } };
+      }
+      return actual;
+    };
     const context = { require: requirePort, module: mod, exports: mod.exports, __dirname: path.dirname(fixture), process: { ...process, env: { ...process.env, INCOMING_TEST_ROOT: root, PANEL_TEST_ROOT: root, INCOMING_CANDIDATE: target, PANEL_CANDIDATE: target } }, console };
     vm.runInNewContext(prefix + '\nmodule.exports=' + test.output + ';', context, { filename: fixture });
     return mod.exports;
@@ -46,8 +61,23 @@ for (const test of cases) {
       assert.notEqual(source,raw,'outside-span mutation is effective');
       assert.throws(()=>execute(source),{code:'ERR_ASSERTION'},'unreviewed bytes outside departure anchors must be rejected');checks++;
     }
-    for(const row of proof.spans)for(const replacement of [row.candidate.replace(/\S/,'?'),'',row.candidate+row.candidate]){
-      assert.throws(()=>execute(raw.replace(row.candidate,replacement)),{code:'ERR_ASSERTION'},'changed/missing/duplicate departure inverse must be rejected');checks++;
+    // The actual composition can restore an older departure span that no longer
+    // occurs in raw HEAD. Mutate the real projected input, after HEAD admission,
+    // so every case reaches the unchanged exact-anchor inverse rather than a
+    // no-op replace or an earlier checkout-hash rejection.
+    const projected = canonical(createRequire(fixture)('./background-check-source-contract.cjs').projectKnown(Buffer.from(raw), test.target).toString());
+    for(const [index,row] of proof.spans.entries()) {
+      assert.equal(projected.split(row.candidate).length - 1, 1, 'departure projected anchor '+index+' is unique');
+      for(const [kind,replacement] of [['changed',row.candidate.replace(/\S/,'?')],['missing',''],['duplicate',row.candidate+row.candidate]])for(const eol of ['LF','CRLF']) {
+        assert.notEqual(replacement, row.candidate, 'departure replacement is effective');
+        assert.throws(()=>execute(eol==='LF'?raw:raw.replace(/\n/g,'\r\n'), source=>{
+          assert.equal(source, projected, 'mutate the actual complete projected input');
+          const changed = source.replace(row.candidate, replacement);
+          assert.notEqual(changed, source, 'departure '+index+' '+kind+' mutation is effective');
+          return eol==='LF'?changed:changed.replace(/\n/g,'\r\n');
+        }), error=>error.code==='ERR_ASSERTION'&&error.message.includes('portable baseline requires one exact source anchor:'), 'departure '+index+' '+kind+' '+eol+' must fail the exact-anchor inverse');
+        checks++;
+      }
     }
   }
   if(test.name==='identity'){

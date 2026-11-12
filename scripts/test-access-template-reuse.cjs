@@ -10,9 +10,15 @@ const values={processCustomRoles:JSON.stringify(custom),processRoleTemplateOverr
 const users=[{id:'frank',role:'admin'},{id:'secondary-admin',role:'admin'},{id:'rd-user',role:'rd'},{id:'staff-user',role:'staff'},{id:'custom-user',role:'custom'},{id:'unknown-user',role:'missing'},{id:'disabled-user',role:'admin',enabled:false},{id:'deleted-user',role:'admin',deletedAt:'fixture'},{id:'frank',role:'admin',authMode:'demo'},{id:'own-fields',role:'staff',inheritRole:false,views:['player'],permissions:['approval.submit'],lines:['B']},{id:'override-user',role:'custom',accessOverrides:{'ipqc-ab.save':true,'users.edit':true,'feedback.exchange':true}}];
 let comparisons=0;const checks=[];const json=v=>JSON.parse(JSON.stringify(v));
 const outcome=(module,user,state)=>{try{return{value:json(module.effectiveAccess(user,state))};}catch(e){return{error:{name:e.name,message:e.message}};}};
-function same(user,state){comparisons++;assert.deepEqual(outcome(current,user,state),outcome(prior,user,state));}
+function same(user,state){
+ comparisons++;const before=outcome(prior,user,state),after=outcome(current,user,state);
+ // The historical implementation derives generic data access from feedback alone.
+ // Reverse only that newly forbidden alias; every other result field stays exact.
+ if(before.value?.enabled&&before.value.cells['feedback.view']&&!require('../public/process/access-policy.mjs').catalog.some(row=>row.id!=='feedback'&&row.view==='data'&&before.value.cells[row.id+'.view']))before.value.views=before.value.views.filter(view=>view!=='data');
+ assert.deepEqual(after,before);
+}
 function check(name,fn){fn();checks.push(name);console.log('PASS '+name);}
-check('T1 primary/secondary/custom/default/disabled/deleted/demo and overrides retain exact results',()=>{
+check('T1 primary/secondary/custom/default/disabled/deleted/demo and overrides retain results except the explicit feedback-only data alias',()=>{
  for(const user of users)for(const state of [values,{}, {processCustomRoles:custom,processRoleTemplateOverrides:{}}, {processCustomRoles:'invalid-json',processRoleTemplateOverrides:'invalid-json'}, {processCustomRoles:'[]',processRoleTemplateOverrides:'{}'}])same(user,state);
  assert.equal(current.effectiveAccess(users[0],values).primary,true);assert.equal(current.effectiveAccess(users[1],values).primary,false);assert.equal(current.effectiveAccess(users[8],values).primary,false);
  const limited=current.effectiveAccess(users.at(-1),values);assert.equal(limited.cells['users.edit'],false);assert.equal(limited.cells['feedback.exchange'],false);
@@ -36,13 +42,14 @@ check('T5 exact reuse plus pinned PR44, AB-phase and FQC-phase deltas; outside-s
  const lf=b=>Buffer.from([...b].filter((v,i)=>v!==13||b[i+1]!==10));assert.deepEqual(lf(fs.readFileSync('lib/user-access.ts')),lf(now));
  for(const file of ['lib/process-state.ts','lib/session-revocation.ts']){
   const committed=execFileSync('git',['show','HEAD:'+file]),original=execFileSync('git',['show',base+':'+file]);
-  assert.deepEqual(file==='lib/process-state.ts'?withoutMasterABPermissionPhase(withoutFqcPermissionPhase(committed),original):committed,original);
+  const historical=file==='lib/process-state.ts'?require('./account-page-source-contract.cjs').projectFile(committed,file):committed;
+  assert.deepEqual(file==='lib/process-state.ts'?withoutMasterABPermissionPhase(withoutFqcPermissionPhase(historical),original):historical,original);
   assert.deepEqual(lf(fs.readFileSync(file)),lf(committed),'working auth source differs from committed bytes');
-  if(file==='lib/process-state.ts'){assert.equal(assertFqcPermissionPhaseContract(committed),5);assert.equal(assertMasterABPermissionPhaseContract(withoutFqcPermissionPhase(committed),original),6);}
+  if(file==='lib/process-state.ts'){assert.equal(assertFqcPermissionPhaseContract(historical),5);assert.equal(assertMasterABPermissionPhaseContract(withoutFqcPermissionPhase(historical),original),6);}
  }
  const policy='public/process/access-policy.mjs',committedPolicy=execFileSync('git',['show','HEAD:'+policy]);
  assert.deepEqual(withoutPR44AccessChanges(policy,committedPolicy),execFileSync('git',['show',base+':'+policy]));
  assert.deepEqual(lf(fs.readFileSync(policy)),lf(committedPolicy));
  for(const [file,bytes]of [['lib/user-access.ts',now],[policy,committedPolicy]])assertAccessTemplateContract(file,bytes);
 });
-console.log(JSON.stringify({status:'PASS',groups:checks.length,checks,comparisons,oldParseCount,newParseCount,network:false,limits:['Pure local computation work only, not measured live bottleneck','No caching between calls or skipping identity/revocation checks','Reuse comparison shares the exact pinned PR44 policy; not pre-PR44 policy equivalence']}));
+console.log(JSON.stringify({status:'PASS',groups:checks.length,checks,comparisons,oldParseCount,newParseCount,network:false,limits:['Pure local computation work only, not measured live bottleneck','No caching between calls or skipping identity/revocation checks','Reuse comparison shares current policy and isolates only feedback-derived data removal; exact main/PR44 layers prove source, not pre-PR44 policy equivalence']}));

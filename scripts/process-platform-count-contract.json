@@ -1,0 +1,13 @@
+{
+  "base": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+  "baseTree": "6eee3963fec61a540c144a920fbb3f65949d5e10",
+  "source": "public/process/editor-line-selection.js",
+  "index": "public/process/index.html",
+  "sourceBeforeHash": "856d783b6f806dc8b09949b2ab2d44332661ce0ea09ea258e7a6d7abb53de6ba",
+  "sourceAfterHash": "37ae6bb223ad3f49585dcf025f0737a82ef3757e0c4225000bc2be9d22e780e4",
+  "indexBeforeHash": "41474215c11933274c47c35fc09e86f4fc930fd791322013da861c256b766fae",
+  "indexAfterHash": "499f83c29f4f6caa692c54c04c16535aae5d4884c534f9d36d0b3a93b58f8b4d",
+  "oldTag": "editor-line-selection.js?v=20261030-pr54-integrated1",
+  "newTag": "editor-line-selection.js?v=20261109-projected-count1",
+  "sourceCommit": "e2591c6fb70a01770d3c7ae12a6780c58c1fe6a3"
+}

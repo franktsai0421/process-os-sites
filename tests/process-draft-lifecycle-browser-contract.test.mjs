@@ -6,6 +6,7 @@ import vm from 'node:vm';
 import {extendProcessNavigationSeed, processBrowserActions, runProcessDraftBrowser, expectedSubmitNotice, assertSubmitNotice, noReviewerMessages, pendingProcessUIReady, processShellReady, reviewerProcessUIReady, processPageDiagnostic, disabledRoutineReviewContext} from './process-draft-lifecycle-browser.mjs';
 import {summarizeActions} from './draft-action-measurement.mjs';
 import {canvasDOM} from '../scripts/login-reentry-dom.mjs';
+import {setup as canvasSetup} from './canvas-approved-history-fixture.mjs';
 
 void test('process browser manifest names every required first-batch action explicitly', () => {
   assert.deepEqual(processBrowserActions, [
@@ -51,32 +52,35 @@ void test('only the exact original reviewer advisory at each explicit Submit is 
   }
 });
 
-void test('actual pending mount removes draft writes; readiness requires linked case, lock and one usable Withdraw', () => {
-  const dom = canvasDOM();
-  dom.Node.prototype.before = function (node) { const parent = this.parentElement; node.remove(); node.parentElement = parent; parent.children.splice(parent.children.indexOf(this), 0, node); };
-  Object.defineProperty(dom.Node.prototype, 'firstChild', {get() { return this.children[0] || null; }});
-  const page = dom.document.createElement('main'); page.className = 'editor-page editor-readonly editor-submitted-lock'; dom.document.body.append(page);
-  const panel = dom.document.createElement('section'); panel.id = 'authoring-v3-panel'; page.append(panel);
-  panel.innerHTML = '<section class="av3-header"><select id="authoring-version-choice"><option value="case1">Pending</option></select><button data-av3="save">Save</button><button data-av3="submit">Submit</button><button data-av3="withdraw">Withdraw</button></section>';
-  const select = panel.querySelector('select'); select.value = 'case1'; select.options = select.querySelectorAll('option');
-  const flow = {scope: 'process:platform', generation: 'g1', revision: 3, pendingId: 'case1', saved: {id: 'save1', actor: {name: 'Synthetic'}, content: {}, revision: 1}, working: {}, saves: [], cases: [{id: 'case1', status: 'pending', savedId: 'save1'}]};
-  const api = {flow: () => flow, canMutate: () => false, canEditLocalCanvas: () => false};
-  const context = {document: dom.document, ProcessAuthoringV3: api, addEventListener() {}, bindDataInner() {}, Intl, Date, console}; context.window = context;
-  vm.createContext(context); vm.runInContext(fs.readFileSync(new URL('../public/process/version-draft-ui.js', import.meta.url), 'utf8'), context);
-  const version = {id: 'case1', status: 'pending', number: 2};
-  context.VersionDraftUI.mount(panel, {header: '.av3-header', module: 'Synthetic', scope: 'process:platform', version, versions: [version], flow, actions: {save: '[data-av3="save"]', submit: '[data-av3="submit"]', withdraw: '[data-av3="withdraw"]'}});
-  assert.equal(panel.querySelectorAll('[data-av3="save"],[data-av3="submit"]').length, 0, 'Actual mount deliberately does not retain draft write controls while pending');
-  const withdraw = panel.querySelector('[data-av3="withdraw"]'); assert(withdraw); withdraw.getClientRects = () => [{}];
-  const ready = () => vm.runInContext('(' + pendingProcessUIReady.toString() + ')({savedId:"save1",generation:"g1"})', context);
+for (const lang of ['zh', 'vi']) for (const inline of [true, false]) void test('actual current Canvas pending mount retains linked case, locked view and one usable Withdraw '+lang+'/'+inline, async t => {
+  const f = await canvasSetup({lang, inline, pending: true}); t.after(f.close);
+  const control = JSON.parse(f.f.values.processAuthoringControl), initial = control.workflow;
+  initial.saved = {id: 'save1', content: structuredClone(initial.working), actor: {id: 'fixture', name: 'Synthetic'}, at: '2026-11-12T00:00:00.000Z', revision: 1};
+  initial.cases.find(row => row.id === initial.pendingId).savedId = 'save1';
+  const version = control.versions.find(row => row.status === 'draft'); version.id = initial.pendingId; version.status = 'pending';
+  await f.f.mutateValues(values => { values.processAuthoringControl = JSON.stringify(control); });
+  const row = JSON.stringify(f.f.row()), posts = f.calls.filter(call => call.method === 'POST').length;
+  f.api.acceptCanvas({revision: f.f.row().revision, control});
+  const flow = f.api.flow(), panel = f.doc.querySelector('#authoring-v3-panel'), page = f.doc.querySelector('.editor-page');
+  const select = panel.querySelector('#canvas-approved-version'), display = page.querySelector('[data-vd-approved-view]'), withdraw = panel.querySelector('[data-av3="withdraw"]');
+  assert.equal(panel.querySelectorAll('[data-av3="save"],[data-av3="submit"]').length, 0, 'Actual pending mount removes draft writes');
+  assert.equal(panel.querySelector('#authoring-version-choice'), null, 'Retired legacy selector is deliberately absent');
+  assert(select); assert(withdraw); select.getClientRects = withdraw.getClientRects = () => [{}];
+  const ready = () => vm.runInContext('(' + pendingProcessUIReady.toString() + ')({savedId:"save1",generation:"g"})', f.box);
   assert.equal(ready(), true);
   for (const field of ['scope', 'generation', 'pendingId']) { const prior = flow[field]; flow[field] = 'wrong'; assert.equal(ready(), false, field); flow[field] = prior; }
-  for (const [target, field, bad] of [[flow.saved, 'id', 'other-save'], [flow.cases[0], 'savedId', 'other-save'], [flow.cases[0], 'status', 'approved'], [select, 'value', 'other-case'], [withdraw, 'disabled', true]]) { const prior = target[field]; target[field] = bad; assert.equal(ready(), false, field); target[field] = prior; }
+  const pending = flow.cases.find(item => item.id === flow.pendingId);
+  for (const [target, field, bad] of [[flow.saved, 'id', 'other-save'], [pending, 'savedId', 'other-save'], [pending, 'status', 'approved'], [select, 'value', 'approved-case'], [select, 'disabled', true], [select.dataset, 'vdApprovedChoice', 'false'], [display, 'hidden', false], [withdraw, 'disabled', true]]) { const prior = target[field]; target[field] = bad; assert.equal(ready(), false, field); target[field] = prior; }
   for (const name of ['editor-readonly', 'editor-submitted-lock']) { page.classList.remove(name); assert.equal(ready(), false, name); page.classList.add(name); }
-  for (const name of ['canMutate', 'canEditLocalCanvas']) { api[name] = () => true; assert.equal(ready(), false, name); api[name] = () => false; }
-  withdraw.getClientRects = () => []; assert.equal(ready(), false); withdraw.getClientRects = () => [{}];
-  const extra = dom.document.createElement('button'); extra.setAttribute('data-av3', 'withdraw'); panel.append(extra); assert.equal(ready(), false); extra.remove();
+  for (const name of ['canMutate', 'canEditLocalCanvas', 'historyReadOnly']) { const prior = f.api[name]; f.api[name] = () => true; assert.equal(ready(), false, name); f.api[name] = prior; }
+  for (const node of [select, withdraw]) { node.getClientRects = () => []; assert.equal(ready(), false); node.getClientRects = () => [{}]; }
+  const extra = f.doc.createElement('button'); extra.setAttribute('data-av3', 'withdraw'); panel.append(extra); assert.equal(ready(), false); extra.remove();
   extra.setAttribute('data-av3', 'save'); panel.append(extra); assert.equal(ready(), false); extra.remove();
-  withdraw.remove(); assert.equal(ready(), false, 'Missing controls alone are never proof of a locked pending view');
+  const duplicate = f.doc.createElement('select'); duplicate.id = select.id; panel.append(duplicate); assert.equal(ready(), false); duplicate.remove();
+  select.remove(); assert.equal(ready(), false, 'Missing current-view selector is never evidence of pending readiness'); panel.append(select); assert.equal(ready(), true);
+  const withdrawParent = withdraw.parentElement; withdraw.remove(); assert.equal(ready(), false, 'Missing Withdraw must reject pending readiness'); withdrawParent.append(withdraw); assert.equal(ready(), true);
+  await f.open(); for (let pages = 0; f.select().options.some(option => option.value === '__more'); pages++) { assert(pages < 5); await f.choose('__more'); } await f.choose('approved-case'); assert.equal(f.api.historyReadOnly(), true, f.doc.querySelector('.vd-approved-notice')?.textContent); assert.equal(ready(), false, 'Approved history is not the current pending case');
+  assert.equal(f.calls.filter(call => call.method === 'POST').length, posts); assert.equal(JSON.stringify(f.f.row()), row);
 });
 
 for (const system of ['process', 'quality']) for (const selected of ['master', 'process', 'quality', 'routine']) void test(`actual approval tab cold/reload contract selects ${selected} in ${system}`, () => {

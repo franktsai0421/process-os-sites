@@ -1,0 +1,33 @@
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),{DatabaseSync}=require('node:sqlite'),{randomUUID}=require('node:crypto');
+const P=require('../public/process/access-policy.mjs'),off=Object.fromEntries(P.accessKeys.map(k=>[k,false])),source=fs.readFileSync('public/process/master-data.js','utf8'),start=source.indexOf('  function approvedLinesOnly('),code=source.slice(start,source.indexOf('  function bindTabButtons(',start));
+const escape=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+function UI(delivery,language='zh'){
+ const content={dataset:{},innerHTML:''},calls=[];
+ // This fixture exercises the legacy approved catalog, before any page owner adoption.
+ const ctx={control:{},currentUser:delivery.values?.platformUsers?JSON.parse(delivery.values.platformUsers)[0]:structuredClone(delivery.identity),state:{view:'data',dataTab:'line-admin',masterScope:'AB'},window:{ProcessSync:{...structuredClone(delivery),protected:true}},document:{documentElement:{lang:language},querySelector:()=>content},safe:escape,Promise,Error,bindTabButtons:()=>calls.push('tabs'),dataReady:Promise.resolve(),dataError:null,masterView(){throw Error('UNAUTHORIZED_AB_RENDER');},bindMaster(){throw Error('UNAUTHORIZED_AB_BIND');},fetch(){throw Error('UNEXPECTED_FETCH');},localStorage:{setItem(){throw Error('UNEXPECTED_STORAGE_WRITE');}}};
+ vm.createContext(ctx);vm.runInContext(code,ctx);return{ctx,content,calls,select:()=>ctx.selectDataTab('line-admin')};
+}
+const sample=()=>({deliveryProjection:true,identity:{id:'synthetic-lines',enabled:true,role:'staff',cells:{...off,'lines.view':true}},destination:{view:'data',dataTab:'line-admin',module:'lines',key:'data:line-admin'},catalog:{format:'PROCESS_RUNTIME_CATALOG_V1',loadedScopes:['AB','C'],routing:{lines:[{code:'A',name:'<script>untrusted</script>',stages:[{code:'S-1',name:'Công đoạn 中文'}]},{code:'C',name:'Synthetic C',stages:[]}]},imported:{products:[{name:'SHOULD_NOT_RENDER'}]}}});
+for(const language of ['zh','vi'])void test(language+' actual line-only selector renders all approved lines without AB/C hydration, controls or writes',()=>{
+ const f=UI(sample(),language),before=JSON.stringify(f.ctx.window.ProcessSync);f.select();assert.equal(f.content.dataset.activeTab,'line-admin');assert.match(f.content.innerHTML,/data-lines-readonly/);assert.match(f.content.innerHTML,/Công đoạn 中文/);assert.match(f.content.innerHTML,/Synthetic C/);assert.doesNotMatch(f.content.innerHTML,/<script>|SHOULD_NOT_RENDER|<input|<button|data-master-save/);assert.match(f.content.innerHTML,/&lt;script&gt;/);assert.equal(f.ctx.dataError,null);assert.equal(JSON.stringify(f.ctx.window.ProcessSync),before);assert.deepEqual(f.calls,['tabs']);
+ assert.match(f.content.innerHTML,language==='vi'?/Chỉ xem chuyền/:/目前僅查看已核准/);
+});
+for(const change of [
+ f=>{f.ctx.currentUser.cells['lines.view']=false;},f=>{f.ctx.currentUser.enabled=false;},f=>{f.ctx.currentUser.deletedAt='synthetic';},f=>{f.ctx.window.ProcessSync.identity.id='other';},
+ f=>{f.ctx.window.ProcessSync.destination.key='data:AB';},f=>{f.ctx.window.ProcessSync.catalog.loadedScopes=['AB'];},f=>{f.ctx.window.ProcessSync.catalog.routing.lines=null;},f=>{f.ctx.window.ProcessSync.catalog.routing.lines[0].stages=null;}
+])void test('line view source/identity failure never becomes empty approved data: '+change.toString(),()=>{
+ const f=UI(sample());change(f);f.select();assert(f.ctx.dataError);assert.match(f.content.innerHTML,/data-line-permission-notice/);assert.doesNotMatch(f.content.innerHTML,/data-lines-readonly|Synthetic C/);
+});
+void test('reload/expired delivery refuses a stale approved line catalog',()=>{for(const flag of ['requiresReload','expired']){const f=UI(sample());f.ctx.window.ProcessSync[flag]=true;f.select();assert(f.ctx.dataError);assert.doesNotMatch(f.content.innerHTML,/data-lines-readonly/);}});
+void test('actual bootstrap grants lines-only approved dependencies, while AB/C workflows and account/business state stay protected',async()=>{
+ const db=new DatabaseSync(':memory:');for(const f of fs.readdirSync('drizzle').filter(f=>f.endsWith('.sql')).sort())db.exec(fs.readFileSync('drizzle/'+f,'utf8'));
+ const env={PROCESS_SESSION_SECRET:randomUUID(),DB:{prepare(sql){let args=[];return{bind(...v){args=v;return this;},async first(){return db.prepare(sql).get(...args)||null;},async all(){return{results:db.prepare(sql).all(...args)};},async run(){throw Error('READ_WRITE_FORBIDDEN');}};}},STATE_ARCHIVE:{async get(){throw Error('UNEXPECTED_OBJECT_READ');},async put(){throw Error('READ_WRITE_FORBIDDEN');}}},load=require('../scripts/ipqc-ab-import-harness.cjs')(env),core=load('lib/process-state.ts');
+ const user={id:'synthetic-lines',name:'Synthetic lines',role:'staff',enabled:true,authEpoch:1,accessOverrides:{...off,'lines.view':true}},master={active:{AB:{products:[],lines:[{code:'A',name:'Synthetic A',stages:[{code:'S-1',name:'Stage one'}]}]},C:{products:[],lines:[{code:'C',name:'Synthetic C',stages:[]}]},PROCESS:{}},versions:[]},values={platformUsers:JSON.stringify([user]),masterDataControl:JSON.stringify(master)};
+ db.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').run(JSON.stringify(values),'synthetic');const before=db.prepare('SELECT * FROM shared_state').get(),cookie='process_demo='+await core.demoSession(new Request('https://fixture.invalid'),user.id,false,1),headers={Cookie:cookie};
+ try{
+ const route=load('app/api/process-bootstrap/route.ts'),r=await route.GET(new Request('https://fixture.invalid/api/process-bootstrap?view=data&dataTab=line-admin',{headers})),d=await r.json();assert.equal(r.status,200,JSON.stringify(d));assert.equal(d.destination.module,'lines');const actor=JSON.parse(d.values.platformUsers)[0];assert.equal(actor.cells['lines.view'],true);assert.equal(actor.cells['ab.view'],false);assert.equal(actor.cells['c.view'],false);assert.equal(d.catalog.routing.lines.length,2);assert.deepEqual(Object.keys(JSON.parse(d.values.masterDataControl).active),[]);
+ const f=UI(d);f.select();assert.match(f.content.innerHTML,/Synthetic A/);assert.match(f.content.innerHTML,/Synthetic C/);assert.equal(f.ctx.dataError,null);
+ const masterRoute=load('app/api/master/workflow/route.ts');for(const scope of ['AB','C'])assert.equal((await masterRoute.GET(new Request('https://fixture.invalid/api/master/workflow?scope='+scope+'&permissions=1',{headers}))).status,403);
+ assert.deepEqual(db.prepare('SELECT * FROM shared_state').get(),before);
+ }finally{db.close();}
+});

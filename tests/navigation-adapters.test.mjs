@@ -18,6 +18,13 @@ function masterTabFixture(tab,{registered=false,selected,projected=true,master=f
  }
  return{box,state,content,calls,control};
 }
+for(const tab of ['AB','C','line-admin'])void test('owned master destination '+tab+' keeps URL and page owner together',()=>{
+ const f=masterTabFixture('AB',{master:true});f.control.pageDraftLayout='page-v1';const writes=[],mounts=[];
+ f.box.history={state:{retained:true},pushState(state,unused,url){writes.push({state,url:String(url)});}};
+ f.box.ProcessMasterPages={mount(element,options){mounts.push({element,page:options.page});}};
+ f.box.selectDataTab(tab,true);assert.equal(mounts.length,1);assert.equal(mounts[0].element,f.content);assert.equal(mounts[0].page,tab==='line-admin'?'LINES':tab);assert.equal(f.content.dataset.activeTab,tab);assert.equal(f.state.dataTab,tab);
+ assert.equal(writes.length,tab==='AB'?0:1);if(writes.length){assert.equal(new URL(writes[0].url).searchParams.get('dataTab'),tab);assert.equal(writes[0].state.retained,true);assert.equal(writes[0].state.dataTab,tab);}
+});
 for(const tab of ['quality-fqc','quality-iqc','quality-ipqc-ab','quality-ipqc-c','quality-mold-equipment','quality-routine-equipment','quality-routine-reports'])void test('cold destination '+tab+' never falls back to an absent master scope',()=>{
  for(const registered of [false,true]){
   const f=masterTabFixture(tab,{registered}),before=JSON.stringify(f.control);f.box.bindData();
@@ -60,7 +67,7 @@ for(const missing of ['control','permissions'])void test('actual IQC combined re
  await rejected;assert.equal(f.box.control,null);assert.equal(f.box.revision,null);assert(f.box.readDenied);assert.deepEqual(f.events,['combined']);
 });
 const accountSource=source('user-access.js');
-const accountRequest=part(accountSource,' async function requestValue(options={}){','\n function expireSession()');
+const accountRequest=part(accountSource,' async function requestValue(options={},fresh=false){','\n function expireSession()');
 const accountSend=part(accountSource,' async function send(payload){','\n function paint()');
 assert(accountRequest.startsWith(' async function requestValue(')&&accountRequest.includes('finally{clearTimeout(timer);}'));
 assert(accountSend.includes('writeEpoch++')&&accountSend.includes('finally{writing--;}'));
@@ -110,46 +117,46 @@ void test('actual account malformed successful ACK stays guarded and describes n
 void test('changed persistent-navigation executable references have coherent new cache versions',()=>{
  const expected={
   'master-reference-viewer.js':'20261030-pr5152-integrated1',
-  'editor-line-selection.js':'20261030-pr54-integrated1',
+  'editor-line-selection.js':'20261110-process-integration2',
   'app.js':'20261105-process-local-save1',
   'approval-tabs.js':'20261025-navigation2',
   'bom-workspace.js':'20261105-bom-atomic1',
-  'bootstrap.js':'20261104-draft-integration1',
-  'canvas-local.js':'20261104-begin-receipt1',
-  'canvas-recovery-store.js':'20261104-canvas-integration1',
+  'bootstrap.js':'20261110-account-pages1',
+  'canvas-local.js':'20261110-process-integration2',
+  'canvas-recovery-store.js':'20261110-process-integration2',
   'delivery-navigation.js':'20261104-canvas-integration1',
-  'dual-system.js':'20261025-navigation2',
+  'dual-system.js':'20261110-feedback-shell1',
   'effective-version-notice.js':'20261109-explicit-checks1',
   'fqc-master.js':'20261104-begin-generation2',
   'ipqc-ab.js':'20261105-ab-scope-input1',
   'ipqc-c.js':'20261106-c-local-gauge-preview1',
   'iqc-master.js':'20261106-number-hint1',
-  'master-data.js':'20261105-process-local-save1',
-  'master-shared-client.js':'20261105-process-local-save1',
+  'master-data.js':'20261110-account-pages1',
+  'master-shared-client.js':'20261112-process-history1',
   'permission-controls.js':'20261029-dispatch-rights1',
-  'process-authoring-v3.js':'20261109-explicit-checks1',
+  'process-authoring-v3.js':'20261110-process-integration4',
   'quality-review-overview.js':'20261101-quality-review-admission1',
   'routine-equipment.js':'20261108-equipment-ci-recovery1',
-  'routine-fqc.js':'20261108-manual-generate2',
+  'routine-fqc.js':'20261110-account-pages1',
   'access-event-reporter.js':'20261106-access-offline3',
-  'shared-draft-client.js':'20261109-explicit-checks3',
+  'shared-draft-client.js':'20261112-joint-process-history1',
   'shared-state.js':'20261106-access-offline1',
   'tooling.js':'20261105-tooling-local-save1',
-  'user-access.js':'20261106-role-layout1',
+  'user-access.js':'20261112-joint-conflict1',
   'navigation-forms.js':'20261025-navigation2',
-  'process-ipqc.js':'20261109-explicit-checks1',
-  'data-safety-ui.js':'20261027-login-reentry1',
+  'process-ipqc.js':'20261110-ipqc-source-single-save1',
+  'data-safety-ui.js':'20261110-account-priority-candidate',
   'process-equipment.js':'20261105-process-local-save1',
-  'process-editor.js':'20261104-canvas-integration1',
-  'master-review.js':'20261030-pr54-integrated1',
+  'process-editor.js':'20261110-process-integration2',
+  'master-review.js':'20261110-account-pages1',
   'process-ipqc.css':'20261031-bom-ab-recovery1',
   'process-equipment.css':'20261029-flow1',
   'photo-viewer.css':'20261029-photo2',
   'version-workflow.js':'20261030-access-fusion1',
   'i18n.js':'20261029-photo1',
-  'user-access.css':'20261106-role-layout2',
+  'user-access.css':'20261110-account-progress2',
   'user-access-initial-read.js':'20261029-users-load2',
-  'web-feedback-entry.js':'20261106-access-offline1',
+  'web-feedback-entry.js':'20261110-permission-alignment1',
  };
  const html=source('index.html'),references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
  for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);

@@ -1,0 +1,559 @@
+{
+  "version": 1,
+  "main": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+  "origins": {
+    "account": {
+      "commit": "5f9d34b04fbbc87bd473c0ff7ddd9f5ac8e9a035",
+      "tree": "d04b101556ac596da0f191171962d5574d9cef51"
+    },
+    "process": {
+      "commit": "dd9be45f1a9ddcd427070764c433d952bb725ec3",
+      "tree": "b8c85167e2a6e6015dca4492d38b5b313e90fb46"
+    }
+  },
+  "files": {
+    "app/api/shared-state/route.ts": {
+      "afterHash": "da2892160c1bbb6ca208c7c728a93fcfd5cc9b70287d4a80dd529f8c58b8ea12",
+      "afterBlob": "e31857ab7f89d25c3e96b9e0716ed41c020acbdb",
+      "afterLength": 27441,
+      "origins": {
+        "account": {
+          "beforeHash": "8655284f2d68a09595b09e7532d770ef28b2e4a0b843c8af16f0b60ee17a2b83",
+          "beforeBlob": "179123863dd719bcfbae90899eb1d4039c03c543",
+          "beforeLength": 25991,
+          "rules": [
+            {
+              "offset": 2746,
+              "before": "",
+              "after": "}\n// Page ownership and its baselines are initialized only by the separately\n// authorized data cutover, never by an ordinary aggregate replacement.\nfunction hasManagedMasterPages(value:unknown){\n if(!value||typeof value!=='object'||Array.isArray(value))return false;\n const root=value as Record<string,unknown>,owned=(scope:unknown)=>typeof scope==='string'&&['AB.catalog','C.catalog','LINES'].includes(scope);\n const owners=(value:unknown)=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).some(owned);\n return Object.hasOwn(root,'pageDraftLayout')||owners(root.active)||owners(root.workflowScopes)||Array.isArray(root.versions)&&root.versions.some(version=>version&&typeof version==='object'&&owned((version as Record<string,unknown>).scope));\n"
+            },
+            {
+              "offset": 8772,
+              "before": "",
+              "after": "    if(key==='routineFqcControl'&&[parse(state.values[key],null),parse(value as string,null)].some(root=>root&&typeof root==='object'&&(Object.hasOwn(root,'pageDraftLayout')||Object.hasOwn(root,'page'))))return Response.json({error:'ROUTINE_PAGE_CUTOVER_REQUIRED'},{status:409,headers});\n"
+            },
+            {
+              "offset": 10136,
+              "before": "",
+              "after": "    if(key==='masterDataControl'&&(hasManagedMasterPages(adoptedMaster)||hasManagedMasterPages(parse(value as string,null))))return Response.json({error:'MASTER_PAGE_CUTOVER_REQUIRED'},{status:409,headers});\n    if(adoptedMaster?.pageDraftLayout==='page-v1'&&['masterDataControl','processMasterData'].includes(key))return Response.json({error:'WORKFLOW_V3_REQUIRED'},{status:409,headers});\n"
+            }
+          ]
+        },
+        "process": {
+          "beforeHash": "1e9c95510c43808d09df196970fa6792e1eb61e32523b68da4977492710ec155",
+          "beforeBlob": "5286eb648e40c8b3c58f86f5dadf79febbcb6f61",
+          "beforeLength": 27153,
+          "rules": [
+            {
+              "offset": 8772,
+              "before": "",
+              "after": "    if(key==='routineFqcControl'&&[parse(state.values[key],null),parse(value as string,null)].some(root=>root&&typeof root==='object'&&(Object.hasOwn(root,'pageDraftLayout')||Object.hasOwn(root,'page'))))return Response.json({error:'ROUTINE_PAGE_CUTOVER_REQUIRED'},{status:409,headers});\n"
+            }
+          ]
+        }
+      }
+    },
+    "lib/user-access.ts": {
+      "afterHash": "badd9f0a8d649eb8a4c1e05129d48e604dc7e02ade872132f3bcab5a11fba397",
+      "afterBlob": "3515a6b87c243316610ad652129a3e6d1ee94fe3",
+      "afterLength": 3489,
+      "origins": {
+        "account": {
+          "beforeHash": "e71fdb803dc2ed5624a4622c49bd91e74335863eb62f33d3960fa2941a7f5212",
+          "beforeBlob": "53933c54933c6d2ee9112d296c2d6ff6dd84aadf",
+          "beforeLength": 2594,
+          "rules": [
+            {
+              "offset": 2023,
+              "before": "  const cells=effectiveCells(user,roles),primary=isPrimary(user);\n  return { role, enabled, primary, cells, inheritRole: user.inheritRole !== false,\n    lines: enabled ? ['A','B','C'] : [], views: enabled ? [...new Set(catalog.filter(row=>row.id!=='feedback'&&cells[row.id+'.view']).map(row=>row.view))] : [], permissions: enabled ? [...new Set([...(primary?roleDefaults.admin.permissions:scope?.permissions||[]),...accessKeys.filter(key=>cells[key])])] : [] };\n",
+              "after": "  const primary=isPrimary(user);let control:Record<string,unknown>={};try{control=JSON.parse(values.processAccessControl||'{}');}catch{/* Invalid policy evidence cannot establish a grant. */}\n  const {cells,draftReviewPolicyActive,reviewPolicy}=resolveAccountReview(user,roles,control);\n  const legacyPermissions=primary?roleDefaults.admin.permissions:scope?.permissions||[];\n  const permissions=draftReviewPolicyActive?legacyPermissions.filter(key=>!['approval.approve','approval.submit','approval.withdraw','approval.reject'].includes(key)):legacyPermissions;\n  if(draftReviewPolicyActive){if(cells['approval.approve'])permissions.push('approval.approve');for(const [op,alias]of [['submit','approval.submit'],['withdraw','approval.withdraw'],['return','approval.reject']])if(catalog.some(row=>row.ops.includes('submit')&&cells[row.id+'.'+op]))permissions.push(alias);}\n\n  return { role, enabled, primary, cells, ...(draftReviewPolicyActive?{draftReviewPolicyActive,reviewPolicy}:{}), inheritRole: user.inheritRole !== false,\n    lines: enabled ? ['A','B','C'] : [], views: enabled ? [...new Set(catalog.filter(row=>row.id!=='feedback'&&cells[row.id+'.view']).map(row=>row.view))] : [], permissions: enabled ? [...new Set([...permissions,...accessKeys.filter(key=>cells[key])])] : [] };\n"
+            },
+            {
+              "offset": 3313,
+              "before": "import {templates,effectiveCells,isPrimary,accessKeys,catalog} from '../public/process/access-policy.mjs';\n",
+              "after": "import {templates,isPrimary,accessKeys,catalog} from '../public/process/access-policy.mjs';\n\nimport {resolveAccountReview} from '../public/process/account-review-preview.mjs';\n"
+            }
+          ]
+        },
+        "process": {
+          "beforeHash": "3a468f82280a5d78519f60d0ebf621b277f9356e6d7161cf80d32e1bf7c7760a",
+          "beforeBlob": "66b66a659c97c17084711027c590fdbb6022d410",
+          "beforeLength": 4288,
+          "rules": [
+            {
+              "offset": 0,
+              "before": "export const roleDefaults = {\r\n  admin: { name: 'ADMIN', lines: ['A','B','C'], views: ['dashboard','player','dispatch','productStatus','approval','editor','data'], permissions: ['approval.viewAll','approval.viewLine','approval.compare','approval.submit','approval.withdraw','approval.approve','approval.reject','approval.requestChange','approval.revoke','approval.revise','status.viewAllLines','status.viewDetails','status.viewMedia','master.delete','master.import','master.export'] },\r\n  rd: { name: 'RD 主管', lines: ['A','B','C'], views: ['dashboard','productStatus','approval','editor','data'], permissions: ['approval.viewAll','approval.compare','approval.approve','approval.reject','approval.requestChange','approval.revoke','approval.revise','status.viewAllLines','status.viewDetails','status.viewMedia','master.delete','master.import','master.export'] },\r\n  staff: { name: '製程人員（STAFF）', lines: ['A'], views: ['dashboard','productStatus','approval','editor','data'], permissions: ['approval.viewLine','approval.compare','approval.submit','approval.withdraw','approval.revise','status.viewDetails','status.viewMedia'] },\r\n};\r\ntype AccessScope={id?:string; name?:string; lines:string[]; views:string[]; permissions:string[];access?:Record<string,boolean>};\r\nexport type AccessUser=Partial<AccessScope> & {id:string; role:string; enabled?:boolean; inheritRole?:boolean; deletedAt?:string;authMode?:string;accessOverrides?:Record<string,boolean>};\r\nexport type PlatformUser = AccessUser & { name: string; email?: string; password?: string; passwordHash?: string; authEpoch?: number };\r\nexport function roleTemplates(values:Record<string,string>):Record<string,AccessScope> {return templates(values,roleDefaults);}\r\nexport function effectiveAccess(user:AccessUser, values:Record<string,string>, roles=roleTemplates(values)) {\r\n  const role = user.role;\r\n  const preset = roles[role];\r\n  const scope = user.inheritRole !== false ? preset : user;\r\n  const enabled = user.enabled !== false && !user.deletedAt && !!preset;\r\n  const primary=isPrimary(user);let cells=effectiveCells(user,roles);\n  let draftReviewPolicyActive=false,reviewPolicy:{resolved:boolean;blocked:string[]}|undefined;\n  let control:Record<string,unknown>={};try{control=JSON.parse(values.processAccessControl||'{}');}catch{/* Existing legacy control is not an activation source. */}\n  if(control&&typeof control==='object'&&Object.hasOwn(control,'draftReviewPolicy')){\n    draftReviewPolicyActive=true;\n    const plan=prepareDraftReviewPolicy(user,roles,control),supported=control.draftReviewPolicy==='page-v1'&&control.schemaVersion===2&&control.primaryAdminId===PRIMARY_ADMIN_ID;\n    const resolved=supported&&plan.projectionReady,blocked=supported?plan.blocked.map((row:{code:string})=>row.code):['DRAFT_REVIEW_POLICY_LAYOUT_INVALID'];\n    if(resolved)cells={...plan.after};else{cells={...plan.before,'approval.approve':false};for(const row of catalog.filter(row=>row.ops.includes('submit')))for(const op of ['submit','withdraw','return','approve'])cells[row.id+'.'+op]=false;}\n    reviewPolicy={resolved,blocked};\n  }\n",
+              "after": "export const roleDefaults = {\n  admin: { name: 'ADMIN', lines: ['A','B','C'], views: ['dashboard','player','dispatch','productStatus','approval','editor','data'], permissions: ['approval.viewAll','approval.viewLine','approval.compare','approval.submit','approval.withdraw','approval.approve','approval.reject','approval.requestChange','approval.revoke','approval.revise','status.viewAllLines','status.viewDetails','status.viewMedia','master.delete','master.import','master.export'] },\n  rd: { name: 'RD 主管', lines: ['A','B','C'], views: ['dashboard','productStatus','approval','editor','data'], permissions: ['approval.viewAll','approval.compare','approval.approve','approval.reject','approval.requestChange','approval.revoke','approval.revise','status.viewAllLines','status.viewDetails','status.viewMedia','master.delete','master.import','master.export'] },\n  staff: { name: '製程人員（STAFF）', lines: ['A'], views: ['dashboard','productStatus','approval','editor','data'], permissions: ['approval.viewLine','approval.compare','approval.submit','approval.withdraw','approval.revise','status.viewDetails','status.viewMedia'] },\n};\ntype AccessScope={id?:string; name?:string; lines:string[]; views:string[]; permissions:string[];access?:Record<string,boolean>};\nexport type AccessUser=Partial<AccessScope> & {id:string; role:string; enabled?:boolean; inheritRole?:boolean; deletedAt?:string;authMode?:string;accessOverrides?:Record<string,boolean>};\nexport type PlatformUser = AccessUser & { name: string; email?: string; password?: string; passwordHash?: string; authEpoch?: number };\nexport function roleTemplates(values:Record<string,string>):Record<string,AccessScope> {return templates(values,roleDefaults);}\nexport function effectiveAccess(user:AccessUser, values:Record<string,string>, roles=roleTemplates(values)) {\n  const role = user.role;\n  const preset = roles[role];\n  const scope = user.inheritRole !== false ? preset : user;\n  const enabled = user.enabled !== false && !user.deletedAt && !!preset;\n  const primary=isPrimary(user);let control:Record<string,unknown>={};try{control=JSON.parse(values.processAccessControl||'{}');}catch{/* Invalid policy evidence cannot establish a grant. */}\n  const {cells,draftReviewPolicyActive,reviewPolicy}=resolveAccountReview(user,roles,control);\n"
+            },
+            {
+              "offset": 2895,
+              "before": "  return { role, enabled, primary, cells, draftReviewPolicyActive,...(reviewPolicy?{reviewPolicy}:{}), inheritRole: user.inheritRole !== false,\n    lines: enabled ? ['A','B','C'] : [], views: enabled ? [...new Set(catalog.filter(row=>cells[row.id+'.view']).map(row=>row.view))] : [], permissions: enabled ? [...new Set([...permissions,...accessKeys.filter(key=>cells[key])])] : [] };\n}\r\nimport {templates,effectiveCells,isPrimary,accessKeys,catalog,PRIMARY_ADMIN_ID} from '../public/process/access-policy.mjs';\n",
+              "after": "  return { role, enabled, primary, cells, ...(draftReviewPolicyActive?{draftReviewPolicyActive,reviewPolicy}:{}), inheritRole: user.inheritRole !== false,\n    lines: enabled ? ['A','B','C'] : [], views: enabled ? [...new Set(catalog.filter(row=>row.id!=='feedback'&&cells[row.id+'.view']).map(row=>row.view))] : [], permissions: enabled ? [...new Set([...permissions,...accessKeys.filter(key=>cells[key])])] : [] };\n}\nimport {templates,isPrimary,accessKeys,catalog} from '../public/process/access-policy.mjs';\n"
+            },
+            {
+              "offset": 3406,
+              "before": "import {prepareDraftReviewPolicy} from '../public/process/draft-review-policy.mjs';\n",
+              "after": "import {resolveAccountReview} from '../public/process/account-review-preview.mjs';\n"
+            }
+          ]
+        }
+      }
+    },
+    "public/process/access-policy.mjs": {
+      "afterHash": "05a8589b91f4b3e62648f80bb5d3be7642825932277ffe5b9d7a539df8060607",
+      "afterBlob": "4f1b94c8fb8f6eeb1d8514516aef6275f6f8c620",
+      "afterLength": 12125,
+      "origins": {
+        "account": {
+          "beforeHash": "0cf57d9055b5f89797ff8196374413ef0ebb2371800187da1390dc6bdf5a7e87",
+          "beforeBlob": "01516c3dacff741b0262e23e1318181a5223f7ed",
+          "beforeLength": 11889,
+          "rules": [
+            {
+              "offset": 7208,
+              "before": "export const editIncludesSave=Object.freeze(['ab','c','templates','bom','fqc','iqc','ipqc-ab','ipqc-c','tooling','equipment','editor','routine']);\n",
+              "after": "export const editIncludesSave=Object.freeze(['ab','c','templates','bom','fqc','iqc','ipqc-ab','ipqc-c','tooling','equipment','editor','routine','lines']);\n"
+            },
+            {
+              "offset": 8946,
+              "before": "export function invalidDependencies(cells){return catalog.filter(r=>r.id!=='lines'&&r.ops.includes('view')&&!cells[r.id+'.view']&&r.ops.some(op=>op!=='view'&&cells[r.id+'.'+op])).map(r=>r.id);}\n",
+              "after": "export function invalidDependencies(cells,options={}){return catalog.filter(r=>(r.id!=='lines'||options.lines===true)&&r.ops.includes('view')&&!cells[r.id+'.view']&&r.ops.some(op=>op!=='view'&&cells[r.id+'.'+op])).map(r=>r.id);}\n"
+            },
+            {
+              "offset": 9331,
+              "before": "export function dependencyIssues(cells){return catalog.flatMap(r=>r.ops.filter(op=>r.id!=='lines'&&cells[r.id+'.'+op]).flatMap(op=>{\n const required=[...(op!=='view'&&r.ops.includes('view')?['view']:[]),...(restoreModules.includes(r.id)&&['create','delete','restore'].includes(op)?['edit']:[])];\n",
+              "after": "export function dependencyIssues(cells,options={}){return catalog.flatMap(r=>r.ops.filter(op=>(r.id!=='lines'||options.lines===true)&&cells[r.id+'.'+op]).flatMap(op=>{\n const required=[...(op!=='view'&&r.ops.includes('view')?['view']:[]),...((restoreModules.includes(r.id)||r.id==='lines'&&options.lines===true)&&['create','delete','restore'].includes(op)?['edit']:[])];\n"
+            },
+            {
+              "offset": 9973,
+              "before": "export function newDependencyIssues(cells,previous={}){const old=new Set(dependencyIssues(previous).map(i=>i.key+':'+i.requires));return dependencyIssues(cells).filter(i=>!old.has(i.key+':'+i.requires));}\n",
+              "after": "export function newDependencyIssues(cells,previous={},options={}){const old=new Set(dependencyIssues(previous,options).map(i=>i.key+':'+i.requires));return dependencyIssues(cells,options).filter(i=>!old.has(i.key+':'+i.requires));}\n"
+            },
+            {
+              "offset": 10722,
+              "before": " const scope=q.get('scope');if(scope==='AB')return'ab';if(scope==='C')return'c';if(scope==='PROCESS')return'templates';\n",
+              "after": " const scope=q.get('scope');if(['/api/master/workflow','/api/master/pages'].includes(p)&&scope==='LINES')return'lines';if(scope==='AB')return'ab';if(scope==='C')return'c';if(scope==='PROCESS')return'templates';\n"
+            }
+          ]
+        },
+        "process": {
+          "beforeHash": "8dba5279c30745ad17464460c1fc3fb41c6afc91c392f0392b3c6fbf93727bb7",
+          "beforeBlob": "410ccccce74e5227499391e92f7440ee589c2950",
+          "beforeLength": 11310,
+          "rules": [
+            {
+              "offset": 6319,
+              "before": "export function effectiveCells(user,roles){\n",
+              "after": "export function basePermissionCells(user,roles){\n"
+            },
+            {
+              "offset": 6581,
+              "before": " return Object.fromEntries(catalog.flatMap(r=>r.ops.map(op=>{const key=r.id+'.'+op;let value=Object.hasOwn(preset.access||{},key)?preset.access[key]===true:legacyAllowed(user,preset,r.id,op);if(Object.hasOwn(user.accessOverrides||{},key))value=user.accessOverrides[key]===true;if((r.adminOnly||r.adminOps?.includes(op))&&user.role!=='admin')value=false;if(key==='users.view')value=user.role==='admin';return[key,value];})));\n",
+              "after": " return Object.fromEntries(catalog.flatMap(r=>r.ops.map(op=>{const key=r.id+'.'+op;let value=Object.hasOwn(preset.access||{},key)?preset.access[key]===true:legacyAllowed(user,preset,r.id,op);if(Object.hasOwn(user.accessOverrides||{},key))value=user.accessOverrides[key]===true;if((r.adminOnly||r.adminOps?.includes(op))&&user.role!=='admin')value=false;if(key==='users.view')value=user.role==='admin';if(key==='feedback.view')value=true;return[key,value];})));\n"
+            },
+            {
+              "offset": 7044,
+              "before": "",
+              "after": "// Edit includes Save within each installed workflow's existing transaction scope.\n// This does not change its draft boundary or grant submit/review/create/delete.\nexport const editIncludesSave=Object.freeze(['ab','c','templates','bom','fqc','iqc','ipqc-ab','ipqc-c','tooling','equipment','editor','routine','lines']);\nexport function withEditSave(source){\n const cells={...source};\n for(const id of editIncludesSave)if(cells[id+'.view']===true&&cells[id+'.edit']===true)cells[id+'.save']=true;\n return cells;\n}\nexport function effectiveCells(user,roles){return withEditSave(basePermissionCells(user,roles));}\n"
+            },
+            {
+              "offset": 8352,
+              "before": "export const roleEditable=role=>Object.fromEntries(catalog.flatMap(r=>r.ops.map(op=>[r.id+'.'+op,r.id+'.'+op!=='users.view'&&(!(r.adminOnly||r.adminOps?.includes(op))||role==='admin')])));\n",
+              "after": "export const roleEditable=role=>Object.fromEntries(catalog.flatMap(r=>r.ops.map(op=>[r.id+'.'+op,!['users.view','feedback.view'].includes(r.id+'.'+op)&&(!(r.adminOnly||r.adminOps?.includes(op))||role==='admin')])));\n"
+            },
+            {
+              "offset": 8946,
+              "before": "export function invalidDependencies(cells){return catalog.filter(r=>r.id!=='lines'&&r.ops.includes('view')&&!cells[r.id+'.view']&&r.ops.some(op=>op!=='view'&&cells[r.id+'.'+op])).map(r=>r.id);}\n",
+              "after": "export function invalidDependencies(cells,options={}){return catalog.filter(r=>(r.id!=='lines'||options.lines===true)&&r.ops.includes('view')&&!cells[r.id+'.view']&&r.ops.some(op=>op!=='view'&&cells[r.id+'.'+op])).map(r=>r.id);}\n"
+            },
+            {
+              "offset": 9331,
+              "before": "export function dependencyIssues(cells){return catalog.flatMap(r=>r.ops.filter(op=>r.id!=='lines'&&cells[r.id+'.'+op]).flatMap(op=>{\n const required=[...(op!=='view'&&r.ops.includes('view')?['view']:[]),...(restoreModules.includes(r.id)&&['create','delete','restore'].includes(op)?['edit']:[])];\n",
+              "after": "export function dependencyIssues(cells,options={}){return catalog.flatMap(r=>r.ops.filter(op=>(r.id!=='lines'||options.lines===true)&&cells[r.id+'.'+op]).flatMap(op=>{\n const required=[...(op!=='view'&&r.ops.includes('view')?['view']:[]),...((restoreModules.includes(r.id)||r.id==='lines'&&options.lines===true)&&['create','delete','restore'].includes(op)?['edit']:[])];\n"
+            },
+            {
+              "offset": 9973,
+              "before": "export function newDependencyIssues(cells,previous={}){const old=new Set(dependencyIssues(previous).map(i=>i.key+':'+i.requires));return dependencyIssues(cells).filter(i=>!old.has(i.key+':'+i.requires));}\n",
+              "after": "export function newDependencyIssues(cells,previous={},options={}){const old=new Set(dependencyIssues(previous,options).map(i=>i.key+':'+i.requires));return dependencyIssues(cells,options).filter(i=>!old.has(i.key+':'+i.requires));}\n"
+            }
+          ]
+        }
+      }
+    },
+    "public/process/index.html": {
+      "afterHash": "ff4b6a98d58f6de8d0d8020e7d397d7274bb3a447bca78d06cdcd347ef731cc6",
+      "afterBlob": "09890269d59c646cefd33501bcc4c523db8e2c7d",
+      "afterLength": 11508,
+      "origins": {
+        "account": {
+          "beforeHash": "8fb8072808974dc071c5bb6b445b2bed06d69280f3516c32005f6118ac012b24",
+          "beforeBlob": "c812bca0f6fadadb3d6d28f96a161da25c5dd6a8",
+          "beforeLength": 10869,
+          "rules": [
+            {
+              "offset": 1150,
+              "before": "    <link rel=\"modulepreload\" href=\"access-policy.mjs?v=20261110-permission-alignment2\">\n",
+              "after": "    <link rel=\"modulepreload\" href=\"access-policy.mjs?v=20261110-account-pages1\">\n"
+            },
+            {
+              "offset": 5596,
+              "before": "    <script data-process-src=\"editor-line-selection.js?v=20261030-pr54-integrated1\"></script>\n",
+              "after": "    <script data-process-src=\"editor-line-selection.js?v=20261110-process-integration2\"></script>\n"
+            },
+            {
+              "offset": 6640,
+              "before": "    <script data-process-src=\"master-review.js?v=20261030-pr54-integrated1\"></script>\n",
+              "after": "    <script data-process-src=\"master-review.js?v=20261110-account-pages1\"></script>\n"
+            },
+            {
+              "offset": 6898,
+              "before": "    <script data-process-src=\"shared-draft-client.js?v=20261110-master-readback1\"></script>\n    <script data-process-src=\"master-shared-client.js?v=20261105-process-local-save1\"></script>\n",
+              "after": "    <script data-process-src=\"shared-draft-client.js?v=20261111-authoring-access-epoch3\"></script>\n    <script data-process-src=\"master-shared-client.js?v=20261110-account-pages1\"></script>\n"
+            },
+            {
+              "offset": 7184,
+              "before": "    <script data-process-src=\"master-data.js?v=20261110-lines-view1\"></script>\n",
+              "after": "    <link rel=\"stylesheet\" href=\"version-draft-ui.css?v=20261110-account-pages1\">\n    <script data-process-src=\"version-draft-ui.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"canvas-approved-history.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"page-draft-merge.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"master-page-transfer.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"master-page-approved-history.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"master-page-editor.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"master-data.js?v=20261110-account-pages1\"></script>\n"
+            },
+            {
+              "offset": 9011,
+              "before": "    <link rel=\"stylesheet\" href=\"version-draft-ui.css?v=20261030-manual-sharing-integrated1\">\n    <script data-process-src=\"version-draft-ui.js?v=20261103-unknown-departure1\"></script>\n    <script data-process-src=\"process-authoring-v3.js?v=20261109-explicit-checks1\"></script>\n",
+              "after": "    <script data-process-src=\"process-authoring-v3.js?v=20261110-process-integration4\"></script>\n"
+            },
+            {
+              "offset": 9876,
+              "before": "    <script data-process-src=\"process-ipqc.js?v=20261109-explicit-checks1\"></script>\n",
+              "after": "    <script data-process-src=\"process-ipqc.js?v=20261110-ipqc-source-single-save1\"></script>\n"
+            },
+            {
+              "offset": 10207,
+              "before": "    <script data-process-src=\"routine-fqc.js?v=20261108-manual-generate2\"></script>\n",
+              "after": "    <script data-process-src=\"routine-page-approved-history.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"routine-fqc-page.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"routine-fqc.js?v=20261110-account-pages1\"></script>\n"
+            },
+            {
+              "offset": 10728,
+              "before": "    <script data-process-src=\"canvas-recovery-store.js?v=20261104-canvas-integration1\"></script>\n    <script data-process-src=\"canvas-local.js?v=20261104-begin-receipt1\"></script>\n    <script data-process-src=\"process-editor.js?v=20261104-canvas-integration1\"></script>\n",
+              "after": "    <script data-process-src=\"canvas-recovery-store.js?v=20261110-process-integration2\"></script>\n    <script data-process-src=\"canvas-local.js?v=20261110-process-integration2\"></script>\n    <script data-process-src=\"process-editor.js?v=20261110-process-integration2\"></script>\n"
+            },
+            {
+              "offset": 11162,
+              "before": "    <script data-process-src=\"user-access.js?v=20261110-permission-reset1\"></script>\n",
+              "after": "    <script data-process-src=\"user-access.js?v=20261110-account-pages1\"></script>\n"
+            },
+            {
+              "offset": 11423,
+              "before": "    <script src=\"bootstrap.js?v=20261110-permission-alignment2\"></script>\n",
+              "after": "    <script src=\"bootstrap.js?v=20261110-account-pages1\"></script>\n"
+            }
+          ]
+        },
+        "process": {
+          "beforeHash": "ff1d55ff9ae3ee693690665d83efc4a2a432b56b7936dd32982e58a91dbc032e",
+          "beforeBlob": "bd6562466b91a6a6cbbfcf1fc4f7ae7fca944e6b",
+          "beforeLength": 11303,
+          "rules": [
+            {
+              "offset": 1150,
+              "before": "    <link rel=\"modulepreload\" href=\"access-policy.mjs?v=20261029-fqc-dependencies1\">\n",
+              "after": "    <link rel=\"modulepreload\" href=\"access-policy.mjs?v=20261110-account-pages1\">\n"
+            },
+            {
+              "offset": 6640,
+              "before": "    <script data-process-src=\"master-review.js?v=20261030-pr54-integrated1\"></script>\n",
+              "after": "    <script data-process-src=\"master-review.js?v=20261110-account-pages1\"></script>\n"
+            },
+            {
+              "offset": 6898,
+              "before": "    <script data-process-src=\"shared-draft-client.js?v=20261110-process-integration2\"></script>\n    <script data-process-src=\"master-shared-client.js?v=20261105-process-local-save1\"></script>\n    <script data-process-src=\"web-feedback-entry.js?v=20261106-access-offline1\"></script>\n    <script data-process-src=\"page-draft-merge.js?v=20261110-master-pages1\"></script>\n    <script data-process-src=\"master-page-transfer.js?v=20261110-master-pages1\"></script>\n    <script data-process-src=\"master-page-approved-history.js?v=20261110-master-pages1\"></script>\n    <script data-process-src=\"master-page-editor.js?v=20261110-master-pages1\"></script>\n    <script data-process-src=\"master-data.js?v=20261110-master-pages1\"></script>\n",
+              "after": "    <script data-process-src=\"shared-draft-client.js?v=20261111-authoring-access-epoch3\"></script>\n    <script data-process-src=\"master-shared-client.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"web-feedback-entry.js?v=20261110-permission-alignment1\"></script>\n    <link rel=\"stylesheet\" href=\"version-draft-ui.css?v=20261110-account-pages1\">\n    <script data-process-src=\"version-draft-ui.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"canvas-approved-history.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"page-draft-merge.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"master-page-transfer.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"master-page-approved-history.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"master-page-editor.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"master-data.js?v=20261110-account-pages1\"></script>\n"
+            },
+            {
+              "offset": 8759,
+              "before": "    <script data-process-src=\"data-safety-ui.js?v=20261027-login-reentry1\"></script>\n",
+              "after": "    <script data-process-src=\"data-safety-ui.js?v=20261110-account-priority-candidate\"></script>\n"
+            },
+            {
+              "offset": 9011,
+              "before": "    <link rel=\"stylesheet\" href=\"version-draft-ui.css?v=20261110-canvas-history1\">\n    <script data-process-src=\"version-draft-ui.js?v=20261110-canvas-history1\"></script>\n    <script data-process-src=\"canvas-approved-history.js?v=20261110-canvas-history1\"></script>\n",
+              "after": ""
+            },
+            {
+              "offset": 10207,
+              "before": "    <script data-process-src=\"routine-fqc.js?v=20261108-manual-generate2\"></script>\n    <script data-process-src=\"dual-system.js?v=20261025-navigation2\"></script>\n",
+              "after": "    <script data-process-src=\"routine-page-approved-history.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"routine-fqc-page.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"routine-fqc.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"dual-system.js?v=20261110-feedback-shell1\"></script>\n"
+            },
+            {
+              "offset": 11082,
+              "before": "    <link rel=\"stylesheet\" href=\"user-access.css?v=20261106-role-layout2\">\n    <script data-process-src=\"user-access.js?v=20261106-role-layout1\"></script>\n",
+              "after": "    <link rel=\"stylesheet\" href=\"user-access.css?v=20261110-account-progress2\">\n    <script data-process-src=\"user-access.js?v=20261110-account-pages1\"></script>\n"
+            },
+            {
+              "offset": 11423,
+              "before": "    <script src=\"bootstrap.js?v=20261104-draft-integration1\"></script>\n",
+              "after": "    <script src=\"bootstrap.js?v=20261110-account-pages1\"></script>\n"
+            }
+          ]
+        }
+      }
+    },
+    "public/process/master-data.js": {
+      "afterHash": "6ef5e2502ad4803815c7ca4a926a21ce87d05f3b101bcb583f408964a22d46a8",
+      "afterBlob": "1c161a9f35a82f51e545597e2862f4db06886dcb",
+      "afterLength": 65936,
+      "origins": {
+        "account": {
+          "beforeHash": "cedfd7a7b9bac1cc121f2d12bef84a989bc86c4d222cbfabab0576daf7bba5f5",
+          "beforeBlob": "1f7beafc863cba44d18728c0987138e2aeb37588",
+          "beforeLength": 66669,
+          "rules": [
+            {
+              "offset": 19087,
+              "before": "",
+              "after": "    if(!['AB','C','line-admin'].includes(tab))window.ProcessMasterPages?.leave();\n    if(['AB','C','line-admin'].includes(tab)&&control.pageDraftLayout==='page-v1'){\n      const url=new URL(location.href);\n      if(push&&url.searchParams.get('dataTab')!==tab){url.searchParams.set('dataTab',tab);history.pushState({...history.state,dataTab:tab},'',url);}\n      content.dataset.activeTab=tab;window.ProcessMasterPages.mount(content,{page:tab==='line-admin'?'LINES':tab});bindTabButtons();return;\n    }\n"
+            },
+            {
+              "offset": 55924,
+              "before": "    canLeave:()=>!shared.busy()&&!window.MasterAdminUI?.departureBusy?.(),\n",
+              "after": "    canLeave:()=>!shared.busy()&&!window.ProcessMasterPages?.busy()&&!window.MasterAdminUI?.departureBusy?.(),\n"
+            },
+            {
+              "offset": 56053,
+              "before": "      get departure(){return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({\n",
+              "after": "      get departure(){if(control.pageDraftLayout==='page-v1'&&['AB','C','line-admin'].includes(state.dataTab))return window.ProcessMasterPages?.departure();return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({\n"
+            },
+            {
+              "offset": 58575,
+              "before": "    resetProjection(){\r\n      deliveryGeneration++;sharedPoll.cancel();shared.resetReads();sharedLoaded.clear();sharedLoading.clear();dataReady=Promise.resolve();dataError=null;\r\n",
+              "after": "    resetProjection(){\n      window.ProcessMasterPages?.reset();\n      deliveryGeneration++;shared.resetReads();sharedLoaded.clear();sharedLoading.clear();dataReady=Promise.resolve();dataError=null;\n"
+            },
+            {
+              "offset": 59454,
+              "before": "      state.masterReviewId=null;state.masterValidationErrors=[];applyActive();pollMaster();\r\n",
+              "after": "      state.masterReviewId=null;state.masterValidationErrors=[];applyActive();\n"
+            },
+            {
+              "offset": 59605,
+              "before": "  const sharedPoll=window.createForegroundPoll();\r\n  function pollMaster(){const pollScheduleOwner=sharedPoll.capture();const generation=deliveryGeneration;sharedPoll.schedule(async()=>{\r\n    if(!ownsDelivery(generation)||!sharedPoll.isCurrent(pollScheduleOwner))return;\r\n    try{if(document.visibilityState!=='hidden'&&!shared.busy()&&sharedLoaded.size){\r\n      const editing=document.querySelector('dialog[open],.shared-restore-overlay')||document.activeElement?.matches('input,textarea,select');\r\n      if(!editing&&(document.querySelector('.master-organized,.process-master-version')||state.view==='approval'&&state.approvalTab==='master')){let changed=false;\r\n        const scopes=state.view==='approval'?[...sharedLoaded]:[document.querySelector('.process-master-version')?'PROCESS':state.masterScope];\r\n        for(const scope of scopes){if(!sharedLoaded.has(scope)||!shared.client(scope).canPoll('state'))continue;const result=await shared.load(scope);if(!ownsDelivery(generation)||!sharedPoll.isCurrent(pollScheduleOwner))return;changed ||= !result.unchanged||result.permissionsChanged;}\r\n        if(changed){applyActive();render();}\r\n      }\r\n    }}catch(error){if(!ownsDelivery(generation)||!sharedPoll.isCurrent(pollScheduleOwner))return;const panel=document.querySelector('#master-shared-status');if(panel)panel.textContent=displayDraftError(error);}finally{if(ownsDelivery(generation)&&sharedPoll.isCurrent(pollScheduleOwner))pollMaster();}\r\n  });}\r\n  pollMaster();\r\n",
+              "after": "  // Read on explicit entry and workflow actions; no timed draft sync.\n"
+            }
+          ]
+        },
+        "process": {
+          "beforeHash": "452e0b8352bdf9b5c56405717bda71d474fc22cc3880a739fbf50b2ed5addb05",
+          "beforeBlob": "f6253d44615d1af11c4e0291a7ccceffc402bccf",
+          "beforeLength": 64027,
+          "rules": [
+            {
+              "offset": 16698,
+              "before": "",
+              "after": "  function approvedLinesOnly(content) {\n    const sync=window.ProcessSync,d=sync?.destination,catalog=sync?.catalog;\n    if(sync?.protected!==true||sync.deliveryProjection!==true||sync.requiresReload||sync.expired||!sync.identity?.id||sync.identity.id!==currentUser?.id||currentUser?.enabled===false||currentUser?.deletedAt||currentUser?.cells?.['lines.view']!==true||d?.view!=='data'||d.dataTab!=='line-admin'||d.module!=='lines'||d.key!=='data:line-admin'||catalog?.format!=='PROCESS_RUNTIME_CATALOG_V1'||!['AB','C'].every(scope=>catalog.loadedScopes?.includes(scope))||!Array.isArray(catalog.routing?.lines))throw Error('LINES_VIEW_RELOAD_REQUIRED');\n    const vi=(document.documentElement.lang||'').toLowerCase().startsWith('vi'),rows=catalog.routing.lines,t=(zh,vn)=>vi?vn:zh;\n    if(rows.some(line=>!line||typeof line.code!=='string'||!Array.isArray(line.stages)||line.stages.some(stage=>!stage||typeof stage.code!=='string')))throw Error('LINES_VIEW_RELOAD_REQUIRED');\n    content.innerHTML=`<section class=\"panel\" data-lines-readonly data-i18n-skip=\"true\"><h3>${t('線別與工段管理','Chuyền và công đoạn')}</h3><p role=\"status\">${t('目前僅查看已核准的線別與工段；此畫面不修改或保存資料。','Chỉ xem chuyền và công đoạn đã duyệt; màn hình này không sửa hoặc lưu dữ liệu.')}</p><div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px\">${rows.map(line=>`<article class=\"panel\" style=\"min-width:0;overflow-wrap:anywhere\"><h4>${safe(line.code)} · ${safe(line.name||line.code)}</h4>${line.stages.length?`<ol>${line.stages.map(stage=>`<li>${safe(stage.code)} · ${safe(stage.name||stage.code)}</li>`).join('')}</ol>`:`<p>${t('尚無已核准工段','Chưa có công đoạn đã duyệt')}</p>`}</article>`).join('')||`<p>${t('尚無已核准線別','Chưa có chuyền đã duyệt')}</p>`}</div></section>`;\n  }\n"
+            },
+            {
+              "offset": 19804,
+              "before": "      if(!visible(state.masterScope)){content.dataset.activeTab=tab;dataError=null;dataReady=Promise.resolve();content.innerHTML=`<section class=\"panel\" data-line-permission-notice role=\"status\"><h3>${document.documentElement.lang==='vi'?'Chuyền và công đoạn':'線別與工段管理'}</h3><p>${document.documentElement.lang==='vi'?'Đây là lối vào bản nháp chung AB/C. Tài khoản cần quyền Xem AB hoặc C; lưu sẽ áp dụng cho toàn bộ mô-đun. Liên hệ quản trị viên để cấp quyền.':'這是 AB／C 共用草稿的管理入口。此帳號尚缺 AB 或 C 查看權限；保存會涵蓋所屬模組整份草稿。請由管理者調整對應權限。'}</p></section>`;bindTabButtons();return;}\r\n",
+              "after": "      if(!visible(state.masterScope)){content.dataset.activeTab=tab;dataError=null;dataReady=Promise.resolve();try{approvedLinesOnly(content);}catch(error){dataError=error;content.innerHTML=`<section class=\"panel\" data-line-permission-notice role=\"alert\"><h3>${document.documentElement.lang==='vi'?'Chuyền và công đoạn':'線別與工段管理'}</h3><p>${document.documentElement.lang==='vi'?'Chưa xác minh được dữ liệu đã duyệt; hãy tải lại để kiểm tra.':'尚無法核對已核准資料；請重新載入確認。'}</p></section>`;}bindTabButtons();return;}\n"
+            },
+            {
+              "offset": 65598,
+              "before": "  window.addEventListener('process-language-change',()=>{if(state.view==='approval'&&!document.querySelector('dialog[open]')){const x=window.scrollX,y=window.scrollY;render();window.scrollTo(x,y);}});\r\n",
+              "after": "  window.addEventListener('process-language-change',()=>{if(state.view==='data'&&state.dataTab==='line-admin'&&document.querySelector('[data-lines-readonly]'))selectDataTab('line-admin');if(state.view==='approval'&&!document.querySelector('dialog[open]')){const x=window.scrollX,y=window.scrollY;render();window.scrollTo(x,y);}});\n"
+            }
+          ]
+        }
+      }
+    },
+    "public/process/shared-draft-client.js": {
+      "afterHash": "ac56eb94ef7c9ad670df961f1423898cf723369bec961411e90fdacff897f9c2",
+      "afterBlob": "9438796f9bef13923e1d41a601040ccd34acf920",
+      "afterLength": 181213,
+      "origins": {
+        "account": {
+          "beforeHash": "787ea8334c142ada19d38e6d6e47426f39b9a16eb4ad6a25a941b0696a8381fd",
+          "beforeBlob": "98f78008f801d869202e1be16e17a0d6f2c188f7",
+          "beforeLength": 174886,
+          "rules": [
+            {
+              "offset": 1663,
+              "before": "      DRAFT_REVISION_CHANGED_RECONFIRM:['確認期間共用草稿已更新，本次未送審。請重新核對並儲存最新內容。','Bản nháp chung đã thay đổi trong lúc xác nhận; chưa gửi duyệt. Hãy kiểm tra và lưu nội dung mới nhất.'],\n",
+              "after": "      DRAFT_REVISION_CHANGED_RECONFIRM:['確認期間共用草稿已更新，本次操作未完成。請重新核對並儲存最新內容。','Bản nháp chung đã thay đổi trong lúc xác nhận; thao tác chưa hoàn tất. Hãy kiểm tra và lưu nội dung mới nhất.'],\n"
+            },
+            {
+              "offset": 12992,
+              "before": "",
+              "after": "    if(path==='/api/routine-fqc/page')return 'routine-fqc:page';\n    if(path==='/api/master/pages')return ['AB','C','LINES'].includes(params.get('scope'))?'master:'+(params.get('scope')==='LINES'?'LINES':params.get('scope')+'.catalog'):null;\n"
+            },
+            {
+              "offset": 35393,
+              "before": "    const beginScopePath=masterLocalBegin?beginPath+'?scope='+beginParams.get('scope'):beginPath;\n    if(durableBegin&&!masterLocalBegin&&!abModule&&(!['/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-c/workflow','/api/tooling/workflow','/api/bom/workflow','/api/process-authoring/workflow','/api/routine-equipment/workflow'].includes(beginPath)||externalCanvas||[...beginParams].some(([key,value])=>key!=='caseMetadata'||value!=='1')||beginParams.getAll('caseMetadata').length>1))throw Error('BEGIN_DURABLE_SCOPE_REQUIRED');\n",
+              "after": "    const pageLocalBegin=durableBegin&&beginPath==='/api/master/pages'&&['AB','C','LINES'].includes(beginParams.get('scope'))&&endpoint===`/api/master/pages?scope=${beginParams.get('scope')}&caseMetadata=1`;\n    const beginScopePath=(masterLocalBegin||pageLocalBegin)?beginPath+'?scope='+beginParams.get('scope'):beginPath;\n    if(durableBegin&&!masterLocalBegin&&!pageLocalBegin&&!abModule&&(!['/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-c/workflow','/api/tooling/workflow','/api/bom/workflow','/api/process-authoring/workflow','/api/routine-equipment/workflow'].includes(beginPath)||externalCanvas||[...beginParams].some(([key,value])=>key!=='caseMetadata'||value!=='1')||beginParams.getAll('caseMetadata').length>1))throw Error('BEGIN_DURABLE_SCOPE_REQUIRED');\n"
+            },
+            {
+              "offset": 38613,
+              "before": "",
+              "after": "    const approvedAccessListeners=new Set(),approvedHistoryRoute=['/api/process-authoring/workflow','/api/master/pages','/api/routine-fqc/page'].includes(beginPath);\n"
+            },
+            {
+              "offset": 38866,
+              "before": "    let accessGuard=guardAccessResults,accessEpoch=0,accessIssued=0,accessObserved=0,accessFence=0,accessRevision=-1;\n",
+              "after": "    // Authoring approved history enables this guard during first paint. Start it\n    // before any durable Begin receipt/readback so mounting cannot retire that read.\n    let accessGuard=guardAccessResults||durableBegin&&beginPath==='/api/process-authoring/workflow',accessEpoch=0,accessIssued=0,accessObserved=0,accessFence=0,accessRevision=-1;\n"
+            },
+            {
+              "offset": 41545,
+              "before": "",
+              "after": "      if(approvedHistoryRoute)for(const listener of approvedAccessListeners)try{listener();}catch{/* Presentation cannot change request or receipt authority. */}\n"
+            },
+            {
+              "offset": 45717,
+              "before": "",
+              "after": "      // An idle retired authoring runtime never acquires a newer owner's Begin marker.\n      // Other modules keep explicit delivery-recheck discovery; captured evidence stays.\n      if(beginPath==='/api/process-authoring/workflow'&&!beginRecord&&!beginInvalid&&!beginRuntimeCurrent())return false;\n"
+            },
+            {
+              "offset": 61943,
+              "before": "",
+              "after": "    // Only an issued Canvas Save and its original HTTP POST can prove that\n    // revision/field guards rejected the write. Public error flags, receipt GETs\n    // and copied commands cannot mint this private capability.\n    const canvasRejectionTokens=new WeakMap(),canvasRejectionIssued=new WeakMap(),canvasRejectionResponses=new WeakMap();\n    function canvasRejectionCurrent(pin){return !!pin&&!pin.consumed&&canvasTarget&&externalCurrent()&&clientPagehideGeneration===transportPagehideGeneration&&pin.pagehide===transportPagehideGeneration&&canvasOwnerCurrent(pin.owner)&&JSON.stringify(pin.command)===pin.raw;}\n    function canvasRejectionResponse(error,command,status,result){\n      const pin=canvasRejectionIssued.get(command),flight=preparedFlights.get(command?.operationId);\n      if(!canvasRejectionCurrent(pin)||!flight||pin.flight!==flight||JSON.stringify(command)!==pin.raw||status!==409||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(result.requestId||''))return;\n      const path=JSON.stringify(result.details?.path),guard=result.error==='DEPENDENCY_CHANGED_RECONFIRM'&&command.guards?.some(g=>JSON.stringify(g.path)===path);\n      if(result.error!=='DRAFT_REVISION_CHANGED_RECONFIRM'&&!guard)return;\n      canvasRejectionResponses.set(error,{pin,flight,kind:'http',status,code:result.error,requestId:result.requestId,details:JSON.stringify(result.details),notSent:error.notSent});\n    }\n    function canvasRejectionUnsent(error,command){\n      const pin=canvasRejectionIssued.get(command),flight=preparedFlights.get(command?.operationId);\n      if(!externalUnsent.has(error)||!canvasRejectionCurrent(pin)||!flight||pin.flight!==flight||JSON.stringify(command)!==pin.raw)return;\n      // This error is created only by the transport's failed durability check,\n      // before fetch. It is never inferred from a caller-supplied public flag.\n      canvasRejectionResponses.set(error,{pin,flight,kind:'unsent',status:error.status,code:error.message,requestId:error.requestId,details:JSON.stringify(error.details),notSent:true});\n    }\n    function confirmedCanvasRejection(error,command,token){\n      try{const pin=canvasRejectionTokens.get(token),proof=canvasRejectionResponses.get(error),failure=syncFailures.get(command?.operationId);\n        return canvasRejectionCurrent(pin)&&pin.command===command&&proof?.pin===pin&&proof.flight===pin.flight&&!!pin.flight&&failure?.error===error&&JSON.stringify(failure.command)===pin.raw&&(proof.kind==='http'||proof.kind==='unsent'&&externalUnsent.has(error))&&error.notSent===proof.notSent&&error.status===proof.status&&error.message===proof.code&&error.requestId===proof.requestId&&JSON.stringify(error.details)===proof.details;\n      }catch{return false;}\n    }\n"
+            },
+            {
+              "offset": 101145,
+              "before": "          catch(cause){const error=Object.assign(Error('CANVAS_DURABLE_DISPATCH_REQUIRED'),{notSent:true,cause});externalUnsent.add(error);throw error;}\n",
+              "after": "          catch(cause){const error=Object.assign(Error('CANVAS_DURABLE_DISPATCH_REQUIRED'),{notSent:true,cause});externalUnsent.add(error);if(canvasTarget)canvasRejectionUnsent(error,body.command);throw error;}\n"
+            },
+            {
+              "offset": 105798,
+              "before": "        if(!response.ok){const error=Object.assign(Error(result.error||`HTTP ${response.status}`),{status:response.status,requestId:result.requestId,details:result.details});if(body?.action==='begin-v1')beginResponses.set(error,{record:beginRecord,raw:beginRaw});if(abEntry)abResponse(error,body.command,result);if(externalBounded&&body?.command)boundedResponses.set(error,{record:boundedRecord,operationId:body.command.operationId,raw:JSON.stringify(body.command),status:response.status,code:result.error,path:JSON.stringify(result.details?.path),flight:preparedFlights.get(body.command.operationId)?.promise,manualBodyTooLarge:boundedScope==='bom'&&(body.command.action==='apply'&&!body.command.moduleAction||body.command.action==='save'&&body.command.moduleAction==='save-local-v1')&&response.status===413&&result.error==='COMMAND_TOO_LARGE'&&new TextEncoder().encode(requestOptions.body).byteLength>2_000_000});throw error;}\n",
+              "after": "        if(!response.ok){const error=Object.assign(Error(result.error||`HTTP ${response.status}`),{status:response.status,requestId:result.requestId,details:result.details});if(canvasTarget&&body?.command)canvasRejectionResponse(error,body.command,response.status,result);if(body?.action==='begin-v1')beginResponses.set(error,{record:beginRecord,raw:beginRaw});if(abEntry)abResponse(error,body.command,result);if(externalBounded&&body?.command)boundedResponses.set(error,{record:boundedRecord,operationId:body.command.operationId,raw:JSON.stringify(body.command),status:response.status,code:result.error,path:JSON.stringify(result.details?.path),flight:preparedFlights.get(body.command.operationId)?.promise,manualBodyTooLarge:boundedScope==='bom'&&(body.command.action==='apply'&&!body.command.moduleAction||body.command.action==='save'&&body.command.moduleAction==='save-local-v1')&&response.status===413&&result.error==='COMMAND_TOO_LARGE'&&new TextEncoder().encode(requestOptions.body).byteLength>2_000_000});throw error;}\n"
+            },
+            {
+              "offset": 129069,
+              "before": "",
+              "after": "      ...(approvedHistoryRoute?{approvedHistory:(options,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true});},approvedVersion:(id,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true});},watchApprovedAccess(listener){approvedAccessListeners.add(listener);return ()=>approvedAccessListeners.delete(listener);}}:{}),\n"
+            },
+            {
+              "offset": 137725,
+              "before": "",
+              "after": "      canvasRejectionCapability(command){\n        assertOwner();const snapshot=canvasCommands.get(command);\n        if(!canvasTarget||!snapshot||!canvasJSONMatches(command,snapshot)||command.action!=='apply'||command.moduleAction!=='save-canvas-v1'||!Number.isSafeInteger(command.expectedRevision)||command.expectedRevision<0||canvasRejectionIssued.has(command))throw Error('CANVAS_SAVE_PREPARATION_REQUIRED');\n        const raw=JSON.stringify(command);\n        const token=Object.freeze({}),pin={command,raw,owner:canvasOwner(),pagehide:transportPagehideGeneration,flight:null,consumed:false};\n        canvasRejectionTokens.set(token,pin);canvasRejectionIssued.set(command,pin);return token;\n      },\n      isConfirmedCanvasRejection:confirmedCanvasRejection,\n      discardRejectedCanvasSave(command,error,token){\n        assertOwner();if(unknown||queued||preparedFlights.size||!confirmedCanvasRejection(error,command,token))return false;\n        const pin=canvasRejectionTokens.get(token);syncFailures.delete(command.operationId);pin.consumed=true;canvasRejectionIssued.delete(command);return true;\n      },\n"
+            },
+            {
+              "offset": 144381,
+              "before": "        command=JSON.parse(JSON.stringify(command));\n",
+              "after": "        const canvasRejectionPin=canvasTarget?canvasRejectionIssued.get(command):null;\n        command=JSON.parse(JSON.stringify(command));if(canvasRejectionPin)canvasRejectionIssued.set(command,canvasRejectionPin);\n"
+            },
+            {
+              "offset": 145797,
+              "before": "        const flight={command,promise:result};preparedFlights.set(command.operationId,flight);if(externalBounded)for(const proof of boundedCapabilities.get(command.operationId)||[])proof.flight=result;\n",
+              "after": "        const flight={command,promise:result};preparedFlights.set(command.operationId,flight);if(canvasRejectionPin&&!canvasRejectionPin.flight&&canvasRejectionCurrent(canvasRejectionPin)&&canvasRejectionPin.raw===JSON.stringify(command))canvasRejectionPin.flight=flight;if(externalBounded)for(const proof of boundedCapabilities.get(command.operationId)||[])proof.flight=result;\n"
+            }
+          ]
+        },
+        "process": {
+          "beforeHash": "f00596e1829ff1444ce0f1079347b0f669557ba23a301e2dcb670a65c5e2875a",
+          "beforeBlob": "ee28f2085540fb6f6d6d4c2598ada48261a699bd",
+          "beforeLength": 180605,
+          "rules": [
+            {
+              "offset": 12992,
+              "before": "",
+              "after": "    if(path==='/api/routine-fqc/page')return 'routine-fqc:page';\n"
+            },
+            {
+              "offset": 38613,
+              "before": "    const approvedAccessListeners=new Set(),approvedHistoryRoute=['/api/process-authoring/workflow','/api/master/pages'].includes(beginPath);\n",
+              "after": "    const approvedAccessListeners=new Set(),approvedHistoryRoute=['/api/process-authoring/workflow','/api/master/pages','/api/routine-fqc/page'].includes(beginPath);\n"
+            },
+            {
+              "offset": 38866,
+              "before": "    let accessGuard=guardAccessResults,accessEpoch=0,accessIssued=0,accessObserved=0,accessFence=0,accessRevision=-1;\n",
+              "after": "    // Authoring approved history enables this guard during first paint. Start it\n    // before any durable Begin receipt/readback so mounting cannot retire that read.\n    let accessGuard=guardAccessResults||durableBegin&&beginPath==='/api/process-authoring/workflow',accessEpoch=0,accessIssued=0,accessObserved=0,accessFence=0,accessRevision=-1;\n"
+            },
+            {
+              "offset": 45717,
+              "before": "",
+              "after": "      // An idle retired authoring runtime never acquires a newer owner's Begin marker.\n      // Other modules keep explicit delivery-recheck discovery; captured evidence stays.\n      if(beginPath==='/api/process-authoring/workflow'&&!beginRecord&&!beginInvalid&&!beginRuntimeCurrent())return false;\n"
+            },
+            {
+              "offset": 112932,
+              "before": "      if(!beginRuntimeCurrent()||fresh.permissions?.view!==true||!flow||flow.generation!==r.generation||flow.revision<r.revision||flow.revision===r.revision&&(flow.saved?.id!==r.savedId||JSON.stringify(flow.working)!==JSON.stringify(flow.saved?.content)))throw Error('SAVE_READBACK_REQUIRED');\n",
+              "after": "      if(!beginRuntimeCurrent()||fresh.permissions?.view!==true||!flow||flow.generation!==r.generation||flow.revision<r.revision||flow.revision===r.revision&&(flow.saved?.id!==r.savedId||!equipmentContentEqual(flow.working,flow.saved?.content)))throw Error('SAVE_READBACK_REQUIRED');\n"
+            }
+          ]
+        }
+      }
+    },
+    "lib/master-page-workflow.ts": {
+      "afterHash": "e29319a3ec68ba8cf75ac2d47aabb994725624006a5e954bf03a25031c913015",
+      "afterBlob": "03d06080d18fbfe0ba72cc2d8463a63f34cf5000",
+      "afterLength": 21456,
+      "origins": {
+        "account": {
+          "absent": true
+        },
+        "process": {
+          "beforeHash": "dc0fdbbd8fefdcf8df9e81af608a0deb21f53b2c589d81b613043fabc2adccc6",
+          "beforeBlob": "40b73e2a2b4a6f46157ed6d8b7e9c0981a5317d8",
+          "beforeLength": 21225,
+          "rules": [
+            {
+              "offset": 4719,
+              "before": "  if (!context.allowed('view') || !context.allowed('edit') || !context.allowed('save')) throw new DraftConflict('FORBIDDEN',403);\n",
+              "after": "  // Saving the current shared working body is independently grantable. Any\n  // submitted batch still executes Apply and therefore requires fresh Edit.\n  if (!context.allowed('view') || !context.allowed('save') || Array.isArray(command.input!.batches) && command.input!.batches.length > 0 && !context.allowed('edit')) throw new DraftConflict('FORBIDDEN',403);\n"
+            }
+          ]
+        }
+      }
+    },
+    "public/process/draft-review-policy.mjs": {
+      "afterHash": "dc986667410f180de125e9ca09107f4e1591884483980a176941063ca9b69f8c",
+      "afterBlob": "20c4db5350bab7a0b2060386538fa645d7789369",
+      "afterLength": 9298,
+      "origins": {
+        "account": {
+          "absent": true
+        },
+        "process": {
+          "beforeHash": "042594effe9ee0510b19f68bfcd05d9c204c98e425f07590abc36553bf98f38f",
+          "beforeBlob": "b55838e1c83fcc31319eb972266161ad83fbc7c1",
+          "beforeLength": 8701,
+          "rules": [
+            {
+              "offset": 246,
+              "before": "import {catalog,effectiveCells,isPrimary,PRIMARY_ADMIN_ID} from './access-policy.mjs';\n",
+              "after": "import {catalog,effectiveCells,isPrimary,PRIMARY_ADMIN_ID} from './access-policy.mjs?v=20261110-account-pages1';\n"
+            },
+            {
+              "offset": 2392,
+              "before": "",
+              "after": "  if(has(entry,'approvalConfirmation')){\n   const stamp=entry.approvalConfirmation,valid=record(stamp)&&Object.keys(stamp).sort().join(',')==='granted,permission,schemaVersion,subjectId,subjectKind'&&stamp.schemaVersion===1&&stamp.permission===key&&stamp.granted===true&&stamp.subjectKind===subject.kind&&stamp.subjectId===subject.id&&entry.actor?.id===PRIMARY_ADMIN_ID&&entry.actor?.role==='admin'&&typeof entry.id==='string'&&entry.id.length>0;\n   return frozen({status:valid?'confirmed-explicit':'confirmation-required',subject,...(valid?{auditId:entry.id}:{})});\n  }\n"
+            }
+          ]
+        }
+      }
+    },
+    "public/process/master-page-editor.js": {
+      "afterHash": "86d18cc053c713a511c5c06ef0d4bb45de88ac37dcd3704e38ecb036d6218983",
+      "afterBlob": "8288ff197bdccba73004e83beae86c14d62633c9",
+      "afterLength": 31209,
+      "origins": {
+        "account": {
+          "absent": true
+        },
+        "process": {
+          "beforeHash": "66842695c3701a44eb412ff7f976d453f75069c06dd44406ec199690f57af176",
+          "beforeBlob": "3685e45ce1ae656caa3ce388672bdce50f6c454f",
+          "beforeLength": 30972,
+          "rules": [
+            {
+              "offset": 24241,
+              "before": "    if(!['view','edit','save'].every(key=>fresh.permissions?.[key]===true))throw Error('FORBIDDEN');if(current.pendingId)throw Error('PENDING_LOCKED');\n",
+              "after": "    if(!['view','save'].every(key=>fresh.permissions?.[key]===true)||fresh.permissions.edit!==true&&!same(input,oldBase))throw Error('FORBIDDEN');if(current.pendingId)throw Error('PENDING_LOCKED');\n"
+            },
+            {
+              "offset": 24761,
+              "before": "    if(JSON.stringify(mine)!==original)throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');if(!['view','edit','save'].every(key=>confirmed.permissions?.[key]===true))throw Error('FORBIDDEN');\n    const batches=comparison.materialize(choice),command=client.prepare(current.generation,'save',{expectedRevision:current.revision,moduleAction:'save-local-v1',patches:batches.flatMap(batch=>batch.patches),input:{batches}});\n",
+              "after": "    if(JSON.stringify(mine)!==original)throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');if(!['view','save'].every(key=>confirmed.permissions?.[key]===true)||confirmed.permissions.edit!==true&&!same(input,oldBase))throw Error('FORBIDDEN');\n    const batches=comparison.materialize(choice).filter(batch=>batch.patches.length||batch.guards.length);if(batches.length&&confirmed.permissions.edit!==true)throw Error('FORBIDDEN');const command=client.prepare(current.generation,'save',{expectedRevision:current.revision,moduleAction:'save-local-v1',patches:batches.flatMap(batch=>batch.patches),input:{batches}});\n"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "purpose": "Exact two-public-origin source evidence only; no runtime inputs or authority."
+}

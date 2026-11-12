@@ -1,3 +1,24 @@
+# 2026-11-12 — Independent account/process joint verification
+
+Latest isolated #103 fb62c259 + #104 15a5acb4 composition and exact limits: [joint verification](../docs/acceptance/accounts-process-joint-20261112/README.md). Source heads remain unchanged Draft; no live activation, schema/data/account change, merge or deployment. Older checkpoint statuses below remain historical.
+
+## 2026-11-10 — Isolated joint account/process candidate
+
+沿用既有 shared_state、R2、process:platform 與原 UNKNOWN 收據；未新增 SQL/schema 或執行 migration。AB.catalog、C.catalog、LINES、routine-fqc:page 各保留自己的 JSON owner、核准來源與 CAS；LINE 的 AB/C 是同頁兩個分區。Canvas 未送輸入只在 RAM，既有 IPQC 來源採用只變更當前表單的 assignment tuple，完成後以一次畫布 Save 保存，不複製來源標準／原圖。帳號 v2 approvalConfirmation 與原始 before、個別拒絕、authEpoch 撤權保護保留；最小預覽不是寫入授權。沒有改動真實標記、ACL、baseline、pending 或收據。[共同候選與驗證](ACCOUNT_PROCESS_JOINT_LOCAL.md)。
+
+## 2026-11-10 — Local page and final-approval evidence candidate
+
+無 SQL/schema/migration 或真資料修改。候選沿用 shared_state/R2 工作流，增加明確 owner 的 AB.catalog/C.catalog/LINES 與 routine-fqc:page JSON 形狀；不自動建立 adoption 標記或 baseline。processAccessControl v2 audit 可含主要管理員產生的 approvalConfirmation（schemaVersion=1、permission=approval.approve、granted=true、subjectKind/subjectId）；before 保留真值，最小前端投影不是寫入授權。原帳號 ID、raw ACL、歷史、個別拒絕與 UNKNOWN 收據保留。[實作及未啟用界線](ACCOUNT_PERMISSION_INTEGRATION_LOCAL.md)。
+
+<!-- Retained #104 source checkpoint; historical, not current joint acceptance. -->
+## 2026-11-10 — Existing IPQC reference persistence clarified
+
+Source adoption updates only the existing operation assignment tuple in the current form. After operation completion, one current-canvas Save persists it in the existing process snapshot; source standards/photos are not copied. No field, storage format, ownership, schema or data migration changes.
+
+## 2026-11-10 — Independent process/master-page candidate
+
+No SQL schema or migration runs. Canvas retains the existing process:platform workflow, immutable whole saved snapshot and original UNKNOWN receipts; only unsent overlays/forms are RAM-only. Candidate masterDataControl page-v1 uses independent AB.catalog, C.catalog and LINES owners, each with its own approved version/workflow. LINES owns both AB/C topology partitions; catalog owners exclude lines. Compatibility/public projections resolve original approved owner IDs before omitting private workflows. A trusted existing processAccessControl.draftReviewPolicy=page-v1 separates module submit/correction from high approval; absent marker keeps legacy projection, invalid provenance fails closed. No real marker, ACL, baseline, archive or data cutover was created. [Scope and unresolved acceptance](../docs/acceptance/process-platform-integration-20261110.md).
+
 ## 2026-11-05 — 事件版本與匯出預覽內容核對
 
 無新增 schema。access_events 原結果首次核驗改變時 version 遞增，verified_at 保留首次證據時間；管理版本與原業務收據獨立。ZIP versions 預覽／生成協定增加非持久 contentHash，僅計算已授權的脫敏投影與所選圖片中繼資料，不含原操作 ID／收據。匯出原有 digest 自然涵蓋固定 pins，重試仍回原快照。首次 capability 失敗的新上報 metadata 不持久保存，無新資料保留架構。

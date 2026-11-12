@@ -10,12 +10,13 @@ const shared=read('shared-draft-client.js');
 const shim=shared.slice(shared.indexOf('  window.createForegroundPoll ='),shared.indexOf('  // Local Begin feedback only:'));
 function declaration(source,name){const ast=ts.createSourceFile('caller.js',source,ts.ScriptTarget.Latest,true),found=[];function walk(n){if(ts.isFunctionDeclaration(n)&&n.name?.text===name)found.push(n.getText(ast));ts.forEachChild(n,walk);}walk(ast);assert.equal(found.length,1,name+' exact closure');return found[0];}
 function fixture(){let requests=0,timers=0,listeners=0;const events=new Map(),window={addEventListener(name,fn){listeners++;events.set(name,fn);}},document={visibilityState:'visible',hasFocus:()=>true,addEventListener(){listeners++;}};const c={window,document,setTimeout(){timers++;throw Error('BACKGROUND_TIMER');},setInterval(){timers++;throw Error('BACKGROUND_INTERVAL');},clearTimeout(){},performance:{now:()=>0},fetch(){requests++;throw Error('BACKGROUND_FETCH');}};vm.createContext(c);vm.runInContext(shim,c);return{c,window,document,state:()=>({requests,timers,listeners})};}
-for(const [file,fn,variable] of [['master-data.js','pollMaster','sharedPoll'],['fqc-master.js','pollShared','sharedPoll'],['iqc-master.js','scheduleRefresh','pollTimer'],['ipqc-ab.js','scheduleRefresh','pollTimer'],['ipqc-c.js','scheduleSharedRefresh','pollTimer']])void test(file+' real legacy owner cannot schedule any callback',()=>{
+for(const [file,fn,variable] of [['fqc-master.js','pollShared','sharedPoll'],['iqc-master.js','scheduleRefresh','pollTimer'],['ipqc-ab.js','scheduleRefresh','pollTimer'],['ipqc-c.js','scheduleSharedRefresh','pollTimer']])void test(file+' real legacy owner cannot schedule any callback',()=>{
  const f=fixture(),poll=f.window.createForegroundPoll();Object.assign(f.c,{[variable]:poll,deliveryGeneration:1,mountSequence:1,workspaceReady:()=>true,currentReadOwner:()=>()=>true,actor:()=>({id:'synthetic'}),host:null});
  vm.runInContext(declaration(read(file),fn)+'\n'+fn+'();',f.c);
  for(let i=0;i<100;i++){poll.schedule(()=>{throw Error('CALLBACK_EXECUTED');});poll.cancel();vm.runInContext(fn+'();',f.c);}
  poll.dispose();assert.deepEqual(f.state(),{requests:0,timers:0,listeners:0});
 });
+void test('master-data removes the retired scheduler and has no startup/reset scheduler call',()=>{const source=read('master-data.js');assert.doesNotMatch(source,/function\s+pollMaster\b|\bpollMaster\s*\(|\bsharedPoll\b/);});
 for(const file of ['bom-workspace.js','tooling.js'])void test(file+' actual startup scheduler statement is inert',()=>{
  const f=fixture(),source=read(file),start=source.indexOf(' const foregroundPoll=window.createForegroundPoll();'),end=source.indexOf(' foregroundPoll.schedule(pollTick);',start);assert(start>=0&&end>start);
  vm.runInContext(source.slice(start,end+' foregroundPoll.schedule(pollTick);'.length),f.c);assert.deepEqual(f.state(),{requests:0,timers:0,listeners:0});

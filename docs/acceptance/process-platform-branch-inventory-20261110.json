@@ -1,0 +1,396 @@
+{
+  "base": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+  "branches": [
+    {
+      "branch": "codex/module-draft-boundary-main-20261109",
+      "sha": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "localObjectAvailable": true,
+      "ancestorOfMain": false,
+      "productDiffFilesVsMain": 390
+    },
+    {
+      "branch": "codex/preview-process-flow-cloud-29102026",
+      "sha": "3c22b2898d35f33239a6253e52c95eef5c631e3c",
+      "localObjectAvailable": false
+    },
+    {
+      "branch": "codex/process-benchmark-supplement-20261030",
+      "sha": "caeb8c15f8311639b4b1b0c652e167b20cd0f978",
+      "localObjectAvailable": false
+    },
+    {
+      "branch": "codex/process-canvas-count-20261109",
+      "sha": "8f1f24321764d7aaa51941bce8c48b2b6634ac6d",
+      "localObjectAvailable": true,
+      "ancestorOfMain": false,
+      "productDiffFilesVsMain": 37
+    },
+    {
+      "branch": "codex/process-flow-cloud-29102026",
+      "sha": "c0a9b7ed4f947749152fdac86dcca65093eb7864",
+      "localObjectAvailable": true,
+      "ancestorOfMain": true,
+      "productDiffFilesVsMain": 650
+    },
+    {
+      "branch": "codex/process-platform-integration-20261110",
+      "sha": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+      "localObjectAvailable": true,
+      "ancestorOfMain": true,
+      "productDiffFilesVsMain": 0
+    },
+    {
+      "branch": "codex/process-stage-catalog-20261109",
+      "sha": "83dcd5ce1565ace1526ea20771cf3e834ba3dc18",
+      "localObjectAvailable": false
+    },
+    {
+      "branch": "feat/process-canvas-atomic-save",
+      "sha": "004b2ff350fa2413f2c95cbadaa602c65a772a7c",
+      "localObjectAvailable": true,
+      "ancestorOfMain": true,
+      "productDiffFilesVsMain": 321
+    },
+    {
+      "branch": "feature/process-local-save-20261105",
+      "sha": "40cb76a499b582d760d670718665fd87b658e2d0",
+      "localObjectAvailable": true,
+      "ancestorOfMain": true,
+      "productDiffFilesVsMain": 210
+    },
+    {
+      "branch": "fix/authoring-save-response-20261027",
+      "sha": "4674df6cc419b6cf14cbb6808d0f99061cbd8a5c",
+      "localObjectAvailable": false
+    },
+    {
+      "branch": "fix/authoring-save-response-portable-20261027",
+      "sha": "6d65d5d8228da38df59af5385f11e5bf622f659e",
+      "localObjectAvailable": true,
+      "ancestorOfMain": true,
+      "productDiffFilesVsMain": 846
+    },
+    {
+      "branch": "fix/canvas-bounded-actions-20261027",
+      "sha": "22aff6a4b16d8ca0e946dfbcf57fc2cb8b70b70c",
+      "localObjectAvailable": true,
+      "ancestorOfMain": true,
+      "productDiffFilesVsMain": 848
+    },
+    {
+      "branch": "fix/global-background-checks-20261109",
+      "sha": "158bb6b7ad3b98eda8104ef9a271073ee1caf0b3",
+      "localObjectAvailable": true,
+      "ancestorOfMain": true,
+      "productDiffFilesVsMain": 0
+    },
+    {
+      "branch": "fix/process-fqc-readscope-truthful-20261027",
+      "sha": "6abde9dc411ad0ad74457924f87fb96dbe62a363",
+      "localObjectAvailable": true,
+      "ancestorOfMain": true,
+      "productDiffFilesVsMain": 829
+    },
+    {
+      "branch": "perf/fqc-process-bounded-writes-20261027",
+      "sha": "eae9c9bd59d664c6f507bd04b56d15b0b12b6074",
+      "localObjectAvailable": false
+    },
+    {
+      "branch": "perf/fqc-process-bounded-writes-clean-20261028",
+      "sha": "5bb367008b6063be41195a386c1e47cb23f196d7",
+      "localObjectAvailable": true,
+      "ancestorOfMain": true,
+      "productDiffFilesVsMain": 718
+    },
+    {
+      "branch": "perf/process-fqc-fullflow-20261028",
+      "sha": "4f6d3400ae8c32ad1a0011b0dd8ff6d84295cfce",
+      "localObjectAvailable": true,
+      "ancestorOfMain": true,
+      "productDiffFilesVsMain": 716
+    }
+  ],
+  "deletedBranches": [],
+  "remoteTreeChecks": [
+    {
+      "branch": "codex/preview-process-flow-cloud-29102026",
+      "comparison": {
+        "status": "diverged",
+        "ahead": 413,
+        "behind": 13,
+        "mergeBase": "cb7966d4e2a48897284df7fc58ffe0855f650e19"
+      },
+      "changedCodeOrTestFiles": [
+        {
+          "path": "public/process/app.js",
+          "sourceBlob": "fc88e5da4fc06ea0b518d56031cce2ed276c4945",
+          "currentMainIdentical": false,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "public/process/bom-workspace.js",
+          "sourceBlob": "0c72b1a158770ff1ced2e629be9a600c147defdb",
+          "currentMainIdentical": false,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "public/process/fqc-master.js",
+          "sourceBlob": "e49e3e0c440f2274ae7553ca15784b4959dd9cc7",
+          "currentMainIdentical": false,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "public/process/i18n.js",
+          "sourceBlob": "2d0531ed1ab6bace170b9dc3d32bbc18ba71e150",
+          "currentMainIdentical": false,
+          "sourceBlobRetainedInMainHistory": false
+        },
+        {
+          "path": "public/process/index.html",
+          "sourceBlob": "a35cc4c82d174677323e6f0b2171f4db3a0aada5",
+          "currentMainIdentical": false,
+          "sourceBlobRetainedInMainHistory": false
+        },
+        {
+          "path": "public/process/master-data.js",
+          "sourceBlob": "36cee3b3e1c26bf4788ee8e6fa5c9062596ee9e5",
+          "currentMainIdentical": false,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "public/process/master-review.js",
+          "sourceBlob": "51e70bb13aecd15e10f965f7ec0447ca7a728a1d",
+          "currentMainIdentical": false,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "public/process/photo-viewer.css",
+          "sourceBlob": "722d619acd6e28797255fdd0ea6bf3e39f8e6879",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "public/process/process-equipment.js",
+          "sourceBlob": "5766d2765de93697fdaf0a84a379185933a4fec5",
+          "currentMainIdentical": false,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "public/process/tooling.js",
+          "sourceBlob": "236c1c3c39e0e7f3e9e4e4e35c724e52b8e0ff6a",
+          "currentMainIdentical": false,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "public/process/version-workflow.js",
+          "sourceBlob": "38d03f2982deaf9da6c0f0c358c80fd5da0afd2f",
+          "currentMainIdentical": false,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "scripts/start-process-flow-preview.mjs",
+          "sourceBlob": "5efd2202fc04067b71263f6b148ae51927797f7d",
+          "currentMainIdentical": false,
+          "sourceBlobRetainedInMainHistory": false
+        },
+        {
+          "path": "scripts/test-process-master-name-guards.cjs",
+          "sourceBlob": "ecfaa22b87af529fc668f6e1ab512a45f870dc67",
+          "currentMainIdentical": false,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "scripts/test-unified-master-review.mjs",
+          "sourceBlob": "de02dc6d429b2200099d9ab461956bdbab3fc3a0",
+          "currentMainIdentical": false,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "tests/photo-entry-browser.test.mjs",
+          "sourceBlob": "d74873df43ffcf2ed5ea13674a029ebcd633a84c",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "tests/photo-entry-cloud-fixture.mjs",
+          "sourceBlob": "71a28f2d887eb9666585922d843b3ee7e2bfbb09",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "tests/photo-standard-browser.test.mjs",
+          "sourceBlob": "7a7dad1f0de57bb3b8f5d32dac413d444a8c29ee",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "tests/photo-standard-entries.test.mjs",
+          "sourceBlob": "e2df7baa22d858cff2de8f724235f00bb18a15ad",
+          "currentMainIdentical": false,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "tests/photo-technical-fixtures.mjs",
+          "sourceBlob": "9c4431b0d5fe0bb6f5d9ff45a7a74f42816c8fd8",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "tests/process-entry-layout-browser.test.mjs",
+          "sourceBlob": "aed31db8ef1cd6fa6402ed084940aaed4780ede3",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "tests/process-entry-profile-browser.test.mjs",
+          "sourceBlob": "e6ff400e9e91599de2d06b1c337dcd50630120c3",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "tests/process-master-cloud-browser.test.mjs",
+          "sourceBlob": "e6fc4cce00b1e2087d36e7378d1180c25ad6c7a4",
+          "currentMainIdentical": false,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "tests/process-master-cloud-native.test.mjs",
+          "sourceBlob": "faf093ae2614b46302b657958333f37228ea7b48",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "tests/process-master-departure-browser.test.mjs",
+          "sourceBlob": "601a8c190b65a6d51491fc12103a5f24a0f51b82",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "tests/process-master-name-burst-browser.test.mjs",
+          "sourceBlob": "c3c60bbb38a1fdf62eea0dc0be4f743b202937d6",
+          "currentMainIdentical": false,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "tests/process-master-performance-browser.test.mjs",
+          "sourceBlob": "417cd69d960f7d1a93d43545a88c848d6f52871d",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "tests/process-master-review-buttons-browser.test.mjs",
+          "sourceBlob": "f7aec3be16481efa579fb9bf1ab5e2a86ca0f296",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        }
+      ]
+    },
+    {
+      "branch": "codex/process-benchmark-supplement-20261030",
+      "comparison": {
+        "status": "diverged",
+        "ahead": 346,
+        "behind": 2,
+        "mergeBase": "ca6647977a8680038444ce2c1ba4e80f2343cd0a"
+      },
+      "changedCodeOrTestFiles": [
+        {
+          "path": "scripts/benchmark/README.md",
+          "sourceBlob": "dfbe56c1c28de4f43d61932527a04706c462caf7",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "scripts/benchmark/benchmark_support.py",
+          "sourceBlob": "ed62cd75c5de76873ad7dae85b2da64be1e56b24",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "scripts/benchmark/preview-smoke.mjs",
+          "sourceBlob": "eb8c042c359464097d5bfc761c07c4a69280a8cb",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "scripts/benchmark/run-entry-comparison.py",
+          "sourceBlob": "df808973f75492a4904e4da0b6626e1b91e145e8",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "scripts/benchmark/run-final-performance.py",
+          "sourceBlob": "59bc8c84ee229381ec7dd8e97ac327c241b21f6a",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "scripts/benchmark/summarize-entry.py",
+          "sourceBlob": "c1098dcc1858ceb0ef8f29acb5f1c2a4c2cb7908",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "scripts/benchmark/summarize-final-performance.py",
+          "sourceBlob": "c5c171ed8fe3f8e8ca90439008eefac4341a4ba9",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "scripts/benchmark/test_benchmark_tools.py",
+          "sourceBlob": "4040e156a805242b5b6b9e5d5200d613b35f30d7",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "tests/benchmark-preview-browser.test.mjs",
+          "sourceBlob": "c9335614ec36cdef9bd7e6636a3aa9383d917320",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "tests/benchmark-preview-smoke.test.mjs",
+          "sourceBlob": "922244df9993b68f33530993b5b08fe41feaea26",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        }
+      ]
+    },
+    {
+      "branch": "codex/process-stage-catalog-20261109",
+      "comparison": {
+        "status": "diverged",
+        "ahead": 8,
+        "behind": 6,
+        "mergeBase": "d4ac309fe05c89288af226b52c18161865ccdcb8"
+      },
+      "changedCodeOrTestFiles": [
+        {
+          "path": "lib/master-stage-link.ts",
+          "sourceBlob": "6536d1363579a25208150379c58408cf65a9d149",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "scripts/test-master-line-draft.cjs",
+          "sourceBlob": "b585277d6c85acf69e46a3b4ab1c9b3e80456625",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "scripts/test-master-stage-link-v3.cjs",
+          "sourceBlob": "f9f5cda548d7dfc7f4d8809a1ea6a341f13b2c7c",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        },
+        {
+          "path": "tests/process-stage-catalog.test.cjs",
+          "sourceBlob": "34904f4ed0a9640c522a927d662e157e3af40488",
+          "currentMainIdentical": true,
+          "sourceBlobRetainedInMainHistory": true
+        }
+      ]
+    }
+  ]
+}

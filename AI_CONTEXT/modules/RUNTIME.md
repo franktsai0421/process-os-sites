@@ -1,3 +1,11 @@
+## 2026-11-11 — Snapshot directory network-root portability
+
+`assertPlainDirectory` rejects UNC and `//` network roots before host path normalization, retaining the resolved-root and symlink checks. POSIX previously normalized those inputs before the rejection could recognize them. Isolated adapter checks cover both forms without network access; snapshot content, DB/R2, permissions and transfer/publication behavior are unchanged.
+
+## 2026-11-10 Local page/account review continuation
+
+The four-file correction is published at Draft #103 22567b26. The larger local candidate shares review projection, explicit primary proof and independent page/Routine owners. Cold-boot assets and policy cache dependencies are wired; no live flag is enabled. Line effective Edit→Save changes before adoption, while legacy writers still deny it. [Sources, validation and exact limits](../ACCOUNT_PERMISSION_INTEGRATION_LOCAL.md).
+
 ## 2026-11-09 Background check retirement candidate
 
 Shared polling API is now inert for compatible cached callers; no timer/callback/focus listener is retained. Direct process 4s, references 5s, effective-version 30s/focus and history-permission 4s checks are retired. Entry/action reads and original unknown receipts stay guarded. [Per-page inventory, remaining timer purposes and acceptance limits](../../docs/acceptance/global-background-checks-20261109.md). This is source-only, not hosted acceptance.
@@ -453,3 +461,11 @@ separate acceptance; this local candidate is not a release.
   and shared transport with synthetic DOM/HTTP/clock ports. VersionDraftUI
   mount is a model/status port. It is not native browser, authenticated backend,
   real timeout-duration, or original unknown-operation recovery acceptance.
+
+## 2026-11-10 — Account pending status follow-up
+
+Account dialogs render pending prewrite/POST feedback in a separate status live region; only actual failures populate the error alert. Fresh actor/target reads, CAS, input retention, control locks and UNKNOWN GET-only recovery are unchanged. Exact account cache source composition retains the original main/background inverse. [Root causes and verification boundary](../../docs/acceptance/account-permissions-20261110.md#local-safety-ci-follow-up-status-regions-and-composed-source-evidence).
+
+## 2026-11-10 — Derived Save and feedback source authority
+
+The shared access-policy resolver reflects existing atomic Edit→Save behavior for ten modules without rewriting raw overrides or inferring View/Submit/Approve. Active known-role company accounts always retain feedback.view, which is excluded from generic legacy views to prevent an accidental data grant. The account menu uses the existing delivery coordinator. Feedback image/source envelopes, mixed historical exports, both ZIP profiles, fresh revocation and hash/size checks remain authoritative for ordinary administrators too. [Requirement matrix, remaining page/final-approval dependencies and evidence](../../docs/acceptance/account-permissions-20261110.md#2026-11-10-擴充需求核對與本批結果). No schema/live account/feature-flag migration.

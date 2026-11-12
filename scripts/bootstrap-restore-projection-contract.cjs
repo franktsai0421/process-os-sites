@@ -1,7 +1,7 @@
 /* Exact #44/#51 DTO deltas for the non-primary owner/reader fixtures only.
  * Construct the expected response from v20: retain every existing byte/field
  * and insert eleven denied restore cells at their fixed catalog positions,
- * plus the approved empty categoryGroups field for this fixed empty-group fixture.
+ * plus approved empty categoryGroups and the fixed effective-account feedback.view.
  * Never strip candidate users/cells, derive grants, or replace the v20 loader. */
 const assert=require('node:assert/strict');
 const restoreAnchors=[['ab','exchange'],['c','exchange'],['bom','exchange'],['templates','exchange'],['editor','return'],['fqc','exchange'],['iqc','exchange'],['ipqc-ab','exchange'],['ipqc-c','exchange'],['tooling','exchange'],['equipment','exchange']];
@@ -17,6 +17,9 @@ function publicFixtureUser(body){
 }
 function expectedRestoreProjection(body){
  const user=publicFixtureUser(body),anchors=new Map(restoreAnchors.map(([module,op])=>[module+'.'+op,module+'.restore']));
+ // Only this fixture's active reader gains the mandatory Feedback view cell.
+ // Its IQC grant and every other original cell/field stay byte-for-byte fixed.
+ if(user.id==='reader'){assert.equal(user.cells['feedback.view'],false);assert.deepEqual(user.permissions,['iqc.view']);user.cells['feedback.view']=true;user.permissions.push('feedback.view');}else assert.equal(user.cells['feedback.view'],true);
  for(const key of restoreKeys){assert.equal(Object.hasOwn(user.cells,key),false,'v20 unexpectedly contains restore');assert.equal(user.permissions.includes(key),false);}
  for(const anchor of anchors.keys())assert(Object.hasOwn(user.cells,anchor),'Pinned restore anchor missing: '+anchor);
  user.cells=Object.fromEntries(Object.entries(user.cells).flatMap(([key,value])=>anchors.has(key)?[[key,value],[anchors.get(key),false]]:[[key,value]]));
@@ -30,7 +33,7 @@ function comparableBootstrap(response,candidate=false){
   // feature-off DTO; nonempty modules, missing fields and extras still reject.
   assert.deepEqual(body.features,{webFeedback:true,accessEvents:[]});delete body.features;
   assert.deepEqual(body.catalog.categoryGroups,[],'Fixed fixture must expose exactly the approved empty category groups');
-  const user=publicFixtureUser(body);for(const key of restoreKeys){assert.equal(user.cells[key],false,'Fixture must not acquire restore: '+key);assert.equal(user.permissions.includes(key),false);}
+  const user=publicFixtureUser(body);assert.equal(Object.hasOwn(user,'draftReviewPolicyActive'),false,'Inactive fixture must omit policy metadata');assert.equal(Object.hasOwn(user,'reviewPolicy'),false,'Inactive fixture must omit policy result');assert.equal(user.cells['feedback.view'],true);assert(user.permissions.includes('feedback.view'));for(const key of restoreKeys){assert.equal(user.cells[key],false,'Fixture must not acquire restore: '+key);assert.equal(user.permissions.includes(key),false);}
  }else{
   assert.equal(Object.hasOwn(body,'features'),false);expectedRestoreProjection(body);
   assert.equal(Object.hasOwn(body.catalog,'categoryGroups'),false,'Pinned v20 must not contain category groups');
@@ -55,7 +58,10 @@ function assertRestoreProjectionContract(before,after){
   mutateUser(user=>{const value=user.cells[key];delete user.cells[key];user.cells[key]=value;});
   mutateBody(body=>{const entry=JSON.stringify(key)+':false';assert(body.values.platformUsers.includes(entry));body.values.platformUsers=body.values.platformUsers.replace(entry,entry+','+entry);});
  }
+ for(const value of [false,true,null,'false',0])mutateUser(user=>{user.draftReviewPolicyActive=value;});
+ for(const value of [{resolved:true,blocked:[]},{resolved:false,blocked:['synthetic-unresolved']},null])mutateUser(user=>{user.reviewPolicy=value;});
  mutateUser(user=>{user.cells['iqc.view']=!user.cells['iqc.view'];});
+ mutateUser(user=>{user.cells['feedback.view']=false;});mutateUser(user=>{user.permissions=user.permissions.filter(key=>key!=='feedback.view');});mutateUser(user=>{user.cells['feedback.create']=!user.cells['feedback.create'];});mutateUser(user=>{user.permissions.push('feedback.create');});
  mutateUser(user=>{user.cells['unrelated.view']=false;});
  mutateUser(user=>{user.name+=' changed';});
  mutateUser(user=>{user.id='different-actor';});

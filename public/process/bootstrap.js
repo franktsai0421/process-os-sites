@@ -8,9 +8,10 @@ void (async () => {
   const stillInitial=()=>initialOwner==null||window.ProcessSync?.isCurrentDelivery?.(initialOwner)!==false;
   let scripts = [...document.querySelectorAll('script[data-process-src]')];
   try {
-    [window.ProcessAccessPolicy,window.ProcessDeliveryPurpose]=await Promise.all([
-      import('./access-policy.mjs?v=20261029-fqc-dependencies1'),
+    [window.ProcessAccessPolicy,window.ProcessDeliveryPurpose,window.ProcessAccountReview]=await Promise.all([
+      import('./access-policy.mjs?v=20261110-account-pages1'),
       import('./delivery-purpose.mjs?v=20261026-feedback1'),
+      import('./account-review-preview.mjs?v=20261110-account-pages1'),
     ]);
     await window.ProcessSync.ready;
     if (window.ProcessSync.importPending === true) {
