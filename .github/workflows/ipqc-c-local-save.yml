@@ -15,6 +15,8 @@ on:
       - 'lib/ipqc-c-access.ts'
       - 'lib/approved-history.ts'
       - 'tests/*ipqc-c*'
+      - 'tests/shared-draft-restore-admission.test.cjs'
+      - 'scripts/test-integrated-workflow-cycles.cjs'
       - 'scripts/test-ipqc-c-compare-save.cjs'
       - 'scripts/background-check-source-contract.cjs'
       - 'scripts/workflow-begin-source-contract.cjs'
@@ -41,6 +43,7 @@ jobs:
       - run: node --test tests/ipqc-c-local-save-rejection.test.mjs tests/ipqc-c-case-comparison.test.mjs tests/ipqc-c-equipment-display.test.mjs
       - run: node --test tests/ipqc-c-integration-source-contract.test.cjs tests/ipqc-c-operation-admission.test.cjs tests/multiuser-ipqc-c-local-recovery-actual-stack.test.mjs tests/ipqc-c-read-io-source-contract.test.mjs
       - run: node scripts/test-ipqc-c-operation-permissions.cjs
+      - run: node --test tests/shared-draft-restore-admission.test.cjs
       - run: node scripts/test-approved-history-evidence.cjs
       - run: node scripts/test-ipqc-c-compare-save.cjs
       - run: node scripts/test-ipqc-c-tombstone-revival.cjs

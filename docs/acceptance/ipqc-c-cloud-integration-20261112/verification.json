@@ -218,14 +218,14 @@
   },
   "githubCI": "See PR current checks",
   "finalSourceScan": {
-    "commit": "244adfe2da325687102a24ec2da13859c4698d04",
+    "commit": "b6abd587d339dd2b9b2362a82194b90503ca1dfe",
     "status": "PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE",
-    "commits": 609,
-    "blobs": 5370,
+    "commits": 610,
+    "blobs": 5373,
     "workingFiles": 2017,
     "realDataOpened": false,
     "credentialValuesReturned": false,
-    "includedWorkingChanges": "synthetic review fixture and verification documentation"
+    "includedWorkingChanges": "restore/receipt test follow-up and targeted Linux CI dependencies"
   },
   "initialProductCommit": "ab07ad80f1455ec49308bcca2bb8a96e116baf26",
   "finalProductSourceContract": "scripts/ipqc-c-integration-source-contract.json",
@@ -248,5 +248,28 @@
     "status": "PASS",
     "typedLint": "PASS",
     "CnegativeAndPositivePermissionCalls": 231
+  },
+  "restoreContractFollowup": {
+    "reason": "Windows31 reached old actual-C restore success assertions conflicting with confirmed C no-restore requirement",
+    "productSourceChanged": false,
+    "sharedRestoreTests": 155,
+    "sharedTerminalReceiptRestoreGroup": 219,
+    "actualSupportedEquipmentCasesRetained": 5,
+    "CnewRestoreRefusalModes": [
+      "authorized",
+      "revoked",
+      "revision",
+      "pending"
+    ],
+    "ChistoricalAcceptedReceipt": "PASS original GET and exact repeat result with no mutation; foreign actor/changed command refused",
+    "tenModuleLifecycle": "PASS 10 modules, complete Save/Submit/withdraw/review/race contracts retained",
+    "remainingWindows31Commands": {
+      "total": 107,
+      "portableCommands": "PASS after three supported browser path follow-ups and mixed portable subset rerun",
+      "nativePowerShellExitPropagation": "NOT_RUN Linux powershell.exe ENOENT; original CI assertion retained"
+    },
+    "typedLint": "PASS",
+    "buildEvidence": "Product/build inputs unchanged from b6abd587; exact 244adfe product build and b6abd587 Windows build passed; no redundant rebuild",
+    "CI": "Evaluate latest PR HEAD"
   }
 }
