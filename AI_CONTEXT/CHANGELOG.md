@@ -1256,3 +1256,12 @@ cb12823 的 Local safety run 43126874931／job130881088426：1–35 通過，第
 集中本機驗證：導航／Begin292、畫布493、後續 lifecycle source184、精確來源127、handoff36案例通過；lint與完整非增量 TypeScript通過。第37／48及45／50 source、51合成檢查通過；16個後段原生入口語法通過但未執行。FQC source17通過；誤用篩選曾令已知原生Worker oracle被額外網路拒絕攔下，原失敗保留，該案例未完成且未重試。tsx四次可選本機IPC也被拒絕，23項 source仍通過，不能稱零嘗試。未在本機重試原生瀏覽器或改executor。依賴為同lockfile既有實體副本，不宣稱fresh npm ci；建置、來源預檢與新HEAD CI各以其獨立回執為準。
 
 維持 Draft；不合併、部署、啟用真資料或變更真人權限。完整20項、#103/#104共同HEAD及實站／實體裝置／效能驗收仍未完成。
+
+
+### 2026-11-12 #104：待審就緒探針對齊當前 Canvas UI（測試修正）
+
+十檔已獲明確公開授權，#104 遠端56e4051／tree f1dc86e 上傳、單一parent及非強制ref回執已確認；原拒絕歷史保留。該head的新獨立原生job130920153852證實Begin及stage／line／top-navigation皆通過（零workflow POST、未存輸入放棄、持久內容不變），但第一輪submit-confirm原30秒等待失敗。POST及GET的200不是完整送審驗收。
+
+查到就緒探針仍要求已被Canvas核准歷史元件移除的authoring-version-choice；既有歷史測試也明確要求此舊selector不存在。四組實際controller、signed handler與隔離SQLite/R2待審畫面重現舊探針false，新UI映射true。只修pendingProcessUIReady，對齊唯一、可見、可用且具有approved-choice標記的canvas-approved-version當前值，並明確要求非歷史模式及歷史展示隱藏。原案件／savedId／generation、pending status、兩種唯讀鎖、禁止修改、零Save/Submit及唯一可用Withdraw全部保留；另加缺少／重複／隱藏／停用／錯誤選擇及真實核准歷史的反例。
+
+相關93項source／合成測試通過，包括四種中越文與inline/records真實controller及原五輪完整伺服器lifecycle。除上述helper外，整份browser runner bytes相同：五循環、90次action、所有等待、POST計數、native advisory、權威資料核對均未改。沒有產品程式、權限或資料模型修改。此候選尚待上傳後原生CI；目前Windows仍跑56e4051，不取消、不重跑、不以新push中斷。先前56批次的「原runner未改」是該批次歷史狀態。完整目標、共同HEAD與實站驗收仍未完成。

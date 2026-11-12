@@ -592,3 +592,8 @@ credential approval before enabling. Copy/restore/activate are excluded.
 cb12823 的 Windows第36步已越過 Begin，但第一輪 silent-navigation-stage 30秒失敗；重用 #103 固定c92c43b的租約釋放後再刷新來源修正，36個真controller合成案例由4過32失敗變為全過。保留 #104 Begin與UNKNOWN／收據／防重送保護，未搬入FQC路由及AB/C Save等價增量。製程編輯cache tag與兩份精確fixture更新；原Windows runner未改，另加入獨立原生job提早執行原完整五循環製程runner。
 
 來源、測試及限制詳見 AI_CONTEXT/modules/PROCESS.md 的同日續修節。本機集中source回歸、lint／非增量TypeScript已通過；原生Worker oracle一次選取失誤被額外網路拒絕攔下，保留失敗、不重試、不算PASS；後段原生與Windows仍需新HEAD CI。真實資料、可信切換、共同HEAD與完整20項驗收仍未完成。原UNKNOWN32未重送；保持Draft，不合併部署。
+
+
+### #104 56e4051 後續：送審待審探針
+
+十檔已成功公開至56e4051／tree f1dc86e。新原生job確認Begin與三種靜默導航通過，後續submit-confirm仍30秒失敗；200不可視為驗收完成。已用四組真controller證實探針引用已移除的legacy selector，後續僅對齊當前Canvas selector與強化反例，相關93項通過。原案件／Save／generation／唯讀／Withdraw與五循環、90次action、所有等待、POST及權威資料斷言保留，產品不變。詳見PROCESS同日「待審就緒探針」節。新候選尚未上傳；不取消仍在執行的Windows CI，未合併部署或操作真資料。
