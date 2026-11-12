@@ -289,3 +289,10 @@ void test('reviewer quality-shell read set preserves four denied siblings while 
   assert(f.measurements.every(row => row.method === 'GET' && row.committed === 0 && row.r2put === 0));
   report.status = 'PASS';
 });
+
+void test('native lifecycle history seed has real synthetic approval evidence and remains GET-only',async t=>{
+ const f=await createFqcDraftLifecycleFixture();t.after(f.close);const before=f.row();
+ const listing=await f.request({suffix:'&uiHistory=1&approvedOnly=1'});assert.equal(listing.status,200);assert.equal(listing.body.approvedOnly,true);
+ const row=listing.body.versions.rows.find(row=>row.id===f.seed.ids.active);assert(row);assert.equal(row.approvalEvidence.kind,'legacy-approval');assert(Number.isFinite(Date.parse(row.approvalEvidence.approvedAt)));
+ const detail=await f.request({suffix:'&versionId='+encodeURIComponent(row.id)+'&approvedOnly=1'});assert.equal(detail.status,200);assert.deepEqual(detail.body.version.snapshot,f.seed.initialContent);assert.deepEqual(f.row(),before);
+});

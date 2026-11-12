@@ -30,8 +30,7 @@ export function buildFqcDraftLifecycleSeed(createSharedDraft, {cycle = 1, passwo
     accessOverrides: Object.fromEntries(accessKeys.map(key => [key, allowed.includes(key)]))});
   const dependencies = ['ab.view', 'equipment.view'];
   const actors = {
-    // History is an explicit capability for the current read-only selector scenario; reader remains denied.
-    editor: actor('fqc-life-editor', 'staff', [...dependencies, 'fqc.history', ...['view', 'create', 'edit', 'delete', 'save', 'submit', 'withdraw'].map(op => 'fqc.' + op)]),
+    editor: actor('fqc-life-editor', 'staff', [...dependencies, ...['view', 'create', 'edit', 'delete', 'save', 'submit', 'withdraw'].map(op => 'fqc.' + op)]),
     reviewer: actor('fqc-life-reviewer', 'rd', [...dependencies, 'c.view', 'templates.view', 'bom.view', 'approval.view', 'approval.approve', 'approval.return', 'fqc.view', 'fqc.approve', 'fqc.return'], true),
     reader: actor('fqc-life-reader', 'staff', [...dependencies, 'fqc.view']),
   };
@@ -41,7 +40,10 @@ export function buildFqcDraftLifecycleSeed(createSharedDraft, {cycle = 1, passwo
       rule: {cadence: 'none'}, isMonthly: false, isQuarterly: false, isYearly: false, isCustomPeriod: false, customPeriodText: '', reason: '', note: '', isDeleted: false}]};
   const at = '2026-11-01T00:00:00.000Z';
   const version = {id: ids.active, number: 1, status: 'approved', revision: 0, snapshot: clone(initialContent), baseVersionId: null,
-    creatorId: actors.reviewer.id, creatorName: actors.reviewer.name, createdAt: at, updatedAt: at, history: []};
+    creatorId: actors.reviewer.id, creatorName: actors.reviewer.name, createdAt: at, updatedAt: at,
+    // The history scenario needs explicit synthetic approval evidence. A formal
+    // pointer alone remains ineligible for the approved-history menu.
+    history: [{action:'approve',actorId:actors.reviewer.id,actorName:actors.reviewer.name,at}]};
   const control = {activeVersionId: ids.active, versions: [version], workflow: createSharedDraft('fqc', initialContent, ids.active, ids.generation)};
   const catalog = {products: [ids.product, ids.product2].map((code, index) => ({id: 'fqc-life-product-' + (index + 1), code, name: 'Synthetic lifecycle product ' + (index + 1), specification: 'Synthetic only', line: ids.line, category: ids.category, unit: 'pcs', stages: []})),
     lines: [{id: 'fqc-life-line', code: ids.line, name: 'Synthetic line', stages: []}], categoryGroups: [{id: 'fqc-life-category', line: ids.line, name: ids.category, defaultStages: []}]};
