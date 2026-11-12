@@ -55,7 +55,8 @@ for (const reload of [false, true])
       assert.equal((await s.state()).localSent === null, reload);
       await sameLocal(s, p.before);
       assert(!/原操作已核對|Đã kiểm tra/.test((await s.state()).message));
-      await s.apiSave();
+      if ([401,403].includes(status)) await assert.rejects(s.apiSave(),/APPROVED_HISTORY_READ_ONLY/);
+      else await s.apiSave();
       assert.equal(writes(s).length, 1);
       assert.deepEqual(s.f.snapshot(), p.stored);
       s.cleanErrors();
@@ -129,7 +130,8 @@ for (const reload of [false, true])
       assert.deepEqual(await s.keys(), p.keys);
       assert.equal((await s.state()).localSent === null, reload);
       assert(!/原操作已核對|Đã kiểm tra/.test((await s.state()).message));
-      await s.apiSave();
+      if (fault==='view') await assert.rejects(s.apiSave(),/APPROVED_HISTORY_READ_ONLY/);
+      else await s.apiSave();
       assert.equal(writes(s).length, 1);
       assert.deepEqual(s.f.snapshot(), p.stored);
     });

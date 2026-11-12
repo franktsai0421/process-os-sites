@@ -4,7 +4,7 @@ const contracts=require('./quality-integration-source-contracts.json');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 function restorePredecessor(bytes,file){
  assert(Buffer.isBuffer(bytes),'Quality proof requires raw Buffer bytes');
- bytes=require('./quality-c-joint-source-contract.cjs').projectKnown(bytes,file,'quality');
+ bytes=require('./quality-triple-source-contract.cjs').projectKnown(bytes,file,'pair'); bytes=require('./quality-c-joint-source-contract.cjs').projectKnown(bytes,file,'quality');
  const c=contracts.find(c=>c.file===file);assert(c,'Quality proof wrong file');
  assert.equal(bytes.length,c.afterLength,'Quality proof pinned length');assert.equal(hash(bytes),c.afterHash,'Quality proof pinned bytes');
  let result=Buffer.from(bytes);

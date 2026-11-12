@@ -1,6 +1,8 @@
+import {abLocalLineage} from '@/lib/ipqc-ab-local-lineage';
+import {isImmutableRecordBody,readImmutableRecord} from '@/lib/state-records';
 import { env } from 'cloudflare:workers';
 import { readState, identity, can, sameOrigin, encodeValues, parse, maintenanceCredential,
-  responseHeaders as headers } from '@/lib/process-state';
+  stateRevisionIsCurrent,responseHeaders as headers } from '@/lib/process-state';
 import { activeAb, catalogFromMaster, checkedAbSnapshot, copyAb, nextAbCode,abDraftIssues,
   openAb, parseAbControl, scopeKey, submissionIssues, type AbCatalog, type AbControl,
   type AbError, type AbItem, type AbScope, type AbSnapshot } from '@/lib/ipqc-ab';
@@ -104,21 +106,26 @@ function seedValidate(source: NonNullable<Body['source']>, catalog: AbCatalog, c
 }
 
 export async function GET(request: Request) {
+  if(new URL(request.url).pathname!=='/api/ipqc-ab')return Response.json({error:'NOT_FOUND'},{status:404});
   try {
     const query=new URL(request.url).searchParams,equipmentOnly=query.get('catalog')==='equipment',deferred=query.get('equipment')==='deferred';
-    if(query.has('catalog')&&(query.getAll('catalog').length!==1||!equipmentOnly||[...query.keys()].some(key=>key!=='catalog'))||query.has('equipment')&&(query.getAll('equipment').length!==1||!deferred||[...query.keys()].some(key=>!['equipment','caseMetadata'].includes(key))))return reply({error:'INVALID_READ_QUERY'},400);
+    if(query.has('catalog')&&(query.getAll('catalog').length!==1||!equipmentOnly||[...query.keys()].some(key=>key!=='catalog'))||query.has('equipment')&&(query.getAll('equipment').length!==1||!deferred||[...query.keys()].some(key=>!['equipment','caseMetadata','localLineage'].includes(key))))return reply({error:'INVALID_READ_QUERY'},400);
+    if(query.has('localLineage')&&(query.getAll('localLineage').length!==1||query.get('localLineage')!=='1'||equipmentOnly||[...query.keys()].some(key=>!['localLineage','caseMetadata','equipment'].includes(key))))return reply({error:'INVALID_READ_QUERY'},400);
     const caseMetadata=query.get('caseMetadata')==='1';
     const identityKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
     const keys=equipmentOnly?[...identityKeys,'routineEquipmentControl']:[...identityKeys,KEY,'masterDataControl',...(deferred?[]:['routineEquipmentControl'])];
-    const state=await readState({keys,modelKey:equipmentOnly?undefined:KEY,deferHistory:true,deferDependencyHistory:true}),actor=await identity(request,state);
-    if(!actor||!(await can(request,state,'view:data'))&&!(await can(request,state,'view:approval')))return reply({error:'沒有查看 IPQC-AB 權限'},403);
+    const state=await readState({aggregateReadAhead:true,keys,modelKey:equipmentOnly?undefined:KEY,deferHistory:true,deferDependencyHistory:true}),actor=await identity(request,state);
+    if(!actor||request.headers.has('X-Process-Expected-Actor')&&request.headers.get('X-Process-Expected-Actor')!==actor.id||!(await can(request,state,'view:data'))&&!(await can(request,state,'view:approval')))return reply({error:'沒有查看 IPQC-AB 權限'},403);
     if(equipmentOnly)return reply({revision:state.revision,equipment:equipmentChoices(state.values)});
     const catalog = catalogFromMaster(state.values.masterDataControl);
     const equipment = deferred?undefined:equipmentChoices(state.values);
     const control=parseAbControl(state.values[KEY],state.recordStorage?.models.get(KEY)),history=await can(request,state,'approval.compare');
+    const lineageBodies=new Map<string,Promise<unknown>>(),resolveLineage=async(value:unknown)=>{if(!isImmutableRecordBody(value))return value;const ref=value.__immutableBody;if(!lineageBodies.has(ref.sha256))lineageBodies.set(ref.sha256,readImmutableRecord(env.STATE_ARCHIVE,ref).then(JSON.parse));return lineageBodies.get(ref.sha256)!;};
+    const localLineage=query.get('localLineage')==='1'?await abLocalLineage(control as AbModuleRoot,state.revision,catalog.groups.map(g=>g.line+':'+g.name),resolveLineage):undefined;
+    if(localLineage){const current=await identity(request,state);if(!current||current.id!==actor.id)return reply({error:'ACCOUNT_CHANGED_REOPEN_REQUIRED'},403);if(!await stateRevisionIsCurrent(state))return reply({error:'MODULE_CHANGED_RECONFIRM'},409);}
     for(const [key,scope]of Object.entries(control.scopes))control.scopes[key]=visibleSharedControl(scope as AbSharedScope,history,caseMetadata);
     const moduleControl=(control as AbModuleRoot).moduleDraft;if(moduleControl)(control as AbModuleRoot).moduleDraft=visibleSharedControl(moduleControl,history,caseMetadata);
-    const body={ revision:state.revision, control, catalog, ...(deferred?{equipmentDeferred:true}:{equipment}) };
+    const body={ revision:state.revision, control, catalog,...(localLineage?{localLineage}:{}), ...(deferred?{equipmentDeferred:true}:{equipment}) };
     return state.recordStorage&&!caseMetadata?recordJSONResponse(body,env.STATE_ARCHIVE,headers):reply(body);
   } catch (error) {
     console.error('[ipqc-ab] load failed',error);
@@ -127,12 +134,14 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if(new URL(request.url).pathname!=='/api/ipqc-ab')return Response.json({error:'NOT_FOUND'},{status:404});
   if (!sameOrigin(request)) return reply({ error:'來源不允許' },403);
   if (Number(request.headers.get('content-length') || 0) > 5_000_000)
     return reply({ error:'資料量超過單次限制' },413);
   try {
     let state = await readState({modelKey:KEY,deferHistory:true,deferDependencyHistory:true});const actor = await identity(request,state);
     if (!actor) return reply({ error:'請先登入' },401);
+    if(request.headers.get('X-Process-Expected-Actor')!==actor.id)return reply({error:'ACCOUNT_CHANGED_REOPEN_REQUIRED'},403);
     if (state.values.maintenanceMode === '1') return reply({ error:'系統還原中，暫停編輯' },503);
     const rawBody = await request.text();
     if(new TextEncoder().encode(rawBody).length>5_000_000) return reply({error:'資料量超過單次限制'},413);

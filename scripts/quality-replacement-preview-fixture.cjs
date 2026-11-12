@@ -69,7 +69,7 @@ async function fixture(projection = {}, { includeIPQCC = false } = {}) {
       body: JSON.stringify({ id: user.id, password }),
     }));
     assert.equal(response.status, 200, response.status === 200 ? '' : await response.text());
-    sessions[user.id.slice(8)] = { Cookie: response.headers.get('set-cookie').split(';')[0], Origin: 'http://fixture', 'Content-Type': 'application/json' };
+    sessions[user.id.slice(8)] = { 'X-Process-Expected-Actor':user.id, Cookie: response.headers.get('set-cookie').split(';')[0], Origin: 'http://fixture', 'Content-Type': 'application/json' };
     trace.push({ endpoint: 'platform-login', method: 'POST', actor: user.id, status: response.status });
   }
   const flow = body => body.control?.workflow || body.workflow;

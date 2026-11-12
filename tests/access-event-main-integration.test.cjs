@@ -135,7 +135,7 @@ void test('projection does not normalize or accept non-Buffer inputs',()=>{
 });
 
 void test('equipment no-poll exact inverse preserves old pin and rejects wrong/partial/repeated/arbitrary changes',()=>{
- const currentBytes=require('../scripts/quality-integration-source-contract.cjs').projectKnown(readSource(noPoll.file),noPoll.file),bytes=equipmentRepair.restorePredecessor(currentBytes,noPoll.file),prior=noPoll.restoreEquipmentPolling(bytes,noPoll.file);
+ const quality=require('../scripts/quality-integration-source-contract.cjs').projectKnown(readSource(noPoll.file),noPoll.file),currentBytes=require('../scripts/ipqc-ab-integration-source-contract.cjs').projectKnown(quality,noPoll.file),bytes=equipmentRepair.restorePredecessor(currentBytes,noPoll.file),prior=noPoll.restoreEquipmentPolling(bytes,noPoll.file);
  assert.equal(hash(prior),noPoll.beforeHash);assert.equal(hash(project(bytes,noPoll.file)),main[noPoll.file]);assert.equal(hash(metadataProject(prior,noPoll.file)),main[noPoll.file]);
  assert.throws(()=>noPoll.restoreEquipmentPolling(prior,noPoll.file),/pinned bytes/);assert.throws(()=>noPoll.restoreEquipmentPolling(bytes,cRoute),/wrong file/);
  for(const value of [bytes.toString(),new Uint8Array(bytes)])assert.throws(()=>noPoll.restoreEquipmentPolling(value,noPoll.file),/raw source bytes/);

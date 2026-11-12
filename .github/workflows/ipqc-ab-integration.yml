@@ -1,0 +1,54 @@
+name: IPQC A B integration
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/api/ipqc-ab/**'
+      - 'lib/ipqc-ab*'
+      - 'lib/approved-history*'
+      - 'lib/versioned-shared-workflow.ts'
+      - 'public/process/ipqc-ab.js'
+      - 'public/process/shared-draft-client.js'
+      - 'public/process/version-draft-ui.js'
+      - 'tests/ipqc-ab*'
+      - 'scripts/ipqc-ab-integration*'
+      - '.github/workflows/ipqc-ab-integration.yml'
+permissions:
+  contents: read
+concurrency:
+  group: ipqc-ab-integration-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      PROCESS_PROGRAM_COMMIT: ${{ github.sha }}
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: node --test --test-concurrency=1 tests/ipqc-ab-completeness.test.mjs tests/ipqc-ab-conflict-ui.test.mjs tests/ipqc-ab-save-revision-fence.test.mjs tests/ipqc-ab-approved-history.test.mjs tests/ipqc-ab-local-save.test.mjs tests/ipqc-ab-integration-source-proof.test.cjs
+      - run: npx playwright install --with-deps chromium
+      - run: node --test --test-concurrency=1 tests/ipqc-ab-local-browser.test.mjs tests/ipqc-ab-scope-permission-races.test.mjs tests/ab-sent-batch.test.mjs tests/ab-create-next-batch.test.mjs tests/ab-create-rejection-caller.test.mjs tests/ab-create-unknown-map.test.mjs
+      - run: node tests/ipqc-ab-speed-measure.mjs
+      - run: npm run build
+      - run: node --test --test-concurrency=1 tests/ipqc-ab-compiled-browser.acceptance.mjs tests/ipqc-ab-compiled-gaps.acceptance.mjs
+      - run: node tests/ipqc-ab-speed-browser.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: ipqc-ab-compiled-evidence
+          path: /tmp/process-ipqc-ab-compiled-*
+          if-no-files-found: ignore

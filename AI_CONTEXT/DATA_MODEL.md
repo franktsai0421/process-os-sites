@@ -1,6 +1,25 @@
 ## 2026-11-12 — Quality 整合候選的資料界線
 
 FQC／IQC 沿用既有共享 workflow、不可變保存／審核快照與原操作收據；同頁核准歷史是授權讀取，不新增歷史還原寫入。例行 FQC 的 opt-in `page-v1` 結構仍位於 `routineFqcControl`，整頁 baseline／workflow 與 document dependency 索引見[例行模型](models/ROUTINE_FQC.md)。舊 document layout、ID／歷史／收據保留；離線工具只輸出候選，沒有執行正式切換、schema 或 migration。來源與驗收界線見[整合追蹤](../docs/acceptance/fqc-iqc-integration-20261112/README.md)。
+## 2026-11-12 — IPQC A/B filter retention (RAM only)
+
+All A/B scopes remain one module draft. Filter views retain original page-local
+snapshots/bases, unfinished dialogs and original File/preview references under
+the same actor/epoch/delivery/host/lifetime. These view maps are never persisted
+or sent as separate drafts; confirmed Save or module departure clears them.
+Original UNKNOWN operation metadata remains separate. No schema, SQL, server
+protocol, role, saved/approved snapshot or persistent photo format change.
+
+## 2026-11-12 — IPQC A/B photo operation outcomes (candidate)
+
+Optional `X-Process-Upload-Id` binds a photo attempt to an opaque UUID. R2
+`ipqc-ab/photo-uploads/<encoded actor ID>/<UUID>` retains immutable JSON
+`{actorId,uploadId,id}` referencing the normalized photo hash. GET by uploadId
+requires the same signed actor and current view/edit access; absent outcome or
+media remains UNKNOWN. Browser sessionStorage retains only operation ID and
+File fingerprint under an actor-scoped key until explicit verification, not a
+form, draft, File or history snapshot. No SQL schema/migration or existing data
+adoption is performed. See [candidate evidence](../docs/acceptance/ipqc-ab-integration-20261112/README.md).
 
 ## 2026-11-05 — 事件版本與匯出預覽內容核對
 

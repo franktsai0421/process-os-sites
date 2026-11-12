@@ -1,4 +1,5 @@
-/* Actual transport and retained legacy callbacks under a test-only manual driver; synthetic DOM/HTTP only. Production no-timer behavior is tested separately. */
+/* A/B callbacks use the exact checkout-verified main predecessor because its producer is removed. Current A/B zero-background and owner behavior runs in the native suites.
+ * Actual transport and retained legacy callbacks under a test-only manual driver; synthetic DOM/HTTP only. Production no-timer behavior is tested separately. */
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict'),{webcrypto}=require('node:crypto'),{createHash}=require('node:crypto'),ts=require('typescript');
 const root=path.resolve(__dirname,'..'),source=path.resolve(process.env.PROCESS_READ_PAUSE_SOURCE||root),readCurrent=n=>fs.readFileSync(path.join(source,'public/process',n),'utf8'),results=[],notApplicable=[],selected=process.argv.slice(2),tick=()=>new Promise(setImmediate),copy=structuredClone;
 // FQC/IQC retired polling is checked against immutable main Git objects. The
@@ -11,7 +12,7 @@ for(const [name,sha] of [['fqc-master.js','f8a6969cb108d3d25b8e842d7d1bb1a97fff9
   assert.equal(createHash('sha256').update(raw).digest('hex'),sha,'exact immutable main polling source');retiredQuality.set(name,raw.toString());
  }
 }
-const file=n=>retiredQuality.get(n)??readCurrent(n);
+const file=n=>{if(n==='ipqc-ab.js'){const raw=fs.readFileSync(path.join(source,'public/process',n));const committed=require('node:child_process').execFileSync('git',['show','HEAD:public/process/'+n],{cwd:root});return require('./ipqc-ab-integration-source-contract.cjs').checkoutPredecessor(raw,committed,'public/process/'+n).toString('utf8');}return retiredQuality.get(n)??readCurrent(n);};
 async function check(name,fn){if(selected.length&&!selected.some(x=>name.startsWith(x)))return;await fn();results.push({name,status:'PASS'});console.log(name,'PASS');}
 const access={view:true,edit:true,save:true,submit:true,approve:true,return:true,withdraw:true,history:true,delete:true},model={revision:1,permissions:access,control:{versions:[{id:'draft',status:'draft'}],workflow:{scope:'synthetic',generation:'g',revision:1,pendingId:null,working:{items:[]},saved:null,cases:[]}}};
 async function fixture(endpoint='/api/process-authoring/workflow?caseMetadata=1'){
@@ -111,7 +112,7 @@ async function consumer(profile){if(profile[0]==='IQC')return iqcConsumer();if(p
  vm.runInContext('globalThis.__poll=('+callback(fileName,4000,needle)+');',c);if(name==='tooling'){c.poll=c.__poll;vm.runInContext('globalThis.__focus=('+focusCallback(fileName)+');',c);}return{...f,toolingStats,poll:async()=>{await c.__poll();await tick();},focus:async()=>{assert.equal(name,'tooling');await c.__focus();await tick();}};}
 (async()=>{
  for(const profile of profiles)await check('P '+profile[0]+' retired callback under explicit test driver pauses after one refused read',async()=>{const f=await consumer(profile);for(let i=0;i<7;i++)await f.poll();assert.equal(f.requests.length,1,'repeated timer ticks must not repeat refused GET');assert.equal(f.notices().length,1);assert(f.requests.every(r=>r.method==='GET'));});
- await check('P AB actual private-input owner gate blocks stale epoch without a GET',async()=>{const f=await consumer(profiles.find(p=>p[0]==='AB')),c=f.c;const input={errors:[{id:'keep',name:'retained'}],items:[]};c.working=input;c.inputBasisOwner=c.inputOwner();f.rotate();assert.equal(c.rejectForeignBatch(),true);await f.poll();assert.equal(f.requests.length,0);assert.equal(c.working,input);assert.equal(c.privateQuarantine.working,input);assert.equal(c.accessBlocked.status,409);});
+ await check('P AB historical private-input owner gate blocks stale epoch without a GET',async()=>{const f=await consumer(profiles.find(p=>p[0]==='AB')),c=f.c;const input={errors:[{id:'keep',name:'retained'}],items:[]};c.working=input;c.inputBasisOwner=c.inputOwner();f.rotate();assert.equal(c.rejectForeignBatch(),true);await f.poll();assert.equal(f.requests.length,0);assert.equal(c.working,input);assert.equal(c.privateQuarantine.working,input);assert.equal(c.accessBlocked.status,409);});
 
  function stageAB(f,{changed=true}={}){const c=f.c,base={errors:[],items:[]},snapshot=changed?{errors:[{id:'local',name:'未存 Việt'}],items:[]}:copy(base),entry={base,snapshot,owner:c.actor(),epoch:c.ProcessSync.identityGeneration(),lifetime:c.mutationLifetime,host:c.host,delivery:c.ProcessSync.captureDelivery()};c.localScopes.set(c.key(),entry);c.working=snapshot;c.inputBasisOwner=c.inputOwner();return entry;}
  for(const changed of [false,true])await check('P AB '+(changed?'edited':'opened unchanged')+' local scope pauses all GETs until local departure',async()=>{
@@ -119,11 +120,11 @@ async function consumer(profile){if(profile[0]==='IQC')return iqcConsumer();if(p
   for(let i=0;i<7;i++)await f.poll();assert.equal(f.requests.length,0);assert.equal(f.c.localScopes.get(f.c.key()),entry);assert.equal(JSON.stringify(entry),local);assert.equal(JSON.stringify(f.c.control),before);assert.equal(f.pollCount(),1);
   f.c.localScopes.clear();f.c.working=null;f.c.inputBasisOwner=null;await f.poll();assert.equal(f.requests.length,1);assert.equal(f.notices().length,1);for(let i=0;i<4;i++)await f.poll();assert.equal(f.requests.length,1,'refused resumed GET still pauses polling');assert(f.requests.every(r=>r.method==='GET'));
  });
- await check('P AB local edit arriving during a GET prevents late shared projection without writing',async()=>{
+ await check('P AB historical local edit arriving during a GET prevents late shared projection without writing',async()=>{
   const f=await consumer(profiles.find(p=>p[0]==='AB'));let release;f.handler(()=>new Promise(resolve=>release=resolve));const pending=f.poll();await tick();assert.equal(f.requests.length,1);const before=f.c.control,revision=f.c.revision,entry=stageAB(f);
   release(Response.json({...copy(model),revision:99}));await pending;assert.equal(f.c.control,before);assert.equal(f.c.revision,revision);assert.equal(f.c.working,entry.snapshot);assert.equal(f.c.localScopes.get(f.c.key()),entry);for(let i=0;i<5;i++)await f.poll();assert.equal(f.requests.length,1);assert(f.requests.every(r=>r.method==='GET'));
  });
- await check('P AB actual staged-scope owner gate quarantines stale epoch with zero reads or writes',async()=>{
+ await check('P AB historical staged-scope owner gate quarantines stale epoch with zero reads or writes',async()=>{
   const f=await consumer(profiles.find(p=>p[0]==='AB')),entry=stageAB(f),before=JSON.stringify(f.c.control);f.rotate();assert.equal(f.c.localOwnerCurrent(),false);await f.poll();assert.equal(f.requests.length,0);assert.equal(f.c.localScopes.get(f.c.key()),entry);assert.equal(f.c.working,entry.snapshot);assert.equal(f.c.privateQuarantine,null,'stale timer stops before inspecting private input');assert.equal(f.c.rejectForeignBatch(),true);assert.equal(f.c.privateQuarantine.working,entry.snapshot);assert.equal(f.c.accessBlocked.status,409);assert.equal(JSON.stringify(f.c.control),before);
  });
  await check('I IQC closure bindings fail closed when any poll dependency is missing',async()=>{

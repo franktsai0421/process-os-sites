@@ -2,9 +2,10 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),{execFileSync}=require('node:child_process');
 const proof=require('../scripts/quality-c-joint-source-contract.cjs');
 for(const c of proof.contracts)void test('joint source retains exact '+c.target+' parent and rejects drift: '+c.file,()=>{
- const committed=execFileSync('git',['show','HEAD:'+c.file]);
+ const raw=execFileSync('git',['show','HEAD:'+c.file]);
  const working=fs.readFileSync(c.file);
- assert.equal(working.toString().replaceAll('\r\n','\n'),committed.toString().replaceAll('\r\n','\n'),'checkout differs from real committed candidate');
+ assert.equal(working.toString().replaceAll('\r\n','\n'),raw.toString().replaceAll('\r\n','\n'),'checkout differs from real committed candidate');
+ const committed=require('../scripts/quality-triple-source-contract.cjs').projectKnown(raw,c.file,'pair');
  execFileSync('git',['merge-base','--is-ancestor',c.sourceCommit,'HEAD']);
  const original=Buffer.from(committed),parent=execFileSync('git',['show',c.sourceCommit+':'+c.file]);
  assert.equal(execFileSync('git',['rev-parse',c.sourceCommit+':'+c.file]).toString().trim(),c.beforeBlob);

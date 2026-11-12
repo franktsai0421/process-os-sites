@@ -13,6 +13,13 @@
 # 2026-11-12 — IPQC C Cloud integration candidate
 
 New independent C branch from main9fbba823; reuses the verified Dot source and selected C boundary fixes, with whole-group choices and automatic re-comparison. #103/#104 are unchanged comparison sources. [Provenance, scope and validation](docs/acceptance/ipqc-c-cloud-integration-20261112/README.md). Draft only; no merge/deployment/real-data change or human acceptance.
+## 2026-11-12 — Equipment-to-A/B transfer compatibility
+
+The A/B transfer client now pins its expected actor to the original equipment dialog owner, preserving current authorization, intent and CAS fences. Compiled transfer 7/7 and ownership/save 27/27 pass; see the [A/B evidence ledger](docs/acceptance/ipqc-ab-integration-20261112/README.md). Draft only; no deployment or real-data changes.
+
+## 2026-11-12 — Isolated IPQC A/B integration candidate
+
+A/B grouped Save conflicts, original-ID retention, approved readonly history, explicit-check performance and completeness parity are integrated as a candidate based on main #100. All 41 text patches were verified. Latest policy retains unsent RAM/Files/forms across A/B line/group/stage filters; only departure to another module discards unsent input; original photo/Save receipts remain queryable after departure. Cloud follow-ups handle post-upload version races and same-value resolved conflicts without another Save click. No merge/deployment/live acceptance. [Sources, seven-scope coverage and test limits](docs/acceptance/ipqc-ab-integration-20261112/README.md).
 
 # 2026-11-09 — Process platform stage catalog batch
 

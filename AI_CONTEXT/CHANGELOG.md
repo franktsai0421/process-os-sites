@@ -13,6 +13,17 @@ Snapshot 目錄在 POSIX 正規化前拒絕 UNC／裝置根，保留原負例與
 # 2026-11-12 — IPQC C Save comparison and readonly history candidate
 
 Selective Cloud integration adds whole-group choices retaining nonconflicts, fresh re-comparison after async peer changes, original-ID structural guards, duplicate-photo groups and silent unsent departure. Same-page immutable approved history and distinct platform review permissions are included. Main #91/#93/#96/#100 foundations remain. [Evidence and limits](../docs/acceptance/ipqc-c-cloud-integration-20261112/README.md). No schema/data/merge/deployment.
+## 2026-11-12 — Equipment-to-A/B transfer compatibility
+
+The A/B transfer client now pins its expected actor to the original equipment dialog owner, preserving current authorization, intent and CAS fences. Compiled transfer 7/7 and ownership/save 27/27 pass; see the [A/B evidence ledger](../docs/acceptance/ipqc-ab-integration-20261112/README.md). Draft only; no deployment or real-data changes.
+
+## 2026-11-12 — A/B Cloud integration follow-up
+
+Received and verified all 41 source patches, reused main/old-branch changes selectively, and fixed photo-PUT revision races, actor-scoped original upload outcome queries and receipt-only departure. Whole-set mine preserves multiple original item IDs under existing authorization/CAS guards. Synthetic performance and validation limits: [A/B integration](../docs/acceptance/ipqc-ab-integration-20261112/README.md). No schema migration, merge, deployment or real-data writes.
+
+## 2026-11-12 — Isolated IPQC A/B integration candidate
+
+A/B grouped Save conflicts, original-ID retention, approved readonly history, explicit-check performance and completeness parity are integrated on main #100. Latest policy retains unsent RAM/Files/forms across A/B line/group/stage filters; only departure to another module discards unsent input. No merge/deployment/live acceptance. [Sources, seven-scope coverage and test limits](../docs/acceptance/ipqc-ab-integration-20261112/README.md).
 
 ## 2026-11-09 — Retire periodic web checks
 

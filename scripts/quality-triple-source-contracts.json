@@ -1,0 +1,449 @@
+[
+  {
+    "target": "pair",
+    "file": "lib/versioned-shared-workflow.ts",
+    "sourceCommit": "61bbc8f67a89e785ca4acf527254dd7d49b75cde",
+    "beforeBlob": "3d738e0d2a5a5d795ef4cbf2f6e6001a29b525ab",
+    "beforeLength": 43544,
+    "beforeHash": "d50a300ed6802eb02eb4c86bfd935f1ecd806b455af4d470ba3fa66b53b17327",
+    "afterLength": 44552,
+    "afterHash": "312af4f003b41a7fc546d5273e099cb3763669735951e7f38f8d1c22c946e6ef",
+    "rules": [
+      {
+        "offset": 1063,
+        "before": "import { readState, identity, can, createMasterABPermissionPhase, createFqcPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, responseHeaders, type State } from './process-state';\r\n",
+        "after": "import { readState, identity, can, createMasterABPermissionPhase, createFqcPermissionPhase, createIpqcABPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, responseHeaders, type State } from './process-state';\n"
+      },
+      {
+        "offset": 7406,
+        "before": "",
+        "after": "  requiresRestore?:(control:C,command:Pick<ModuleDraftCommand,'action'|'patches'|'moduleAction'|'input'>)=>boolean;\n"
+      },
+      {
+        "offset": 15178,
+        "before": "  const phaseFor=(request:Request,state:State)=>adapter.key==='masterDataControl'&&adapter.scope==='master:AB'&&new URL(request.url).pathname==='/api/master/workflow'&&new URL(request.url).searchParams.get('scope')==='AB'?createMasterABPermissionPhase(request,state):adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!new URL(request.url).searchParams.has('scope')?createFqcPermissionPhase(request,state):null;\r\n",
+        "after": "  const isIpqcAB=(request:Request)=>adapter.key==='ipqcABMasterControl'&&new URL(request.url).pathname==='/api/ipqc-ab/workflow'&&(adapter.scope==='ipqc-ab:module'||adapter.scope.startsWith('ipqc-ab:'));\n  async function ipqcABOwnerPhase(request:Request,state:State){\n    const phase=await createIpqcABPermissionPhase(request,state),expected=request.headers.get('X-Process-Expected-Actor');\n    // Missing/invalid sessions retain the original LOGIN_REQUIRED response.\n    if(phase.actor&&((request.method==='POST'&&expected===null)||(expected!==null&&phase.actor.id!==expected)))throw new DraftConflict('ACCOUNT_CHANGED_REOPEN_REQUIRED',403);\n    return phase;\n  }\n  const phaseFor=(request:Request,state:State)=>adapter.key==='masterDataControl'&&adapter.scope==='master:AB'&&new URL(request.url).pathname==='/api/master/workflow'&&new URL(request.url).searchParams.get('scope')==='AB'?createMasterABPermissionPhase(request,state):adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!new URL(request.url).searchParams.has('scope')?createFqcPermissionPhase(request,state):isIpqcAB(request)?ipqcABOwnerPhase(request,state):null;\n"
+      },
+      {
+        "offset": 18506,
+        "before": "      const fqcReadAhead=adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!selectors.has('scope');\n",
+        "after": "      const fqcReadAhead=isIpqcAB(request)||adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!selectors.has('scope');\n"
+      },
+      {
+        "offset": 35067,
+        "before": "        const state=requiredState||mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({aggregateReadAhead:body.action===undefined&&Object.keys(body).every(key=>key==='command')&&fqcAggregateReadAheadCommand(body.command)&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope'),deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=requiredPhase||await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);\n",
+        "after": "        const state=requiredState||mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({aggregateReadAhead:body.action===undefined&&Object.keys(body).every(key=>key==='command')&&(isIpqcAB(request)&&['save','submit','withdraw'].includes(body.command?.action||'')||fqcAggregateReadAheadCommand(body.command)&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope')),deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=requiredPhase||await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);\n"
+      },
+      {
+        "offset": 39867,
+        "before": "          if(command.action==='restore'&&!permissions.restore)return reply({error:'RESTORE_PERMISSION_REQUIRED'},403);\r\n",
+        "after": "          if((command.action==='restore'||adapter.requiresRestore?.(control,command))&&!permissions.restore)return reply({error:'RESTORE_PERMISSION_REQUIRED'},403);\n"
+      }
+    ]
+  },
+  {
+    "target": "pair",
+    "file": "public/process/index.html",
+    "sourceCommit": "61bbc8f67a89e785ca4acf527254dd7d49b75cde",
+    "beforeBlob": "13a14997d5864ba8435306c7bddc4d753ac61b05",
+    "beforeLength": 11034,
+    "beforeHash": "8a2866d21bcf505ef40359dc34615458c6bcd5c4012a0725a8c7d6965ae0dd8b",
+    "afterLength": 11033,
+    "afterHash": "8b28ba6913df2ec3c69c3203eb5d2d44df81e0b1c91949d6d8d401f876c8da77",
+    "rules": [
+      {
+        "offset": 6899,
+        "before": "    <script data-process-src=\"shared-draft-client.js?v=20261112-quality-integration1\"></script>\n",
+        "after": "    <script data-process-src=\"shared-draft-client.js?v=20261112-quality-abc-joint1\"></script>\n"
+      },
+      {
+        "offset": 8458,
+        "before": "    <script data-process-src=\"version-draft-ui.js?v=20261112-quality-c-joint1\"></script>\n",
+        "after": "    <script data-process-src=\"version-draft-ui.js?v=20261112-quality-abc-joint1\"></script>\n"
+      },
+      {
+        "offset": 8997,
+        "before": "    <script data-process-src=\"routine-equipment.js?v=20261112-quality-integration1\"></script>\n",
+        "after": "    <script data-process-src=\"routine-equipment.js?v=20261112-quality-abc-joint1\"></script>\n"
+      },
+      {
+        "offset": 9575,
+        "before": "    <script data-process-src=\"ipqc-ab.js?v=20261105-ab-scope-input1\"></script>\n",
+        "after": "    <script data-process-src=\"ipqc-ab.js?v=20261112-ipqc-ab-filters2\"></script>\n"
+      }
+    ]
+  },
+  {
+    "target": "pair",
+    "file": "public/process/routine-equipment.js",
+    "sourceCommit": "61bbc8f67a89e785ca4acf527254dd7d49b75cde",
+    "beforeBlob": "a29eb8debc0e9e5c0840c45dfa49f72bddff8418",
+    "beforeLength": 294327,
+    "beforeHash": "1327eb70d5f4f0c596c390bb19db4364513851c4f69d3ce92aaa4379f7ebde98",
+    "afterLength": 294375,
+    "afterHash": "e4173e3c4aec865e77baa9b037426e364773a3eb0245e12caaec039d027c984b",
+    "rules": [
+      {
+        "offset": 199133,
+        "before": "          try{assertIntent();const endpoint='/api/ipqc-ab/workflow?scope='+encodeURIComponent(scopeKey)+'&caseMetadata=1',client=window.createSharedDraftClient({endpoint,actorId:dialog.owner.actorId,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});\n",
+        "after": "          try{assertIntent();const endpoint='/api/ipqc-ab/workflow?scope='+encodeURIComponent(scopeKey)+'&caseMetadata=1',client=window.createSharedDraftClient({endpoint,actorId:dialog.owner.actorId,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json','X-Process-Expected-Actor':dialog.owner.actorId})});\n"
+      }
+    ]
+  },
+  {
+    "target": "pair",
+    "file": "public/process/shared-draft-client.js",
+    "sourceCommit": "61bbc8f67a89e785ca4acf527254dd7d49b75cde",
+    "beforeBlob": "16751ce767547c489b08bc33fcf8ed5f17977014",
+    "beforeLength": 192237,
+    "beforeHash": "9746fb531ca8c4b5424655cac4e83009f7b039369aa8959bb787223322fe780d",
+    "afterLength": 192349,
+    "afterHash": "f96c0b5e57fe8be0b47ad3ace3c8da7f208af2b1281234a7d29391c57599b5b1",
+    "rules": [
+      {
+        "offset": 38696,
+        "before": "    const approvedHistoryRoute=['/api/fqc/workflow','/api/iqc/workflow','/api/routine-fqc/page'].includes(beginPath);\n",
+        "after": "    const approvedHistoryRoute=['/api/fqc/workflow','/api/iqc/workflow','/api/routine-fqc/page','/api/ipqc-ab/workflow'].includes(beginPath);\n"
+      },
+      {
+        "offset": 81596,
+        "before": "        if(error.status===409&&['DRAFT_GENERATION_CHANGED','ENTITY_REMOVED_OR_AMBIGUOUS','PENDING_LOCKED'].includes(code))return true;\n",
+        "after": "        if(error.status===409&&['DRAFT_GENERATION_CHANGED','ENTITY_REMOVED_OR_AMBIGUOUS','PENDING_LOCKED','DRAFT_REVISION_REQUIRED','DRAFT_REVISION_CHANGED_RECONFIRM','MODULE_CHANGED_RECONFIRM'].includes(code))return true;\n"
+      }
+    ]
+  },
+  {
+    "target": "pair",
+    "file": "public/process/version-draft-ui.js",
+    "sourceCommit": "61bbc8f67a89e785ca4acf527254dd7d49b75cde",
+    "beforeBlob": "d40239bde06e6a2332dd279b38ade0a4635a5810",
+    "beforeLength": 61997,
+    "beforeHash": "91c445dd6d62e342978e0f76119d759f73832d43ac120195402f97ed1f4f4a88",
+    "afterLength": 62812,
+    "afterHash": "a1d669011e5cc6c27d91e406dcff5ff248917f3449d1a644ce96a06c0f582bd2",
+    "rules": [
+      {
+        "offset": 6998,
+        "before": "",
+        "after": "  // BOM-only presentation lease. Neither this selector nor its GETs settle a\n  // write, replace a working aggregate, or touch a local recovery journal.\n  const approvedDisplays=new WeakMap();\n"
+      },
+      {
+        "offset": 7255,
+        "before": "",
+        "after": "  function clearHistory(client){const entry=client&&approvedDisplays.get(client);if(entry){entry.sequence++;entry.selected=null;}}\n  function historyVersion(client){const entry=client&&approvedDisplays.get(client);try{if(entry?.selected&&!entry.selected.current()){entry.sequence++;entry.selected=null;}return entry?.selected?cloneHistory(entry.selected.version):null;}catch{if(entry){entry.sequence++;entry.selected=null;}return null;}}\n  // Explicit adapters own their working buffers. This controller owns only a\n  // display lease and cloned, audited GET results; it never calls a writer.\n"
+      },
+      {
+        "offset": 60766,
+        "before": "  host.VersionDraftUI={createApprovedHistory,renderApprovedCollections,createDeparture,masterChanges,mount,t,date,issueMessage,confirmSubmit,confirmReview,preserveView,reasonFor,updateSaved,updateSync};\n",
+        "after": "  host.VersionDraftUI={createApprovedHistory,renderApprovedCollections,historyVersion,clearHistory,createDeparture,masterChanges,mount,t,date,issueMessage,confirmSubmit,confirmReview,preserveView,reasonFor,updateSaved,updateSync};\n"
+      }
+    ]
+  },
+  {
+    "target": "ab",
+    "file": "lib/approved-history.ts",
+    "sourceCommit": "8a6d64e06cd5c9f086f7e2ffbffacccfd494454e",
+    "beforeBlob": "cb7e2f4d0e070bfa27545b1b1c6e7b31b3449935",
+    "beforeLength": 3700,
+    "beforeHash": "bf23977ea287616f884362b830ac876231533c4b8575bd07c2a2daf43bec80b0",
+    "afterLength": 4089,
+    "afterHash": "f6b90908eaceda77f363998b7f8fc57986ad15bae0e0ce15d393a22f8d773e5b",
+    "rules": [
+      {
+        "offset": 2769,
+        "before": "export function legacyProcessEvidence(v:LegacyProcessVersion){\n if(v.id.startsWith('shared-')||!['approved','superseded'].includes(v.status))return null;\n const event=v.history?.find(e=>['approved','approve'].includes(e.action||'')&&e.at&&(e.actorId||e.actorName||e.actor));\n",
+        "after": "export function legacyProcessEvidence(v:LegacyProcessVersion,strict=false){\n if(typeof v.id!=='string'||v.id.startsWith('shared-')||!['approved','superseded'].includes(v.status)||strict&&(!v.id||v.id.length>490||!Number.isSafeInteger(v.number)||v.number<1||typeof v.category!=='string'||!v.category||typeof v.line!=='string'||!v.line))return null;\n const event=(Array.isArray(v.history)?v.history:[]).find(e=>['approved','approve'].includes(e.action||'')&&e.at&&(e.actorId||e.actorName||e.actor)&&(!strict||typeof e.at==='string'&&Number.isFinite(Date.parse(e.at))&&[e.actorName,e.actor].some(value=>typeof value==='string'&&!!value.trim())));\n"
+      },
+      {
+        "offset": 3566,
+        "before": "export function legacyProcessProjection(v:LegacyProcessVersion){const evidence=legacyProcessEvidence(v);if(!evidence)return null;return {id:'legacy-process:'+v.id,number:v.number,status:'superseded',snapshot:{workspaces:[{id:JSON.stringify([v.category,v.line]),category:v.category,line:v.line,stages:v.stages}]},revision:0,creatorId:v.creatorId||'',creatorName:v.creatorName||'',createdAt:v.createdAt||'',updatedAt:v.updatedAt||'',history:[],category:v.category,line:v.line,approvalEvidence:evidence};}\n",
+        "after": "export function legacyProcessProjection(v:LegacyProcessVersion,strict=false){const evidence=legacyProcessEvidence(v,strict);if(!evidence)return null;return {id:'legacy-process:'+v.id,number:v.number,status:'superseded',snapshot:{workspaces:[{id:JSON.stringify([v.category,v.line]),category:v.category,line:v.line,stages:v.stages}]},revision:0,creatorId:v.creatorId||'',creatorName:v.creatorName||'',createdAt:v.createdAt||'',updatedAt:v.updatedAt||'',history:[],category:v.category,line:v.line,approvalEvidence:evidence};}\n"
+      }
+    ]
+  },
+  {
+    "target": "ab",
+    "file": "lib/versioned-shared-workflow.ts",
+    "sourceCommit": "8a6d64e06cd5c9f086f7e2ffbffacccfd494454e",
+    "beforeBlob": "e6e7a52e9be8d0d143fbd5d49f06faf06cda9954",
+    "beforeLength": 44495,
+    "beforeHash": "f42c1f984df1e66ed70a191f1008df6f86d8a1c9c247e531502125ce67f5d75f",
+    "afterLength": 44552,
+    "afterHash": "312af4f003b41a7fc546d5273e099cb3763669735951e7f38f8d1c22c946e6ef",
+    "rules": [
+      {
+        "offset": 24638,
+        "before": "      }\r\n",
+        "after": "      }\n"
+      },
+      {
+        "offset": 25640,
+        "before": "      }\n",
+        "after": "      }\r\n"
+      },
+      {
+        "offset": 42915,
+        "before": "        if((begin||adapter.key==='bomMasterControl'&&adapter.scope==='bom'&&body.command?.action==='save'&&body.command.moduleAction==='save-local-v1'||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment')&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);\n",
+        "after": "        if((begin||(['fqc','iqc'].includes(adapter.scope)&&!!body.command)||adapter.key==='bomMasterControl'&&adapter.scope==='bom'&&body.command?.action==='save'&&body.command.moduleAction==='save-local-v1'||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment')&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);\n"
+      }
+    ]
+  },
+  {
+    "target": "ab",
+    "file": "public/process/index.html",
+    "sourceCommit": "8a6d64e06cd5c9f086f7e2ffbffacccfd494454e",
+    "beforeBlob": "1fad5e9edc25e87de37339340fd447a3cb66bb9c",
+    "beforeLength": 10829,
+    "beforeHash": "635374943f32c6b8374586e81a69ed065fb04c00770a99647558614029adab86",
+    "afterLength": 11033,
+    "afterHash": "8b28ba6913df2ec3c69c3203eb5d2d44df81e0b1c91949d6d8d401f876c8da77",
+    "rules": [
+      {
+        "offset": 6899,
+        "before": "    <script data-process-src=\"shared-draft-client.js?v=20261112-ipqc-ab-cloud1\"></script>\n",
+        "after": "    <script data-process-src=\"shared-draft-client.js?v=20261112-quality-abc-joint1\"></script>\n"
+      },
+      {
+        "offset": 8370,
+        "before": "    <link rel=\"stylesheet\" href=\"version-draft-ui.css?v=20261030-manual-sharing-integrated1\">\n    <script data-process-src=\"version-draft-ui.js?v=20261112-ipqc-ab-cloud1\"></script>\n",
+        "after": "    <link rel=\"stylesheet\" href=\"version-draft-ui.css?v=20261112-quality-integration1\">\n    <script data-process-src=\"version-draft-ui.js?v=20261112-quality-abc-joint1\"></script>\n"
+      },
+      {
+        "offset": 8823,
+        "before": "    <script data-process-src=\"fqc-master.js?v=20261104-begin-generation2\"></script>\n    <script data-process-src=\"iqc-master.js?v=20261106-number-hint1\"></script>\n    <script data-process-src=\"routine-equipment.js?v=20261112-ab-transfer-actor1\"></script>\n",
+        "after": "    <script data-process-src=\"fqc-master.js?v=20261112-quality-integration1\"></script>\n    <script data-process-src=\"iqc-master.js?v=20261112-quality-integration1\"></script>\n    <script data-process-src=\"routine-equipment.js?v=20261112-quality-abc-joint1\"></script>\n"
+      },
+      {
+        "offset": 9502,
+        "before": "    <script data-process-src=\"ipqc-c.js?v=20261106-c-local-gauge-preview1\"></script>\n",
+        "after": "    <script data-process-src=\"ipqc-c.js?v=20261112-c-product4\"></script>\n"
+      },
+      {
+        "offset": 9729,
+        "before": "    <script data-process-src=\"routine-fqc.js?v=20261108-manual-generate2\"></script>\n",
+        "after": "    <script data-process-src=\"routine-page-approved-history.js?v=20261112-quality-integration1\"></script>\n    <script data-process-src=\"routine-fqc-page.js?v=20261112-quality-integration1\"></script>\n    <script data-process-src=\"routine-fqc.js?v=20261112-quality-integration1\"></script>\n"
+      }
+    ]
+  },
+  {
+    "target": "ab",
+    "file": "public/process/routine-equipment.js",
+    "sourceCommit": "8a6d64e06cd5c9f086f7e2ffbffacccfd494454e",
+    "beforeBlob": "8d34bfeb3020eb91cf875ab470328c38ceb460ee",
+    "beforeLength": 283963,
+    "beforeHash": "b40d93a480b06dc9620619f21fb75997372943b09b1170e46a5446ba2becb0b3",
+    "afterLength": 294375,
+    "afterHash": "e4173e3c4aec865e77baa9b037426e364773a3eb0245e12caaec039d027c984b",
+    "rules": [
+      {
+        "offset": 182303,
+        "before": "",
+        "after": "  // IQC alone has explicit authority to save the entire target working draft.\n  // The source journal binds its exact intent/command; existing transport markers\n  // and receipts remain authoritative and are never inferred from current content.\n  let iqcTransferClient = null;\n  const iqcTransferEndpoint = '/api/iqc/workflow?caseMetadata=1';\n  const iqcTransferKey = actorId => 'routine-equipment-iqc-transfer-v1:' + actorId;\n  const iqcTransferUnknown = () => t('IQC 移轉／存取結果待確認；僅查詢原操作收據，不會重新送出。', 'Chưa xác nhận chuyển/lưu IQC; chỉ kiểm tra biên nhận gốc, không gửi lại.');\n  function hasIqcTransfer(){try{return sessionStorage.getItem(iqcTransferKey(identity()?.id))!==null;}catch{return true;}}\n  function targetIqcClient(){\n    if(!iqcTransferClient||!iqcTransferClient.isRuntimeCurrent()||!iqcTransferClient.isBeginRuntimeCurrent())\n      iqcTransferClient=window.createSharedDraftClient({endpoint:iqcTransferEndpoint,actorId:identity()?.id,durableBegin:true,externalDurableBounded:{scope:'IQC'},headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});\n    return iqcTransferClient;\n  }\n  function readIqcTransfer(){\n    let value;try{const raw=sessionStorage.getItem(iqcTransferKey(identity()?.id));if(raw===null)return null;value=JSON.parse(raw);}catch{throw Error(iqcTransferUnknown());}\n    if(value?.version!==1||value.actorId!==identity()?.id||value.endpoint!==iqcTransferEndpoint||!['begin','save'].includes(value.phase)||typeof value.intent!=='string'||!value.basis||value.phase==='save'&&(!value.command||value.command.action!=='save'||value.command.moduleAction!=='save-local-v1'||typeof value.command.operationId!=='string'||typeof value.command.generation!=='string'))throw Error(iqcTransferUnknown());\n    return value;\n  }\n  function writeIqcTransfer(record,previous=null){\n    const key=iqcTransferKey(record.actorId),raw=JSON.stringify(record);\n    if(sessionStorage.getItem(key)!==(previous===null?null:JSON.stringify(previous)))throw Error(iqcTransferUnknown());\n    sessionStorage.setItem(key,raw);if(sessionStorage.getItem(key)!==raw)throw Error(iqcTransferUnknown());return record;\n  }\n  function clearIqcTransfer(record){\n    const key=iqcTransferKey(record.actorId);if(sessionStorage.getItem(key)!==JSON.stringify(record))throw Error(iqcTransferUnknown());\n    sessionStorage.removeItem(key);if(sessionStorage.getItem(key)!==null)throw Error(iqcTransferUnknown());\n  }\n  function iqcTransferBasis(data){const c=data.control,open=c?.versions?.find(v=>['draft','pending','pending-test'].includes(v.status));return {generation:c?.workflow?.generation??null,activeVersionId:c?.activeVersionId??null,openVersionId:open?.id??null,openVersionStatus:open?.status??null,openVersionRevision:open?.revision??null};}\n  function assertIqcTransferRead(data){\n    const c=data?.control,f=c?.workflow;\n    if(data?.permissions?.view!==true||data.permissions.edit!==true||!Number.isSafeInteger(data.revision)||!Array.isArray(c?.versions)||f&&f.scope!=='iqc'||f?.pendingId||c.versions.some(v=>['pending','pending-test'].includes(v.status)))throw Error('IQC_TARGET_NOT_EDITABLE');\n    return f;\n  }\n  function finishIqcTransfer(client,record,result,fresh=null){\n    const r=result?.receipt;\n    const verified=client.isVerifiedReadback(result),f=fresh?.control?.workflow;\n    if(!verified&&(!fresh||fresh.permissions?.view!==true||f?.scope!=='iqc'||!Number.isSafeInteger(f.revision)||f.revision<r?.revision)||r?.operationId!==record.command.operationId||r.generation!==record.command.generation||typeof r.savedId!=='string'||!r.savedId)throw Error(iqcTransferUnknown());\n    // No local IQC form is owned here. A historical receipt confirms only the\n    // original Save; it never replays selection into the successor generation.\n    const superseded=client.isSupersededRecovery(result),historical=superseded||!!fresh&&f.generation!==r.generation;\n    if(superseded)client.acknowledgeSupersededRecovery(result);\n    clearIqcTransfer(record);\n    return {savedId:r.savedId,historical,results:JSON.parse(record.intent).ids.map(itemId=>({itemId,status:'applied'}))};\n  }\n  async function recoverIqcTransfer(dialog){\n    const owner=dialog.owner;dialog.moduleStatus.iqc='saving';render();\n    try{\n      const record=readIqcTransfer(),client=targetIqcClient();if(!record)throw Error(iqcTransferUnknown());\n      if(record.phase==='begin'){\n        const result=client.hasUnknownBegin()?await client.resolveUnknown():record.operationId?await client.receipt(record.operationId):null;\n        if(!result?.receipt||result.operationKind!=='begin-v1'||!transferOwnerCurrent(owner)||transferDialog!==dialog)throw Error(iqcTransferUnknown());\n        if(record.operationId&&record.operationId!==result.receipt.operationId)throw Error(iqcTransferUnknown());\n        clearIqcTransfer(record);dialog.moduleStatus.iqc='idle';await loadTransferPreview();dialog.moduleMessages.iqc=t('已核對原開始修改收據；尚未移轉或存取，請重新核對選取後明確確認。','Đã kiểm tra biên nhận bắt đầu gốc; chưa chuyển/lưu. Kiểm tra lựa chọn rồi xác nhận lại.');\n      }else{\n        const outstanding=client.hasUnknown(),result=await client.receipt(record.command.operationId,record.command.generation);\n        // The transport may have settled before the source page lost ownership.\n        // Original receipt plus a new authorized read can finish its source journal.\n        const fresh=!outstanding&&!client.isVerifiedReadback(result)?await client.read():null;\n        if(!transferOwnerCurrent(owner)||transferDialog!==dialog)throw Error(iqcTransferUnknown());\n        const done=finishIqcTransfer(client,record,result,fresh);dialog.moduleStatus.iqc='success';dialog.moduleMessages.iqc=t('原 IQC 移轉並存取已確認','Đã xác nhận chuyển và lưu IQC gốc')+' · '+done.savedId+(done.historical?' · '+t('目前已有後續草稿；本次未套用其他修改','Hiện có bản nháp mới; lần này không áp dụng thay đổi khác'):'');\n      }\n    }catch(error){dialog.moduleStatus.iqc='error';dialog.moduleMessages.iqc=iqcTransferUnknown()+' '+error.message;}\n    if(transferDialog===dialog&&transferOwnerCurrent(owner))render();\n  }\n  async function saveIqcTransfer(dialog,target,entry,rows,intent,owns){\n    const assertOwned=()=>{if(!owns())throw Error('IQC_TRANSFER_CONTEXT_CHANGED');};\n    // Preserve all old unidentified target Begin evidence without attribution.\n    if(sessionStorage.getItem('routine-equipment-target-begin:'+identity()?.id+':'+iqcTransferEndpoint)!==null)throw Error(iqcTransferUnknown());\n    const legacy=window.createSharedDraftClient({endpoint:iqcTransferEndpoint,actorId:dialog.owner.actorId,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});\n    if(legacy.hasUnknown())throw Error(iqcTransferUnknown());await legacy.flush();assertOwned();\n    const client=targetIqcClient();if(client.hasUnknown()||hasIqcTransfer())throw Error(iqcTransferUnknown());await client.flush();assertOwned();\n    let authority=await client.read();assertOwned();assertIqcTransferRead(authority);\n    const basis=iqcTransferBasis(authority);\n    if(basis.generation!==(entry.workflow?.generation??null)||basis.activeVersionId!==(entry.activeVersion?.id??null)||basis.openVersionId!==(entry.openVersion?.id??null))throw Error('IQC_TARGET_CHANGED_RECONFIRM');\n    let record=null;\n    if(!entry.workflow?.editable){\n      record=writeIqcTransfer({version:1,actorId:dialog.owner.actorId,endpoint:iqcTransferEndpoint,intent,basis,phase:'begin',operationId:crypto.randomUUID()});\n      let begun;\n      try{begun=await client.beginWithIdentity({operationId:record.operationId,basis});}catch(error){\n        // Private proof covers only this exact attempt before POST handoff.\n        // Receipt 404s and public Error flags never establish that it was unsent.\n        if(owns()&&(client.isBeginNotSent(error,{operationId:record.operationId,basis})||!client.hasUnknownBegin()&&['BEGIN_BASIS_CHANGED','INVALID_BEGIN_IDENTITY'].includes(error.message)))clearIqcTransfer(record);\n        throw error;\n      }\n      assertOwned();\n      if(begun.receipt?.operationId!==record.operationId||begun.operationKind!=='begin-v1'||JSON.stringify(begun.beginBasis)!==JSON.stringify(basis)||begun.receipt?.generation!==begun.control?.workflow?.generation)throw Error('IQC_BEGIN_GENERATION_CHANGED');\n      authority=begun;\n    }\n    const flow=assertIqcTransferRead(authority);if(!flow?.generation)throw Error('BEGIN_REQUIRED');\n    const patches=[],guards=[];\n    for(const row of rows)for(const field of ['equipmentId','inspectionMode']){const path=['items',{id:row.itemId},field];patches.push({op:'set',path,value:field==='equipmentId'?target.id:'equipment'});guards.push({path,value:row.openStatus==='draft'?(field==='equipmentId'?row.draftEquipmentId:row.draftInspectionMode):(field==='equipmentId'?row.activeEquipmentId:row.activeInspectionMode)});}\n    const command=client.prepare(flow.generation,'save',{moduleAction:'save-local-v1',patches,guards,input:{}});\n    const next={version:1,actorId:dialog.owner.actorId,endpoint:iqcTransferEndpoint,intent,basis,phase:'save',command};record=writeIqcTransfer(next,record);assertOwned();\n    try{const result=await client.sendPrepared(command);assertOwned();return finishIqcTransfer(client,record,result);}\n    catch(error){\n      if(owns()&&client.isConfirmedRejection(error,command)&&client.discardRejectedLocalSave(command))clearIqcTransfer(record);\n      throw error;\n    }\n  }\n\n"
+      },
+      {
+        "offset": 192276,
+        "before": "",
+        "after": "    if(uiKey==='iqc'&&hasIqcTransfer()){await recoverIqcTransfer(dialog);return;}\n"
+      },
+      {
+        "offset": 194167,
+        "before": "    if (!confirm(moduleId==='fqc'?t(`確認移轉 ${ids.length} 筆並存取整份 FQC 草稿？共享草稿中其他已套用的修改會一起保存；其他分頁未送出的本機輸入不包含在內。僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆已改選其他檢具，將以這次選擇取代。`:''}不送審。`,`Chuyển ${ids.length} mục và lưu toàn bộ bản nháp FQC? Các thay đổi chung đã áp dụng cũng được lưu; không gồm đầu vào cục bộ chưa gửi ở trang khác. Giữ ảnh và thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị.`:''} Không gửi duyệt.`):t(`確認移轉 ${ids.length} 筆 ${moduleId.toUpperCase()} 標準至草稿？僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆草稿已改選其他檢具，將以這次選擇取代。`:''}同草稿全部成功才套用；待審項目不可移轉，也不會延後自動套用。`, `Chuyển ${ids.length} tiêu chuẩn ${moduleId.toUpperCase()} sang bản nháp? Chỉ thay thiết bị; giữ ảnh và các thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị trong bản nháp.`:''} Mỗi bản nháp được xử lý toàn bộ hoặc không thay đổi. Không chuyển hồ sơ chờ duyệt và không tự áp dụng sau.`))) return;\n",
+        "after": "    if (!confirm(['fqc','iqc'].includes(moduleId)?t(`確認移轉 ${ids.length} 筆並存取整份 ${moduleId.toUpperCase()} 草稿？共享草稿中其他已套用的修改會一起保存；其他分頁未送出的本機輸入不包含在內。僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆已改選其他檢具，將以這次選擇取代。`:''}不送審。`,`Chuyển ${ids.length} mục và lưu toàn bộ bản nháp ${moduleId.toUpperCase()}? Các thay đổi chung đã áp dụng cũng được lưu; không gồm đầu vào cục bộ chưa gửi ở trang khác. Giữ ảnh và thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị.`:''} Không gửi duyệt.`):t(`確認移轉 ${ids.length} 筆 ${moduleId.toUpperCase()} 標準至草稿？僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆草稿已改選其他檢具，將以這次選擇取代。`:''}同草稿全部成功才套用；待審項目不可移轉，也不會延後自動套用。`, `Chuyển ${ids.length} tiêu chuẩn ${moduleId.toUpperCase()} sang bản nháp? Chỉ thay thiết bị; giữ ảnh và các thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị trong bản nháp.`:''} Mỗi bản nháp được xử lý toàn bộ hoặc không thay đổi. Không chuyển hồ sơ chờ duyệt và không tự áp dụng sau.`))) return;\n"
+      },
+      {
+        "offset": 198718,
+        "before": "",
+        "after": "      }else if(moduleId==='iqc'){\n        data=await saveIqcTransfer(dialog,target,targetEntry,latest.filter(row=>ids.includes(row.id)),transferIntent,owns);\n"
+      },
+      {
+        "offset": 205183,
+        "before": "      if(moduleId==='fqc')dialog.moduleMessages[uiKey]+=' · '+t('已移轉並存取 FQC 草稿','Đã chuyển và lưu bản nháp FQC')+' · '+data.savedId+(data.historical?' · '+t('原操作已確認；目前已有後續草稿，本次未套用其他修改','Đã xác nhận thao tác gốc; hiện có bản nháp mới, không áp dụng thay đổi khác'):'');\n      if(moduleId!=='fqc'&&(flow||moduleId==='ipqc-ab') && (!counts.conflict||counts.applied))dialog.moduleMessages[uiKey]+=' · '+t(`成功項目已同步，尚未手動儲存；請到 ${moduleId.toUpperCase()} 儲存草稿`,`Các hạng mục thành công đã đồng bộ, chưa lưu thủ công; hãy lưu bản nháp tại ${moduleId.toUpperCase()}`);\n      if(moduleId!=='fqc')await window.ProcessSync?.refresh?.();\n",
+        "after": "      if(['fqc','iqc'].includes(moduleId))dialog.moduleMessages[uiKey]+=' · '+moduleId.toUpperCase()+' · '+t('已移轉並存取草稿','Đã chuyển và lưu bản nháp')+' · '+data.savedId+(data.historical?' · '+t('原操作已確認；目前已有後續草稿，本次未套用其他修改','Đã xác nhận thao tác gốc; hiện có bản nháp mới, không áp dụng thay đổi khác'):'');\n      if(!['fqc','iqc'].includes(moduleId)&&(flow||moduleId==='ipqc-ab') && (!counts.conflict||counts.applied))dialog.moduleMessages[uiKey]+=' · '+t(`成功項目已同步，尚未手動儲存；請到 ${moduleId.toUpperCase()} 儲存草稿`,`Các hạng mục thành công đã đồng bộ, chưa lưu thủ công; hãy lưu bản nháp tại ${moduleId.toUpperCase()}`);\n      if(!['fqc','iqc'].includes(moduleId))await window.ProcessSync?.refresh?.();\n"
+      },
+      {
+        "offset": 206326,
+        "before": "      dialog.moduleMessages[uiKey] = (moduleId==='fqc'&&hasFqcTransfer()?fqcTransferUnknown()+' ':'')+(error.message || t('替換失敗', 'Thay thế thất bại'));\n",
+        "after": "      dialog.moduleMessages[uiKey] = (moduleId==='fqc'&&hasFqcTransfer()?fqcTransferUnknown()+' ':moduleId==='iqc'&&hasIqcTransfer()?iqcTransferUnknown()+' ':'')+(error.message || t('替換失敗', 'Thay thế thất bại'));\n"
+      },
+      {
+        "offset": 207687,
+        "before": "    const iqcItems = previewItems('iqc');\r\n",
+        "after": "    const iqcItems = previewItems('iqc'),iqcRecovery=hasIqcTransfer();\n"
+      },
+      {
+        "offset": 218040,
+        "before": "                      <button type=\"button\" class=\"button signal master-small\" id=\"routine-confirm-transfer-iqc\" ${!targetEq || !iqcItems.length || inFlight ? 'disabled' : ''}>\n                        ${transferDialog.moduleStatus.iqc === 'saving' ? t('儲存中…', 'Đang lưu...') : t('確認移轉至 IQC 草稿', 'Xác nhận chuyển sang IQC')}\r\n",
+        "after": "                      <button type=\"button\" class=\"button signal master-small\" id=\"routine-confirm-transfer-iqc\" ${inFlight||!iqcRecovery&&(!targetEq||!iqcItems.length)?'disabled':''}>\n                        ${transferDialog.moduleStatus.iqc === 'saving' ? t('儲存中…', 'Đang lưu...') : iqcRecovery?t('查詢原移轉／存取收據','Kiểm tra biên nhận chuyển/lưu gốc'):t('確認移轉並存取 IQC 草稿', 'Xác nhận chuyển và lưu IQC')}\n"
+      },
+      {
+        "offset": 277039,
+        "before": "",
+        "after": "    if(identity()?.id&&hasIqcTransfer())targetIqcClient();\n"
+      },
+      {
+        "offset": 289389,
+        "before": "    const legacy=()=>{try{const markers=[beginRecoveryKey(identity()?.id),fqcTransferKey(identity()?.id)].map(key=>[key,sessionStorage.getItem(key)]).filter(([,raw])=>raw!==null);return markers.length&&![sharedClient,fqcTransferClient].some(client=>client?.hasUnknown()||client?.hasSyncFailures())&&inputOwnerCurrent()&&!busy&&!transferBusy()?JSON.stringify(markers):null;}catch{return null;}};\n",
+        "after": "    const legacy=()=>{try{const markers=[beginRecoveryKey(identity()?.id),fqcTransferKey(identity()?.id),iqcTransferKey(identity()?.id)].map(key=>[key,sessionStorage.getItem(key)]).filter(([,raw])=>raw!==null);return markers.length&&![sharedClient,fqcTransferClient,iqcTransferClient].some(client=>client?.hasUnknown()||client?.hasSyncFailures())&&inputOwnerCurrent()&&!busy&&!transferBusy()?JSON.stringify(markers):null;}catch{return null;}};\n"
+      },
+      {
+        "offset": 291408,
+        "before": "    unknown:()=>sharedClient?.hasUnknown()||fqcTransferClient?.hasUnknown()||hasBeginRecovery(),failed:()=>sharedClient?.hasSyncFailures()||fqcTransferClient?.hasSyncFailures(),\n    unknownTransports:()=>[sharedClient,fqcTransferClient],unknownReady:()=>{try{return !readBeginRecovery();}catch{return false;}},discardUnknown(){this.discard();},\n",
+        "after": "    unknown:()=>sharedClient?.hasUnknown()||fqcTransferClient?.hasUnknown()||iqcTransferClient?.hasUnknown()||hasBeginRecovery(),failed:()=>sharedClient?.hasSyncFailures()||fqcTransferClient?.hasSyncFailures()||iqcTransferClient?.hasSyncFailures(),\n    unknownTransports:()=>[sharedClient,fqcTransferClient,iqcTransferClient],unknownReady:()=>{try{return !readBeginRecovery();}catch{return false;}},discardUnknown(){this.discard();},\n"
+      }
+    ]
+  },
+  {
+    "target": "ab",
+    "file": "public/process/shared-draft-client.js",
+    "sourceCommit": "8a6d64e06cd5c9f086f7e2ffbffacccfd494454e",
+    "beforeBlob": "e251ce8b236e9eb069b9c00582f689160cc0c8c0",
+    "beforeLength": 175870,
+    "beforeHash": "d6775ce5ec1a1996e222e97f56ac8fba39f665eb8f7d9234813fa2b4d53d4e3c",
+    "afterLength": 192349,
+    "afterHash": "f96c0b5e57fe8be0b47ad3ace3c8da7f208af2b1281234a7d29391c57599b5b1",
+    "rules": [
+      {
+        "offset": 12978,
+        "before": "",
+        "after": "    if(path==='/api/routine-fqc/page'&&!query)return 'routine-fqc:page';\n"
+      },
+      {
+        "offset": 31107,
+        "before": "  window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections,allowUnknownDeparture=false,durableBegin=false,equipmentLocalSave=false,processLocalSave=false}) => {\n",
+        "after": "  window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections,allowUnknownDeparture=false,durableBegin=false,equipmentLocalSave=false,processLocalSave=false,fqcComparedSave=false,iqcComparedSave=false}) => {\n"
+      },
+      {
+        "offset": 33364,
+        "before": "",
+        "after": "    if(fqcComparedSave!==false&&(fqcComparedSave!==true||!durableBegin||!guardAccessResults||boundedScope!=='fqc'||endpoint!=='/api/fqc/workflow?caseMetadata=1'))throw Error('FQC_COMPARISON_SCOPE_REQUIRED');\n    if(iqcComparedSave!==false&&(iqcComparedSave!==true||!durableBegin||!guardAccessResults||boundedScope!=='iqc'||endpoint!=='/api/iqc/workflow?caseMetadata=1'))throw Error('IQC_COMPARISON_SCOPE_REQUIRED');\n"
+      },
+      {
+        "offset": 37496,
+        "before": "    const transportKey=actorId+':'+endpoint+(durableBegin?':begin-v1':'')+(equipmentLocalSave?':equipment-local-save-v1':'')+(externalCanvas?':external-canvas:'+crypto.randomUUID():externalBounded?':external-bounded':abCreate?':ab-create':''),sessionScope=departureScope(endpoint);\n",
+        "after": "    const transportKey=actorId+':'+endpoint+(fqcComparedSave?':fqc-compared-save-v1':iqcComparedSave?':iqc-compared-save-v1':'')+(durableBegin?':begin-v1':'')+(equipmentLocalSave?':equipment-local-save-v1':'')+(externalCanvas?':external-canvas:'+crypto.randomUUID():externalBounded?':external-bounded':abCreate?':ab-create':''),sessionScope=departureScope(endpoint);\n"
+      },
+      {
+        "offset": 38696,
+        "before": "    const approvedHistoryRoute=beginPath==='/api/ipqc-ab/workflow';\n",
+        "after": "    const approvedHistoryRoute=['/api/fqc/workflow','/api/iqc/workflow','/api/routine-fqc/page','/api/ipqc-ab/workflow'].includes(beginPath);\n"
+      },
+      {
+        "offset": 49886,
+        "before": "    async function beginV1(identity,attempt){\n",
+        "after": "    async function beginV1(identity,attempt,comparison){\n"
+      },
+      {
+        "offset": 50779,
+        "before": "",
+        "after": "      // A compared quality read may retire only its own unsent reservation, once.\n      const reservation={task:null,released:false,retired:false,phase:'authority-read'};\n      const release=()=>{if(reservation.released)return;reservation.released=true;if(beginPending===reservation.task)beginPending=null;queued--;feedback();};\n      let retireRead;const retiredRead=new Promise(resolve=>{retireRead=resolve;});\n      const retire=()=>{\n        if(reservation.retired)return true;\n        if(!comparison||comparison.dispatched||reservation.phase!=='authority-read'||reservation.released||beginPending!==reservation.task||queued!==1||beginRecord||beginRaw||beginInvalid||unknown||recoveryInvalid||retryPending||beginRead)return false;\n        try{if(sessionStorage.getItem(beginKey)!==null||sessionStorage.getItem(key)!==null)return false;}catch{return false;}\n        reservation.retired=true;release();retireRead(null);return true;\n      };\n      if(comparison)comparison.retireBegin=retire;\n"
+      },
+      {
+        "offset": 51803,
+        "before": "        const fresh=await request(endpoint,undefined,{requireAcceptedAccess:true});assertOwner();if(window.ProcessSync?.requiresReload||clientPagehideGeneration!==transportPagehideGeneration)throw Error('BEGIN_OWNER_CHANGED');\n",
+        "after": "        if(comparison)(iqcComparedSave?iqcCurrent:fqcCurrent)(comparison,true);const comparisonObservation=(iqcComparedSave?iqcObservation:fqcObservation)+1;\n        const read=request(endpoint,undefined,{requireAcceptedAccess:true,...(comparison?{isCurrent:()=>!reservation.retired&&comparison.current()===true}:{})});\n        const fresh=await(comparison?Promise.race([read,retiredRead]):read);if(reservation.retired)throw Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED');reservation.phase='reserving';assertOwner();\n        if(comparison){if(comparisonObservation!==(iqcComparedSave?iqcObservation:fqcObservation)||comparison.current()!==true||JSON.stringify(fresh.control)!==JSON.stringify(comparison.result.control)||fresh.revision!==comparison.result.revision||JSON.stringify(fresh.permissions)!==JSON.stringify(comparison.result.permissions)||access?.view!==true||access?.edit!==true)throw Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED');comparison.observation=(iqcComparedSave?iqcObservation:fqcObservation);comparison.accessEpoch=accessEpoch;comparison.accessFence=accessFence;comparison.accessObserved=accessObserved;(iqcComparedSave?iqcCurrent:fqcCurrent)(comparison,true);}\n        if(window.ProcessSync?.requiresReload||clientPagehideGeneration!==transportPagehideGeneration)throw Error('BEGIN_OWNER_CHANGED');\n"
+      },
+      {
+        "offset": 54314,
+        "before": "        catch(error){const proof=beginResponses.get(error);if(proof?.record===record&&proof.raw===beginRaw&&beginUUID(error.requestId)&&((error.status===422&&error.message==='INVALID_BEGIN_IDENTITY')||(error.status===409&&error.message==='BEGIN_BASIS_CHANGED'))){clearBegin(record);}if(beginRecord===record)reportAccessEvent({action:'begin-v1',operationId:record.operationId});throw error;}\n      })();beginPending=task;try{return await task;}finally{if(beginPending===task)beginPending=null;queued--;feedback();}\n",
+        "after": "        catch(error){if(comparison&&!comparison.dispatched&&externalUnsent.has(error)&&beginRecord===record)clearBegin(record);const proof=beginResponses.get(error);if(proof?.record===record&&proof.raw===beginRaw&&beginUUID(error.requestId)&&((error.status===422&&error.message==='INVALID_BEGIN_IDENTITY')||(error.status===409&&error.message==='BEGIN_BASIS_CHANGED'))){clearBegin(record);}if(beginRecord===record)reportAccessEvent({action:'begin-v1',operationId:record.operationId});throw error;}\n      })();reservation.task=task;beginPending=task;try{return await task;}finally{release();if(comparison?.retireBegin===retire)delete comparison.retireBegin;}\n"
+      },
+      {
+        "offset": 79399,
+        "before": "      const iqcLocalSave=boundedScope==='iqc'&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.patches);\n",
+        "after": "      const iqcLocalSave=boundedScope==='iqc'&&action==='save'&&['save-local-v1','save-local-revive-v1'].includes(command.moduleAction)&&Array.isArray(command.patches);\n"
+      },
+      {
+        "offset": 87421,
+        "before": "",
+        "after": "          if(moduleAction==='save-local-revive-v1'&&error.status===422&&['INVALID_IQC_LOCAL_REVIVAL','EQUIPMENT_UNAVAILABLE'].includes(code))return true;\n"
+      },
+      {
+        "offset": 92277,
+        "before": "",
+        "after": "      if(boundedScope==='iqc'&&action==='save'&&command.moduleAction==='save-local-revive-v1'&&Array.isArray(command.input?.reviveRows)&&error.status===409&&code==='IQC_REVIVE_CHANGED_RECONFIRM')return true;\n"
+      },
+      {
+        "offset": 92648,
+        "before": "",
+        "after": "      if(boundedScope==='fqc'&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.input?.reviveRows)&&error.status===409&&code==='FQC_REVIVE_CHANGED_RECONFIRM')return true;\n"
+      },
+      {
+        "offset": 97625,
+        "before": "",
+        "after": "    // FQC's explicit Save owns a one-use comparison, not a reusable permission.\n    // The WeakMap token is issued only by a fresh accepted state GET. Any other\n    // request retires it, including a denial followed by a later grant.\n    let fqcObservation=0;\n    const fqcComparisons=new WeakMap(),fqcCommands=new Map(),fqcBegins=new Map();\n    const fqcJSON=value=>JSON.stringify(value);\n    const fqcFreeze=value=>{if(value&&typeof value==='object'){Object.values(value).forEach(fqcFreeze);Object.freeze(value);}return value;};\n    function fqcEnabled(){if(!fqcComparedSave)throw Error('FQC_COMPARISON_SCOPE_REQUIRED');}\n    function fqcCurrent(entry,allowConsumed=false){\n      fqcEnabled();\n      const assertPin=()=>{assertOwner();if(!entry||entry.reentered||entry.consumed&&!allowConsumed||entry.observation!==fqcObservation||entry.accessEpoch!==accessEpoch||entry.accessFence!==accessFence||entry.accessObserved!==accessObserved)throw Error('FQC_SAVE_COMPARISON_RETIRED');if(access?.view!==true||access?.edit!==true)throw Error('FORBIDDEN');};\n      assertPin();if(entry.checking){entry.reentered=true;throw Error('FQC_SAVE_COMPARISON_RETIRED');}\n      let current;entry.checking=true;try{current=entry.current()===true;}finally{entry.checking=false;}\n      // A caller predicate may synchronously change identity or start another\n      // read. Recheck every private lease field after that callback returns.\n      assertPin();if(!current)throw Error('FQC_SAVE_COMPARISON_RETIRED');return true;\n    }\n    function fqcEntry(token){const entry=fqcComparisons.get(token);fqcCurrent(entry);return entry;}\n    function fqcAdmission(command){\n      if(!fqcComparedSave||command?.action!=='save'||command.moduleAction!=='save-local-v1')return null;\n      const entry=fqcCommands.get(command.operationId);\n      if(!entry||entry.raw!==fqcJSON(command))throw Error('FQC_SAVE_COMPARISON_REQUIRED');\n      fqcCurrent(entry,true);return entry;\n    }\n    function fqcBeforeRequest(body){\n      if(!fqcComparedSave)return;\n      const entry=body?.command?fqcAdmission(body.command):body?.action==='begin-v1'?fqcBegins.get(body.begin?.operationId):null;\n      if(entry)fqcCurrent(entry,true);\n      fqcObservation++;\n      if(entry)entry.observation=fqcObservation;\n    }\n    function fqcBeforeFetch(body){\n      const entry=body?.command?fqcAdmission(body.command):body?.action==='begin-v1'?fqcBegins.get(body.begin?.operationId):null;\n      if(entry){fqcCurrent(entry,true);entry.dispatched=true;}\n    }\n    async function fqcCompare({isCurrent}={}){\n      fqcEnabled();if(typeof isCurrent!=='function'||isCurrent()!==true)throw Error('FQC_SAVE_COMPARISON_RETIRED');\n      assertMutationAdmission();if(unknown||queued)throw Error('OPERATION_IN_PROGRESS');\n      fqcCommands.clear();\n      const observation=fqcObservation+1,result=await request(endpoint,undefined,{isCurrent,requireAcceptedAccess:true});\n      if(observation!==fqcObservation||queued)throw Error('FQC_SAVE_COMPARISON_RETIRED');\n      if(result.permissions?.view===false||result.permissions?.edit===false||access?.view===false||access?.edit===false)throw Error('FORBIDDEN');\n      if(isCurrent()!==true||result.permissions?.view!==true||result.permissions?.edit!==true||access?.view!==true||access?.edit!==true||!Number.isSafeInteger(result.revision)||!Array.isArray(result.control?.versions)||!['view','edit','save','submit','withdraw','approve','return','history','delete'].every(key=>typeof result.permissions[key]==='boolean')||result.unchanged)throw Error('FQC_SAVE_AUTHORITY_REQUIRED');\n      const flow=result.control.workflow;\n      if(flow&&(flow.scope!=='fqc'||typeof flow.generation!=='string'||!Number.isSafeInteger(flow.revision)||flow.revision<0||flow.pendingId!==null))throw Error(flow?.pendingId?'PENDING_LOCKED':'FQC_SAVE_AUTHORITY_REQUIRED');\n      const token=fqcFreeze({result:JSON.parse(fqcJSON(result))});\n      const entry={result:token.result,current:isCurrent,observation:fqcObservation,accessEpoch,accessFence,accessObserved,consumed:false,dispatched:false};\n      fqcComparisons.set(token,entry);fqcCurrent(entry);return token;\n    }\n    function fqcDispatched(token){fqcEnabled();const entry=fqcComparisons.get(token);if(!entry)throw Error('FQC_SAVE_COMPARISON_REQUIRED');return entry.dispatched===true;}\n    function fqcRetireBegin(token){fqcEnabled();const entry=fqcComparisons.get(token);if(!entry)throw Error('FQC_SAVE_COMPARISON_REQUIRED');return entry.retireBegin?.()===true;}\n    function fqcPrepare(token,details,{isCurrent}={}){\n      const entry=fqcEntry(token),flow=entry.result.control.workflow;\n      if(!flow||typeof isCurrent!=='function'||isCurrent()!==true||details?.moduleAction!=='save-local-v1'||details.generation!==undefined||details.expectedRevision!==undefined)throw Error('FQC_SAVE_COMPARISON_REQUIRED');\n      const original=entry.current;entry.current=()=>original()===true&&isCurrent()===true;\n      const command=client.prepare(flow.generation,'save',{...JSON.parse(fqcJSON(details)),expectedRevision:flow.revision});\n      entry.consumed=true;entry.raw=fqcJSON(command);fqcCommands.set(command.operationId,entry);return command;\n    }\n    async function fqcBegin(token,{isCurrent}={}){\n      const entry=fqcEntry(token);if(entry.result.control.workflow||typeof isCurrent!=='function'||isCurrent()!==true)throw Error('FQC_BEGIN_COMPARISON_REQUIRED');\n      const original=entry.current;entry.current=()=>original()===true&&isCurrent()===true;entry.consumed=true;\n      const identity={operationId:crypto.randomUUID(),basis:captureBeginBasis(entry.result)};\n      fqcBegins.set(identity.operationId,entry);\n      try{return await beginV1(identity,null,entry);}finally{fqcBegins.delete(identity.operationId);}\n    }\n    // IQC's explicit Save owns a one-use comparison, not a reusable permission.\n    // The WeakMap token is issued only by a fresh accepted state GET. Any other\n    // request retires it, including a denial followed by a later grant.\n    let iqcObservation=0;\n    const iqcComparisons=new WeakMap(),iqcCommands=new Map(),iqcBegins=new Map();\n    const iqcJSON=value=>JSON.stringify(value);\n    const iqcFreeze=value=>{if(value&&typeof value==='object'){Object.values(value).forEach(iqcFreeze);Object.freeze(value);}return value;};\n    function iqcEnabled(){if(!iqcComparedSave)throw Error('IQC_COMPARISON_SCOPE_REQUIRED');}\n    function iqcCurrent(entry,allowConsumed=false){\n      iqcEnabled();\n      const assertPin=()=>{assertOwner();if(!entry||entry.reentered||entry.consumed&&!allowConsumed||entry.observation!==iqcObservation||entry.accessEpoch!==accessEpoch||entry.accessFence!==accessFence||entry.accessObserved!==accessObserved)throw Error('IQC_SAVE_COMPARISON_RETIRED');if(access?.view!==true||access?.edit!==true)throw Error('FORBIDDEN');};\n      assertPin();if(entry.checking){entry.reentered=true;throw Error('IQC_SAVE_COMPARISON_RETIRED');}\n      let current;entry.checking=true;try{current=entry.current()===true;}finally{entry.checking=false;}\n      // A caller predicate may synchronously change identity or start another\n      // read. Recheck every private lease field after that callback returns.\n      assertPin();if(!current)throw Error('IQC_SAVE_COMPARISON_RETIRED');return true;\n    }\n    function iqcEntry(token){const entry=iqcComparisons.get(token);iqcCurrent(entry);return entry;}\n    function iqcAdmission(command){\n      if(!iqcComparedSave||command?.action!=='save'||!['save-local-v1','save-local-revive-v1'].includes(command.moduleAction))return null;\n      const entry=iqcCommands.get(command.operationId);\n      if(!entry||entry.raw!==iqcJSON(command))throw Error('IQC_SAVE_COMPARISON_REQUIRED');\n      iqcCurrent(entry,true);return entry;\n    }\n    function iqcBeforeRequest(body){\n      if(!iqcComparedSave)return;\n      const entry=body?.command?iqcAdmission(body.command):body?.action==='begin-v1'?iqcBegins.get(body.begin?.operationId):null;\n      if(entry)iqcCurrent(entry,true);\n      iqcObservation++;\n      if(entry)entry.observation=iqcObservation;\n    }\n    function iqcBeforeFetch(body){\n      const entry=body?.command?iqcAdmission(body.command):body?.action==='begin-v1'?iqcBegins.get(body.begin?.operationId):null;\n      if(entry){iqcCurrent(entry,true);entry.dispatched=true;}\n    }\n    async function iqcCompare({isCurrent}={}){\n      iqcEnabled();if(typeof isCurrent!=='function'||isCurrent()!==true)throw Error('IQC_SAVE_COMPARISON_RETIRED');\n      assertMutationAdmission();if(unknown||queued)throw Error('OPERATION_IN_PROGRESS');\n      iqcCommands.clear();\n      const observation=iqcObservation+1,result=await request(endpoint,undefined,{isCurrent,requireAcceptedAccess:true});\n      if(observation!==iqcObservation||queued)throw Error('IQC_SAVE_COMPARISON_RETIRED');\n      if(result.permissions?.view===false||result.permissions?.edit===false||access?.view===false||access?.edit===false)throw Error('FORBIDDEN');\n      if(isCurrent()!==true||result.permissions?.view!==true||result.permissions?.edit!==true||access?.view!==true||access?.edit!==true||!Number.isSafeInteger(result.revision)||!Array.isArray(result.control?.versions)||!['view','edit','save','submit','withdraw','approve','return','history','delete'].every(key=>typeof result.permissions[key]==='boolean')||result.unchanged)throw Error('IQC_SAVE_AUTHORITY_REQUIRED');\n      const flow=result.control.workflow;\n      if(flow&&(flow.scope!=='iqc'||typeof flow.generation!=='string'||!Number.isSafeInteger(flow.revision)||flow.revision<0||flow.pendingId!==null))throw Error(flow?.pendingId?'PENDING_LOCKED':'IQC_SAVE_AUTHORITY_REQUIRED');\n      const token=iqcFreeze({result:JSON.parse(iqcJSON(result))});\n      const entry={result:token.result,current:isCurrent,observation:iqcObservation,accessEpoch,accessFence,accessObserved,consumed:false,dispatched:false};\n      iqcComparisons.set(token,entry);iqcCurrent(entry);return token;\n    }\n    function iqcDispatched(token){iqcEnabled();const entry=iqcComparisons.get(token);if(!entry)throw Error('IQC_SAVE_COMPARISON_REQUIRED');return entry.dispatched===true;}\n    function iqcRetireBegin(token){iqcEnabled();const entry=iqcComparisons.get(token);if(!entry)throw Error('IQC_SAVE_COMPARISON_REQUIRED');return entry.retireBegin?.()===true;}\n    function iqcPrepare(token,details,{isCurrent}={}){\n      const entry=iqcEntry(token),flow=entry.result.control.workflow;\n      if(!flow||typeof isCurrent!=='function'||isCurrent()!==true||!['save-local-v1','save-local-revive-v1'].includes(details?.moduleAction)||details.generation!==undefined||details.expectedRevision!==undefined)throw Error('IQC_SAVE_COMPARISON_REQUIRED');\n      if(details.moduleAction==='save-local-revive-v1'&&entry.result.permissions?.create!==true)throw Error('IQC_REVIVE_CREATE_REQUIRED');\n      const original=entry.current;entry.current=()=>original()===true&&isCurrent()===true;\n      const command=client.prepare(flow.generation,'save',{...JSON.parse(iqcJSON(details)),expectedRevision:flow.revision});\n      entry.consumed=true;entry.raw=iqcJSON(command);iqcCommands.set(command.operationId,entry);return command;\n    }\n    async function iqcBegin(token,{isCurrent}={}){\n      const entry=iqcEntry(token);if(entry.result.control.workflow||typeof isCurrent!=='function'||isCurrent()!==true)throw Error('IQC_BEGIN_COMPARISON_REQUIRED');\n      const original=entry.current;entry.current=()=>original()===true&&isCurrent()===true;entry.consumed=true;\n      const identity={operationId:crypto.randomUUID(),basis:captureBeginBasis(entry.result)};\n      iqcBegins.set(identity.operationId,entry);\n      try{return await beginV1(identity,null,entry);}finally{iqcBegins.delete(identity.operationId);}\n    }\n"
+      },
+      {
+        "offset": 110794,
+        "before": "",
+        "after": "      try{fqcBeforeRequest(body);iqcBeforeRequest(body);}catch(cause){if(!body)throw cause;const error=Object.assign(Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED'),{notSent:true,cause});externalUnsent.add(error);throw error;}\n"
+      },
+      {
+        "offset": 114478,
+        "before": "        let response;try{response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(fqcMutation&&body?.command?.action==='apply'?'&projection=fqc-apply-ack-v1':responseProjection==='iqc-edit-v1'?'&projection=iqc-edit-v1':''),requestOptions);}\n",
+        "after": "        if((fqcComparedSave||iqcComparedSave)&&body)try{fqcBeforeFetch(body);iqcBeforeFetch(body);}catch(cause){const error=Object.assign(Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED'),{notSent:true,cause});externalUnsent.add(error);throw error;}\n        let response;try{response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(fqcMutation&&body?.command?.action==='apply'?'&projection=fqc-apply-ack-v1':responseProjection==='iqc-edit-v1'&&!new URLSearchParams(url.split('?')[1]||'').has('approvedOnly')?'&projection=iqc-edit-v1':''),requestOptions);}\n"
+      },
+      {
+        "offset": 129474,
+        "before": "",
+        "after": "      fqcAdmission(command);iqcAdmission(command);\n"
+      },
+      {
+        "offset": 136447,
+        "before": "",
+        "after": "      compareForSave:iqcComparedSave?iqcCompare:fqcCompare,prepareComparedSave:iqcComparedSave?iqcPrepare:fqcPrepare,beginCompared:iqcComparedSave?iqcBegin:fqcBegin,comparisonDispatched:iqcComparedSave?iqcDispatched:fqcDispatched,retireComparedBegin:iqcComparedSave?iqcRetireBegin:fqcRetireBegin,\n"
+      },
+      {
+        "offset": 142277,
+        "before": "        if(!durableBegin||beginPath!=='/api/fqc/workflow'||!identity)throw Error('INVALID_BEGIN_IDENTITY');\n",
+        "after": "        if(!durableBegin||!(beginPath==='/api/fqc/workflow'||iqcMutation&&beginPath==='/api/iqc/workflow')||!identity)throw Error('INVALID_BEGIN_IDENTITY');\n"
+      },
+      {
+        "offset": 148238,
+        "before": "        if(!externalBounded||!(boundedScope==='fqc'||abModule)||unknown||boundedRecord||queued||beginPending||retryPending||preparedFlights.size||recoveryInvalid||command?.action!=='save'||command.moduleAction!=='save-local-v1'||!(abModule?Array.isArray(command.input?.scopes):Array.isArray(command.patches)&&Array.isArray(command.guards)&&Array.isArray(command.input?.matrixCells))||!failure||JSON.stringify(failure.command)!==JSON.stringify(command)||!boundedRejected.has(error)||!proof||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||proof.code!==error.message||proof.status!==error.status)return false;\n",
+        "after": "        if(!externalBounded||!(['fqc','iqc'].includes(boundedScope)||abModule)||unknown||boundedRecord||queued||beginPending||retryPending||preparedFlights.size||recoveryInvalid||command?.action!=='save'||command.moduleAction!=='save-local-v1'||!(abModule?Array.isArray(command.input?.scopes):Array.isArray(command.patches)&&Array.isArray(command.guards)&&(boundedScope==='iqc'||Array.isArray(command.input?.matrixCells)))||!failure||JSON.stringify(failure.command)!==JSON.stringify(command)||!boundedRejected.has(error)||!proof||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||proof.code!==error.message||proof.status!==error.status)return false;\n"
+      },
+      {
+        "offset": 154234,
+        "before": "",
+        "after": "        fqcAdmission(command);iqcAdmission(command);\n"
+      },
+      {
+        "offset": 156198,
+        "before": "        const result=tail.then(async()=>{assertMutationAdmission();if(action==='save'&&syncFailures.size)throw syncFailures.values().next().value.error;\n",
+        "after": "        const result=tail.then(async()=>{fqcAdmission(command);iqcAdmission(command);assertMutationAdmission();if(action==='save'&&syncFailures.size)throw syncFailures.values().next().value.error;\n"
+      },
+      {
+        "offset": 156918,
+        "before": "          return post(command,retry,owner);}).finally(()=>{queued--;if(externalBounded)boundedProofs.delete(command.operationId);});\n",
+        "after": "          return post(command,retry,owner);}).finally(()=>{queued--;if(externalBounded)boundedProofs.delete(command.operationId);if(fqcComparedSave)fqcCommands.delete(command.operationId);});\n"
+      }
+    ]
+  },
+  {
+    "target": "ab",
+    "file": "public/process/version-draft-ui.js",
+    "sourceCommit": "8a6d64e06cd5c9f086f7e2ffbffacccfd494454e",
+    "beforeBlob": "3a91e795931f553d26ab7f56f714bcf8fa30cb57",
+    "beforeLength": 62745,
+    "beforeHash": "643ec221be7180fa16262b37cf602cd98106f99cc126c79aee2b3c0eb56e57a9",
+    "afterLength": 62812,
+    "afterHash": "a1d669011e5cc6c27d91e406dcff5ff248917f3449d1a644ce96a06c0f582bd2",
+    "rules": [
+      {
+        "offset": 878,
+        "before": "    historyHelp:['查看版本與儲存紀錄為唯讀。需要取回舊內容時，開啟送審案件並預覽還原到草稿。','Xem phiên bản và lịch sử lưu chỉ để đọc. Muốn lấy lại nội dung cũ, mở hồ sơ và xem trước khôi phục vào bản nháp.'],\r\n",
+        "after": "    historyHelp:['已核准版本僅供唯讀查看，不會還原或寫入草稿。','Phiên bản đã duyệt chỉ để xem; không khôi phục hoặc ghi vào bản nháp.'],\n"
+      },
+      {
+        "offset": 23131,
+        "before": "    const view=async row=>{try{const options={client,masterScope:model.masterScope,editable:()=>false,onApplied:async()=>{}};if(row.caseId)options.caseId=row.caseId;else options.versionPreview=(await client.version(row.id)).version;await host.openSharedDraftHistory(options);}catch(error){notice.textContent=t('history')+' · '+error.message;}};\r\n",
+        "after": "    const view=async row=>{try{if(model.selectVersion){await model.selectVersion(row.id);return;}const options={client,masterScope:model.masterScope,editable:()=>false,onApplied:async()=>{}};if(row.caseId)options.caseId=row.caseId;else options.versionPreview=(await client.version(row.id)).version;await host.openSharedDraftHistory(options);}catch(error){notice.textContent=t('history')+' · '+error.message;}};\n"
+      },
+      {
+        "offset": 24137,
+        "before": "      for(const row of data.rows){const li=create('li','');if(kind==='saves')li.textContent=`${t('saved')} · ${row.actor?.name||t('unknown')} · ${date(row.at)}${row.reason?' · '+row.reason:''}${row.source?' · '+row.source:''}`;else{known.set(row.id,row);const button=create('button','button ghost',`${number(row)} · ${t(row.status)} · ${date(row.createdAt)}`);button.type='button';button.onclick=()=>void view(row);li.append(button);if(select&&!model.masterScope&&![...select.options].some(o=>o.value===row.id||o.value==='history:'+row.id)){let group=select.querySelector('[data-vd-history]');if(!group){group=document.createElement('optgroup');group.dataset.vdHistory='true';group.label=t('history');select.append(group);}const option=document.createElement('option');option.value='history:'+row.id;option.textContent=`${number(row)} · ${t(row.status)}`;group.append(option);}}rows.append(li);}\r\n",
+        "after": "      for(const row of data.rows){if(kind==='versions'&&model.historyVersionStatuses&&!model.historyVersionStatuses.includes(row.status))continue;const li=create('li','');if(kind==='saves')li.textContent=`${t('saved')} · ${row.actor?.name||t('unknown')} · ${date(row.at)}${row.reason?' · '+row.reason:''}${row.source?' · '+row.source:''}`;else{known.set(row.id,row);const button=create('button','button ghost',`${number(row)} · ${t(row.status)} · ${date(row.createdAt)}`);button.type='button';button.onclick=()=>void view(row);li.append(button);if(select&&!model.masterScope&&![...select.options].some(o=>o.value===row.id||o.value==='history:'+row.id)){let group=select.querySelector('[data-vd-history]');if(!group){group=document.createElement('optgroup');group.dataset.vdHistory='true';group.label=t('history');select.append(group);}const option=document.createElement('option');option.value='history:'+row.id;option.textContent=`${number(row)} · ${t(row.status)}`;group.append(option);}}rows.append(li);}\n"
+      }
+    ]
+  }
+]

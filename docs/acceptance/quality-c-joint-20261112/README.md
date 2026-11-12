@@ -1,3 +1,18 @@
+# Follow-up: add IPQC A/B #107 to existing #109
+
+The current candidate integrates #107 `8a6d64e06cd5c9f086f7e2ffbffacccfd494454e`
+into #109 `61bbc8f67a89e785ca4acf527254dd7d49b75cde`. The prior pair-only
+notes below are historical. #103/#104/#108 are still excluded. Source branches
+are preserved and main is not merged/deployed. No real data is changed.
+
+Shared runtime combines module history paths and AB access/restore fences,
+FQC/IQC separation, C product-switch retention and AB filtering. New exact
+source proof composes both genuine parents without replacing their old pins.
+Four-module same-DB isolation covers both execution orders.
+New HEAD must rerun all CI; the preceding #109 green result is not reused.
+
+---
+
 # FQC／IQC＋IPQC C 共同測試候選
 
 ## 固定來源與範圍

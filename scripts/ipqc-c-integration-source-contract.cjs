@@ -5,7 +5,7 @@ const {base,contracts}=require('./ipqc-c-integration-source-contract.json');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 function withoutCIntegration(bytes,file){
  assert(Buffer.isBuffer(bytes),'C integration requires raw source bytes');
- bytes=require('./quality-c-joint-source-contract.cjs').projectKnown(bytes,file,'c');
+ bytes=require('./quality-triple-source-contract.cjs').projectKnown(bytes,file,'pair'); bytes=require('./quality-c-joint-source-contract.cjs').projectKnown(bytes,file,'c');
  const contract=contracts[file];assert(contract,'Unknown C integration source');
  if(hash(bytes)===contract.beforeHash)return bytes;
  assert.equal(hash(bytes),contract.afterHash,'C integration source differs from pinned bytes');
@@ -18,7 +18,7 @@ function withoutCIntegration(bytes,file){
 }
 function projectKnown(bytes,file){
  assert(Buffer.isBuffer(bytes),'C integration requires raw source bytes');
- bytes=require('./quality-c-joint-source-contract.cjs').projectKnown(bytes,file,'c');
+ bytes=require('./quality-triple-source-contract.cjs').projectKnown(bytes,file,'pair'); bytes=require('./quality-c-joint-source-contract.cjs').projectKnown(bytes,file,'c');
  return contracts[file]?.afterHash===hash(bytes)?withoutCIntegration(bytes,file):bytes;
 }
 module.exports={base,contracts,withoutCIntegration,projectKnown};

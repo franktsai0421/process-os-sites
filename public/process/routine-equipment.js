@@ -2633,7 +2633,7 @@
       }else if(moduleId==='ipqc-ab'){
         const rows=latest.filter(row=>ids.includes(row.id));data={results:[]};
         for(const scopeKey of new Set(rows.map(row=>row.scopeKey))){const group=rows.filter(row=>row.scopeKey===scopeKey);let scopeClient;
-          try{assertIntent();const endpoint='/api/ipqc-ab/workflow?scope='+encodeURIComponent(scopeKey)+'&caseMetadata=1',client=window.createSharedDraftClient({endpoint,actorId:dialog.owner.actorId,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});
+          try{assertIntent();const endpoint='/api/ipqc-ab/workflow?scope='+encodeURIComponent(scopeKey)+'&caseMetadata=1',client=window.createSharedDraftClient({endpoint,actorId:dialog.owner.actorId,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json','X-Process-Expected-Actor':dialog.owner.actorId})});
             scopeClient=client;await client.flush();assertIntent();if(client.hasUnknown())throw Error('PREVIOUS_OPERATION_UNKNOWN');
             const changed=group.filter(needsTransfer);
             if(!changed.length)await beginTransferDraft(client,endpoint,transferScopeEntry(targetEntry,scopeKey),'ipqc-ab:'+scopeKey,transferIntent,owns,false);

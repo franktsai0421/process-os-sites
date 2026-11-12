@@ -38,7 +38,14 @@
       const paint=()=>{rows.forEach((row,i)=>row.hidden=i<page*8||i>=(page+1)*8);prev.disabled=page===0;next.disabled=(page+1)*8>=rows.length;label.textContent=`${page+1} / ${Math.ceil(rows.length/8)}`;};prev.type=next.type='button';prev.onclick=()=>{page--;paint();};next.onclick=()=>{page++;paint();};nav.append(prev,label,next);group.after(nav);paint();
     }
   }
+  // BOM-only presentation lease. Neither this selector nor its GETs settle a
+  // write, replace a working aggregate, or touch a local recovery journal.
+  const approvedDisplays=new WeakMap();
   const cloneHistory=value=>JSON.parse(JSON.stringify(value));
+  function clearHistory(client){const entry=client&&approvedDisplays.get(client);if(entry){entry.sequence++;entry.selected=null;}}
+  function historyVersion(client){const entry=client&&approvedDisplays.get(client);try{if(entry?.selected&&!entry.selected.current()){entry.sequence++;entry.selected=null;}return entry?.selected?cloneHistory(entry.selected.version):null;}catch{if(entry){entry.sequence++;entry.selected=null;}return null;}}
+  // Explicit adapters own their working buffers. This controller owns only a
+  // display lease and cloned, audited GET results; it never calls a writer.
   const approvedPageCaches=new WeakMap();
   function createApprovedHistory(options){
     const {root,shell,client}=options;
@@ -319,7 +326,7 @@
     }
     return {inspect,covered:()=>completedCoverage.length>0&&completedCoverage.every(lease=>lease.current()),otherDraftsPending(){const plan=config.unknown?.()&&unknownPlan();if(plan)return plan.peers.some(client=>client.otherDeparturePending(plan.peers));const pending=host.sharedDraftAccountState?.()||{};return host.sharedDraftDepartureBlocked?.()??!!(pending.unknown||pending.failed);},ownsRuntimeLocal:()=>config.ownsRuntimeLocal?.()===true,save:()=>act('save'),discard:()=>act('discard'),abandon:()=>act('abandon'),ownsDialog:node=>(config.dialogs?.()||[]).includes(node),closeClean(){const status=inspect();if(!['clean','departing'].includes(status.state))throw Error(status.reason);config.closeClean?.();if(operation?.unknown){operation.committed=true;completedCoverage=operation.coverage;}}};
   }
-  host.VersionDraftUI={createApprovedHistory,renderApprovedCollections,createDeparture,masterChanges,mount,t,date,issueMessage,confirmSubmit,confirmReview,preserveView,reasonFor,updateSaved,updateSync};
+  host.VersionDraftUI={createApprovedHistory,renderApprovedCollections,historyVersion,clearHistory,createDeparture,masterChanges,mount,t,date,issueMessage,confirmSubmit,confirmReview,preserveView,reasonFor,updateSaved,updateSync};
   const priorValidation=host.renderSharedDraftValidation;
   host.renderSharedDraftValidation=options=>{const shell=options.after?.closest('.vd-shell');if(shell)shell.querySelectorAll('[data-shared-issue-kind]').forEach(node=>node.remove());priorValidation?.(options);if(shell){for(const kind of ['error','missing','warning']){const section=shell.querySelector(kind==='warning'?'.vd-history':'.vd-'+(kind==='error'?'errors':'missing'));for(const node of shell.querySelectorAll('.shared-validation [data-shared-issue-kind="'+kind+'"]')){section.querySelector('.vd-empty')?.remove();section.append(node);}}shell.querySelectorAll('.shared-validation').forEach(node=>node.remove());}};
   host.addEventListener('process-language-change',()=>document.querySelectorAll('.vd-shell').forEach(shell=>shell.refreshLabels?.()));

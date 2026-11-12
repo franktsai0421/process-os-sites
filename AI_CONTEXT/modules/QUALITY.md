@@ -3,6 +3,13 @@
 FQC／IQC Save 以一次全域 Mine／Theirs／Cancel 決定目前整頁本機批次，最小同 ID／上層復活保留 peer 其他欄位；取消不寫入。未送表單與 IQC File 只留 RAM，首次照片 PUT 僅在明確 Save；UNKNOWN 保留原操作／照片收據，不盲重送，晚回應不得清除後來輸入。當前核准歷史同頁唯讀，顯示 owner、角色、revision、session 及換頁失效均隔離。設備頁替換 FQC／IQC 各自原子保存其整份共享 working，不含其他頁未送表單、不 Submit；IQC identified Begin 僅接受既有 bounded IQC client，失去 ACK 後只查原收據、不自動繼續 Save。其餘 IPQC 移轉維持既有協議。例行整頁資料關係見 [模型](../models/ROUTINE_FQC.md)。
 
 main 已有 #70 缺漏統計及 #90 數值提示，不重複搬入或把歷史數字當現況。共用自審規則仍與 main 一致。來源、17 項對照、驗證與尚待真人／實站事項見[整合追蹤](../../docs/acceptance/fqc-iqc-integration-20261112/README.md)。本段取代下方候選中的「identified Begin 僅 FQC／IQC 仍 Apply 後手動 Save」敘述；舊紀錄保留。未合併、部署或修改正式資料。
+## 2026-11-12 — Equipment-to-A/B transfer compatibility
+
+The A/B transfer client now pins its expected actor to the original equipment dialog owner, preserving current authorization, intent and CAS fences. Compiled transfer 7/7 and ownership/save 27/27 pass; see the [A/B evidence ledger](../../docs/acceptance/ipqc-ab-integration-20261112/README.md). Draft only; no deployment or real-data changes.
+
+## 2026-11-12 — Isolated IPQC A/B integration candidate
+
+A/B grouped Save conflicts, original-ID retention, approved readonly history, explicit-check performance and completeness parity are integrated as a candidate based on main #100. Latest policy retains unsent RAM/Files/forms across A/B line/group/stage filters; only departure to another module discards unsent input. Photo ACK loss retains owner-scoped operation metadata, supports GET-only recovery and permits silent departure without restoring private forms. Whole-set mine retains multiple selected original identities with unchanged restore gates. No merge/deployment/live acceptance. [Sources, seven-scope coverage and test limits](../../docs/acceptance/ipqc-ab-integration-20261112/README.md).
 
 ## 2026-11-08 — Equipment explicit recheck and structural ACK candidate
 
