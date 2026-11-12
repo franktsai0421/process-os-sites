@@ -2,7 +2,7 @@
 
 Base main `9fbba823090f03da8385c8d92f5e59293d19d2f1`。本次以獨立目錄、新分支及單一 Draft PR 交付；禁止合併、部署、真資料操作。
 
-本輪查證：main `9fbba823`；#102 `55d4672c`；#103 `2d2d79cb`；#104 `429d3bfa`。來源與逐檔候選 hash 見 `cloud-source-selection.json`。歷史 PASS 不當作本候選 PASS。
+初次整合固定來源：main `9fbba823`；#102 `55d4672c`；#103 `2d2d79cb`；#104 `429d3bfa`。來源與逐檔候選 hash 見 `cloud-source-selection.json`。歷史 PASS 不當作本候選 PASS。
 
 
 ## Cloud 第二批候選（2026-11-12）
@@ -39,7 +39,7 @@ Cloud Chromium 下載實際回應 `403 Domain forbidden`，未改用替代主機
 
 ## 驗證與界線
 
-本輪集中 1115/1115 PASS；相鄰模組 284/284、離頁與送審 pins 189/189 PASS（集合有重疊，不加總覆蓋率）。取消／換頁／撤權／並行與生命週期均有合成回歸；型別／lint 通過。受保護 build 已通過，最後修正後再以新 HEAD 重建。CI／原生瀏覽器最後結果以 PR 當前 HEAD 為準。模擬不代表真人驗收；實站效能、實體手機、IME及真人兩人皆待驗。5秒以上優化、10秒以上強化以實測為準。
+集中候選 1116/1116 PASS；相鄰模組 284/284、離頁與送審 pins 189/189 PASS（集合有重疊，不加總覆蓋率）。取消／換頁／撤權／並行與生命週期均有合成回歸；型別／lint 通過。受保護 build 已通過，最後修正後再以新 HEAD 重建。CI／原生瀏覽器最後結果以 PR 當前 HEAD 為準。模擬不代表真人驗收；實站效能、實體手機、IME及真人兩人皆待驗。5秒以上優化、10秒以上強化以實測為準。
 
 保留 FQC V31 已核准、V32 部分保存重載及矩陣成功但當時未送審；IQC #70/#90 歷史 V41，待審造成未驗收的項目不當成新缺陷。站點 v41/v42 非目前 Git 來源證據。
 
@@ -60,3 +60,11 @@ Cloud Chromium 下載實際回應 `403 Domain forbidden`，未改用替代主機
 已確認舊世代 Save 的私有換代證據後，FQC 會退休舊 attempt、保留目前表單並只查原收據；沒有證據仍拒絕跨代恢復。共用 `lib/shared-draft.ts` 與 main 完全相同，例行整頁 UI 對本人的退回／核准皆沿用 main 自審確認。歷史欄位衝突測試固定讀 main 真實 Git 來源，另加目前全域選擇的原生測試，保留舊反例。
 
 舊例行 document layout 保留 main 的 Apply → read → Save → read 相容協議並加入唯讀顯示隔離；210 項舊資料、收據、晚回應及離頁回歸通過。新 page layout 走獨立整頁 atomic Save，沒有以逐文件 Save 代替整頁。CI-only 多人測試改用實際核准歷史選單，合成初始版本具有明確合成核准事件；正式指標本身仍不算核准歷史。
+
+## 最終測試收尾與來源重驗
+
+收尾觀察 main 仍為 `9fbba823`、#102 為 `55d4672c`；#103 新增至 `fb62c259`、#104 至 `15a5acb4`，新增差異沒有 quality runtime。僅選取 #104 的 test-only shell bundle oracle，先核驗來源 blob `55bb1d977be8f91eee09fac4e2d5b137e1cddc9a`／`3b0d7b51fce310f459d9f29f0bd507c765198048`，再改為 main 固定 50 支加本任務兩支 routine 腳本的獨立清單。保留錯序、遺漏、私有檔洩漏、錯誤 URL／位元組／完成收據及 LF／CRLF 反例；未搬入 PROCESS 功能。
+
+`8780455` 的 164 項打包／送審／相鄰契約、12 項編譯根入口，以及 lint、型別、受保護 build、全 Git 歷史／worktree 預檢通過。例行 Submit fixture 載入實際唯讀顯示 guard，新增核准歷史阻擋寫入反例。後續僅測試補強：原成對 FQC Apply／lifecycle8 測試更新為精確多一次最終 session 查核，同時驗證編碼 PUT → 既有 phase 檢查 → 額外 session 檢查 → CAS 的順序；在第二次編碼後查核注入撤銷，Apply 與五項生命週期皆須 401、DB 不變、無收據發布。58 組 Apply 與 180 組 lifecycle8 成對回歸通過，原 DTO、歷史來源、非授權讀取、寫入拒絕及 immutable 內容斷言保留。
+
+較早候選 CI 已通過原生 49 項、完整生命週期 5 輪／160 樣本及多人矩陣 5 輪／60 樣本／25 功能檢查；0 非預期請求。Save 中位數約 130–147 ms，僅為合成 CI。最新提交的 CI、遠端 SHA 與完整 Windows 結果更新於同一 Draft PR #105；較早結果不冒稱最新 HEAD 已全數通過。未操作正式資料，真人及實站事項仍依上表待驗。

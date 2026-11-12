@@ -19,6 +19,7 @@ function side(old){
  return{old,db,objects,events,bucket,load,core,records,draft,route,row,install,metric,request,post,hook:{get get(){return onGet},set get(v){onGet=v},set read(v){onRead=v},set run(v){onRun=v}},reset(){onGet=onRead=onRun=null;uuid=0;events.length=0;db.prepare('DELETE FROM process_revoked_sessions').run();}};
 }
 const old=side(true),next=side(false),sides=[old,next];
+const {assertFinalSessionOrder,assertFinalSessionRevocation}=require('./fqc-post-encoding-session-fixture.cjs');
 function fixture(s){const content={errors:[{id:'e1',code:'QA-FQC-L01',name:'Error one',category:'QA',line:'A'},{id:'e2',code:'QA-FQC-L02',name:'Error two',category:'QA',line:'A'}],items:[{id:'i1',checkNo:'QA-FQC-L1-01',name:'Item one',category:'QA',line:'A',errorId:'e1',productCodes:['P1'],mediaItems:[{id:'photo',src:'/synthetic-photo.png'}],isEnabled:true,equipmentId:null,tool:'目視檢查',rule:{cadence:'batch',batchKind:'fixed_count',fixedCount:3}}]};const flow=s.draft.createSharedDraft('fqc',content,'approved','generation-fixture');const version=(id,status,snapshot)=>({id,number:id==='approved'?1:2,status,snapshot,revision:0,creatorId:'editor',creatorName:'editor',createdAt:new Clock().toISOString(),updatedAt:new Clock().toISOString(),history:[]});
  return{platformUsers:JSON.stringify(users),processCustomRoles:'[]',processRoleTemplateOverrides:'{}',processAccessControl:'{}',maintenanceMode:'0',qualityMasterControl:JSON.stringify({schemaVersion:1,libraries:{fqc:{activeVersionId:'approved',versions:[version('approved','approved',content),version('shared-generation-fixture','draft',content)],workflow:flow},iqc:{activeVersionId:'iqc',versions:[version('iqc','approved',{notes:'keep sibling',items:[]})]}}}),masterDataControl:JSON.stringify({active:{AB:{products:[{code:'P1'}]}},versions:[{id:'ab',scope:'AB',status:'approved',snapshot:{products:[{code:'P1'}]}}]}),routineEquipmentControl:JSON.stringify({activeVersionId:'eq',versions:[{id:'eq',status:'approved',equipment:[{id:'tool',enabled:true,assetCode:'QA',pieceMark:'01'}]}]}),toolingMasterControl:JSON.stringify({versions:[{id:'unrelated',status:'draft',snapshot:{notes:'UNRELATED_BODY_'.repeat(40000)}}]}),sentinel:'"untouched"'};
 }
@@ -31,10 +32,13 @@ function bodyRef(s,key,select){const env=JSON.parse(s.row().values),agg=JSON.par
  normal=await pair('normal existing item Apply preserves DTO/permissions/manifest');assert(normal[1].metrics.gets<normal[0].metrics.gets);assert(normal[1].metrics.bytes<normal[0].metrics.bytes-500000);
 // The required-dependency path adds a pre-business fresh fence to the existing
 // initial, permissions-complete, pre-encoding and pre-CAS boundaries. The ancient
-// pre-ACL baseline performs nine reads; explicit-rights denials stay tested below.
+// pre-ACL baseline performs nine reads. Candidate adds exactly one final session
+// read after immutable encoding; all non-auth counts and denial checks remain.
  assert.equal(normal[0].metrics.revocationReads,9);
- assert.equal(normal[1].metrics.revocationReads,5);
- assert.equal(normal[1].metrics.sqlReads,normal[0].metrics.sqlReads-4);
+ assert.equal(normal[1].metrics.revocationReads,6);
+ assertFinalSessionOrder(next.events);
+ assert.equal(normal[1].metrics.sqlReads,normal[0].metrics.sqlReads-3);
+ await setup(next);await assertFinalSessionRevocation(next,command(),fixed);cases.push('final post-encoding Apply revocation blocks CAS and receipt');
  for(const denied of ['view','edit','create','restore']){
   await setup(next,values=>{const accounts=JSON.parse(values.platformUsers);accounts[0].accessOverrides['fqc.'+denied]=false;values.platformUsers=JSON.stringify(accounts);});
   const auth=await next.request(command()),metadata=await next.route.GET(new Request(auth.url+'&permissions=1',{headers:auth.headers}));
