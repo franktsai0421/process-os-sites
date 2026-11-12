@@ -1,0 +1,805 @@
+[
+  {
+    "file": "app/api/ipqc-ab/photo/route.ts",
+    "beforeHash": "f748661a1198fd9f9f01bc9794e3d79f15c9e3182aa65850832327c07f258e59",
+    "afterHash": "82ecd61f47392c6882ca7a794d4253f83206390bccd00663f27c3dda26e15459",
+    "rules": [
+      {
+        "offset": 543,
+        "before": "",
+        "after": "  if(new URL(request.url).pathname!=='/api/ipqc-ab/photo')return Response.json({error:'NOT_FOUND'},{status:404});\n"
+      },
+      {
+        "offset": 810,
+        "before": "    const state = await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode']});\n",
+        "after": "    const state = await readState({aggregateReadAhead:true,keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode']});\n"
+      },
+      {
+        "offset": 1582,
+        "before": "",
+        "after": "  if(new URL(request.url).pathname!=='/api/ipqc-ab/photo')return Response.json({error:'NOT_FOUND'},{status:404});\n"
+      },
+      {
+        "offset": 1794,
+        "before": "    const state = await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode']});\n    if (!await identity(request,state) || !(await can(request,state,'view:data')) ||\n",
+        "after": "    const state = await readState({aggregateReadAhead:true,keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode']});\n    const actor=await identity(request,state),expected=request.headers.get('X-Process-Expected-Actor');\n    if(actor&&(expected===null||actor.id!==expected))return Response.json({error:'ACCOUNT_CHANGED_REOPEN_REQUIRED'},{status:403});\n    if (!actor || !(await can(request,state,'view:data')) ||\n"
+      },
+      {
+        "offset": 2638,
+        "before": "",
+        "after": "    // Image decoding and hashing can outlive the initial authorization snapshot.\n    const fresh=await readState({aggregateReadAhead:true,keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode']});\n    const current=await identity(request,fresh);\n    if(!current||current.id!==actor.id||!(await can(request,fresh,'view:data'))||!(await can(request,fresh,'ipqc-ab.edit')))\n      return Response.json({error:'沒有照片上傳權限'},{status:403});\n"
+      },
+      {
+        "offset": 3172,
+        "before": "      await env.STATE_ARCHIVE.put(key(id),bytes,{httpMetadata:{contentType:type}});\n",
+        "after": "      // First-creation provenance is committed atomically with the immutable bytes.\n      // Conditional creation keeps a competing actor from replacing that origin.\n      await env.STATE_ARCHIVE.put(key(id),bytes,{httpMetadata:{contentType:type},\n        onlyIf:{etagDoesNotMatch:'*'},customMetadata:{provenanceVersion:'1',createdBy:actor.id,createdAt:new Date().toISOString(),sha256:id}});\n"
+      }
+    ]
+  },
+  {
+    "file": "app/api/ipqc-ab/route.ts",
+    "beforeHash": "40dfa3b4886559ae9006b42448475e24e67440a6a659c620b267bbe13113184d",
+    "afterHash": "5f7849eacb17739347117bf4eb7ed301d3992388ea3978560d20e3607268c3ed",
+    "rules": [
+      {
+        "offset": 0,
+        "before": "",
+        "after": "import {abLocalLineage} from '@/lib/ipqc-ab-local-lineage';\nimport {isImmutableRecordBody,readImmutableRecord} from '@/lib/state-records';\n"
+      },
+      {
+        "offset": 272,
+        "before": "  responseHeaders as headers } from '@/lib/process-state';\n",
+        "after": "  stateRevisionIsCurrent,responseHeaders as headers } from '@/lib/process-state';\n"
+      },
+      {
+        "offset": 7092,
+        "before": "",
+        "after": "  if(new URL(request.url).pathname!=='/api/ipqc-ab')return Response.json({error:'NOT_FOUND'},{status:404});\n"
+      },
+      {
+        "offset": 7353,
+        "before": "    if(query.has('catalog')&&(query.getAll('catalog').length!==1||!equipmentOnly||[...query.keys()].some(key=>key!=='catalog'))||query.has('equipment')&&(query.getAll('equipment').length!==1||!deferred||[...query.keys()].some(key=>!['equipment','caseMetadata'].includes(key))))return reply({error:'INVALID_READ_QUERY'},400);\n",
+        "after": "    if(query.has('catalog')&&(query.getAll('catalog').length!==1||!equipmentOnly||[...query.keys()].some(key=>key!=='catalog'))||query.has('equipment')&&(query.getAll('equipment').length!==1||!deferred||[...query.keys()].some(key=>!['equipment','caseMetadata','localLineage'].includes(key))))return reply({error:'INVALID_READ_QUERY'},400);\n    if(query.has('localLineage')&&(query.getAll('localLineage').length!==1||query.get('localLineage')!=='1'||equipmentOnly||[...query.keys()].some(key=>!['localLineage','caseMetadata','equipment'].includes(key))))return reply({error:'INVALID_READ_QUERY'},400);\n"
+      },
+      {
+        "offset": 8306,
+        "before": "    const state=await readState({keys,modelKey:equipmentOnly?undefined:KEY,deferHistory:true,deferDependencyHistory:true}),actor=await identity(request,state);\n    if(!actor||!(await can(request,state,'view:data'))&&!(await can(request,state,'view:approval')))return reply({error:'沒有查看 IPQC-AB 權限'},403);\n",
+        "after": "    const state=await readState({aggregateReadAhead:true,keys,modelKey:equipmentOnly?undefined:KEY,deferHistory:true,deferDependencyHistory:true}),actor=await identity(request,state);\n    if(!actor||request.headers.has('X-Process-Expected-Actor')&&request.headers.get('X-Process-Expected-Actor')!==actor.id||!(await can(request,state,'view:data'))&&!(await can(request,state,'view:approval')))return reply({error:'沒有查看 IPQC-AB 權限'},403);\n"
+      },
+      {
+        "offset": 9145,
+        "before": "",
+        "after": "    const lineageBodies=new Map<string,Promise<unknown>>(),resolveLineage=async(value:unknown)=>{if(!isImmutableRecordBody(value))return value;const ref=value.__immutableBody;if(!lineageBodies.has(ref.sha256))lineageBodies.set(ref.sha256,readImmutableRecord(env.STATE_ARCHIVE,ref).then(JSON.parse));return lineageBodies.get(ref.sha256)!;};\n    const localLineage=query.get('localLineage')==='1'?await abLocalLineage(control as AbModuleRoot,state.revision,catalog.groups.map(g=>g.line+':'+g.name),resolveLineage):undefined;\n    if(localLineage){const current=await identity(request,state);if(!current||current.id!==actor.id)return reply({error:'ACCOUNT_CHANGED_REOPEN_REQUIRED'},403);if(!await stateRevisionIsCurrent(state))return reply({error:'MODULE_CHANGED_RECONFIRM'},409);}\n"
+      },
+      {
+        "offset": 10244,
+        "before": "    const body={ revision:state.revision, control, catalog, ...(deferred?{equipmentDeferred:true}:{equipment}) };\n",
+        "after": "    const body={ revision:state.revision, control, catalog,...(localLineage?{localLineage}:{}), ...(deferred?{equipmentDeferred:true}:{equipment}) };\n"
+      },
+      {
+        "offset": 10708,
+        "before": "",
+        "after": "  if(new URL(request.url).pathname!=='/api/ipqc-ab')return Response.json({error:'NOT_FOUND'},{status:404});\n"
+      },
+      {
+        "offset": 11231,
+        "before": "",
+        "after": "    if(request.headers.get('X-Process-Expected-Actor')!==actor.id)return reply({error:'ACCOUNT_CHANGED_REOPEN_REQUIRED'},403);\n"
+      }
+    ]
+  },
+  {
+    "file": "app/api/ipqc-ab/workflow/route.ts",
+    "beforeHash": "0895238cc38c0d896130cb206498256216cc0465218dcd009a0a97b186600769",
+    "afterHash": "f5d393579cff626cfb3aeedae070a276ed6aa4d3a55dd34b4776faec14d3e547",
+    "rules": [
+      {
+        "offset": 431,
+        "before": "export async function GET(request:Request){return route(request).GET(request);}\nexport async function POST(request:Request){return route(request).POST(request);}\n",
+        "after": "export async function GET(request:Request){if(new URL(request.url).pathname!=='/api/ipqc-ab/workflow')return Response.json({error:'NOT_FOUND'},{status:404});return route(request).GET(request);}\nexport async function POST(request:Request){if(new URL(request.url).pathname!=='/api/ipqc-ab/workflow')return Response.json({error:'NOT_FOUND'},{status:404});return route(request).POST(request);}\n"
+      }
+    ]
+  },
+  {
+    "file": "lib/approved-history.ts",
+    "beforeHash": "78688a82850a72f300c059fc8bdb2c90697f2440d346fc4dc9768c16f8e387dc",
+    "afterHash": "bf23977ea287616f884362b830ac876231533c4b8575bd07c2a2daf43bec80b0",
+    "rules": [
+      {
+        "offset": 164,
+        "before": "// A superseded shared draft is never approval evidence.\nexport function approvedVersionEvidence<T>(control:VersionedControl<T>,v:NumericVersion<T>){\n",
+        "after": "// A superseded shared draft is never approval evidence. Strict approved-history reads also\n// require an immutable reviewed-case stamp; other consumers retain their policy.\nexport function approvedVersionEvidence<T>(control:VersionedControl<T>,v:NumericVersion<T>,strict=false){\n"
+      },
+      {
+        "offset": 507,
+        "before": "",
+        "after": "  if(strict&&(!['approved','superseded'].includes(v.status)||typeof c.savedId!=='string'||!c.savedId.trim()||typeof c.result?.actor?.id!=='string'||!c.result.actor.id.trim()||typeof c.result.actor.name!=='string'||!c.result.actor.name.trim()||typeof c.result.at!=='string'||!Number.isFinite(Date.parse(c.result.at))))return null;\n"
+      },
+      {
+        "offset": 1278,
+        "before": " if(event)return {kind:'legacy-approval' as const,caseId:null,savedId:null,approvedBy:event.actorName||null,approvedAt:event.at};\n",
+        "after": " if(event&&(!strict||Number.isFinite(Date.parse(event.at))))return {kind:'legacy-approval' as const,caseId:null,savedId:null,approvedBy:event.actorName||null,approvedAt:event.at};\n"
+      },
+      {
+        "offset": 1693,
+        "before": "export function approvedVersions<T>(control:VersionedControl<T>){return control.versions.filter(v=>approvedVersionEvidence(control,v));}\nexport function approvedVersion<T>(control:VersionedControl<T>,id:string){\n",
+        "after": "export function approvedVersions<T>(control:VersionedControl<T>,strict=false){return control.versions.filter(v=>approvedVersionEvidence(control,v,strict));}\nexport function approvedVersion<T>(control:VersionedControl<T>,id:string,strict=false){\n"
+      },
+      {
+        "offset": 2002,
+        "before": " const evidence=approvedVersionEvidence(control,v);if(!evidence)return null;\n",
+        "after": " const evidence=approvedVersionEvidence(control,v,strict);if(!evidence)return null;\n"
+      }
+    ]
+  },
+  {
+    "file": "lib/ipqc-ab-approved-history.ts",
+    "beforeHash": "bf2d36f94c7875bd445539f7b5e6e5077b4f5e7b5bee200caa799820e28cb835",
+    "afterHash": "d41f575e62436404d62976408a370c2fdf8f2c71b2548c9584d18787a428b096",
+    "rules": [
+      {
+        "offset": 783,
+        "before": "export function abApprovedMetadata(root:AbModuleRoot){\n",
+        "after": "export function abApprovedMetadata(root:AbModuleRoot,strict=false){\n"
+      },
+      {
+        "offset": 944,
+        "before": " const legacy=Object.entries(root.scopes).flatMap(([key,s])=>approvedVersions(s as AbSharedScope).filter(v=>!ids.has(v.id)&&!(v as NumericVersion<unknown>&{wholeModuleCaseId?:string}).wholeModuleCaseId).map(v=>({id:legacyAbId(key,v.id),number:v.number,status:v.status,creatorName:v.creatorName,createdAt:v.createdAt,sourceScope:key,approvalEvidence:approvedVersionEvidence(s as AbSharedScope,v)})));\n const modern=(moduleControl?approvedVersions(moduleControl):[]).map(v=>({id:v.id,number:v.number,status:v.status,creatorName:v.creatorName,createdAt:v.createdAt,approvalEvidence:approvedVersionEvidence(moduleControl!,v)}));\n",
+        "after": " const legacy=Object.entries(root.scopes).flatMap(([key,s])=>approvedVersions(s as AbSharedScope,strict).filter(v=>!strict||approvedVersionEvidence(s as AbSharedScope,v,true)?.kind!=='formal-baseline').filter(v=>!ids.has(v.id)&&!(v as NumericVersion<unknown>&{wholeModuleCaseId?:string}).wholeModuleCaseId).map(v=>({id:legacyAbId(key,v.id),number:v.number,status:v.status,creatorName:v.creatorName,createdAt:v.createdAt,sourceScope:key,sourceVersionId:v.id,approvalEvidence:approvedVersionEvidence(s as AbSharedScope,v,strict)})));\n const modern=(moduleControl?approvedVersions(moduleControl,strict).filter(v=>!strict||approvedVersionEvidence(moduleControl,v,true)?.kind!=='formal-baseline'):[]).map(v=>({id:v.id,number:v.number,status:v.status,creatorName:v.creatorName,createdAt:v.createdAt,approvalEvidence:approvedVersionEvidence(moduleControl!,v,strict)}));\n"
+      },
+      {
+        "offset": 1850,
+        "before": "export function legacyAbVersion(root:AbModuleRoot,id:string){const selected=parseLegacyAbId(id),scope=selected&&Object.hasOwn(root.scopes,selected.scope)?root.scopes[selected.scope]:null;if(!selected||!scope||root.moduleDraft?.versions.some(v=>v.id===selected.id))return null;const v=approvedVersion(scope as AbSharedScope,selected.id);if(!v||(v as typeof v&{wholeModuleCaseId?:string}).wholeModuleCaseId)return null;\n",
+        "after": "export function legacyAbVersion(root:AbModuleRoot,id:string,strict=false){const selected=parseLegacyAbId(id),scope=selected&&Object.hasOwn(root.scopes,selected.scope)?root.scopes[selected.scope]:null;if(!selected||!scope||root.moduleDraft?.versions.some(v=>v.id===selected.id))return null;const v=approvedVersion(scope as AbSharedScope,selected.id,strict);if(!v||strict&&v.approvalEvidence.kind==='formal-baseline'||(v as typeof v&{wholeModuleCaseId?:string}).wholeModuleCaseId)return null;\n"
+      }
+    ]
+  },
+  {
+    "file": "lib/ipqc-ab-local-save.ts",
+    "beforeHash": "821a730da8d21485126f45a965c7d31823390f32e72462054dfaec291c4d87d2",
+    "afterHash": "4c07eab22907d0ffac170ec1c1e7044ecaba5856a394cc69636e0e8389ae4a2e",
+    "rules": [
+      {
+        "offset": 0,
+        "before": "import {DraftConflict,cloneDraft,stableDraftJSON,createSharedDraft,type DraftPatch,type DraftContext} from './shared-draft';\n",
+        "after": "import {DraftConflict,cloneDraft,stableDraftJSON,createSharedDraft,applyDraftCommand,type DraftPatch,type DraftContext} from './shared-draft';\n"
+      },
+      {
+        "offset": 1218,
+        "before": " if(command.action!=='save'||command.moduleAction!=='save-local-v1'||command.patches||command.guards||!object(command.input)||Object.keys(command.input).some(k=>k!=='scopes')||!Array.isArray(command.input.scopes)||command.input.scopes.length>128)throw new DraftConflict('INVALID_AB_LOCAL_SAVE',422);\n const scopes=command.input.scopes as AbLocalScope[],seen=new Set<string>();let size=0;\n",
+        "after": " if(command.action!=='save'||command.moduleAction!=='save-local-v1'||command.patches||command.guards||!object(command.input)||Object.keys(command.input).some(k=>!['scopes','stateRevision'].includes(k))||command.input.stateRevision!==undefined&&(!Number.isSafeInteger(command.input.stateRevision)||Number(command.input.stateRevision)<1)||!Array.isArray(command.input.scopes)||command.input.scopes.length>128)throw new DraftConflict('INVALID_AB_LOCAL_SAVE',422);\n const scopes=command.input.scopes as AbLocalScope[],seen=new Set<string>();let size=0,restores=0;\n"
+      },
+      {
+        "offset": 2277,
+        "before": "  for(const change of entry.changes)if(!object(change)||Object.keys(change).some(k=>!['moduleAction','input','patches','guards','localId'].includes(k))||change.moduleAction&&!['create-error','create-item','delete-error','delete-item'].includes(change.moduleAction)||change.moduleAction&&change.patches||!change.moduleAction&&!Array.isArray(change.patches)||change.input!==undefined&&!object(change.input)||change.localId!==undefined&&typeof change.localId!=='string'||change.patches!==undefined&&(!Array.isArray(change.patches)||!change.patches.every(p=>object(p)&&p.op==='set'&&path(p.path)&&Object.hasOwn(p,'value')))||change.guards!==undefined&&(!Array.isArray(change.guards)||!change.guards.every(g=>object(g)&&path(g.path)&&Object.hasOwn(g,'value'))))throw new DraftConflict('INVALID_AB_LOCAL_SAVE',422);\n",
+        "after": "  for(const change of entry.changes){if(!object(change)||Object.keys(change).some(k=>!['moduleAction','input','patches','guards','localId'].includes(k))||change.moduleAction&&!['create-error','create-item','delete-error','delete-item','restore-item-local-v1'].includes(change.moduleAction)||change.moduleAction&&change.patches||!change.moduleAction&&!Array.isArray(change.patches)||change.input!==undefined&&!object(change.input)||change.localId!==undefined&&typeof change.localId!=='string'||change.patches!==undefined&&(!Array.isArray(change.patches)||!change.patches.every(p=>object(p)&&p.op==='set'&&path(p.path)&&Object.hasOwn(p,'value')))||change.guards!==undefined&&(!Array.isArray(change.guards)||!change.guards.every(g=>object(g)&&path(g.path)&&Object.hasOwn(g,'value'))))throw new DraftConflict('INVALID_AB_LOCAL_SAVE',422);\n   if(change.moduleAction==='restore-item-local-v1'&&++restores>1)throw new DraftConflict('INVALID_AB_ITEM_RESTORE',422);\n  }\n"
+      },
+      {
+        "offset": 3982,
+        "before": "  const row=content[kind as keyof AbSnapshot].find(r=>r.id===entity.id&&!r.deleted);if(!row)throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS');\n",
+        "after": "  const rows=content[kind as keyof AbSnapshot].filter(r=>r.id===entity.id),row=rows[0];\n  if(rows.length!==1||row.deleted)throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS',409,{path:patch.path,rowState:rows.length>1?'ambiguous':row?'deleted':'missing'});\n"
+      },
+      {
+        "offset": 5239,
+        "before": "export function applyAbLocalScopes(root:AbControl,command:ModuleDraftCommand,state:State,base:Omit<DraftContext<AbSnapshot>,'structure'|'validate'|'semantic'|'activeId'>):AbControl{\n",
+        "after": "export function applyAbLocalScopes(root:AbControl,command:ModuleDraftCommand,state:State,base:Omit<DraftContext<AbSnapshot>,'structure'|'validate'|'semantic'|'activeId'>,restoreAuthorized=false):AbControl{\n"
+      },
+      {
+        "offset": 5553,
+        "before": "  const adapter=abWorkflowAdapter(entry.scope),scope=adapter.parse('{}',candidate) as AbSharedScope;\n",
+        "after": "  const adapter=abWorkflowAdapter(entry.scope,'legacy-origin'),scope=adapter.parse('{}',candidate) as AbSharedScope;\n"
+      },
+      {
+        "offset": 6161,
+        "before": "  const context=adapter.context(scope,state,base),ids=new Map<string,string>(),codes=new Map<string,string>();\n",
+        "after": "  const context=adapter.context(scope,state,base),ids=new Map<string,string>(),codes=new Map<string,string>(),restored:string[]=[];\n"
+      },
+      {
+        "offset": 6648,
+        "before": "   const change=mergeAbLocalFields(scope.workflow.working,remap(raw) as AbLocalChange),operationId=command.operationId+'-ab-'+index++,clientId='ab-local-'+command.operationId;\n",
+        "after": "   let change:AbLocalChange;\n   try{change=mergeAbLocalFields(scope.workflow.working,remap(raw) as AbLocalChange);}catch(error){if(error instanceof DraftConflict)throw new DraftConflict(error.code,error.status,{...(object(error.details)?error.details:{}),scope:entry.scope});throw error;}\n   const operationId=command.operationId+'-ab-'+index++,clientId='ab-local-'+command.operationId;\n"
+      },
+      {
+        "offset": 7538,
+        "before": "   let result:ReturnType<typeof adapter.apply>;try{result=adapter.apply(scope,{action:'apply',generation:scope.workflow.generation,operationId,clientId,sequence:index,...change},{...context,commandFingerprint:undefined});}catch(error){if(error instanceof DraftConflict)throw new DraftConflict(error.code,error.status,{...(object(error.details)?error.details:{}),scope:entry.scope});throw error;}\n",
+        "after": "   let result:ReturnType<typeof adapter.apply>;try{\n    if(change.moduleAction==='restore-item-local-v1'){\n     if(!restoreAuthorized)throw new DraftConflict('RESTORE_PERMISSION_REQUIRED',403);\n     const input=change.input||{},origin=input.origin,fields=input.fields;const current:AbSnapshot['items']=scope.workflow.working.items.filter(r=>r.id===input.id),row:AbSnapshot['items'][number]=current[0],editable=['standard','methodText','inspectionMode','equipmentId','isEnabled','rules','standardPhotos','methodPhotos','productCodes','reason'];\n     if(Object.keys(input).some(k=>!['id','origin','fields'].includes(k))||typeof input.id!=='string'||!object(origin)||origin.deleted!==false||!object(fields)||!Object.keys(fields).length||Object.keys(fields).some(k=>!editable.includes(k))||!Object.keys(fields).some(k=>!equal(origin[k],fields[k])))throw new DraftConflict('INVALID_AB_ITEM_RESTORE',422);\n     if(current.length!==1||row.deleted!==true)throw new DraftConflict('RESTORE_TARGET_CHANGED',409,{path:['items',{id:input.id}]});\n     if(['id','code','errorId','sourceRows','sourceTool','sourceMethod','sourceFrequency','sourceVersion','sourceChangedAt','sourceReason','sourceCreator','sourceNote'].some(k=>!equal((row as unknown as Record<string,unknown>)[k],origin[k])))throw new DraftConflict('RESTORE_IDENTITY_CHANGED',409,{path:['items',{id:input.id}]});\n     const parents=scope.workflow.working.errors.filter(e=>e.id===row.errorId);if(parents.length!==1||parents[0].deleted!==false)throw new DraftConflict('RESTORE_PARENT_UNAVAILABLE',409,{path:['items',{id:input.id}]});\n     for(const p of [['items',{id:row.id}],['errors',{id:row.errorId}]] as DraftPatch['path'][])if(change.guards?.filter(g=>equal(g.path,p)).length!==1)throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);\n     result=applyDraftCommand(scope.workflow,{action:'apply',generation:scope.workflow.generation,operationId,clientId,sequence:index,guards:change.guards,patches:[{op:'set',path:['items',{id:row.id},'deleted'],value:false},...Object.entries(fields).map(([field,value])=>({op:'set' as const,path:['items',{id:row.id},field],value}))]},context);restored.push(row.id);\n    }else result=adapter.apply(scope,{action:'apply',generation:scope.workflow.generation,operationId,clientId,sequence:index,...change},{...context,commandFingerprint:undefined});\n   }catch(error){if(error instanceof DraftConflict){const kind=change.moduleAction==='delete-error'?'errors':change.moduleAction==='delete-item'?'items':null,rows=kind?scope.workflow.working[kind].filter(r=>r.id===change.input?.id):[];\n    throw new DraftConflict(error.code,error.status,{...(object(error.details)?error.details:{}),...(error.code==='ENTITY_REMOVED_OR_AMBIGUOUS'&&kind?{path:[kind,{id:change.input?.id}],rowState:rows.length>1?'ambiguous':rows[0]?.deleted?'deleted':'missing'}:{}),scope:entry.scope});}throw error;}\n"
+      },
+      {
+        "offset": 10896,
+        "before": "  projectSharedVersion(scope,base.actor,base.at);adapter.serializeModel!(scope);\n",
+        "after": "  projectSharedVersion(scope,base.actor,base.at);if(restored.length)openAb(scope)!.history.push({action:'restore-item',actorId:base.actor.id,actorName:base.actor.name,at:base.at,comment:restored.join(',')+'; operation '+command.operationId});adapter.serializeModel!(scope);\n"
+      }
+    ]
+  },
+  {
+    "file": "lib/ipqc-ab-module-workflow.ts",
+    "beforeHash": "66b1cd5b4455df372bb22ba04fd6a7695b20070368d9d0ba1f502e2ec051e71e",
+    "afterHash": "0e3cb1b6eefba356f1914f34bc03412fa6c404ae78d9e2b869f526df2cdec0a6",
+    "rules": [
+      {
+        "offset": 0,
+        "before": "",
+        "after": "import {abApprovedMetadata,legacyAbVersion} from './ipqc-ab-approved-history';\nimport {approvedVersion} from './approved-history';\n"
+      },
+      {
+        "offset": 1296,
+        "before": "",
+        "after": " const localSaveBasis=(control:AbModuleControl,command:Parameters<typeof abLocalScopes>[0],state:typeof requestState)=>{\n  abLocalScopes(command);\n  if(!Number.isSafeInteger(command.input?.stateRevision)||Number(command.input?.stateRevision)<1)throw new DraftConflict('INVALID_AB_LOCAL_SAVE',422);\n  if(!Number.isSafeInteger(command.expectedRevision)||Number(command.expectedRevision)<0)throw new DraftConflict('DRAFT_REVISION_REQUIRED');\n  if(command.expectedRevision!==control.workflow?.revision)throw new DraftConflict('DRAFT_REVISION_CHANGED_RECONFIRM');\n  // Legacy group/replacement writers advance the shared-state CAS revision,\n  // not module revision. Pin both to the authority read for this Save.\n  if(command.input?.stateRevision!==state.revision)throw new DraftConflict('MODULE_CHANGED_RECONFIRM');\n };\n"
+      },
+      {
+        "offset": 5375,
+        "before": "",
+        "after": "  approvedHistory:{metadata:()=>abApprovedMetadata(root,true),version:id=>id.startsWith('legacy-ab:')?legacyAbVersion(root,id,true):root.moduleDraft?approvedVersion(root.moduleDraft,id,true):null},\n"
+      },
+      {
+        "offset": 5642,
+        "before": "  requiresCreate:(_control,command)=>command.moduleAction==='save-local-v1'&&abLocalScopes(command as Parameters<typeof abLocalScopes>[0]).some(s=>s.changes.some(c=>c.moduleAction?.startsWith('create'))),\n",
+        "after": "  requiresCreate:(_control,command)=>command.moduleAction==='save-local-v1'&&abLocalScopes(command as Parameters<typeof abLocalScopes>[0]).some(s=>s.changes.some(c=>c.moduleAction?.startsWith('create')||c.moduleAction==='restore-item-local-v1')),\n"
+      },
+      {
+        "offset": 6094,
+        "before": "",
+        "after": "  requiresRestore:(_control,command)=>command.moduleAction==='save-local-v1'&&abLocalScopes(command as Parameters<typeof abLocalScopes>[0]).some(s=>s.changes.some(c=>c.moduleAction==='restore-item-local-v1')),\n"
+      },
+      {
+        "offset": 6810,
+        "before": "   conflict();if(command.moduleAction==='save-local-v1'){abLocalScopes(command);return;}if(['save','submit'].includes(command.action)&&command.input?.stateRevision!==state.revision)throw new DraftConflict('MODULE_CHANGED_RECONFIRM');\n",
+        "after": "   conflict();if(command.moduleAction==='save-local-v1'){localSaveBasis(control,command,state);return;}if(['save','submit'].includes(command.action)&&command.input?.stateRevision!==state.revision)throw new DraftConflict('MODULE_CHANGED_RECONFIRM');\n"
+      },
+      {
+        "offset": 8630,
+        "before": "",
+        "after": "    localSaveBasis(control,command,requestState);\n"
+      },
+      {
+        "offset": 8914,
+        "before": "    const candidate=applyAbLocalScopes(root,command,requestState,base);\n",
+        "after": "    // currentPermissions supplies explicit .restore; the kernel's narrower\n    // DraftPermission union does not include this existing route capability.\n    const candidate=applyAbLocalScopes(root,command,requestState,base,(context.allowed as (permission:string)=>boolean)('restore')===true&&(context.allowed as (permission:string)=>boolean)('create')===true);\n"
+      },
+      {
+        "offset": 9355,
+        "before": "     const result=applyDraftCommand({...flow,working:next},{...command,expectedRevision:undefined},{...context,allowed:p=>p==='save'?context.allowed('edit'):context.allowed(p)});\n",
+        "after": "     const result=applyDraftCommand({...flow,working:next},command,{...context,allowed:p=>p==='save'?context.allowed('edit'):context.allowed(p)});\n"
+      }
+    ]
+  },
+  {
+    "file": "lib/ipqc-ab-workflow.ts",
+    "beforeHash": "f65477df3e10b0291812240608e28eb33ab0d0809dfd0d67b4a8cabbf911751e",
+    "afterHash": "521cb50b5a712b829bd9f4db4918774193e4663a111c9959224104e25ae64306",
+    "rules": [
+      {
+        "offset": 0,
+        "before": "",
+        "after": "import {captureAbColdOrigin,type AbColdOrigin,type AbColdOriginInput} from './ipqc-ab-local-lineage';\n"
+      },
+      {
+        "offset": 543,
+        "before": "export type AbSharedScope=AbScope&{workflow?:SharedDraft<AbSnapshot>};\r\nexport function abWorkflowAdapter(key:string):WorkflowAdapter<AbSnapshot,AbSharedScope>{\r\n",
+        "after": "export type AbSharedScope=AbScope&{workflow?:SharedDraft<AbSnapshot>;coldOrigin?:AbColdOrigin};\nexport function abWorkflowAdapter(key:string,initialActiveBasis:'approved'|'legacy-origin'='approved'):WorkflowAdapter<AbSnapshot,AbSharedScope>{\n"
+      },
+      {
+        "offset": 881,
+        "before": "",
+        "after": "  let pendingOrigin:AbColdOriginInput|null=null;\n  const stamp=(control:AbSharedScope)=>{if(pendingOrigin&&control.workflow){control.coldOrigin={...pendingOrigin,generation:control.workflow.generation};pendingOrigin=null;}};\n"
+      },
+      {
+        "offset": 1370,
+        "before": "    beforeBegin(){if(root.moduleDraft?.workflow?.pendingId)throw new DraftConflict('PENDING_LOCKED');},\r\n",
+        "after": "    beforeBegin(control){if(root.moduleDraft?.workflow?.pendingId)throw new DraftConflict('PENDING_LOCKED');pendingOrigin=control.workflow?null:captureAbColdOrigin(root,key,control,initialActiveBasis);},\n"
+      },
+      {
+        "offset": 2171,
+        "before": "    parse(raw,prepared){root=parseAbControl(raw,prepared);return root.scopes[key]||{line,group,activeVersionId:null,versions:[]};},\r\n    serialize(control){root.scopes[key]=control;return JSON.stringify(root);},\r\n    serializeModel(control){root.scopes[key]=control;return root;},\r\n",
+        "after": "    parse(raw,prepared){pendingOrigin=null;root=parseAbControl(raw,prepared);return root.scopes[key]||{line,group,activeVersionId:null,versions:[]};},\n    serialize(control){stamp(control);root.scopes[key]=control;return JSON.stringify(root);},\n    serializeModel(control){stamp(control);root.scopes[key]=control;return root;},\n"
+      }
+    ]
+  },
+  {
+    "file": "lib/process-state.ts",
+    "beforeHash": "a9ac65e8a0cac0b7346b88e7b33271aa0b10dcdf69ebd99c616c96a220d66937",
+    "afterHash": "250d2bec2fe6df929fb5cff0793401136da9e9a7f278b4c7cc99196e7949e7bd",
+    "rules": [
+      {
+        "offset": 17797,
+        "before": "",
+        "after": "// Exact A/B workflow only. Each selected snapshot and CAS retry gets its own\n// phase; the shared route retains fresh checks before returning/persisting.\nexport async function createIpqcABPermissionPhase(request:Request,state:State){\n  if(new URL(request.url).pathname!=='/api/ipqc-ab/workflow')throw Error('INVALID_PERMISSION_PHASE');\n  return createWorkflowPermissionPhase(request,state);\n}\n"
+      }
+    ]
+  },
+  {
+    "file": "lib/versioned-shared-workflow.ts",
+    "beforeHash": "b220a014deff38f2a0e47ba3cb01ec36084ff34f49cb46f1bf51ce6ccfafbb7e",
+    "afterHash": "f42c1f984df1e66ed70a191f1008df6f86d8a1c9c247e531502125ce67f5d75f",
+    "rules": [
+      {
+        "offset": 0,
+        "before": "",
+        "after": "import {approvedHistoryQuery} from './approved-history-query';\nimport {approvedVersion,approvedVersions,approvedVersionEvidence} from './approved-history';\n"
+      },
+      {
+        "offset": 1063,
+        "before": "import { readState, identity, can, createMasterABPermissionPhase, createFqcPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, responseHeaders, type State } from './process-state';\r\n",
+        "after": "import { readState, identity, can, createMasterABPermissionPhase, createFqcPermissionPhase, createIpqcABPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, responseHeaders, type State } from './process-state';\n"
+      },
+      {
+        "offset": 5418,
+        "before": "",
+        "after": "  // Explicit read-only union for existing legacy scopes; no stored aliases.\n  approvedHistory?:{\n    metadata:()=>{id:string;number:number;status:string;creatorName:string;createdAt:string;approvalEvidence:ReturnType<typeof approvedVersionEvidence>;sourceScope?:string;sourceVersionId?:string}[];\n    version:(id:string)=>(NumericVersion<T>&{approvalEvidence:NonNullable<ReturnType<typeof approvedVersionEvidence>>;sourceScope?:string;sourceVersionId?:string})|null|Promise<(NumericVersion<T>&{approvalEvidence:NonNullable<ReturnType<typeof approvedVersionEvidence>>;sourceScope?:string;sourceVersionId?:string})|null>;\n  };\n"
+      },
+      {
+        "offset": 7406,
+        "before": "",
+        "after": "  requiresRestore?:(control:C,command:Pick<ModuleDraftCommand,'action'|'patches'|'moduleAction'|'input'>)=>boolean;\n"
+      },
+      {
+        "offset": 15178,
+        "before": "  const phaseFor=(request:Request,state:State)=>adapter.key==='masterDataControl'&&adapter.scope==='master:AB'&&new URL(request.url).pathname==='/api/master/workflow'&&new URL(request.url).searchParams.get('scope')==='AB'?createMasterABPermissionPhase(request,state):adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!new URL(request.url).searchParams.has('scope')?createFqcPermissionPhase(request,state):null;\r\n",
+        "after": "  const isIpqcAB=(request:Request)=>adapter.key==='ipqcABMasterControl'&&new URL(request.url).pathname==='/api/ipqc-ab/workflow'&&(adapter.scope==='ipqc-ab:module'||adapter.scope.startsWith('ipqc-ab:'));\n  async function ipqcABOwnerPhase(request:Request,state:State){\n    const phase=await createIpqcABPermissionPhase(request,state),expected=request.headers.get('X-Process-Expected-Actor');\n    // Missing/invalid sessions retain the original LOGIN_REQUIRED response.\n    if(phase.actor&&((request.method==='POST'&&expected===null)||(expected!==null&&phase.actor.id!==expected)))throw new DraftConflict('ACCOUNT_CHANGED_REOPEN_REQUIRED',403);\n    return phase;\n  }\n  const phaseFor=(request:Request,state:State)=>adapter.key==='masterDataControl'&&adapter.scope==='master:AB'&&new URL(request.url).pathname==='/api/master/workflow'&&new URL(request.url).searchParams.get('scope')==='AB'?createMasterABPermissionPhase(request,state):adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!new URL(request.url).searchParams.has('scope')?createFqcPermissionPhase(request,state):isIpqcAB(request)?ipqcABOwnerPhase(request,state):null;\n"
+      },
+      {
+        "offset": 18420,
+        "before": "      const fqcReadAhead=adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!selectors.has('scope');\n",
+        "after": "      const approvedOnlyRead=approvedHistoryQuery(request,adapter.key,adapter.scope);\n      const fqcReadAhead=isIpqcAB(request)||adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!selectors.has('scope');\n"
+      },
+      {
+        "offset": 21461,
+        "before": "",
+        "after": "      // Explicit approved-only reads share the same immutable-body and authority fences.\n      // Refresh authorization after all selected reads/hydration, including\n      // metadata aggregate I/O. No stale permission snapshot authorizes output.\n      const approvedReadCurrent=async()=>{\n        const fresh=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}),freshActor=await identity(request,fresh),freshPermissions=await currentPermissions(request,fresh);\n        if(!freshActor||freshActor.id!==actor.id||freshActor.sessionType!==actor.sessionType||!freshPermissions.view||!freshPermissions.history)return reply({error:'FORBIDDEN'},403);\n        if(fresh.revision!==state.revision||!await stateRevisionIsCurrent(fresh))return reply({error:'APPROVED_HISTORY_SUPERSEDED'},409);\n        // Session revocation is separate from the shared-state revision fence.\n        const finalActor=await identity(request,fresh);\n        return !finalActor||finalActor.id!==actor.id||finalActor.sessionType!==actor.sessionType?reply({error:'FORBIDDEN'},403):null;\n      };\n      if(approvedOnlyRead&&query.has('uiHistory')){\n        if(!permissions.history)return reply({error:'FORBIDDEN'},403);\n        const rows=adapter.approvedHistory?.metadata()||approvedVersions(control,true).filter(v=>approvedVersionEvidence(control,v,true)?.kind!=='formal-baseline').slice().reverse().map(v=>({id:v.id,number:v.number,status:v.id===control.activeVersionId?'approved':'superseded',creatorName:v.creatorName,createdAt:v.createdAt,approvalEvidence:approvedVersionEvidence(control,v,true)})),before=query.get('versionBefore'),start=before?rows.findIndex(v=>v.id===before)+1:0;\n        if(before&&!start)return reply({error:'HISTORY_CURSOR_INVALID'},409);\n        const body={approvedOnly:true,revision:state.revision,permissions,activeVersionId:control.activeVersionId,versions:{rows:rows.slice(start,start+20),next:rows.length>start+20?rows[start+19].id:null,total:rows.length}};\n        return await approvedReadCurrent()||reply(body);\n      }\n"
+      },
+      {
+        "offset": 24647,
+        "before": "",
+        "after": "      if(approvedOnlyRead&&query.has('versionId')){\n        if(!permissions.history)return reply({error:'FORBIDDEN'},403);\n        const version=adapter.approvedHistory?await adapter.approvedHistory.version(query.get('versionId')!):approvedVersion(control,query.get('versionId')!,true);\n        if(!version||version.approvalEvidence.kind==='formal-baseline')return reply({error:'VERSION_NOT_FOUND'},404);\n        const body={approvedOnly:true,version,revision:state.revision,permissions,activeVersionId:control.activeVersionId};\n        // One selected snapshot only. Compatibility history streams can start\n        // delivering before R2 hydration completes; this opt-in must not expose\n        // even a prefix until its final authorization check has passed.\n        const rendered=state.recordStorage?recordJSONResponse(body,env.STATE_ARCHIVE,responseHeaders):reply(body),json=await rendered.text();\n        return await approvedReadCurrent()||new Response(json,{headers:responseHeaders});\n      }\n"
+      },
+      {
+        "offset": 35067,
+        "before": "        const state=requiredState||mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({aggregateReadAhead:body.action===undefined&&Object.keys(body).every(key=>key==='command')&&fqcAggregateReadAheadCommand(body.command)&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope'),deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=requiredPhase||await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);\n",
+        "after": "        const state=requiredState||mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({aggregateReadAhead:body.action===undefined&&Object.keys(body).every(key=>key==='command')&&(isIpqcAB(request)&&['save','submit','withdraw'].includes(body.command?.action||'')||fqcAggregateReadAheadCommand(body.command)&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope')),deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=requiredPhase||await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);\n"
+      },
+      {
+        "offset": 39867,
+        "before": "          if(command.action==='restore'&&!permissions.restore)return reply({error:'RESTORE_PERMISSION_REQUIRED'},403);\r\n",
+        "after": "          if((command.action==='restore'||adapter.requiresRestore?.(control,command))&&!permissions.restore)return reply({error:'RESTORE_PERMISSION_REQUIRED'},403);\n"
+      }
+    ]
+  },
+  {
+    "file": "public/process/index.html",
+    "beforeHash": "41474215c11933274c47c35fc09e86f4fc930fd791322013da861c256b766fae",
+    "afterHash": "9056643acda70b6730a56bbf692aaa2f1189e881ab7fca2dc45d54a1d4c086e8",
+    "rules": [
+      {
+        "offset": 6899,
+        "before": "    <script data-process-src=\"shared-draft-client.js?v=20261109-explicit-checks3\"></script>\n",
+        "after": "    <script data-process-src=\"shared-draft-client.js?v=20261112-ipqc-ab-integration1\"></script>\n"
+      },
+      {
+        "offset": 8466,
+        "before": "    <script data-process-src=\"version-draft-ui.js?v=20261103-unknown-departure1\"></script>\n",
+        "after": "    <script data-process-src=\"version-draft-ui.js?v=20261112-ipqc-ab-integration1\"></script>\n"
+      },
+      {
+        "offset": 9590,
+        "before": "    <script data-process-src=\"ipqc-ab.js?v=20261105-ab-scope-input1\"></script>\n",
+        "after": "    <script data-process-src=\"ipqc-ab.js?v=20261112-ipqc-ab-integration1\"></script>\n"
+      }
+    ]
+  },
+  {
+    "file": "public/process/ipqc-ab.js",
+    "beforeHash": "8328752afd1a7101005fb98266ece33dc8cc6904e429b001f7c56e30aa76cf1e",
+    "afterHash": "cbf1e537844db8172d47b1cb11302ac2f30d764b42f064e18b797138c3da92e2",
+    "rules": [
+      {
+        "offset": 168,
+        "before": "  const API = '/api/ipqc-ab';\r\n",
+        "after": "  const API = '/api/ipqc-ab';\n  let historyDisplayEpoch=0,approvedHistoryView=null,historyPermissionFlight=null;\n  const historyAllowsMutation=()=>!approvedHistoryView?.blocked;\n  const assertCurrentDisplay=()=>{if(!historyAllowsMutation())throw Error('APPROVED_HISTORY_READ_ONLY');};\n  const captureHistoryDisplay=()=>{const epoch=historyDisplayEpoch,page=host;return()=>epoch===historyDisplayEpoch&&page===host&&historyAllowsMutation();};\n  const guardWorking=(node,callback)=>{const current=captureHistoryDisplay();return function(...args){if(!node?.isConnected||!current())return;const result=callback.apply(this,args);if(result&&typeof result.finally==='function')return result.finally(()=>approvedHistoryView?.refreshControls());approvedHistoryView?.refreshControls();return result;};};\n  const listenWorking=(node,type,callback)=>node?.addEventListener(type,guardWorking(node,callback));\n"
+      },
+      {
+        "offset": 1365,
+        "before": "  const headers = () => window.ProcessSync?.platformHeaders?.() || {'Content-Type':'application/json'};\r\n",
+        "after": "  const headers = () => ({...(window.ProcessSync?.platformHeaders?.() || {'Content-Type':'application/json'}),...(actor()?.id?{'X-Process-Expected-Actor':actor().id}:{})});\n"
+      },
+      {
+        "offset": 2828,
+        "before": "  const version = () => scope()?.versions.find(v => v.id === versionId) || opened() || active() || scope()?.versions.at(-1);\r\n",
+        "after": "  const version = () => (localEntry()?.version.id===versionId?localEntry().version:null) || scope()?.versions.find(v => v.id === versionId) || opened() || active() || scope()?.versions.at(-1);\n"
+      },
+      {
+        "offset": 3206,
+        "before": "  const editing = () => !busy && !localPending() && !control?.moduleDraft?.workflow?.pendingId && version()?.status === 'draft' && !!working && permittedAction('edit');\n",
+        "after": "  const editing = () => historyAllowsMutation() && !busy && !localPending() && !control?.moduleDraft?.workflow?.pendingId && version()?.status === 'draft' && !!working && permittedAction('edit');\n"
+      },
+      {
+        "offset": 5941,
+        "before": "  let sharedClient=null,sharedIdentity='',modalBase=null,modalGeneration=null;const pollTimer=window.createForegroundPoll();let sourceEntryApplied=false;\r\n  function transport(requestScope=key()){const id=actor()?.id,identityKey=id+':'+requestScope;if(!id)throw Error('LOGIN_REQUIRED');if(sharedIdentity!==identityKey){sharedIdentity=identityKey;sharedClient=window.createSharedDraftClient({endpoint:API+'/workflow?scope='+encodeURIComponent(requestScope)+'&caseMetadata=1',legacyArchive:true,guardAccessResults:true,conditionalState:true,abCreateRejections:true,actorId:id,headers,permissionGates:{create:'#ipqcab-add-item,#ipqcab-add-error',edit:'#ab-apply,[data-ab-edit-item],[data-ab-edit-error],[data-ab-matrix-item]',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw',history:'#ab-case-history',approve:`[data-ab-approve=\"${requestScope}\"]`,return:`[data-ab-reject=\"${requestScope}\"]`,delete:'[data-ab-delete-item],[data-ab-delete-error]'}});}return sharedClient;}\n",
+        "after": "  let sharedClient=null,sharedIdentity='',modalBase=null,modalGeneration=null;let sourceEntryApplied=false;\n  function transport(requestScope=key()){const id=actor()?.id,identityKey=id+':'+requestScope;if(!id)throw Error('LOGIN_REQUIRED');if(sharedIdentity!==identityKey){sharedIdentity=identityKey;sharedClient=window.createSharedDraftClient({endpoint:API+'/workflow?scope='+encodeURIComponent(requestScope)+'&caseMetadata=1',legacyArchive:true,guardAccessResults:true,conditionalState:true,abCreateRejections:true,actorId:id,headers:()=>({...headers(),'X-Process-Expected-Actor':id}),permissionGates:{create:'#ipqcab-add-item,#ipqcab-add-error',edit:'#ab-apply,[data-ab-edit-item],[data-ab-edit-error],[data-ab-matrix-item]',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw',history:'#ab-case-history',approve:`[data-ab-approve=\"${requestScope}\"]`,return:`[data-ab-reject=\"${requestScope}\"]`,delete:'[data-ab-delete-item],[data-ab-delete-error]'}});}return sharedClient;}\n"
+      },
+      {
+        "offset": 8636,
+        "before": "  function inputOwner(client=sharedClient,module=false){const sync=window.ProcessSync;return {actor:actor(),actorId:actor()?.id,epoch:sync?.identityGeneration?.(),delivery:sync?.captureDelivery?.(),host,hostConnected:host?.isConnected,hostTab:host?.dataset.activeTab,reviewHost,reviewConnected:reviewHost?.isConnected,scope:key(),generation:scope()?.workflow?.generation||null,lifetime:mutationLifetime,client,module};}\r\n",
+        "after": "  function inputOwner(client=sharedClient,module=false){const sync=window.ProcessSync;return {displayEpoch:historyDisplayEpoch,actor:actor(),actorId:actor()?.id,epoch:sync?.identityGeneration?.(),delivery:sync?.captureDelivery?.(),host,hostConnected:host?.isConnected,hostTab:host?.dataset.activeTab,reviewHost,reviewConnected:reviewHost?.isConnected,scope:key(),generation:scope()?.workflow?.generation||null,lifetime:mutationLifetime,client,module};}\n"
+      },
+      {
+        "offset": 9868,
+        "before": "  function mutationCurrent(owner,generation=true){return inputOwnerCurrent(owner,generation)&&owner.attempt===mutationSequence&&activeMutation===owner;}\r\n",
+        "after": "  function mutationCurrent(owner,generation=true){return historyAllowsMutation()&&owner?.displayEpoch===historyDisplayEpoch&&inputOwnerCurrent(owner,generation)&&owner.attempt===mutationSequence&&activeMutation===owner;}\n"
+      },
+      {
+        "offset": 12239,
+        "before": "  async function reconfirmRetainedDelivery(){\r\n",
+        "after": "  async function reconfirmRetainedDelivery(){\n    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 14511,
+        "before": "  async function queryRetainedReceipt(client,intent=null){\r\n",
+        "after": "  async function queryRetainedReceipt(client,intent=null){\n    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 23834,
+        "before": "  async function checkCreatedResult(reservation){\r\n",
+        "after": "  async function checkCreatedResult(reservation){\n    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 28086,
+        "before": "  async function writeShared(action,detail={}){\r\n",
+        "after": "  async function writeShared(action,detail={}){\n    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 40355,
+        "before": "",
+        "after": "    assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();\n"
+      },
+      {
+        "offset": 40827,
+        "before": "    const owns=()=>generation===loadGeneration&&(!localGate||localGate.current())&&(!mutationOwner||mutationCurrent(mutationOwner))&&(!deliveryGate||deliveryGate.current())&&control===priorControl&&revision===priorRevision&&actor()===requestActor&&(!Number.isFinite(requestEpoch)||window.ProcessSync?.identityGeneration?.()===requestEpoch)&&!window.ProcessSync?.requiresReload&&host===requestHost&&reviewHost===requestReviewHost&&[line,group,stage,errorId,versionId,showRouteExtras].every((value,index)=>value===selection[index])&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false);\n",
+        "after": "    const owns=()=>displayCurrent()&&generation===loadGeneration&&(!localGate||localGate.current())&&(!mutationOwner||mutationCurrent(mutationOwner))&&(!deliveryGate||deliveryGate.current())&&control===priorControl&&revision===priorRevision&&actor()===requestActor&&(!Number.isFinite(requestEpoch)||window.ProcessSync?.identityGeneration?.()===requestEpoch)&&!window.ProcessSync?.requiresReload&&host===requestHost&&reviewHost===requestReviewHost&&[line,group,stage,errorId,versionId,showRouteExtras].every((value,index)=>value===selection[index])&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false);\n"
+      },
+      {
+        "offset": 42264,
+        "before": "      const response=await fetch(API+'?caseMetadata=1&equipment=deferred',{headers:headers(),cache:'no-store'});\r\n",
+        "after": "      const response=await fetch(API+'?caseMetadata=1&equipment=deferred&localLineage=1',{headers:headers(),cache:'no-store'});\n"
+      },
+      {
+        "offset": 44875,
+        "before": "      ({control,catalog,equipment,revision,line,group,stage,errorId,versionId,working}=next);if(localEntry()){working=localEntry().snapshot;versionId=localEntry().version.id;}commit?.();accessBlocked=null;if(!preserveInput&&!deliveryGate)inputBasisOwner=inputOwner();if(localBatch)message=batchNotice();localGate?.refresh();\n",
+        "after": "      ({control,catalog,equipment,revision,line,group,stage,errorId,versionId,working}=next);if(localEntry()){working=localEntry().snapshot;versionId=localEntry().version.id;}lineageView=body.localLineage?.kind==='ipqc-ab-local-lineage-v1'&&body.localLineage.revision===body.revision?body.localLineage:null;commit?.();accessBlocked=null;if(!preserveInput&&!deliveryGate)inputBasisOwner=inputOwner();if(localBatch)message=batchNotice();localGate?.refresh();\n"
+      },
+      {
+        "offset": 45426,
+        "before": "  async function loadEquipment(){\r\n",
+        "after": "  async function loadEquipment(){\n    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 45881,
+        "before": "    const currentModal=()=>equipmentRequest===equipmentLoadGeneration&&modal===target&&host===requestHost&&!!requestHost?.isConnected&&actor()===requestActor&&key()===requestScope&&versionId===requestVersion&&(!Number.isFinite(requestEpoch)||window.ProcessSync?.identityGeneration?.()===requestEpoch)&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false);\r\n",
+        "after": "    const displayCurrent=captureHistoryDisplay(),currentModal=()=>displayCurrent()&&equipmentRequest===equipmentLoadGeneration&&modal===target&&host===requestHost&&!!requestHost?.isConnected&&actor()===requestActor&&key()===requestScope&&versionId===requestVersion&&(!Number.isFinite(requestEpoch)||window.ProcessSync?.identityGeneration?.()===requestEpoch)&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false);\n"
+      },
+      {
+        "offset": 48051,
+        "before": "  async function write(action, detail = {}) {\r\n",
+        "after": "  async function write(action, detail = {}) {\n    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 49602,
+        "before": "        response = await fetch(API,{method:'POST',headers:headers(),body:JSON.stringify({action,\r\n",
+        "after": "        response = await fetch(API,{method:'POST',headers:{...headers(),'X-Process-Expected-Actor':requestActor.id},body:JSON.stringify({action,\n"
+      },
+      {
+        "offset": 51350,
+        "before": "  const localScopes=new Map(),localPhotos=new Map(),legacyClients=new Map();let localModuleGeneration=null,localBeginReceipt=null,localSent=null,localConflict=null,localAttempt=null;\n",
+        "after": "  const localScopes=new Map(),localPhotos=new Map(),legacyClients=new Map(),unknownPhotoFingerprints=new Set();let localModuleGeneration=null,localBeginReceipt=null,localBeginExpectation=null,lineageView=null,localBusinessBase=null,localSent=null,localConflict=null,localAttempt=null,localSaveIntent=null;let conflictEscapeCleanup=null;\n"
+      },
+      {
+        "offset": 52512,
+        "before": "    const sync=window.ProcessSync,pin={owner:actor(),epoch:sync?.identityGeneration?.(),delivery:sync?.captureDelivery?.(),host,lifetime:mutationLifetime,client,modal};\n",
+        "after": "    const sync=window.ProcessSync,pin={displayCurrent:captureHistoryDisplay(),owner:actor(),epoch:sync?.identityGeneration?.(),delivery:sync?.captureDelivery?.(),host,lifetime:mutationLifetime,client,modal};\n"
+      },
+      {
+        "offset": 53062,
+        "before": "    pin.current=()=>localAttempt===pin&&actor()===pin.owner&&sync===window.ProcessSync&&pin.epoch===sync?.identityGeneration?.()&&!sync.requiresReload&&sync.isCurrentDelivery?.(pin.delivery)===true&&host===pin.host&&host?.isConnected&&host.dataset.activeTab==='quality-ipqc-ab'&&mutationLifetime===pin.lifetime&&moduleClient===client&&modal===pin.modal&&control===pin.control&&revision===pin.revision&&generations()===pin.generations&&localSent===pin.sent&&localSent?.command?.operationId===pin.operationId;\n",
+        "after": "    pin.current=()=>pin.displayCurrent()&&localAttempt===pin&&actor()===pin.owner&&sync===window.ProcessSync&&pin.epoch===sync?.identityGeneration?.()&&!sync.requiresReload&&sync.isCurrentDelivery?.(pin.delivery)===true&&host===pin.host&&host?.isConnected&&host.dataset.activeTab==='quality-ipqc-ab'&&mutationLifetime===pin.lifetime&&moduleClient===client&&modal===pin.modal&&control===pin.control&&revision===pin.revision&&generations()===pin.generations&&localSent===pin.sent&&localSent?.command?.operationId===pin.operationId;\n"
+      },
+      {
+        "offset": 53926,
+        "before": "",
+        "after": "    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 54410,
+        "before": "      entry={scope:key(),generation:server?.workflow?.generation||null,baseId:server?.activeVersionId||null,base:clone(content),snapshot:clone(content),owner:actor(),epoch:window.ProcessSync?.identityGeneration?.(),delivery:window.ProcessSync?.captureDelivery?.(),lifetime:mutationLifetime,host,version:{...(open||active()),id:open?.id||'local-'+key(),status:'draft',snapshot:clone(content)}};\n      localScopes.set(key(),entry);if(localScopes.size===1)localModuleGeneration=control?.moduleDraft?.workflow?.generation||null;\n",
+        "after": "      entry={scope:key(),generation:server?.workflow?.generation||null,baseId:server?.activeVersionId||null,base:clone(content),snapshot:clone(content),source:clone(control.source??null),lineageAnchor:lineageView?.groups?.[key()]?.anchor??null,originRevision:lineageView?.groups?.[key()]?.originRevision??null,originDigest:lineageView?.groups?.[key()]?.originDigest??null,owner:actor(),epoch:window.ProcessSync?.identityGeneration?.(),delivery:window.ProcessSync?.captureDelivery?.(),lifetime:mutationLifetime,host,version:{...(open||active()),id:open?.id||'local-'+key(),status:'draft',snapshot:clone(content)}};\n      localScopes.set(key(),entry);if(localScopes.size===1){localModuleGeneration=control?.moduleDraft?.workflow?.generation||null;localBusinessBase=lineageView?.businessBase??null;}\n"
+      },
+      {
+        "offset": 55386,
+        "before": "  function clearLocalEditing(){for(const p of localPhotos.values())URL.revokeObjectURL(p.preview);localPhotos.clear();localScopes.clear();localModuleGeneration=null;localBeginReceipt=null;localConflict=null;localBatch=null;modal=null;viewer=null;modalBase=null;modalGeneration=null;working=null;}\n",
+        "after": "  function clearLocalEditing(){clearConflictEscape();for(const p of localPhotos.values())URL.revokeObjectURL(p.preview);localPhotos.clear();localScopes.clear();localModuleGeneration=null;localBeginReceipt=null;localBeginExpectation=null;localBusinessBase=null;localConflict=null;localSaveIntent=null;localBatch=null;modal=null;viewer=null;modalBase=null;modalGeneration=null;working=null;}\n"
+      },
+      {
+        "offset": 56711,
+        "before": "",
+        "after": "      if(before.deleted&&!row.deleted){const restore=entry.restoreChoices?.[row.id];if(kind!=='items'||!restore)throw Error('RESTORE_RECONFIRM');const fields={...restore.fields};for(const field of createItemFields)if(!sameInput(before[field],row[field]))fields[field]=clone(row[field]);result.push({moduleAction:'restore-item-local-v1',input:{id:row.id,origin:clone(restore.origin),fields},guards:[{path:['items',{id:row.id}],value:clone(before)},{path:['errors',{id:row.errorId}],value:clone(restore.parent)}]});continue;}\n"
+      },
+      {
+        "offset": 57624,
+        "before": "  function localSaveScopes(){return [...localScopes.values()].map(entry=>({scope:entry.scope,generation:entry.generation,baseId:entry.baseId,changes:localScopeChanges(entry)})).filter(e=>e.changes.length);}\n",
+        "after": "  function localSaveScopes(entries=[...localScopes.values()]){return entries.map(entry=>({scope:entry.scope,generation:entry.generation,baseId:entry.baseId,changes:localScopeChanges(entry)})).filter(e=>e.changes.length);}\n"
+      },
+      {
+        "offset": 58723,
+        "before": "  function localConflictRows(){\n    const conflict=localConflict,entry=localScopes.get(conflict?.scope),path=conflict?.path;if(!entry||!Array.isArray(path)||!['items','errors'].includes(path[0])||!path[1]?.id)return null;\n    const before=entry.base[path[0]].find(r=>r.id===path[1].id),mine=entry.snapshot[path[0]].find(r=>r.id===path[1].id),current=control?.scopes[entry.scope]?.workflow?.working?.[path[0]]?.find(r=>r.id===path[1].id);\n    if(!before||!mine||!current||entry.generation!==control.scopes[entry.scope].workflow.generation)return null;\n    return{entry,path,before,mine,current};\n",
+        "after": "  function localSaveIntentCurrent(intent,checkStamp=true){return historyAllowsMutation()&&intent?.displayEpoch===historyDisplayEpoch&&!!intent&&localSaveIntent===intent&&intent.owner===actor()&&intent.epoch===window.ProcessSync?.identityGeneration?.()&&window.ProcessSync?.isCurrentDelivery?.(intent.delivery)===true&&!window.ProcessSync?.requiresReload&&host===intent.host&&host?.isConnected&&mutationLifetime===intent.lifetime&&modal===intent.modal&&moduleClient===intent.client&&localOwnerCurrent()&&[...intent.photoPins].every(([id,pin])=>localPhotos.get(id)===pin.staged&&pin.staged.file===pin.file&&pin.staged.preview===pin.preview)&&(!checkStamp||JSON.stringify(localSaveScopes())===intent.stamp);}\n  function confirmLocalBegin(result){\n    const expected=localBeginExpectation,receipt=result.receipt,flow=result.control?.workflow;if(expected)expected.receipt=receipt;\n    if(!expected||expected.owner!==actor()||expected.epoch!==window.ProcessSync?.identityGeneration?.()||!window.ProcessSync?.isCurrentDelivery?.(expected.delivery)||expected.host!==host||expected.lifetime!==mutationLifetime||!localOwnerCurrent()||result.operationKind!=='begin-v1'||result.recoveryKind!=='begin-v1'||!sameInput(result.beginBasis,expected.basis)||!receipt||flow?.scope!=='ipqc-ab:module'||flow.generation!==receipt.generation||!Number.isSafeInteger(receipt.revision)||flow.revision<receipt.revision)throw Error('BEGIN_CONFIRMATION_RECONFIRM');\n    localModuleGeneration=receipt.generation;expected.confirmed=true;return flow;\n"
+      },
+      {
+        "offset": 60245,
+        "before": "  function localConflictHTML(){const rows=localConflictRows();if(!rows)return '';const value=row=>JSON.stringify(rows.path.length===3?row[rows.path[2]]:row);return `<section class=\"ipqcab-card\" data-ab-conflict><p>${t('同一欄位已有其他修改；請比較後選擇，再手動存取。','Cùng trường đã thay đổi; so sánh, chọn rồi lưu thủ công.')}</p><pre>${h(value(rows.mine))}</pre><pre>${h(value(rows.current))}</pre><button data-ab-conflict-choice=\"mine\">${t('保留我的修改','Giữ thay đổi của tôi')}</button><button data-ab-conflict-choice=\"server\">${t('採用共享內容','Dùng nội dung chung')}</button></section>`;}\n  function chooseLocalConflict(choice){if(busy)return;const rows=localConflictRows();if(!rows)return;const {path,before,mine,current}=rows;\n    if(path.length===3){before[path[2]]=clone(current[path[2]]);if(choice==='server')mine[path[2]]=clone(current[path[2]]);}\n    else{Object.assign(before,clone(current));if(choice==='server')Object.assign(mine,clone(current));}\n    localConflict=null;message=t('選擇已保留在本機；請再次存取。','Lựa chọn được giữ cục bộ; hãy lưu lại.');draw();\n",
+        "after": "  function compareLocalLineage(intent,flow){\n    const hash=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value),view=lineageView,moduleGeneration=flow?.generation??null;\n    for(const entry of localScopes.values())if(!sameInput(entry.source,control?.source??null))throw Error('SOURCE_CHANGED_RECONFIRM');\n    const verified=view?.kind==='ipqc-ab-local-lineage-v1'&&view.revision===revision&&hash(view.businessBase)&&hash(localBusinessBase)&&view.businessBase===localBusinessBase;\n    if(hash(localBusinessBase)&&!verified)throw Error('BUSINESS_BASE_CHANGED_RECONFIRM');\n    if(localModuleGeneration&&localModuleGeneration!==moduleGeneration)throw Error('DRAFT_GENERATION_CHANGED');\n    if(localBeginReceipt&&localBeginReceipt.generation!==moduleGeneration)throw Error(localBeginExpectation?.receipt&&!localBeginExpectation.confirmed?'BEGIN_CONFIRMATION_RECONFIRM':'DRAFT_GENERATION_CHANGED');\n    const adopt=[];for(const entry of localScopes.values()){\n      const server=control.scopes[entry.scope],generation=server?.workflow?.generation??null;\n      if((server?.activeVersionId??null)!==entry.baseId)throw Error('DRAFT_GENERATION_CHANGED');\n      if(generation===entry.generation)continue;\n      const proof=view?.groups?.[entry.scope];\n      if(intent.dispatched||entry.generation!==null||!generation||!verified||!hash(entry.lineageAnchor)||proof?.generation!==generation||proof.reason!==null||proof.anchor!==entry.lineageAnchor)throw Error('DRAFT_GENERATION_CHANGED');\n      const progressed=Number.isSafeInteger(entry.originRevision)&&entry.originRevision>=0&&Number.isSafeInteger(proof.originRevision)&&proof.originRevision>=entry.originRevision;\n      if(!hash(entry.originDigest)||!hash(proof.originDigest)||!(entry.originRevision===null&&proof.originRevision===null&&entry.originDigest===proof.originDigest||progressed&&(proof.originRevision>entry.originRevision||entry.originDigest===proof.originDigest)))throw Error('DRAFT_GENERATION_CHANGED');\n      adopt.push([entry,generation]);\n    }\n    const needsModule=moduleGeneration!==null&&localModuleGeneration===null,needsBegin=!!localBeginExpectation?.receipt&&!localBeginExpectation.confirmed&&!localBeginExpectation.lineageReconciled;\n    if((needsModule||needsBegin)&&(!verified||intent.dispatched||!moduleGeneration))throw Error('BEGIN_CONFIRMATION_RECONFIRM');\n    // Metadata only, atomically after every proof. Never replace base/snapshot,\n    // insert peer-only rows into RAM, or discard an original operation/receipt.\n    for(const [entry,generation]of adopt)entry.generation=generation;\n    if(needsModule)localModuleGeneration=moduleGeneration;\n    if(needsBegin)localBeginExpectation.lineageReconciled={businessBase:view.businessBase,revision,generation:moduleGeneration};\n    return adopt.length>0;\n  }\n  // Preserve independent stable-ID photo/rule edits in disposable Save\n  // candidates. Original RAM/base stay untouched until the original Save ACK.\n  function localListPlan(before,mine,peer,field,choice='mine'){\n    if(![before,mine,peer].every(rows=>Array.isArray(rows)&&rows.every(row=>row&&typeof row.id==='string')&&new Set(rows.map(row=>row.id)).size===rows.length))return null;\n    const ids=rows=>rows.map(row=>row.id),index=rows=>new Map(rows.map(row=>[row.id,row])),a=index(before),b=index(mine),c=index(peer),all=[...new Set([...ids(peer),...ids(mine),...ids(before)])],deleted=new Set();\n    for(const id of ids(before))if(!b.has(id)&&c.has(id)&&!sameInput(a.get(id),c.get(id))||b.has(id)&&!c.has(id)&&!sameInput(a.get(id),b.get(id)))deleted.add(id);\n    const common=ids(before).filter(id=>b.has(id)&&c.has(id)),localOrder=ids(mine).filter(id=>common.includes(id)),peerOrder=ids(peer).filter(id=>common.includes(id)),localMoved=!sameInput(common,localOrder),peerMoved=!sameInput(common,peerOrder),shared=all.filter(id=>b.has(id)&&c.has(id));\n    const orderConflict=localMoved&&peerMoved&&!sameInput(localOrder,peerOrder)||ids(mine).some(id=>!a.has(id)&&c.has(id))&&!sameInput(ids(mine).filter(id=>shared.includes(id)),ids(peer).filter(id=>shared.includes(id)));\n    let conflicts=deleted.size>0||orderConflict;const rows=new Map(),values=(row,keys)=>Object.fromEntries(keys.filter(key=>row&&Object.hasOwn(row,key)).map(key=>[key,clone(row[key])]));\n    for(const id of all){const origin=a.get(id),own=b.get(id),remote=c.get(id);let selected;\n      if(!origin)selected=remote||own;else if(own&&remote)selected=remote;else if(deleted.has(id))selected=choice==='server'?remote:own;\n      if(!selected)continue;const next=clone(selected);rows.set(id,next);if(!own||!remote)continue;\n      const keys=field==='rules'?['cadence','kind','value','name']:['name','note'],variant=row=>[row?.cadence,row?.kind],blocks=field==='rules'&&(!sameInput(variant(origin),variant(own))||!sameInput(variant(origin),variant(remote)))?[keys]:keys.map(key=>[key]);\n      for(const block of blocks){const original=values(origin,block),local=values(own,block),current=values(remote,block);if(sameInput(local,original))continue;const clash=!sameInput(current,original)&&!sameInput(local,current);conflicts ||=clash;const wanted=clash&&choice==='server'?current:local;for(const key of block){if(Object.hasOwn(wanted,key))next[key]=clone(wanted[key]);else delete next[key];}}\n    }\n    const primary=orderConflict?(choice==='server'?peer:mine):localMoved?mine:peer,secondary=primary===mine?peer:mine,ordered=ids(primary).filter(id=>rows.has(id)),rest=ids(secondary);\n    for(let n=0;n<rest.length;n++){const id=rest[n];if(!rows.has(id)||ordered.includes(id))continue;const next=rest.slice(n+1).find(value=>ordered.includes(value));if(next!==undefined)ordered.splice(ordered.indexOf(next),0,id);else{const previous=rest.slice(0,n).reverse().find(value=>ordered.includes(value));if(previous!==undefined)ordered.splice(ordered.indexOf(previous)+1,0,id);else ordered.push(id);}}\n    return{conflicts,value:ordered.map(id=>rows.get(id))};\n  }\n  const localListFields=['standardPhotos','methodPhotos','rules'];\n  function mergeLocalListEntries(entries){\n    return entries.map(source=>{const entry={...source,base:clone(source.base),snapshot:clone(source.snapshot),restoreChoices:clone(source.restoreChoices||{})},server=control.scopes[entry.scope],current=server?.workflow?.working||server?.versions.find(v=>v.status==='draft')?.snapshot||server?.versions.find(v=>v.id===server.activeVersionId)?.snapshot;\n      for(const before of entry.base.items){const mine=entry.snapshot.items.find(row=>row.id===before.id),peer=current?.items.filter(row=>row.id===before.id);if(before.deleted||mine?.deleted||peer?.length!==1||peer[0].deleted)continue;\n        for(const field of localListFields)if(!sameInput(before[field],mine[field])){const plan=localListPlan(before[field],mine[field],peer[0][field],field);if(plan&&!plan.conflicts){before[field]=clone(peer[0][field]);mine[field]=plan.value;}}}\n      return entry;\n    });\n  }\n  function localPreflightConflicts(){\n    const conflicts=[],seen=new Set();\n    for(const entry of localScopes.values()){\n      if(!sameInput(entry.source,control?.source??null))throw Error('SOURCE_CHANGED_RECONFIRM');\n      const server=control?.scopes[entry.scope];if((server?.workflow?.generation||null)!==entry.generation||(server?.activeVersionId||null)!==entry.baseId)throw Error('DRAFT_GENERATION_CHANGED');\n      const current=server?.workflow?.working||server?.versions.find(v=>v.status==='draft')?.snapshot||server?.versions.find(v=>v.id===server.activeVersionId)?.snapshot||{items:[],errors:[]};\n      const add=path=>{const token=JSON.stringify([entry.scope,path]);if(!seen.has(token)){seen.add(token);conflicts.push({scope:entry.scope,path});}};\n      for(const change of localScopeChanges(entry)){\n        if(change.moduleAction==='create-error'){if(!catalog.stages.some(s=>s.line===entry.scope.slice(0,1)&&s.code===change.input.stageCode))throw Error('STAGE_INVALID');continue;}\n        if(change.moduleAction==='create-item'){const localParent=entry.snapshot.errors.find(e=>e.id===change.input.errorId&&!e.deleted),parent=current.errors.find(e=>e.id===change.input.errorId&&!e.deleted);if(!localParent||!parent&&!String(change.input.errorId).startsWith('local-'))throw Error('ERROR_REMOVED');continue;}\n        const restoring=change.moduleAction==='restore-item-local-v1',deleting=change.moduleAction?.startsWith('delete');\n        const paths=restoring?[['items',{id:change.input.id}]]:deleting?[[change.moduleAction==='delete-error'?'errors':'items',{id:change.input.id}]]:change.patches.map(p=>p.path);\n        for(const path of paths){const rows=current[path[0]].filter(r=>r.id===path[1].id),row=rows[0],guard=change.guards.find(g=>sameInput(g.path,path));\n          if(rows.length!==1||row.deleted&&!restoring){add(path);continue;}\n          if(restoring){const parent=current.errors.filter(e=>e.id===row.errorId),parentGuard=change.guards.find(g=>g.path[0]==='errors');if(row.deleted!==true||!sameInput(row,guard?.value)||parent.length!==1||parent[0].deleted||!sameInput(parent[0],parentGuard?.value))add(path);}\n          else if(deleting){if(path[0]==='errors'&&current.items.some(item=>!item.deleted&&item.errorId===row.id&&!entry.snapshot.items.find(r=>r.id===item.id)?.deleted))throw Error('ERROR_IN_USE');if(!sameInput(row,guard?.value))add(path);}\n          else if(path[2]!=='productCodes'&&!sameInput(row[path[2]],guard?.value)&&!sameInput(row[path[2]],change.patches.find(p=>sameInput(p.path,path)).value)){const plan=localListFields.includes(path[2])?localListPlan(guard?.value,change.patches.find(p=>sameInput(p.path,path)).value,row[path[2]],path[2]):null;if(!plan||plan.conflicts)add(path);}\n        }\n      }\n    }return conflicts;\n  }\n  function localRestoreState(rows){\n    if(rows.path[0]!=='items'||rows.kind!=='edit-deleted')return{allowed:false,reason:t('此狀態不支援單筆恢復。','Trạng thái này không hỗ trợ khôi phục một mục.')};\n    const origin=rows.entry.restoreChoices?.[rows.mine.id]?.origin||rows.before,parent=control.scopes[rows.entry.scope]?.workflow?.working?.errors.filter(e=>e.id===rows.current.errorId)||[];\n    if(!permittedAction('restore'))return{allowed:false,reason:t('需要此模組的還原權限；本機內容仍保留，未存取。','Cần quyền khôi phục của mô-đun; nội dung cục bộ vẫn giữ, chưa lưu.')};\n    if(!permittedAction('create'))return{allowed:false,reason:t('還原項目需要此模組的新增權限；本機內容仍保留，未存取。','Khôi phục mục cần quyền tạo của mô-đun; nội dung cục bộ vẫn giữ, chưa lưu.')};\n    if(parent.length!==1||parent[0].deleted)return{allowed:false,reason:t('原錯誤代碼已刪除或身分不明；不能連帶恢復父層。','Mã lỗi gốc đã xóa hoặc không rõ định danh; không tự khôi phục mục cha.')};\n    if(origin.deleted!==false||['id','code','errorId','sourceRows','sourceTool','sourceMethod','sourceFrequency','sourceVersion','sourceChangedAt','sourceReason','sourceCreator','sourceNote'].some(k=>!sameInput(origin[k],rows.current[k])))return{allowed:false,reason:t('原項目身分已變更；未恢復或另建項目。','Định danh mục gốc đã đổi; không khôi phục hoặc tạo bản sao.')};\n    if([...localScopes.values()].some(e=>Object.keys(e.restoreChoices||{}).some(id=>id!==rows.mine.id)))return{allowed:false,reason:t('此存取只允許恢復已選的單筆項目。','Lần lưu này chỉ cho phép khôi phục một mục đã chọn.')};\n    return{allowed:true,origin,parent:parent[0]};\n  }\n  function rememberLocalConflict(details,remaining=[details]){\n    const entries=new Map();\n    for(const detail of remaining){const entry=localScopes.get(detail?.scope),path=detail?.path;\n      if(!entry||!Array.isArray(path)||![2,3].includes(path.length)||!['items','errors'].includes(path[0])||typeof path[1]?.id!=='string')return;\n      entries.set(detail.scope,{entry,stamp:JSON.stringify([entry.base,entry.snapshot,entry.restoreChoices])});\n    }\n    localConflict={scope:details.scope,path:clone(details.path),remaining:clone(remaining),entries,intent:localSaveIntent,control,revision,owner:actor(),epoch:window.ProcessSync?.identityGeneration?.(),delivery:window.ProcessSync?.captureDelivery?.(),host,lifetime:mutationLifetime,modal};\n  }\n  function localConflictItemRows(detail,conflict){\n    const entry=localScopes.get(detail.scope),path=detail.path,server=control?.scopes[detail.scope];\n    if(!entry||!server||entry.generation!==(server.workflow?.generation||null)||entry.baseId!==server.activeVersionId)return null;\n    if(path.length===3&&!(path[0]==='errors'?['name']:createItemFields).includes(path[2]))return null;\n    const source=server.workflow?.working||server.versions.find(v=>v.status==='draft')?.snapshot||server.versions.find(v=>v.id===server.activeVersionId)?.snapshot;\n    const originals=entry.base[path[0]].filter(r=>r.id===path[1].id),locals=entry.snapshot[path[0]].filter(r=>r.id===path[1].id),currents=source?.[path[0]]?.filter(r=>r.id===path[1].id)||[];\n    if(originals.length!==1||locals.length!==1)return null;\n    const before=originals[0],mine=locals[0],current=currents[0];let kind='field';\n    if(currents.length>1)kind='ambiguous';else if(!current)kind='missing';else if(current.deleted)kind=mine.deleted?'already-deleted':'edit-deleted';else if(before.deleted&&!mine.deleted)kind='restore-changed';else if(path.length===2&&mine.deleted&&!before.deleted)kind='delete-edited';else if(path.length!==3||before.deleted||mine.deleted)return null;\n    return{entry,path,before,mine,current,kind,conflict};\n  }\n  function localConflictSet(conflict=localConflict){\n    if(!conflict||conflict!==localConflict||conflict.intent&&!localSaveIntentCurrent(conflict.intent)||busy||accessBlocked||localSent||!permittedAction('edit')||control?.moduleDraft?.workflow?.pendingId||!localOwnerCurrent()||localPending()||conflict.owner!==actor()||conflict.epoch!==window.ProcessSync?.identityGeneration?.()||!window.ProcessSync?.isCurrentDelivery?.(conflict.delivery)||conflict.host!==host||conflict.lifetime!==mutationLifetime||conflict.modal!==modal||conflict.control!==control||conflict.revision!==revision)return null;\n    for(const [scope,pin]of conflict.entries)if(localScopes.get(scope)!==pin.entry||pin.stamp!==JSON.stringify([pin.entry.base,pin.entry.snapshot,pin.entry.restoreChoices]))return null;\n    const rows=conflict.remaining.map(detail=>localConflictItemRows(detail,conflict));return rows.length&&rows.every(Boolean)?rows:null;\n  }\n  function localConflictRows(conflict=localConflict){return localConflictSet(conflict)?.[0]||null;}\n  function localConflictSignature(rows){return JSON.stringify(rows.map(r=>[r.entry.scope,r.path,r.kind,...[r.before,r.mine,r.current].map(row=>r.kind==='field'?row?.[r.path[2]]:row)]));}\n  function planLocalConflictChoice(rows,choice){\n    // Build a disposable command candidate. Never rebase private RAM, including\n    // a partly accepted set, while deciding, rechecking or awaiting an ACK.\n    const entries=new Map([...localScopes].map(([scope,entry])=>[scope,{...entry,base:clone(entry.base),snapshot:clone(entry.snapshot),restoreChoices:clone(entry.restoreChoices||{})}])),handled=new Set(),restores=new Set();\n    for(const entry of entries.values())for(const id of Object.keys(entry.restoreChoices))restores.add(JSON.stringify([entry.scope,id]));\n    for(const rowsAtChoice of rows){const {path,kind,current}=rowsAtChoice,entry=entries.get(rowsAtChoice.entry.scope),before=entry.base[path[0]].find(row=>row.id===path[1].id),mine=entry.snapshot[path[0]].find(row=>row.id===path[1].id),token=JSON.stringify([entry.scope,path[0],mine.id]);\n      if(['missing','ambiguous'].includes(kind)||kind==='restore-changed'&&choice==='mine')throw Error(t('身分或狀態已變更；本機內容仍保留，此次存取未完成。','Định danh hoặc trạng thái đã đổi; giữ nội dung cục bộ, lần lưu chưa hoàn tất.'));\n      if(kind!=='field'&&handled.has(token))continue;\n      if(kind==='edit-deleted'&&choice==='mine'){\n        const restore=localRestoreState(rowsAtChoice);if(!restore.allowed)throw Error(restore.reason);\n        restores.add(JSON.stringify([entry.scope,mine.id]));if(restores.size>1)throw Error(t('此存取只允許恢復已選的單筆項目；整組選擇未套用。','Lần lưu chỉ cho phép khôi phục một mục; chưa áp dụng lựa chọn cả nhóm.'));\n        const fields={...entry.restoreChoices[mine.id]?.fields};for(const field of createItemFields)if(!sameInput(before[field],mine[field]))fields[field]=clone(mine[field]);\n        entry.restoreChoices[mine.id]={origin:clone(restore.origin),fields:clone(fields),parent:clone(restore.parent)};\n        entry.base.items[entry.base.items.indexOf(before)]=clone(current);entry.snapshot.items[entry.snapshot.items.indexOf(mine)]={...clone(current),...fields,deleted:false};\n      }else if(kind==='field'){const plan=localListFields.includes(path[2])?localListPlan(before[path[2]],mine[path[2]],current[path[2]],path[2],choice):null;before[path[2]]=clone(current[path[2]]);if(plan)mine[path[2]]=plan.value;else if(choice==='server')mine[path[2]]=clone(current[path[2]]);}\n      else if(kind==='delete-edited'&&choice==='mine')Object.assign(before,clone(current));\n      else{entry.base[path[0]][entry.base[path[0]].indexOf(before)]=clone(current);entry.snapshot[path[0]][entry.snapshot[path[0]].indexOf(mine)]=clone(current);delete entry.restoreChoices[mine.id];}\n      if(kind!=='field')handled.add(token);\n    }\n    return [...entries.values()];\n  }\n  function localConflictHTML(){\n    const rows=localConflictSet();if(!rows)return '';\n    const labels={name:t('錯誤名稱','Tên lỗi'),standard:t('檢查標準','Tiêu chuẩn'),methodText:t('檢查方式','Phương pháp'),inspectionMode:t('檢查模式','Chế độ kiểm tra'),equipmentId:t('檢具','Thiết bị'),isEnabled:t('啟用','Sử dụng'),rules:t('頻率','Tần suất'),standardPhotos:t('標準照片','Ảnh tiêu chuẩn'),methodPhotos:t('方式照片','Ảnh phương pháp'),productCodes:t('產品對照','Liên kết sản phẩm'),reason:t('原因','Lý do')};\n    const position=({entry,path,before})=>{const parent=path[0]==='items'?entry.base.errors.find(e=>e.id===before.errorId):before;return [entry.scope,parent?.stageCode,parent?.code,path[0]==='items'?before.code:null,labels[path[2]]||t('整筆刪除','Xóa bản ghi')].filter(Boolean).join(' / ');};\n    const item=rows=>{const {path,before,mine,current,kind}=rows,value=row=>row?JSON.stringify(kind==='field'?row[path[2]]:row):t('不存在','Không tồn tại'),restore=localRestoreState(rows);\n      const notice=kind==='edit-deleted'?restore.allowed?t('對方已刪除此項目；用我的將恢復同一筆項目並在此次存取保存修改，不恢復父層或其他項目。','Mục đã bị xóa; dùng của tôi sẽ khôi phục đúng mục này và lưu chỉnh sửa trong lần lưu hiện tại, không khôi phục mục cha hay mục khác.'):restore.reason:['missing','ambiguous'].includes(kind)?t('權威資料缺失或身分不明；保留本機內容，未恢復或覆寫資料。','Dữ liệu chung thiếu hoặc không rõ định danh; giữ nội dung cục bộ, không khôi phục hay ghi đè.'):'';\n      return `<article data-ab-conflict-entry><p data-ab-conflict-position>${h(position(rows))}</p>${notice?`<p>${h(notice)}</p>`:''}${[['base',t('原值','Giá trị gốc'),before],['mine',t('我的','Của tôi'),mine],['server',t('對方','Dữ liệu chung'),current]].map(([id,label,row])=>`<div><b>${h(label)}</b><pre data-ab-conflict-value=\"${id}\" style=\"white-space:pre-wrap;overflow-wrap:anywhere\">${h(value(row))}</pre></div>`).join('')}</article>`;\n    };\n    return `<section class=\"ipqcab-card\" data-ab-conflict data-ab-conflict-kind=\"${h(rows[0].kind)}\"><p data-ab-conflict-count>${h(t(`共 ${rows.length} 處衝突；一次選擇整組使用我的或對方的內容。非衝突修改會保留。`,`Có ${rows.length} xung đột; chọn dữ liệu của tôi hoặc dữ liệu chung cho cả nhóm. Giữ các thay đổi không xung đột.`))}</p><p>${h(t('選擇後重新核對並繼續此次存取；取消不更改原本機修改或比較基準。','Sau khi chọn, đối chiếu lại rồi tiếp tục lưu; hủy không đổi chỉnh sửa hoặc cơ sở so sánh cục bộ.'))}</p><ol data-ab-conflict-locations>${rows.map(row=>`<li>${h(position(row))}</li>`).join('')}</ol>${rows.map(item).join('')}<button type=\"button\" data-ab-conflict-choice=\"mine\">${t('用我的','Dùng của tôi')}</button><button type=\"button\" data-ab-conflict-choice=\"server\" ${rows.some(row=>['missing','ambiguous'].includes(row.kind))?'disabled':''}>${t('用對方的','Dùng của người khác')}</button><button type=\"button\" data-ab-conflict-choice=\"cancel\" data-ab-conflict-close>${t('取消','Hủy')}</button></section>`;\n  }\n  function chooseLocalConflict(choice,conflict=localConflict){\n    if(!['mine','server','cancel'].includes(choice))return;const rows=localConflictSet(conflict);if(!rows)return;const intent=conflict.intent;\n    if(choice==='cancel'){localConflict=null;if(localSaveIntent===intent)localSaveIntent=null;message=t('已取消此次存取；本機修改仍保留，沒有送出。','Đã hủy lần lưu; thay đổi cục bộ vẫn giữ, chưa gửi.');draw({localConflictChoice:true});return;}\n    try{planLocalConflictChoice(rows,choice);}catch(error){message=error.message;draw({localConflictChoice:true});return;}\n    if(!intent||localSaveIntent!==intent)return;\n    intent.resolution={choice,signature:localConflictSignature(rows)};\n    localConflict=null;message=t('正在重新核對整組衝突並繼續此次存取。','Đang đối chiếu lại cả nhóm xung đột và tiếp tục lưu.');draw({localConflictChoice:true});\n    intent.flight=saveLocalModule(intent);return intent.flight;\n  }\n  function clearConflictEscape(){conflictEscapeCleanup?.();conflictEscapeCleanup=null;}\n  function bindConflictEscape(){\n    clearConflictEscape();const conflict=localConflict,node=host?.querySelector('[data-ab-conflict]');\n    const blocked=()=>!!modal||!!viewer||!!document.querySelector('dialog[open],[aria-modal=\"true\"]');\n    const current=()=>node?.isConnected&&host?.querySelector('[data-ab-conflict]')===node&&!!localConflictRows(conflict);\n    if(!node||blocked()||!current())return;\n    const cleanup=()=>{node.removeEventListener('keydown',keydown);observer.disconnect?.();if(conflictEscapeCleanup===cleanup)conflictEscapeCleanup=null;};\n    const keydown=event=>{if(!current()){cleanup();return;}if(event.key!=='Escape'||event.defaultPrevented||event.isComposing||blocked()||event.target?.closest?.('form,dialog,[aria-modal=\"true\"]'))return;event.preventDefault();event.stopImmediatePropagation();chooseLocalConflict('cancel',conflict);cleanup();};\n    const observer=new MutationObserver(()=>{if(!current())cleanup();});observer.observe(document.body,{childList:true,subtree:true});node.addEventListener('keydown',keydown);conflictEscapeCleanup=cleanup;\n    node.setAttribute('tabindex','-1');if(!document.activeElement?.closest?.('form,dialog,[aria-modal=\"true\"]'))node.focus({preventScroll:true});\n"
+      },
+      {
+        "offset": 84484,
+        "before": "",
+        "after": "    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 84921,
+        "before": "      for(const target of targets){if(target===client&&localSent&&client.hasConfirmedRejection(localSent.command)){if(!owns())return;client.finalizeRejected(localSent.command);pin.setSent(null);rejected=true;continue;}const isBegin=target.hasUnknownBegin?.(),result=await target.resolveUnknown();if(!owns())return;if(isBegin){localBeginReceipt=result.receipt;localModuleGeneration ||=result.receipt.generation;}else if(target===client&&localSent?.owner===owner&&localSent.epoch===epoch&&localSent.command.operationId===result.receipt?.operationId){localSent.confirmed=result.receipt;}}\n",
+        "after": "      for(const target of targets){if(target===client&&localSent&&client.hasConfirmedRejection(localSent.command)){if(!owns())return;client.finalizeRejected(localSent.command);pin.setSent(null);rejected=true;continue;}const isBegin=target.hasUnknownBegin?.(),result=await target.resolveUnknown();if(!owns())return;if(isBegin){localBeginReceipt=result.receipt;confirmLocalBegin(result);}else if(target===client&&localSent?.owner===owner&&localSent.epoch===epoch&&localSent.command.operationId===result.receipt?.operationId){localSent.confirmed=result.receipt;}}\n"
+      },
+      {
+        "offset": 86363,
+        "before": "  async function saveLocalModule(){\n",
+        "after": "  // Bound photo I/O only. A failed batch drains both active requests before\n  // releasing busy; acknowledged immutable uploads remain reusable on retry.\n  function localChangePhotos(change){const lists=change.input?.item?[change.input.item.standardPhotos,change.input.item.methodPhotos]:change.moduleAction==='restore-item-local-v1'?[change.input.fields.standardPhotos,change.input.fields.methodPhotos]:change.patches?.filter(p=>['standardPhotos','methodPhotos'].includes(p.path[2])).map(p=>p.value)||[];return lists.flatMap(list=>list||[]);}\n  async function uploadLocalPhotos(saveScopes,unchanged,ownerId){\n    assertCurrentDisplay();\n    const references=[],queued=new Set();\n    for(const entry of saveScopes)for(const change of entry.changes){\n      for(const photo of localChangePhotos(change)){const staged=localPhotos.get(photo.id);references.push({photo,staged});if(staged?.uploadUnknown)throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');if(staged?.uploaded&&staged.uploadedFile!==staged.file)throw Error('LOCAL_BATCH_RECONFIRM');if(staged&&!staged.uploaded)queued.add(staged);}\n    }\n    const stagedJobs=[...queued],fingerprints=new Map(),pins=new Map([...new Set(references.map(r=>r.staged).filter(Boolean))].map(staged=>[staged,{file:staged.file,preview:staged.preview}]));let identifyNext=0,failure=null;\n    const mediaCurrent=()=>unchanged()&&references.every(({photo,staged})=>!staged||localPhotos.get(photo.id)===staged)&&[...pins].every(([staged,pin])=>staged.file===pin.file&&staged.preview===pin.preview);\n    // Raw-file identity is request-local. It never replaces server normalization\n    // or its content digest, and both hashing and upload retain a bound of two.\n    async function identify(){while(!failure&&identifyNext<stagedJobs.length){const staged=stagedJobs[identifyNext++];try{\n      if(!mediaCurrent())throw Error('LOCAL_BATCH_RECONFIRM');\n      if(typeof crypto.subtle?.digest==='function'){\n        const bytes=await pins.get(staged).file.arrayBuffer(),digest=await crypto.subtle.digest('SHA-256',bytes);\n        if(!mediaCurrent())throw Error('LOCAL_BATCH_RECONFIRM');\n        const fingerprint=JSON.stringify([staged.file.type,staged.file.size,Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('')]);if(unknownPhotoFingerprints.has(fingerprint))throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');fingerprints.set(staged,fingerprint);\n      }\n    }catch(error){failure ||=error instanceof Error?error:Error('PHOTO_UPLOAD_FAILED');}}}\n    await Promise.all(Array.from({length:Math.min(2,stagedJobs.length)},()=>identify()));\n    if(failure)throw failure;\n    const groups=new Map();for(const staged of stagedJobs){const key=fingerprints.get(staged)||staged;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(staged);}\n    const jobs=[...groups.values()];let next=0;\n    async function worker(){while(!failure&&next<jobs.length){const group=jobs[next++],staged=group[0];let started=false,accepted=false;try{\n      if(!mediaCurrent())throw Error('LOCAL_BATCH_RECONFIRM');\n      started=true;const response=await fetch(API+'/photo',{method:'PUT',headers:{...headers(),'X-Process-Expected-Actor':ownerId,'Content-Type':staged.file.type},body:pins.get(staged).file}),body=await response.json();\n      if(!response.ok)throw Error(body.error||'PHOTO_UPLOAD_FAILED');\n      if(!/^[a-f0-9]{64}$/.test(body?.id||''))throw Error('PHOTO_UPLOAD_FAILED');\n      if(!mediaCurrent())throw Error('LOCAL_BATCH_RECONFIRM');\n      for(const member of group){member.uploaded=body.id;member.uploadedFile=pins.get(member).file;}accepted=true;\n    }catch(error){if(started&&!accepted)for(const member of group){member.uploadUnknown=true;const fingerprint=fingerprints.get(member);if(fingerprint)unknownPhotoFingerprints.add(fingerprint);}failure ||=error instanceof Error?error:Error('PHOTO_UPLOAD_FAILED');}}}\n    await Promise.all(Array.from({length:Math.min(2,jobs.length)},()=>worker()));\n    if(failure)throw failure;\n    if(!mediaCurrent())throw Error('LOCAL_BATCH_RECONFIRM');\n    for(const {photo,staged}of references){if(staged)photo.id=staged.uploaded;delete photo.preview;}\n    return stagedJobs.length>0;\n  }\n\n  async function saveLocalModule(continuation=null){\n    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 91288,
+        "before": "    const owner=actor(),epoch=window.ProcessSync?.identityGeneration?.(),capture=JSON.stringify(localSaveScopes()),pin=pinLocalOperation(client),owns=pin.current;\n    const unchanged=()=>owns()&&JSON.stringify(localSaveScopes())===capture;busy=true;message='';draw();let acknowledged=false;\n",
+        "after": "    if(continuation&&!localSaveIntentCurrent(continuation))return null;\n    if(!continuation&&localSaveIntent&&localConflictRows()){message=t('請選擇目前衝突或取消此次存取。','Hãy chọn xung đột hiện tại hoặc hủy lần lưu.');draw({localConflictChoice:true});return null;}\n    const owner=actor(),epoch=window.ProcessSync?.identityGeneration?.();let capture=JSON.stringify(localSaveScopes());const intent=continuation||{displayEpoch:historyDisplayEpoch,owner,epoch,delivery:window.ProcessSync?.captureDelivery?.(),host,lifetime:mutationLifetime,modal,client,stamp:capture,photoPins:new Map([...localPhotos].map(([id,staged])=>[id,{staged,file:staged.file,preview:staged.preview}]))};localSaveIntent=intent;if(!continuation)localConflict=null;\n    let waiting=false,acknowledged=false,initialized=false,saveDispatched=false,recompare=false;const pin=pinLocalOperation(client),owns=()=>pin.current()&&(acknowledged||localSaveIntentCurrent(intent,false));\n    const unchanged=()=>owns()&&JSON.stringify(localSaveScopes())===capture;busy=true;message='';draw();\n"
+      },
+      {
+        "offset": 92475,
+        "before": "      if(localModuleGeneration&&result.control?.workflow?.generation!==localModuleGeneration)throw Error('DRAFT_GENERATION_CHANGED');\n      if(!result.control?.workflow||!result.control.versions.some(v=>['draft','pending','pending-test'].includes(v.status))){\n        result=await client.begin();if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');localBeginReceipt=result.receipt;\n        if(!result.control)result=await client.read();if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');\n        if(localBeginReceipt&&result.control?.workflow?.generation!==localBeginReceipt.generation)throw Error('DRAFT_GENERATION_CHANGED');\n",
+        "after": "      let flow=result.control?.workflow,saveScopes=JSON.parse(capture),saveEntries=[...localScopes.values()];\n      const checkPermissions=permissions=>{const requiresRestore=saveScopes.some(s=>s.changes.some(c=>c.moduleAction==='restore-item-local-v1')),requiresCreate=requiresRestore||saveScopes.some(s=>s.changes.some(c=>c.moduleAction?.startsWith('create'))),requiresDelete=saveScopes.some(s=>s.changes.some(c=>c.moduleAction?.startsWith('delete')));if(permissions?.edit!==true||requiresCreate&&permissions?.create!==true||requiresDelete&&permissions?.delete!==true)throw Error('FORBIDDEN');if(requiresRestore&&permissions?.restore!==true)throw Error('RESTORE_PERMISSION_REQUIRED');};\n      const compareAuthority=async()=>{\n        for(let check=0;;check++){\n          if(await load(true,null,null,pin)!==true||!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');\n          if(revision===result.revision&&control?.moduleDraft?.workflow?.generation===flow?.generation&&control?.moduleDraft?.workflow?.revision===flow?.revision)break;\n          // Recompare only reads before any dispatch. Never repeat Begin, Save\n          // or upload to recover a race, rejection or unknown result.\n          if(intent.dispatched||check>=2)throw Error('MODULE_CHANGED_RECONFIRM');\n          result=await client.read();if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');flow=result.control?.workflow;\n        }\n        if(flow?.pendingId)throw Error('PENDING_LOCKED');if(!permittedAction('edit'))throw Error('FORBIDDEN');checkPermissions(result.permissions);\n        const adopting=!!flow&&!localModuleGeneration||!!localBeginExpectation?.receipt&&!localBeginExpectation.confirmed&&!localBeginExpectation.lineageReconciled||[...localScopes.values()].some(entry=>(control.scopes[entry.scope]?.workflow?.generation??null)!==entry.generation);\n        if(adopting&&!intent.dispatched){const current=await client.permissions();if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');checkPermissions(current.permissions);if(current.revision!==result.revision)throw Error('MODULE_CHANGED_RECONFIRM');}\n        if(compareLocalLineage(intent,flow)){capture=JSON.stringify(localSaveScopes());intent.stamp=capture;saveScopes=JSON.parse(capture);}\n        const conflicts=localPreflightConflicts();\n        if(intent.resolution){\n          const rows=conflicts.map(detail=>localConflictItemRows(detail,null));\n          if(!rows.length||!rows.every(Boolean)||localConflictSignature(rows)!==intent.resolution.signature){\n            intent.resolution=null;if(intent.dispatched)throw Error('LOCAL_BATCH_RECONFIRM');\n            if(conflicts.length){rememberLocalConflict(conflicts[0],conflicts);waiting=true;return false;}\n            throw Error('CONFLICT_SET_CHANGED_RECONFIRM');\n          }\n          saveEntries=mergeLocalListEntries(planLocalConflictChoice(rows,intent.resolution.choice));saveScopes=localSaveScopes(saveEntries);checkPermissions(result.permissions);return true;\n        }\n        if(conflicts.length){if(intent.dispatched)throw Error('LOCAL_BATCH_RECONFIRM');rememberLocalConflict(conflicts[0],conflicts);waiting=true;return false;}saveEntries=mergeLocalListEntries(saveEntries);saveScopes=localSaveScopes(saveEntries);return true;\n      };\n      // Compare before any Begin or media write. A cancelled initial conflict\n      // must not create a module draft merely to display its choices.\n      if(!await compareAuthority())return null;\n      if(!flow||!result.control.versions.some(v=>['draft','pending','pending-test'].includes(v.status))){\n        const beginRevision=result.revision,beginControl=result.control,open=beginControl.versions.find(v=>['draft','pending','pending-test'].includes(v.status)),basis={generation:flow?.generation??null,activeVersionId:beginControl.activeVersionId??null,openVersionId:open?.id??null,openVersionStatus:open?.status??null,openVersionRevision:open?.revision??null};\n        localBeginExpectation={basis,owner,epoch,delivery:intent.delivery,host,lifetime:mutationLifetime,confirmed:false};intent.dispatched=true;\n        result=await client.begin();if(!pin.current())return null;localBeginReceipt=result.receipt;initialized=true;flow=confirmLocalBegin(result);\n        // Only our owned, confirmed Begin receipt binds this new module generation.\n        // Any intervening state write stops this intent before media or Save.\n        if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');\n        if(result.revision!==beginRevision+1||flow.revision!==localBeginReceipt.revision)throw Error('MODULE_CHANGED_RECONFIRM');\n        if(!await compareAuthority())return null;\n"
+      },
+      {
+        "offset": 97087,
+        "before": "      const flow=result.control?.workflow;if(!flow)throw Error('BEGIN_REQUIRED');\n",
+        "after": "      if(!flow)throw Error('BEGIN_REQUIRED');\n"
+      },
+      {
+        "offset": 97287,
+        "before": "      const saveScopes=JSON.parse(capture);\n      for(const entry of saveScopes)for(const change of entry.changes){const lists=change.input?.item?[change.input.item.standardPhotos,change.input.item.methodPhotos]:change.patches?.filter(p=>['standardPhotos','methodPhotos'].includes(p.path[2])).map(p=>p.value)||[];\n        for(const photos of lists)for(const photo of photos||[]){const staged=localPhotos.get(photo.id);if(staged){if(!staged.uploaded){const response=await fetch(API+'/photo',{method:'PUT',headers:{...headers(),'Content-Type':staged.file.type},body:staged.file}),body=await response.json();if(!response.ok)throw Error(body.error||'PHOTO_UPLOAD_FAILED');if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');staged.uploaded=body.id;}photo.id=staged.uploaded;}delete photo.preview;}\n      }\n",
+        "after": "      const selectedFiles=saveScopes.some(s=>s.changes.some(c=>localChangePhotos(c).some(photo=>localPhotos.has(photo.id))));\n      if(selectedFiles){const equipmentIds=new Set();for(const scopeEntry of saveScopes)for(const change of scopeEntry.changes){const fields=change.input?.fields||change.input?.item||Object.fromEntries((change.patches||[]).map(p=>[p.path[2],p.value]));if(fields.equipmentId||fields.inspectionMode==='equipment'){const id=change.input?.id||change.localId||change.patches?.[0]?.path[1]?.id,row=saveEntries.find(entry=>entry.scope===scopeEntry.scope)?.snapshot.items.find(i=>i.id===id);if(row?.inspectionMode==='equipment')equipmentIds.add(row.equipmentId);}}\n        if(equipmentIds.size){const response=await fetch(API+'?catalog=equipment',{headers:headers(),cache:'no-store'}),body=await response.json();if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');if(!response.ok||body.revision!==result.revision||!Array.isArray(body.equipment))throw Error('EQUIPMENT_REFERENCE_RECONFIRM');for(const id of equipmentIds)if(!body.equipment.some(e=>e.id===id&&e.available!==false))throw Error('EQUIPMENT_UNAVAILABLE');}}\n      const uploaded=await uploadLocalPhotos(saveScopes,unchanged,owner.id);\n"
+      },
+      {
+        "offset": 98561,
+        "before": "      const command=client.prepare(flow.generation,'save',{moduleAction:'save-local-v1',input:{scopes:saveScopes}});\n      pin.setSent({command,snapshot:capture,owner,epoch});const response=await client.sendPrepared(command);if(!owns())return null;\n",
+        "after": "      // Reconfirm the actual signed principal after asynchronous media work.\n      // The bound POST still rejects a cookie switch after this read.\n      if(uploaded){const access=await client.permissions();if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');checkPermissions(access.permissions);if(access.revision!==result.revision)throw Error('MODULE_CHANGED_RECONFIRM');}\n\n      const command=client.prepare(flow.generation,'save',{expectedRevision:flow.revision,moduleAction:'save-local-v1',input:{scopes:saveScopes,stateRevision:result.revision}});\n      pin.setSent({command,snapshot:capture,owner,epoch});intent.dispatched=true;saveDispatched=true;const response=await client.sendPrepared(command);if(!owns())return null;\n"
+      },
+      {
+        "offset": 99726,
+        "before": "    }catch(error){if(owns()){message=acknowledged?t('已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Đã lưu nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):error.message;if(!client.hasUnknown()&&localSent&&client.isConfirmedRejection(error,localSent.command)){client.discardRejectedLocalSave(localSent.command);pin.setSent(null);if(error.message==='DEPENDENCY_CHANGED_RECONFIRM'){await load(true,null,null,pin);if(owns())localConflict={path:error.details?.path,scope:error.details?.scope};}}}return null;}\n    finally{pin.finish();}\n",
+        "after": "    }catch(error){const owned=owns();if(owned||initialized&&!saveDispatched&&pin.current()&&localSaveIntent===intent){message=acknowledged?t('已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Đã lưu nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):initialized&&!saveDispatched?t('草稿已初始化，但本次尚未存取；本機修改仍保留，請再次按存取以重新比較。','Bản nháp đã được khởi tạo nhưng lần này chưa lưu; thay đổi cục bộ vẫn giữ. Hãy nhấn lưu lại để so sánh.')+' ('+error.message+')':error.message;if(owned&&!client.hasUnknown()&&localSent&&client.isConfirmedRejection(error,localSent.command)){client.discardRejectedLocalSave(localSent.command);pin.setSent(null);if(['DRAFT_REVISION_CHANGED_RECONFIRM','MODULE_CHANGED_RECONFIRM'].includes(error.message)&&(intent.recomparisons||0)<2){intent.recomparisons=(intent.recomparisons||0)+1;intent.dispatched=false;intent.resolution=null;recompare=true;}}}}\n    finally{pin.finish();if(!waiting&&!recompare&&localSaveIntent===intent)localSaveIntent=null;}\n    return recompare&&localSaveIntentCurrent(intent)?saveLocalModule(intent):null;\n"
+      },
+      {
+        "offset": 101174,
+        "before": "  function moduleTransport(){const id=actor()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(moduleActor!==id||moduleClient?.isRuntimeCurrent?.()===false||moduleClient?.isBeginRuntimeCurrent?.()===false){moduleActor=id;moduleClient=window.createSharedDraftClient({endpoint:API+'/workflow?module=1&caseMetadata=1',externalDurableBounded:{scope:'IPQC-AB'},durableBegin:true,allowUnknownDeparture:true,actorId:id,headers,guardAccessResults:true});}return moduleClient;}\n  async function moduleSave(action,detail={}){\r\n",
+        "after": "  function moduleTransport(){const id=actor()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(moduleActor!==id||moduleClient?.isRuntimeCurrent?.()===false||moduleClient?.isBeginRuntimeCurrent?.()===false){moduleActor=id;moduleClient=window.createSharedDraftClient({endpoint:API+'/workflow?module=1&caseMetadata=1',externalDurableBounded:{scope:'IPQC-AB'},durableBegin:true,allowUnknownDeparture:true,actorId:id,headers:()=>({...headers(),'X-Process-Expected-Actor':id}),guardAccessResults:true});}return moduleClient;}\n  async function moduleSave(action,detail={}){\n    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 105902,
+        "before": "  async function save(action = 'save') {\r\n",
+        "after": "  async function save(action = 'save') {\n    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 106374,
+        "before": "  function scheduleRefresh(){const pollScheduleOwner=pollTimer.capture();const delivery=window.ProcessSync?.captureDelivery?.(),pollActor=actor(),pollEpoch=window.ProcessSync?.identityGeneration?.(),pollHost=host,owns=()=>pollTimer.isCurrent(pollScheduleOwner)&&actor()===pollActor&&host===pollHost&&(!Number.isFinite(pollEpoch)||window.ProcessSync?.identityGeneration?.()===pollEpoch)&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));pollTimer.schedule(async()=>{\r\n    if(!owns()||rejectForeignBatch())return;\r\n    if(!host?.isConnected||host.dataset.activeTab!=='quality-ipqc-ab')return;\r\n    let readCurrent=owns;try{if(!accessBlocked&&!busy&&!localScopes.size&&document.visibilityState!=='hidden'&&transport().canPoll('state')){\n      const current=key(),flow=scope()?.workflow,priorControl=control,priorRevision=revision,priorLoad=loadGeneration;\r\n      readCurrent=()=>owns()&&!accessBlocked&&!busy&&!localScopes.size&&key()===current&&control===priorControl&&revision===priorRevision&&loadGeneration===priorLoad;\n      const result=await transport().read(flow?`${flow.generation}:${flow.revision}`:'');\r\n      if(readCurrent()&&!result.unchanged&&result.control){captureBatchInput();retainInputBase();const preserve=hasPrivateInput(),wasOpen=['draft','pending'].includes(version()?.status);control.scopes[current]=result.control;revision=result.revision;\r\n        if(!modal){if(wasOpen){versionId=opened()?.id||active()?.id;if(!preserve){working=opened()?.status==='draft'?clone(opened().snapshot):null;inputBasisOwner=inputOwner();}}if(preserve)message=batchNotice();if(!host.contains(document.activeElement))draw();}\r\n        else{const banner=host.querySelector('#ipqcab-shared-status');if(banner)banner.textContent=t('共用內容已更新，保留彈窗輸入；套用時核對來源。','Nội dung chung đã cập nhật; giữ dữ liệu cửa sổ và kiểm tra nguồn khi áp dụng.');}\r\n      }\r\n    }}catch(error){if(!readCurrent())return;message=t('同步失敗，保留目前內容：','Đồng bộ thất bại, giữ nội dung hiện tại: ')+error.message;}\r\n    finally{if(owns()&&pollTimer.isCurrent(pollScheduleOwner))scheduleRefresh();}\r\n  });}\r\n",
+        "after": "  // Draft authority is read on entry and explicit actions, never a periodic timer.\n"
+      },
+      {
+        "offset": 107464,
+        "before": "    for (const item of snapshot().items.filter(i=>!i.deleted && i.isEnabled)) {\r\n",
+        "after": "    for (const item of snapshot().items.filter(i=>!i.deleted && i.isEnabled && snapshot().errors.some(e=>!e.deleted&&e.id===i.errorId) && i.productCodes.some(code=>catalog.products.some(p=>p.code===code&&p.line===line&&p.category===group&&p.stages.includes(snapshot().errors.find(e=>e.id===i.errorId)?.stageCode))))) {\n"
+      },
+      {
+        "offset": 108054,
+        "before": "      if (!item.rules.length) records.push({itemId:item.id,code:item.code,reason:t('頻率待補','Thiếu tần suất')});\r\n",
+        "after": "      if (!item.rules.length) records.push({itemId:item.id,code:item.code,reason:t('頻率待補','Thiếu tần suất')});\n      if(item.inspectionMode==='equipment'&&!item.equipmentId)records.push({itemId:item.id,code:item.code,reason:t('缺必要檢具','Thiếu thiết bị')});\n    }\n    for(const item of snapshot().items.filter(i=>!i.deleted)){\n"
+      },
+      {
+        "offset": 109863,
+        "before": "    return section([...issues,...invalid],'error',t('報錯','Lỗi'))+section(records,'missing',t('待補（由審核者確認，不阻擋送審）','Cần bổ sung (người duyệt xác nhận; không chặn gửi)'));\r\n",
+        "after": "    return section([...issues,...invalid],'error',t('報錯','Lỗi'))+section(records,'missing',t('本群組待補（全部工段；整份案件涵蓋 A/B 全群組）','Cần bổ sung trong nhóm (mọi công đoạn; hồ sơ gồm mọi nhóm A/B)'));\n"
+      },
+      {
+        "offset": 133258,
+        "before": "  function draw() {\r\n",
+        "after": "  function validLegacyProjection(row){try{const ids=JSON.parse(row.id.slice(10));return row.id.startsWith('legacy-ab:')&&Array.isArray(ids)&&ids.length===2&&ids.every(v=>typeof v==='string'&&!!v)&&row.id==='legacy-ab:'+JSON.stringify(ids)&&row.sourceScope===ids[0]&&row.sourceVersionId===ids[1]&&(row.approvalEvidence.kind!=='approved-case'||row.approvalEvidence.caseId===ids[1]);}catch{return false;}}\n  function mountApprovedHistory(shell,log,empty){\n    const page=host,client=moduleTransport();\n    approvedHistoryView=window.VersionDraftUI.createApprovedHistory({root:page,shell,client,empty,selectId:'ipqcab-approved-version',cacheKey:JSON.stringify([control?.moduleDraft?.activeVersionId||null,Object.entries(control?.scopes||{}).map(([key,value])=>[key,value.activeVersionId||null])]),\n      isCurrent:()=>host===page&&page.isConnected&&page.dataset.activeTab==='quality-ipqc-ab'&&client===moduleClient,\n      canChoose:()=>!busy&&!modal&&!viewer&&!localAttempt&&(!localSaveIntent||!!localSent)&&!localConflict,\n      onBoundary(){historyDisplayEpoch++;},onDenied(){clearConflictEscape();},\n      renderCurrent(){approvedHistoryView=null;draw();},\n      validateProjectedIdentity:validLegacyProjection,\n      versionLabel:row=>(row.sourceScope?row.sourceScope+' · ':'IPQC-AB · ')+'V'+row.number,\n      validateSnapshot:value=>value&&value.scopes&&typeof value.scopes==='object'&&!Array.isArray(value.scopes)&&Object.values(value.scopes).every(v=>v&&['errors','items'].every(key=>Array.isArray(v[key])&&v[key].every(row=>row&&typeof row==='object'&&!Array.isArray(row)))),\n      renderSnapshot(target,value,current){const groups=Object.entries(value.scopes).map(([scope,snapshot])=>({name:scope,...snapshot}));window.VersionDraftUI.renderApprovedCollections(target,{groups},{collections:['groups'],fields:{groups:['核准群組與工段','Nhóm và công đoạn đã duyệt'],errors:['不良項目','Lỗi'],items:['檢查標準','Tiêu chuẩn'],standardPhotos:['標準歷史圖片','Ảnh tiêu chuẩn'],methodPhotos:['方法歷史圖片','Ảnh phương pháp'],equipmentSnapshot:['原核准設備','Thiết bị đã duyệt']},mediaURL:photo=>client.mediaURL(photo)},current);}\n    });\n    if(client.permission('view')===undefined){const view=approvedHistoryView,current=captureHistoryDisplay();historyPermissionFlight=client.permissions({isCurrent:()=>approvedHistoryView===view&&current()}).then(()=>view.refreshControls(),()=>{});}\n  }\n  function draw(options = {}) {\n    if(approvedHistoryView?.historical){approvedHistoryView.relabel();return;}approvedHistoryView?.retire();approvedHistoryView=null;\n    clearConflictEscape();\n"
+      },
+      {
+        "offset": 136462,
+        "before": "",
+        "after": "    const retainedReferences=options.localConflictChoice===true?[...host.querySelectorAll('[data-ipqc-reference]')]:[];\n"
+      },
+      {
+        "offset": 136616,
+        "before": "    void window.ProcessIPQC.mountReferences(host); bind();sharedClient?.gatePermissions?.();\r\n",
+        "after": "    if(options.localConflictChoice===true){\n      // A RAM-only choice must not start reference I/O through a redraw. Keep\n      // existing reference nodes/listeners; new nodes wait for explicit reload.\n      for(const node of host.querySelectorAll('[data-ipqc-reference]')){const index=retainedReferences.findIndex(old=>old.dataset.ipqcReference===node.dataset.ipqcReference);if(index>=0){node.after(retainedReferences.splice(index,1)[0]);node.remove();}}\n    }else void window.ProcessIPQC.mountReferences(host);\n    bind();sharedClient?.gatePermissions?.();bindConflictEscape();\n"
+      },
+      {
+        "offset": 138938,
+        "before": "      if(permitted('approval.compare')){const button=document.createElement('button');button.id='ab-case-history';button.className='button ghost';button.textContent=t('送審案件','Hồ sơ gửi duyệt');button.onclick=()=>window.openSharedDraftHistory({client:control?.moduleDraft?moduleTransport():transport(),editable:()=>!control?.moduleDraft&&opened()?.status==='draft'&&permitted('approval.submit'),onApplied:async()=>{if(await load()===false)return;draw();}}).catch(e=>{message=e.message;draw();});status.append(button);}\r\n",
+        "after": "\n"
+      },
+      {
+        "offset": 139521,
+        "before": "    window.VersionDraftUI?.mount(host,{localUnsaved:localDirty()||!!modal&&!modal.readonly,header:'.ipqcab-version',historyClient:()=>control?.moduleDraft?moduleTransport():transport(),module:'IPQC-AB',moduleActions:true,scope:t('全部 IPQC-AB 草稿；A／B 全部群組與工段','Tất cả bản nháp IPQC-AB; mọi nhóm và công đoạn A/B'),version:version(),versions:scope()?.versions,active:active(),flow:control?.moduleDraft?.workflow||scope()?.workflow,busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#ipqcab-begin',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-ab-issue-kind=\"error\"],[data-shared-issue-kind=\"error\"]',missing:'[data-ab-issue-kind=\"missing\"],[data-shared-issue-kind=\"missing\"]',checked:{missing:true},history:['.ipqcab-history','#ab-case-history','[data-shared-issue-kind=\"warning\"]'],status:['#ipqcab-shared-status']});\n",
+        "after": "    for(const node of host.querySelectorAll('input,select,button,textarea'))for(const property of ['oninput','onchange','onclick','oncompositionstart','oncompositionend'])if(typeof node[property]==='function')node[property]=guardWorking(node,node[property]);\n    window.VersionDraftUI?.mount(host,{localUnsaved:localDirty()||!!modal&&!modal.readonly,header:'.ipqcab-version',historyClient:()=>moduleTransport(),mountApprovedHistory,module:'IPQC-AB',moduleActions:true,scope:t('全部 IPQC-AB 草稿；A／B 全部群組與工段','Tất cả bản nháp IPQC-AB; mọi nhóm và công đoạn A/B'),version:version(),versions:scope()?.versions,active:active(),flow:control?.moduleDraft?.workflow||scope()?.workflow,busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#ipqcab-begin',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-ab-issue-kind=\"error\"],[data-shared-issue-kind=\"error\"]',missing:'[data-ab-issue-kind=\"missing\"],[data-shared-issue-kind=\"missing\"]',checked:{missing:true},history:['[data-shared-issue-kind=\"warning\"]'],remove:['.ipqcab-history','#ab-case-history'],status:['#ipqcab-shared-status']});\n"
+      },
+      {
+        "offset": 142914,
+        "before": "",
+        "after": "    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 143749,
+        "before": "      if(busy)return;captureBatchInput();modal=null;modalBase=null;viewer=null;line=nextLine;group=nextGroup;stage='';errorId='';versionId='';working=null;showRouteExtras=false;selectDefaults();\n",
+        "after": "      if(busy)return;abandonLocalEditing();line=nextLine;group=nextGroup;stage='';errorId='';versionId='';working=null;showRouteExtras=false;selectDefaults();\n"
+      },
+      {
+        "offset": 144053,
+        "before": "      const owner=inputOwner(transport()),owns=()=>inputOwnerCurrent(owner);\n",
+        "after": "      const displayCurrent=captureHistoryDisplay(),owner=inputOwner(transport()),owns=()=>displayCurrent()&&inputOwnerCurrent(owner);\n"
+      },
+      {
+        "offset": 144376,
+        "before": "    q('#ipqcab-line')?.addEventListener('change',e=>switchScope(e.target.value,''));\n    q('#ipqcab-group')?.addEventListener('change',e=>switchScope(line,e.target.value));\n    q('#ipqcab-route-extras')?.addEventListener('click',()=>{showRouteExtras=!showRouteExtras;selectDefaults();draw();});\r\n    q('#ipqcab-stage')?.addEventListener('change',e=>{stage=e.target.value;errorId='';selectDefaults();draw();});\r\n    q('#ipqcab-version')?.addEventListener('change',e=>{if(busy||hasPrivateInput()){message=batchNotice();draw();return;}versionId=e.target.value;working=version()?.status==='draft'?clone(version().snapshot):null;inputBasisOwner=inputOwner(transport());draw();});\r\n    host.querySelectorAll('[data-ab-conflict-choice]').forEach(el=>el.addEventListener('click',()=>chooseLocalConflict(el.dataset.abConflictChoice)));\n    q('#ipqcab-begin')?.addEventListener('click',()=>write('begin'));\r\n    q('#ipqcab-save')?.addEventListener('click',()=>save());\r\n    q('#ipqcab-submit')?.addEventListener('click',()=>void save('submit'));\r\n    q('#ipqcab-withdraw')?.addEventListener('click',()=>write('withdraw'));\r\n    q('#ipqcab-add-error')?.addEventListener('click',()=>{if(!permittedAction('create'))return;startLocal();modal={type:'new-error',name:''};draw();q('#ab-error-name')?.focus();});\n    q('#ipqcab-add-item')?.addEventListener('click',async()=>{\r\n",
+        "after": "    listenWorking(q('#ipqcab-line'),'change',e=>switchScope(e.target.value,''));\n    listenWorking(q('#ipqcab-group'),'change',e=>switchScope(line,e.target.value));\n    listenWorking(q('#ipqcab-route-extras'),'click',()=>{showRouteExtras=!showRouteExtras;selectDefaults();draw();});\n    listenWorking(q('#ipqcab-stage'),'change',e=>{if(busy)return;abandonLocalEditing();versionId='';stage=e.target.value;errorId='';selectDefaults();working=opened()?.status==='draft'?clone(opened().snapshot):null;inputBasisOwner=inputOwner(transport());draw();});\n    listenWorking(q('#ipqcab-version'),'change',e=>{if(busy||hasPrivateInput()){message=batchNotice();draw();return;}versionId=e.target.value;working=version()?.status==='draft'?clone(version().snapshot):null;inputBasisOwner=inputOwner(transport());draw();});\n    const displayedConflict=localConflict;host.querySelectorAll('[data-ab-conflict-choice]').forEach(el=>listenWorking(el,'click',()=>chooseLocalConflict(el.dataset.abConflictChoice,displayedConflict)));\n    listenWorking(q('#ipqcab-begin'),'click',()=>write('begin'));\n    listenWorking(q('#ipqcab-save'),'click',()=>save());\n    listenWorking(q('#ipqcab-submit'),'click',()=>void save('submit'));\n    listenWorking(q('#ipqcab-withdraw'),'click',()=>write('withdraw'));\n    listenWorking(q('#ipqcab-add-error'),'click',()=>{if(!permittedAction('create'))return;startLocal();modal={type:'new-error',name:''};draw();q('#ab-error-name')?.focus();});\n    listenWorking(q('#ipqcab-add-item'),'click',async()=>{\n"
+      },
+      {
+        "offset": 146451,
+        "before": "    host.querySelectorAll('[data-ab-error]').forEach(el=>el.addEventListener('click',()=>{errorId=el.dataset.abError;draw();}));\r\n    host.querySelectorAll('[data-ab-view-error],[data-ab-edit-error]').forEach(el=>el.addEventListener('click',()=>{\r\n",
+        "after": "    host.querySelectorAll('[data-ab-error]').forEach(el=>listenWorking(el,'click',()=>{errorId=el.dataset.abError;draw();}));\n    host.querySelectorAll('[data-ab-view-error],[data-ab-edit-error]').forEach(el=>listenWorking(el,'click',()=>{\n"
+      },
+      {
+        "offset": 146922,
+        "before": "    host.querySelectorAll('[data-ab-view-item],[data-ab-edit-item]').forEach(el=>el.addEventListener('click',()=>{\r\n",
+        "after": "    host.querySelectorAll('[data-ab-view-item],[data-ab-edit-item]').forEach(el=>listenWorking(el,'click',()=>{\n"
+      },
+      {
+        "offset": 147602,
+        "before": "    host.querySelectorAll('[data-ab-delete-item]').forEach(el=>el.addEventListener('click',()=>removeLocal('items',el.dataset.abDeleteItem)));\n    host.querySelectorAll('[data-ab-delete-error]').forEach(el=>el.addEventListener('click',()=>removeLocal('errors',el.dataset.abDeleteError)));\n    host.querySelectorAll('[data-ab-matrix-item]').forEach(el=>el.addEventListener('change',async()=>{\r\n",
+        "after": "    host.querySelectorAll('[data-ab-delete-item]').forEach(el=>listenWorking(el,'click',()=>removeLocal('items',el.dataset.abDeleteItem)));\n    host.querySelectorAll('[data-ab-delete-error]').forEach(el=>listenWorking(el,'click',()=>removeLocal('errors',el.dataset.abDeleteError)));\n    host.querySelectorAll('[data-ab-matrix-item]').forEach(el=>listenWorking(el,'change',async()=>{\n"
+      },
+      {
+        "offset": 148393,
+        "before": "    host.querySelectorAll('[data-ab-goto-error]').forEach(el=>el.addEventListener('click',()=>{const error=snapshot().errors.find(e=>e.id===el.dataset.abGotoError);if(!error)return;stage=error.stageCode;errorId=error.id;draw();host.querySelector('.ipqcab-matrix')?.scrollIntoView({block:'center'});}));\r\n    host.querySelectorAll('[data-ab-goto]').forEach(el=>el.addEventListener('click',()=>{\r\n",
+        "after": "    host.querySelectorAll('[data-ab-goto-error]').forEach(el=>listenWorking(el,'click',()=>{const error=snapshot().errors.find(e=>e.id===el.dataset.abGotoError);if(!error)return;stage=error.stageCode;errorId=error.id;draw();host.querySelector('.ipqcab-matrix')?.scrollIntoView({block:'center'});}));\n    host.querySelectorAll('[data-ab-goto]').forEach(el=>listenWorking(el,'click',()=>{\n"
+      },
+      {
+        "offset": 149125,
+        "before": "    host.querySelectorAll('[data-ab-photo-item]').forEach(el=>el.addEventListener('click',()=>{\r\n",
+        "after": "    host.querySelectorAll('[data-ab-photo-item]').forEach(el=>listenWorking(el,'click',()=>{\n"
+      },
+      {
+        "offset": 149342,
+        "before": "    host.querySelectorAll('[data-ab-close]').forEach(el=>el.addEventListener('click',()=>{\r\n",
+        "after": "    host.querySelectorAll('[data-ab-close]').forEach(el=>listenWorking(el,'click',()=>{\n"
+      },
+      {
+        "offset": 149999,
+        "before": "    host.querySelectorAll('[data-ab-local-query]').forEach(el=>{const intent=localQueryIntent();el.addEventListener('click',()=>queryLocalOperation(intent));});\n    q('#ab-apply')?.addEventListener('click',()=>{\n",
+        "after": "    host.querySelectorAll('[data-ab-local-query]').forEach(el=>{const intent=localQueryIntent();listenWorking(el,'click',()=>queryLocalOperation(intent));});\n    listenWorking(q('#ab-apply'),'click',()=>{\n"
+      },
+      {
+        "offset": 150959,
+        "before": "    q('#ab-add-rule')?.addEventListener('click',()=>{captureModal();working.items.find(i=>i.id===modal.id).rules.push({id:crypto.randomUUID(),cadence:'batch',kind:'aql',value:'0.25'});draw();});\r\n    host.querySelectorAll('[data-ab-remove-rule]').forEach(el=>el.addEventListener('click',()=>{captureModal();working.items.find(i=>i.id===modal.id).rules.splice(Number(el.dataset.abRemoveRule),1);draw();}));\r\n    host.querySelectorAll('.ab-rule-cadence,.ab-rule-kind').forEach(el=>el.addEventListener('change',()=>{\r\n",
+        "after": "    listenWorking(q('#ab-add-rule'),'click',()=>{captureModal();working.items.find(i=>i.id===modal.id).rules.push({id:crypto.randomUUID(),cadence:'batch',kind:'aql',value:'0.25'});draw();});\n    host.querySelectorAll('[data-ab-remove-rule]').forEach(el=>listenWorking(el,'click',()=>{captureModal();working.items.find(i=>i.id===modal.id).rules.splice(Number(el.dataset.abRemoveRule),1);draw();}));\n    host.querySelectorAll('.ab-rule-cadence,.ab-rule-kind').forEach(el=>listenWorking(el,'change',()=>{\n"
+      },
+      {
+        "offset": 151903,
+        "before": "    host.querySelectorAll('[data-ab-upload]').forEach(el=>el.addEventListener('change',async()=>{\r\n",
+        "after": "    host.querySelectorAll('[data-ab-upload]').forEach(el=>listenWorking(el,'change',async()=>{\n"
+      },
+      {
+        "offset": 152146,
+        "before": "    host.querySelectorAll('[data-ab-remove-photo],[data-ab-move]').forEach(el=>el.addEventListener('click',()=>{\r\n",
+        "after": "    host.querySelectorAll('[data-ab-remove-photo],[data-ab-move]').forEach(el=>listenWorking(el,'click',()=>{\n"
+      },
+      {
+        "offset": 152837,
+        "before": "    q('#ab-select-equipment')?.addEventListener('click',()=>{captureModal();modal={type:'equipment',itemId:modal.id,initial:modal.initial,query:'',category:'',loading:true};void loadEquipment();});\r\n    q('#ab-equipment-retry')?.addEventListener('click',()=>void loadEquipment());\r\n    q('#ab-clear-equipment')?.addEventListener('click',()=>{captureModal();const item=working.items.find(i=>i.id===modal.id);item.equipmentId='';item.equipmentSnapshot=null;draw();});\r\n",
+        "after": "    listenWorking(q('#ab-select-equipment'),'click',()=>{captureModal();modal={type:'equipment',itemId:modal.id,initial:modal.initial,query:'',category:'',loading:true};void loadEquipment();});\n    listenWorking(q('#ab-equipment-retry'),'click',()=>void loadEquipment());\n    listenWorking(q('#ab-clear-equipment'),'click',()=>{captureModal();const item=working.items.find(i=>i.id===modal.id);item.equipmentId='';item.equipmentSnapshot=null;draw();});\n"
+      },
+      {
+        "offset": 154148,
+        "before": "    q('#ab-equipment-search')?.addEventListener('input',e=>{modal.query=e.target.value;filterEquipment();});\r\n    for (const field of ['category','subcategory','group']) q(`#ab-equipment-${field}`)?.addEventListener('change',e=>{\r\n",
+        "after": "    listenWorking(q('#ab-equipment-search'),'input',e=>{modal.query=e.target.value;filterEquipment();});\n    for (const field of ['category','subcategory','group']) listenWorking(q(`#ab-equipment-${field}`),'change',e=>{\n"
+      },
+      {
+        "offset": 154604,
+        "before": "    host.querySelectorAll('[data-ab-choose-equipment]').forEach(el=>el.addEventListener('click',()=>{\r\n",
+        "after": "    host.querySelectorAll('[data-ab-choose-equipment]').forEach(el=>listenWorking(el,'click',()=>{\n"
+      },
+      {
+        "offset": 155041,
+        "before": "    host.querySelectorAll('[data-ab-view-modal]').forEach(el=>el.addEventListener('click',()=>{\r\n",
+        "after": "    host.querySelectorAll('[data-ab-view-modal]').forEach(el=>listenWorking(el,'click',()=>{\n"
+      },
+      {
+        "offset": 155271,
+        "before": "    q('[data-ab-close-viewer]')?.addEventListener('click',()=>{viewer=null;draw();});\r\n    q('[data-ab-prev]')?.addEventListener('click',()=>{viewer.index=(viewer.index-1+(snapshot().items.find(i=>i.id===viewer.itemId)?.[viewer.kind==='standard'?'standardPhotos':'methodPhotos']?.length||1))%(snapshot().items.find(i=>i.id===viewer.itemId)?.[viewer.kind==='standard'?'standardPhotos':'methodPhotos']?.length||1);draw();});\r\n    q('[data-ab-next]')?.addEventListener('click',()=>{viewer.index=(viewer.index+1)%(snapshot().items.find(i=>i.id===viewer.itemId)?.[viewer.kind==='standard'?'standardPhotos':'methodPhotos']?.length||1);draw();});\r\n",
+        "after": "    listenWorking(q('[data-ab-close-viewer]'),'click',()=>{viewer=null;draw();});\n    listenWorking(q('[data-ab-prev]'),'click',()=>{viewer.index=(viewer.index-1+(snapshot().items.find(i=>i.id===viewer.itemId)?.[viewer.kind==='standard'?'standardPhotos':'methodPhotos']?.length||1))%(snapshot().items.find(i=>i.id===viewer.itemId)?.[viewer.kind==='standard'?'standardPhotos':'methodPhotos']?.length||1);draw();});\n    listenWorking(q('[data-ab-next]'),'click',()=>{viewer.index=(viewer.index+1)%(snapshot().items.find(i=>i.id===viewer.itemId)?.[viewer.kind==='standard'?'standardPhotos':'methodPhotos']?.length||1);draw();});\n"
+      },
+      {
+        "offset": 162945,
+        "before": "    if (!match) return;\r\n",
+        "after": "    if (!match) return;\n    if(['approved','superseded'].includes(match.v.status)){const id=control.moduleDraft?.versions.some(v=>v.id===requestedVersion)?requestedVersion:'legacy-ab:'+JSON.stringify([match.scopeKey,requestedVersion]);return approvedHistoryView?.openVersion(id);}\n"
+      },
+      {
+        "offset": 164930,
+        "before": "    local:()=>localDirty()||!!modal&&!modal.readonly,canSave:()=>permittedAction('edit'),canDiscard:()=>true,save:()=>saveLocalModule(),\n",
+        "after": "    local:()=>localDirty()||!!modal&&!modal.readonly,canSave:()=>historyAllowsMutation()&&permittedAction('edit'),canDiscard:()=>true,save:()=>saveLocalModule(),\n"
+      },
+      {
+        "offset": 165271,
+        "before": "  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>saveLocalModule(),canLeave:()=>!busy,error:()=>navigationError,reset(){abandonLocalEditing();mutationLifetime++;mutationSequence++;activeMutation=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;pollTimer.cancel();host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class=\"ipqcab-page\" id=\"ipqcab-page\">IPQC-AB…</section>',\n",
+        "after": "  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>saveLocalModule(),canLeave:()=>!busy,error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;abandonLocalEditing();mutationLifetime++;mutationSequence++;activeMutation=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class=\"ipqcab-page\" id=\"ipqcab-page\">IPQC-AB…</section>',\n"
+      },
+      {
+        "offset": 166348,
+        "before": "    async mount(element){host=element;const delivery=window.ProcessSync?.captureDelivery?.(),current=()=>host===element&&element.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));navigationError=null;try{if(await load()===false)return;if(!current())return;const q=new URLSearchParams(location.search),requested=q.get('ipqcScope'),requestedStage=q.get('ipqcStage');if(requested&&!sourceEntryApplied&&control.scopes[requested]){sourceEntryApplied=true;const s=control.scopes[requested];line=s.line;group=s.group;versionId=opened()?.id||active()?.id||'';working=opened()?.status==='draft'?clone(opened().snapshot):null;if(requestedStage)stage=requestedStage;selectDefaults();inputBasisOwner=inputOwner(transport());}draw();showPendingItem();scheduleRefresh();}catch(error){if(!current())return;navigationError=error;host.innerHTML=`<section class=\"ipqcab-card\"><p role=\"alert\">${h(error.message)}</p><button type=\"button\" id=\"ipqcab-retry\">${t('重試','Thử lại')}</button></section>`;\r\n",
+        "after": "    async mount(element){host=element;const identity=actor(),epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.(),current=()=>actor()===identity&&window.ProcessSync?.identityGeneration?.()===epoch&&host===element&&element.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));navigationError=null;try{if(await load()===false)return;if(!current())return;const q=new URLSearchParams(location.search),requested=q.get('ipqcScope'),requestedStage=q.get('ipqcStage');if(requested&&!sourceEntryApplied&&control.scopes[requested]){sourceEntryApplied=true;const s=control.scopes[requested];line=s.line;group=s.group;versionId=opened()?.id||active()?.id||'';working=opened()?.status==='draft'?clone(opened().snapshot):null;if(requestedStage)stage=requestedStage;selectDefaults();inputBasisOwner=inputOwner(transport());}draw();await historyPermissionFlight;if(!current())return;showPendingItem();}catch(error){if(!current())return;navigationError=error;host.innerHTML=`<section class=\"ipqcab-card\"><p role=\"alert\">${h(error.message)}</p><button type=\"button\" id=\"ipqcab-retry\">${t('重試','Thử lại')}</button></section>`;\n"
+      }
+    ]
+  },
+  {
+    "file": "public/process/shared-draft-client.js",
+    "beforeHash": "b80c2e904a5a6ef7e384fb10229a35421eba684e60928958aa420e55d4c695f5",
+    "afterHash": "d6775ce5ec1a1996e222e97f56ac8fba39f665eb8f7d9234813fa2b4d53d4e3c",
+    "rules": [
+      {
+        "offset": 38033,
+        "before": "",
+        "after": "    const approvedAccessListeners=new Set();\n    const approvedHistoryRoute=beginPath==='/api/ipqc-ab/workflow';\n"
+      },
+      {
+        "offset": 40764,
+        "before": "",
+        "after": "      if(approvedHistoryRoute)for(const listener of approvedAccessListeners)try{listener();}catch{/* Presentation cannot change request or receipt authority. */}\n"
+      },
+      {
+        "offset": 78556,
+        "before": "        if(error.status===409&&['DRAFT_GENERATION_CHANGED','ENTITY_REMOVED_OR_AMBIGUOUS','PENDING_LOCKED'].includes(code))return true;\n",
+        "after": "        if(error.status===409&&['DRAFT_GENERATION_CHANGED','ENTITY_REMOVED_OR_AMBIGUOUS','PENDING_LOCKED','DRAFT_REVISION_REQUIRED','DRAFT_REVISION_CHANGED_RECONFIRM','MODULE_CHANGED_RECONFIRM'].includes(code))return true;\n"
+      },
+      {
+        "offset": 124595,
+        "before": "",
+        "after": "      ...(approvedHistoryRoute?{approvedHistory:(options,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true});},approvedVersion:(id,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true});},watchApprovedAccess(listener){approvedAccessListeners.add(listener);return ()=>approvedAccessListeners.delete(listener);}}:{}),\n"
+      }
+    ]
+  },
+  {
+    "file": "public/process/version-draft-ui.js",
+    "beforeHash": "f2fee215d8f23f1bfc1ca8fd2249542a1e936a3fb696b4bc26912b510ea32266",
+    "afterHash": "643ec221be7180fa16262b37cf602cd98106f99cc126c79aee2b3c0eb56e57a9",
+    "rules": [
+      {
+        "offset": 7107,
+        "before": "",
+        "after": "  // BOM-only presentation lease. Neither this selector nor its GETs settle a\n  // write, replace a working aggregate, or touch a local recovery journal.\n  const approvedDisplays=new WeakMap();\n  const cloneHistory=value=>JSON.parse(JSON.stringify(value));\n  function clearHistory(client){const entry=client&&approvedDisplays.get(client);if(entry){entry.sequence++;entry.selected=null;}}\n  function historyVersion(client){const entry=client&&approvedDisplays.get(client);try{if(entry?.selected&&!entry.selected.current()){entry.sequence++;entry.selected=null;}return entry?.selected?cloneHistory(entry.selected.version):null;}catch{if(entry){entry.sequence++;entry.selected=null;}return null;}}\n  // Explicit adapters own their working buffers. This controller owns only a\n  // display lease and cloned, audited GET results; it never calls a writer.\n  const approvedPageCaches=new WeakMap();\n  function createApprovedHistory(options){\n    const {root,shell,client}=options;\n    if(!root||!shell||!client?.approvedHistory||!client?.approvedVersion)throw Error('APPROVED_HISTORY_ADAPTER_REQUIRED');\n    client.useAccessResultGuard?.();\n    const sync=host.ProcessSync,actor=sync?.identity,epoch=sync?.identityGeneration?.(),delivery=sync?.captureDelivery?.();\n    const owner=()=>root.isConnected&&shell.isConnected&&root.contains(shell)&&actor===host.ProcessSync?.identity&&!!actor?.id&&Number.isSafeInteger(epoch)&&epoch>=0&&epoch===host.ProcessSync?.identityGeneration?.()&&!host.ProcessSync?.requiresReload&&delivery!=null&&host.ProcessSync?.isCurrentDelivery?.(delivery)===true&&client.isRuntimeCurrent?.()!==false&&options.isCurrent()===true;\n    const allowed=()=>owner()&&client.permission('view')===true&&client.permission('history')===true;\n    let cache=approvedPageCaches.get(client);\n    if(!cache||cache.actor!==actor||cache.epoch!==epoch||cache.key!==options.cacheKey||host.ProcessSync?.isCurrentDelivery?.(cache.delivery)!==true){cache={actor,epoch,delivery,key:options.cacheKey,rows:new Map(),cursor:null,loaded:false,revision:-1};approvedPageCaches.set(client,cache);}\n    options.empty?.remove();\n    const choice=create('select','');choice.id=options.selectId;choice.dataset.vdApprovedChoice='true';\n    const old=shell.querySelector('.vd-choice select');if(old){old.before(choice);old.remove();}else shell.querySelector('.vd-choice')?.append(choice);\n    const notice=create('p','vd-approved-notice');notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');shell.querySelector('.vd-card')?.append(notice);\n    const display=create('section','vd-approved-view');display.setAttribute('data-vd-approved-view','true');display.hidden=true;shell.after(display);\n    const title=shell.querySelector('.vd-top h3');let currentTitle=title?.textContent,sequence=0,retired=false,loading=false,blocking=options.initialBlocked===true,selected=null,data=null,hidden=[];\n    const live=()=>!retired&&owner();\n    const canChoose=()=>options.canChoose()===true;\n    const text=(zh,vi)=>document.documentElement.lang==='vi'?vi:zh;\n    const hideWorking=()=>{if(hidden.length)return;const nodes=[];let child=shell;while(child&&child!==root){for(const sibling of child.parentElement?.children||[])if(sibling!==child&&sibling!==display)nodes.push(sibling);child=child.parentElement;}const card=shell.querySelector('.vd-card');nodes.push(...[...shell.children].filter(n=>!n.matches('.vd-heading,.vd-card')),...[...(card?.children||[])].filter(n=>!n.matches('.vd-top')&&n!==notice));hidden=[...new Set(nodes)].map(n=>[n,n.hidden]);for(const [node]of hidden)node.hidden=true;};\n    const restoreWorking=()=>{for(const [node,wasHidden]of hidden)node.hidden=wasHidden;hidden=[];display.hidden=true;display.replaceChildren();if(title)title.textContent=currentTitle;};\n    function paint(){\n      choice.replaceChildren();const option=(value,label)=>{const node=create('option','',label);node.value=value;choice.append(node);};\n      option('',text('當前草稿','Bản nháp hiện tại'));\n      for(const row of cache.rows.values())option(row.id,`${options.versionLabel?.(row)||'V'+row.number} · ${text('已核准 · 唯讀','Đã duyệt · chỉ đọc')} · ${date(row.approvalEvidence.approvedAt)}`);\n      if(cache.cursor)option('__more',text('載入更多已核准版本…','Xem thêm phiên bản đã duyệt…'));\n      if(blocking&&!selected)option(loading?'__loading':'__blocked',text(loading?'正在載入版本…':'請重新選擇當前草稿',loading?'Đang tải phiên bản…':'Chọn lại bản nháp hiện tại'));\n      choice.value=blocking&&loading?'__loading':selected?.id||(blocking?'__blocked':'');choice.setAttribute('aria-label',text('已核准版本／當前草稿','Phiên bản đã duyệt / bản nháp hiện tại'));choice.disabled=!live()||!allowed()||!canChoose();\n      if(blocking&&title)title.textContent=selected?`V${selected.number} · ${text('已核准 · 唯讀','Đã duyệt · chỉ đọc')}`:text(loading?'正在載入版本…':'請重新選擇當前草稿',loading?'Đang tải phiên bản…':'Chọn lại bản nháp hiện tại');\n    }\n    const erase=()=>{if(retired)return;options.onBoundary();options.onDenied?.();sequence++;blocking=true;loading=false;selected=null;data=null;cache.rows.clear();cache.cursor=null;cache.loaded=false;hideWorking();display.hidden=true;display.replaceChildren();notice.textContent=text('權限或頁面已變更，請重新開啟核對。','Quyền hoặc trang đã thay đổi. Hãy mở lại và kiểm tra.');paint();};\n    const invalidate=()=>{if(!live()||!allowed())erase();else paint();};\n    const events=['process-delivery-invalidated','process-sync-status','pagehide'];\n    const onPageHide=()=>erase();for(const event of events)host.addEventListener(event,event==='pagehide'?onPageHide:invalidate);\n    const unwatch=client.watchApprovedAccess(invalidate);\n    function retire(){if(retired)return;retired=true;sequence++;unwatch();for(const event of events)host.removeEventListener(event,event==='pagehide'?onPageHide:invalidate);restoreWorking();display.remove();}\n    const begin=()=>{if(!live())throw Error('APPROVED_HISTORY_SUPERSEDED');loading=true;const ticket=++sequence;return()=>live()&&ticket===sequence;};\n    const authority=result=>{if(!allowed()||!Number.isSafeInteger(result?.revision)||result.revision<cache.revision||!['view','edit','save','submit','withdraw','approve','return','history','delete'].every(key=>typeof result.permissions?.[key]==='boolean')||result.permissions.view!==true||result.permissions.history!==true)throw Error('APPROVED_HISTORY_AUTHORITY_REQUIRED');cache.revision=result.revision;};\n    const evidence=e=>e&&typeof e.approvedAt==='string'&&Number.isFinite(Date.parse(e.approvedAt))&&(e.kind==='legacy-approval'&&e.caseId===null&&e.savedId===null||e.kind==='approved-case'&&typeof e.caseId==='string'&&!!e.caseId&&typeof e.savedId==='string'&&!!e.savedId.trim()&&typeof e.approvedBy==='string'&&!!e.approvedBy.trim());\n    const validRow=row=>row&&typeof row.id==='string'&&!!row.id&&!row.id.startsWith('shared-')&&!['__more','__blocked','__loading'].includes(row.id)&&Number.isSafeInteger(row.number)&&row.number>=1&&['approved','superseded'].includes(row.status)&&evidence(row.approvalEvidence)&&(row.approvalEvidence.kind!=='approved-case'||row.approvalEvidence.caseId===row.id||options.validateProjectedIdentity?.(row)===true)&&(!['legacy-ab:','legacy-master-page:','legacy-routine-page:'].some(prefix=>row.id.startsWith(prefix))||options.validateProjectedIdentity?.(row)===true);\n    const message=error=>text('無法讀取版本','Không đọc được phiên bản')+' · '+String(error?.message||error);\n    async function load(){if(loading||!live()||!canChoose())return;const current=begin();try{notice.textContent=text('載入中…','Đang tải…');authority(await client.permissions({isCurrent:current,requireAcceptedAccess:true}));if(!current())return;const result=await client.approvedHistory({versionBefore:cache.cursor||''},{isCurrent:current});if(!current())return;authority(result);const rows=result.versions;if(result.approvedOnly!==true||!rows||!Array.isArray(rows.rows)||rows.rows.length>20||!rows.rows.every(validRow)||new Set(rows.rows.map(row=>row.id)).size!==rows.rows.length||!Number.isSafeInteger(rows.total)||rows.total<rows.rows.length||!(rows.next===null||typeof rows.next==='string'&&!!rows.next)||rows.next&&rows.next===cache.cursor)throw Error('APPROVED_HISTORY_INVALID');for(const row of rows.rows)cache.rows.set(row.id,cloneHistory(row));cache.cursor=rows.next;cache.loaded=true;notice.textContent=rows.total?'':text('尚無已核准版本','Chưa có phiên bản đã duyệt');}catch(error){if(current())notice.textContent=message(error);}finally{if(current()){loading=false;paint();options.onIdle?.();}}}\n    function renderSnapshot(){if(!live()||!allowed()||!selected||!data)return;display.hidden=false;display.replaceChildren();const hint=create('p','',text('唯讀。請於同一篩選欄選擇當前草稿切回。','Chỉ đọc. Chọn bản nháp hiện tại trong cùng bộ lọc để quay lại.'));display.append(hint,create('p','',`${selected.approvalEvidence.approvedBy||''} · ${date(selected.approvalEvidence.approvedAt)}`));options.renderSnapshot(display,cloneHistory(data),()=>live()&&allowed()&&!!selected&&!loading);}\n    async function choose(id,fromApprovedCase=false){\n      if(!live())return;if(!canChoose()){paint();return;}if(id==='__more')return load();if(['__loading','__blocked'].includes(id)||id&&!cache.rows.has(id)&&!fromApprovedCase){paint();return;}\n      if(typeof id!=='string'||fromApprovedCase&&!id)return;\n      options.onBoundary();blocking=true;const current=begin();hideWorking();display.hidden=true;display.replaceChildren();selected=null;data=null;paint();\n      try{notice.textContent=text('載入中…','Đang tải…');if(!id){const permission=await client.permissions({isCurrent:current,requireAcceptedAccess:true});if(!current())return;authority(permission);blocking=false;loading=false;retire();options.renderCurrent();document.querySelector('#'+options.selectId)?.focus({preventScroll:true});return;}\n        const result=await client.approvedVersion(id,{isCurrent:current});if(!current())return;authority(result);const value=result.version;if(result.approvedOnly!==true||!validRow(value)||value.id!==id||!options.validateSnapshot(value.snapshot))throw Error('APPROVED_HISTORY_INVALID');selected=cloneHistory(value);cache.rows.set(value.id,cloneHistory({id:value.id,number:value.number,status:value.status,approvalEvidence:value.approvalEvidence,...(options.validateProjectedIdentity?.(value)===true?{sourceScope:value.sourceScope,sourceVersionId:value.sourceVersionId}:{})}));data=cloneHistory(value.snapshot);loading=false;notice.textContent='';renderSnapshot();\n      }catch(error){if(current()){selected=null;data=null;blocking=true;display.hidden=true;display.replaceChildren();notice.textContent=message(error);}}finally{if(current()){loading=false;paint();}}\n    }\n    choice.onfocus=()=>{if(!cache.loaded)return load();};choice.onchange=()=>choose(choice.value);\n    const view={retire,refreshControls(){if(live())paint();},openVersion:id=>choose(id,true),get selectedId(){return selected?.id||'';},get historical(){return blocking||!!selected;},get reading(){return loading;},get blocked(){return blocking||!live();},relabel(){if(!live())return;shell.refreshLabels?.();if(!blocking)currentTitle=title?.textContent;paint();if(selected)renderSnapshot();}};\n    shell.refreshHistoryLabels=paint;if(blocking){hideWorking();notice.textContent=text('請重新選擇當前草稿','Chọn lại bản nháp hiện tại');}paint();return view;\n  }\n  // Read-only field renderer for explicit module schemas. Data, labels and media\n  // come solely from the selected snapshot and the adapter's immutable route.\n  function renderApprovedCollections(target,snapshot,{collections,fields,mediaURL,mediaFields=[]},current){\n    const text=(zh,vi)=>document.documentElement.lang==='vi'?vi:zh;\n    const label=key=>fields[key]?.[document.documentElement.lang==='vi'?1:0]||key;\n    function value(node,data,key,ancestors=[]){\n      if(data==null){node.append(create('span','','—'));return;}\n      if(typeof data!=='object'){node.append(create('span','',typeof data==='boolean'?text(data?'是':'否',data?'Có':'Không'):String(data)));return;}\n      if(['photos','mediaItems','standardPhotos','methodPhotos',...mediaFields].includes(key)){for(const photo of Array.isArray(data)?data:[]){const url=mediaURL?.(photo);if(!url){node.append(create('p','',text('此歷史圖片無法讀取','Không đọc được ảnh lịch sử này')));continue;}const img=create('img','');img.loading='lazy';img.alt=photo.name||text('歷史圖片','Ảnh lịch sử');img.src=url;img.onerror=()=>{if(!current())return;img.onerror=null;img.hidden=true;img.after(create('p','',text('此歷史圖片無法讀取','Không đọc được ảnh lịch sử này')));};node.append(img);}return;}\n      if(Array.isArray(data)){const list=create('ol','');for(const row of data){const item=create('li','');value(item,row,'',ancestors);list.append(item);}node.append(list);return;}\n      const list=create('dl','');for(const [field,item]of Object.entries(data)){if(field==='equipmentSnapshot'&&data.equipmentId&&item?.id!==data.equipmentId){list.append(create('dt','',label(field)),create('dd','',text('此版本未保存相符設備','Phiên bản này không lưu thiết bị phù hợp')));continue;}const dd=create('dd','');value(dd,item,field,[...ancestors,key]);list.append(create('dt','',label(field)),dd);}node.append(list);\n    }\n    for(const key of collections){const section=create('section','vd-approved-collection'),rows=snapshot[key],heading=create('h3','',`${label(key)} · ${rows.length}`),searchLabel=create('label','',text('搜尋','Tìm kiếm')),search=create('input',''),area=create('div',''),nav=create('nav','vd-pages'),prev=create('button','button ghost',t('prev')),next=create('button','button ghost',t('next')),count=create('span','');let page=0,query='';search.setAttribute('type','search');search.setAttribute('aria-label',text('搜尋','Tìm kiếm')+' · '+label(key));searchLabel.append(search);prev.type=next.type='button';nav.append(prev,count,next);section.append(heading,searchLabel,area,nav);target.append(section);\n      function paintRows(){if(!current())return;const filtered=rows.filter(row=>!query||JSON.stringify(row).toLocaleLowerCase().includes(query.toLocaleLowerCase()));page=Math.min(page,Math.max(0,Math.ceil(filtered.length/10)-1));area.replaceChildren();for(const row of filtered.slice(page*10,page*10+10)){const detail=create('details',''),summary=create('summary','',row.code||row.nameZh||row.nameVi||row.name||row.title||row.id||text('資料','Dữ liệu')),body=create('div','');detail.append(summary,body);detail.ontoggle=()=>{if(!current()||!detail.open||body.children.length)return;value(body,row,key);};area.append(detail);}if(!filtered.length)area.append(create('p','',t('none')));count.textContent=`${page+1} / ${Math.max(1,Math.ceil(filtered.length/10))} · ${filtered.length}`;prev.disabled=page===0;next.disabled=(page+1)*10>=filtered.length;}\n      search.oninput=event=>{if(!current()||event.isComposing)return;query=search.value;page=0;paintRows();};search.oncompositionend=search.oninput;prev.onclick=()=>{if(current()){page--;paintRows();}};next.onclick=()=>{if(current()){page++;paintRows();}};paintRows();\n    }\n  }\n"
+      },
+      {
+        "offset": 22698,
+        "before": "",
+        "after": "    if(typeof model.mountApprovedHistory==='function')return model.mountApprovedHistory(shell,log,empty);\n"
+      },
+      {
+        "offset": 60699,
+        "before": "  host.VersionDraftUI={createDeparture,masterChanges,mount,t,date,issueMessage,confirmSubmit,confirmReview,preserveView,reasonFor,updateSaved,updateSync};\n",
+        "after": "  host.VersionDraftUI={createApprovedHistory,renderApprovedCollections,historyVersion,clearHistory,createDeparture,masterChanges,mount,t,date,issueMessage,confirmSubmit,confirmReview,preserveView,reasonFor,updateSaved,updateSync};\n"
+      }
+    ]
+  }
+]

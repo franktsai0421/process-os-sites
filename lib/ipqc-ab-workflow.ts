@@ -1,15 +1,18 @@
+import {captureAbColdOrigin,type AbColdOrigin,type AbColdOriginInput} from './ipqc-ab-local-lineage';
 import {parseAbControl,catalogFromMaster,checkedAbSnapshot,abDraftIssues,nextAbCode,copyAb,openAb,activeAb,type AbScope,type AbSnapshot,type AbControl,type AbItem,type AbError} from './ipqc-ab';
 import {parse} from './process-state';
 import {applyDraftCommand,DraftConflict,stableDraftJSON,type SharedDraft,type DraftPatch} from './shared-draft';
 import {type WorkflowAdapter,type VersionedControl} from './versioned-shared-workflow';
 
-export type AbSharedScope=AbScope&{workflow?:SharedDraft<AbSnapshot>};
-export function abWorkflowAdapter(key:string):WorkflowAdapter<AbSnapshot,AbSharedScope>{
+export type AbSharedScope=AbScope&{workflow?:SharedDraft<AbSnapshot>;coldOrigin?:AbColdOrigin};
+export function abWorkflowAdapter(key:string,initialActiveBasis:'approved'|'legacy-origin'='approved'):WorkflowAdapter<AbSnapshot,AbSharedScope>{
   let root:AbControl&{moduleDraft?:VersionedControl<unknown>},allowedStages=new Set<string>();
+  let pendingOrigin:AbColdOriginInput|null=null;
+  const stamp=(control:AbSharedScope)=>{if(pendingOrigin&&control.workflow){control.coldOrigin={...pendingOrigin,generation:control.workflow.generation};pendingOrigin=null;}};
   const separator=key.indexOf(':'),line=key.slice(0,separator),group=key.slice(separator+1);
   return{key:'ipqcABMasterControl',scope:'ipqc-ab:'+key,empty:()=>({errors:[],items:[]}),photoPrefix:'ipqc-ab/photos/',
     preparedModel:true,permissionOnlyRead:true,
-    beforeBegin(){if(root.moduleDraft?.workflow?.pendingId)throw new DraftConflict('PENDING_LOCKED');},
+    beforeBegin(control){if(root.moduleDraft?.workflow?.pendingId)throw new DraftConflict('PENDING_LOCKED');pendingOrigin=control.workflow?null:captureAbColdOrigin(root,key,control,initialActiveBasis);},
     beforeCommand(_control,command){
       if(root.moduleDraft?.workflow?.pendingId)throw new DraftConflict('PENDING_LOCKED');
       if(['save','submit'].includes(command.action))throw new DraftConflict('WHOLE_MODULE_ACTION_REQUIRED');
@@ -17,9 +20,9 @@ export function abWorkflowAdapter(key:string):WorkflowAdapter<AbSnapshot,AbShare
     },
     needsFullHistory:command=>['create-error','create-item'].includes(command?.moduleAction||''),
     photoIds:content=>content.items.flatMap(i=>[...i.standardPhotos,...i.methodPhotos].map(p=>p.id)),
-    parse(raw,prepared){root=parseAbControl(raw,prepared);return root.scopes[key]||{line,group,activeVersionId:null,versions:[]};},
-    serialize(control){root.scopes[key]=control;return JSON.stringify(root);},
-    serializeModel(control){root.scopes[key]=control;return root;},
+    parse(raw,prepared){pendingOrigin=null;root=parseAbControl(raw,prepared);return root.scopes[key]||{line,group,activeVersionId:null,versions:[]};},
+    serialize(control){stamp(control);root.scopes[key]=control;return JSON.stringify(root);},
+    serializeModel(control){stamp(control);root.scopes[key]=control;return root;},
     context(control,state,base){
       const catalog=catalogFromMaster(state.values.masterDataControl);
       allowedStages=new Set(catalog.stages.filter(s=>s.line===line).map(s=>s.code));

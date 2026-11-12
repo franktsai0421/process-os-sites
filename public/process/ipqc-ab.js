@@ -1,11 +1,17 @@
 (() => {
   const displayDraftError = error => window.sharedDraftErrorMessage?.(error) ?? (typeof error === 'string' ? error : error?.message || String(error ?? ''));
   const API = '/api/ipqc-ab';
+  let historyDisplayEpoch=0,approvedHistoryView=null,historyPermissionFlight=null;
+  const historyAllowsMutation=()=>!approvedHistoryView?.blocked;
+  const assertCurrentDisplay=()=>{if(!historyAllowsMutation())throw Error('APPROVED_HISTORY_READ_ONLY');};
+  const captureHistoryDisplay=()=>{const epoch=historyDisplayEpoch,page=host;return()=>epoch===historyDisplayEpoch&&page===host&&historyAllowsMutation();};
+  const guardWorking=(node,callback)=>{const current=captureHistoryDisplay();return function(...args){if(!node?.isConnected||!current())return;const result=callback.apply(this,args);if(result&&typeof result.finally==='function')return result.finally(()=>approvedHistoryView?.refreshControls());approvedHistoryView?.refreshControls();return result;};};
+  const listenWorking=(node,type,callback)=>node?.addEventListener(type,guardWorking(node,callback));
   const h = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[char]);
   const clone = value => JSON.parse(JSON.stringify(value));
   const vi = () => document.documentElement.lang === 'vi';
   const t = (zh,vn) => vi() ? vn : zh;
-  const headers = () => window.ProcessSync?.platformHeaders?.() || {'Content-Type':'application/json'};
+  const headers = () => ({...(window.ProcessSync?.platformHeaders?.() || {'Content-Type':'application/json'}),...(actor()?.id?{'X-Process-Expected-Actor':actor().id}:{})});
   const permitted = key => !accessBlocked&&(window.sharedDraftPermissionAllowed?.(sharedClient,key)??true)&&(typeof window.hasPermission === 'function' ? window.hasPermission(key==='approval.submit'?'view:data':key) || key==='approval.withdraw'&&window.hasPermission('view:data') : actor()?.role === 'admin');
   const permittedAction = operation => !accessBlocked&&sharedClient?.permission(operation)===true&&(typeof window.hasPermission==='function'?window.hasPermission('ipqc-ab.'+operation):actor()?.role==='admin');
   let accessBlocked=null,lastCommandAcknowledgement=null,privateQuarantine=null,equipmentLoadGeneration=0;
@@ -18,9 +24,9 @@
   const scope = () => control?.scopes?.[key()];
   const opened = () => localEntry()?.version || scope()?.versions.find(v => ['draft','pending','pending-test'].includes(v.status));
   const active = () => scope()?.versions.find(v => v.id === scope()?.activeVersionId);
-  const version = () => scope()?.versions.find(v => v.id === versionId) || opened() || active() || scope()?.versions.at(-1);
+  const version = () => (localEntry()?.version.id===versionId?localEntry().version:null) || scope()?.versions.find(v => v.id === versionId) || opened() || active() || scope()?.versions.at(-1);
   const snapshot = () => localEntry()?.snapshot || (version()?.status === 'draft' && working && version()?.id === opened()?.id ? working : version()?.snapshot || {errors:[],items:[]});
-  const editing = () => !busy && !localPending() && !control?.moduleDraft?.workflow?.pendingId && version()?.status === 'draft' && !!working && permittedAction('edit');
+  const editing = () => historyAllowsMutation() && !busy && !localPending() && !control?.moduleDraft?.workflow?.pendingId && version()?.status === 'draft' && !!working && permittedAction('edit');
   const errors = () => snapshot().errors.filter(e => !e.deleted && e.stageCode === stage);
   const items = () => snapshot().items.filter(i => !i.deleted && i.errorId === errorId);
   const chosenError = () => snapshot().errors.find(e => e.id === errorId && !e.deleted);
@@ -42,8 +48,8 @@
       'half-year':t('半年','Nửa năm'),year:t('年','Năm'),custom:rule.value})[rule.kind] || rule.kind}`;
   const actor = () => window.ProcessSync?.identity || (typeof currentUser !== 'undefined' ? currentUser : null);
   const ownPending = v => v && ['pending','pending-test'].includes(v.status) && permitted('approval.withdraw');
-  let sharedClient=null,sharedIdentity='',modalBase=null,modalGeneration=null;const pollTimer=window.createForegroundPoll();let sourceEntryApplied=false;
-  function transport(requestScope=key()){const id=actor()?.id,identityKey=id+':'+requestScope;if(!id)throw Error('LOGIN_REQUIRED');if(sharedIdentity!==identityKey){sharedIdentity=identityKey;sharedClient=window.createSharedDraftClient({endpoint:API+'/workflow?scope='+encodeURIComponent(requestScope)+'&caseMetadata=1',legacyArchive:true,guardAccessResults:true,conditionalState:true,abCreateRejections:true,actorId:id,headers,permissionGates:{create:'#ipqcab-add-item,#ipqcab-add-error',edit:'#ab-apply,[data-ab-edit-item],[data-ab-edit-error],[data-ab-matrix-item]',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw',history:'#ab-case-history',approve:`[data-ab-approve="${requestScope}"]`,return:`[data-ab-reject="${requestScope}"]`,delete:'[data-ab-delete-item],[data-ab-delete-error]'}});}return sharedClient;}
+  let sharedClient=null,sharedIdentity='',modalBase=null,modalGeneration=null;let sourceEntryApplied=false;
+  function transport(requestScope=key()){const id=actor()?.id,identityKey=id+':'+requestScope;if(!id)throw Error('LOGIN_REQUIRED');if(sharedIdentity!==identityKey){sharedIdentity=identityKey;sharedClient=window.createSharedDraftClient({endpoint:API+'/workflow?scope='+encodeURIComponent(requestScope)+'&caseMetadata=1',legacyArchive:true,guardAccessResults:true,conditionalState:true,abCreateRejections:true,actorId:id,headers:()=>({...headers(),'X-Process-Expected-Actor':id}),permissionGates:{create:'#ipqcab-add-item,#ipqcab-add-error',edit:'#ab-apply,[data-ab-edit-item],[data-ab-edit-error],[data-ab-matrix-item]',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw',history:'#ab-case-history',approve:`[data-ab-approve="${requestScope}"]`,return:`[data-ab-reject="${requestScope}"]`,delete:'[data-ab-delete-item],[data-ab-delete-error]'}});}return sharedClient;}
   function changes(base,next){
     const patches=[],guards=[];
     for(const collection of ['errors','items']){
@@ -68,9 +74,9 @@
   const appliedInputs=new WeakMap(),pendingOperations=new WeakMap(),rejectedCreates=new WeakMap(),createdReservations=new WeakMap();
   const batchNotice=()=>t('尚有未套用修改保留在目前頁面；顯示的是本機輸入。請明確套用或放棄，不會自動合併最新共享內容。','Còn thay đổi chưa áp dụng trong trang; đang hiển thị dữ liệu cục bộ. Hãy áp dụng hoặc bỏ rõ ràng; không tự hợp nhất dữ liệu chung mới.');
   const sameInput=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
-  function inputOwner(client=sharedClient,module=false){const sync=window.ProcessSync;return {actor:actor(),actorId:actor()?.id,epoch:sync?.identityGeneration?.(),delivery:sync?.captureDelivery?.(),host,hostConnected:host?.isConnected,hostTab:host?.dataset.activeTab,reviewHost,reviewConnected:reviewHost?.isConnected,scope:key(),generation:scope()?.workflow?.generation||null,lifetime:mutationLifetime,client,module};}
+  function inputOwner(client=sharedClient,module=false){const sync=window.ProcessSync;return {displayEpoch:historyDisplayEpoch,actor:actor(),actorId:actor()?.id,epoch:sync?.identityGeneration?.(),delivery:sync?.captureDelivery?.(),host,hostConnected:host?.isConnected,hostTab:host?.dataset.activeTab,reviewHost,reviewConnected:reviewHost?.isConnected,scope:key(),generation:scope()?.workflow?.generation||null,lifetime:mutationLifetime,client,module};}
   function inputOwnerCurrent(owner,generation=true){const sync=window.ProcessSync;return !!owner&&owner.actor===actor()&&owner.actorId===actor()?.id&&Number.isSafeInteger(owner.epoch)&&owner.epoch>=0&&owner.epoch===sync?.identityGeneration?.()&&owner.delivery!==null&&owner.delivery!==undefined&&typeof sync?.isCurrentDelivery==='function'&&sync.isCurrentDelivery(owner.delivery)===true&&!sync.requiresReload&&owner.host===host&&owner.hostConnected===host?.isConnected&&owner.hostTab===host?.dataset.activeTab&&owner.reviewHost===reviewHost&&owner.reviewConnected===reviewHost?.isConnected&&owner.scope===key()&&owner.lifetime===mutationLifetime&&owner.client===(owner.module?moduleClient:sharedClient)&&(!generation||owner.generation===(scope()?.workflow?.generation||null));}
-  function mutationCurrent(owner,generation=true){return inputOwnerCurrent(owner,generation)&&owner.attempt===mutationSequence&&activeMutation===owner;}
+  function mutationCurrent(owner,generation=true){return historyAllowsMutation()&&owner?.displayEpoch===historyDisplayEpoch&&inputOwnerCurrent(owner,generation)&&owner.attempt===mutationSequence&&activeMutation===owner;}
   function captureBatchInput(target=modal){
     if(!target||target!==modal||target.readonly)return;
     if(target.type==='item')captureModal();
@@ -97,6 +103,7 @@
     return inputOwnerCurrent({...previous,delivery:current.delivery})?{previous,current}:null;
   }
   async function reconfirmRetainedDelivery(){
+    assertCurrentDisplay();
     const candidate=retainedDeliveryCandidate();if(!candidate||busy)return false;
     rejectForeignBatch();
     const batch=localBatch,basis=inputBasisOwner,quarantine=privateQuarantine,blocked=accessBlocked,initialModal=modal,owner=candidate.current,unknown=!!(sharedClient?.hasUnknown()||moduleClient?.hasUnknown()),receipts=[sharedClient,moduleClient].filter(client=>client?.hasUnknown()).map(client=>({client,operation:pendingOperations.get(client)}));
@@ -116,6 +123,7 @@
     finally{if(activeMutation===owner&&owner.attempt===mutationSequence){activeMutation=null;busy=false;if(inputOwnerCurrent(owner)){if(accessBlocked)renderAccessBlocked(host);else{draw();drawReview();}}}}
   }
   async function queryRetainedReceipt(client,intent=null){
+    assertCurrentDisplay();
     if(intent){const created=createdCheckContext();if(!created||created.proof.client!==client||created.reservation!==intent.reservation||created.proof!==intent.proof||created.proof.operation!==intent.operation||created.grant!==intent.grant)return false;return checkCreatedResult(intent.reservation);}
     const grant=receiptReadOwner?.receipts?.find(value=>value.client===client);
     if(busy||!inputOwnerCurrent(receiptReadOwner)||!grant||pendingOperations.get(client)!==grant.operation||![sharedClient,moduleClient].includes(client)||!client?.hasUnknown())return false;
@@ -186,6 +194,7 @@
   }
   function createdCheckButton(){return createdCheckContext()?`<button type="button" data-ab-create-check ${busy?'disabled':''}>${t('查證建立結果','Kiểm tra kết quả tạo')}</button>`:'';}
   async function checkCreatedResult(reservation){
+    assertCurrentDisplay();
     const context=createdCheckContext();if(busy||!context||context.reservation!==reservation)return false;
     const {proof,batch,grant,quarantine,blocked}=context,client=proof.client,owner=inputOwner(client),priorControl=control,priorRevision=revision;
     owner.modal=proof.target;owner.attempt=++mutationSequence;activeMutation=owner;busy=true;proof.checkAttempt=owner.attempt;
@@ -228,6 +237,7 @@
     }catch(error){if(current())message=error.message;return false;}
   }
   async function writeShared(action,detail={}){
+    assertCurrentDisplay();
     if(accessBlocked||rejectForeignBatch())return null;
     if(localBatch&&!inputOwnerCurrent(localBatch.owner)){message='LOCAL_BATCH_RECONFIRM';return null;}
     if(['save','submit'].includes(action)&&hasPrivateInput()){message=batchNotice();toast(message);return null;}
@@ -328,9 +338,10 @@
         modal=null;viewer=null;modalBase=null;modalGeneration=null;reason='';modalScrolls.clear();
   }
   async function load(keep = false,mutationOwner=null,deliveryGate=null,localGate=null) {
+    assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();
     if(deliveryGate?!deliveryGate.current():rejectForeignBatch())return false;
     const generation=++loadGeneration,priorControl=control,priorRevision=revision,requestActor=actor(),requestHost=host,requestReviewHost=reviewHost,requestEpoch=window.ProcessSync?.identityGeneration?.(),selection=[line,group,stage,errorId,versionId,showRouteExtras],delivery=window.ProcessSync?.captureDelivery?.();
-    const owns=()=>generation===loadGeneration&&(!localGate||localGate.current())&&(!mutationOwner||mutationCurrent(mutationOwner))&&(!deliveryGate||deliveryGate.current())&&control===priorControl&&revision===priorRevision&&actor()===requestActor&&(!Number.isFinite(requestEpoch)||window.ProcessSync?.identityGeneration?.()===requestEpoch)&&!window.ProcessSync?.requiresReload&&host===requestHost&&reviewHost===requestReviewHost&&[line,group,stage,errorId,versionId,showRouteExtras].every((value,index)=>value===selection[index])&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false);
+    const owns=()=>displayCurrent()&&generation===loadGeneration&&(!localGate||localGate.current())&&(!mutationOwner||mutationCurrent(mutationOwner))&&(!deliveryGate||deliveryGate.current())&&control===priorControl&&revision===priorRevision&&actor()===requestActor&&(!Number.isFinite(requestEpoch)||window.ProcessSync?.identityGeneration?.()===requestEpoch)&&!window.ProcessSync?.requiresReload&&host===requestHost&&reviewHost===requestReviewHost&&[line,group,stage,errorId,versionId,showRouteExtras].every((value,index)=>value===selection[index])&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false);
     if(privateQuarantine&&(privateQuarantine.actor!==requestActor||privateQuarantine.epoch!==requestEpoch))privateQuarantine=null;
     if(lastCommandAcknowledgement&&(lastCommandAcknowledgement.actor!==requestActor||lastCommandAcknowledgement.epoch!==requestEpoch))lastCommandAcknowledgement=null;
     const deny=error=>{if(owns()&&[401,403].includes(error.status))quarantineRead(error,requestActor,requestEpoch,delivery,selection);};
@@ -338,7 +349,7 @@
     // Observe rejection immediately: a fast denial must close the old UI while data is pending.
     const permissionAttempt=hintedScope?transport(hintedScope).permissions({isCurrent:owns}).then(value=>({value}),error=>{deny(error);if(owns()&&accessBlocked){draw();drawReview();}return{error};}):null;
     try{
-      const response=await fetch(API+'?caseMetadata=1&equipment=deferred',{headers:headers(),cache:'no-store'});
+      const response=await fetch(API+'?caseMetadata=1&equipment=deferred&localLineage=1',{headers:headers(),cache:'no-store'});
       const body=await response.json().catch(()=>({}));
       if(!owns())return false;
       if(!response.ok||!body.control||!Number.isInteger(body.revision))throw Object.assign(Error(body.error||t('IPQC-AB 載入失敗','Không tải được IPQC-AB')),{status:response.status});
@@ -360,14 +371,15 @@
       const preserveInput=hasPrivateInput();next=loadedSelection(body,keep||preserveInput);
       if(hasPrivateInput()&&`${next.line}:${next.group}`!==key())throw Error('LOCAL_BATCH_RECONFIRM');
       const commit=deliveryGate?.beforeCommit?.(next);if(!owns())return false;
-      ({control,catalog,equipment,revision,line,group,stage,errorId,versionId,working}=next);if(localEntry()){working=localEntry().snapshot;versionId=localEntry().version.id;}commit?.();accessBlocked=null;if(!preserveInput&&!deliveryGate)inputBasisOwner=inputOwner();if(localBatch)message=batchNotice();localGate?.refresh();
+      ({control,catalog,equipment,revision,line,group,stage,errorId,versionId,working}=next);if(localEntry()){working=localEntry().snapshot;versionId=localEntry().version.id;}lineageView=body.localLineage?.kind==='ipqc-ab-local-lineage-v1'&&body.localLineage.revision===body.revision?body.localLineage:null;commit?.();accessBlocked=null;if(!preserveInput&&!deliveryGate)inputBasisOwner=inputOwner();if(localBatch)message=batchNotice();localGate?.refresh();
       return true;
     }catch(error){if(!owns())return false;deny(error);throw error;}
   }
   async function loadEquipment(){
+    assertCurrentDisplay();
     if(accessBlocked||modal?.type!=='equipment')return;
     const equipmentRequest=++equipmentLoadGeneration,target=modal,requestActor=actor(),requestEpoch=window.ProcessSync?.identityGeneration?.(),requestHost=host,requestScope=key(),requestVersion=versionId,requestGeneration=loadGeneration,requestControl=control,requestRevision=revision,delivery=window.ProcessSync?.captureDelivery?.();
-    const currentModal=()=>equipmentRequest===equipmentLoadGeneration&&modal===target&&host===requestHost&&!!requestHost?.isConnected&&actor()===requestActor&&key()===requestScope&&versionId===requestVersion&&(!Number.isFinite(requestEpoch)||window.ProcessSync?.identityGeneration?.()===requestEpoch)&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false);
+    const displayCurrent=captureHistoryDisplay(),currentModal=()=>displayCurrent()&&equipmentRequest===equipmentLoadGeneration&&modal===target&&host===requestHost&&!!requestHost?.isConnected&&actor()===requestActor&&key()===requestScope&&versionId===requestVersion&&(!Number.isFinite(requestEpoch)||window.ProcessSync?.identityGeneration?.()===requestEpoch)&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false);
     const owns=()=>currentModal()&&loadGeneration===requestGeneration&&control===requestControl&&revision===requestRevision;
     const discardStale=()=>{if(owns())return false;if(currentModal()&&!accessBlocked){target.loading=false;target.error=t('頁面資料已更新，請重新載入設備清單。','Dữ liệu đã thay đổi; hãy tải lại danh sách thiết bị.');draw();}return true;};
     target.loading=true;target.error='';equipment=[];draw();
@@ -380,6 +392,7 @@
     }catch(error){if(discardStale())return;if([401,403].includes(error.status)){quarantineRead(error,requestActor,requestEpoch,delivery,[line,group,stage,errorId,versionId,showRouteExtras]);message=error.message;draw();drawReview();return;}target.loading=false;target.error=error.message;draw();}finally{clearTimeout(timer);}
   }
   async function write(action, detail = {}) {
+    assertCurrentDisplay();
     if(action==='begin'){try{startLocal();message='';draw();return{local:true};}catch(error){message=error.message;draw();return null;}}
 
     if(accessBlocked)return null;
@@ -396,7 +409,7 @@
       let response, body;
       for (let attempt=0;attempt<2;attempt++) {
         const prior = opened();
-        response = await fetch(API,{method:'POST',headers:headers(),body:JSON.stringify({action,
+        response = await fetch(API,{method:'POST',headers:{...headers(),'X-Process-Expected-Actor':requestActor.id},body:JSON.stringify({action,
           baseRevision:revision,line,group,versionId:prior?.id,versionRevision:prior?.revision,...detail})});
         body = await response.json().catch(()=>({}));
         if (response.status !== 409 || attempt || !['create-error','create-item'].includes(action)) break;
@@ -424,31 +437,32 @@
     finally { busy = false;if(!cancelled){draw();drawReview();}restoreView(); }
   }
   // Page-local snapshots. The original group bases are never replaced by polls.
-  const localScopes=new Map(),localPhotos=new Map(),legacyClients=new Map();let localModuleGeneration=null,localBeginReceipt=null,localSent=null,localConflict=null,localAttempt=null;
+  const localScopes=new Map(),localPhotos=new Map(),legacyClients=new Map(),unknownPhotoFingerprints=new Set();let localModuleGeneration=null,localBeginReceipt=null,localBeginExpectation=null,lineageView=null,localBusinessBase=null,localSent=null,localConflict=null,localAttempt=null,localSaveIntent=null;let conflictEscapeCleanup=null;
   const localEntry=()=>localScopes.get(key());
   const localDirty=()=>[...localScopes.values()].some(e=>!sameInput(e.base,e.snapshot));
   function localOwnerCurrent(){const sync=window.ProcessSync;if(typeof sync?.identityGeneration!=='function'||typeof sync.captureDelivery!=='function'||typeof sync.isCurrentDelivery!=='function')return false;const epoch=sync.identityGeneration(),delivery=sync.captureDelivery();return Number.isSafeInteger(epoch)&&epoch>=0&&delivery!==null&&delivery!==undefined&&sync.isCurrentDelivery(delivery)===true&&!sync.requiresReload&&host?.isConnected&&host.dataset.activeTab==='quality-ipqc-ab'&&[...localScopes.values()].every(e=>e.owner===actor()&&e.epoch===epoch&&e.lifetime===mutationLifetime&&e.host===host&&sync.isCurrentDelivery(e.delivery)===true);}
   function pinLocalOperation(client){
-    const sync=window.ProcessSync,pin={owner:actor(),epoch:sync?.identityGeneration?.(),delivery:sync?.captureDelivery?.(),host,lifetime:mutationLifetime,client,modal};
+    const sync=window.ProcessSync,pin={displayCurrent:captureHistoryDisplay(),owner:actor(),epoch:sync?.identityGeneration?.(),delivery:sync?.captureDelivery?.(),host,lifetime:mutationLifetime,client,modal};
     const generations=()=>JSON.stringify([control?.moduleDraft?.workflow?.generation,[...localScopes.keys()].map(k=>[k,control?.scopes[k]?.workflow?.generation])]);
     pin.refresh=()=>{pin.control=control;pin.revision=revision;pin.generations=generations();pin.sent=localSent;pin.operationId=localSent?.command?.operationId;};pin.refresh();
-    pin.current=()=>localAttempt===pin&&actor()===pin.owner&&sync===window.ProcessSync&&pin.epoch===sync?.identityGeneration?.()&&!sync.requiresReload&&sync.isCurrentDelivery?.(pin.delivery)===true&&host===pin.host&&host?.isConnected&&host.dataset.activeTab==='quality-ipqc-ab'&&mutationLifetime===pin.lifetime&&moduleClient===client&&modal===pin.modal&&control===pin.control&&revision===pin.revision&&generations()===pin.generations&&localSent===pin.sent&&localSent?.command?.operationId===pin.operationId;
+    pin.current=()=>pin.displayCurrent()&&localAttempt===pin&&actor()===pin.owner&&sync===window.ProcessSync&&pin.epoch===sync?.identityGeneration?.()&&!sync.requiresReload&&sync.isCurrentDelivery?.(pin.delivery)===true&&host===pin.host&&host?.isConnected&&host.dataset.activeTab==='quality-ipqc-ab'&&mutationLifetime===pin.lifetime&&moduleClient===client&&modal===pin.modal&&control===pin.control&&revision===pin.revision&&generations()===pin.generations&&localSent===pin.sent&&localSent?.command?.operationId===pin.operationId;
     pin.setSent=value=>{localSent=value;pin.sent=value;pin.operationId=value?.command?.operationId;};
     pin.finish=()=>{const redraw=pin.current();if(localAttempt===pin){localAttempt=null;if(mutationLifetime===pin.lifetime)busy=false;if(redraw){draw();drawReview();}}};
     localAttempt=pin;return pin;
   }
   function startLocal(){
+    assertCurrentDisplay();
     if(accessBlocked||busy||localPending()||!permittedAction('edit')||control?.moduleDraft?.workflow?.pendingId)throw Error('FORBIDDEN');
     let entry=localEntry();if(!entry){
       const server=scope(),open=server?.versions.find(v=>['draft','pending','pending-test'].includes(v.status));if(open&&open.status!=='draft')throw Error('PENDING_LOCKED');
       const content=server?.workflow?.working||open?.snapshot||active()?.snapshot||{errors:[],items:[]};
-      entry={scope:key(),generation:server?.workflow?.generation||null,baseId:server?.activeVersionId||null,base:clone(content),snapshot:clone(content),owner:actor(),epoch:window.ProcessSync?.identityGeneration?.(),delivery:window.ProcessSync?.captureDelivery?.(),lifetime:mutationLifetime,host,version:{...(open||active()),id:open?.id||'local-'+key(),status:'draft',snapshot:clone(content)}};
-      localScopes.set(key(),entry);if(localScopes.size===1)localModuleGeneration=control?.moduleDraft?.workflow?.generation||null;
+      entry={scope:key(),generation:server?.workflow?.generation||null,baseId:server?.activeVersionId||null,base:clone(content),snapshot:clone(content),source:clone(control.source??null),lineageAnchor:lineageView?.groups?.[key()]?.anchor??null,originRevision:lineageView?.groups?.[key()]?.originRevision??null,originDigest:lineageView?.groups?.[key()]?.originDigest??null,owner:actor(),epoch:window.ProcessSync?.identityGeneration?.(),delivery:window.ProcessSync?.captureDelivery?.(),lifetime:mutationLifetime,host,version:{...(open||active()),id:open?.id||'local-'+key(),status:'draft',snapshot:clone(content)}};
+      localScopes.set(key(),entry);if(localScopes.size===1){localModuleGeneration=control?.moduleDraft?.workflow?.generation||null;localBusinessBase=lineageView?.businessBase??null;}
     }
     if(!localOwnerCurrent())throw Error('IDENTITY_CHANGED');
     working=entry.snapshot;versionId=entry.version.id;inputBasisOwner=inputOwner(transport());return entry;
   }
-  function clearLocalEditing(){for(const p of localPhotos.values())URL.revokeObjectURL(p.preview);localPhotos.clear();localScopes.clear();localModuleGeneration=null;localBeginReceipt=null;localConflict=null;localBatch=null;modal=null;viewer=null;modalBase=null;modalGeneration=null;working=null;}
+  function clearLocalEditing(){clearConflictEscape();for(const p of localPhotos.values())URL.revokeObjectURL(p.preview);localPhotos.clear();localScopes.clear();localModuleGeneration=null;localBeginReceipt=null;localBeginExpectation=null;localBusinessBase=null;localConflict=null;localSaveIntent=null;localBatch=null;modal=null;viewer=null;modalBase=null;modalGeneration=null;working=null;}
   function abandonLocalEditing(){clearLocalEditing();if(moduleClient&&!moduleClient.hasUnknown())localSent=null;}
   function localScopeChanges(entry){
     const result=[],base=entry.base,next=entry.snapshot;
@@ -456,13 +470,14 @@
     for(const kind of ['items','errors'])for(const before of base[kind]){
       const row=next[kind].find(r=>r.id===before.id);if(!row)throw Error('LOCAL_ROW_MISSING');
       if(!before.deleted&&row.deleted){result.push({moduleAction:kind==='errors'?'delete-error':'delete-item',input:{id:row.id},guards:[{path:[kind,{id:row.id}],value:clone(before)}]});continue;}
+      if(before.deleted&&!row.deleted){const restore=entry.restoreChoices?.[row.id];if(kind!=='items'||!restore)throw Error('RESTORE_RECONFIRM');const fields={...restore.fields};for(const field of createItemFields)if(!sameInput(before[field],row[field]))fields[field]=clone(row[field]);result.push({moduleAction:'restore-item-local-v1',input:{id:row.id,origin:clone(restore.origin),fields},guards:[{path:['items',{id:row.id}],value:clone(before)},{path:['errors',{id:row.errorId}],value:clone(restore.parent)}]});continue;}
       if(row.deleted)continue;const patches=[],guards=[];
       for(const field of kind==='errors'?['name']:createItemFields)if(!sameInput(before[field],row[field])){const path=[kind,{id:row.id},field];patches.push({op:'set',path,value:clone(row[field])});guards.push({path,value:clone(before[field])});}
       if(patches.length)result.push({patches,guards});
     }
     return result;
   }
-  function localSaveScopes(){return [...localScopes.values()].map(entry=>({scope:entry.scope,generation:entry.generation,baseId:entry.baseId,changes:localScopeChanges(entry)})).filter(e=>e.changes.length);}
+  function localSaveScopes(entries=[...localScopes.values()]){return entries.map(entry=>({scope:entry.scope,generation:entry.generation,baseId:entry.baseId,changes:localScopeChanges(entry)})).filter(e=>e.changes.length);}
   function legacyABClients(){
     const list=[],prefix='shared-draft-v3-operation:'+actor()?.id+':'+API+'/workflow';
     for(let i=0;i<sessionStorage.length;i++){const k=sessionStorage.key(i);if(!k?.startsWith(prefix))continue;const endpoint=k.slice(('shared-draft-v3-operation:'+actor()?.id+':').length);
@@ -472,17 +487,172 @@
     }return list;
   }
   function localPending(){moduleTransport();return moduleClient?.hasUnknown()||moduleClient?.legacyRecoveryUnsupported?.()||legacyABClients().some(c=>c.hasUnknown());}
-  function localConflictRows(){
-    const conflict=localConflict,entry=localScopes.get(conflict?.scope),path=conflict?.path;if(!entry||!Array.isArray(path)||!['items','errors'].includes(path[0])||!path[1]?.id)return null;
-    const before=entry.base[path[0]].find(r=>r.id===path[1].id),mine=entry.snapshot[path[0]].find(r=>r.id===path[1].id),current=control?.scopes[entry.scope]?.workflow?.working?.[path[0]]?.find(r=>r.id===path[1].id);
-    if(!before||!mine||!current||entry.generation!==control.scopes[entry.scope].workflow.generation)return null;
-    return{entry,path,before,mine,current};
+  function localSaveIntentCurrent(intent,checkStamp=true){return historyAllowsMutation()&&intent?.displayEpoch===historyDisplayEpoch&&!!intent&&localSaveIntent===intent&&intent.owner===actor()&&intent.epoch===window.ProcessSync?.identityGeneration?.()&&window.ProcessSync?.isCurrentDelivery?.(intent.delivery)===true&&!window.ProcessSync?.requiresReload&&host===intent.host&&host?.isConnected&&mutationLifetime===intent.lifetime&&modal===intent.modal&&moduleClient===intent.client&&localOwnerCurrent()&&[...intent.photoPins].every(([id,pin])=>localPhotos.get(id)===pin.staged&&pin.staged.file===pin.file&&pin.staged.preview===pin.preview)&&(!checkStamp||JSON.stringify(localSaveScopes())===intent.stamp);}
+  function confirmLocalBegin(result){
+    const expected=localBeginExpectation,receipt=result.receipt,flow=result.control?.workflow;if(expected)expected.receipt=receipt;
+    if(!expected||expected.owner!==actor()||expected.epoch!==window.ProcessSync?.identityGeneration?.()||!window.ProcessSync?.isCurrentDelivery?.(expected.delivery)||expected.host!==host||expected.lifetime!==mutationLifetime||!localOwnerCurrent()||result.operationKind!=='begin-v1'||result.recoveryKind!=='begin-v1'||!sameInput(result.beginBasis,expected.basis)||!receipt||flow?.scope!=='ipqc-ab:module'||flow.generation!==receipt.generation||!Number.isSafeInteger(receipt.revision)||flow.revision<receipt.revision)throw Error('BEGIN_CONFIRMATION_RECONFIRM');
+    localModuleGeneration=receipt.generation;expected.confirmed=true;return flow;
   }
-  function localConflictHTML(){const rows=localConflictRows();if(!rows)return '';const value=row=>JSON.stringify(rows.path.length===3?row[rows.path[2]]:row);return `<section class="ipqcab-card" data-ab-conflict><p>${t('同一欄位已有其他修改；請比較後選擇，再手動存取。','Cùng trường đã thay đổi; so sánh, chọn rồi lưu thủ công.')}</p><pre>${h(value(rows.mine))}</pre><pre>${h(value(rows.current))}</pre><button data-ab-conflict-choice="mine">${t('保留我的修改','Giữ thay đổi của tôi')}</button><button data-ab-conflict-choice="server">${t('採用共享內容','Dùng nội dung chung')}</button></section>`;}
-  function chooseLocalConflict(choice){if(busy)return;const rows=localConflictRows();if(!rows)return;const {path,before,mine,current}=rows;
-    if(path.length===3){before[path[2]]=clone(current[path[2]]);if(choice==='server')mine[path[2]]=clone(current[path[2]]);}
-    else{Object.assign(before,clone(current));if(choice==='server')Object.assign(mine,clone(current));}
-    localConflict=null;message=t('選擇已保留在本機；請再次存取。','Lựa chọn được giữ cục bộ; hãy lưu lại.');draw();
+  function compareLocalLineage(intent,flow){
+    const hash=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value),view=lineageView,moduleGeneration=flow?.generation??null;
+    for(const entry of localScopes.values())if(!sameInput(entry.source,control?.source??null))throw Error('SOURCE_CHANGED_RECONFIRM');
+    const verified=view?.kind==='ipqc-ab-local-lineage-v1'&&view.revision===revision&&hash(view.businessBase)&&hash(localBusinessBase)&&view.businessBase===localBusinessBase;
+    if(hash(localBusinessBase)&&!verified)throw Error('BUSINESS_BASE_CHANGED_RECONFIRM');
+    if(localModuleGeneration&&localModuleGeneration!==moduleGeneration)throw Error('DRAFT_GENERATION_CHANGED');
+    if(localBeginReceipt&&localBeginReceipt.generation!==moduleGeneration)throw Error(localBeginExpectation?.receipt&&!localBeginExpectation.confirmed?'BEGIN_CONFIRMATION_RECONFIRM':'DRAFT_GENERATION_CHANGED');
+    const adopt=[];for(const entry of localScopes.values()){
+      const server=control.scopes[entry.scope],generation=server?.workflow?.generation??null;
+      if((server?.activeVersionId??null)!==entry.baseId)throw Error('DRAFT_GENERATION_CHANGED');
+      if(generation===entry.generation)continue;
+      const proof=view?.groups?.[entry.scope];
+      if(intent.dispatched||entry.generation!==null||!generation||!verified||!hash(entry.lineageAnchor)||proof?.generation!==generation||proof.reason!==null||proof.anchor!==entry.lineageAnchor)throw Error('DRAFT_GENERATION_CHANGED');
+      const progressed=Number.isSafeInteger(entry.originRevision)&&entry.originRevision>=0&&Number.isSafeInteger(proof.originRevision)&&proof.originRevision>=entry.originRevision;
+      if(!hash(entry.originDigest)||!hash(proof.originDigest)||!(entry.originRevision===null&&proof.originRevision===null&&entry.originDigest===proof.originDigest||progressed&&(proof.originRevision>entry.originRevision||entry.originDigest===proof.originDigest)))throw Error('DRAFT_GENERATION_CHANGED');
+      adopt.push([entry,generation]);
+    }
+    const needsModule=moduleGeneration!==null&&localModuleGeneration===null,needsBegin=!!localBeginExpectation?.receipt&&!localBeginExpectation.confirmed&&!localBeginExpectation.lineageReconciled;
+    if((needsModule||needsBegin)&&(!verified||intent.dispatched||!moduleGeneration))throw Error('BEGIN_CONFIRMATION_RECONFIRM');
+    // Metadata only, atomically after every proof. Never replace base/snapshot,
+    // insert peer-only rows into RAM, or discard an original operation/receipt.
+    for(const [entry,generation]of adopt)entry.generation=generation;
+    if(needsModule)localModuleGeneration=moduleGeneration;
+    if(needsBegin)localBeginExpectation.lineageReconciled={businessBase:view.businessBase,revision,generation:moduleGeneration};
+    return adopt.length>0;
+  }
+  // Preserve independent stable-ID photo/rule edits in disposable Save
+  // candidates. Original RAM/base stay untouched until the original Save ACK.
+  function localListPlan(before,mine,peer,field,choice='mine'){
+    if(![before,mine,peer].every(rows=>Array.isArray(rows)&&rows.every(row=>row&&typeof row.id==='string')&&new Set(rows.map(row=>row.id)).size===rows.length))return null;
+    const ids=rows=>rows.map(row=>row.id),index=rows=>new Map(rows.map(row=>[row.id,row])),a=index(before),b=index(mine),c=index(peer),all=[...new Set([...ids(peer),...ids(mine),...ids(before)])],deleted=new Set();
+    for(const id of ids(before))if(!b.has(id)&&c.has(id)&&!sameInput(a.get(id),c.get(id))||b.has(id)&&!c.has(id)&&!sameInput(a.get(id),b.get(id)))deleted.add(id);
+    const common=ids(before).filter(id=>b.has(id)&&c.has(id)),localOrder=ids(mine).filter(id=>common.includes(id)),peerOrder=ids(peer).filter(id=>common.includes(id)),localMoved=!sameInput(common,localOrder),peerMoved=!sameInput(common,peerOrder),shared=all.filter(id=>b.has(id)&&c.has(id));
+    const orderConflict=localMoved&&peerMoved&&!sameInput(localOrder,peerOrder)||ids(mine).some(id=>!a.has(id)&&c.has(id))&&!sameInput(ids(mine).filter(id=>shared.includes(id)),ids(peer).filter(id=>shared.includes(id)));
+    let conflicts=deleted.size>0||orderConflict;const rows=new Map(),values=(row,keys)=>Object.fromEntries(keys.filter(key=>row&&Object.hasOwn(row,key)).map(key=>[key,clone(row[key])]));
+    for(const id of all){const origin=a.get(id),own=b.get(id),remote=c.get(id);let selected;
+      if(!origin)selected=remote||own;else if(own&&remote)selected=remote;else if(deleted.has(id))selected=choice==='server'?remote:own;
+      if(!selected)continue;const next=clone(selected);rows.set(id,next);if(!own||!remote)continue;
+      const keys=field==='rules'?['cadence','kind','value','name']:['name','note'],variant=row=>[row?.cadence,row?.kind],blocks=field==='rules'&&(!sameInput(variant(origin),variant(own))||!sameInput(variant(origin),variant(remote)))?[keys]:keys.map(key=>[key]);
+      for(const block of blocks){const original=values(origin,block),local=values(own,block),current=values(remote,block);if(sameInput(local,original))continue;const clash=!sameInput(current,original)&&!sameInput(local,current);conflicts ||=clash;const wanted=clash&&choice==='server'?current:local;for(const key of block){if(Object.hasOwn(wanted,key))next[key]=clone(wanted[key]);else delete next[key];}}
+    }
+    const primary=orderConflict?(choice==='server'?peer:mine):localMoved?mine:peer,secondary=primary===mine?peer:mine,ordered=ids(primary).filter(id=>rows.has(id)),rest=ids(secondary);
+    for(let n=0;n<rest.length;n++){const id=rest[n];if(!rows.has(id)||ordered.includes(id))continue;const next=rest.slice(n+1).find(value=>ordered.includes(value));if(next!==undefined)ordered.splice(ordered.indexOf(next),0,id);else{const previous=rest.slice(0,n).reverse().find(value=>ordered.includes(value));if(previous!==undefined)ordered.splice(ordered.indexOf(previous)+1,0,id);else ordered.push(id);}}
+    return{conflicts,value:ordered.map(id=>rows.get(id))};
+  }
+  const localListFields=['standardPhotos','methodPhotos','rules'];
+  function mergeLocalListEntries(entries){
+    return entries.map(source=>{const entry={...source,base:clone(source.base),snapshot:clone(source.snapshot),restoreChoices:clone(source.restoreChoices||{})},server=control.scopes[entry.scope],current=server?.workflow?.working||server?.versions.find(v=>v.status==='draft')?.snapshot||server?.versions.find(v=>v.id===server.activeVersionId)?.snapshot;
+      for(const before of entry.base.items){const mine=entry.snapshot.items.find(row=>row.id===before.id),peer=current?.items.filter(row=>row.id===before.id);if(before.deleted||mine?.deleted||peer?.length!==1||peer[0].deleted)continue;
+        for(const field of localListFields)if(!sameInput(before[field],mine[field])){const plan=localListPlan(before[field],mine[field],peer[0][field],field);if(plan&&!plan.conflicts){before[field]=clone(peer[0][field]);mine[field]=plan.value;}}}
+      return entry;
+    });
+  }
+  function localPreflightConflicts(){
+    const conflicts=[],seen=new Set();
+    for(const entry of localScopes.values()){
+      if(!sameInput(entry.source,control?.source??null))throw Error('SOURCE_CHANGED_RECONFIRM');
+      const server=control?.scopes[entry.scope];if((server?.workflow?.generation||null)!==entry.generation||(server?.activeVersionId||null)!==entry.baseId)throw Error('DRAFT_GENERATION_CHANGED');
+      const current=server?.workflow?.working||server?.versions.find(v=>v.status==='draft')?.snapshot||server?.versions.find(v=>v.id===server.activeVersionId)?.snapshot||{items:[],errors:[]};
+      const add=path=>{const token=JSON.stringify([entry.scope,path]);if(!seen.has(token)){seen.add(token);conflicts.push({scope:entry.scope,path});}};
+      for(const change of localScopeChanges(entry)){
+        if(change.moduleAction==='create-error'){if(!catalog.stages.some(s=>s.line===entry.scope.slice(0,1)&&s.code===change.input.stageCode))throw Error('STAGE_INVALID');continue;}
+        if(change.moduleAction==='create-item'){const localParent=entry.snapshot.errors.find(e=>e.id===change.input.errorId&&!e.deleted),parent=current.errors.find(e=>e.id===change.input.errorId&&!e.deleted);if(!localParent||!parent&&!String(change.input.errorId).startsWith('local-'))throw Error('ERROR_REMOVED');continue;}
+        const restoring=change.moduleAction==='restore-item-local-v1',deleting=change.moduleAction?.startsWith('delete');
+        const paths=restoring?[['items',{id:change.input.id}]]:deleting?[[change.moduleAction==='delete-error'?'errors':'items',{id:change.input.id}]]:change.patches.map(p=>p.path);
+        for(const path of paths){const rows=current[path[0]].filter(r=>r.id===path[1].id),row=rows[0],guard=change.guards.find(g=>sameInput(g.path,path));
+          if(rows.length!==1||row.deleted&&!restoring){add(path);continue;}
+          if(restoring){const parent=current.errors.filter(e=>e.id===row.errorId),parentGuard=change.guards.find(g=>g.path[0]==='errors');if(row.deleted!==true||!sameInput(row,guard?.value)||parent.length!==1||parent[0].deleted||!sameInput(parent[0],parentGuard?.value))add(path);}
+          else if(deleting){if(path[0]==='errors'&&current.items.some(item=>!item.deleted&&item.errorId===row.id&&!entry.snapshot.items.find(r=>r.id===item.id)?.deleted))throw Error('ERROR_IN_USE');if(!sameInput(row,guard?.value))add(path);}
+          else if(path[2]!=='productCodes'&&!sameInput(row[path[2]],guard?.value)&&!sameInput(row[path[2]],change.patches.find(p=>sameInput(p.path,path)).value)){const plan=localListFields.includes(path[2])?localListPlan(guard?.value,change.patches.find(p=>sameInput(p.path,path)).value,row[path[2]],path[2]):null;if(!plan||plan.conflicts)add(path);}
+        }
+      }
+    }return conflicts;
+  }
+  function localRestoreState(rows){
+    if(rows.path[0]!=='items'||rows.kind!=='edit-deleted')return{allowed:false,reason:t('此狀態不支援單筆恢復。','Trạng thái này không hỗ trợ khôi phục một mục.')};
+    const origin=rows.entry.restoreChoices?.[rows.mine.id]?.origin||rows.before,parent=control.scopes[rows.entry.scope]?.workflow?.working?.errors.filter(e=>e.id===rows.current.errorId)||[];
+    if(!permittedAction('restore'))return{allowed:false,reason:t('需要此模組的還原權限；本機內容仍保留，未存取。','Cần quyền khôi phục của mô-đun; nội dung cục bộ vẫn giữ, chưa lưu.')};
+    if(!permittedAction('create'))return{allowed:false,reason:t('還原項目需要此模組的新增權限；本機內容仍保留，未存取。','Khôi phục mục cần quyền tạo của mô-đun; nội dung cục bộ vẫn giữ, chưa lưu.')};
+    if(parent.length!==1||parent[0].deleted)return{allowed:false,reason:t('原錯誤代碼已刪除或身分不明；不能連帶恢復父層。','Mã lỗi gốc đã xóa hoặc không rõ định danh; không tự khôi phục mục cha.')};
+    if(origin.deleted!==false||['id','code','errorId','sourceRows','sourceTool','sourceMethod','sourceFrequency','sourceVersion','sourceChangedAt','sourceReason','sourceCreator','sourceNote'].some(k=>!sameInput(origin[k],rows.current[k])))return{allowed:false,reason:t('原項目身分已變更；未恢復或另建項目。','Định danh mục gốc đã đổi; không khôi phục hoặc tạo bản sao.')};
+    if([...localScopes.values()].some(e=>Object.keys(e.restoreChoices||{}).some(id=>id!==rows.mine.id)))return{allowed:false,reason:t('此存取只允許恢復已選的單筆項目。','Lần lưu này chỉ cho phép khôi phục một mục đã chọn.')};
+    return{allowed:true,origin,parent:parent[0]};
+  }
+  function rememberLocalConflict(details,remaining=[details]){
+    const entries=new Map();
+    for(const detail of remaining){const entry=localScopes.get(detail?.scope),path=detail?.path;
+      if(!entry||!Array.isArray(path)||![2,3].includes(path.length)||!['items','errors'].includes(path[0])||typeof path[1]?.id!=='string')return;
+      entries.set(detail.scope,{entry,stamp:JSON.stringify([entry.base,entry.snapshot,entry.restoreChoices])});
+    }
+    localConflict={scope:details.scope,path:clone(details.path),remaining:clone(remaining),entries,intent:localSaveIntent,control,revision,owner:actor(),epoch:window.ProcessSync?.identityGeneration?.(),delivery:window.ProcessSync?.captureDelivery?.(),host,lifetime:mutationLifetime,modal};
+  }
+  function localConflictItemRows(detail,conflict){
+    const entry=localScopes.get(detail.scope),path=detail.path,server=control?.scopes[detail.scope];
+    if(!entry||!server||entry.generation!==(server.workflow?.generation||null)||entry.baseId!==server.activeVersionId)return null;
+    if(path.length===3&&!(path[0]==='errors'?['name']:createItemFields).includes(path[2]))return null;
+    const source=server.workflow?.working||server.versions.find(v=>v.status==='draft')?.snapshot||server.versions.find(v=>v.id===server.activeVersionId)?.snapshot;
+    const originals=entry.base[path[0]].filter(r=>r.id===path[1].id),locals=entry.snapshot[path[0]].filter(r=>r.id===path[1].id),currents=source?.[path[0]]?.filter(r=>r.id===path[1].id)||[];
+    if(originals.length!==1||locals.length!==1)return null;
+    const before=originals[0],mine=locals[0],current=currents[0];let kind='field';
+    if(currents.length>1)kind='ambiguous';else if(!current)kind='missing';else if(current.deleted)kind=mine.deleted?'already-deleted':'edit-deleted';else if(before.deleted&&!mine.deleted)kind='restore-changed';else if(path.length===2&&mine.deleted&&!before.deleted)kind='delete-edited';else if(path.length!==3||before.deleted||mine.deleted)return null;
+    return{entry,path,before,mine,current,kind,conflict};
+  }
+  function localConflictSet(conflict=localConflict){
+    if(!conflict||conflict!==localConflict||conflict.intent&&!localSaveIntentCurrent(conflict.intent)||busy||accessBlocked||localSent||!permittedAction('edit')||control?.moduleDraft?.workflow?.pendingId||!localOwnerCurrent()||localPending()||conflict.owner!==actor()||conflict.epoch!==window.ProcessSync?.identityGeneration?.()||!window.ProcessSync?.isCurrentDelivery?.(conflict.delivery)||conflict.host!==host||conflict.lifetime!==mutationLifetime||conflict.modal!==modal||conflict.control!==control||conflict.revision!==revision)return null;
+    for(const [scope,pin]of conflict.entries)if(localScopes.get(scope)!==pin.entry||pin.stamp!==JSON.stringify([pin.entry.base,pin.entry.snapshot,pin.entry.restoreChoices]))return null;
+    const rows=conflict.remaining.map(detail=>localConflictItemRows(detail,conflict));return rows.length&&rows.every(Boolean)?rows:null;
+  }
+  function localConflictRows(conflict=localConflict){return localConflictSet(conflict)?.[0]||null;}
+  function localConflictSignature(rows){return JSON.stringify(rows.map(r=>[r.entry.scope,r.path,r.kind,...[r.before,r.mine,r.current].map(row=>r.kind==='field'?row?.[r.path[2]]:row)]));}
+  function planLocalConflictChoice(rows,choice){
+    // Build a disposable command candidate. Never rebase private RAM, including
+    // a partly accepted set, while deciding, rechecking or awaiting an ACK.
+    const entries=new Map([...localScopes].map(([scope,entry])=>[scope,{...entry,base:clone(entry.base),snapshot:clone(entry.snapshot),restoreChoices:clone(entry.restoreChoices||{})}])),handled=new Set(),restores=new Set();
+    for(const entry of entries.values())for(const id of Object.keys(entry.restoreChoices))restores.add(JSON.stringify([entry.scope,id]));
+    for(const rowsAtChoice of rows){const {path,kind,current}=rowsAtChoice,entry=entries.get(rowsAtChoice.entry.scope),before=entry.base[path[0]].find(row=>row.id===path[1].id),mine=entry.snapshot[path[0]].find(row=>row.id===path[1].id),token=JSON.stringify([entry.scope,path[0],mine.id]);
+      if(['missing','ambiguous'].includes(kind)||kind==='restore-changed'&&choice==='mine')throw Error(t('身分或狀態已變更；本機內容仍保留，此次存取未完成。','Định danh hoặc trạng thái đã đổi; giữ nội dung cục bộ, lần lưu chưa hoàn tất.'));
+      if(kind!=='field'&&handled.has(token))continue;
+      if(kind==='edit-deleted'&&choice==='mine'){
+        const restore=localRestoreState(rowsAtChoice);if(!restore.allowed)throw Error(restore.reason);
+        restores.add(JSON.stringify([entry.scope,mine.id]));if(restores.size>1)throw Error(t('此存取只允許恢復已選的單筆項目；整組選擇未套用。','Lần lưu chỉ cho phép khôi phục một mục; chưa áp dụng lựa chọn cả nhóm.'));
+        const fields={...entry.restoreChoices[mine.id]?.fields};for(const field of createItemFields)if(!sameInput(before[field],mine[field]))fields[field]=clone(mine[field]);
+        entry.restoreChoices[mine.id]={origin:clone(restore.origin),fields:clone(fields),parent:clone(restore.parent)};
+        entry.base.items[entry.base.items.indexOf(before)]=clone(current);entry.snapshot.items[entry.snapshot.items.indexOf(mine)]={...clone(current),...fields,deleted:false};
+      }else if(kind==='field'){const plan=localListFields.includes(path[2])?localListPlan(before[path[2]],mine[path[2]],current[path[2]],path[2],choice):null;before[path[2]]=clone(current[path[2]]);if(plan)mine[path[2]]=plan.value;else if(choice==='server')mine[path[2]]=clone(current[path[2]]);}
+      else if(kind==='delete-edited'&&choice==='mine')Object.assign(before,clone(current));
+      else{entry.base[path[0]][entry.base[path[0]].indexOf(before)]=clone(current);entry.snapshot[path[0]][entry.snapshot[path[0]].indexOf(mine)]=clone(current);delete entry.restoreChoices[mine.id];}
+      if(kind!=='field')handled.add(token);
+    }
+    return [...entries.values()];
+  }
+  function localConflictHTML(){
+    const rows=localConflictSet();if(!rows)return '';
+    const labels={name:t('錯誤名稱','Tên lỗi'),standard:t('檢查標準','Tiêu chuẩn'),methodText:t('檢查方式','Phương pháp'),inspectionMode:t('檢查模式','Chế độ kiểm tra'),equipmentId:t('檢具','Thiết bị'),isEnabled:t('啟用','Sử dụng'),rules:t('頻率','Tần suất'),standardPhotos:t('標準照片','Ảnh tiêu chuẩn'),methodPhotos:t('方式照片','Ảnh phương pháp'),productCodes:t('產品對照','Liên kết sản phẩm'),reason:t('原因','Lý do')};
+    const position=({entry,path,before})=>{const parent=path[0]==='items'?entry.base.errors.find(e=>e.id===before.errorId):before;return [entry.scope,parent?.stageCode,parent?.code,path[0]==='items'?before.code:null,labels[path[2]]||t('整筆刪除','Xóa bản ghi')].filter(Boolean).join(' / ');};
+    const item=rows=>{const {path,before,mine,current,kind}=rows,value=row=>row?JSON.stringify(kind==='field'?row[path[2]]:row):t('不存在','Không tồn tại'),restore=localRestoreState(rows);
+      const notice=kind==='edit-deleted'?restore.allowed?t('對方已刪除此項目；用我的將恢復同一筆項目並在此次存取保存修改，不恢復父層或其他項目。','Mục đã bị xóa; dùng của tôi sẽ khôi phục đúng mục này và lưu chỉnh sửa trong lần lưu hiện tại, không khôi phục mục cha hay mục khác.'):restore.reason:['missing','ambiguous'].includes(kind)?t('權威資料缺失或身分不明；保留本機內容，未恢復或覆寫資料。','Dữ liệu chung thiếu hoặc không rõ định danh; giữ nội dung cục bộ, không khôi phục hay ghi đè.'):'';
+      return `<article data-ab-conflict-entry><p data-ab-conflict-position>${h(position(rows))}</p>${notice?`<p>${h(notice)}</p>`:''}${[['base',t('原值','Giá trị gốc'),before],['mine',t('我的','Của tôi'),mine],['server',t('對方','Dữ liệu chung'),current]].map(([id,label,row])=>`<div><b>${h(label)}</b><pre data-ab-conflict-value="${id}" style="white-space:pre-wrap;overflow-wrap:anywhere">${h(value(row))}</pre></div>`).join('')}</article>`;
+    };
+    return `<section class="ipqcab-card" data-ab-conflict data-ab-conflict-kind="${h(rows[0].kind)}"><p data-ab-conflict-count>${h(t(`共 ${rows.length} 處衝突；一次選擇整組使用我的或對方的內容。非衝突修改會保留。`,`Có ${rows.length} xung đột; chọn dữ liệu của tôi hoặc dữ liệu chung cho cả nhóm. Giữ các thay đổi không xung đột.`))}</p><p>${h(t('選擇後重新核對並繼續此次存取；取消不更改原本機修改或比較基準。','Sau khi chọn, đối chiếu lại rồi tiếp tục lưu; hủy không đổi chỉnh sửa hoặc cơ sở so sánh cục bộ.'))}</p><ol data-ab-conflict-locations>${rows.map(row=>`<li>${h(position(row))}</li>`).join('')}</ol>${rows.map(item).join('')}<button type="button" data-ab-conflict-choice="mine">${t('用我的','Dùng của tôi')}</button><button type="button" data-ab-conflict-choice="server" ${rows.some(row=>['missing','ambiguous'].includes(row.kind))?'disabled':''}>${t('用對方的','Dùng của người khác')}</button><button type="button" data-ab-conflict-choice="cancel" data-ab-conflict-close>${t('取消','Hủy')}</button></section>`;
+  }
+  function chooseLocalConflict(choice,conflict=localConflict){
+    if(!['mine','server','cancel'].includes(choice))return;const rows=localConflictSet(conflict);if(!rows)return;const intent=conflict.intent;
+    if(choice==='cancel'){localConflict=null;if(localSaveIntent===intent)localSaveIntent=null;message=t('已取消此次存取；本機修改仍保留，沒有送出。','Đã hủy lần lưu; thay đổi cục bộ vẫn giữ, chưa gửi.');draw({localConflictChoice:true});return;}
+    try{planLocalConflictChoice(rows,choice);}catch(error){message=error.message;draw({localConflictChoice:true});return;}
+    if(!intent||localSaveIntent!==intent)return;
+    intent.resolution={choice,signature:localConflictSignature(rows)};
+    localConflict=null;message=t('正在重新核對整組衝突並繼續此次存取。','Đang đối chiếu lại cả nhóm xung đột và tiếp tục lưu.');draw({localConflictChoice:true});
+    intent.flight=saveLocalModule(intent);return intent.flight;
+  }
+  function clearConflictEscape(){conflictEscapeCleanup?.();conflictEscapeCleanup=null;}
+  function bindConflictEscape(){
+    clearConflictEscape();const conflict=localConflict,node=host?.querySelector('[data-ab-conflict]');
+    const blocked=()=>!!modal||!!viewer||!!document.querySelector('dialog[open],[aria-modal="true"]');
+    const current=()=>node?.isConnected&&host?.querySelector('[data-ab-conflict]')===node&&!!localConflictRows(conflict);
+    if(!node||blocked()||!current())return;
+    const cleanup=()=>{node.removeEventListener('keydown',keydown);observer.disconnect?.();if(conflictEscapeCleanup===cleanup)conflictEscapeCleanup=null;};
+    const keydown=event=>{if(!current()){cleanup();return;}if(event.key!=='Escape'||event.defaultPrevented||event.isComposing||blocked()||event.target?.closest?.('form,dialog,[aria-modal="true"]'))return;event.preventDefault();event.stopImmediatePropagation();chooseLocalConflict('cancel',conflict);cleanup();};
+    const observer=new MutationObserver(()=>{if(!current())cleanup();});observer.observe(document.body,{childList:true,subtree:true});node.addEventListener('keydown',keydown);conflictEscapeCleanup=cleanup;
+    node.setAttribute('tabindex','-1');if(!document.activeElement?.closest?.('form,dialog,[aria-modal="true"]'))node.focus({preventScroll:true});
   }
   function localQueryIntent(){
     const owner=actor(),epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.(),mounted=host,lifetime=mutationLifetime,sent=localSent;
@@ -491,10 +661,11 @@
     return()=>{try{return owner===actor()&&epoch===window.ProcessSync?.identityGeneration?.()&&window.ProcessSync?.isCurrentDelivery?.(delivery)===true&&host===mounted&&lifetime===mutationLifetime&&localSent===sent&&markers()===original;}catch{return false;}};
   }
   async function queryLocalOperation(intent){
+    assertCurrentDisplay();
     if(busy||intent&&!intent()||!localOwnerCurrent())return;const owner=actor(),epoch=window.ProcessSync?.identityGeneration?.(),client=moduleTransport(),pin=pinLocalOperation(client),owns=pin.current;busy=true;draw();
     try{
       const targets=[...legacyABClients().filter(c=>c.hasUnknown()),...(client.hasUnknown()?[client]:[])];if(!targets.length)throw Error('NO_PENDING_OPERATION');let rejected=false;
-      for(const target of targets){if(target===client&&localSent&&client.hasConfirmedRejection(localSent.command)){if(!owns())return;client.finalizeRejected(localSent.command);pin.setSent(null);rejected=true;continue;}const isBegin=target.hasUnknownBegin?.(),result=await target.resolveUnknown();if(!owns())return;if(isBegin){localBeginReceipt=result.receipt;localModuleGeneration ||=result.receipt.generation;}else if(target===client&&localSent?.owner===owner&&localSent.epoch===epoch&&localSent.command.operationId===result.receipt?.operationId){localSent.confirmed=result.receipt;}}
+      for(const target of targets){if(target===client&&localSent&&client.hasConfirmedRejection(localSent.command)){if(!owns())return;client.finalizeRejected(localSent.command);pin.setSent(null);rejected=true;continue;}const isBegin=target.hasUnknownBegin?.(),result=await target.resolveUnknown();if(!owns())return;if(isBegin){localBeginReceipt=result.receipt;confirmLocalBegin(result);}else if(target===client&&localSent?.owner===owner&&localSent.epoch===epoch&&localSent.command.operationId===result.receipt?.operationId){localSent.confirmed=result.receipt;}}
       if(!owns())return;if(await load(false,null,null,pin)===false||!owns())return;
       if(localBeginReceipt&&control.moduleDraft?.workflow?.generation!==localBeginReceipt.generation)throw Error('DRAFT_GENERATION_CHANGED');
       if(localSent?.confirmed){if(JSON.stringify(localSaveScopes())!==localSent.snapshot)throw Error('LOCAL_BATCH_RECONFIRM');clearLocalEditing();pin.modal=null;pin.setSent(null);pin.refresh();if(await load(false,null,null,pin)===false||!owns())return;}
@@ -502,44 +673,128 @@
     }catch(error){if(owns())message=error.message;}
     finally{pin.finish();}
   }
-  async function saveLocalModule(){
+  // Bound photo I/O only. A failed batch drains both active requests before
+  // releasing busy; acknowledged immutable uploads remain reusable on retry.
+  function localChangePhotos(change){const lists=change.input?.item?[change.input.item.standardPhotos,change.input.item.methodPhotos]:change.moduleAction==='restore-item-local-v1'?[change.input.fields.standardPhotos,change.input.fields.methodPhotos]:change.patches?.filter(p=>['standardPhotos','methodPhotos'].includes(p.path[2])).map(p=>p.value)||[];return lists.flatMap(list=>list||[]);}
+  async function uploadLocalPhotos(saveScopes,unchanged,ownerId){
+    assertCurrentDisplay();
+    const references=[],queued=new Set();
+    for(const entry of saveScopes)for(const change of entry.changes){
+      for(const photo of localChangePhotos(change)){const staged=localPhotos.get(photo.id);references.push({photo,staged});if(staged?.uploadUnknown)throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');if(staged?.uploaded&&staged.uploadedFile!==staged.file)throw Error('LOCAL_BATCH_RECONFIRM');if(staged&&!staged.uploaded)queued.add(staged);}
+    }
+    const stagedJobs=[...queued],fingerprints=new Map(),pins=new Map([...new Set(references.map(r=>r.staged).filter(Boolean))].map(staged=>[staged,{file:staged.file,preview:staged.preview}]));let identifyNext=0,failure=null;
+    const mediaCurrent=()=>unchanged()&&references.every(({photo,staged})=>!staged||localPhotos.get(photo.id)===staged)&&[...pins].every(([staged,pin])=>staged.file===pin.file&&staged.preview===pin.preview);
+    // Raw-file identity is request-local. It never replaces server normalization
+    // or its content digest, and both hashing and upload retain a bound of two.
+    async function identify(){while(!failure&&identifyNext<stagedJobs.length){const staged=stagedJobs[identifyNext++];try{
+      if(!mediaCurrent())throw Error('LOCAL_BATCH_RECONFIRM');
+      if(typeof crypto.subtle?.digest==='function'){
+        const bytes=await pins.get(staged).file.arrayBuffer(),digest=await crypto.subtle.digest('SHA-256',bytes);
+        if(!mediaCurrent())throw Error('LOCAL_BATCH_RECONFIRM');
+        const fingerprint=JSON.stringify([staged.file.type,staged.file.size,Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('')]);if(unknownPhotoFingerprints.has(fingerprint))throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');fingerprints.set(staged,fingerprint);
+      }
+    }catch(error){failure ||=error instanceof Error?error:Error('PHOTO_UPLOAD_FAILED');}}}
+    await Promise.all(Array.from({length:Math.min(2,stagedJobs.length)},()=>identify()));
+    if(failure)throw failure;
+    const groups=new Map();for(const staged of stagedJobs){const key=fingerprints.get(staged)||staged;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(staged);}
+    const jobs=[...groups.values()];let next=0;
+    async function worker(){while(!failure&&next<jobs.length){const group=jobs[next++],staged=group[0];let started=false,accepted=false;try{
+      if(!mediaCurrent())throw Error('LOCAL_BATCH_RECONFIRM');
+      started=true;const response=await fetch(API+'/photo',{method:'PUT',headers:{...headers(),'X-Process-Expected-Actor':ownerId,'Content-Type':staged.file.type},body:pins.get(staged).file}),body=await response.json();
+      if(!response.ok)throw Error(body.error||'PHOTO_UPLOAD_FAILED');
+      if(!/^[a-f0-9]{64}$/.test(body?.id||''))throw Error('PHOTO_UPLOAD_FAILED');
+      if(!mediaCurrent())throw Error('LOCAL_BATCH_RECONFIRM');
+      for(const member of group){member.uploaded=body.id;member.uploadedFile=pins.get(member).file;}accepted=true;
+    }catch(error){if(started&&!accepted)for(const member of group){member.uploadUnknown=true;const fingerprint=fingerprints.get(member);if(fingerprint)unknownPhotoFingerprints.add(fingerprint);}failure ||=error instanceof Error?error:Error('PHOTO_UPLOAD_FAILED');}}}
+    await Promise.all(Array.from({length:Math.min(2,jobs.length)},()=>worker()));
+    if(failure)throw failure;
+    if(!mediaCurrent())throw Error('LOCAL_BATCH_RECONFIRM');
+    for(const {photo,staged}of references){if(staged)photo.id=staged.uploaded;delete photo.preview;}
+    return stagedJobs.length>0;
+  }
+
+  async function saveLocalModule(continuation=null){
+    assertCurrentDisplay();
     if(busy||accessBlocked)return null;if(!localOwnerCurrent()){rejectForeignBatch();message='IDENTITY_CHANGED';return null;}const client=moduleTransport();
     if(localSent){message='LOCAL_BATCH_RECONFIRM';draw();return null;}
     if(localPending()){message='PREVIOUS_OPERATION_UNKNOWN';draw();return null;}
     if(modal&&!modal.readonly){message=t('請先完成或取消目前表單。','Hãy hoàn tất hoặc hủy biểu mẫu.');draw();return null;}
     if(!permittedAction('edit')){message='FORBIDDEN';draw();return null;}
     if(!localSaveScopes().length&&!moduleDrafts().length){message=t('沒有待存取的修改。','Không có thay đổi cần lưu.');draw();return null;}
-    const owner=actor(),epoch=window.ProcessSync?.identityGeneration?.(),capture=JSON.stringify(localSaveScopes()),pin=pinLocalOperation(client),owns=pin.current;
-    const unchanged=()=>owns()&&JSON.stringify(localSaveScopes())===capture;busy=true;message='';draw();let acknowledged=false;
+    if(continuation&&!localSaveIntentCurrent(continuation))return null;
+    if(!continuation&&localSaveIntent&&localConflictRows()){message=t('請選擇目前衝突或取消此次存取。','Hãy chọn xung đột hiện tại hoặc hủy lần lưu.');draw({localConflictChoice:true});return null;}
+    const owner=actor(),epoch=window.ProcessSync?.identityGeneration?.();let capture=JSON.stringify(localSaveScopes());const intent=continuation||{displayEpoch:historyDisplayEpoch,owner,epoch,delivery:window.ProcessSync?.captureDelivery?.(),host,lifetime:mutationLifetime,modal,client,stamp:capture,photoPins:new Map([...localPhotos].map(([id,staged])=>[id,{staged,file:staged.file,preview:staged.preview}]))};localSaveIntent=intent;if(!continuation)localConflict=null;
+    let waiting=false,acknowledged=false,initialized=false,saveDispatched=false,recompare=false;const pin=pinLocalOperation(client),owns=()=>pin.current()&&(acknowledged||localSaveIntentCurrent(intent,false));
+    const unchanged=()=>owns()&&JSON.stringify(localSaveScopes())===capture;busy=true;message='';draw();
     try{
       let result=await client.read();if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');
-      if(localModuleGeneration&&result.control?.workflow?.generation!==localModuleGeneration)throw Error('DRAFT_GENERATION_CHANGED');
-      if(!result.control?.workflow||!result.control.versions.some(v=>['draft','pending','pending-test'].includes(v.status))){
-        result=await client.begin();if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');localBeginReceipt=result.receipt;
-        if(!result.control)result=await client.read();if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');
-        if(localBeginReceipt&&result.control?.workflow?.generation!==localBeginReceipt.generation)throw Error('DRAFT_GENERATION_CHANGED');
+      let flow=result.control?.workflow,saveScopes=JSON.parse(capture),saveEntries=[...localScopes.values()];
+      const checkPermissions=permissions=>{const requiresRestore=saveScopes.some(s=>s.changes.some(c=>c.moduleAction==='restore-item-local-v1')),requiresCreate=requiresRestore||saveScopes.some(s=>s.changes.some(c=>c.moduleAction?.startsWith('create'))),requiresDelete=saveScopes.some(s=>s.changes.some(c=>c.moduleAction?.startsWith('delete')));if(permissions?.edit!==true||requiresCreate&&permissions?.create!==true||requiresDelete&&permissions?.delete!==true)throw Error('FORBIDDEN');if(requiresRestore&&permissions?.restore!==true)throw Error('RESTORE_PERMISSION_REQUIRED');};
+      const compareAuthority=async()=>{
+        for(let check=0;;check++){
+          if(await load(true,null,null,pin)!==true||!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');
+          if(revision===result.revision&&control?.moduleDraft?.workflow?.generation===flow?.generation&&control?.moduleDraft?.workflow?.revision===flow?.revision)break;
+          // Recompare only reads before any dispatch. Never repeat Begin, Save
+          // or upload to recover a race, rejection or unknown result.
+          if(intent.dispatched||check>=2)throw Error('MODULE_CHANGED_RECONFIRM');
+          result=await client.read();if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');flow=result.control?.workflow;
+        }
+        if(flow?.pendingId)throw Error('PENDING_LOCKED');if(!permittedAction('edit'))throw Error('FORBIDDEN');checkPermissions(result.permissions);
+        const adopting=!!flow&&!localModuleGeneration||!!localBeginExpectation?.receipt&&!localBeginExpectation.confirmed&&!localBeginExpectation.lineageReconciled||[...localScopes.values()].some(entry=>(control.scopes[entry.scope]?.workflow?.generation??null)!==entry.generation);
+        if(adopting&&!intent.dispatched){const current=await client.permissions();if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');checkPermissions(current.permissions);if(current.revision!==result.revision)throw Error('MODULE_CHANGED_RECONFIRM');}
+        if(compareLocalLineage(intent,flow)){capture=JSON.stringify(localSaveScopes());intent.stamp=capture;saveScopes=JSON.parse(capture);}
+        const conflicts=localPreflightConflicts();
+        if(intent.resolution){
+          const rows=conflicts.map(detail=>localConflictItemRows(detail,null));
+          if(!rows.length||!rows.every(Boolean)||localConflictSignature(rows)!==intent.resolution.signature){
+            intent.resolution=null;if(intent.dispatched)throw Error('LOCAL_BATCH_RECONFIRM');
+            if(conflicts.length){rememberLocalConflict(conflicts[0],conflicts);waiting=true;return false;}
+            throw Error('CONFLICT_SET_CHANGED_RECONFIRM');
+          }
+          saveEntries=mergeLocalListEntries(planLocalConflictChoice(rows,intent.resolution.choice));saveScopes=localSaveScopes(saveEntries);checkPermissions(result.permissions);return true;
+        }
+        if(conflicts.length){if(intent.dispatched)throw Error('LOCAL_BATCH_RECONFIRM');rememberLocalConflict(conflicts[0],conflicts);waiting=true;return false;}saveEntries=mergeLocalListEntries(saveEntries);saveScopes=localSaveScopes(saveEntries);return true;
+      };
+      // Compare before any Begin or media write. A cancelled initial conflict
+      // must not create a module draft merely to display its choices.
+      if(!await compareAuthority())return null;
+      if(!flow||!result.control.versions.some(v=>['draft','pending','pending-test'].includes(v.status))){
+        const beginRevision=result.revision,beginControl=result.control,open=beginControl.versions.find(v=>['draft','pending','pending-test'].includes(v.status)),basis={generation:flow?.generation??null,activeVersionId:beginControl.activeVersionId??null,openVersionId:open?.id??null,openVersionStatus:open?.status??null,openVersionRevision:open?.revision??null};
+        localBeginExpectation={basis,owner,epoch,delivery:intent.delivery,host,lifetime:mutationLifetime,confirmed:false};intent.dispatched=true;
+        result=await client.begin();if(!pin.current())return null;localBeginReceipt=result.receipt;initialized=true;flow=confirmLocalBegin(result);
+        // Only our owned, confirmed Begin receipt binds this new module generation.
+        // Any intervening state write stops this intent before media or Save.
+        if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');
+        if(result.revision!==beginRevision+1||flow.revision!==localBeginReceipt.revision)throw Error('MODULE_CHANGED_RECONFIRM');
+        if(!await compareAuthority())return null;
       }
-      const flow=result.control?.workflow;if(!flow)throw Error('BEGIN_REQUIRED');
+      if(!flow)throw Error('BEGIN_REQUIRED');
       if(localBeginReceipt&&localBeginReceipt.generation!==flow.generation)throw Error('DRAFT_GENERATION_CHANGED');localModuleGeneration=flow.generation;
-      const saveScopes=JSON.parse(capture);
-      for(const entry of saveScopes)for(const change of entry.changes){const lists=change.input?.item?[change.input.item.standardPhotos,change.input.item.methodPhotos]:change.patches?.filter(p=>['standardPhotos','methodPhotos'].includes(p.path[2])).map(p=>p.value)||[];
-        for(const photos of lists)for(const photo of photos||[]){const staged=localPhotos.get(photo.id);if(staged){if(!staged.uploaded){const response=await fetch(API+'/photo',{method:'PUT',headers:{...headers(),'Content-Type':staged.file.type},body:staged.file}),body=await response.json();if(!response.ok)throw Error(body.error||'PHOTO_UPLOAD_FAILED');if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');staged.uploaded=body.id;}photo.id=staged.uploaded;}delete photo.preview;}
-      }
+      const selectedFiles=saveScopes.some(s=>s.changes.some(c=>localChangePhotos(c).some(photo=>localPhotos.has(photo.id))));
+      if(selectedFiles){const equipmentIds=new Set();for(const scopeEntry of saveScopes)for(const change of scopeEntry.changes){const fields=change.input?.fields||change.input?.item||Object.fromEntries((change.patches||[]).map(p=>[p.path[2],p.value]));if(fields.equipmentId||fields.inspectionMode==='equipment'){const id=change.input?.id||change.localId||change.patches?.[0]?.path[1]?.id,row=saveEntries.find(entry=>entry.scope===scopeEntry.scope)?.snapshot.items.find(i=>i.id===id);if(row?.inspectionMode==='equipment')equipmentIds.add(row.equipmentId);}}
+        if(equipmentIds.size){const response=await fetch(API+'?catalog=equipment',{headers:headers(),cache:'no-store'}),body=await response.json();if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');if(!response.ok||body.revision!==result.revision||!Array.isArray(body.equipment))throw Error('EQUIPMENT_REFERENCE_RECONFIRM');for(const id of equipmentIds)if(!body.equipment.some(e=>e.id===id&&e.available!==false))throw Error('EQUIPMENT_UNAVAILABLE');}}
+      const uploaded=await uploadLocalPhotos(saveScopes,unchanged,owner.id);
       if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');
-      const command=client.prepare(flow.generation,'save',{moduleAction:'save-local-v1',input:{scopes:saveScopes}});
-      pin.setSent({command,snapshot:capture,owner,epoch});const response=await client.sendPrepared(command);if(!owns())return null;
+      // Reconfirm the actual signed principal after asynchronous media work.
+      // The bound POST still rejects a cookie switch after this read.
+      if(uploaded){const access=await client.permissions();if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');checkPermissions(access.permissions);if(access.revision!==result.revision)throw Error('MODULE_CHANGED_RECONFIRM');}
+
+      const command=client.prepare(flow.generation,'save',{expectedRevision:flow.revision,moduleAction:'save-local-v1',input:{scopes:saveScopes,stateRevision:result.revision}});
+      pin.setSent({command,snapshot:capture,owner,epoch});intent.dispatched=true;saveDispatched=true;const response=await client.sendPrepared(command);if(!owns())return null;
       localSent.confirmed=response.receipt;if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');
       acknowledged=true;lastCommandAcknowledgement={actor:owner,epoch,action:'save',result:response};
       clearLocalEditing();pin.modal=null;pin.setSent(null);pin.refresh();if(await load(false,null,null,pin)===false||!owns())return null;
       message=t('整份草稿已存取。','Đã lưu toàn bộ bản nháp.');return response;
-    }catch(error){if(owns()){message=acknowledged?t('已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Đã lưu nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):error.message;if(!client.hasUnknown()&&localSent&&client.isConfirmedRejection(error,localSent.command)){client.discardRejectedLocalSave(localSent.command);pin.setSent(null);if(error.message==='DEPENDENCY_CHANGED_RECONFIRM'){await load(true,null,null,pin);if(owns())localConflict={path:error.details?.path,scope:error.details?.scope};}}}return null;}
-    finally{pin.finish();}
+    }catch(error){const owned=owns();if(owned||initialized&&!saveDispatched&&pin.current()&&localSaveIntent===intent){message=acknowledged?t('已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Đã lưu nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):initialized&&!saveDispatched?t('草稿已初始化，但本次尚未存取；本機修改仍保留，請再次按存取以重新比較。','Bản nháp đã được khởi tạo nhưng lần này chưa lưu; thay đổi cục bộ vẫn giữ. Hãy nhấn lưu lại để so sánh.')+' ('+error.message+')':error.message;if(owned&&!client.hasUnknown()&&localSent&&client.isConfirmedRejection(error,localSent.command)){client.discardRejectedLocalSave(localSent.command);pin.setSent(null);if(['DRAFT_REVISION_CHANGED_RECONFIRM','MODULE_CHANGED_RECONFIRM'].includes(error.message)&&(intent.recomparisons||0)<2){intent.recomparisons=(intent.recomparisons||0)+1;intent.dispatched=false;intent.resolution=null;recompare=true;}}}}
+    finally{pin.finish();if(!waiting&&!recompare&&localSaveIntent===intent)localSaveIntent=null;}
+    return recompare&&localSaveIntentCurrent(intent)?saveLocalModule(intent):null;
   }
 
   const moduleDrafts=()=>control?.moduleDraft?.workflow?.pendingId?[]:Object.entries(control?.scopes||{}).filter(([,s])=>s.versions.some(v=>v.status==='draft'));
   let moduleClient=null,moduleActor='';
-  function moduleTransport(){const id=actor()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(moduleActor!==id||moduleClient?.isRuntimeCurrent?.()===false||moduleClient?.isBeginRuntimeCurrent?.()===false){moduleActor=id;moduleClient=window.createSharedDraftClient({endpoint:API+'/workflow?module=1&caseMetadata=1',externalDurableBounded:{scope:'IPQC-AB'},durableBegin:true,allowUnknownDeparture:true,actorId:id,headers,guardAccessResults:true});}return moduleClient;}
+  function moduleTransport(){const id=actor()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(moduleActor!==id||moduleClient?.isRuntimeCurrent?.()===false||moduleClient?.isBeginRuntimeCurrent?.()===false){moduleActor=id;moduleClient=window.createSharedDraftClient({endpoint:API+'/workflow?module=1&caseMetadata=1',externalDurableBounded:{scope:'IPQC-AB'},durableBegin:true,allowUnknownDeparture:true,actorId:id,headers:()=>({...headers(),'X-Process-Expected-Actor':id}),guardAccessResults:true});}return moduleClient;}
   async function moduleSave(action,detail={}){
+    assertCurrentDisplay();
     if(action==='save')return saveLocalModule();
     if(action==='submit'&&(localDirty()||modal&&!modal.readonly||localPending())){message='UNSAVED_CHANGES_SAVE_REQUIRED';draw();return null;}
 
@@ -568,26 +823,14 @@
     finally{if(activeMutation===owner&&owner.attempt===mutationSequence){activeMutation=null;busy=false;if(inputOwnerCurrent(owner)&&modal===owner.modal){draw();drawReview();restoreView();}}}
   }
   async function save(action = 'save') {
+    assertCurrentDisplay();
     if(['save','submit'].includes(action))return moduleSave(action);
     if(action==='apply'){startLocal();message=t('已保留本機修改，請按存取草稿。','Đã giữ thay đổi cục bộ; hãy lưu bản nháp.');return{local:true};}
     if (!working) return;
     reason = host?.querySelector('#ipqcab-reason')?.value ?? reason;
     return write(action,{snapshot:working,reason});
   }
-  function scheduleRefresh(){const pollScheduleOwner=pollTimer.capture();const delivery=window.ProcessSync?.captureDelivery?.(),pollActor=actor(),pollEpoch=window.ProcessSync?.identityGeneration?.(),pollHost=host,owns=()=>pollTimer.isCurrent(pollScheduleOwner)&&actor()===pollActor&&host===pollHost&&(!Number.isFinite(pollEpoch)||window.ProcessSync?.identityGeneration?.()===pollEpoch)&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));pollTimer.schedule(async()=>{
-    if(!owns()||rejectForeignBatch())return;
-    if(!host?.isConnected||host.dataset.activeTab!=='quality-ipqc-ab')return;
-    let readCurrent=owns;try{if(!accessBlocked&&!busy&&!localScopes.size&&document.visibilityState!=='hidden'&&transport().canPoll('state')){
-      const current=key(),flow=scope()?.workflow,priorControl=control,priorRevision=revision,priorLoad=loadGeneration;
-      readCurrent=()=>owns()&&!accessBlocked&&!busy&&!localScopes.size&&key()===current&&control===priorControl&&revision===priorRevision&&loadGeneration===priorLoad;
-      const result=await transport().read(flow?`${flow.generation}:${flow.revision}`:'');
-      if(readCurrent()&&!result.unchanged&&result.control){captureBatchInput();retainInputBase();const preserve=hasPrivateInput(),wasOpen=['draft','pending'].includes(version()?.status);control.scopes[current]=result.control;revision=result.revision;
-        if(!modal){if(wasOpen){versionId=opened()?.id||active()?.id;if(!preserve){working=opened()?.status==='draft'?clone(opened().snapshot):null;inputBasisOwner=inputOwner();}}if(preserve)message=batchNotice();if(!host.contains(document.activeElement))draw();}
-        else{const banner=host.querySelector('#ipqcab-shared-status');if(banner)banner.textContent=t('共用內容已更新，保留彈窗輸入；套用時核對來源。','Nội dung chung đã cập nhật; giữ dữ liệu cửa sổ và kiểm tra nguồn khi áp dụng.');}
-      }
-    }}catch(error){if(!readCurrent())return;message=t('同步失敗，保留目前內容：','Đồng bộ thất bại, giữ nội dung hiện tại: ')+error.message;}
-    finally{if(owns()&&pollTimer.isCurrent(pollScheduleOwner))scheduleRefresh();}
-  });}
+  // Draft authority is read on entry and explicit actions, never a periodic timer.
   function photoButtons(photos,itemId,kind) {
     return photos.map((photo,index)=>`<button type="button" class="ipqcab-thumb" data-ab-photo-item="${h(itemId)}" data-ab-photo-kind="${kind}" data-ab-photo-index="${index}"><img decoding="async" loading="lazy" src="${h(photoUrl(photo))}" alt="${h(photo.note || photo.name)}"></button>`).join('');
   }
@@ -602,10 +845,13 @@
   function issueHTML() {
     const records = [];
     const invalid=[];
-    for (const item of snapshot().items.filter(i=>!i.deleted && i.isEnabled)) {
+    for (const item of snapshot().items.filter(i=>!i.deleted && i.isEnabled && snapshot().errors.some(e=>!e.deleted&&e.id===i.errorId) && i.productCodes.some(code=>catalog.products.some(p=>p.code===code&&p.line===line&&p.category===group&&p.stages.includes(snapshot().errors.find(e=>e.id===i.errorId)?.stageCode))))) {
       if (!item.standard.trim()) records.push({itemId:item.id,code:item.code,reason:t('標準待補','Thiếu tiêu chuẩn')});
       if (!item.methodText.trim()) records.push({itemId:item.id,code:item.code,reason:t('檢查方式待補','Thiếu cách kiểm tra')});
       if (!item.rules.length) records.push({itemId:item.id,code:item.code,reason:t('頻率待補','Thiếu tần suất')});
+      if(item.inspectionMode==='equipment'&&!item.equipmentId)records.push({itemId:item.id,code:item.code,reason:t('缺必要檢具','Thiếu thiết bị')});
+    }
+    for(const item of snapshot().items.filter(i=>!i.deleted)){
       const parent=snapshot().errors.find(e=>e.id===item.errorId),bad=item.productCodes.filter(code=>!catalog.products.some(p=>p.code===code&&p.line===line&&p.category===group&&p.stages.includes(parent?.stageCode)));
       if(bad.length)invalid.push({itemId:item.id,code:item.code,reason:t('產品關聯失效，送審前請修正：','Liên kết sản phẩm không hợp lệ, cần sửa trước khi gửi: ')+bad.join('、')});
     }
@@ -613,7 +859,7 @@
     const section=(rows,kind,label)=>rows.length?`<details class="ipqcab-issues" data-ab-issue-kind="${kind}"><summary>${label} · ${rows.length}</summary>
       ${rows.map(issue=>`<p><b>${h(issue.code)}</b> · ${h(issue.reason)}
         ${issue.itemId?`<button type="button" data-ab-goto="${h(issue.itemId)}">${t('前往修正','Đến chỉnh sửa')}</button>`:issue.errorId?`<button type="button" data-ab-goto-error="${h(issue.errorId)}">${t('前往修正','Đến chỉnh sửa')}</button>`:''}</p>`).join('')}</details>`:'';
-    return section([...issues,...invalid],'error',t('報錯','Lỗi'))+section(records,'missing',t('待補（由審核者確認，不阻擋送審）','Cần bổ sung (người duyệt xác nhận; không chặn gửi)'));
+    return section([...issues,...invalid],'error',t('報錯','Lỗi'))+section(records,'missing',t('本群組待補（全部工段；整份案件涵蓋 A/B 全群組）','Cần bổ sung trong nhóm (mọi công đoạn; hồ sơ gồm mọi nhóm A/B)'));
   }
   function historyHTML() {
     const v = version();
@@ -739,7 +985,24 @@
     const receiptButton=target.querySelector('[data-ab-receipt-query]');if(receiptButton)receiptButton.onclick=()=>queryRetainedReceipt(receiptClient,created&&{reservation:created.reservation,proof:created.proof,operation:created.proof.operation,grant:created.grant});
     const retry=target.querySelector('[data-ab-access-retry]');if(retry)retry.onclick=async()=>{try{if(retainedDeliveryCandidate()){await reconfirmRetainedDelivery();return;}if(await load()===false)return;message=privateQuarantine?t('已重新讀取；先前輸入僅私有暫存，未自動套用，請先核對再修改。','Đã đọc lại; dữ liệu cũ chỉ được giữ riêng, chưa áp dụng tự động. Hãy kiểm tra trước khi sửa.'):'';draw();drawReview();}catch(error){message=error.message;renderAccessBlocked(target);}};
   }
-  function draw() {
+  function validLegacyProjection(row){try{const ids=JSON.parse(row.id.slice(10));return row.id.startsWith('legacy-ab:')&&Array.isArray(ids)&&ids.length===2&&ids.every(v=>typeof v==='string'&&!!v)&&row.id==='legacy-ab:'+JSON.stringify(ids)&&row.sourceScope===ids[0]&&row.sourceVersionId===ids[1]&&(row.approvalEvidence.kind!=='approved-case'||row.approvalEvidence.caseId===ids[1]);}catch{return false;}}
+  function mountApprovedHistory(shell,log,empty){
+    const page=host,client=moduleTransport();
+    approvedHistoryView=window.VersionDraftUI.createApprovedHistory({root:page,shell,client,empty,selectId:'ipqcab-approved-version',cacheKey:JSON.stringify([control?.moduleDraft?.activeVersionId||null,Object.entries(control?.scopes||{}).map(([key,value])=>[key,value.activeVersionId||null])]),
+      isCurrent:()=>host===page&&page.isConnected&&page.dataset.activeTab==='quality-ipqc-ab'&&client===moduleClient,
+      canChoose:()=>!busy&&!modal&&!viewer&&!localAttempt&&(!localSaveIntent||!!localSent)&&!localConflict,
+      onBoundary(){historyDisplayEpoch++;},onDenied(){clearConflictEscape();},
+      renderCurrent(){approvedHistoryView=null;draw();},
+      validateProjectedIdentity:validLegacyProjection,
+      versionLabel:row=>(row.sourceScope?row.sourceScope+' · ':'IPQC-AB · ')+'V'+row.number,
+      validateSnapshot:value=>value&&value.scopes&&typeof value.scopes==='object'&&!Array.isArray(value.scopes)&&Object.values(value.scopes).every(v=>v&&['errors','items'].every(key=>Array.isArray(v[key])&&v[key].every(row=>row&&typeof row==='object'&&!Array.isArray(row)))),
+      renderSnapshot(target,value,current){const groups=Object.entries(value.scopes).map(([scope,snapshot])=>({name:scope,...snapshot}));window.VersionDraftUI.renderApprovedCollections(target,{groups},{collections:['groups'],fields:{groups:['核准群組與工段','Nhóm và công đoạn đã duyệt'],errors:['不良項目','Lỗi'],items:['檢查標準','Tiêu chuẩn'],standardPhotos:['標準歷史圖片','Ảnh tiêu chuẩn'],methodPhotos:['方法歷史圖片','Ảnh phương pháp'],equipmentSnapshot:['原核准設備','Thiết bị đã duyệt']},mediaURL:photo=>client.mediaURL(photo)},current);}
+    });
+    if(client.permission('view')===undefined){const view=approvedHistoryView,current=captureHistoryDisplay();historyPermissionFlight=client.permissions({isCurrent:()=>approvedHistoryView===view&&current()}).then(()=>view.refreshControls(),()=>{});}
+  }
+  function draw(options = {}) {
+    if(approvedHistoryView?.historical){approvedHistoryView.relabel();return;}approvedHistoryView?.retire();approvedHistoryView=null;
+    clearConflictEscape();
     if(accessBlocked){renderAccessBlocked(host);return;}
     if(modal&&!modalBase){modalBase=clone(opened()?.snapshot||{errors:[],items:[]});modalGeneration=scope()?.workflow?.generation||null;}
     if(!modal){modalBase=null;modalGeneration=null;}
@@ -747,8 +1010,14 @@
     const scroll = window.scrollY;
     const previous = host.querySelector('.ipqcab-dialog-body');
     if (previous?.dataset.scrollKey) modalScrolls.set(previous.dataset.scrollKey,previous.scrollTop);
+    const retainedReferences=options.localConflictChoice===true?[...host.querySelectorAll('[data-ipqc-reference]')]:[];
     host.innerHTML = mainHTML();
-    void window.ProcessIPQC.mountReferences(host); bind();sharedClient?.gatePermissions?.();
+    if(options.localConflictChoice===true){
+      // A RAM-only choice must not start reference I/O through a redraw. Keep
+      // existing reference nodes/listeners; new nodes wait for explicit reload.
+      for(const node of host.querySelectorAll('[data-ipqc-reference]')){const index=retainedReferences.findIndex(old=>old.dataset.ipqcReference===node.dataset.ipqcReference);if(index>=0){node.after(retainedReferences.splice(index,1)[0]);node.remove();}}
+    }else void window.ProcessIPQC.mountReferences(host);
+    bind();sharedClient?.gatePermissions?.();bindConflictEscape();
     window.renderSharedDraftValidation?.({client:sharedClient,flow:scope()?.workflow,after:host.querySelector('.ipqcab-version'),language:vi()?'vi':'zh',onLocate:issue=>{
       const id=issue.path?.[1]?.id,item=snapshot().items.find(row=>row.id===id),parent=snapshot().errors.find(row=>row.id===(item?.errorId||id));if(!parent||!editing())return;
       line=parent.line;group=parent.group;stage=parent.stageCode;errorId=parent.id;modal=item?{type:'item',id:item.id,readonly:false,initial:clone(item)}:{type:'error',id:parent.id,readonly:false,initial:clone(parent)};draw();
@@ -756,10 +1025,11 @@
     const flow=scope()?.workflow;
     if(flow){const status=document.createElement('section');status.className='ipqcab-card';status.id='ipqcab-shared-status';status.setAttribute('role','status');status.innerHTML=`<b>${t('共用範圍','Phạm vi chung')}: ${h(key())}</b><p>${flow.pendingId?t('待審鎖定','Khóa chờ duyệt'):!flow.saved||JSON.stringify(flow.saved.content)!==JSON.stringify(flow.working)?t('已同步 · 尚未手動儲存','Đã đồng bộ · chưa lưu thủ công'):t('已儲存','Đã lưu')}</p>${flow.saved?`<p>${t('儲存者','Người lưu')}: ${h(flow.saved.actor.name)} · ${h(flow.saved.at)} · ${h(flow.saved.id)}</p>`:''}`;host.querySelector('#ipqcab-page')?.prepend(status);
       if(localBatch){const note=document.createElement('p');note.textContent=batchNotice();status.append(note);if(!modal){const apply=document.createElement('button');apply.type='button';apply.textContent=t('套用保留修改','Áp dụng thay đổi được giữ');apply.disabled=busy||!inputOwnerCurrent(localBatch.owner)||!!scope()?.workflow?.pendingId||!!localBatch.created;apply.onclick=()=>save('apply');status.append(apply);}}
-      if(permitted('approval.compare')){const button=document.createElement('button');button.id='ab-case-history';button.className='button ghost';button.textContent=t('送審案件','Hồ sơ gửi duyệt');button.onclick=()=>window.openSharedDraftHistory({client:control?.moduleDraft?moduleTransport():transport(),editable:()=>!control?.moduleDraft&&opened()?.status==='draft'&&permitted('approval.submit'),onApplied:async()=>{if(await load()===false)return;draw();}}).catch(e=>{message=e.message;draw();});status.append(button);}
+
       if(sharedClient?.hasUnknown())for(const [label,method]of [[t('查詢上次操作','Kiểm tra thao tác trước'),'resolveUnknown'],[t('重試同一操作','Thử lại cùng thao tác'),'retryUnknown']]){const button=document.createElement('button');button.textContent=label;const reservation=createdReservations.has(localBatch?.created)?localBatch.created:null;button.onclick=async()=>{if(reservation)return checkCreatedResult(reservation);try{await transport()[method]();if(await load()===false)return;}catch(e){message=e.message;}draw();};status.append(button);}
     }
-    window.VersionDraftUI?.mount(host,{localUnsaved:localDirty()||!!modal&&!modal.readonly,header:'.ipqcab-version',historyClient:()=>control?.moduleDraft?moduleTransport():transport(),module:'IPQC-AB',moduleActions:true,scope:t('全部 IPQC-AB 草稿；A／B 全部群組與工段','Tất cả bản nháp IPQC-AB; mọi nhóm và công đoạn A/B'),version:version(),versions:scope()?.versions,active:active(),flow:control?.moduleDraft?.workflow||scope()?.workflow,busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#ipqcab-begin',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-ab-issue-kind="error"],[data-shared-issue-kind="error"]',missing:'[data-ab-issue-kind="missing"],[data-shared-issue-kind="missing"]',checked:{missing:true},history:['.ipqcab-history','#ab-case-history','[data-shared-issue-kind="warning"]'],status:['#ipqcab-shared-status']});
+    for(const node of host.querySelectorAll('input,select,button,textarea'))for(const property of ['oninput','onchange','onclick','oncompositionstart','oncompositionend'])if(typeof node[property]==='function')node[property]=guardWorking(node,node[property]);
+    window.VersionDraftUI?.mount(host,{localUnsaved:localDirty()||!!modal&&!modal.readonly,header:'.ipqcab-version',historyClient:()=>moduleTransport(),mountApprovedHistory,module:'IPQC-AB',moduleActions:true,scope:t('全部 IPQC-AB 草稿；A／B 全部群組與工段','Tất cả bản nháp IPQC-AB; mọi nhóm và công đoạn A/B'),version:version(),versions:scope()?.versions,active:active(),flow:control?.moduleDraft?.workflow||scope()?.workflow,busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#ipqcab-begin',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-ab-issue-kind="error"],[data-shared-issue-kind="error"]',missing:'[data-ab-issue-kind="missing"],[data-shared-issue-kind="missing"]',checked:{missing:true},history:['[data-shared-issue-kind="warning"]'],remove:['.ipqcab-history','#ab-case-history'],status:['#ipqcab-shared-status']});
     const body = host.querySelector('.ipqcab-dialog-body');
     if (body && modal) {
       body.dataset.scrollKey = `${modal.type}:${modal.id||modal.itemId||''}`;
@@ -793,6 +1063,7 @@
       return old&&['cadence','kind','value','name'].every(field=>(old[field]||'')===next[field])?old:next;});
   }
   async function upload(files,kind){
+    assertCurrentDisplay();
     if(accessBlocked||busy||!permittedAction('edit'))return;startLocal();const row=working.items.find(i=>i.id===modal?.id);if(!row)return;
     for(const file of files){const id='local-photo-'+crypto.randomUUID(),preview=URL.createObjectURL(file);localPhotos.set(id,{file,preview});row[kind==='standard'?'standardPhotos':'methodPhotos'].push({id,name:file.name,note:'',preview});}
   }
@@ -803,41 +1074,41 @@
   function bind() {
     const q = selector => host.querySelector(selector);
     const switchScope=async(nextLine,nextGroup)=>{
-      if(busy)return;captureBatchInput();modal=null;modalBase=null;viewer=null;line=nextLine;group=nextGroup;stage='';errorId='';versionId='';working=null;showRouteExtras=false;selectDefaults();
+      if(busy)return;abandonLocalEditing();line=nextLine;group=nextGroup;stage='';errorId='';versionId='';working=null;showRouteExtras=false;selectDefaults();
       working=localEntry()?.snapshot||(opened()?.status==='draft'?clone(opened().snapshot):null);inputBasisOwner=inputOwner(transport());draw();
-      const owner=inputOwner(transport()),owns=()=>inputOwnerCurrent(owner);
+      const displayCurrent=captureHistoryDisplay(),owner=inputOwner(transport()),owns=()=>displayCurrent()&&inputOwnerCurrent(owner);
       try{await owner.client.permissions({isCurrent:owns});if(owns()){captureBatchInput();draw();}}
       catch(error){if(owns()){captureBatchInput();message=error.message;draw();}}
     };
-    q('#ipqcab-line')?.addEventListener('change',e=>switchScope(e.target.value,''));
-    q('#ipqcab-group')?.addEventListener('change',e=>switchScope(line,e.target.value));
-    q('#ipqcab-route-extras')?.addEventListener('click',()=>{showRouteExtras=!showRouteExtras;selectDefaults();draw();});
-    q('#ipqcab-stage')?.addEventListener('change',e=>{stage=e.target.value;errorId='';selectDefaults();draw();});
-    q('#ipqcab-version')?.addEventListener('change',e=>{if(busy||hasPrivateInput()){message=batchNotice();draw();return;}versionId=e.target.value;working=version()?.status==='draft'?clone(version().snapshot):null;inputBasisOwner=inputOwner(transport());draw();});
-    host.querySelectorAll('[data-ab-conflict-choice]').forEach(el=>el.addEventListener('click',()=>chooseLocalConflict(el.dataset.abConflictChoice)));
-    q('#ipqcab-begin')?.addEventListener('click',()=>write('begin'));
-    q('#ipqcab-save')?.addEventListener('click',()=>save());
-    q('#ipqcab-submit')?.addEventListener('click',()=>void save('submit'));
-    q('#ipqcab-withdraw')?.addEventListener('click',()=>write('withdraw'));
-    q('#ipqcab-add-error')?.addEventListener('click',()=>{if(!permittedAction('create'))return;startLocal();modal={type:'new-error',name:''};draw();q('#ab-error-name')?.focus();});
-    q('#ipqcab-add-item')?.addEventListener('click',async()=>{
+    listenWorking(q('#ipqcab-line'),'change',e=>switchScope(e.target.value,''));
+    listenWorking(q('#ipqcab-group'),'change',e=>switchScope(line,e.target.value));
+    listenWorking(q('#ipqcab-route-extras'),'click',()=>{showRouteExtras=!showRouteExtras;selectDefaults();draw();});
+    listenWorking(q('#ipqcab-stage'),'change',e=>{if(busy)return;abandonLocalEditing();versionId='';stage=e.target.value;errorId='';selectDefaults();working=opened()?.status==='draft'?clone(opened().snapshot):null;inputBasisOwner=inputOwner(transport());draw();});
+    listenWorking(q('#ipqcab-version'),'change',e=>{if(busy||hasPrivateInput()){message=batchNotice();draw();return;}versionId=e.target.value;working=version()?.status==='draft'?clone(version().snapshot):null;inputBasisOwner=inputOwner(transport());draw();});
+    const displayedConflict=localConflict;host.querySelectorAll('[data-ab-conflict-choice]').forEach(el=>listenWorking(el,'click',()=>chooseLocalConflict(el.dataset.abConflictChoice,displayedConflict)));
+    listenWorking(q('#ipqcab-begin'),'click',()=>write('begin'));
+    listenWorking(q('#ipqcab-save'),'click',()=>save());
+    listenWorking(q('#ipqcab-submit'),'click',()=>void save('submit'));
+    listenWorking(q('#ipqcab-withdraw'),'click',()=>write('withdraw'));
+    listenWorking(q('#ipqcab-add-error'),'click',()=>{if(!permittedAction('create'))return;startLocal();modal={type:'new-error',name:''};draw();q('#ab-error-name')?.focus();});
+    listenWorking(q('#ipqcab-add-item'),'click',async()=>{
       if(!permittedAction('create'))return;startLocal();
       const id='local-'+crypto.randomUUID();modalBase=clone(working);modalGeneration=scope()?.workflow?.generation||null;
       working.items.push({id,code:t('存取時分配編號','Cấp mã khi lưu'),errorId,standard:'',methodText:'',inspectionMode:'visual',equipmentId:'',equipmentSnapshot:null,isEnabled:true,rules:[],standardPhotos:[],methodPhotos:[],productCodes:[],sourceRows:[],sourceTool:'',sourceMethod:'',sourceFrequency:'',reason:'',deleted:false});modal={type:'item',id};draw();
     });
-    host.querySelectorAll('[data-ab-error]').forEach(el=>el.addEventListener('click',()=>{errorId=el.dataset.abError;draw();}));
-    host.querySelectorAll('[data-ab-view-error],[data-ab-edit-error]').forEach(el=>el.addEventListener('click',()=>{
+    host.querySelectorAll('[data-ab-error]').forEach(el=>listenWorking(el,'click',()=>{errorId=el.dataset.abError;draw();}));
+    host.querySelectorAll('[data-ab-view-error],[data-ab-edit-error]').forEach(el=>listenWorking(el,'click',()=>{
       const id=el.dataset.abViewError||el.dataset.abEditError;if(el.dataset.abEditError)startLocal();
       modal={type:'error',id,readonly:!!el.dataset.abViewError,initial:clone(snapshot().errors.find(e=>e.id===id))};draw();}));
-    host.querySelectorAll('[data-ab-view-item],[data-ab-edit-item]').forEach(el=>el.addEventListener('click',()=>{
+    host.querySelectorAll('[data-ab-view-item],[data-ab-edit-item]').forEach(el=>listenWorking(el,'click',()=>{
       const id=el.dataset.abViewItem||el.dataset.abEditItem;if(el.dataset.abEditItem)startLocal();
       modal={type:'item',id,readonly:!!el.dataset.abViewItem,initial:clone(snapshot().items.find(i=>i.id===id))};draw();}));
     const removeLocal=(kind,id)=>{if(busy||!permittedAction('delete'))return;startLocal();const row=working[kind].find(r=>r.id===id);if(!row)return;
       if(kind==='errors'&&working.items.some(i=>!i.deleted&&i.errorId===id)){message='ERROR_IN_USE';draw();return;}
       if(!confirmTwice(row.code))return;row.deleted=true;message='';draw();};
-    host.querySelectorAll('[data-ab-delete-item]').forEach(el=>el.addEventListener('click',()=>removeLocal('items',el.dataset.abDeleteItem)));
-    host.querySelectorAll('[data-ab-delete-error]').forEach(el=>el.addEventListener('click',()=>removeLocal('errors',el.dataset.abDeleteError)));
-    host.querySelectorAll('[data-ab-matrix-item]').forEach(el=>el.addEventListener('change',async()=>{
+    host.querySelectorAll('[data-ab-delete-item]').forEach(el=>listenWorking(el,'click',()=>removeLocal('items',el.dataset.abDeleteItem)));
+    host.querySelectorAll('[data-ab-delete-error]').forEach(el=>listenWorking(el,'click',()=>removeLocal('errors',el.dataset.abDeleteError)));
+    host.querySelectorAll('[data-ab-matrix-item]').forEach(el=>listenWorking(el,'change',async()=>{
       if(busy||!permittedAction('edit'))return;startLocal();
       const itemId=el.dataset.abMatrixItem,product=el.dataset.abMatrixProduct;
       const item = working?.items.find(i=>i.id===itemId);
@@ -846,24 +1117,24 @@
       if (el.checked) set.add(product); else set.delete(product);
       item.productCodes = [...set]; await save('apply');
     }));
-    host.querySelectorAll('[data-ab-goto-error]').forEach(el=>el.addEventListener('click',()=>{const error=snapshot().errors.find(e=>e.id===el.dataset.abGotoError);if(!error)return;stage=error.stageCode;errorId=error.id;draw();host.querySelector('.ipqcab-matrix')?.scrollIntoView({block:'center'});}));
-    host.querySelectorAll('[data-ab-goto]').forEach(el=>el.addEventListener('click',()=>{
+    host.querySelectorAll('[data-ab-goto-error]').forEach(el=>listenWorking(el,'click',()=>{const error=snapshot().errors.find(e=>e.id===el.dataset.abGotoError);if(!error)return;stage=error.stageCode;errorId=error.id;draw();host.querySelector('.ipqcab-matrix')?.scrollIntoView({block:'center'});}));
+    host.querySelectorAll('[data-ab-goto]').forEach(el=>listenWorking(el,'click',()=>{
       const item = snapshot().items.find(i=>i.id===el.dataset.abGoto), parent = snapshot().errors.find(e=>e.id===item?.errorId);
       if (!item||!parent)return;
       line=parent.line;group=parent.group;stage=parent.stageCode;errorId=parent.id;
       modal={type:'item',id:item.id,readonly:!editing(),initial:clone(item)};draw();
     }));
-    host.querySelectorAll('[data-ab-photo-item]').forEach(el=>el.addEventListener('click',()=>{
+    host.querySelectorAll('[data-ab-photo-item]').forEach(el=>listenWorking(el,'click',()=>{
       viewer={itemId:el.dataset.abPhotoItem,kind:el.dataset.abPhotoKind,index:Number(el.dataset.abPhotoIndex)};draw();}));
-    host.querySelectorAll('[data-ab-close]').forEach(el=>el.addEventListener('click',()=>{
+    host.querySelectorAll('[data-ab-close]').forEach(el=>listenWorking(el,'click',()=>{
       if(busy)return;
       if(modal?.type==='equipment'){modal={type:'item',id:modal.itemId,initial:modal.initial};draw();return;}
       if(modal?.initial&&!modal.readonly){const rows=modal.type==='error'?working.errors:working.items,index=rows.findIndex(r=>r.id===modal.id);if(index>=0)rows[index]=clone(modal.initial);}
       else if(modal?.type==='item'&&modal.id?.startsWith('local-')&&!modal.initial)working.items=working.items.filter(r=>r.id!==modal.id);
       if(localEntry())localEntry().snapshot=working;modal=null;modalBase=null;message='';draw();
     }));
-    host.querySelectorAll('[data-ab-local-query]').forEach(el=>{const intent=localQueryIntent();el.addEventListener('click',()=>queryLocalOperation(intent));});
-    q('#ab-apply')?.addEventListener('click',()=>{
+    host.querySelectorAll('[data-ab-local-query]').forEach(el=>{const intent=localQueryIntent();listenWorking(el,'click',()=>queryLocalOperation(intent));});
+    listenWorking(q('#ab-apply'),'click',()=>{
       if(busy||!modal||!permittedAction('edit'))return;startLocal();
       if(modal.type==='new-error'){
         const name=q('#ab-error-name')?.value?.trim();if(!name){q('#ab-error-name')?.reportValidity();return;}
@@ -872,20 +1143,20 @@
       else captureModal();
       localEntry().snapshot=working;modal=null;modalBase=null;message=t('已完成本機編輯，請按存取草稿。','Đã hoàn tất chỉnh sửa cục bộ; hãy lưu bản nháp.');draw();
     });
-    q('#ab-add-rule')?.addEventListener('click',()=>{captureModal();working.items.find(i=>i.id===modal.id).rules.push({id:crypto.randomUUID(),cadence:'batch',kind:'aql',value:'0.25'});draw();});
-    host.querySelectorAll('[data-ab-remove-rule]').forEach(el=>el.addEventListener('click',()=>{captureModal();working.items.find(i=>i.id===modal.id).rules.splice(Number(el.dataset.abRemoveRule),1);draw();}));
-    host.querySelectorAll('.ab-rule-cadence,.ab-rule-kind').forEach(el=>el.addEventListener('change',()=>{
+    listenWorking(q('#ab-add-rule'),'click',()=>{captureModal();working.items.find(i=>i.id===modal.id).rules.push({id:crypto.randomUUID(),cadence:'batch',kind:'aql',value:'0.25'});draw();});
+    host.querySelectorAll('[data-ab-remove-rule]').forEach(el=>listenWorking(el,'click',()=>{captureModal();working.items.find(i=>i.id===modal.id).rules.splice(Number(el.dataset.abRemoveRule),1);draw();}));
+    host.querySelectorAll('.ab-rule-cadence,.ab-rule-kind').forEach(el=>listenWorking(el,'change',()=>{
       captureModal(); const item=working.items.find(i=>i.id===modal.id), index=Number(el.closest('[data-ab-rule]').dataset.abRule);
       const rule=item.rules[index];
       if (el.classList.contains('ab-rule-cadence')) Object.assign(rule,{cadence:el.value,kind:el.value==='batch'?'aql':'week',value:el.value==='batch'?'0.25':''});
       else Object.assign(rule,{kind:el.value,value:el.value==='aql'?'0.25':''});
       draw();
     }));
-    host.querySelectorAll('[data-ab-upload]').forEach(el=>el.addEventListener('change',async()=>{
+    host.querySelectorAll('[data-ab-upload]').forEach(el=>listenWorking(el,'change',async()=>{
       captureModal(); try { await upload([...el.files],el.dataset.abUpload);draw(); }
       catch(error){message=error.message;draw();}
     }));
-    host.querySelectorAll('[data-ab-remove-photo],[data-ab-move]').forEach(el=>el.addEventListener('click',()=>{
+    host.querySelectorAll('[data-ab-remove-photo],[data-ab-move]').forEach(el=>listenWorking(el,'click',()=>{
       captureModal(); const item=working.items.find(i=>i.id===modal.id);
       if (el.dataset.abRemovePhoto) {
         if (!confirmTwice(t('照片','Ảnh'))) return;
@@ -894,9 +1165,9 @@
         const at=Number(index),to=at+Number(direction);[list[at],list[to]]=[list[to],list[at]]; }
       draw();
     }));
-    q('#ab-select-equipment')?.addEventListener('click',()=>{captureModal();modal={type:'equipment',itemId:modal.id,initial:modal.initial,query:'',category:'',loading:true};void loadEquipment();});
-    q('#ab-equipment-retry')?.addEventListener('click',()=>void loadEquipment());
-    q('#ab-clear-equipment')?.addEventListener('click',()=>{captureModal();const item=working.items.find(i=>i.id===modal.id);item.equipmentId='';item.equipmentSnapshot=null;draw();});
+    listenWorking(q('#ab-select-equipment'),'click',()=>{captureModal();modal={type:'equipment',itemId:modal.id,initial:modal.initial,query:'',category:'',loading:true};void loadEquipment();});
+    listenWorking(q('#ab-equipment-retry'),'click',()=>void loadEquipment());
+    listenWorking(q('#ab-clear-equipment'),'click',()=>{captureModal();const item=working.items.find(i=>i.id===modal.id);item.equipmentId='';item.equipmentSnapshot=null;draw();});
     const filterEquipment = () => {
       let count=0, available=0;
       q('#ab-equipment-results')?.querySelectorAll('[data-ab-choose-equipment]').forEach(button=>{
@@ -907,25 +1178,25 @@
       });
       const tally=q('.ipqcab-equipment-count');if(tally)tally.textContent=`${t('符合','Phù hợp')} ${count} · ${t('可選','Có thể chọn')} ${available}`;
     };
-    q('#ab-equipment-search')?.addEventListener('input',e=>{modal.query=e.target.value;filterEquipment();});
-    for (const field of ['category','subcategory','group']) q(`#ab-equipment-${field}`)?.addEventListener('change',e=>{
+    listenWorking(q('#ab-equipment-search'),'input',e=>{modal.query=e.target.value;filterEquipment();});
+    for (const field of ['category','subcategory','group']) listenWorking(q(`#ab-equipment-${field}`),'change',e=>{
       modal[field]=e.target.value;
       if (field==='category') {modal.subcategory='';modal.group='';}
       if (field==='subcategory') modal.group='';
       draw();
     });
     if (modal?.type==='equipment') filterEquipment();
-    host.querySelectorAll('[data-ab-choose-equipment]').forEach(el=>el.addEventListener('click',()=>{
+    host.querySelectorAll('[data-ab-choose-equipment]').forEach(el=>listenWorking(el,'click',()=>{
       const item=working.items.find(i=>i.id===modal.itemId),eq=equipment.find(e=>e.id===el.dataset.abChooseEquipment);
       if (!item || !eq?.available) return;
       item.inspectionMode='equipment';item.equipmentId=eq.id;item.equipmentSnapshot=clone(eq);
       modal={type:'item',id:item.id,initial:modal.initial};draw();
     }));
-    host.querySelectorAll('[data-ab-view-modal]').forEach(el=>el.addEventListener('click',()=>{
+    host.querySelectorAll('[data-ab-view-modal]').forEach(el=>listenWorking(el,'click',()=>{
       captureModal();const [kind,index]=el.dataset.abViewModal.split(':');viewer={itemId:modal.id,kind,index:Number(index)};draw();}));
-    q('[data-ab-close-viewer]')?.addEventListener('click',()=>{viewer=null;draw();});
-    q('[data-ab-prev]')?.addEventListener('click',()=>{viewer.index=(viewer.index-1+(snapshot().items.find(i=>i.id===viewer.itemId)?.[viewer.kind==='standard'?'standardPhotos':'methodPhotos']?.length||1))%(snapshot().items.find(i=>i.id===viewer.itemId)?.[viewer.kind==='standard'?'standardPhotos':'methodPhotos']?.length||1);draw();});
-    q('[data-ab-next]')?.addEventListener('click',()=>{viewer.index=(viewer.index+1)%(snapshot().items.find(i=>i.id===viewer.itemId)?.[viewer.kind==='standard'?'standardPhotos':'methodPhotos']?.length||1);draw();});
+    listenWorking(q('[data-ab-close-viewer]'),'click',()=>{viewer=null;draw();});
+    listenWorking(q('[data-ab-prev]'),'click',()=>{viewer.index=(viewer.index-1+(snapshot().items.find(i=>i.id===viewer.itemId)?.[viewer.kind==='standard'?'standardPhotos':'methodPhotos']?.length||1))%(snapshot().items.find(i=>i.id===viewer.itemId)?.[viewer.kind==='standard'?'standardPhotos':'methodPhotos']?.length||1);draw();});
+    listenWorking(q('[data-ab-next]'),'click',()=>{viewer.index=(viewer.index+1)%(snapshot().items.find(i=>i.id===viewer.itemId)?.[viewer.kind==='standard'?'standardPhotos':'methodPhotos']?.length||1);draw();});
   }
   let reviewLoading = false,reviewLoadingOwner=null;
   function reviewHTML() {
@@ -979,6 +1250,7 @@
       .find(({scopeKey,v})=>(!requestedScope || scopeKey===requestedScope) && v.id===requestedVersion && v.snapshot.items.some(i=>i.id===itemId && !i.deleted));
     pendingItemView = null;
     if (!match) return;
+    if(['approved','superseded'].includes(match.v.status)){const id=control.moduleDraft?.versions.some(v=>v.id===requestedVersion)?requestedVersion:'legacy-ab:'+JSON.stringify([match.scopeKey,requestedVersion]);return approvedHistoryView?.openVersion(id);}
     line=match.s.line;group=match.s.group;versionId=match.v.id;
     const item=match.v.snapshot.items.find(i=>i.id===itemId);
     const parent=match.v.snapshot.errors.find(e=>e.id===item.errorId);
@@ -1001,15 +1273,15 @@
     root:()=>host,flow:()=>control?.moduleDraft?.workflow,sharedDirty:()=>false,sharedOwned:()=>false,ownsRuntimeLocal:()=>true,
     context:()=>[mutationLifetime,actor(),window.ProcessSync?.identityGeneration?.()],current:()=>!accessBlocked,busy:()=>busy,
     unknown:()=>localPending(),failed:()=>false,unknownTransports:()=>[moduleClient,...legacyABClients()].filter(Boolean),unknownReady:()=>!busy,
-    local:()=>localDirty()||!!modal&&!modal.readonly,canSave:()=>permittedAction('edit'),canDiscard:()=>true,save:()=>saveLocalModule(),
+    local:()=>localDirty()||!!modal&&!modal.readonly,canSave:()=>historyAllowsMutation()&&permittedAction('edit'),canDiscard:()=>true,save:()=>saveLocalModule(),
     discardUnknown(){abandonLocalEditing();},discard(){abandonLocalEditing();},closeClean(){abandonLocalEditing();},dialogs:()=>[...document.querySelectorAll('.ipqcab-overlay')],
-  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>saveLocalModule(),canLeave:()=>!busy,error:()=>navigationError,reset(){abandonLocalEditing();mutationLifetime++;mutationSequence++;activeMutation=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;pollTimer.cancel();host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class="ipqcab-page" id="ipqcab-page">IPQC-AB…</section>',
+  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>saveLocalModule(),canLeave:()=>!busy,error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;abandonLocalEditing();mutationLifetime++;mutationSequence++;activeMutation=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class="ipqcab-page" id="ipqcab-page">IPQC-AB…</section>',
     openItemView(requestedVersion,itemId,requestedScope=''){
       pendingItemView={versionId:requestedVersion,itemId,scope:requestedScope};
       if (host?.dataset.activeTab==='quality-ipqc-ab' && document.contains(host)) { showPendingItem();return; }
       document.querySelector('[data-quality-tab="quality-ipqc-ab"]')?.click();
     },
-    async mount(element){host=element;const delivery=window.ProcessSync?.captureDelivery?.(),current=()=>host===element&&element.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));navigationError=null;try{if(await load()===false)return;if(!current())return;const q=new URLSearchParams(location.search),requested=q.get('ipqcScope'),requestedStage=q.get('ipqcStage');if(requested&&!sourceEntryApplied&&control.scopes[requested]){sourceEntryApplied=true;const s=control.scopes[requested];line=s.line;group=s.group;versionId=opened()?.id||active()?.id||'';working=opened()?.status==='draft'?clone(opened().snapshot):null;if(requestedStage)stage=requestedStage;selectDefaults();inputBasisOwner=inputOwner(transport());}draw();showPendingItem();scheduleRefresh();}catch(error){if(!current())return;navigationError=error;host.innerHTML=`<section class="ipqcab-card"><p role="alert">${h(error.message)}</p><button type="button" id="ipqcab-retry">${t('重試','Thử lại')}</button></section>`;
+    async mount(element){host=element;const identity=actor(),epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.(),current=()=>actor()===identity&&window.ProcessSync?.identityGeneration?.()===epoch&&host===element&&element.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));navigationError=null;try{if(await load()===false)return;if(!current())return;const q=new URLSearchParams(location.search),requested=q.get('ipqcScope'),requestedStage=q.get('ipqcStage');if(requested&&!sourceEntryApplied&&control.scopes[requested]){sourceEntryApplied=true;const s=control.scopes[requested];line=s.line;group=s.group;versionId=opened()?.id||active()?.id||'';working=opened()?.status==='draft'?clone(opened().snapshot):null;if(requestedStage)stage=requestedStage;selectDefaults();inputBasisOwner=inputOwner(transport());}draw();await historyPermissionFlight;if(!current())return;showPendingItem();}catch(error){if(!current())return;navigationError=error;host.innerHTML=`<section class="ipqcab-card"><p role="alert">${h(error.message)}</p><button type="button" id="ipqcab-retry">${t('重試','Thử lại')}</button></section>`;
       host.querySelector('#ipqcab-retry').onclick=()=>window.IPQCABUI.mount(host);}},
     reviewHTML,bindReview,pendingCount:()=>Number(!!control?.moduleDraft?.workflow?.pendingId)+Object.values(control?.scopes||{}).reduce((n,s)=>n+s.versions.filter(v=>!v.wholeModuleCaseId&&['pending','pending-test'].includes(v.status)).length,0) };
   new MutationObserver(()=>{

@@ -329,6 +329,8 @@
     const beginPredecessor=durableBegin?transports.get(transportKey):null;
     const boundedPredecessor=externalBounded?transports.get(transportKey):null;
     let boundedProjectionRetired=false,equipmentProjectionRetired=false;
+    const approvedAccessListeners=new Set();
+    const approvedHistoryRoute=beginPath==='/api/ipqc-ab/workflow';
     let access=null,gates=permissionGates,permissionNotice=null,validation=null;
     // Opt-in UI access projection only; never order or alter command/receipt results.
     let accessGuard=guardAccessResults,accessEpoch=0,accessIssued=0,accessObserved=0,accessFence=0,accessRevision=-1;
@@ -352,6 +354,7 @@
       if(revision!==null)accessRevision=Math.max(accessRevision,revision);
       if(denied||revoked)accessFence=accessIssued;
       gateControls(denied||revoked);
+      if(approvedHistoryRoute)for(const listener of approvedAccessListeners)try{listener();}catch{/* Presentation cannot change request or receipt authority. */}
       return !restricted;
     }
     // A view denial retires navigation coverage, including on clients without UI gates.
@@ -621,7 +624,7 @@
       }
       if(abModule&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.input?.scopes)){
         if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return Array.isArray(error.details?.path)&&command.input.scopes.some(s=>s.scope===error.details.scope&&s.changes?.some(c=>c.guards?.some(g=>JSON.stringify(g.path)===JSON.stringify(error.details.path))));
-        if(error.status===409&&['DRAFT_GENERATION_CHANGED','ENTITY_REMOVED_OR_AMBIGUOUS','PENDING_LOCKED'].includes(code))return true;
+        if(error.status===409&&['DRAFT_GENERATION_CHANGED','ENTITY_REMOVED_OR_AMBIGUOUS','PENDING_LOCKED','DRAFT_REVISION_REQUIRED','DRAFT_REVISION_CHANGED_RECONFIRM','MODULE_CHANGED_RECONFIRM'].includes(code))return true;
         if(error.status===422&&['INVALID_AB_LOCAL_SAVE','INVALID_AB_MATRIX','LOCAL_SAVE_LIMIT','INVALID_LOCAL_ID','DEPENDENCY_GUARD_REQUIRED','ERROR_IN_USE','STAGE_INVALID','INVALID_EQUIPMENT_PAIR','EQUIPMENT_REQUIRED','EQUIPMENT_UNAVAILABLE','PHOTO_NOT_UPLOADED'].includes(code))return true;
       }
       if(boundedScope==='ipqc-c'&&action==='save'&&Array.isArray(command.localChanges)){
@@ -995,6 +998,7 @@
       },
       reviewMetadata:revision=>request(query('reviewMetadata=1'+(Number.isSafeInteger(revision)?'&since='+encodeURIComponent('state:'+revision):''))),
       history: (before,options)=>request(query(`history=cases${before?`&before=${encodeURIComponent(before)}`:''}`),undefined,options),
+      ...(approvedHistoryRoute?{approvedHistory:(options,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true});},approvedVersion:(id,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true});},watchApprovedAccess(listener){approvedAccessListeners.add(listener);return ()=>approvedAccessListeners.delete(listener);}}:{}),
       uiHistory: options=>request(query('uiHistory=1&'+new URLSearchParams(options))),
       version: (id,options)=>request(query('versionId='+encodeURIComponent(id)),undefined,options),
       contentIssues: caseId=>request(query('contentIssues=1'+(caseId?'&contentCaseId='+encodeURIComponent(caseId):''))),

@@ -202,27 +202,25 @@ for (const [width, lang] of [
             await page.locator('[data-ab-matrix-item]').last().check();
             scopes.push(line + ':' + group);
             mark('local forms and matrix ' + line + ':' + group);
+            const priorWrites=requests.filter(r=>r.url.startsWith('/api/ipqc-ab')&&r.body?.command?.action==='save').length;
+            assert.equal(priorWrites,scopes.length-1);
+            await page.locator('#ipqcab-save').click();
+            await waitIdle();
+            assert.equal(requests.filter(r=>r.url.startsWith('/api/ipqc-ab')&&r.body?.command?.action==='save').length,scopes.length);
+            mark('explicit whole-module Save before changing filter '+line+':'+group);
           }
-        assert.equal(
-          requests.filter((r) => r.url.startsWith('/api/ipqc-ab')).length,
-          0,
-        );
-        assert.equal(Object.keys((await read()).scopes || {}).length, 0);
-        mark('all four groups and photo remain local before Save');
-        await page.locator('#ipqcab-save').click();
-        await waitIdle();
         const mutations = requests.filter((r) =>
           r.url.startsWith('/api/ipqc-ab'),
         );
         assert.deepEqual(
           mutations.map((r) => r.method),
-          ['POST', 'PUT', 'POST'],
+          ['POST', 'PUT', 'POST', 'POST', 'POST', 'POST'],
         );
         assert.deepEqual(
           mutations
             .filter((r) => r.method === 'POST')
             .map((r) => r.body.action || r.body.command.action),
-          ['begin-v1', 'save'],
+          ['begin-v1', 'save', 'save', 'save', 'save'],
         );
         let root = await read();
         const snapshot = root.moduleDraft.workflow.saved.content;
@@ -236,7 +234,7 @@ for (const [width, lang] of [
           /^[a-f0-9]{64}$/,
         );
         mark(
-          'one click saves four groups atomically with real photo PUT and matrix',
+          'each Save retains the whole module including previously saved groups, photo and matrix',
         );
         await page.reload();
         await page.locator('#ipqcab-line').waitFor({ timeout: 30000 });

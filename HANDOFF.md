@@ -1,3 +1,7 @@
+## 2026-11-12 — Isolated IPQC A/B integration candidate
+
+A/B grouped Save conflicts, original-ID retention, approved readonly history, explicit-check performance and completeness parity are integrated on main #100. Latest filter policy discards unsent RAM/Files. No merge/deployment/live acceptance. [Sources, seven-scope coverage and test limits](docs/acceptance/ipqc-ab-integration-20261112/README.md).
+
 # 2026-11-09 — Process platform stage catalog batch
 
 Isolated b06394c successor with main d4ac309 (#98) merged handles the missing approved custom types when adding a stage. It does not absorb the concurrently dirty unified-draft/canvas work. [Tracking matrix](docs/acceptance/process-platform-tracking-20261109.md) records ownership, sources, tests and outstanding decisions. No business data/schema/account permissions changed; no merge/deployment/live acceptance is implied.

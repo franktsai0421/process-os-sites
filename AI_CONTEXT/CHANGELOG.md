@@ -1,3 +1,7 @@
+## 2026-11-12 — Isolated IPQC A/B integration candidate
+
+A/B grouped Save conflicts, original-ID retention, approved readonly history, explicit-check performance and completeness parity are integrated on main #100. Latest filter policy discards unsent RAM/Files. No merge/deployment/live acceptance. [Sources, seven-scope coverage and test limits](../docs/acceptance/ipqc-ab-integration-20261112/README.md).
+
 ## 2026-11-09 — Retire periodic web checks
 
 Source candidate stops shared draft/master polling and direct process/reference/effective-version/history permission timers. Entry and explicit operations retain fresh permissions/CAS/original receipt checks. [Scope and validation boundary](../docs/acceptance/global-background-checks-20261109.md).
