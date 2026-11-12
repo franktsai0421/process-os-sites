@@ -157,7 +157,7 @@
     },
     "public/process/ipqc-c.js": {
       "beforeHash": "7c79731412465f368b73d0058075caadd9d52ccfcecea3babcb12563370029f8",
-      "afterHash": "039dcc7d35a04b386c3567d23f4d66a0d04fe20a1f8ed1411a7dde503bbce851",
+      "afterHash": "0eb9537d819d3b61c789536a9b3beb42939a490dd90690c43cfeee95dd07b3c3",
       "rules": [
         {
           "offset": 1300,
@@ -232,40 +232,40 @@
         {
           "offset": 124052,
           "before": "",
-          "after": "  function approvedHistoryClient(){\n    const client=sharedTransport(),owner=errorRecoveryOwner();\n    const get=async parameters=>{\n      await client.permissions({isCurrent:owner});if(!owner())throw Error('IPQCC_READ_SUPERSEDED');\n      if(client.permission('history')!==true)throw Error('FORBIDDEN');\n      const response=await fetch(API+'/workflow?'+new URLSearchParams({approvedOnly:'1',caseMetadata:'1',...parameters}),{cache:'no-store',headers:headers()});\n      const result=await response.json();if(!owner())throw Error('IPQCC_READ_SUPERSEDED');\n      if(!response.ok)throw Error(result.error||'HISTORY_LOAD_FAILED');\n      if(result.approvedOnly!==true)throw Error('APPROVED_HISTORY_REQUIRED');return result;\n    };\n    return {permission:key=>client.permission(key),uiHistory:async options=>({...await get({uiHistory:'1',...(options?.versionBefore?{versionBefore:options.versionBefore}:{})}),saves:{rows:[],next:null,total:0}}),version:id=>get({versionId:id})};\n  }\n  async function selectPageVersion(id){\n    const previousVersion=selectedVersionId;discardUnsentScope();\n    const owner=errorRecoveryOwner(),client=sharedTransport(),sequence=++historySelection;\n    const current=()=>owner()&&historySelection===sequence;working=null;\n    try{\n      if(id===open()?.id){await read(false,current);if(!current())return;selectedVersionId=open()?.id||active()?.id||'';}\n      else if(id===active()?.id){await read(false,current);if(!current())return;if(active()?.id!==id)throw Error('APPROVED_HISTORY_SUPERSEDED');selectedVersionId=id;working=null;}\n      else {\n        await client.permissions({isCurrent:current});if(!current())return;\n        if(client.permission('history')!==true)throw Error('FORBIDDEN');\n        const result=await approvedHistoryClient().version(id);if(!current())return;\n        if(!['approved','superseded'].includes(result.version?.status))throw Error('APPROVED_VERSION_REQUIRED');\n        control={...control,versions:[...control.versions.filter(row=>row.id!==id),result.version]};\n        selectedVersionId=id;working=null;\n      }\n      message='';syncSelection();draw();\n    }catch(error){if(current()){selectedVersionId=previousVersion;working=previousVersion===open()?.id?copy(open().snapshot):null;message=error.message;draw();}}\n  }\n  let historySelection=0;\n  function discardUnsentScope(){\n    // Retire presentation only. The primary transport keeps its in-flight\n    // command/receipt marker and may settle it; old callbacks cannot own this view.\n    mountSequence++;busy=false;saveInputNotice=null;readQuarantinedDraft=null;\n    cancelSaveChoice?.();modal=null;picker=null;viewer=null;conflict=null;clearLocal();\n    working=open()?.status==='draft'?copy(open().snapshot):null;\n  }\n"
+          "after": "  function approvedHistoryClient(){\n    const client=sharedTransport(),owner=errorRecoveryOwner();\n    const get=async parameters=>{\n      await client.permissions({isCurrent:owner});if(!owner())throw Error('IPQCC_READ_SUPERSEDED');\n      if(client.permission('history')!==true)throw Error('FORBIDDEN');\n      const response=await fetch(API+'/workflow?'+new URLSearchParams({approvedOnly:'1',caseMetadata:'1',...parameters}),{cache:'no-store',headers:headers()});\n      const result=await response.json();if(!owner())throw Error('IPQCC_READ_SUPERSEDED');\n      if(!response.ok)throw Error(result.error||'HISTORY_LOAD_FAILED');\n      if(result.approvedOnly!==true)throw Error('APPROVED_HISTORY_REQUIRED');return result;\n    };\n    return {permission:key=>client.permission(key),uiHistory:async options=>({...await get({uiHistory:'1',...(options?.versionBefore?{versionBefore:options.versionBefore}:{})}),saves:{rows:[],next:null,total:0}}),version:id=>get({versionId:id})};\n  }\n  async function selectPageVersion(id){\n    const previousVersion=selectedVersionId;discardUnsentScope();\n    const owner=errorRecoveryOwner(),client=sharedTransport(),sequence=++historySelection;\n    const current=()=>owner()&&historySelection===sequence;working=null;\n    try{\n      if(id===open()?.id){await read(false,current);if(!current())return;selectedVersionId=open()?.id||active()?.id||'';}\n      else if(id===active()?.id){await read(false,current);if(!current())return;if(active()?.id!==id)throw Error('APPROVED_HISTORY_SUPERSEDED');selectedVersionId=id;working=null;}\n      else {\n        await client.permissions({isCurrent:current});if(!current())return;\n        if(client.permission('history')!==true)throw Error('FORBIDDEN');\n        const result=await approvedHistoryClient().version(id);if(!current())return;\n        if(!['approved','superseded'].includes(result.version?.status))throw Error('APPROVED_VERSION_REQUIRED');\n        control={...control,versions:[...control.versions.filter(row=>row.id!==id),result.version]};\n        selectedVersionId=id;working=null;\n      }\n      message='';syncSelection();draw();\n    }catch(error){if(current()){selectedVersionId=previousVersion;working=previousVersion===open()?.id?copy(open().snapshot):null;message=error.message;draw();}}\n  }\n  let historySelection=0;\n  function closeFilterEditors(){\n    // Product/stage filters are views of this same whole-C draft. Keep the\n    // Finish'ed journal, working snapshot and pending photo files until Save\n    // or actual page departure; only retire an unapplied editor/choice.\n    cancelSaveChoice?.();modal=null;picker=null;viewer=null;conflict=null;\n  }\n  function discardUnsentScope(){\n    // Retire presentation only. The primary transport keeps its in-flight\n    // command/receipt marker and may settle it; old callbacks cannot own this view.\n    mountSequence++;busy=false;saveInputNotice=null;readQuarantinedDraft=null;\n    cancelSaveChoice?.();modal=null;picker=null;viewer=null;conflict=null;clearLocal();\n    working=open()?.status==='draft'?copy(open().snapshot):null;\n  }\n"
         },
         {
-          "offset": 127360,
+          "offset": 127699,
           "before": "    root.querySelector('#ipqcc-version')?.addEventListener('change', event => { clearLocal();selectedVersionId=event.target.value; working=open()?.status==='draft'&&selectedVersionId===open()?.id?copy(open().snapshot):null; draw(); });\n",
           "after": "    root.querySelector('#ipqcc-version')?.addEventListener('change', event => { void selectPageVersion(event.target.value); });\n"
         },
         {
-          "offset": 128893,
+          "offset": 129232,
           "before": "    const caseFooter=root.querySelector('#ipqcc-case-dialog footer');\n    if(caseFooter&&caseHistory?.reviewCase&&operationAllowed('restore')&&permitted('approval.compare')){\n      const button=document.createElement('button');button.type='button';button.id='ipqcc-case-restore';button.className='button ghost';\n      button.textContent=t('Xem trước khôi phục','預覽還原');button.disabled=open()?.status!=='draft'||busy;caseFooter.prepend(button);\n      button.onclick=async()=>{if(!operationAllowed('restore'))return;try{await window.previewSharedDraftRestore({client:sharedTransport(),savedId:caseHistory.reviewCase.savedId,onApplied:async()=>{caseHistory=null;await read(false);message=t('Đã khôi phục vào bản nháp · chưa lưu','已還原至草稿 · 尚未儲存');draw();}});}catch(error){if(isReadSuperseded(error))return;caseHistory.error=error.message;draw();}};\n    }\n",
           "after": ""
         },
         {
-          "offset": 129744,
+          "offset": 130083,
           "before": "    });\n    root.querySelector('#ipqcc-reload')?.addEventListener('click',async()=>{\n      if(conflict?.localSave){\n        const rejected=conflict,client=sharedClient;\n        if(busy||modal||!rejected.owns()||client.hasUnknown())return;\n        const priorControl=control,priorRevision=revision;\n        const current=()=>conflict===rejected&&sharedClient===client&&rejected.owns();\n        if(!confirm(t('Bỏ phần nhập chưa lưu và tải phiên bản mới?','放棄尚未儲存的輸入並載入最新版？')))return;\n        if(!current()||control!==priorControl||revision!==priorRevision)return;\n        busy=true;\n        try{\n          // Read owns the actor, delivery, revision and local input until adoption.\n          // Do not erase local edits if either permissions or the read fails.\n          await read(true,()=>current()&&control===priorControl&&revision===priorRevision);\n          if(!current())return;\n          clearLocal();working=open()?.status==='draft'?copy(open().snapshot):null;\n          conflict=null;message='';syncSelection();\n        }catch(error){if(!isReadSuperseded(error)&&current())message=error.message;}\n        finally{if(current()||conflict===null&&sharedClient===client){busy=false;draw();}}\n        return;\n      }\n      if(!confirm(t('Bỏ phần nhập chưa lưu và tải phiên bản mới?','放棄尚未儲存的輸入並載入最新版？')))return;\n      conflict=null;modal=null;working=null;selectedVersionId='';message='';\n      try{await read(false);draw();}catch(error){if(isReadSuperseded(error))return;message=error.message;draw();}\n",
           "after": ""
         },
         {
-          "offset": 131499,
+          "offset": 131838,
           "before": "      if(button.dataset.ipqccRestore&&conflict){\n        const row=conflict.items.find(item=>item.id===button.dataset.ipqccRestore);\n        if(!row||!row.remote)return;\n        const list=working?.[row.kind],index=list?.findIndex(item=>item.id===row.id);\n        if(index<0)return;list[index]=copy(row.remote);\n        if(modal?.existingId===row.id){modal.fields=copy(row.remote);modal.photos=copy(row.remote.mediaItems||[]);modal.dirty=false;}\n        conflict.items=conflict.items.filter(item=>item.id!==row.id);\n        if(!conflict.items.length){conflict=null;message=t('Đã xử lý xung đột; hãy lưu bản nháp','衝突已處理，請儲存草稿');}\n        draw();return;\n      }\n      if(button.dataset.ipqccCoverage){search='';productCode=button.dataset.ipqccCoverage;stageCode=button.dataset.stage;errorId='';draw();return;}\n      if(button.dataset.ipqccProduct){productCode=button.dataset.ipqccProduct;stageCode='';errorId='';draw();return;}\n",
-          "after": "      if(button.dataset.ipqccCoverage){discardUnsentScope();search='';productCode=button.dataset.ipqccCoverage;stageCode=button.dataset.stage;errorId='';draw();return;}\n      if(button.dataset.ipqccProduct){discardUnsentScope();productCode=button.dataset.ipqccProduct;stageCode='';errorId='';draw();return;}\n"
+          "after": "      if(button.dataset.ipqccCoverage){closeFilterEditors();search='';productCode=button.dataset.ipqccCoverage;stageCode=button.dataset.stage;errorId='';draw();return;}\n      if(button.dataset.ipqccProduct){closeFilterEditors();productCode=button.dataset.ipqccProduct;stageCode='';errorId='';draw();return;}\n"
         },
         {
-          "offset": 132065,
+          "offset": 132404,
           "before": "      if(button.dataset.ipqccStage){stageCode=button.dataset.ipqccStage;errorId='';draw();return;}\n",
-          "after": "      if(button.dataset.ipqccStage){discardUnsentScope();stageCode=button.dataset.ipqccStage;errorId='';draw();return;}\n"
+          "after": "      if(button.dataset.ipqccStage){closeFilterEditors();stageCode=button.dataset.ipqccStage;errorId='';draw();return;}\n"
         },
         {
-          "offset": 137922,
+          "offset": 138261,
           "before": "    const sequence=++mountSequence;pollTimer.cancel();clearLocal();\n",
           "after": "    cancelSaveChoice?.();const sequence=++mountSequence;busy=false;saveInputNotice=null;readQuarantinedDraft=null;pollTimer.cancel();clearLocal();\n"
         },
         {
-          "offset": 150648,
+          "offset": 150987,
           "before": "    closeClean(){modal=null;picker=null;clearLocal();viewer=null;working=null;},\n  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>write('save',{snapshot:working}),canLeave:()=>true,error:()=>navigationError,reset(){clearLocal();busy=false;modal=null;picker=null;viewer=null;errorRecovery?.session.flush();errorRecovery?.session.close();errorRecovery=null;errorRecoveryPending=null;mountSequence++;saveInputNotice=null;readRecoveryNeeded=false;pollTimer.cancel();host=null;reviewHost=null;control=null;revision=null;working=null;catalog={products:[],stages:[]};equipment=[];equipmentGroups=[];equipmentCategories=[];equipmentSubcategories=[];selectedVersionId='';caseHistory=null;navigationError=null;}},html:()=>`<section class=\"ipqcc-page\">${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</section>`,mount,reviewHTML,bindReview,pendingCount};\n",
           "after": "    closeClean(){cancelSaveChoice?.();modal=null;picker=null;clearLocal();viewer=null;working=null;},\n  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>write('save',{snapshot:working}),canLeave:()=>true,error:()=>navigationError,reset(){cancelSaveChoice?.();clearLocal();busy=false;modal=null;picker=null;viewer=null;errorRecovery?.session.flush();errorRecovery?.session.close();errorRecovery=null;errorRecoveryPending=null;mountSequence++;saveInputNotice=null;readRecoveryNeeded=false;pollTimer.cancel();host=null;reviewHost=null;control=null;revision=null;working=null;catalog={products:[],stages:[]};equipment=[];equipmentGroups=[];equipmentCategories=[];equipmentSubcategories=[];selectedVersionId='';caseHistory=null;navigationError=null;}},html:()=>`<section class=\"ipqcc-page\">${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</section>`,mount,reviewHTML,bindReview,pendingCount};\n"
         }
@@ -289,7 +289,7 @@
     },
     "public/process/index.html": {
       "beforeHash": "41474215c11933274c47c35fc09e86f4fc930fd791322013da861c256b766fae",
-      "afterHash": "2ab22675b11669108032df8f5669341ba5b4edecdf7219684e6db0f4d12b41fc",
+      "afterHash": "0aadba9ccbc07a96ce46ea1e1fcd93162290e3a3cf4eb982de93bb04946885e3",
       "rules": [
         {
           "offset": 8462,
@@ -299,7 +299,7 @@
         {
           "offset": 9496,
           "before": "    <script data-process-src=\"ipqc-c.js?v=20261106-c-local-gauge-preview1\"></script>\n",
-          "after": "    <script data-process-src=\"ipqc-c.js?v=20261112-c-compare1\"></script>\n"
+          "after": "    <script data-process-src=\"ipqc-c.js?v=20261112-c-scope2\"></script>\n"
         }
       ]
     }

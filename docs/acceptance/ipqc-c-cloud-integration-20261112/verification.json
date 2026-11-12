@@ -276,14 +276,27 @@
     "document": "requirements-audit.zh-TW.md",
     "requirements": 24,
     "productBaseCommit": "f5c4154426869166091607273129c7f993c14924",
-    "productSourceChanged": false,
+    "productSourceChanged": true,
     "newEvidence": [
       "two C products one saved snapshot; same C scope/generation; every non-C persisted value unchanged",
       "1440/390 search/product/stage views retain C scope/generation/draftId; no Begin or mutation"
     ],
-    "comparisonStatus": "PASS 33 assertions plus exact snapshot/non-C model assertions",
-    "nativeStatus": "PASS IPQCC_PROFILE=1 1735 rows, 1440/390",
-    "localValidation": {
+    "comparisonStatus": "PASS33 handler assertions; current backend unchanged",
+    "nativeStatus": "PENDING full strengthened native retention/photo/departure regression",
+    "githubCI": "Evaluate current PR HEAD; f5c41544 prior five CI runs reused only where inputs unchanged",
+    "unverified": [
+      "real test-site latency",
+      "human dual-account sessions",
+      "physical devices and real IME",
+      "historical UNKNOWN32 outcome"
+    ],
+    "initialGenerationOnlyAuditCommit": "f7925ad869426e4dd36e5eb67dde68810b0102c3",
+    "initialConclusionCorrected": "C05 was a real missing behavior: in-page product/stage filters discarded Finish-ed unsaved content",
+    "redEvidence": {
+      "sourceCommit": "f7925ad869426e4dd36e5eb67dde68810b0102c3",
+      "native": "product filter staged changes expected1 actual0"
+    },
+    "previousLocalValidation": {
       "typedLint": "PASS",
       "sourceScan": {
         "status": "PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE",
@@ -298,12 +311,7 @@
       "diffCheck": "PASS",
       "typesAndBuild": "REUSED exact unchanged app/lib/public/package inputs; current GitHub CI reruns its original gates"
     },
-    "githubCI": "Evaluate current PR HEAD; f5c41544 prior five CI runs reused only where inputs unchanged",
-    "unverified": [
-      "real test-site latency",
-      "human dual-account sessions",
-      "physical devices and real IME",
-      "historical UNKNOWN32 outcome"
-    ]
+    "localValidation": "PENDING fresh runtime/source/navigation/lint/types/build after product fix",
+    "productSHA256": "0eb9537d819d3b61c789536a9b3beb42939a490dd90690c43cfeee95dd07b3c3"
   }
 }

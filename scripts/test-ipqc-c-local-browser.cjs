@@ -31,7 +31,7 @@ if(profile){
  if(receiptMissing&&url.searchParams.has('operationId')){res.writeHead(404,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'OPERATION_NOT_FOUND'}));return;}
  if(url.pathname==='/favicon.ico'){res.writeHead(204);res.end();return;}
  if(url.pathname==='/fixture'){res.setHeader('Content-Type','text/html');res.end(`<!doctype html><html lang="zh"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/process/styles.css"><link rel="stylesheet" href="/process/ipqc-c.css"><link rel="stylesheet" href="/process/version-draft-ui.css"><main id="data-content" data-active-tab="quality-ipqc-c"></main><script>window.__delivery=1;window.ProcessSync={captureDelivery:()=>window.__delivery,isCurrentDelivery:value=>value===window.__delivery,identity:{id:'preview-editor',name:'Synthetic editor',role:'staff'},identityGeneration:()=>1,platformHeaders:()=>({'Content-Type':'application/json'})};window.hasPermission=()=>true;window.toast=()=>{};window.state={};window.bindDataInner=()=>{};window.ProcessIPQC={mountReferences(){},referenceMarkup:()=>''};</script>${scripts.map(name=>'<script src="/process/'+name+'"></script>').join('')}<script>IPQCCUI.mount(document.querySelector('main'));</script></html>`);return;}
- if(url.pathname.startsWith('/process/')){const name=url.pathname.slice(9);if(!/^[\w.-]+$/.test(name))throw Error('BAD_ASSET');let source=fs.readFileSync('public/process/'+name,'utf8');if(name==='ipqc-c.js')source=source.replace('  window.IPQCCUI={',`  window.__localTest={read:()=>read(false),state:()=>({working,localChanges,message,busy,selectedVersionId,flowScope:control?.workflow?.scope,generation:control?.workflow?.generation,draftId:open()?.id,unknown:sharedClient?.hasUnknown()}),client:sharedTransport,edit:()=>startEditor('error',working.errors[0])};\n  window.IPQCCUI={`);if(profile&&name==='ipqc-c.js'){
+ if(url.pathname.startsWith('/process/')){const name=url.pathname.slice(9);if(!/^[\w.-]+$/.test(name))throw Error('BAD_ASSET');let source=fs.readFileSync('public/process/'+name,'utf8');if(name==='ipqc-c.js')source=source.replace('  window.IPQCCUI={',`  window.__localTest={read:()=>read(false),state:()=>({working,localChanges,message,busy,selectedVersionId,flowScope:control?.workflow?.scope,generation:control?.workflow?.generation,draftId:open()?.id,photoCount:localPhotos.size,unknown:sharedClient?.hasUnknown()}),client:sharedTransport,edit:()=>startEditor('error',working.errors[0])};\n  window.IPQCCUI={`);if(profile&&name==='ipqc-c.js'){
  const functions={draw:false,stageLocal:false,read:true,upload:true,writeShared:true,submitEditor:true};let wrappers='';
  for(const [fn,async]of Object.entries(functions)){source=source.replace((async?'async ':'')+'function '+fn+'(', (async?'async ':'')+'function measured_'+fn+'(');wrappers+=(async?'async ':'')+'function '+fn+'(...args){const start=performance.now();try{return '+(async?'await ':'')+'measured_'+fn+'(...args);}finally{(window.__ipqccProfile ||= []).push({phase:'+JSON.stringify(fn)+',ms:performance.now()-start});}}\n';}
  source=source.replace('  window.IPQCCUI={',wrappers+'  window.IPQCCUI={');}
@@ -51,15 +51,23 @@ if(profile){
  await page.locator('#ipqcc-search').fill('C100');await page.evaluate(()=>__localTest.read());assert.equal(await page.evaluate(()=>__localTest.state().working.errors[0].name),'Local '+width,'read/filter preserves input');
  await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>__localTest.state().localChanges.length===0&&!__localTest.state().busy,{},{timeout:10000}).catch(async e=>{console.error(await page.evaluate(()=>__localTest.state()),mutations,errors);throw e;});
  assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')&&JSON.parse(m.body).command?.action==='save').length,1);const begins=mutations.filter(m=>m.path.endsWith('/workflow')&&JSON.parse(m.body).action==='begin-v1');assert.equal(begins.length,width===1440?1:0,'legacy first Save adopts once with a durable Begin identity');for(const mutation of begins)assert.match(JSON.parse(mutation.body).begin.operationId,/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i);assert.equal(mutations.filter(m=>JSON.parse(m.body).action==='begin').length,0,'no legacy Begin fallback');const savedControl=(await h.call('ipqc-c','GET',undefined,'editor',200,'?caseMetadata=1')).control,flow=savedControl.workflow,currentAuthority=await h.read('ipqc-c'),opened=savedControl.versions.find(v=>v.status==='draft');assert.deepEqual(currentAuthority.beginBasis,{generation:flow.generation,activeVersionId:savedControl.activeVersionId,openVersionId:opened.id,openVersionStatus:opened.status,openVersionRevision:opened.revision},'adopted Begin authority matches current workflow and draft metadata');assert.equal(flow.saved.content.errors[0].name,'Local '+width);assert.equal(flow.saved.content.errors[0].note,width===1440?'retained legacy note':'Late re-entry Save');
- // Product/stage views never Begin or split the fixed C draft.
+ // Page filters preserve Finish'ed unsaved content in one whole C draft.
  const scopeState=()=>page.evaluate(()=>{const s=__localTest.state();return {scope:s.flowScope,generation:s.generation,draftId:s.draftId};});
  const scopeBefore=await scopeState(),persistedBeforeFilters=h.snapshot(),writesBeforeFilters=mutations.length;
  assert.equal(scopeBefore.scope,'ipqc-c');assert(scopeBefore.generation&&scopeBefore.draftId);
- await page.locator('#ipqcc-search').fill('');
- for(const selector of ['[data-ipqcc-product="C200"]','[data-ipqcc-product="C100"]','[data-ipqcc-stage="C-OTHER"]','[data-ipqcc-stage="C-CUT"]']){
-  await page.locator(selector).click();assert.deepEqual(await scopeState(),scopeBefore,'product/stage selection retains the same C draft identity');
+ await page.evaluate(()=>__localTest.edit());await page.locator('[name="note"]').fill('Filter retained '+width);await page.locator('#ipqcc-editor button[type="submit"]').click();
+ await page.locator('#ipqcc-search').fill('');await page.locator('[data-ipqcc-product="C200"]').click();
+ assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),1,'product filter must retain Finish’ed unsaved C100 content');
+ const c200Name='Filter C200 '+width;await page.locator('[data-ipqcc-add="error"]').click();await page.locator('input[name="name"]').fill(c200Name);await page.locator('#ipqcc-editor button[type="submit"]').click();
+ for(const selector of ['[data-ipqcc-product="C100"]','[data-ipqcc-stage="C-OTHER"]','[data-ipqcc-stage="C-CUT"]']){
+  await page.locator(selector).click();assert.deepEqual(await scopeState(),scopeBefore,'filters retain the same C draft identity');
+  assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),2,'filters retain changes for both C products');
  }
- assert.equal(mutations.length,writesBeforeFilters,'filters cannot Begin or write a separate draft');assert.deepEqual(h.snapshot(),persistedBeforeFilters);
+ assert.equal(mutations.length,writesBeforeFilters,'filters/Finish cannot Begin or write a separate draft');assert.deepEqual(h.snapshot(),persistedBeforeFilters);
+ await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>!__localTest.state().busy&&!__localTest.state().localChanges.length);
+ assert.equal(mutations.length,writesBeforeFilters+1,'one Save commits both products together');
+ const filterSaved=h.flow(await h.call('ipqc-c','GET',undefined,'editor',200,'?caseMetadata=1'));
+ assert.equal(filterSaved.generation,scopeBefore.generation);assert.equal(filterSaved.saved.content.errors[0].note,'Filter retained '+width);assert(filterSaved.saved.content.errors.some(row=>row.productCode==='C200'&&row.name===c200Name&&!row.id.startsWith('local-')));
  // Consecutive new errors after legacy adoption and after receipt-only recovery.
  const newError=async name=>{await page.locator('[data-ipqcc-add="error"]').click();await page.locator('input[name="name"]').fill(name);await page.locator('#ipqcc-editor button[type="submit"]').click();};
  for(const name of ['First new '+width,'Second new '+width]){
@@ -91,6 +99,10 @@ if(profile){
  await page.locator('#ipqcc-photo-input').setInputFiles(profile?{name:'synthetic480x240.png',mimeType:'image/png',buffer:syntheticProfilePhoto()}:{name:'fixture.gif',mimeType:'image/gif',buffer:Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7','base64')});
  await page.locator('#ipqcc-editor button[type="submit"]').click();await page.locator('#ipqcc-editor').waitFor({state:'detached'});assert.equal(mutations.length,0,'photos remain local until Save');
  await page.locator('#ipqcc-search').fill('C1');assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),1,'filter preserves local input');
+ const pendingPhotoState=await page.evaluate(()=>({working:__localTest.state().working,photos:__localTest.state().photoCount}));assert.equal(pendingPhotoState.photos,1);
+ await page.locator('#ipqcc-search').fill('');await page.locator('[data-ipqcc-product="C200"]').click();await page.locator('[data-ipqcc-product="C100"]').click();
+ assert.deepEqual(await page.evaluate(()=>({working:__localTest.state().working,photos:__localTest.state().photoCount})),pendingPhotoState,'page filters retain original pending photo files and staged references');assert.equal(mutations.length,0);
+
  if(width===1440)photoRace=async()=>{const f=h.flow(await h.read('ipqc-c')),row=f.working.errors[0],path=['errors',{id:row.id},'note'];await h.command('ipqc-c','apply',{patches:[{op:'set',path,value:'Peer during upload'}],guards:[{path,value:row.note}]},'edit-only');};
  await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>__localTest.state().localChanges.length===0&&!__localTest.state().busy).catch(async e=>{console.error(await page.evaluate(()=>__localTest.state()),errors);throw e;});
  if(width===1440){assert.equal(photoRace,null,'peer wrote during upload');assert.equal(h.flow(await h.call('ipqc-c','GET',undefined,'editor',200,'?caseMetadata=1')).saved.content.errors[0].note,'Peer during upload','post-upload comparison preserves new peer content');}
@@ -176,9 +188,13 @@ if(profile){
  }
  mutations.length=0;await page.evaluate(()=>__localTest.edit());await page.locator('input[name="name"]').fill('Unsent scope edit');await page.locator('#ipqcc-editor button[type="submit"]').click();
  const scopeSnapshot=h.snapshot();let navigationDialogs=0;const rejectPrompt=dialog=>{navigationDialogs++;void dialog.dismiss();};page.on('dialog',rejectPrompt);
- await page.locator('#ipqcc-search').fill('');await page.locator('[data-ipqcc-product="C200"]').click();await page.locator('[data-ipqcc-product="C100"]').click();await page.locator('[data-ipqcc-stage="C-OTHER"]').click();await page.locator('[data-ipqcc-stage="C-CUT"]').click();page.off('dialog',rejectPrompt);
+ await page.locator('#ipqcc-search').fill('');await page.locator('[data-ipqcc-product="C200"]').click();await page.locator('[data-ipqcc-product="C100"]').click();await page.locator('[data-ipqcc-stage="C-OTHER"]').click();await page.locator('[data-ipqcc-stage="C-CUT"]').click();
  if(evidence)await page.screenshot({path:require('node:path').join(evidence,'c-'+width+'-zh.png'),fullPage:false});
- assert.equal(navigationDialogs,0);assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),0);assert.equal(mutations.length,0);assert.deepEqual(h.snapshot(),scopeSnapshot);
+ assert.equal(navigationDialogs,0);assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),1,'in-page filters retain unsaved C input');assert.equal(await page.evaluate(()=>__localTest.state().working.errors[0].name),'Unsent scope edit');assert.equal(mutations.length,0);assert.deepEqual(h.snapshot(),scopeSnapshot);
+ // Actual departure still discards unsent content silently; it is not a filter.
+ await page.evaluate(()=>{IPQCCUI.navigation.departure.closeClean();IPQCCUI.navigation.reset();window.__delivery++;document.querySelector('main').innerHTML='<p>Other page</p>';});
+ await page.evaluate(()=>IPQCCUI.mount(document.querySelector('main')));await page.locator('#ipqcc-save').waitFor();page.off('dialog',rejectPrompt);
+ assert.equal(navigationDialogs,0);assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),0);assert.notEqual(await page.evaluate(()=>__localTest.state().working.errors[0].name),'Unsent scope edit');assert.equal(mutations.length,0);assert.deepEqual(h.snapshot(),scopeSnapshot);
  await page.evaluate(()=>{document.documentElement.lang='vi';dispatchEvent(new CustomEvent('process-language-change',{detail:{language:'vi'}}));});assert.equal(await page.locator('#ipqcc-save').innerText(),'Lưu');
  if(evidence)await page.screenshot({path:require('node:path').join(evidence,'c-'+width+'-vi.png'),fullPage:false});
  if(width===390){

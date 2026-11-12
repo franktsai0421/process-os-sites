@@ -54,5 +54,16 @@
     "tree": "d385752707bddc857442d446c37c8d30e50d8ae3",
     "changesSinceReviewedHead": "8 CI/test/documentation files; no C or shared product-source changes",
     "action": "read-only comparison; not merged"
+  },
+  "completeAuditFilterFix": {
+    "basis": "f7925ad869426e4dd36e5eb67dde68810b0102c3",
+    "requirement": "C page filters must retain the same unsaved whole-module draft; actual page departure discards unsent content",
+    "reproduced": "native filter retention expected1 staged change, actual0",
+    "productFiles": [
+      "public/process/ipqc-c.js",
+      "public/process/index.html"
+    ],
+    "sharedDependency": "index refreshes C tag only; seven-file inverse updates only C/index afterHash/rules; beforeHash and old proof chain unchanged",
+    "oldBranchesChanged": false
   }
 }
