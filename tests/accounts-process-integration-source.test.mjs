@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
+import {createRequire} from 'node:module';
+const followup=createRequire(import.meta.url)('../scripts/account-process-followup-source-contract.cjs');
+const published=(bytes,file)=>followup.projectKnown(bytes,file);
 const manifest=JSON.parse(fs.readFileSync('docs/acceptance/accounts-process-joint-20261112/sources.json','utf8'));
 const git=(...args)=>execFileSync('git',args),hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 void test('fixed latest public origins and main are preserved in joint ancestry',()=>{
@@ -16,7 +19,7 @@ void test('fixed latest public origins and main are preserved in joint ancestry'
 });
 void test('every shared identical change and the three latest process-only regressions are retained exactly',()=>{
  assert.equal(manifest.overlap.length,127);assert.equal(manifest.overlap.filter(row=>row.same).length,90);
- for(const row of manifest.overlap.filter(row=>row.same))assert.deepEqual(git('show','HEAD:'+row.path),git('show',manifest.sources.pr104.commit+':'+row.path),row.path);
+ for(const row of manifest.overlap.filter(row=>row.same))assert.deepEqual(published(git('show','HEAD:'+row.path),row.path),git('show',manifest.sources.pr104.commit+':'+row.path),row.path);
  const unique=manifest.files.pr104.filter(file=>!manifest.files.pr103.includes(file));
  assert.deepEqual(unique,['tests/equipment-transfer-compiled.test.mjs','tests/equipment-transfer-setup-cleanup.test.mjs','tests/shared-draft-tab-attribution.test.mjs']);
  for(const file of unique)assert.deepEqual(git('show','HEAD:'+file),git('show',manifest.sources.pr104.commit+':'+file),file);
@@ -24,10 +27,10 @@ void test('every shared identical change and the three latest process-only regre
 void test('reviewed account/process runtime union retains every installed file, without other integration lines',()=>{
  const files=git('ls-tree','-r','--name-only',manifest.sources.pr103.commit,'--','app','lib','public').toString().trim().split('\n');
  assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\n'),files);
- for(const file of files)assert.deepEqual(git('show','HEAD:'+file),git('show',manifest.sources.pr103.commit+':'+file),file);
+ for(const file of files)assert.deepEqual(published(git('show','HEAD:'+file),file),git('show',manifest.sources.pr103.commit+':'+file),file);
  for(const row of manifest.runtimeDecisions){
   assert(manifest.semanticDecisions[row.path],row.path+' needs explicit semantic decision');
-  assert.equal(hash(git('show','HEAD:'+row.path)),row.sha256);
+  assert.equal(hash(published(git('show','HEAD:'+row.path),row.path)),row.sha256);
   assert.equal(hash(git('show',manifest.sources.pr104.commit+':'+row.path)),row.processSha256);
   assert.notEqual(row.sha256,row.processSha256);
  }

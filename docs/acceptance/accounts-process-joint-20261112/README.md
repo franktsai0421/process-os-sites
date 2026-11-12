@@ -1,3 +1,7 @@
+# Follow-up requirements and backup-work boundary
+
+[Current complete requirements audit, two added omissions and remaining acceptance](requirements.md) · [Follow-up verification checkpoint](followup-validation.md) supersedes older gap wording below. Old backups are retained; new backup creation/retries and backup/restore rehearsals are stopped. No deletion occurred. PROCESS history is now independently implemented from confirmed #108 sources; original UNKNOWN32 remains historical and untouched. The following record describes the initial 481297ed checkpoint, not the new functional candidate.
+
 # #103 + #104 independent integration — 2026-11-12
 
 This is an isolated verification candidate, **NOT_READY for merge, activation or deployment**. Keep source PRs #103/#104 open Draft and unchanged. No live account, stored ACL, database, photo, migration, policy flag or remote environment is changed. Source records below describe their own checkpoint; this document supersedes earlier claims that no joint branch exists.

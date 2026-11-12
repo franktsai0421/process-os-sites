@@ -86,16 +86,46 @@
    if(validity.typeMismatch)return t('請確認輸入格式。','Vui lòng kiểm tra định dạng.');
    return t('請檢查必填欄位與輸入限制。','Kiểm tra các trường bắt buộc và giới hạn nhập.');
   };
-  form.addEventListener('input',()=>{validation.textContent='';});
+  form.addEventListener('input',()=>{validation.textContent='';clearComparison();});
   form.addEventListener('invalid',event=>{event?.preventDefault?.();const field=form.querySelector('input:invalid,select:invalid,textarea:invalid');validation.textContent=t('請先修正表單：','Hãy sửa biểu mẫu trước: ')+validationText(field);field?.focus?.();},true);
   const owner=identityStamp(),openedModel=model,actorBaseline=JSON.stringify(model.actor);let baseline,blocked=false;
   // Account API canonicalizes all account/role IDs before lookup.
   const target=(value,payload)=>JSON.stringify((payload.action.endsWith('role')?value.roles:value.users)?.find(item=>item.id===String(payload.id||'').trim().toLowerCase())??null);
   const errorBox=d.querySelector('.ua-error'),submitButton=d.querySelector('[type="submit"]');
+  let comparisonPending=false,comparisonEpoch=0,comparisonBox=null,baseGroups;
+  const groupJSON=value=>JSON.stringify(value,(_key,item)=>item&&typeof item==='object'&&!Array.isArray(item)?Object.fromEntries(Object.keys(item).sort((a,b)=>a.localeCompare(b)).map(key=>[key,item[key]])):item);
+  const clearComparison=()=>{comparisonEpoch++;comparisonPending=false;comparisonBox?.remove();comparisonBox=null;if(submitButton&&!d.dataset.saving)submitButton.disabled=blocked||writeUncertain||!sameIdentity(owner);};
+  form.addEventListener('change',clearComparison);d.addEventListener?.('close',clearComparison);
+  function reconcileTarget(payload){
+   const adapter=d.uaConflict,remoteText=target(model,payload),remote=JSON.parse(remoteText);
+   if(!remote||!adapter.allowed(remote)){blocked=true;throw Error('FORBIDDEN');}
+   baseGroups??=adapter.groups(JSON.parse(baseline));const mine=adapter.read(),peer=adapter.groups(remote),conflicts=[],merged={};
+   for(const key of Object.keys(baseGroups)){
+    const localChanged=groupJSON(mine[key])!==groupJSON(baseGroups[key]),peerChanged=groupJSON(peer[key])!==groupJSON(baseGroups[key]);
+    if(localChanged&&peerChanged&&groupJSON(mine[key])!==groupJSON(peer[key]))conflicts.push(key);
+    merged[key]=structuredClone(localChanged?mine[key]:peer[key]);
+   }
+   clearComparison();const epoch=comparisonEpoch,signature=groupJSON(mine);
+   const apply=choice=>{
+    if(epoch!==comparisonEpoch||!d.isConnected||!d.open||!sameIdentity(owner))return;
+    if(groupJSON(adapter.read())!==signature){clearComparison();errorBox.textContent=t('輸入已變更，請再次保存以重新比較。','Nội dung đã đổi; lưu lại để so sánh mới.');return;}
+    if(choice==='cancel'){clearComparison();errorBox.textContent=t('已取消比較，輸入保留；尚未送出變更。','Đã hủy so sánh; giữ nội dung, chưa gửi thay đổi.');return;}
+    if(writeUncertain||JSON.stringify(model.actor)!==actorBaseline||target(model,payload)!==remoteText||!adapter.allowed(remote)){clearComparison();errorBox.textContent=t('版本或權限已變更，請再次保存以重新核對；尚未送出。','Phiên bản hoặc quyền đã đổi; lưu lại để đối chiếu, chưa gửi.');return;}
+    const chosen=structuredClone(merged);if(choice==='theirs')for(const key of conflicts)chosen[key]=structuredClone(peer[key]);
+    try{adapter.adopt(chosen,remote);}catch(error){clearComparison();errorBox.textContent=message(error.message);return;}
+    baseline=remoteText;baseGroups=structuredClone(peer);clearComparison();d.dataset.dirty='1';errorBox.textContent=t('已保留非衝突內容並套用選擇。請核對後再次按保存，屆時仍會重新檢查版本與權限。','Đã giữ phần không xung đột và áp dụng lựa chọn. Kiểm tra rồi bấm Lưu lần nữa; phiên bản và quyền vẫn được đối chiếu lại.');
+   };
+   if(!conflicts.length){apply('mine');return;}
+   comparisonPending=true;if(submitButton)submitButton.disabled=true;
+   const box=document.createElement('section');comparisonBox=box;box.className='ua-conflict';box.setAttribute('role','region');box.setAttribute('aria-label',t('整組衝突比較','So sánh xung đột theo nhóm'));
+   box.innerHTML=`<h4>${t('其他人已修改同一組設定','Người khác đã sửa cùng nhóm thiết lập')}</h4><p>${t('整組選擇；非衝突部分會保留。這次尚未送出，選擇後仍須再次保存。','Chọn cả nhóm; giữ phần không xung đột. Chưa gửi thay đổi; sau khi chọn cần bấm Lưu lần nữa.')}</p>${conflicts.map(key=>`<details open><summary>${h(adapter.labels[key])}</summary><p>${t('用我的會採用目前這整組輸入；用對方的會採用最新已存的整組設定。','Dùng của tôi sẽ lấy toàn bộ nhóm đang nhập; dùng của người khác sẽ lấy toàn bộ nhóm đã lưu mới nhất.')}</p><h5>${t('我的輸入','Nội dung của tôi')}</h5><pre style="max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere">${h(adapter.describe(key,mine[key]))}</pre><h5>${t('最新已存設定','Thiết lập đã lưu mới nhất')}</h5><pre style="max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere">${h(adapter.describe(key,peer[key]))}</pre></details>`).join('')}`;
+   for(const [choice,label]of [['mine',t('用我的','Dùng của tôi')],['theirs',t('用對方的','Dùng của người khác')],['cancel',t('取消','Hủy')]]){const button=document.createElement('button');button.type='button';button.dataset.uaConflictChoice=choice;button.textContent=label;button.onclick=()=>apply(choice);box.append(button);}
+   errorBox.before(box);
+  }
   const progress=text=>{const node=d.querySelector('.ua-progress');if(node)node.textContent=text;};
   if(writeUncertain){errorBox.textContent=message('WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED');if(submitButton)submitButton.disabled=true;}
   d.querySelector('form').onsubmit=async event=>{
-   event.preventDefault();validation.textContent='';if(d.dataset.saving||blocked)return;
+   event.preventDefault();validation.textContent='';if(d.dataset.saving||blocked||comparisonPending)return;
    if(writeUncertain){errorBox.textContent=message('WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED');if(submitButton)submitButton.disabled=true;return;}
    if(!sameIdentity(owner)){errorBox.textContent=message('LOGIN_REQUIRED');if(submitButton)submitButton.disabled=true;return;}
    clearResultNotice();errorBox.textContent='';
@@ -103,7 +133,7 @@
    let payload,acknowledged,committed=false;
    try{
     payload=build();baseline??=target(openedModel,payload);
-    if(target(model,payload)!==baseline){blocked=true;throw Error('TARGET_CHANGED');}
+    if(target(model,payload)!==baseline&&!d.uaConflict){blocked=true;throw Error('TARGET_CHANGED');}
     d.dataset.saving='1';d.ariaBusy='true';form.setAttribute('aria-busy','true');controls.forEach(c=>c.disabled=true);
     if(submitButton)submitButton.textContent=t('保存並核對中…','Đang lưu và đối chiếu…');
     progress(t('正在讀取最新資料核對，尚未送出變更…','Đang đọc dữ liệu mới nhất để đối chiếu, chưa gửi thay đổi…'));
@@ -111,7 +141,7 @@
     if(!sameIdentity(owner))throw Error('STALE_IDENTITY_RESPONSE');
     if(!d.isConnected||!d.open)throw Error('DIALOG_CLOSED');
     if(JSON.stringify(model.actor)!==actorBaseline){blocked=true;throw Error('ACTOR_CHANGED');}
-    if(target(model,payload)!==baseline){blocked=true;throw Error('TARGET_CHANGED');}
+    if(target(model,payload)!==baseline){if(d.uaConflict){reconcileTarget(payload);return;}blocked=true;throw Error('TARGET_CHANGED');}
     progress(t('保存並核對中…','Đang lưu và đối chiếu…'));
     const result=await send(payload);committed=true;
     if(!result.relogin){
@@ -135,14 +165,14 @@
        if(committed&&acknowledged!==undefined&&target(model,payload)===acknowledged){delete d.dataset.dirty;d.close();rememberResultNotice(owner,payload);paint();accountToast(t('已重新讀取確認保存結果','Đã đọc lại và xác nhận kết quả lưu'));}
        else if(committed){blocked=true;errorBox.textContent=message(acknowledged===undefined?'WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED':'TARGET_CHANGED');}
        else if(writeUncertain){errorBox.textContent=message('WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED');blocked=true;}
-       else if(target(model,payload)!==baseline){blocked=true;errorBox.textContent=message('TARGET_CHANGED');}
+       else if(target(model,payload)!==baseline){if(d.uaConflict)reconcileTarget(payload);else{blocked=true;errorBox.textContent=message('TARGET_CHANGED');}}
        else errorBox.textContent=message('READ_VERIFIED');
       }catch(e){errorBox.textContent=message(e.message);}finally{retry.disabled=false;}
      };errorBox.append(retry);
     }
    }finally{
     progress('');delete d.dataset.saving;d.ariaBusy='false';form.removeAttribute('aria-busy');controls.forEach(c=>c.disabled=previous.get(c));
-    if(submitButton){submitButton.textContent=submitLabel;submitButton.disabled=previous.get(submitButton)===true||blocked||writeUncertain||!sameIdentity(owner);}
+    if(submitButton){submitButton.textContent=submitLabel;submitButton.disabled=previous.get(submitButton)===true||blocked||comparisonPending||writeUncertain||!sameIdentity(owner);}
    }
   };
  }
@@ -158,6 +188,22 @@
   d.addEventListener('click',event=>{const b=event.target.closest('button');if(!b)return;let keys=[];if(b.dataset.uaReset)keys=[b.dataset.uaReset];else if(b.dataset.uaResetRow)keys=P.catalog.find(r=>r.id===b.dataset.uaResetRow).ops.map(op=>b.dataset.uaResetRow+'.'+op);else if(b.hasAttribute('data-ua-reset-table'))keys=P.accessKeys;else return;keys.forEach(k=>set(k,null));syncCells(d,draft);});
   bindSearch(d.querySelector('[data-ua-matrix-search]'),value=>{draft.matrixQuery=value;repaintCells();});setIndeterminate(d,draft);
   if(!creating&&!user.actions.edit)d.querySelector('[type="submit"]').hidden=true;
+   if(!creating&&user.actions.edit)d.uaConflict={
+    labels:{profile:t('姓名','Tên'),permissions:t('角色與個別權限（整組）','Vai trò và quyền riêng (cả nhóm)')},
+    groups:value=>({profile:{name:value.name},permissions:{role:value.role,accessOverrides:structuredClone(value.accessOverrides||{})}}),
+    describe:(key,value)=>key==='profile'?value.name:roleName(value.role)+'\n'+(Object.entries(value.accessOverrides).map(([cell,allowed])=>permissionLabel(cell)+' · '+(allowed?t('允許','Cho phép'):t('禁止','Cấm'))).join('\n')||t('全部沿用角色','Tất cả theo vai trò')),
+    read:()=>({profile:{name:d.querySelector('form').elements.name.value},permissions:{role:draft.role,accessOverrides:structuredClone(draft.accessOverrides)}}),
+    allowed:value=>value.actions?.edit===true&&!value.primary&&value.authMode!=='demo',
+    adopt(value,remote){
+     const next=structuredClone(value.permissions),nextChanges={};
+     for(const key of P.accessKeys){const own=Object.hasOwn(next.accessOverrides,key),had=Object.hasOwn(remote.accessOverrides||{},key);if(own!==had||own&&next.accessOverrides[key]!==remote.accessOverrides[key]){if(!editableNow(key,remote.editable,{...remote,role:next.role}))throw Error('FORBIDDEN');nextChanges[key]=own?next.accessOverrides[key]:null;}}
+     if(!fields()[next.role])throw Error('INVALID_ROLE');if(next.role!==remote.role&&!model.canRoles)throw Error('FORBIDDEN');
+     const confirmed=confirmFinalApproval&&nextChanges['approval.approve']===true&&model.reviewContext?.canConfirm===true;
+     for(const key of Object.keys(changes))delete changes[key];Object.assign(changes,nextChanges);confirmFinalApproval=confirmed;
+     Object.assign(initial,structuredClone(remote),{cells:{...(remote.configuredCells||remote.cells)}});Object.assign(draft,structuredClone(remote),next);draft.cells=previewCells({...draft,enabled:true},fields(),confirmed?{kind:'user',id:draft.id}:undefined);
+     const form=d.querySelector('form').elements;form.name.value=value.profile.name;form.role.innerHTML=roleOptions(next.role,false);form.role.value=next.role;repaintCells();d.uaReview();
+    },
+   };
   submit(d,()=>{if(P.invalidDependencies(draft.cells,dependencyOptions()).length)throw Error('VIEW_DEPENDENCY_REQUIRED');if(P.newDependencyIssues(draft.cells,initial.cells,dependencyOptions()).length)throw Error('EDIT_DEPENDENCY_REQUIRED');const form=d.querySelector('form').elements;const payload={action:creating?'create-user':'update-user',id:form.id.value,name:form.name.value,changes,...(confirmFinalApproval?{confirmFinalApproval:true}:{})};if(creating||model.canRoles&&!user.primary)payload.role=form.role.value;if(creating){payload.password=form.password.value;payload.confirmation=form.confirmation.value;}return payload;});
  }
  function syncCells(root,draft){root.querySelectorAll('[data-ua-cell]').forEach(input=>{const key=input.dataset.uaCell,own=Object.hasOwn(draft.accessOverrides||{},key);input.checked=draft.cells[key]===true;const included=input.closest('.ua-cell')?.querySelector('[data-ua-included]');if(included)included.hidden=!saveIncluded(draft,key);input.disabled=!editableNow(key,draft.editable,draft);const note=input.closest('.ua-cell')?.querySelector('[data-ua-source]');if(note){note.textContent=own?t('個別設定','Thiết lập riêng'):t('沿用角色','Theo vai trò');note.classList.toggle('ua-override',own);}const reset=input.closest('.ua-cell')?.querySelector('[data-ua-reset]');if(reset)reset.hidden=!own;});root.querySelectorAll('[data-ua-all]').forEach(input=>{const keys=P.catalog.find(r=>r.id===input.dataset.uaAll).ops.map(op=>input.dataset.uaAll+'.'+op).filter(k=>editableNow(k,draft.editable,draft));input.checked=keys.length>0&&keys.every(k=>draft.cells[k]);});root.querySelectorAll('[data-ua-summary]').forEach(e=>e.textContent=otherSummary(P.catalog.find(r=>r.id===e.dataset.uaSummary),draft));setIndeterminate(root,draft);root.uaReview?.();}
@@ -165,6 +211,20 @@
  function editRole(role=null){const creating=!role,id=role?.id||'custom_'+crypto.randomUUID(),allowed=P.roleEditable(id),draft={role:id,cells:creating?Object.fromEntries(P.accessKeys.map(k=>[k,false])):previewCells({id:'role',role:id}),editable:Object.fromEntries(P.accessKeys.map(k=>[k,model.canRoles&&allowed[k]]))},changes={},d=dialog(creating?t('建立角色','Tạo vai trò'):t('角色權限','Quyền vai trò'),`<label>${t('角色名稱','Tên vai trò')}<input name="name" value="${h(role?.name||'')}" required maxlength="40" ${model.canRoles?'':'readonly'}></label><label>${t('說明','Mô tả')}<textarea name="description" maxlength="300" ${model.canRoles?'':'readonly'}>${h(role?.description||'')}</textarea></label><label>${t('權限搜尋','Tìm quyền')}<input data-ua-role-search></label><div data-ua-matrix>${matrix(draft,false)}</div>`);
   const roleFields={...fields(),[id]:role||{id,views:[],permissions:[],access:Object.fromEntries(P.accessKeys.map(k=>[k,false]))}};let confirmFinalApproval=false;const rolePreview=()=>previewCells({id:'role',role:id},{...roleFields,[id]:{...roleFields[id],access:{...roleFields[id].access,...changes}}},confirmFinalApproval?{kind:'role',id}:undefined);draft.cells=rolePreview();d.querySelector('[data-ua-matrix]').innerHTML=matrix(draft,false);
   const initial=structuredClone(draft);d.classList.add('ua-permission-dialog');d.querySelector('[type=submit]').textContent=t('保存角色範本','Lưu mẫu vai trò');d.uaReview=()=>reviewChanges(d,draft,initial,false);d.uaReview();
+  if(!creating&&model.canRoles)d.uaConflict={
+   labels:{profile:t('角色名稱與說明','Tên vai trò và mô tả'),permissions:t('角色權限（整組）','Quyền vai trò (cả nhóm)')},
+   groups:value=>({profile:{name:value.name,description:value.description||''},permissions:{access:structuredClone(value.access||{})}}),
+   describe:(key,value)=>key==='profile'?value.name+'\n'+value.description:Object.entries(value.access).map(([cell,allowed])=>permissionLabel(cell)+' · '+(allowed?t('允許','Cho phép'):t('禁止','Cấm'))).join('\n'),
+   read:()=>({profile:{name:d.querySelector('[name="name"]').value,description:d.querySelector('[name="description"]').value},permissions:{access:{...roleFields[id].access,...changes}}}),
+   allowed:value=>model.canRoles===true&&value.id===id,
+   adopt(value,remote){
+    const next=value.permissions.access,nextChanges={},editable=P.roleEditable(id);
+    for(const key of P.accessKeys){const own=Object.hasOwn(next,key),had=Object.hasOwn(remote.access||{},key);if(own!==had||own&&next[key]!==remote.access[key]){if(!editable[key]||!model.canRoles)throw Error('FORBIDDEN');nextChanges[key]=own?next[key]:null;}}
+    const confirmed=confirmFinalApproval&&nextChanges['approval.approve']===true&&model.reviewContext?.canConfirm===true;
+    Object.assign(roleFields,fields());roleFields[id]=structuredClone(remote);for(const key of Object.keys(changes))delete changes[key];Object.assign(changes,nextChanges);confirmFinalApproval=confirmed;
+    initial.cells=previewCells({id:'role',role:id},roleFields);draft.cells=rolePreview();d.querySelector('[name="name"]').value=value.profile.name;d.querySelector('[name="description"]').value=value.profile.description;syncCells(d,draft);d.uaReview();
+   },
+  };
   bindSearch(d.querySelector('[data-ua-role-search]'),value=>{draft.matrixQuery=value;const box=d.querySelector('[data-ua-matrix]'),old=box.querySelector('.ua-matrix-wrap'),left=old.scrollLeft,top=old.scrollTop;draft.openRows=[...box.querySelectorAll('details[open]')].map(e=>e.dataset.uaDetails);box.innerHTML=matrix(draft,false);const next=box.querySelector('.ua-matrix-wrap');next.scrollLeft=left;next.scrollTop=top;setIndeterminate(d,draft);});d.onchange=e=>{const input=e.target,keys=input.dataset.uaCell?[input.dataset.uaCell]:input.dataset.uaAll?P.catalog.find(r=>r.id===input.dataset.uaAll).ops.map(op=>input.dataset.uaAll+'.'+op):[];for(const k of keys)if(editableNow(k,draft.editable,draft)){changes[k]=input.checked;if(k==='approval.approve')confirmFinalApproval=input.checked&&model?.reviewContext?.canConfirm===true;}draft.cells=rolePreview();syncCells(d,draft);};setIndeterminate(d,draft);if(!model.canRoles)d.querySelector('[type="submit"]').hidden=true;submit(d,()=>{if(P.invalidDependencies(draft.cells,dependencyOptions()).length)throw Error('VIEW_DEPENDENCY_REQUIRED');if(P.newDependencyIssues(draft.cells,initial.cells,dependencyOptions()).length)throw Error('EDIT_DEPENDENCY_REQUIRED');return {action:creating?'create-role':'update-role',id,name:d.querySelector('[name="name"]').value,description:d.querySelector('[name="description"]').value,access:changes,...(confirmFinalApproval?{confirmFinalApproval:true}:{})};},()=>selectedRole=id);
  }
  function more(user){const d=dialog(user.name+' · '+user.id,`<div class="ua-menu">${button(user.id===model.actor.id?t('修改密碼','Đổi mật khẩu'):t('重設密碼','Đặt lại mật khẩu'),'data-ua-password',!(user.actions.password||user.actions['password-own']))}${button(user.enabled?t('停用','Vô hiệu hóa'):t('重新啟用','Kích hoạt lại'),'data-ua-status',!user.actions.status)}${button(t('刪除','Xóa'),'data-ua-delete',!user.actions.delete)}${user.primary?`<small>${t('主要管理員保護','Bảo vệ quản trị viên chính')}</small>`:''}</div>`);d.querySelector('[type="submit"]').hidden=true;d.querySelector('[data-ua-password]').onclick=()=>{d.close();password(user);};for(const [selector,action]of [['[data-ua-status]','status-user'],['[data-ua-delete]','delete-user']])d.querySelector(selector).onclick=()=>{d.close();const confirmDialog=dialog(t('確認操作','Xác nhận thao tác'),`<p>${h(user.id)} · ${h(user.name)}</p><p>${action==='delete-user'?t('刪除帳號；保留業務資料、歷史與帳號代碼，不能用相同代碼重新建立。','Xóa tài khoản; giữ dữ liệu nghiệp vụ, lịch sử và mã tài khoản. Không thể tạo lại cùng mã.'):user.enabled?t('停用帳號並使既有登入失效。','Vô hiệu hóa tài khoản và phiên đăng nhập.'):t('重新啟用；使用者需重新登入。','Kích hoạt lại; người dùng cần đăng nhập lại.')}</p>`);submit(confirmDialog,()=>({action,id:user.id,...(action==='status-user'?{enabled:!user.enabled}:{})}));};}

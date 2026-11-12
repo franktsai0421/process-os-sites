@@ -5,7 +5,7 @@ for(const variant of contract.variants){for(const rule of variant.rules)Object.f
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 function raw(bytes){assert(Buffer.isBuffer(bytes),'Account cache proof requires raw Buffer');}
 function projectIndex(bytes,expectedHash){
- raw(bytes);if(expectedHash!==undefined)assert.equal(hash(bytes),expectedHash,'Account cache proof differs from pinned successor');const variant=contract.variants.find(v=>hash(bytes)===v.afterHash);
+ raw(bytes);if(expectedHash!==undefined)assert.equal(hash(bytes),expectedHash,'Account cache proof differs from pinned successor');bytes=require('./account-process-followup-source-contract.cjs').projectKnown(bytes,contract.index);const variant=contract.variants.find(v=>hash(bytes)===v.afterHash);
  assert(variant,'Account cache proof differs from pinned successor');assert.equal(bytes.length,variant.afterLength);
  let prior=Buffer.from(bytes);
  for(const {offset,before,after} of [...variant.rules].reverse()){
@@ -15,7 +15,7 @@ function projectIndex(bytes,expectedHash){
  assert.equal(prior.length,contract.beforeLength);assert.equal(hash(prior),contract.beforeHash,'Account cache inverse differs from main');
  return prior;
 }
-function projectKnown(bytes,file){raw(bytes);return file===contract.index&&contract.variants.some(v=>hash(bytes)===v.afterHash)?projectIndex(bytes):bytes;}
+function projectKnown(bytes,file){raw(bytes);bytes=require('./account-process-followup-source-contract.cjs').projectKnown(bytes,file);return file===contract.index&&contract.variants.some(v=>hash(bytes)===v.afterHash)?projectIndex(bytes):bytes;}
 function verifyRepository(directory=process.cwd()){
  const git=(...args)=>execFileSync('git',args,{cwd:directory});
  assert.equal(git('rev-parse',contract.base+'^{tree}').toString().trim(),contract.baseTree);git('merge-base','--is-ancestor',contract.base,'HEAD');

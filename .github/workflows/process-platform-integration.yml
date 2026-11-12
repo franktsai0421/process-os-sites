@@ -69,6 +69,8 @@ jobs:
       - run: node scripts/sites-source-check.mjs
       - name: Actual canvas Save, departure, conflict and original receipt contracts
         run: node --test tests/canvas-deletion-groups.test.mjs tests/canvas-save-conflict-choice.test.mjs tests/canvas-departure.test.mjs tests/canvas-manual-sync.test.mjs tests/canvas-pending-form-admission.test.mjs tests/process-editor-departure.test.mjs tests/multiuser-canvas-recovery-authority.test.mjs tests/multiuser-canvas-recovery-store.test.mjs tests/process-canvas-atomic-save-client.test.mjs tests/process-canvas-atomic-save-stack.test.mjs
+      - name: PROCESS same-page approved history and fresh draft permissions
+        run: node --test --test-concurrency=1 tests/process-master-history-ui.test.mjs tests/account-process-followup-source.test.cjs tests/module-product-retention-contract.test.mjs
       - name: Joint source origins and complete boundary preservation
         run: node --test tests/accounts-process-integration-source.test.mjs
       - name: Begin receipt ownership across stale idle runtimes
@@ -81,8 +83,9 @@ jobs:
         run: node --test tests/process-ipqc-source-adopt.test.mjs
       - name: Same-page Canvas approved history and read-only actor fences
         run: node --test tests/canvas-approved-history.test.mjs tests/canvas-silent-handoff.test.mjs tests/process-scripts-build.test.mjs
+      # Owner paused backup/restore rehearsals; retained snapshot test is not executed.
       - name: Page-specific ownership, independent permissions and approved-history fences
-        run: node --experimental-vm-modules --test tests/draft-review-policy.test.mjs tests/master-page-approved-history.test.mjs tests/master-page-approved-history-ui.test.mjs tests/master-page-retention-snapshot.test.mjs
+        run: node --experimental-vm-modules --test tests/draft-review-policy.test.mjs tests/master-page-approved-history.test.mjs tests/master-page-approved-history-ui.test.mjs
       - name: Actual isolated page routes and UI
         run: |
           node scripts/test-draft-page-boundaries.cjs

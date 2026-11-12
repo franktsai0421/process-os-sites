@@ -33,6 +33,9 @@ on:
       - 'public/process/master-data.js'
       - 'public/process/shared-draft-client.js'
       - 'tests/account-*-browser.mjs'
+      - 'tests/accounts-process-*-browser.mjs'
+      - 'tests/account-process-followup-source.*'
+      - 'scripts/account-process-followup-source-contract.*'
       - 'tests/account-*.test.mjs'
       - 'tests/helpers/native-worker-source.mjs'
       - '.github/workflows/account-permissions.yml'
@@ -62,6 +65,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run lint -- --format unix
       - run: node node_modules/typescript/bin/tsc --noEmit --incremental false
+      - name: Actual account and role grouped conflicts with current authority
+        run: node --test tests/account-conflict-groups.test.mjs tests/account-process-followup-source.test.cjs
       - name: Isolated account API and UI source regression
         run: node --experimental-vm-modules --test --test-concurrency=1 tests/account-priority-api.test.mjs tests/account-dialog-feedback.test.mjs tests/account-login-language.test.mjs tests/account-result-notice.test.mjs tests/account-policy-source-loader.test.mjs
       - name: Existing account authority and session protections
@@ -88,10 +93,11 @@ jobs:
           node scripts/test-feedback-cloud-admission.cjs
           node scripts/test-web-feedback.cjs "$RUNNER_TEMP/account-feedback"
           USER_PERMISSIONS_EVIDENCE="$RUNNER_TEMP/account-permissions" node scripts/audit-users-page-permissions.mjs
+      # Owner paused backup/restore rehearsals; retained snapshot test is not executed.
       - name: Isolated page permissions, platform review and Routine whole-page owners
         run: |
           node --experimental-vm-modules --test --test-concurrency=1 tests/account-final-approval.test.cjs tests/account-review-preview.test.cjs tests/account-lines-save-adoption.test.cjs tests/account-master-page-review.test.cjs tests/account-module-review-access.test.cjs tests/account-routine-save-ui.test.cjs tests/account-page-entry.test.cjs tests/account-page-source-proof.test.cjs tests/draft-review-policy.test.mjs
-          node --experimental-vm-modules --test --test-concurrency=1 tests/master-page-approved-history.test.mjs tests/master-page-approved-history-ui.test.mjs tests/master-page-retention-snapshot.test.mjs tests/routine-page-approved-history.test.mjs tests/routine-page-approved-history-ui.test.mjs tests/routine-page-review-policy.test.mjs
+          node --experimental-vm-modules --test --test-concurrency=1 tests/master-page-approved-history.test.mjs tests/master-page-approved-history-ui.test.mjs tests/routine-page-approved-history.test.mjs tests/routine-page-approved-history-ui.test.mjs tests/routine-page-review-policy.test.mjs
           node scripts/test-process-page-roles.cjs
           node scripts/test-master-page-runtime.cjs
           node scripts/test-master-page-ui.cjs
@@ -118,3 +124,5 @@ jobs:
         run: node tests/account-lines-view-browser.mjs
       - name: Joint desktop and mobile Canvas Save and silent departure
         run: node tests/accounts-process-mobile-browser.mjs
+      - name: Joint account grouped choices and PROCESS original-page history
+        run: node tests/accounts-process-followup-browser.mjs

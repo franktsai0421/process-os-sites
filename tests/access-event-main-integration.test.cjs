@@ -196,5 +196,5 @@ void test('approved-line view exact inverse retains the unchanged historical sou
 void test('approved-line inverse rejects corrupt offsets, spans, lengths and predecessor hash',()=>{
  const bytes=readSource(lineFile),code=fs.readFileSync('scripts/account-permission-source-contract.cjs','utf8'),contract=accountSource.contract;
  const corrupt=[c=>c.rules[0].offset++,c=>c.rules[0].after+=' ',c=>c.afterLength--,c=>c.beforeLength--,c=>c.beforeHash='0'.repeat(64)];
- for(const change of corrupt){const cloned=structuredClone(contract);change(cloned.files[lineFile]);const mod={exports:{}};require('node:vm').runInNewContext(code,{require:name=>name==='./account-permission-source-contract.json'?cloned:require(name),module:mod,Buffer});assert.throws(()=>mod.exports.projectFile(bytes,lineFile),assert.AssertionError);}
+ for(const change of corrupt){const cloned=structuredClone(contract);change(cloned.files[lineFile]);const mod={exports:{}};require('node:vm').runInNewContext(code,{require:name=>name==='./account-permission-source-contract.json'?cloned:require('node:module').createRequire(require('node:path').resolve('scripts/account-permission-source-contract.cjs'))(name),module:mod,Buffer});assert.throws(()=>mod.exports.projectFile(bytes,lineFile),assert.AssertionError);}
 });

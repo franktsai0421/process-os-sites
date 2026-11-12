@@ -7,7 +7,9 @@ const beforeIndex=execFileSync('git',['show',contract.base+':'+contract.index]);
 // raw blob bytes. Neither Windows checkout nor unit setup relaxes pinned hashes.
 // Before the candidate is committed, this deliberately refuses working-only code.
 const after=proof.canonicalCheckout(fs.readFileSync(contract.file),execFileSync('git',['show','HEAD:'+contract.file]));
-const afterIndex=proof.canonicalCheckout(fs.readFileSync(contract.index),execFileSync('git',['show','HEAD:'+contract.index]));
+const followup=require('../scripts/account-process-followup-source-contract.cjs');
+const rawIndex=proof.canonicalCheckout(fs.readFileSync(contract.index),execFileSync('git',['show','HEAD:'+contract.index]));
+const afterIndex=followup.projectKnown(rawIndex,contract.index);
 void test('Routine preimage and successor are exact raw bytes; verification never rewrites either',()=>{
  const prior=Buffer.from(before),current=Buffer.from(after);
  proof.assertPredecessor(before,contract.file);proof.assertSource(after,contract.file);
@@ -64,3 +66,5 @@ void test('Windows checkout EOL is separate from exact committed raw source; non
 void test('actual committed Routine successor and checkout attest against genuine merged-main ancestry',()=>{
  const result=proof.verifyRepository();assert.equal(result.status,'PASS_ROUTINE_FQC_SOURCE');assert.equal(result.sourceHash,require('../scripts/account-page-source-contract.cjs').contract.files[contract.file].afterHash);assert.equal(result.attestedSourceHash,contract.afterHash);assert.equal(result.base,contract.base);
 });
+
+void test('exact joint cache successor preserves the reviewed account index and original Routine closure',()=>{assert.deepEqual(followup.restore(rawIndex,contract.index),afterIndex);proof.assertIndexSuccessor(rawIndex,beforeIndex,contract.index);});

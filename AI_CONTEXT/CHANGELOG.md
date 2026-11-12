@@ -1,3 +1,7 @@
+# 2026-11-12 — Joint account choices and PROCESS original-page history
+
+The same #108 follow-up adds group comparison with fresh authority/revision checks and a readonly PROCESS approved-source view with fresh return to draft. [Full requirement matrix and acceptance limits](../docs/acceptance/accounts-process-joint-20261112/requirements.md). Keep old backups; stop new backup/recovery rehearsals; no deletion, live switch, merge or deployment. Earlier verification notes are historical.
+
 # 2026-11-12 — Independent account/process joint verification
 
 Latest isolated #103 fb62c259 + #104 15a5acb4 composition and exact limits: [joint verification](../docs/acceptance/accounts-process-joint-20261112/README.md). Source heads remain unchanged Draft; no live activation, schema/data/account change, merge or deployment. Older checkpoint statuses below remain historical.
