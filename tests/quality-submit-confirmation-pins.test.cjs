@@ -12,7 +12,7 @@ function fixture(kind){
  const moduleControl={workflow:flow,activeVersionId:null,versions:[{id:'draft-one',status:'draft',snapshot:clone(snapshot)}]};
  const rootControl=kind==='ab'||kind==='module'?{scopes:{A:moduleControl},moduleDraft:moduleControl}:moduleControl;
  let answer=()=> 'confirmed',form=false;const user={id:'actor-one'},delivery={};
- const g={console,Error,JSON,CustomEvent:class{constructor(type){this.type=type;}},clone,copy:clone,
+ const g={assertCurrentDisplay(){},root:null,historyDisplayEpoch:0,historyAllowsMutation:()=>true,console,Error,JSON,CustomEvent:class{constructor(type){this.type=type;}},clone,copy:clone,
   ui:{busy:false,versionId:'draft-one'},busy:false,control:rootControl,revision:11,readDenied:null,accessBlocked:null,modal:null,working:clone(snapshot),reason:'why',message:'',host:{isConnected:true,dataset:{activeTab:'quality-ipqc-ab'}},reviewHost:null,privateQuarantine:null,
   errorRecoveryPending:null,localSnapshot:null,localBase:null,localGeneration:null,pendingLocalSave:false,localChanges:[],mountSequence:1,loadSequence:0,mutationSequence:0,versionReadSequence:0,activeDeferredId:'',modalBase:null,modalGeneration:null,versionId:'draft-one',selectedVersionId:'draft-one',issues:[],readAckContext:null,
   user,epoch:1,deliveryCurrent:true,render(){calls.push({action:'render'});},draw(){calls.push({action:'draw'});},drawReview(){},reviewDraw(){},toast(){},selectDefaults(){},syncSelection(){},validateIqcPayload(){},

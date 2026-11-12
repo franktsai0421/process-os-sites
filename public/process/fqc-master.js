@@ -1603,7 +1603,7 @@
         adopt(read,false,true);if(snapshot&&editable())editable().snapshot=snapshot;syncBase=base;syncGeneration=result.receipt.generation;beginGenerationConflict=null;
         ui.lastError=null;return;
       }
-      if(localSaveAttempt&&result.receipt.operationId===localSaveAttempt.command.operationId){if(read.control?.workflow?.generation!==localSaveAttempt.generation)throw Error('STALE_GENERATION');retainLaterSaveInput(localSaveAttempt,read);}else{adopt(read);if(matrixOwner()&&!matrixBatch.pending){matrixBatch.rows.clear();matrixBatch.count=0;matrixChoiceRevision++;}}ui.lastError=null;
+      if(localSaveAttempt&&result.receipt.operationId===localSaveAttempt.command.operationId){if(read.control?.workflow?.generation!==localSaveAttempt.generation){if(!superseded)throw Error('STALE_GENERATION');adopt(read);localSaveAttempt=null;localRejection=null;}else retainLaterSaveInput(localSaveAttempt,read);}else{adopt(read);if(matrixOwner()&&!matrixBatch.pending){matrixBatch.rows.clear();matrixBatch.count=0;matrixChoiceRevision++;}}ui.lastError=null;
       confirmFormRecovery(result);
       if(superseded){client.acknowledgeSupersededRecovery(result);ui.recoveryNotice='FQC_PREVIOUS_GENERATION_CONFIRMED';}
     }catch(error){if(owned()){ui.lastError=error.message;if(overlay?.isConnected)showModalAlert(overlay,'error',error.message);else toast(displayDraftError(error));}}
