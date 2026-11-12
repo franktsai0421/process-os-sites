@@ -163,3 +163,14 @@ No SQL schema/migration, business records, permissions, production or deployment
 were modified. New R2 photo outcome metadata is additive and actor-scoped.
 Real hosted acceptance, physical devices, native IME and the historical BOSEN
 latency observations remain outside these synthetic checks.
+
+## First GitHub CI follow-up
+
+At uploaded head `6263b3d6`, A/B core CI passed 271/272. The sole failure was
+the extracted Save-caller fixture omitting `rejectForeignBatch`, a new
+dependency of the already-tested private DOM fence. The fixture now supplies
+an explicit quarantine-check port and asserts it executes before any authority
+read or command preparation; actual product code and all refusal conditions
+are unchanged. The full Save/revision-fence file then passed 23/23 locally,
+with targeted lint PASS. GitHub will independently re-run the corrected head.
+AB/C, PROCESS, Feedback and IPQC-C CI were already successful on `6263b3d6`.
