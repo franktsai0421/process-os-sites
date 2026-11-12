@@ -414,7 +414,7 @@
   {
     "file": "public/process/ipqc-ab.js",
     "beforeHash": "8328752afd1a7101005fb98266ece33dc8cc6904e429b001f7c56e30aa76cf1e",
-    "afterHash": "6ce48507daffb0ab75a9db1c8ef581eb71d4ac7c4def4580c581a096f364ca7b",
+    "afterHash": "23a7b5b053d3cb813bc07cac9af7a0a2d2ca2840b63b3881e9fd1f01cb7a4b56",
     "rules": [
       {
         "offset": 168,
@@ -762,17 +762,22 @@
         "after": "    if (!match) return;\n    if(['approved','superseded'].includes(match.v.status)){const id=control.moduleDraft?.versions.some(v=>v.id===requestedVersion)?requestedVersion:'legacy-ab:'+JSON.stringify([match.scopeKey,requestedVersion]);return approvedHistoryView?.openVersion(id);}\n"
       },
       {
-        "offset": 167516,
-        "before": "    local:()=>localDirty()||!!modal&&!modal.readonly,canSave:()=>permittedAction('edit'),canDiscard:()=>true,save:()=>saveLocalModule(),\n",
-        "after": "    local:()=>localDirty()||!!modal&&!modal.readonly,canSave:()=>historyAllowsMutation()&&permittedAction('edit'),canDiscard:()=>true,save:()=>saveLocalModule(),\n"
+        "offset": 166934,
+        "before": "",
+        "after": "  // Receipt-only photo obligations survive departure without retaining form/File RAM.\n  const photoDeparturePins=new WeakMap();let photoDepartureCoverage=null;\n  const photoDepartureTransport={\n    hasUnknown:()=>photoOperations().length>0,hasSyncFailures:()=>false,departureIdle:()=>!busy,\n    departureUnknown(){\n      if(busy||!localOwnerCurrent()||!permittedAction('edit'))return null;\n      const records=photoOperations();if(!records.length)return null;\n      const anchor=Object.freeze({kind:'photo-uploads'});\n      photoDeparturePins.set(anchor,{owner:actor(),epoch:window.ProcessSync?.identityGeneration?.(),records:JSON.stringify(records)});return anchor;\n    },\n    otherDeparturePending:peers=>moduleClient?.otherDeparturePending(peers)??window.sharedDraftDepartureBlocked?.()??false,\n    coverDeparture(anchor,check){\n      const pin=photoDeparturePins.get(anchor),current=()=>!!pin&&pin.owner===actor()&&pin.epoch===window.ProcessSync?.identityGeneration?.()&&pin.records===JSON.stringify(photoOperations())&&!busy&&check()===true;\n      if(!current())throw Error('DEPARTURE_CONTEXT_CHANGED');\n      const coverage={};photoDepartureCoverage=coverage;\n      return {current:()=>photoDepartureCoverage===coverage&&current(),release(){if(photoDepartureCoverage===coverage)photoDepartureCoverage=null;}};\n    },\n  };\n"
       },
       {
-        "offset": 167857,
+        "offset": 168699,
+        "before": "    unknown:()=>localPending(),failed:()=>false,unknownTransports:()=>[moduleClient,...legacyABClients()].filter(Boolean),unknownReady:()=>!busy,\n    local:()=>localDirty()||!!modal&&!modal.readonly,canSave:()=>permittedAction('edit'),canDiscard:()=>true,save:()=>saveLocalModule(),\n",
+        "after": "    unknown:()=>localPending(),failed:()=>false,unknownTransports:()=>[moduleClient,...legacyABClients(),photoDepartureTransport].filter(Boolean),unknownReady:()=>!busy,\n    local:()=>localDirty()||!!modal&&!modal.readonly,canSave:()=>historyAllowsMutation()&&permittedAction('edit'),canDiscard:()=>true,save:()=>saveLocalModule(),\n"
+      },
+      {
+        "offset": 169210,
         "before": "  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>saveLocalModule(),canLeave:()=>!busy,error:()=>navigationError,reset(){abandonLocalEditing();mutationLifetime++;mutationSequence++;activeMutation=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;pollTimer.cancel();host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class=\"ipqcab-page\" id=\"ipqcab-page\">IPQC-AB…</section>',\n",
         "after": "  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>saveLocalModule(),canLeave:()=>!busy,error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;abandonLocalEditing();mutationLifetime++;mutationSequence++;activeMutation=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class=\"ipqcab-page\" id=\"ipqcab-page\">IPQC-AB…</section>',\n"
       },
       {
-        "offset": 168934,
+        "offset": 170287,
         "before": "    async mount(element){host=element;const delivery=window.ProcessSync?.captureDelivery?.(),current=()=>host===element&&element.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));navigationError=null;try{if(await load()===false)return;if(!current())return;const q=new URLSearchParams(location.search),requested=q.get('ipqcScope'),requestedStage=q.get('ipqcStage');if(requested&&!sourceEntryApplied&&control.scopes[requested]){sourceEntryApplied=true;const s=control.scopes[requested];line=s.line;group=s.group;versionId=opened()?.id||active()?.id||'';working=opened()?.status==='draft'?clone(opened().snapshot):null;if(requestedStage)stage=requestedStage;selectDefaults();inputBasisOwner=inputOwner(transport());}draw();showPendingItem();scheduleRefresh();}catch(error){if(!current())return;navigationError=error;host.innerHTML=`<section class=\"ipqcab-card\"><p role=\"alert\">${h(error.message)}</p><button type=\"button\" id=\"ipqcab-retry\">${t('重試','Thử lại')}</button></section>`;\r\n",
         "after": "    async mount(element){host=element;const identity=actor(),epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.(),current=()=>actor()===identity&&window.ProcessSync?.identityGeneration?.()===epoch&&host===element&&element.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));navigationError=null;try{if(await load()===false)return;if(!current())return;const q=new URLSearchParams(location.search),requested=q.get('ipqcScope'),requestedStage=q.get('ipqcStage');if(requested&&!sourceEntryApplied&&control.scopes[requested]){sourceEntryApplied=true;const s=control.scopes[requested];line=s.line;group=s.group;versionId=opened()?.id||active()?.id||'';working=opened()?.status==='draft'?clone(opened().snapshot):null;if(requestedStage)stage=requestedStage;selectDefaults();inputBasisOwner=inputOwner(transport());}draw();await historyPermissionFlight;if(!current())return;showPendingItem();}catch(error){if(!current())return;navigationError=error;host.innerHTML=`<section class=\"ipqcab-card\"><p role=\"alert\">${h(error.message)}</p><button type=\"button\" id=\"ipqcab-retry\">${t('重試','Thử lại')}</button></section>`;\n"
       }

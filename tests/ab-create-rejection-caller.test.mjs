@@ -17,7 +17,7 @@ async function invalid(s, kind = 'item') {
       const row = e.snapshot.items.at(-1);
       row.inspectionMode = 'equipment';
       row.equipmentId = '';
-    } else e.snapshot.errors.at(-1).name = ''; // Invalid business field reaches the real server validator.
+    } else { e.snapshot.items[0].inspectionMode = 'equipment'; e.snapshot.items[0].equipmentId = ''; } // Invalid related item proves the entire error-create batch is rejected atomically.
   }, kind);
 }
 for (const kind of ['item', 'error'])
@@ -37,7 +37,7 @@ for (const kind of ['item', 'error'])
       if (kind === 'item') {
         e.snapshot.items.at(-1).inspectionMode = 'visual';
         e.snapshot.items.at(-1).standard = 'Corrected';
-      } else e.snapshot.errors.at(-1).name = 'Corrected error';
+      } else { e.snapshot.items[0].inspectionMode = 'visual'; e.snapshot.errors.at(-1).name = 'Corrected error'; }
     }, kind);
     assert.equal(writes(s).length, 1);
     await s.apiSave();
@@ -178,7 +178,7 @@ void test('clearing one rejected local Save cannot erase another transport failu
     const c = createSharedDraftClient({
         endpoint: '/api/ipqc-ab/workflow?scope=A%3AG&caseMetadata=1',
         actorId: ProcessSync.identity.id,
-        headers: () => ({ 'Content-Type': 'application/json' }),
+        headers: () => ({ 'Content-Type': 'application/json', 'X-Process-Expected-Actor':ProcessSync.identity.id }),
       }),
       g = await c.read();
     try {
@@ -255,7 +255,7 @@ for (const kind of ['item', 'error'])
     await s.page.evaluate((kind) => {
       const e = __ABTest.entry();
       if (kind === 'item') e.snapshot.items.at(-1).inspectionMode = 'visual';
-      else e.snapshot.errors.at(-1).stageCode = 'A-CUT';
+      else {e.snapshot.items[0].inspectionMode='visual';e.snapshot.errors.at(-1).stageCode = 'A-CUT';}
     }, kind);
     await s.apiSave();
     assert.equal(writes(s).length, 2);
@@ -288,7 +288,8 @@ for (const boundary of ['actor', 'epoch', 'delivery', 'operation'])
     await s.page.evaluate(
       () => (Storage.prototype.removeItem = originalRemove),
     );
-    await s.query();
+    if(boundary==='operation') await s.query();
+    else await assert.rejects(s.query(),/APPROVED_HISTORY_READ_ONLY/);
     assert.deepEqual(await s.keys(), keys);
     assert.equal(writes(s).length, 1);
     assert((await s.state()).localSent);

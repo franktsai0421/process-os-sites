@@ -70,6 +70,7 @@ async function setup(t) {
     return {
       page,
       c,
+      actorId:who,
       errors,
       go: async () => {
         await page.goto(
@@ -99,7 +100,7 @@ async function setup(t) {
       f.url.origin + '/api/ipqc-ab/workflow?caseMetadata=1&' + query,
       {
         method,
-        headers: { Origin: f.url.origin },
+        headers: { Origin: f.url.origin, 'X-Process-Expected-Actor':actor.actorId },
         ...(body ? { data: body } : {}),
       },
     );
@@ -118,8 +119,10 @@ async function setup(t) {
         sequence: seq,
         action,
         generation: flow.generation,
+        expectedRevision:flow.revision,
         input: { stateRevision: read.body.revision },
         ...detail,
+        input: { stateRevision: read.body.revision, ...detail.input },
       },
     });
   };

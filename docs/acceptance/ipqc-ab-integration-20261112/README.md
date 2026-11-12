@@ -34,10 +34,10 @@ and all 24 groups' 517 are different scopes, not an asserted arithmetic defect.
 
 | Scope | Candidate behavior | Verification / remaining boundary |
 |---|---|---|
-| Speed | Exact A/B permission phase; bounded aggregate read overlap; two concurrent photo workers; original receipt/authoritative readback preserved | Historical synthetic speed evidence belongs to c2e0bbf; current API/read tests and CI are separate. Real BOSEN latency acceptance NOT_RUN; no hosted speed claim. |
+| Speed | Exact A/B permission phase; bounded aggregate read overlap; two concurrent photo workers; original receipt/authoritative readback preserved | Current synthetic measurements below use byte-identical c2e0bbf runners. Real BOSEN latency acceptance NOT_RUN; no hosted speed claim. |
 | Completeness | Enabled, assigned, nondeleted items count missing standard/method/frequency/equipment; coverage gaps count per applicable product. Group label explicitly identifies scope. | `ipqc-ab-completeness.test.mjs`: 8 PASS, including 24 synthetic groups and actual module validator. Historical difference-of-one not independently reproduced. |
 | Shared draft/conflicts | One A/B module; disposable conflict plan, one mine/theirs/cancel decision; nonconflicting fields and stable-ID list edits survive. Cancel leaves RAM/base/Files/receipts unchanged. | Actual-handler + synthetic DOM two-actor tests. Confirmed revision rejection is retired before fresh comparison; no unknown payload resend. At most two automatic read continuations prevent unbounded churn. |
-| Delete/retain | Persistent tombstones; authorized mine restores one original ID/parent/product association, never a new item or entire snapshot | Existing exact guards, edit/create/restore gates, pending/generation/CAS and per-item identity/parent guards retained. A whole-set mine choice retains each affected original item within one atomic Save; it never restores a snapshot. |
+| Delete/retain | Persistent tombstones; authorized mine restores each selected original ID/parent/product association, never a new item or entire snapshot | Existing exact guards, edit/create/restore gates, pending/generation/CAS and per-item identity/parent guards retained. A whole-set mine choice retains each affected original item within one atomic Save; it never restores a snapshot. |
 | Photos | RAM preview; upload only during Save after comparison; original File pins, content hash/provenance, actor-bound upload outcomes and durable unknown-ACK markers | Conflict/cancel/revocation/unknown photo cases in actual-handler DOM suite. No C-only duplicate-photo claim. |
 | Navigation/background | Line/group/stage changes abandon unsent RAM/Files silently; persisted module and original sent operation markers remain. Existing actual module departure retained; no fixed polling introduced | Three actual filter-event tests plus inherited departure/receipt tests. Equipment picker filtering remains inside the open form. |
 | Permission/history | Edit permits Save; create/delete/restore/submit/withdraw independently checked. Approved versions are original-page readonly selections backed by immutable approval evidence | Synthetic normal signed actor sessions; permission/revocation and approved-history suites. Real employee accounts and hosted acceptance NOT_RUN. No rollback/restore UI added. |
@@ -53,8 +53,11 @@ that Git object was not transferred. Local import commit `0bf496c` records the
 verified source on unchanged main. Transfer JSON/patches/helpers are outside
 Git and are never part of this public PR.
 
-Remote readback on 2026-11-12: main `9fbba823`; #103 `2d2d79cb`, #104
-`429d3bfa`, both open Draft. Neither source branch is modified. The historical
+Latest remote readback on 2026-11-12: main `9fbba823`; #103 advanced from
+`2d2d79cb` to `fb62c259`, #104 from `429d3bfa` to `15a5acb4`. Both remain
+separate Drafts. The new deltas concern PROCESS shell/build fixtures and
+documentation, not additional A/B runtime fixes; they are not copied into this
+branch. Neither source branch is modified by this task. The historical
 UNKNOWN32 tree `5005cba09d970cec70334d6bd540db1b599858d2` GET returned 404;
 this does not establish non-execution and that mutation is not repeated.
 Shared dependencies of this A/B change and both PRs: approved-history,
@@ -74,6 +77,9 @@ Cloud follow-up fixes:
   query is read-only; 404, missing media, revoked access or wrong actor cannot
   authorize another PUT. Confirmed success allows the original File's photo ID
   to be reused; definitive pre-write format refusals permit a corrected attempt.
+- A photo-only unknown outcome participates in the existing departure protocol.
+  Leaving drops all form/File RAM while owner-scoped receipt metadata remains;
+  returning offers GET-only outcome verification without reupload or auto-Save.
 - Whole-set mine handles multiple deleted items with exact per-item ID, parent,
   source and permission checks in the same CAS; general history restore is not
   enabled. Nonconflicting peer fields and matrix associations remain.
@@ -98,3 +104,23 @@ versions, pending cases, photos and old receipt obligations are preserved.
 Test-only exact byte inverses preserve original main/history hashes and negative
 controls; they are never imported into runtime and do not declare current
 behavior equivalent to old behavior.
+
+## Current synthetic performance comparison
+
+Three samples per operation; actual handlers with in-memory SQLite/R2 and fixed
+10ms artificial I/O latency. Baseline is isolated main `9fbba823`, candidate
+runtime `145a1389`. Medians, not hosted/BOSEN acceptance:
+
+| Operation | main ms | candidate ms | revocation reads main → candidate |
+|---|---:|---:|---:|
+| Page read | 233.79 | 171.39 | 3 → 3 |
+| Permissions | 197.59 | 57.19 | 13 → 2 |
+| Module read | 452.00 | 156.51 | 26 → 4 |
+| Save | 373.69 | 168.12 | 13 → 4 |
+| Submit | 390.47 | 176.94 | 13 → 4 |
+| Withdraw | 400.39 | 177.19 | 13 → 4 |
+
+Actual compiled Worker + system Chromium, synthetic loopback, no artificial I/O
+delay: 27 samples (9 operations × 3); browser medians image Save 1,025ms, Submit
+280ms, Withdraw 245ms. The later departure change does not alter the measured
+Save/upload path. Historical 40s/18.3s/16.5s timings are separate observations.

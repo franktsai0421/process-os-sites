@@ -1,3 +1,7 @@
+## 2026-11-12 — A/B Cloud integration follow-up
+
+Received and verified all 41 source patches, reused main/old-branch changes selectively, and fixed photo-PUT revision races, actor-scoped original upload outcome queries and receipt-only departure. Whole-set mine preserves multiple original item IDs under existing authorization/CAS guards. Synthetic performance and validation limits: [A/B integration](../docs/acceptance/ipqc-ab-integration-20261112/README.md). No schema migration, merge, deployment or real-data writes.
+
 ## 2026-11-12 — Isolated IPQC A/B integration candidate
 
 A/B grouped Save conflicts, original-ID retention, approved readonly history, explicit-check performance and completeness parity are integrated on main #100. Latest filter policy discards unsent RAM/Files. No merge/deployment/live acceptance. [Sources, seven-scope coverage and test limits](../docs/acceptance/ipqc-ab-integration-20261112/README.md).

@@ -1289,11 +1289,29 @@
     }
   });
   let navigationError=null;
+  // Receipt-only photo obligations survive departure without retaining form/File RAM.
+  const photoDeparturePins=new WeakMap();let photoDepartureCoverage=null;
+  const photoDepartureTransport={
+    hasUnknown:()=>photoOperations().length>0,hasSyncFailures:()=>false,departureIdle:()=>!busy,
+    departureUnknown(){
+      if(busy||!localOwnerCurrent()||!permittedAction('edit'))return null;
+      const records=photoOperations();if(!records.length)return null;
+      const anchor=Object.freeze({kind:'photo-uploads'});
+      photoDeparturePins.set(anchor,{owner:actor(),epoch:window.ProcessSync?.identityGeneration?.(),records:JSON.stringify(records)});return anchor;
+    },
+    otherDeparturePending:peers=>moduleClient?.otherDeparturePending(peers)??window.sharedDraftDepartureBlocked?.()??false,
+    coverDeparture(anchor,check){
+      const pin=photoDeparturePins.get(anchor),current=()=>!!pin&&pin.owner===actor()&&pin.epoch===window.ProcessSync?.identityGeneration?.()&&pin.records===JSON.stringify(photoOperations())&&!busy&&check()===true;
+      if(!current())throw Error('DEPARTURE_CONTEXT_CHANGED');
+      const coverage={};photoDepartureCoverage=coverage;
+      return {current:()=>photoDepartureCoverage===coverage&&current(),release(){if(photoDepartureCoverage===coverage)photoDepartureCoverage=null;}};
+    },
+  };
   let moduleDeparture;const departureUploads=0;
   window.IPQCABUI = { navigation:{get departure(){return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({
     root:()=>host,flow:()=>control?.moduleDraft?.workflow,sharedDirty:()=>false,sharedOwned:()=>false,ownsRuntimeLocal:()=>true,
     context:()=>[mutationLifetime,actor(),window.ProcessSync?.identityGeneration?.()],current:()=>!accessBlocked,busy:()=>busy,
-    unknown:()=>localPending(),failed:()=>false,unknownTransports:()=>[moduleClient,...legacyABClients()].filter(Boolean),unknownReady:()=>!busy,
+    unknown:()=>localPending(),failed:()=>false,unknownTransports:()=>[moduleClient,...legacyABClients(),photoDepartureTransport].filter(Boolean),unknownReady:()=>!busy,
     local:()=>localDirty()||!!modal&&!modal.readonly,canSave:()=>historyAllowsMutation()&&permittedAction('edit'),canDiscard:()=>true,save:()=>saveLocalModule(),
     discardUnknown(){abandonLocalEditing();},discard(){abandonLocalEditing();},closeClean(){abandonLocalEditing();},dialogs:()=>[...document.querySelectorAll('.ipqcab-overlay')],
   }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>saveLocalModule(),canLeave:()=>!busy,error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;abandonLocalEditing();mutationLifetime++;mutationSequence++;activeMutation=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class="ipqcab-page" id="ipqcab-page">IPQC-AB…</section>',
