@@ -36,9 +36,11 @@ jobs:
       - run: npx tsc --noEmit --incremental false
       - run: node scripts/sites-ci-preflight.mjs
       - run: node --test tests/quality-integration-source-proof.test.cjs tests/access-event-main-integration.test.cjs tests/routine-fqc-source-contract.test.cjs
+      - run: node --test tests/navigation-adapters.test.mjs tests/shared-draft-receipt-recovery.test.mjs
+      - run: node scripts/test-fqc-matrix-layout.mjs
       - run: node scripts/test-quality-integration.mjs
       - run: npm run build
       - run: node --test tests/iqc-save-choice-compiled-http.test.mjs
       - run: node node_modules/playwright/cli.js install --with-deps chromium
-      - run: node --test --test-concurrency=1 tests/equipment-transfer-compiled.test.mjs
+      - run: node --test --test-concurrency=1 tests/equipment-transfer-compiled.test.mjs tests/fqc-single-save-browser.test.mjs tests/fqc-unknown-recovery-browser.test.mjs tests/iqc-unknown-browser.test.mjs
       - run: node tests/fqc-matrix-multiuser-browser.mjs
