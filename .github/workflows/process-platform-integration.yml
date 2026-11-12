@@ -70,7 +70,7 @@ jobs:
       - name: Actual canvas Save, departure, conflict and original receipt contracts
         run: node --test tests/canvas-deletion-groups.test.mjs tests/canvas-save-conflict-choice.test.mjs tests/canvas-departure.test.mjs tests/canvas-manual-sync.test.mjs tests/canvas-pending-form-admission.test.mjs tests/process-editor-departure.test.mjs tests/multiuser-canvas-recovery-authority.test.mjs tests/multiuser-canvas-recovery-store.test.mjs tests/process-canvas-atomic-save-client.test.mjs tests/process-canvas-atomic-save-stack.test.mjs
       - name: PROCESS same-page approved history and fresh draft permissions
-        run: node --test --test-concurrency=1 tests/process-master-history-ui.test.mjs tests/account-process-followup-source.test.cjs tests/module-product-retention-contract.test.mjs
+        run: node --test --test-concurrency=1 tests/process-master-history-ui.test.mjs tests/account-process-followup-source.test.cjs tests/accounts-process-inline-oracle.test.mjs tests/module-product-retention-contract.test.mjs
       - name: Joint source origins and complete boundary preservation
         run: node --test tests/accounts-process-integration-source.test.mjs
       - name: Begin receipt ownership across stale idle runtimes

@@ -66,7 +66,7 @@ jobs:
       - run: npm run lint -- --format unix
       - run: node node_modules/typescript/bin/tsc --noEmit --incremental false
       - name: Actual account and role grouped conflicts with current authority
-        run: node --test tests/account-conflict-groups.test.mjs tests/account-process-followup-source.test.cjs
+        run: node --test tests/account-conflict-groups.test.mjs tests/account-process-followup-source.test.cjs tests/accounts-process-inline-oracle.test.mjs
       - name: Isolated account API and UI source regression
         run: node --experimental-vm-modules --test --test-concurrency=1 tests/account-priority-api.test.mjs tests/account-dialog-feedback.test.mjs tests/account-login-language.test.mjs tests/account-result-notice.test.mjs tests/account-policy-source-loader.test.mjs
       - name: Existing account authority and session protections

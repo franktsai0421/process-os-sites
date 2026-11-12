@@ -2,13 +2,14 @@
 // account identities / independent primary sessions, ephemeral D1/R2 only.
 // No backup, restore, remote bindings, real credentials or live data.
 import assert from 'node:assert/strict';import fs from 'node:fs';import {createHmac,randomBytes} from 'node:crypto';
+import {readJointInlineValues} from './accounts-process-inline-oracle.mjs';
 import {fixture as processSeed} from './master-ab-auth-phase-fixture.mjs';
 assert.equal(process.env.CI,'true','Joint follow-up native acceptance requires authorized CI');
 const report={status:'RUNNING',cases:[],pageErrors:[],realData:false,realCredentials:false,remoteBindings:false,physicalDevice:false,ime:false,backup:false};
 let fixture,browser,stage='setup';const contexts=new Set();let serial=0;
 try{
  const {chromium}=await import('playwright'),{createRootEntryFixture}=await import('./root-entry-native-fixture.mjs'),secret=randomBytes(32).toString('hex');
- fixture=await createRootEntryFixture({recordOracle:true,syntheticBindings:{PROCESS_IMPORT_ENABLED:'0',PROCESS_OWNER_BOOTSTRAP_ENABLED:'0',PROCESS_SESSION_SECRET:secret,PROCESS_SESSION_REVOCATION_ENABLED:'1',DEMO_LOGIN_ENABLED:'false'}});browser=await chromium.launch({headless:true,args:['--disable-background-networking']});
+ fixture=await createRootEntryFixture({syntheticBindings:{PROCESS_IMPORT_ENABLED:'0',PROCESS_OWNER_BOOTSTRAP_ENABLED:'0',PROCESS_SESSION_SECRET:secret,PROCESS_SESSION_REVOCATION_ENABLED:'1',DEMO_LOGIN_ENABLED:'false'}});browser=await chromium.launch({headless:true,args:['--disable-background-networking']});
  const origin=fixture.url.origin;fs.mkdirSync('.sites-runtime/accounts-process-followup',{recursive:true});
  const seed=async(values)=>{assert.equal(contexts.size,0);await fixture.db.prepare('INSERT OR REPLACE INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').bind(JSON.stringify(values),'synthetic joint follow-up').run();};
  const users=()=>['frank','manager','target'].map(id=>({id,name:'Synthetic '+id,role:id==='target'?'staff':'admin',enabled:true,authMode:'platform',authEpoch:1}));
@@ -25,7 +26,7 @@ try{
   for(const client of [a,b])await client.page.locator('[data-ua-view="target"]').click();await a.page.locator('.ua-dialog[open] [name=name]').fill('Mine '+language);await b.page.locator('.ua-dialog[open] [name=name]').fill('Peer '+language);await b.page.locator('.ua-dialog[open] [type=submit]').click();await b.page.locator('.ua-dialog[open]').waitFor({state:'detached'});
   await a.page.locator('.ua-dialog[open] [type=submit]').click();const conflict=a.page.locator('.ua-dialog[open] .ua-conflict');await conflict.waitFor();assert.match(await conflict.innerText(),/Mine/);assert.match(await conflict.innerText(),/Peer/);assert.equal(a.posts.length,0);await conflict.locator('[data-ua-conflict-choice=cancel]').click();assert.equal(await a.page.locator('.ua-dialog[open] [name=name]').inputValue(),'Mine '+language);assert.equal(a.posts.length,0);
   await a.page.locator('.ua-dialog[open] [type=submit]').click();await conflict.waitFor();for(const choice of ['mine','theirs','cancel']){const button=conflict.locator('[data-ua-conflict-choice='+choice+']');await button.scrollIntoViewIfNeeded();assert(await button.isVisible());const rect=await button.boundingBox();assert(rect.x>=0&&rect.x+rect.width<=width+1);}
-  await conflict.locator('[data-ua-conflict-choice=mine]').click();assert.equal(a.posts.length,0);await a.page.locator('.ua-dialog[open] [type=submit]').click();await a.page.locator('.ua-dialog[open]').waitFor({state:'detached'});assert.equal(a.posts.length,1);const current=await fixture.readRecordValues();assert.equal(JSON.parse(current.platformUsers).find(user=>user.id==='target').name,'Mine '+language);
+  await conflict.locator('[data-ua-conflict-choice=mine]').click();assert.equal(a.posts.length,0);await a.page.locator('.ua-dialog[open] [type=submit]').click();await a.page.locator('.ua-dialog[open]').waitFor({state:'detached'});assert.equal(a.posts.length,1);const current=await readJointInlineValues(fixture.db);assert.equal(JSON.parse(current.platformUsers).find(user=>user.id==='target').name,'Mine '+language);
   await a.page.screenshot({path:'.sites-runtime/accounts-process-followup/user-'+language+'.png',fullPage:true});report.cases.push({kind:'user',language,width,actors:['frank','manager'],choicePosts:0,savePosts:1,cancelRetainedInput:true});await a.close();await b.close();
   stage='role-conflicts-'+language;await seed(values());const r1=await open('frank','users',width,language),r2=await open('frank','users',width,language);
   for(const client of [r1,r2]){await client.page.locator('[data-ua-page=roles]').click();await client.page.locator('[data-ua-role=staff]').click();await client.page.locator('[data-ua-edit-role]').click();}
