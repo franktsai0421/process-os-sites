@@ -765,7 +765,7 @@
           if(!rows.length||!rows.every(Boolean)||localConflictSignature(rows)!==intent.resolution.signature){
             intent.resolution=null;if(intent.dispatched)throw Error('LOCAL_BATCH_RECONFIRM');
             if(conflicts.length){rememberLocalConflict(conflicts[0],conflicts);waiting=true;return false;}
-            throw Error('CONFLICT_SET_CHANGED_RECONFIRM');
+            saveEntries=mergeLocalListEntries(saveEntries);saveScopes=localSaveScopes(saveEntries);checkPermissions(result.permissions);return true;
           }
           saveEntries=mergeLocalListEntries(planLocalConflictChoice(rows,intent.resolution.choice));saveScopes=localSaveScopes(saveEntries);checkPermissions(result.permissions);return true;
         }

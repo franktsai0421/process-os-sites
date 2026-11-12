@@ -371,13 +371,19 @@ for(const lang of ['zh','vi'])for(const cancel of ['cancel','escape'])void test(
  if(cancel==='escape')escapeAt(s,s.host.querySelector('[data-ab-conflict]'));else await s.click('cancel');old.click();assert.equal(s.requests(),calls);assert.equal(s.allocations.length,allocations);assert.deepEqual([...s.memory],markers);assert.deepEqual(s.f.snapshot(),db);assert.equal(JSON.stringify(s.state().localScopes.map(e=>[e.base,e.snapshot,e.restoreChoices])),journal);assert.equal(s.state().photos.get(id).file,file);
 });
 
-for(const change of ['value','additional','gone'])void test('whole-set choice rejects stale '+change+' comparison before allocation or write and retains original journal',async t=>{
+for(const change of ['value','additional'])void test('whole-set choice rejects stale '+change+' comparison before allocation or write and retains original journal',async t=>{
  const s=await ordinary(t),journal=JSON.stringify(s.state().localScopes.map(e=>[e.base,e.snapshot,e.restoreChoices]));
  if(change==='value')await s.peer(s.ids[0],'standard','Peer','Changed again');
  if(change==='additional')await s.peer(s.ids[1],'methodText','','New conflict');
  if(change==='gone')await s.peer(s.ids[0],'standard','Peer','Mine');
  const db=s.f.snapshot(),old=s.host.querySelector('[data-ab-conflict-choice="mine"]');await s.click('mine');assert.equal(s.posts().length,0);assert.equal(s.allocations.length,0);assert.equal(s.calls.filter(r=>r.method==='PUT').length,0);assert.deepEqual(s.f.snapshot(),db);assert.equal(JSON.stringify(s.state().localScopes.map(e=>[e.base,e.snapshot,e.restoreChoices])),journal);
  if(change==='gone'){assert.equal(s.state().message,'CONFLICT_SET_CHANGED_RECONFIRM');assert.equal(s.state().conflict,null);}else{assert.equal(s.host.querySelectorAll('[data-ab-conflict-entry]').length,change==='additional'?2:1);const active=s.state().conflict;old.click();assert.equal(s.state().conflict,active);await s.click('cancel');assert.equal(JSON.stringify(s.state().localScopes.map(e=>[e.base,e.snapshot,e.restoreChoices])),journal);}
+});
+
+void test('resolved same-value peer conflict continues the original Save once without another click and preserves other edits',async t=>{
+ const s=await ordinary(t);await s.peer(s.ids[0],'standard','Peer','Mine');const revision=s.f.snapshot().row.revision;
+ await s.click('mine');assert.equal(s.posts().length,1);assert.equal(s.posts()[0].status,200);assert.equal(s.allocations.length,1);assert.equal(s.f.snapshot().row.revision,revision+1);assert.equal(s.state().conflict,null);
+ assert.equal((await s.row(s.ids[0])).standard,'Mine');assert.equal((await s.row(s.ids[1])).methodText,'Other local field');assert.equal((await s.row(s.ids[1])).reason,'Other peer field');assert.equal(s.state().localScopes.length,0);assert.match(s.state().message,/已存取/);
 });
 
 void test('whole-set choice keeps newly changed nonconflicting peer fields without requesting another choice',async t=>{

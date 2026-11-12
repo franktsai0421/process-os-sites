@@ -70,7 +70,9 @@ Cloud follow-up fixes:
 - A successful photo PUT followed by revision drift automatically re-enters the
   same Save comparison, reusing acknowledged photos. Begin and unknown Save
   obligations remain independently fenced. New same-field conflicts require a
-  fresh whole-set choice; cancel retains File/base/journal with zero Save POSTs.
+  fresh whole-set choice; if a peer resolves the conflict to the same value, the
+  original Save continues once and retains other edits. Cancel retains
+  File/base/journal with zero Save POSTs.
 - Photo PUT now accepts an optional opaque upload operation ID. The immutable
   actor-scoped R2 outcome is verified before success. Lost ACKs persist only
   operation metadata in sessionStorage, never form/File restoration. Explicit
