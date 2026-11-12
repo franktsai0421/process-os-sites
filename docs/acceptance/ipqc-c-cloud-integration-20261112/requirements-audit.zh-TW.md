@@ -40,5 +40,5 @@
 1. 原 PR 有行為及廣泛整合證據，但缺少一份涵蓋此前完整要求的需求台帳：新增本文件，README提供單一入口。
 2. 補強既有 compare-save 腳本：兩個 C 產品同一次 Save、scope/generation不分裂、GET篩選不寫入、C Save後所有非 C model values 不變。原比較／ACL／CAS／pending／原ID測試全部保留。C讀取的saved是精簡metadata，測試以該ID查驗實際不可變合成快照，不借用已退役restore preview。
 3. 補強原生browser後發現C05的實際產品缺漏：已Finish內容在頁內切產品時被清空，原生red為0／預期1。修正只取消不再適用的編輯視窗，不清全C working、localChanges或localPhotos，讓不同產品與工段的內容同一次Save。補測pending照片跨篩選、單次Save、實際離頁捨棄，原UNKNOWN／晚ACK／衝突／歷史案例全保留。
-4. 原先台帳寫「未發現產品缺漏」的結論已撤回：C05現在明列缺漏、red、修正與green結果。C frontend SHA-256為 `0eb9537d819d3b61c789536a9b3beb42939a490dd90690c43cfeee95dd07b3c3`，C cache tag為 `20261112-c-scope2`。本輪最新型別/build及集中回歸另驗，不使用舊build假裝已驗新前端。
+4. 原先台帳寫「未發現產品缺漏」的結論已撤回：C05現在明列缺漏、red、修正與green結果。C frontend SHA-256為 `0eb9537d819d3b61c789536a9b3beb42939a490dd90690c43cfeee95dd07b3c3`，C cache tag為 `20261112-c-scope2`。本輪5df6f865產品碼已通過最新typed lint、非增量types、獨立乾淨clone guarded build與正確新bundle/reference核對；C53／離頁451／共用123／導航Begin歷史291／比較33及既有五組handler/gauge回歸通過。最終本機來源掃描613 commits／5392 blobs／2018檔與62個文件連結通過；PR新HEAD CI另驗，不使用舊build假裝已驗新前端。
 5. **未補成PASS的項目**：C02/C23的真人／測試站／實體裝置與實站延遲，和C24的舊UNKNOWN32。這些是明列的驗收／歷史未知，不以改程式、重送或模擬結果假裝完成。

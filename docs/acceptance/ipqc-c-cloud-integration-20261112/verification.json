@@ -282,7 +282,7 @@
       "1440/390 search/product/stage views retain C scope/generation/draftId; no Begin or mutation"
     ],
     "comparisonStatus": "PASS33 handler assertions; current backend unchanged",
-    "nativeStatus": "PENDING full strengthened native retention/photo/departure regression",
+    "nativeStatus": "PASS IPQCC_PROFILE=1 1735 rows, 1440/390: unsaved C100+C200 retained across filters, pending photo retained, one whole C Save, actual departure still discards silently; existing UNKNOWN/late ACK/history/conflict cases retained",
     "githubCI": "Evaluate current PR HEAD; f5c41544 prior five CI runs reused only where inputs unchanged",
     "unverified": [
       "real test-site latency",
@@ -311,7 +311,35 @@
       "diffCheck": "PASS",
       "typesAndBuild": "REUSED exact unchanged app/lib/public/package inputs; current GitHub CI reruns its original gates"
     },
-    "localValidation": "PENDING fresh runtime/source/navigation/lint/types/build after product fix",
-    "productSHA256": "0eb9537d819d3b61c789536a9b3beb42939a490dd90690c43cfeee95dd07b3c3"
+    "localValidation": {
+      "productCommit": "5df6f8658b5b0a64b852c8fecf8a2664ea8ec31c",
+      "typedLint": "PASS root and independent clean clone",
+      "typescript": "PASS nonincremental independent clean clone",
+      "CcoreSourceControllerTests": 53,
+      "departureTests": 451,
+      "sharedMediaBackgroundRoutineTests": 123,
+      "navigationBeginHistoryTests": 291,
+      "comparisonAssertions": 33,
+      "existingHandlerProjectionReadApplyGaugeScripts": 5,
+      "cleanCloneSourceControllerTests": 26,
+      "build": "PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK",
+      "CrawAsset": "exact new source bytes",
+      "CcompiledBundle": "shell-scripts.3928781c23ebfdfffb8e.js",
+      "CpreviousBundle": "shell-scripts.cad2668680b743b012bf.js",
+      "CcompiledBundleProof": "exact standard bundler output; new index references new bundle and not old bundle; C source included exactly once",
+      "initialExtraIndexCheck": "raw source index equality failed because the existing ordered CSS/script bundler intentionally rewrites it; derived bundle/content/reference verification passed without changing the build or any test",
+      "sourceScan": {
+        "status": "PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE",
+        "head": "5df6f8658b5b0a64b852c8fecf8a2664ea8ec31c",
+        "commits": 613,
+        "blobs": 5392,
+        "workingFiles": 2018,
+        "realDataOpened": false,
+        "credentialValuesReturned": false
+      },
+      "documentLinks": "PASS62"
+    },
+    "productSHA256": "0eb9537d819d3b61c789536a9b3beb42939a490dd90690c43cfeee95dd07b3c3",
+    "fixedRequirement": "C05 in-page filters preserve the same unsaved whole-C draft and pending photos; true departure discards unsent input"
   }
 }
