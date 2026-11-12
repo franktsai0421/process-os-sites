@@ -110,3 +110,24 @@ Windows `43176912352` 在 `5f8e39d` 的快照／授權階段停於舊 Routine un
 該停止點後的四模組編譯 Begin 原收據恢復亦以腳本支援的 isolated-desktop 模式通過 8 項（未偽造 CI）；FQC browser contract／實際 route／多人矩陣／review readiness 共 108 項通過。兩項漏列的編譯入口與恢復檢查及品質契約已加入專用 CI。型別與產品編譯內容仍沿用同一 runtime，最後以新提交重建／驗證來源及遠端 SHA。
 
 `f6463b5`／Windows `43192788579` 隨後在 observer 的直接來源契約失敗：本工作先前漏同步目的頁計數 profile 的相依測試，導致舊 DTO 完全相等斷言拒絕新增欄位。已保留原 `fbaa4277` blob／SHA 基線與整份 canonical 比對，只額外核准前述兩段精確資源 profile／場景變更；LF／CRLF、任意修改拒絕及 URL descriptor／原函式 identity／動態 receiver／回傳／同步 throw／bookkeeping 順序全部保留。舊四個計數仍逐欄完整相等，新增 profile 總數、target／capture、重複註冊與移除反例；與既有隔離／unload／spinner 共 98 項通過，直接相依已全數搜尋，observer 亦納入專用 CI。此修正不涉及產品或資料。
+
+
+## 本輪未完成項續修：跨平台路徑與隔離演練
+
+續用 Draft #105，開始前重新核對遠端為 `0c4b66142bad84db2dc17300560d7bc6d71ee00c`；該版七個必要 workflow 均成功（Windows `43199012741`、專用 `43199012836`），條件式 diagnostic skipped。這些是本輪前的已完成回執，沒有重送結果不明操作。新候選的最終 HEAD／CI 結果更新於同一 PR，不把舊 run 當新 HEAD 的通過證明。
+
+17 項需求與補充要求已逐列覆查。各自 Save／Submit／撤回、草稿隔離、設備選定目標原子 Save、三頁原頁唯讀歷史、同 ID／上層／矩陣保留、取消零寫入及原收據保護均重用上表既有實作；本輪沒有改寫品質 runtime 或共用權限／CAS／pending 規則。可獨立補齊的範圍與未完成界線如下。
+
+|項目／需求|本輪處理與程式／測試證據|狀態與界線|
+|---|---|---|
+|Linux snapshot adapter UNC 反例|`lib/snapshot-files.mjs` 在 native `path.resolve()` 前先拒絕 UNC／裝置前綴。原 `tests/snapshot-adapters.test.mjs` 一字未改，另加 `tests/snapshot-directory-paths.test.mjs`：反斜線、斜線、混合分隔符及裝置根均在任何檔案讀寫前拒絕；本機目錄正例及 symlink／junction 目標、上層拒絕均保留。|已修正 Linux 正規化將 UNC 改寫成本機路徑造成的漏判；沒有略過原負例、增加豁免或放寬路徑政策。Linux 與 Windows CI 均納入新反例，專用 Linux CI 亦執行完整原 adapter。|
+|F1／I8：500 與延遲隔離排查|`tests/quality-isolated-diagnostics.test.mjs` 透過真實 FQC／IQC route、正常合成登入、私有 SQLite／Map R2 各執行五輪讀取／Apply／Save，共 30 個量測樣本。正常請求皆 200；讀取故障回 503／`WORKFLOW_LOAD_FAILED`，寫入故障回 500／`WORKFLOW_WRITE_FAILED`；兩者均驗資料／物件／收據零變動。寫入失敗後只查原 operation ID，404 不當成功或可重送證明，後續 POST 數為零。|已完成可安全重現的注入故障與 request-count 排查；原品質程式未改。讀取為 1 GET，fixture Apply／Save 為前置 GET＋1 POST；時間包含 fixture 前置讀取及 handler／JSON，不含瀏覽器／網路，不作實站延遲、改善幅度或正式 500 根因。既有成對故障 58 組再驗通過；不支援的命令及無效權限來源仍 fail closed，沒有為消除 500 降低保護。|
+|I1：IQC 缺漏數字|同一實際路由隔離診斷驗證合成缺漏 `0→1→0`，確認缺漏定位到原 item ID／name 欄位。`scripts/test-iqc-content-issues.cjs` 再驗兩語／三 viewport 的分類、定位、取消、保留未送輸入及非阻擋提示；537／6 為原合成備註案例，不能轉寫成現場數字。|可開發／合成測試已補；未取得合法可用、固定版本的現場 IQC 資料，真實缺漏分類／筆數仍待驗，未補填業務資料。|
+|R8：資料切換準備與隔離演練|擴充 `tests/routine-page-cutover-preparation.test.cjs`：正常合成舊文件 Save／Submit／另一 reviewer 核准後，離線 prepare 保留完整 document ID／核准內容／歷史／收據，沒有偽造 Save 或案件。直接改核准文件仍 `FORMAL_DOCUMENT_IMMUTABLE`；只允許明確 Save 新計畫。實際整頁 route 的 inline／immutable-records 兩種格式均驗 GET 零切換、Save 不送審、原歷史保留及已知成功收據重播零新增寫入；pending／已轉換仍拒絕。|準備工具及四項隔離演練通過；僅在新建記憶體／私有 SQLite／Map R2 fixtures 安裝候選。未執行正式 schema／資料切換、未匯入私人業務包，也未重送 UNKNOWN。|
+|其餘 13 項與補充要求|完整程式與測試索引沿用上方 17 列；本輪再驗 `quality-module-command-isolation`、`quality-final-session-fence`、FQC write failure、IQC verified readback 及路徑邊界的直接相依。|既有開發完成項保留；真人兩人操作、實體手機、真正 IME、跨機與現場資料／效能仍 NOT_RUN，不由本輪模擬替代。|
+
+本輪 Linux 集中：snapshot／直接相依的 Node 測試 27 項（包含完整原 adapter 的獨立案例）；品質集中 64 項；新增寫入故障後診斷再測 2 項；集合有重疊，不加總覆蓋率。原 adapter 的完整 credential scrub、來源漂移、checksum、空目標／remote binding 拒絕、串流完整性與原 UNC 負例均執行成功。FQC 成對故障 58 組、IQC 兩語／三 viewport 通過；最終 lint／型別／build／來源預檢及遠端新 HEAD CI 以 PR 收尾回執為準。
+
+本機單獨診斷的 fixture＋handler 中位數：FQC read／Apply／Save 約 5.02／22.13／23.61 ms，IQC 約 16.35／34.22／32.90 ms（每項五樣本）。此為同輪隔離程序觀測，非真人延遲、正式站速度或前後改善比較；CI 會另輸出自己的樣本，不挪用本機數字。
+
+仍待現場證據：正式 FQC 500 的固定候選、已遮蔽 request ID／錯誤階段及可合法使用的重現資料；IQC 固定來源版本的真實缺漏筆數與實際操作計時；真人／實體手機／IME 驗收。這些項目不阻擋已授權的獨立修正，但不能標為完成。沒有合併、部署、真人帳號、正式資料或正式切換操作。
