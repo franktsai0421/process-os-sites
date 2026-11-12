@@ -104,3 +104,7 @@ Windows `43176912352` 在 `5f8e39d` 的快照／授權階段停於舊 Routine un
 補充隔離測試以實際兩個 route、正常合成登入、private SQLite／Map R2 執行。FQC→IQC 與 IQC→FQC 兩種順序均驗證其他所有值逐 byte 不變；同時待審案件、saved ID 分離，錯模組撤回 409 `CASE_NOT_PENDING` 且完整 state／immutable objects 不變；另保留 pending Save 拒絕，逐模組撤回後修改／再儲存／再送審／由獨立 reviewer 核准亦互不影響。與 unload／spinner 共 83 項通過。設備的桌面／手機編譯測試與三頁歷史測試沿用已完成成果，未重新製作功能。
 
 目前分開三層：**已上傳程式**以 PR 當前遠端 SHA 為準；**合成測試**只標示實際通過的候選／run，本次 Windows 失敗已定位修正，修正候選仍須新的 CI；**尚未真人測試站驗收**包括實體手機／IME、真人兩人操作、正式 500 根因、實站延遲、實際 IQC 缺漏數字與正式 layout 資料切換。沒有合併、部署、正式資料／帳號操作。
+
+後續 `ad1d3a6`／Windows run `43184445003` 已通過原 unload 失敗點及整合入口，另於目的頁資源斷言停在 97≠94：舊測試把 dashboard 基準直接與仍掛載 IQC 歷史 owner 的頁面比較。僅修測試：新增逐事件 profile，嚴格驗證 IQC 當前頁僅多各一個 delivery-invalidated／sync-status／pagehide listener，回 dashboard 必須與原基準完全一致，再掛載不得累積；原 interval／timeout／object URL／無 document reload、撤權與零非授權 mutation 斷言保留。實際編譯瀏覽器全流程已通過 94→97→94→97，沒有發現產品監聽洩漏；此測試已加入專用 CI，未增加產品權限或放寬資源上限。
+
+該停止點後的四模組編譯 Begin 原收據恢復亦以腳本支援的 isolated-desktop 模式通過 8 項（未偽造 CI）；FQC browser contract／實際 route／多人矩陣／review readiness 共 108 項通過。兩項漏列的編譯入口與恢復檢查及品質契約已加入專用 CI。型別與產品編譯內容仍沿用同一 runtime，最後以新提交重建／驗證來源及遠端 SHA。
