@@ -1,3 +1,7 @@
+## 2026-11-12 — Composed inverse negative-fixture boundary
+
+The source-EOL negative fixture could replace an obsolete raw departure span without changing any bytes after the exact source projection evolved. Mutate each uniquely present span at the actual projected inverse input instead, after unchanged HEAD admission. Changed/missing/duplicate cases now prove an effective mutation and must fail the original exact-anchor check for both LF and CRLF. Keep production code, projection helpers, inverse JSON and all historical/control hashes unchanged. Native step 36 and later validation remain separate.
+
 ## 2026-11-12 — Silent Canvas navigation correction
 
 Reproduce CANVAS_REVIEW_CHANGED on #103 stage departure using actual controllers and isolated ports. Redraw a surviving authorized source only after releasing its checked abandonment lease, preserving original target/epoch and UNKNOWN protections. Retain genuine public preimages through exact source inverses and wire the 36 new handoff regressions into existing process-platform CI. Local targeted tests, source proofs, normal lint/TypeScript and guarded build pass; later source/synthetic steps 37, 48 and 51 pass, while 45/50 have source-only coverage. Compiled browser/Worker and Windows acceptance remain unrun locally. No UNKNOWN32 replay, merge, deployment or true-data mutation.
