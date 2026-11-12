@@ -120,7 +120,6 @@ async function setup(t) {
         action,
         generation: flow.generation,
         expectedRevision:flow.revision,
-        input: { stateRevision: read.body.revision },
         ...detail,
         input: { stateRevision: read.body.revision, ...detail.input },
       },
