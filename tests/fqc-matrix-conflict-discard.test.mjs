@@ -36,7 +36,11 @@ async function conflicted(f, intercept) {
   const client = ui.c.__fqcTest.transport(),
     rejections = [],
     send = client.sendPrepared;
-  client.sendPrepared = (command, options) => {
+  let raceOnce = true;
+  client.sendPrepared = async (command, options) => {
+    // Commit a real peer operation after fresh comparison/prepare, before POST.
+    // This retains post-dispatch rejection coverage rather than bypassing the chooser.
+    if (raceOnce) { raceOnce = false; await peerEdit(); }
     const flight = send(command, options);
     void flight.catch((error) => rejections.push({ command, error }));
     return flight;
@@ -50,7 +54,7 @@ async function conflicted(f, intercept) {
   await ui.main.querySelector('[data-matrix-item="item"]').click();
   const peer = f.realm('other');
   await peer.client.read();
-  await peer.client.command(ui.library.workflow.generation, 'apply', {
+  const peerEdit = () => peer.client.command(ui.library.workflow.generation, 'apply', {
     patches: [
       {
         op: 'set',
@@ -64,9 +68,10 @@ async function conflicted(f, intercept) {
   });
   await assert.rejects(
     ui.c.__fqcTest.sharedAction('save'),
-    /DEPENDENCY_CHANGED_RECONFIRM/,
+    /DRAFT_REVISION_CHANGED_RECONFIRM/,
   );
   assert.equal(posts(f).at(-1).status, 409);
+  assert.equal(posts(f).at(-1).result.error, 'DRAFT_REVISION_CHANGED_RECONFIRM');
   assert.equal(client.hasUnknown(), false);
   assert.equal(client.hasSyncFailures(), true);
   return { ui, peer, client, rejections };
@@ -75,13 +80,29 @@ async function discard(ui) {
   const lease = await ui.c.FQCMasterUI.navigation.departure.abandon();
   lease.release();
 }
-async function reconcile(ui) {
-  const button = ui.main.querySelector('#fqc-resolve-conflict');
-  assert(button);
-  await button.click();
+async function completeComparison(ui, choice = 'cancel') {
+  for (let i = 0; i < 1000 && ui.c.__fqcTest.ui.saving; i++) {
+    const button = ui.doc.querySelector(`[data-fqc-save-choice="${choice}"]`);
+    if (button) { await button.click(); break; }
+    await new Promise(resolve => setTimeout(resolve, 5));
+  }
   await idle(ui);
 }
-void test('confirmed field conflict plus matrix choices can be abandoned locally; subsequent Save preserves peer data', async () => {
+async function reconcile(ui, choice = 'cancel') {
+  const button = ui.main.querySelector('#fqc-resolve-conflict');
+  assert(button);
+  const local = plain(ui.c.__fqcTest.selected().snapshot),
+    base = plain(ui.c.__fqcTest.syncBase()), stored = plain([...ui.records]);
+  const flight = button.click();
+  await completeComparison(ui, choice);
+  await flight;
+  if (choice === 'cancel') {
+    assert.deepEqual(plain(ui.c.__fqcTest.selected().snapshot), local);
+    assert.deepEqual(plain(ui.c.__fqcTest.syncBase()), base);
+    assert.deepEqual(plain([...ui.records]), stored, 'fresh compare/cancel must not persist a snapshot or replacement operation');
+  }
+}
+void test('confirmed post-comparison revision rejection plus matrix choices can be abandoned; next Save preserves peer data', async () => {
   const f = await routeFixture();
   try {
     const { ui, client } = await conflicted(f),
@@ -170,11 +191,15 @@ void test('receipt marker cleanup failure remains unknown and cannot be relabele
     await ui.c.__fqcTest.sharedAction('begin');
     await ui.c.__fqcTest.recoverySession().ready;
     await ui.main.querySelector('[data-matrix-item="item"]').click();
-    await f.mutate((v) => {
-      const q = JSON.parse(v.qualityMasterControl);
-      q.libraries.fqc.workflow.pendingId = 'pending';
-      v.qualityMasterControl = JSON.stringify(q);
-    });
+    const transport = ui.c.__fqcTest.transport(), send = transport.sendPrepared;
+    transport.sendPrepared = async (command, options) => {
+      await f.mutate((v) => {
+        const q = JSON.parse(v.qualityMasterControl);
+        q.libraries.fqc.workflow.pendingId = 'pending';
+        v.qualityMasterControl = JSON.stringify(q);
+      });
+      return send(command, options);
+    };
     ui.c.sessionStorage.removeItem = () => {
       throw Error('REMOVE_DENIED');
     };
@@ -196,7 +221,7 @@ void test('receipt marker cleanup failure remains unknown and cannot be relabele
     f.close();
   }
 });
-void test('known rejection blocks subsequent Save until explicit discard; later unknown receipt does not resend', async () => {
+void test('known rejection permits fresh comparison cancellation; later unknown receipt does not resend', async () => {
   const f = await routeFixture();
   let armed = false,
     lost = false;
@@ -212,10 +237,13 @@ void test('known rejection blocks subsequent Save until explicit discard; later 
       return send();
     });
     const before = posts(f).length;
-    await assert.rejects(
-      ui.c.__fqcTest.sharedAction('save'),
-      /DEPENDENCY_CHANGED/,
-    );
+    const local = plain(ui.c.__fqcTest.selected().snapshot), base = plain(ui.c.__fqcTest.syncBase());
+    const retry = ui.c.__fqcTest.sharedAction('save');
+    await completeComparison(ui);
+    assert.equal(await retry, false);
+    assert.deepEqual(plain(ui.c.__fqcTest.selected().snapshot), local);
+    assert.deepEqual(plain(ui.c.__fqcTest.syncBase()), base);
+    assert.equal(client.hasSyncFailures(), true);
     assert.equal(posts(f).length, before);
     await discard(ui);
     armed = true;
@@ -383,7 +411,7 @@ void test('conflict reconciliation is single-flight and a failed GET can be retr
     assert.equal(client.hasSyncFailures(), true);
     armed = false;
     await reconcile(ui);
-    assert.equal(client.hasSyncFailures(), false);
+    assert.equal(client.hasSyncFailures(), true);
     assert.equal(posts(f).length, before);
     assert.equal(
       ui.c.__fqcTest.selected().snapshot.errors[0].name,

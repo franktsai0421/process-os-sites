@@ -1,0 +1,33 @@
+# FQC explicit Save conflict choices — local integration
+
+Base: `b06394ce0065849733399423afd2d906761d69c1`. FQC and IQC remain separate module drafts. This integration reuses the FQC candidate `503b41b` and the quality explicit-read predecessor; final combined validation belongs to the delivered local commit, not those predecessors.
+
+FQC form completion and matrix selection remain in page memory. Search/filter retain input; module departure abandons unsent input without a prompt. There is no scheduled draft read or synchronization. An explicit Save freshly compares the original local basis, local intent and complete current shared working state. Independent fields/cells from both sides survive; equal changes converge. True conflicts use one Chinese/Vietnamese Mine / Theirs / Cancel dialog for the entire conflict set. Cancel preserves RAM and its comparison basis. A chosen resolution continues the same Save automatically.
+
+After a choice, a fresh authorized GET rechecks the shown remote data. Changed content or authority recomputes the complete conflict set before preparing any command; generation, draft identity, pending and owner changes refuse safely. Final expected revision/CAS still rejects races after preparation without retrying the write. A comparison token is private, immutable, client-bound and one-use; intervening requests retire it.
+
+Supported same-ID current-draft soft-deletion revival uses exact tombstones, current draft/revision/generation and the existing create permission. Missing rows or unsupported structures are not reconstructed. Permission, enabled equipment/product, reference, pending/read-only, numbering and atomic Save checks remain. No schema, migration, conversion, historical rewrite or data deletion occurs.
+
+The first identified Begin remains receipt-backed. A client-private proof permits departure only while its authority read is still unsent; retirement releases only that attempt's reservation. Dispatched/UNKNOWN Begin and Save retain original journals, generation and receipt-only recovery, including receipt 404 and late callbacks. The original write is never resent automatically.
+
+Functional acceptance uses the complete production caller/shared client and actual HTTP handlers with synthetic DOM, in-memory SQLite/R2 and controlled clocks. See `tests/fqc-save-choice.test.mjs`, `tests/fqc-compared-save-client.test.mjs`, `tests/fqc-revive-save.test.mjs`, `tests/fqc-save-choice-navigation.test.mjs` and `tests/quality-master-explicit-refresh.test.mjs`; the handoff records exact commands, result counts and log hashes. Historical negative controls use verified local Git source objects.
+
+Shared integration hunks are limited to `public/process/shared-draft-client.js`: exact FQC/IQC opt-ins, comparison lease/dispatch, compared Begin unsent retirement and exact revival rejections. Final combined cache tags, CI registration and source-inverse pins are owned by the integration coordinator. This module commit deliberately does not claim those combined-source gates. Native desktop/iPhone, real accounts/data, remote CI, publication and deployment remain unrun. Existing legacy recovery paths outside this Save adapter remain separate.
+
+
+## Same-page filters and structural boundary follow-up (2026-11-09)
+
+`tests/fqc-filter-and-parent-choice.test.mjs` drives the actual FQC caller and workflow handler with synthetic DOM/SQLite/R2. Line/category/search, error-row selection and the matrix open/close control preserve the same typed overlay and File input node, local comparison basis and journal, without reads/writes during the filter action. The File-node checks preserve a native File selection but do not exercise FQC image decoding or claim native browser acceptance. Along with IQC local editing and existing choice/compared-client regressions, the independently committed form/structure suite passed 127/127.
+
+When a peer soft-deletes the current child and its matching current parent, Mine may revive both exact tombstones under existing create permission, generation/revision and atomic Save checks. Both sides' nonconflicting fields remain. Missing/hard-removed ancestors, inconsistent references, identity collisions and unsupported structural changes remain conservative refusals rather than reconstructed history.
+
+One known incomplete conflict semantic is explicit: if local input changes payload and then deletes the row, and the peer also deletes it, the payload is no longer silently discarded. One global chooser is shown; Mine returns `FQC_STRUCTURE_RECHECK_REQUIRED` with zero Save and intact local input/basis. Theirs saves independent local edits while keeping the peer deletion/payload; Cancel writes nothing and preserves RAM. This is protective refusal, not completion of Mine-and-save for every structure/field. No data scope, migration, permission or read-only rule changed.
+
+
+## Stable media identities and late accepted basis
+
+FQC `mediaItems` now safely preserves distinct stable-ID photo edits/appends in the same Save. The three arrays must contain unique nonempty stable IDs with preserved existing order. Each photo record is atomic; same-ID edits/removals still conflict globally. Missing/mixed/duplicate IDs, generated identities for legacy missing-ID photos, reordering and insertions before retained originals stay conservative whole-array units. No legacy identity is invented. The final HTTP command retains one exact current-array guard/set patch per affected row, existing revision/CAS and original authority checks.
+
+The saved prefix now records the actual accepted/chosen snapshot. On normal ACK or original receipt recovery, later local photo deltas merge by stable ID over the verified readback without losing peer photos or already-accepted peer edits. Later-touched scalar/group fields and matrix cells also retain the accepted value as their comparison basis; a later peer update does not become implied user consent. The actual predecessor scalar negative failed with `Peer newer name` as its incorrect basis; both candidate ACK/receipt tests retain `Accepted name` and require the next global choice. Unsupported late legacy/order photo changes refuse safely instead of applying a destructive whole-array replacement.
+
+Final affected suite: **273/273 PASS**, including `tests/quality-stable-photo-merge.test.mjs`; targeted lint, TypeScript no-emit and diff checks PASS. The previously documented edit-then-delete/peer-delete Mine refusal remains incomplete. Equipment/frequency coupled groups and ordered supplier lists remain outside per-photo merging. Source inverses, cache tags and CI registration remain integration work. No data migration, native browser completion, external write or unknown-command resend is claimed.

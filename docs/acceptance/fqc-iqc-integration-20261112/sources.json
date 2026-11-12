@@ -1,0 +1,255 @@
+{
+  "base": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+  "refs": [
+    {
+      "ref": "github/cloud/equipment-draft-rights-29102026",
+      "commit": "9314dfd6a2f1ea58215382515509a19e83a5d755",
+      "in_main": false
+    },
+    {
+      "ref": "github/cloud/fqc-dependencies-29102026",
+      "commit": "0e66075a69f848423facc10a8db0caee64f2284c",
+      "in_main": false
+    },
+    {
+      "ref": "github/cloud/fqc-draft-rights-29102026",
+      "commit": "f81948ecd82d250bb1285e7aa3ed7041c540a660",
+      "in_main": false
+    },
+    {
+      "ref": "github/cloud/ipqc-ab-draft-rights-29102026",
+      "commit": "385add4bf8bec279c2626b32db01aad1d4666485",
+      "in_main": false
+    },
+    {
+      "ref": "github/cloud/iqc-draft-rights-29102026",
+      "commit": "343b2cb9ec513c4e3ad0a94fe81b2c6991b5b999",
+      "in_main": false
+    },
+    {
+      "ref": "github/cloud/permissions-review-polish-29102026",
+      "commit": "4b8c0d2ba5e6642f67eb13725a4c5212f4f5c9e6",
+      "in_main": false
+    },
+    {
+      "ref": "github/cloud/permissions-verified-29102026",
+      "commit": "384037d21329921ba8f6eb2367a6c39936110e5e",
+      "in_main": false
+    },
+    {
+      "ref": "github/cloud/users-permissions-29102026",
+      "commit": "ea8d19e55f44162c8468f541ecd82f9acee327b3",
+      "in_main": false
+    },
+    {
+      "ref": "github/cloud/users-permissions-layout-29102026",
+      "commit": "e6abe5d96fb413f884541504e72d71a033514b6f",
+      "in_main": false
+    },
+    {
+      "ref": "github/codex/ab-c-routes-draft-navigation-30102026",
+      "commit": "e8df2a541428609f1f5ca53fc72b370e23cd16b3",
+      "in_main": false
+    },
+    {
+      "ref": "github/codex/accounts-permissions-cleanup-20261110",
+      "commit": "302e7515e8b5f7343352f1b0d5aa6066a4d9409b",
+      "in_main": false
+    },
+    {
+      "ref": "github/codex/fqc-flow-performance-20261104",
+      "commit": "7fc5a99c4fe29c1cf029bf2f5873e5f4a9ee9fa7",
+      "in_main": true
+    },
+    {
+      "ref": "github/codex/module-draft-boundary-main-20261109",
+      "commit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "in_main": false
+    },
+    {
+      "ref": "github/codex/process-platform-integration-20261110",
+      "commit": "cb12823316392103dd17a6684ec6ccc33d1ae341",
+      "in_main": false
+    },
+    {
+      "ref": "github/codex/routine-fqc-explicit-generation-20261109",
+      "commit": "4a7eaa6aef7ea5d71eaded586a21ffcae69bf8ca",
+      "in_main": false
+    },
+    {
+      "ref": "github/dot/draft-lifecycle-acceptance-20261101",
+      "commit": "581cb577ff5a970bd227031708e82da143307468",
+      "in_main": true
+    },
+    {
+      "ref": "github/dot/fqc-apply-recovery-20261101",
+      "commit": "fa8eee8bd5440efaa3874b3328e50697acd9d6e4",
+      "in_main": true
+    },
+    {
+      "ref": "github/dot/fqc-conflict-discard-recovery-20261101",
+      "commit": "0e9337da52a4c95eda03f31615b29e85fa77a2ac",
+      "in_main": true
+    },
+    {
+      "ref": "github/dot/fqc-matrix-apply-position-20261101",
+      "commit": "8a937e5c8495460e31fa5686e171200c24456287",
+      "in_main": true
+    },
+    {
+      "ref": "github/dot/fqc-required-dependencies-20261101",
+      "commit": "8e9350cd86bf6b04054c7c1528748ff7692311d6",
+      "in_main": true
+    },
+    {
+      "ref": "github/dot/main-only-equipment-no-poll-20261108",
+      "commit": "caa22c3d007f15c01c3836b2662ad7243c035898",
+      "in_main": true
+    },
+    {
+      "ref": "github/feat/discard-unsent-draft-navigation",
+      "commit": "fe5fddcaf9569eecf095102e023f11cd662f5f42",
+      "in_main": true
+    },
+    {
+      "ref": "github/feat/fqc-single-save-20261104",
+      "commit": "9392d30d71fb81bbdee2eca7378ebe6cc6f8553c",
+      "in_main": true
+    },
+    {
+      "ref": "github/feat/iqc-local-atomic-save-20261104",
+      "commit": "fec2f69140997e6b76f7280044e3e920a888ba3c",
+      "in_main": true
+    },
+    {
+      "ref": "github/feat/unknown-draft-navigation",
+      "commit": "74affb99967469353ef06f72617bb6efd5ad6845",
+      "in_main": true
+    },
+    {
+      "ref": "github/fix/equipment-draft-flow-20261028",
+      "commit": "a88a97135f508ed5f17fd6df01b20abe3acee733",
+      "in_main": true
+    },
+    {
+      "ref": "github/fix/equipment-transfer-draft-20261105",
+      "commit": "933277781a9549e2191dfb0d1aa91d0300e8c96a",
+      "in_main": true
+    },
+    {
+      "ref": "github/fix/fqc-authority-body-recovery-20261103",
+      "commit": "119678cf90919316acefc7d51b075cc614d6cc3d",
+      "in_main": true
+    },
+    {
+      "ref": "github/fix/fqc-matrix-last-apply-20261102",
+      "commit": "530017033bafec2fb1088d7bcc34fa2e68540410",
+      "in_main": true
+    },
+    {
+      "ref": "github/fix/fqc-unknown-recovery-20261103",
+      "commit": "35b00067482c98181fb21c63b0ece38070e1b0ab",
+      "in_main": true
+    },
+    {
+      "ref": "github/fix/iqc-invalid-number-hint-20261106",
+      "commit": "f0e9ae37731411801fda72c2e8843d30e467d091",
+      "in_main": false
+    },
+    {
+      "ref": "github/fix/iqc-number-hint-source-only-20261106",
+      "commit": "76a854f87d5a0829d835ef9161dfdae247e3fcd6",
+      "in_main": true
+    },
+    {
+      "ref": "github/fix/iqc-pending-source-20261103",
+      "commit": "5169cc99e2ccfb7f321c8bd1d284d96e062709a1",
+      "in_main": true
+    },
+    {
+      "ref": "github/fix/iqc-unknown-operation-20261104",
+      "commit": "21455e2675f017573b17c545ceeb7a8dedb19dfa",
+      "in_main": true
+    },
+    {
+      "ref": "github/fix/process-fqc-readscope-truthful-20261027",
+      "commit": "6abde9dc411ad0ad74457924f87fb96dbe62a363",
+      "in_main": true
+    },
+    {
+      "ref": "github/fix/users-permissions-source-only-20261029",
+      "commit": "4c44eca218000d1dd2ea4c83da238108ba40ed34",
+      "in_main": true
+    },
+    {
+      "ref": "github/fix/v25-unified-optimization-main845-20261027",
+      "commit": "2e023cc5fc9fe347d45dd7e6c90bf821ace2dedd",
+      "in_main": true
+    },
+    {
+      "ref": "github/handoff/multiuser-drafts-20261031",
+      "commit": "e4e485108fa69600a0832b1dfe27e00b6bd0903b",
+      "in_main": true
+    },
+    {
+      "ref": "github/handoff/sitewide-performance-drafts-20261030",
+      "commit": "340fd2296875dffc1fbe497e3b0802ce48be3fab",
+      "in_main": false
+    },
+    {
+      "ref": "github/integration/draft-save-20261104",
+      "commit": "0af6d57e912e5615250959c9e76210fecd55d96b",
+      "in_main": true
+    },
+    {
+      "ref": "github/integration/draft-save-batch2-20261105",
+      "commit": "4a58c51cf15322ea996ce196aed38f8b36285e2c",
+      "in_main": true
+    },
+    {
+      "ref": "github/integration/draft-save-batch3-20261105",
+      "commit": "09591edc7ec10af3319887d9852c9f52d1f6bfa9",
+      "in_main": true
+    },
+    {
+      "ref": "github/integration/ipqc-c-readback-main-20261106",
+      "commit": "428ec3227a03f3f0e5ce933dd5efa80152fa3136",
+      "in_main": true
+    },
+    {
+      "ref": "github/main",
+      "commit": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+      "in_main": true
+    },
+    {
+      "ref": "github/perf/fqc-equipment-read-b-20261025",
+      "commit": "23eb7dc6a89946eac83df04f2bfb0e81dd6a3315",
+      "in_main": true
+    },
+    {
+      "ref": "github/perf/fqc-process-bounded-writes-20261027",
+      "commit": "eae9c9bd59d664c6f507bd04b56d15b0b12b6074",
+      "in_main": false
+    },
+    {
+      "ref": "github/perf/fqc-process-bounded-writes-clean-20261028",
+      "commit": "5bb367008b6063be41195a386c1e47cb23f196d7",
+      "in_main": true
+    },
+    {
+      "ref": "github/perf/process-fqc-fullflow-20261028",
+      "commit": "4f6d3400ae8c32ad1a0011b0dd8ff6d84295cfce",
+      "in_main": true
+    },
+    {
+      "ref": "github/perf/slow-web-main848-20261101",
+      "commit": "051b2ff7a263216e09e6eeca3bec93a88de0f11e",
+      "in_main": false
+    },
+    {
+      "ref": "github/review/quality-20261029-iqc",
+      "commit": "f205b6b48577fbdafc002fd3630a1983a12f8117",
+      "in_main": true
+    }
+  ]
+}

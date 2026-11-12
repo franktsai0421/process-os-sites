@@ -210,7 +210,7 @@ void test('Save merges peer cells and does not replay previously saved choices',
   }
 });
 for (const refusal of ['PENDING_LOCKED', 'STALE_GENERATION', 'FORBIDDEN'])
-  void test(`server ${refusal} atomically refuses Save and keeps local choices`, async () => {
+  void test(`fresh comparison detects ${refusal} before Save dispatch and keeps local choices`, async () => {
     const { f, ui } = await setup();
     try {
       await choose(ui);
@@ -231,13 +231,10 @@ for (const refusal of ['PENDING_LOCKED', 'STALE_GENERATION', 'FORBIDDEN'])
       const before = posts(f).length,
         unchanged = plain((await f.state()).workflow);
       await save(ui);
-      assert.deepEqual(
-        posts(f)
-          .slice(before)
-          .map((r) => command(r).action),
-        ['save'],
-      );
-      assert.equal(posts(f).at(-1).result.error, refusal);
+      // Fresh Save comparison now refuses before allocating/sending a mutation.
+      assert.equal(posts(f).length, before);
+      assert.equal(ui.c.__fqcTest.ui.lastError, refusal);
+      assert.equal(ui.c.__fqcTest.transport().hasUnknown(), false);
       assert.deepEqual(plain((await f.state()).workflow), unchanged);
       assert.equal(ui.c.__fqcTest.matrixDirty(), true);
       assert.equal(receipts(ui).length, 0);
@@ -310,7 +307,7 @@ for (const receiptStatus of [404, 503])
       f.close();
     }
   });
-void test('rejected Save leaves neither shared changes nor saved snapshot; abandon permits a fresh explicit Save', async () => {
+void test('pre-dispatch refusal leaves neither shared changes nor saved snapshot; abandon permits a fresh explicit Save', async () => {
   const { f, ui } = await setup();
   try {
     await choose(ui);
@@ -321,7 +318,8 @@ void test('rejected Save leaves neither shared changes nor saved snapshot; aband
     });
     const before = posts(f).length;
     await save(ui);
-    assert.equal(posts(f).at(-1).status, 409);
+    assert.equal(posts(f).length, before);
+    assert.equal(ui.c.__fqcTest.ui.lastError, 'PENDING_LOCKED');
     let flow = (await f.state()).workflow;
     assert.deepEqual(flow.working.items[0].productCodes, []);
     assert.equal(flow.saved, null);
@@ -334,7 +332,7 @@ void test('rejected Save leaves neither shared changes nor saved snapshot; aband
     });
     await choose(ui);
     await save(ui);
-    assert.equal(posts(f).length, before + 2);
+    assert.equal(posts(f).length, before + 1);
     flow = (await f.state()).workflow;
     assert.deepEqual(flow.saved.content.items[0].productCodes, ['SYN-P']);
   } finally {
