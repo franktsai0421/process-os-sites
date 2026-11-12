@@ -51,3 +51,5 @@
 3. 只改產品按鈕保留journal／working／待傳照片與同C操作owner。工段／coverage／定位保留原候選處理，不以這次例子擴改。真正C模組離頁仍零寫入捨棄RAM，原UNKNOWN receipt保留。
 4. 前一dcf3e63及產品d8eca11的lint/build/CI不是最新前端通過證據。C來源與cache tag改為 `393941c3f4716bd5542f17f0eac9b65619e6da4f858ffc5cd0ec81b5a7b0e29f`／`20261112-c-product4`；最新原生、來源、導航、UNKNOWN與build另驗。
 5. 真人雙帳號、實體裝置、真IME與V41測試站延遲仍未驗收；舊UNKNOWN32仍未知且未重送。不合併、不部署、不改正式資料／帳號。
+
+最新集中預檢（產品d3a2a2d）：1735列Chromium1440/390、C53、離頁451、共用123、導航Begin歷史291、比較33及五組既有projection/read/Apply/gauge全部PASS。獨立乾淨clone同lockfile之lint、非增量types、來源10項、guarded build與精確bundle/reference PASS；新bundle為 `shell-scripts.ff5d3cd62d29090ebbf3.js`，compiled index不引用三個舊候選bundle。來源安全掃描620 commits／5440 blobs／2019files PASS，未讀真實資料或輸出憑證。此後只補文件，程式／build輸入相同；上傳後的新SHA／tree／CI另驗，不等同真人／測試站驗收。

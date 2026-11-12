@@ -359,14 +359,220 @@
       "actual": 0,
       "meaning": "old discard candidate fails latest retain rule"
     },
-    "localValidation": "IN_PROGRESS latest retention candidate; old build/CI not reused as new frontend pass",
+    "localValidation": {
+      "native": "PASS IPQCC_PROFILE=1,1735 rows,Chromium1440/390: same-C two-product edits and pending photos retained; one explicit Save; zero navigation writes; actual C departure/reset into synthetic FQC destination discards RAM/photos and return does not restore; storedDB/R2/scope/generation/draftId retained; original UNKNOWN/heldACK/group choice/cancel/gauge/history cases retained",
+      "nativeLog": "private /tmp/ipqc-c-latest-product-retain-green.log",
+      "CcoreSourceTests": 53,
+      "departureTests": 451,
+      "sharedMediaBackgroundRoutineTests": 123,
+      "navigationBeginHistoryTests": 291,
+      "comparisonAssertions": 33,
+      "existingProjectionReadApplyGaugeScripts": 5,
+      "typedLint": "PASS independent clean clone",
+      "typescript": "PASS nonincremental independent clean clone",
+      "cleanCloneSourceTests": 10,
+      "lockfile": "identical to candidate",
+      "build": "PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK",
+      "assetProof": {
+        "status": "PASS_EXACT_DERIVED_BUNDLE_AND_REFERENCE",
+        "bundle": "shell-scripts.ff5d3cd62d29090ebbf3.js",
+        "rawCmatches": true,
+        "oldBundlesReferenced": false
+      },
+      "sourceScan": {
+        "status": "PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE",
+        "head": "d3a2a2d534b866898fc31c38d27b791d4ab25cbe",
+        "commits": 620,
+        "uniqueBlobs": 5440,
+        "bytesTotal": 129880358,
+        "workingFiles": 2019,
+        "classifiedHistoricalFindings": 32,
+        "realDataOpened": false,
+        "credentialValuesReturned": false
+      },
+      "diffCheck": "PASS",
+      "acceptanceDecisionDocumentLinks": 66
+    },
     "githubCI": "old dcf3e63 four module runs success and Windows in progress; new candidate must be uploaded and checked separately",
     "unverified": [
       "real test-site latency",
       "human dual-account sessions",
       "physical devices and real IME",
       "historical UNKNOWN32 outcome"
-    ]
+    ],
+    "productCommit": "d3a2a2d534b866898fc31c38d27b791d4ab25cbe",
+    "commandGroups": [
+      {
+        "command": [
+          "node",
+          "--test",
+          "tests/ipqc-c-integration-source-contract.test.cjs",
+          "tests/ipqc-c-read-io-source-contract.test.mjs",
+          "tests/ipqc-c-operation-admission.test.cjs",
+          "tests/multiuser-ipqc-c-local-recovery-actual-stack.test.mjs",
+          "tests/ipqc-c-local-save-rejection.test.mjs",
+          "tests/ipqc-c-case-comparison.test.mjs",
+          "tests/ipqc-c-equipment-display.test.mjs"
+        ],
+        "exit": 0,
+        "seconds": 1.232,
+        "log": "/tmp/ipqc-c-product-retain-final-checks/00.log"
+      },
+      {
+        "command": [
+          "node",
+          "--test",
+          "tests/shared-unknown-departure.test.mjs",
+          "tests/navigation-departure.test.mjs",
+          "tests/delivery-departure.test.mjs",
+          "tests/owned-draft-ledger.test.mjs",
+          "tests/owned-draft-revert.test.mjs",
+          "tests/owned-draft-recovery-transport.test.mjs",
+          "tests/canvas-departure.test.mjs",
+          "tests/process-editor-departure.test.mjs",
+          "tests/editor-selection-departure.test.mjs",
+          "tests/authoring-departure.test.mjs",
+          "tests/multiuser-module-departure-helper.test.mjs",
+          "tests/multiuser-module-departure-bindings.test.mjs",
+          "tests/authoring-begin-readiness.test.mjs",
+          "tests/authoring-readiness-render.test.mjs",
+          "tests/authoring-review-status.test.mjs",
+          "tests/master-shared-clone.test.mjs",
+          "tests/master-review-render-performance.test.mjs",
+          "tests/process-scripts-build.test.mjs",
+          "tests/process-styles-build.test.mjs",
+          "tests/spreadsheet-loader.test.mjs"
+        ],
+        "exit": 0,
+        "seconds": 13.081,
+        "log": "/tmp/ipqc-c-product-retain-final-checks/01.log"
+      },
+      {
+        "command": [
+          "node",
+          "--test",
+          "tests/bounded-media-loading.test.mjs",
+          "tests/access-event-main-integration.test.cjs",
+          "tests/global-background-checks.test.mjs",
+          "tests/background-check-source-proof.test.cjs",
+          "tests/routine-fqc-source-contract.test.cjs"
+        ],
+        "exit": 0,
+        "seconds": 5.295,
+        "log": "/tmp/ipqc-c-product-retain-final-checks/02.log"
+      },
+      {
+        "command": [
+          "node",
+          "scripts/test-ipqc-c-save-projection-client.cjs"
+        ],
+        "exit": 0,
+        "seconds": 0.155,
+        "log": "/tmp/ipqc-c-product-retain-final-checks/03.log"
+      },
+      {
+        "command": [
+          "node",
+          "scripts/test-ipqc-c-read-recovery.cjs"
+        ],
+        "exit": 0,
+        "seconds": 0.153,
+        "log": "/tmp/ipqc-c-product-retain-final-checks/04.log"
+      },
+      {
+        "command": [
+          "node",
+          "scripts/test-ipqc-c-entry-apply.cjs"
+        ],
+        "exit": 0,
+        "seconds": 0.146,
+        "log": "/tmp/ipqc-c-product-retain-final-checks/05.log"
+      },
+      {
+        "command": [
+          "node",
+          "scripts/test-ipqc-c-compare-save.cjs"
+        ],
+        "exit": 0,
+        "seconds": 2.381,
+        "log": "/tmp/ipqc-c-product-retain-final-checks/06.log"
+      },
+      {
+        "command": [
+          "node",
+          "--test",
+          "tests/navigation-adapters.test.mjs",
+          "tests/workflow-begin-contract.test.cjs",
+          "tests/workflow-begin-receipt.test.cjs",
+          "tests/shared-draft-begin-v1.test.mjs",
+          "tests/module-begin-recovery.test.mjs",
+          "tests/iqc-begin-generation.test.mjs",
+          "tests/shared-draft-restore-admission.test.cjs"
+        ],
+        "exit": 0,
+        "seconds": 7.582,
+        "log": "/tmp/ipqc-c-product-retain-final-checks/07.log"
+      },
+      {
+        "command": [
+          "node",
+          "scripts/test-ipqc-c-local-gauge-browser.cjs"
+        ],
+        "exit": 0,
+        "seconds": 11.067,
+        "log": "/tmp/ipqc-c-product-retain-final-checks/08.log"
+      }
+    ],
+    "cleanCloneCommands": [
+      {
+        "command": [
+          "npm",
+          "run",
+          "lint"
+        ],
+        "exit": 0,
+        "seconds": 21.264,
+        "log": "/tmp/ipqc-c-product-retain-final-clean/00.log",
+        "head": "d3a2a2d534b866898fc31c38d27b791d4ab25cbe"
+      },
+      {
+        "command": [
+          "node",
+          "node_modules/typescript/bin/tsc",
+          "--noEmit",
+          "--incremental",
+          "false"
+        ],
+        "exit": 0,
+        "seconds": 15.924,
+        "log": "/tmp/ipqc-c-product-retain-final-clean/01.log",
+        "head": "d3a2a2d534b866898fc31c38d27b791d4ab25cbe"
+      },
+      {
+        "command": [
+          "node",
+          "--test",
+          "tests/ipqc-c-integration-source-contract.test.cjs",
+          "tests/ipqc-c-read-io-source-contract.test.mjs"
+        ],
+        "exit": 0,
+        "seconds": 0.248,
+        "log": "/tmp/ipqc-c-product-retain-final-clean/02.log",
+        "head": "d3a2a2d534b866898fc31c38d27b791d4ab25cbe"
+      },
+      {
+        "command": [
+          "npm",
+          "run",
+          "build"
+        ],
+        "exit": 0,
+        "seconds": 8.858,
+        "log": "/tmp/ipqc-c-product-retain-final-clean/03.log",
+        "head": "d3a2a2d534b866898fc31c38d27b791d4ab25cbe"
+      }
+    ],
+    "documentationFollowup": "After d3a2a2d only verification/decision/ledger documents record actual passing checks; app/lib/public/tests/package/workflow inputs remain the exact preflighted candidate."
   },
   "supersededDiscardRequirementAudit": {
     "document": "requirements-audit.zh-TW.md",

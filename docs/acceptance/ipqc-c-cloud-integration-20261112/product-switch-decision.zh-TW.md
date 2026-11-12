@@ -20,3 +20,5 @@
 最新來源C SHA-256：`393941c3f4716bd5542f17f0eac9b65619e6da4f858ffc5cd0ec81b5a7b0e29f`；C cache tag：`20261112-c-product4`。main與#103/#104來源不覆寫，七檔精確逆轉只更新C/index的afterHash/span，原beforeHash與負向證據保留。
 
 最新回歸：同C產品往返保留兩產品修改、未傳照片可在返回後實際上傳並Save；零額外寫入、同scope/generation/draftId；C→合成FQC目的頁使用實際departure/reset後RAM與照片清空、DB/R2不變、返回不還原；原UNKNOWN／晚ACK／衝突／歷史案例保留。測試結果與CI以[驗證](verification.json)及PR目前HEAD為準，未完成不報PASS；FQC目的頁為隔離容器，不冒稱真人站或整個FQC業務驗收。
+
+最新集中預檢（產品d3a2a2d）：1735列Chromium1440/390、C53、離頁451、共用123、導航Begin歷史291、比較33及五組既有projection/read/Apply/gauge全部PASS。獨立乾淨clone同lockfile之lint、非增量types、來源10項、guarded build與精確bundle/reference PASS；新bundle為 `shell-scripts.ff5d3cd62d29090ebbf3.js`，compiled index不引用三個舊候選bundle。來源安全掃描620 commits／5440 blobs／2019files PASS，未讀真實資料或輸出憑證。此後只補文件，程式／build輸入相同；上傳後的新SHA／tree／CI另驗，不等同真人／測試站驗收。
