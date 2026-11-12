@@ -68,3 +68,5 @@ Cloud Chromium 下載實際回應 `403 Domain forbidden`，未改用替代主機
 `8780455` 的 164 項打包／送審／相鄰契約、12 項編譯根入口，以及 lint、型別、受保護 build、全 Git 歷史／worktree 預檢通過。例行 Submit fixture 載入實際唯讀顯示 guard，新增核准歷史阻擋寫入反例。後續僅測試補強：原成對 FQC Apply／lifecycle8 測試更新為精確多一次最終 session 查核，同時驗證編碼 PUT → 既有 phase 檢查 → 額外 session 檢查 → CAS 的順序；在第二次編碼後查核注入撤銷，Apply 與五項生命週期皆須 401、DB 不變、無收據發布。58 組 Apply 與 180 組 lifecycle8 成對回歸通過，原 DTO、歷史來源、非授權讀取、寫入拒絕及 immutable 內容斷言保留。
 
 較早候選 CI 已通過原生 49 項、完整生命週期 5 輪／160 樣本及多人矩陣 5 輪／60 樣本／25 功能檢查；0 非預期請求。Save 中位數約 130–147 ms，僅為合成 CI。最新提交的 CI、遠端 SHA 與完整 Windows 結果更新於同一 Draft PR #105；較早結果不冒稱最新 HEAD 已全數通過。未操作正式資料，真人及實站事項仍依上表待驗。
+
+後半段提前回歸另查獲實際 IQC 缺漏：設備頁 identified Begin 被 client 的 FQC-only 條件誤拒。修正僅容許既有 bounded IQC endpoint／scope 與 durable client，加入錯誤 scope／endpoint／非 durable 的零請求反例。IQC 原子移轉已保存時不再顯示未儲存或刷新其他頁；UNKNOWN 顯示原收據待查，既有標記保留。105 項輸入／Begin／恢復、83 項移轉意圖與四模組真實 handler 全流程回歸通過。FQC／IQC 舊輪詢反例固定使用已核 SHA 的 main Git 物件；目前兩模組嚴格斷言不存在閒置輪詢，另由當前原生流程驗證。新增編譯 IQC 失去 identified Begin ACK、離頁／重載後只查原收據而不自動 Save 的原生反例，結果列入最新 CI。

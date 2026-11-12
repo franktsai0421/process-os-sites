@@ -240,7 +240,8 @@
     "Fixture-only changes preserve original source pins through an exact 9fb inverse and retain mutation/path/type rejection tests.",
     "Legacy routine root is not silently activated: offline stdin/stdout cutover preparation preserves archive/receipts and rejects pending review. No live data modified.",
     "Final recovery fix requires the existing private superseded-recovery proof. Shared review policy is byte-identical to main; routine UI and tests honor main self-review confirmation for own return and approval.",
-    "Legacy document-layout Save retains the main Apply/read/Save/read protocol plus display ownership. Whole-page atomic Save remains exclusively in the new page controller; no legacy live-data migration was performed."
+    "Legacy document-layout Save retains the main Apply/read/Save/read protocol plus display ownership. Whole-page atomic Save remains exclusively in the new page controller; no legacy live-data migration was performed.",
+    "Final actual-route regression repairs IQC identified Begin admission only for the reviewed bounded IQC client; IQC atomic transfer completion no longer advertises unsaved state or refreshes another page. Other endpoint/flag combinations still fail before requests."
   ],
   "candidateRuntimeHashes": {
     "app/api/routine-fqc/page/photo/route.ts": "c45d94dffe16f9358bc10bc0a10ee535a6613a23079b094b7ee0fdd9348d202a",
@@ -262,11 +263,11 @@
     "public/process/fqc-master.js": "f0532b181cbf878b6eeec857c3dbcd409ba907d84b49185853318e73ca89a40a",
     "public/process/index.html": "b4087f395d077a0bbf5fc2aa85d02f8768cf683d2e9f949086ea2eafb11c6b3c",
     "public/process/iqc-master.js": "a4736bb08dcda78db2263165b50158643062bbe5033099d6a397661bd3ed88bd",
-    "public/process/routine-equipment.js": "e4d619be7495b1efc47afd70bad65149d29f6425c83f183595e127136dcdf779",
+    "public/process/routine-equipment.js": "1327eb70d5f4f0c596c390bb19db4364513851c4f69d3ce92aaa4379f7ebde98",
     "public/process/routine-fqc-page.js": "b9cd2a6607c3862b6e3803af4f0aafb01e7f70c22ee509320a02b34d5791c661",
     "public/process/routine-fqc.js": "0b6d47db0144e741b5a7b01549eb5a35f5516e172dbccd2b21661eba2c280807",
     "public/process/routine-page-approved-history.js": "08dc59c48e0bdc77a865b96a44392d4c1bf6bee14e4398d6ebd475d261daa74e",
-    "public/process/shared-draft-client.js": "77cd6948475f4c1014f4a7d29a567cb27e0ff60908f77d82b65bb62b07bf05c1",
+    "public/process/shared-draft-client.js": "9746fb531ca8c4b5424655cac4e83009f7b039369aa8959bb787223322fe780d",
     "public/process/version-draft-ui.css": "83530d7ce7f45dea9a71f67a45b8155dcc20f39ca807967a352d43951b1513fd",
     "public/process/version-draft-ui.js": "778dd3b91adc3674e2deb0566114d8a503bb5428f1554ed15b80a0c81f9f2f3b"
   }

@@ -1162,7 +1162,7 @@
       reviewCase: (id,options)=>request(query(`caseId=${encodeURIComponent(id)}`),undefined,options),
       previewRestore: (id,options)=>request(query(`restoreSaveId=${encodeURIComponent(id)}`),undefined,options),
       async beginWithIdentity(identity){
-        if(!durableBegin||beginPath!=='/api/fqc/workflow'||!identity)throw Error('INVALID_BEGIN_IDENTITY');
+        if(!durableBegin||!(beginPath==='/api/fqc/workflow'||iqcMutation&&beginPath==='/api/iqc/workflow')||!identity)throw Error('INVALID_BEGIN_IDENTITY');
         const attempt={raw:null,record:null,dispatched:false,sequence:0};
         try{return await beginV1(identity,attempt);}catch(error){
           if(attempt.raw&&!attempt.dispatched&&error&&typeof error==='object')try{

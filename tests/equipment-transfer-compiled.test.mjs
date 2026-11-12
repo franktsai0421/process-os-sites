@@ -127,3 +127,17 @@ void test('batch3 equipment Save, FQC atomic transfer and IPQC AB guarded Apply/
  assert.equal(final.routineEquipmentControl.workflow.saved.content.equipment.find(row=>row.id==='source').notes,'Batch3 equipment saved');assert.deepEqual(s.errors,[]);
  }finally{await s.close();}
 });
+
+void test('compiled IQC lost identified Begin leaves silently and settles only its original receipt without automatic Save',async()=>{
+ const s=await setup(390,'zh');try{
+ const p=s.source;let down=true,lost=false,posts=0;
+ await p.route('**/api/iqc/workflow?*',async route=>{const r=route.request(),url=new URL(r.url());if(url.searchParams.has('operationId')&&down)return route.fulfill({status:404,json:{error:'OPERATION_NOT_FOUND'}});if(r.method()==='POST'){posts++;assert.equal(r.postDataJSON().action,'begin-v1');if(!lost){lost=true;assert.equal((await route.fetch()).status(),200);return route.abort('failed');}}return route.continue();});
+ async function openTransfer(){await p.locator('[data-node-select="category"]').first().click();await p.locator('[data-node-select="subcategory"]').first().click();if(await p.locator('[data-node-select="group"]').count())await p.locator('[data-node-select="group"]').first().click();await p.locator('[data-equipment-transfer="source"]').click();}
+ await openTransfer();await p.locator('#routine-target-eq-select').selectOption('target');await p.locator('#routine-confirm-transfer-iqc').click();await p.waitForFunction(()=>window.sharedDraftAccountState().unknown&&!window.sharedDraftAccountState().queued);
+ const markers=()=>p.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('routine-equipment-iqc-transfer-v1:')||key.startsWith('shared-draft-')))),original=await markers();assert(Object.keys(original).some(key=>key.startsWith('routine-equipment-iqc-transfer-v1:')));assert.equal(posts,1);assert.match(await p.locator('#routine-transfer-backdrop').innerText(),/待確認/);
+ await p.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('dashboard'));await p.waitForFunction(()=>window.ProcessSync.destination.view==='dashboard'&&document.documentElement.dataset.processNavigationStatus==='ready');assert.deepEqual(await markers(),original);assert.equal(posts,1);
+ await p.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('data','quality-routine-equipment'));await p.locator('#routine-search').waitFor();await p.reload();await p.locator('#routine-search').waitFor();assert.deepEqual(await markers(),original);
+ await openTransfer();down=false;await p.locator('#routine-confirm-transfer-iqc').click();await p.waitForFunction(()=>!window.sharedDraftAccountState().unknown);assert.equal(posts,1);assert.equal(Object.keys(await markers()).length,0);assert.match(await p.locator('#routine-transfer-backdrop').innerText(),/尚未移轉或存取/);
+ const current=flow(await s.controls(),'iqc');assert.equal(current.saved,null);assert.equal(current.working.items[0].equipmentId,'source');assert.deepEqual(s.errors,[]);
+ }finally{await s.close();}
+});

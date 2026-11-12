@@ -4,9 +4,9 @@
     "base": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
     "beforeBlob": "d5dc7f97a0f4a5ad73cbe3e2320f9628f8fb553a",
     "beforeHash": "b80c2e904a5a6ef7e384fb10229a35421eba684e60928958aa420e55d4c695f5",
-    "afterHash": "77cd6948475f4c1014f4a7d29a567cb27e0ff60908f77d82b65bb62b07bf05c1",
+    "afterHash": "9746fb531ca8c4b5424655cac4e83009f7b039369aa8959bb787223322fe780d",
     "beforeLength": 174896,
-    "afterLength": 192188,
+    "afterLength": 192237,
     "rules": [
       {
         "offset": 12978,
@@ -109,22 +109,27 @@
         "after": "      ...(approvedHistoryRoute?{approvedHistory:(options,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true});},approvedVersion:(id,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true});},watchApprovedAccess(listener){approvedAccessListeners.add(listener);return ()=>approvedAccessListeners.delete(listener);}}:{}),\n"
       },
       {
-        "offset": 148077,
+        "offset": 142165,
+        "before": "        if(!durableBegin||beginPath!=='/api/fqc/workflow'||!identity)throw Error('INVALID_BEGIN_IDENTITY');\n",
+        "after": "        if(!durableBegin||!(beginPath==='/api/fqc/workflow'||iqcMutation&&beginPath==='/api/iqc/workflow')||!identity)throw Error('INVALID_BEGIN_IDENTITY');\n"
+      },
+      {
+        "offset": 148126,
         "before": "        if(!externalBounded||!(boundedScope==='fqc'||abModule)||unknown||boundedRecord||queued||beginPending||retryPending||preparedFlights.size||recoveryInvalid||command?.action!=='save'||command.moduleAction!=='save-local-v1'||!(abModule?Array.isArray(command.input?.scopes):Array.isArray(command.patches)&&Array.isArray(command.guards)&&Array.isArray(command.input?.matrixCells))||!failure||JSON.stringify(failure.command)!==JSON.stringify(command)||!boundedRejected.has(error)||!proof||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||proof.code!==error.message||proof.status!==error.status)return false;\n",
         "after": "        if(!externalBounded||!(['fqc','iqc'].includes(boundedScope)||abModule)||unknown||boundedRecord||queued||beginPending||retryPending||preparedFlights.size||recoveryInvalid||command?.action!=='save'||command.moduleAction!=='save-local-v1'||!(abModule?Array.isArray(command.input?.scopes):Array.isArray(command.patches)&&Array.isArray(command.guards)&&(boundedScope==='iqc'||Array.isArray(command.input?.matrixCells)))||!failure||JSON.stringify(failure.command)!==JSON.stringify(command)||!boundedRejected.has(error)||!proof||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||proof.code!==error.message||proof.status!==error.status)return false;\n"
       },
       {
-        "offset": 154073,
+        "offset": 154122,
         "before": "",
         "after": "        fqcAdmission(command);iqcAdmission(command);\n"
       },
       {
-        "offset": 156037,
+        "offset": 156086,
         "before": "        const result=tail.then(async()=>{assertMutationAdmission();if(action==='save'&&syncFailures.size)throw syncFailures.values().next().value.error;\n",
         "after": "        const result=tail.then(async()=>{fqcAdmission(command);iqcAdmission(command);assertMutationAdmission();if(action==='save'&&syncFailures.size)throw syncFailures.values().next().value.error;\n"
       },
       {
-        "offset": 156757,
+        "offset": 156806,
         "before": "          return post(command,retry,owner);}).finally(()=>{queued--;if(externalBounded)boundedProofs.delete(command.operationId);});\n",
         "after": "          return post(command,retry,owner);}).finally(()=>{queued--;if(externalBounded)boundedProofs.delete(command.operationId);if(fqcComparedSave)fqcCommands.delete(command.operationId);});\n"
       }
@@ -217,9 +222,9 @@
     "base": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
     "beforeBlob": "e2452eaa98e02c21824eed6d77fd9fcf4d75cd07",
     "beforeHash": "6f57fc37463575cb1ee59790bad2869f44c7583a8005cbde1e805494f816597f",
-    "afterHash": "e4d619be7495b1efc47afd70bad65149d29f6425c83f183595e127136dcdf779",
+    "afterHash": "1327eb70d5f4f0c596c390bb19db4364513851c4f69d3ce92aaa4379f7ebde98",
     "beforeLength": 283915,
-    "afterLength": 294233,
+    "afterLength": 294327,
     "rules": [
       {
         "offset": 182303,
@@ -243,31 +248,36 @@
       },
       {
         "offset": 205135,
-        "before": "      if(moduleId==='fqc')dialog.moduleMessages[uiKey]+=' · '+t('已移轉並存取 FQC 草稿','Đã chuyển và lưu bản nháp FQC')+' · '+data.savedId+(data.historical?' · '+t('原操作已確認；目前已有後續草稿，本次未套用其他修改','Đã xác nhận thao tác gốc; hiện có bản nháp mới, không áp dụng thay đổi khác'):'');\n",
-        "after": "      if(['fqc','iqc'].includes(moduleId))dialog.moduleMessages[uiKey]+=' · '+moduleId.toUpperCase()+' · '+t('已移轉並存取草稿','Đã chuyển và lưu bản nháp')+' · '+data.savedId+(data.historical?' · '+t('原操作已確認；目前已有後續草稿，本次未套用其他修改','Đã xác nhận thao tác gốc; hiện có bản nháp mới, không áp dụng thay đổi khác'):'');\n"
+        "before": "      if(moduleId==='fqc')dialog.moduleMessages[uiKey]+=' · '+t('已移轉並存取 FQC 草稿','Đã chuyển và lưu bản nháp FQC')+' · '+data.savedId+(data.historical?' · '+t('原操作已確認；目前已有後續草稿，本次未套用其他修改','Đã xác nhận thao tác gốc; hiện có bản nháp mới, không áp dụng thay đổi khác'):'');\n      if(moduleId!=='fqc'&&(flow||moduleId==='ipqc-ab') && (!counts.conflict||counts.applied))dialog.moduleMessages[uiKey]+=' · '+t(`成功項目已同步，尚未手動儲存；請到 ${moduleId.toUpperCase()} 儲存草稿`,`Các hạng mục thành công đã đồng bộ, chưa lưu thủ công; hãy lưu bản nháp tại ${moduleId.toUpperCase()}`);\n      if(moduleId!=='fqc')await window.ProcessSync?.refresh?.();\n",
+        "after": "      if(['fqc','iqc'].includes(moduleId))dialog.moduleMessages[uiKey]+=' · '+moduleId.toUpperCase()+' · '+t('已移轉並存取草稿','Đã chuyển và lưu bản nháp')+' · '+data.savedId+(data.historical?' · '+t('原操作已確認；目前已有後續草稿，本次未套用其他修改','Đã xác nhận thao tác gốc; hiện có bản nháp mới, không áp dụng thay đổi khác'):'');\n      if(!['fqc','iqc'].includes(moduleId)&&(flow||moduleId==='ipqc-ab') && (!counts.conflict||counts.applied))dialog.moduleMessages[uiKey]+=' · '+t(`成功項目已同步，尚未手動儲存；請到 ${moduleId.toUpperCase()} 儲存草稿`,`Các hạng mục thành công đã đồng bộ, chưa lưu thủ công; hãy lưu bản nháp tại ${moduleId.toUpperCase()}`);\n      if(!['fqc','iqc'].includes(moduleId))await window.ProcessSync?.refresh?.();\n"
       },
       {
-        "offset": 207545,
+        "offset": 206278,
+        "before": "      dialog.moduleMessages[uiKey] = (moduleId==='fqc'&&hasFqcTransfer()?fqcTransferUnknown()+' ':'')+(error.message || t('替換失敗', 'Thay thế thất bại'));\n",
+        "after": "      dialog.moduleMessages[uiKey] = (moduleId==='fqc'&&hasFqcTransfer()?fqcTransferUnknown()+' ':moduleId==='iqc'&&hasIqcTransfer()?iqcTransferUnknown()+' ':'')+(error.message || t('替換失敗', 'Thay thế thất bại'));\n"
+      },
+      {
+        "offset": 207639,
         "before": "    const iqcItems = previewItems('iqc');\r\n",
         "after": "    const iqcItems = previewItems('iqc'),iqcRecovery=hasIqcTransfer();\n"
       },
       {
-        "offset": 217898,
+        "offset": 217992,
         "before": "                      <button type=\"button\" class=\"button signal master-small\" id=\"routine-confirm-transfer-iqc\" ${!targetEq || !iqcItems.length || inFlight ? 'disabled' : ''}>\n                        ${transferDialog.moduleStatus.iqc === 'saving' ? t('儲存中…', 'Đang lưu...') : t('確認移轉至 IQC 草稿', 'Xác nhận chuyển sang IQC')}\r\n",
         "after": "                      <button type=\"button\" class=\"button signal master-small\" id=\"routine-confirm-transfer-iqc\" ${inFlight||!iqcRecovery&&(!targetEq||!iqcItems.length)?'disabled':''}>\n                        ${transferDialog.moduleStatus.iqc === 'saving' ? t('儲存中…', 'Đang lưu...') : iqcRecovery?t('查詢原移轉／存取收據','Kiểm tra biên nhận chuyển/lưu gốc'):t('確認移轉並存取 IQC 草稿', 'Xác nhận chuyển và lưu IQC')}\n"
       },
       {
-        "offset": 276897,
+        "offset": 276991,
         "before": "",
         "after": "    if(identity()?.id&&hasIqcTransfer())targetIqcClient();\n"
       },
       {
-        "offset": 289247,
+        "offset": 289341,
         "before": "    const legacy=()=>{try{const markers=[beginRecoveryKey(identity()?.id),fqcTransferKey(identity()?.id)].map(key=>[key,sessionStorage.getItem(key)]).filter(([,raw])=>raw!==null);return markers.length&&![sharedClient,fqcTransferClient].some(client=>client?.hasUnknown()||client?.hasSyncFailures())&&inputOwnerCurrent()&&!busy&&!transferBusy()?JSON.stringify(markers):null;}catch{return null;}};\n",
         "after": "    const legacy=()=>{try{const markers=[beginRecoveryKey(identity()?.id),fqcTransferKey(identity()?.id),iqcTransferKey(identity()?.id)].map(key=>[key,sessionStorage.getItem(key)]).filter(([,raw])=>raw!==null);return markers.length&&![sharedClient,fqcTransferClient,iqcTransferClient].some(client=>client?.hasUnknown()||client?.hasSyncFailures())&&inputOwnerCurrent()&&!busy&&!transferBusy()?JSON.stringify(markers):null;}catch{return null;}};\n"
       },
       {
-        "offset": 291266,
+        "offset": 291360,
         "before": "    unknown:()=>sharedClient?.hasUnknown()||fqcTransferClient?.hasUnknown()||hasBeginRecovery(),failed:()=>sharedClient?.hasSyncFailures()||fqcTransferClient?.hasSyncFailures(),\n    unknownTransports:()=>[sharedClient,fqcTransferClient],unknownReady:()=>{try{return !readBeginRecovery();}catch{return false;}},discardUnknown(){this.discard();},\n",
         "after": "    unknown:()=>sharedClient?.hasUnknown()||fqcTransferClient?.hasUnknown()||iqcTransferClient?.hasUnknown()||hasBeginRecovery(),failed:()=>sharedClient?.hasSyncFailures()||fqcTransferClient?.hasSyncFailures()||iqcTransferClient?.hasSyncFailures(),\n    unknownTransports:()=>[sharedClient,fqcTransferClient,iqcTransferClient],unknownReady:()=>{try{return !readBeginRecovery();}catch{return false;}},discardUnknown(){this.discard();},\n"
       }

@@ -2683,15 +2683,15 @@
       dialog.moduleMessages[uiKey] = `${t('已套用', 'Đã áp dụng')} ${counts.applied} · ${t('已相同', 'Không đổi')} ${counts.unchanged} · ${t('待處理', 'Chờ xử lý')} ${counts.waiting} · ${t('衝突', 'Xung đột')} ${counts.conflict}` +
         (data.results || []).filter(row => row.reason && row.status === 'conflict').map(row => `\n${row.scopeKey?row.scopeKey+' / ':''}${row.itemId}: ${row.reason}`).join('');
       if(['fqc','iqc'].includes(moduleId))dialog.moduleMessages[uiKey]+=' · '+moduleId.toUpperCase()+' · '+t('已移轉並存取草稿','Đã chuyển và lưu bản nháp')+' · '+data.savedId+(data.historical?' · '+t('原操作已確認；目前已有後續草稿，本次未套用其他修改','Đã xác nhận thao tác gốc; hiện có bản nháp mới, không áp dụng thay đổi khác'):'');
-      if(moduleId!=='fqc'&&(flow||moduleId==='ipqc-ab') && (!counts.conflict||counts.applied))dialog.moduleMessages[uiKey]+=' · '+t(`成功項目已同步，尚未手動儲存；請到 ${moduleId.toUpperCase()} 儲存草稿`,`Các hạng mục thành công đã đồng bộ, chưa lưu thủ công; hãy lưu bản nháp tại ${moduleId.toUpperCase()}`);
-      if(moduleId!=='fqc')await window.ProcessSync?.refresh?.();
+      if(!['fqc','iqc'].includes(moduleId)&&(flow||moduleId==='ipqc-ab') && (!counts.conflict||counts.applied))dialog.moduleMessages[uiKey]+=' · '+t(`成功項目已同步，尚未手動儲存；請到 ${moduleId.toUpperCase()} 儲存草稿`,`Các hạng mục thành công đã đồng bộ, chưa lưu thủ công; hãy lưu bản nháp tại ${moduleId.toUpperCase()}`);
+      if(!['fqc','iqc'].includes(moduleId))await window.ProcessSync?.refresh?.();
       if (!owns()) return;
       invalidateEquipmentReferences([dialog.sourceId, targetEqId]);
       await loadEquipmentReferences(dialog.sourceId, { renderAfter: false });
       await loadTransferPreview();
     } catch (error) {
       dialog.moduleStatus[uiKey] = 'error';
-      dialog.moduleMessages[uiKey] = (moduleId==='fqc'&&hasFqcTransfer()?fqcTransferUnknown()+' ':'')+(error.message || t('替換失敗', 'Thay thế thất bại'));
+      dialog.moduleMessages[uiKey] = (moduleId==='fqc'&&hasFqcTransfer()?fqcTransferUnknown()+' ':moduleId==='iqc'&&hasIqcTransfer()?iqcTransferUnknown()+' ':'')+(error.message || t('替換失敗', 'Thay thế thất bại'));
     }
     if (transferDialog === dialog && transferOwnerCurrent(dialog.owner)) render();
   }
