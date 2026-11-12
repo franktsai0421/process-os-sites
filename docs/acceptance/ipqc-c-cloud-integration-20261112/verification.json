@@ -206,23 +206,26 @@
   "deployment": "NOT_RUN",
   "cleanClone": {
     "status": "PASS",
-    "commit": "edddedfe86d76d01415fb5050cca82d06799e45e",
+    "commit": "244adfe2da325687102a24ec2da13859c4698d04",
     "install": "npm ci --ignore-scripts --no-audit --no-fund",
     "typedLint": "PASS",
     "typescript": "PASS nonincremental",
     "coreSourceAndControllerTests": 26,
     "build": "PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK",
-    "dataImport": "NOT_RUN"
+    "dataImport": "NOT_RUN",
+    "dependencyReuse": "Originally clean npm ci; same exact lockfile retained for follow-up",
+    "followup": "Typed lint, nonincremental TypeScript, 26 source/controller tests and full guarded build rerun on 244adfe"
   },
   "githubCI": "See PR current checks",
   "finalSourceScan": {
-    "commit": "edddedfe86d76d01415fb5050cca82d06799e45e",
+    "commit": "244adfe2da325687102a24ec2da13859c4698d04",
     "status": "PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE",
-    "commits": 605,
-    "blobs": 5355,
+    "commits": 609,
+    "blobs": 5370,
     "workingFiles": 2017,
     "realDataOpened": false,
-    "credentialValuesReturned": false
+    "credentialValuesReturned": false,
+    "includedWorkingChanges": "synthetic review fixture and verification documentation"
   },
   "initialProductCommit": "ab07ad80f1455ec49308bcca2bb8a96e116baf26",
   "finalProductSourceContract": "scripts/ipqc-c-integration-source-contract.json",
@@ -231,6 +234,19 @@
     "nativeCrossProductAndRemount": "PASS",
     "sourceOwnedDepartureBindings": 154,
     "originalSentMarker": "retained; no replay",
-    "finalBuild": "PENDING"
+    "finalBuild": "PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK",
+    "productCommit": "244adfe2da325687102a24ec2da13859c4698d04",
+    "completeDepartureTests": 451,
+    "sharedAndRoutineSourceTests": 123,
+    "native1735Profile": "PASS; includes delayed ACK cross-product and direct remount"
+  },
+  "equipmentFollowup": {
+    "compiledProductCommit": "244adfe2da325687102a24ec2da13859c4698d04",
+    "unitScopeTests": 18,
+    "nativeAtomicBrowserTests": 7,
+    "compiledAndTransferTests": 37,
+    "status": "PASS",
+    "typedLint": "PASS",
+    "CnegativeAndPositivePermissionCalls": 231
   }
 }

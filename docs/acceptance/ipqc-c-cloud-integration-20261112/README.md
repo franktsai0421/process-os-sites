@@ -33,7 +33,7 @@ No data migration, package replacement or real-account change is needed for thes
 
 ## Verification status
 
-Initial concentrated validation used product inputs at ab07ad80f1455ec49308bcca2bb8a96e116baf26. The final late-ACK follow-up changes only C presentation ownership; its exact byte hash is pinned in the integration source contract. Backend performance/ACL/ID evidence remains applicable; frontend source/owner/native tests and lint/types/build require fresh follow-up evidence, as recorded in the PR.
+Initial concentrated validation used product inputs at ab07ad80f1455ec49308bcca2bb8a96e116baf26. The final late-ACK follow-up changes only C presentation ownership; its exact byte hash is pinned in the integration source contract. Backend performance/ACL/ID evidence remains applicable; frontend source/owner/native tests and lint/types/build were rerun on product commit244adfe; see verification.json.
 
 | Check | Evidence/status |
 | --- | --- |
@@ -45,8 +45,8 @@ Initial concentrated validation used product inputs at ab07ad80f1455ec49308bcca2
 | Shared approved-history helper | PASS13 groups, strict-C negatives plus default AB/PROCESS compatibility |
 | Native Chromium | PASS1440/390, Chinese/Vietnamese, local photo/gauge display, single atomic Save, silent navigation, lost ACK/404/no resend, group mine/theirs/cancel, peer changes during choice/upload/CAS, two approvals and same-page immutable history/return to draft |
 | Performance | PASS retained atomic benchmark:10 edits,11 CAS vs1, in-process median195.73ms vs18.84ms; this is the existing protocol comparison, not a new live improvement claim.1735-row current handler medians:local Save233.06ms,Submit264.21ms,withdraw202.49ms. Full-library Chromium profile and480x240 image decode passed; controlled waits/faults are included in UI timings. |
-| Source safety | PASS604 commits/5346 blobs/2016 worktree source files at ab07ad8; no real data opened or credential values returned. Final follow-up at edddedfe also PASS605 commits/5355 blobs/2017 working files; see verification.json. |
-| Clean clone | PASS independent clone at edddedfe: fresh580-package locked install, typed lint, nonincremental TypeScript,26 exact-source/controller tests and guarded build/postbuild authentication boundary; no real data import/login/bootstrap |
+| Source safety | PASS604 commits/5346 blobs/2016 worktree source files at ab07ad8; no real data opened or credential values returned. Latest follow-up scan at244adfe with pending fixture/docs PASS609 commits/5370 blobs/2017 working files; see verification.json. |
+| Clean clone | PASS independent clone: initial fresh580-package locked install at edddedfe; identical lockfile retained and typed lint, nonincremental TypeScript,26 exact-source/controller tests and guarded build/postbuild authentication boundary rerun at244adfe; no real data import/login/bootstrap |
 | GitHub CI | Evaluate the actual Draft PR checks at its current HEAD/merge tree. Local results do not establish remote success. |
 | Test site/human | NOT_RUN: no deployment, real two-person sessions, real IME, physical iPhone/cross-computer or current live Save/Submit latency acceptance |
 
@@ -67,3 +67,7 @@ Windows run43157668888 exposed the Routine FQC cache proof depending on the comp
 A normal successful Save ACK was deliberately held after server commit while the browser switched products. The old source reproduced a new-page reload barrier (expected0,actual1); it had not retired the old presentation owner. Scope change now advances the existing mount fence and clears only unsent UI busy/notice/quarantine state. Remount also clears obsolete presentation busy/notice state. The primary transport still owns and settles the exact sent command/receipt; it is never erased or replayed. Same-page history captures its new owner after silently abandoning unsent input.
 
 Native1440/390 tests now pass both cross-product delayed success and direct re-entry while a Save is in flight: no destination reload barrier, no stuck Save, original marker retained until its original response/terminal read, exactly one Save POST. Existing UNKNOWN404, lost ACK, history, conflict and photo/gauge cases remain. The extracted nine-module departure fixture also needed the actual C cancelSaveChoice declaration; it now executes that source binding alongside clearLocal and all154 cases pass. Full departure group and final source/build gates are evaluated on the follow-up candidate, without restoring old prompts/forms.
+
+Windows run43158480870 also exposed the synthetic replacement fixture granting its C reviewer module review rights but only approval.view on the platform. The C permission separation requires explicit approval.approve/return. Only includeIPQCC fixture reviewers receive these two cells; product ACL checks, restricted users and negative permission assertions remain unchanged. Equipment source/native/compiled integration is rerun against the exact product build.
+
+Final equipment follow-up passes18 unit/scope cases,7 native atomic browser cases, and37 compiled/transfer cases using the244adfe product build. Normal typed lint and all231 direct C permission calls pass again. The complete451-case departure group and123 shared/Routine source cases also pass after the late-ACK fix.

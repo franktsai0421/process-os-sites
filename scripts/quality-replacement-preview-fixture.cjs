@@ -58,7 +58,7 @@ async function fixture(projection = {}, { includeIPQCC = false } = {}) {
     role: id === 'admin' ? 'admin' : 'staff', enabled: true, inheritRole: false, authEpoch: 1,
     password, lines: ['A', 'B', 'C'], views: ['data', 'approval'],
     permissions: ['no-edit', 'no-view'].includes(id) ? ['approval.submit'] : [],
-    accessOverrides: Object.fromEntries(accessKeys.map(key => [key, keys.includes(key) || includeIPQCC && ['editor', 'reviewer'].includes(id) && (key === 'approval.view' || (id === 'editor' ? ops : ['view', 'approve', 'return']).some(operation => key === 'ipqc-c.' + operation))])),
+    accessOverrides: Object.fromEntries(accessKeys.map(key => [key, keys.includes(key) || includeIPQCC && ['editor', 'reviewer'].includes(id) && (key === 'approval.view' || id === 'reviewer' && ['approval.approve', 'approval.return'].includes(key) || (id === 'editor' ? ops : ['view', 'approve', 'return']).some(operation => key === 'ipqc-c.' + operation))])),
   }));
   const values = { ...projection, platformUsers: JSON.stringify(users) };
   db.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').run(
