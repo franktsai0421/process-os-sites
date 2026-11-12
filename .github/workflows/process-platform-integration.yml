@@ -56,6 +56,8 @@ jobs:
         with:
           node-version: '24'
       - run: npm ci --no-audit --no-fund
+      - name: Reviewed shell bundle order bytes and completion contract
+        run: node --test tests/process-shell-bundle-oracle.test.mjs tests/process-scripts-build.test.mjs
       - name: Complete source inverse EOL and effective drift rejection
         run: node scripts/entry-performance/source-eol.test.cjs
       - name: Current canvas count and exact historical source composition
@@ -137,3 +139,7 @@ jobs:
           node --test --test-concurrency=1 tests/fqc-draft-lifecycle-browser-contract.test.mjs tests/fqc-draft-lifecycle-route.test.mjs tests/fqc-matrix-multiuser.test.mjs tests/quality-review-readiness.test.mjs
           node tests/fqc-draft-lifecycle-browser.mjs
           node tests/fqc-matrix-multiuser-browser.mjs
+      - name: Original compiled root entry and retired-entrypoint guards
+        run: |
+          node tests/sites-root-entry-native.test.mjs
+          node tests/sites-retired-entrypoints-browser.mjs

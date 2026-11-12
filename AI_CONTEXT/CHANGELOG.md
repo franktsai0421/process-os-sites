@@ -1277,3 +1277,16 @@ cb12823 的 Local safety run 43126874931／job130881088426：1–35 通過，第
 已核對並逐blob重用 #103 公開302e7515e8b5f7343352f1b0d5aa6066a4d9409b 的source-eol修正（blob8b4b9c65ef6ee6523eb2e5ce2a9df3fe6c08be72）。只在測試port、真正HEAD admission與既有完整投影之後，變造實際departure inverse輸入；每個反例強制有效，LF/CRLF、六個span的changed/missing/duplicate共36種，必須以原exact-anchor錯誤拒絕，不能由先前HEAD hash拒絕冒充。原歷史inverse JSON、85fa來源與全部完整baseline/hash未改。96項全過；第31步失敗點與後續21個原命令集中預檢全過，全部網路邊界回執零實際嘗試。原helper93項與產品輸入保持不變。
 
 此source-EOL檢查也前置到整合job；原Windows命令與全部原生案例保留。來源修正獨立來自已確認的本輪HEAD與公開302e751，不取用或重送原UNKNOWN32，該狀態仍未解決。後續只在所有舊CI自然結束、核對ref後更新分支；最終新HEAD原生／完整Windows仍須獨立確認，不以前身或本機PASS替代。
+
+
+### 2026-11-12 #104：compiled root bundle來源與回執契約
+
+429d3bf 的 Windows Local safety run43147004029／job130947047036已自然結束：1–38通過，第39步sites-root-entry-native的served script bundles階段actual55／expected50失敗，40–57跳過。前七個root入口／關閉資料API／shell HTML／stylesheet案例已通過；舊數量斷言在抓取JavaScript bundle前就失敗。
+
+固定main9fbba823的兩組bundle合計50個來源；#104只新增page-draft-merge、master-page-transfer、master-page-approved-history、master-page-editor與canvas-approved-history五個IIFE，沒有移除舊來源。master-page-excel原本就在main，未誤算新增。#103固定2d2d79cb的root測試仍為舊50，沒有可直接重用的修正；其其他帳號／例行FQC增量不帶入。原UNKNOWN32／舊62-source候選未取用或重送。
+
+新增test-only獨立oracle：固定main有序50清單加五個具名插入點，與builder輸出的兩組逐項核對，不能從目前輸出反推期望。依已審閱來源清單和各來源原始bytes獨立組合預期內容，核對SHA／cache URL、整份bundle與末端成功回執；compiled root仍驗200、JavaScript MIME、每個served byte與reporter單次／先於shared-client。其他root安全檢查不變，沒有改為單純55常數。
+
+49項本機回歸通過（新oracle、原build及startup source）：遺漏／額外／重複／亂序來源、私有seed與global邊界、錯誤cache／回執identity、改動byte、缺少／提前／false回執、尾端額外程式、served狀態／MIME／內容／EOL漂移都拒絕；LF/CRLF正向與真builder合成55個模組執行通過，兩組各自的途中來源失敗不得產生完成回執或執行後續模組。負向byte比較用等精度Buffer.equals與短錯誤，避免在assert錯誤中展開大型JS內容。
+
+CI提前跑同一原始compiled root與retired-entrypoint runner，重用既有build及瀏覽器；原Windows第39步與25分鐘job上限保留。此批只改測試／CI／紀錄，產品、權限與資料模型不變。guarded build及編譯產物另依本輪精確HEAD回執核對；本機沒有重試受限原生Worker，新HEAD的HTTP／Windows完整結果仍待CI。先前429d3bf的Process90／導航15、FQC160及矩陣60原生合成成功仍是前身證據，不代表本批或測試站／真人／共同HEAD驗收完成。維持Draft，不合併部署。
