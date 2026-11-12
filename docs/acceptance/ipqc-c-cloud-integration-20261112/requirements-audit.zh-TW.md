@@ -53,6 +53,6 @@
 4. 正確 red：2192533 實際另一產品仍保留1筆／預期0；更正後完整原生 suite 與來源／導航／UNKNOWN／晚 ACK／歷史回歸另記於 [verification.json](verification.json)。另在 cf368bc 重現待補定位跨產品實際1／預期0，兩個定位入口已共用先捨棄、再從已存內容重新取目標的規則；同工作定位不捨棄。先前保留測試即使 PASS 也不是需求合格證據。新候選集中預檢與 GitHub CI 必須分開核對。
 5. **未補成 PASS 的項目**：C02/C23真人／測試站／實體裝置／真 IME／實站延遲與 C24 舊 UNKNOWN32。未部署、未改正式資料或帳號、未重送 UNKNOWN。
 
-本輪集中預檢：產品候選 `81c3549366d98fe9cd1ab851cb5d31a8ac7f4aa3` 的1735列原生1440/390、C53、離頁451、共用123、導航／Begin／歷史291、比較33與既有五組projection/read/Apply/gauge均PASS。獨立乾淨clone同lockfile、lint、非增量types、來源10項、guarded build及實際C bundle/reference核對PASS。來源安全掃描615 commits／5404 blobs／2018檔PASS。這些是本機合成與build證據；上傳後HEAD／tree／CI另驗，不表示測試站或真人驗收。
+本輪最終集中預檢：產品候選 `d8eca11ba0ff8b28a013c2ef61ecf86a7b335a82` 的1735列原生1440/390、C53、離頁451、共用123、導航／Begin／歷史291、比較33與既有五組projection/read/Apply/gauge均PASS。獨立乾淨clone同lockfile、lint、非增量types、來源10項、guarded build及最新C bundle `shell-scripts.61e9e4344ddee1065bdc.js`／index引用核對PASS。81c3549的中間證據不替代此新版build。這些是本機合成與build證據；上傳後HEAD／tree／CI另驗，不表示測試站或真人驗收。
 
 補掃所有工作選擇賦值後，發現待補項目與驗證定位兩個原有入口亦可跨產品／工段。合成 fixture 先補未涵蓋的 C200 待補項目；首次探針因多個 summary 及 coverage fixture 條件不符而失敗，修正測試定位後才得到真正產品 red（cf368bc 實際1／預期0）。不把 fixture 探針失敗算成產品缺陷。最終集中預檢以補齊兩入口後的候選另驗。

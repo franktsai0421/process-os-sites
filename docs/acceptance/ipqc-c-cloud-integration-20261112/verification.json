@@ -363,7 +363,7 @@
       "physical devices and real IME",
       "historical UNKNOWN32 outcome"
     ],
-    "productCommit": "81c3549366d98fe9cd1ab851cb5d31a8ac7f4aa3",
+    "productCommit": "d8eca11ba0ff8b28a013c2ef61ecf86a7b335a82",
     "commandGroups": [
       {
         "command": [
@@ -378,8 +378,8 @@
           "tests/ipqc-c-equipment-display.test.mjs"
         ],
         "exit": 0,
-        "seconds": 0.615,
-        "log": "/tmp/ipqc-c-discard-checks/00.log"
+        "seconds": 1.211,
+        "log": "/tmp/ipqc-c-discard-final-checks/00.log"
       },
       {
         "command": [
@@ -407,8 +407,8 @@
           "tests/spreadsheet-loader.test.mjs"
         ],
         "exit": 0,
-        "seconds": 7.307,
-        "log": "/tmp/ipqc-c-discard-checks/01.log"
+        "seconds": 11.169,
+        "log": "/tmp/ipqc-c-discard-final-checks/01.log"
       },
       {
         "command": [
@@ -421,8 +421,8 @@
           "tests/routine-fqc-source-contract.test.cjs"
         ],
         "exit": 0,
-        "seconds": 2.53,
-        "log": "/tmp/ipqc-c-discard-checks/02.log"
+        "seconds": 5.12,
+        "log": "/tmp/ipqc-c-discard-final-checks/02.log"
       },
       {
         "command": [
@@ -430,8 +430,8 @@
           "scripts/test-ipqc-c-save-projection-client.cjs"
         ],
         "exit": 0,
-        "seconds": 0.146,
-        "log": "/tmp/ipqc-c-discard-checks/03.log"
+        "seconds": 0.177,
+        "log": "/tmp/ipqc-c-discard-final-checks/03.log"
       },
       {
         "command": [
@@ -439,8 +439,8 @@
           "scripts/test-ipqc-c-read-recovery.cjs"
         ],
         "exit": 0,
-        "seconds": 0.158,
-        "log": "/tmp/ipqc-c-discard-checks/04.log"
+        "seconds": 0.199,
+        "log": "/tmp/ipqc-c-discard-final-checks/04.log"
       },
       {
         "command": [
@@ -448,8 +448,8 @@
           "scripts/test-ipqc-c-entry-apply.cjs"
         ],
         "exit": 0,
-        "seconds": 0.117,
-        "log": "/tmp/ipqc-c-discard-checks/05.log"
+        "seconds": 0.431,
+        "log": "/tmp/ipqc-c-discard-final-checks/05.log"
       },
       {
         "command": [
@@ -457,8 +457,8 @@
           "scripts/test-ipqc-c-compare-save.cjs"
         ],
         "exit": 0,
-        "seconds": 1.571,
-        "log": "/tmp/ipqc-c-discard-checks/06.log"
+        "seconds": 1.581,
+        "log": "/tmp/ipqc-c-discard-final-checks/06.log"
       },
       {
         "command": [
@@ -473,8 +473,8 @@
           "tests/shared-draft-restore-admission.test.cjs"
         ],
         "exit": 0,
-        "seconds": 5.941,
-        "log": "/tmp/ipqc-c-discard-checks/07.log"
+        "seconds": 7.181,
+        "log": "/tmp/ipqc-c-discard-final-checks/07.log"
       },
       {
         "command": [
@@ -482,8 +482,8 @@
           "scripts/test-ipqc-c-local-gauge-browser.cjs"
         ],
         "exit": 0,
-        "seconds": 14.943,
-        "log": "/tmp/ipqc-c-discard-checks/08.log"
+        "seconds": 11.262,
+        "log": "/tmp/ipqc-c-discard-final-checks/08.log"
       }
     ],
     "cleanCloneCommands": [
@@ -494,9 +494,9 @@
           "lint"
         ],
         "exit": 0,
-        "seconds": 15.435,
-        "log": "/tmp/ipqc-c-discard-clean/00.log",
-        "head": "81c3549366d98fe9cd1ab851cb5d31a8ac7f4aa3"
+        "seconds": 17.83,
+        "log": "/tmp/ipqc-c-discard-final-clean/00.log",
+        "head": "d8eca11ba0ff8b28a013c2ef61ecf86a7b335a82"
       },
       {
         "command": [
@@ -507,9 +507,9 @@
           "false"
         ],
         "exit": 0,
-        "seconds": 11.992,
-        "log": "/tmp/ipqc-c-discard-clean/01.log",
-        "head": "81c3549366d98fe9cd1ab851cb5d31a8ac7f4aa3"
+        "seconds": 15.193,
+        "log": "/tmp/ipqc-c-discard-final-clean/01.log",
+        "head": "d8eca11ba0ff8b28a013c2ef61ecf86a7b335a82"
       },
       {
         "command": [
@@ -519,9 +519,9 @@
           "tests/ipqc-c-read-io-source-contract.test.mjs"
         ],
         "exit": 0,
-        "seconds": 0.488,
-        "log": "/tmp/ipqc-c-discard-clean/02.log",
-        "head": "81c3549366d98fe9cd1ab851cb5d31a8ac7f4aa3"
+        "seconds": 0.231,
+        "log": "/tmp/ipqc-c-discard-final-clean/02.log",
+        "head": "d8eca11ba0ff8b28a013c2ef61ecf86a7b335a82"
       },
       {
         "command": [
@@ -530,12 +530,12 @@
           "build"
         ],
         "exit": 0,
-        "seconds": 7.467,
-        "log": "/tmp/ipqc-c-discard-clean/03.log",
-        "head": "81c3549366d98fe9cd1ab851cb5d31a8ac7f4aa3"
+        "seconds": 8.619,
+        "log": "/tmp/ipqc-c-discard-final-clean/03.log",
+        "head": "d8eca11ba0ff8b28a013c2ef61ecf86a7b335a82"
       }
     ],
-    "documentationFollowup": "Only requirement/implementation/evidence documents after product81c3549; product/build inputs unchanged.",
+    "documentationFollowup": "After product d8eca11 only evidence documents change; actual app/lib/public/package inputs stay identical to the clean built candidate.",
     "intermediateValidation81c3549": {
       "native": "PASS IPQCC_PROFILE=1,1735 rows,Chromium1440/390: search target/input preserved; modal prevents direct product switch; product/stage/coverage discard with no prompt/write; pending photos discarded; stored C identity and DB/R2 unchanged; existing UNKNOWN/lateACK/conflict/readonly history retained",
       "CcoreSourceControllerTests": 53,
@@ -567,7 +567,43 @@
       "logs": "Private task logs in /tmp/ipqc-c-discard-checks and /tmp/ipqc-c-discard-clean; no source/data packages committed",
       "acceptanceDocumentLinks": 65
     },
-    "localValidation": "IN_PROGRESS final additional-locate candidate",
+    "localValidation": {
+      "native": "PASS IPQCC_PROFILE=1,1735 rows,Chromium1440/390: ordinary search and same-context locate retain input; modal blocks direct product switch; product/stage/coverage/pending-item/validation cross-context selections discard unsent input with zero prompt/write; pending photos discarded; original UNKNOWN/lateACK/conflict/readonly history retained",
+      "CcoreSourceControllerTests": 53,
+      "departureTests": 451,
+      "sharedMediaBackgroundRoutineTests": 123,
+      "navigationBeginHistoryTests": 291,
+      "comparisonAssertions": 33,
+      "existingHandlerProjectionReadApplyGaugeScripts": 5,
+      "typedLint": "PASS independent clean clone",
+      "typescript": "PASS nonincremental independent clean clone",
+      "cleanCloneSourceTests": 10,
+      "cleanCloneLockfile": "identical to working candidate",
+      "build": "PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK",
+      "CrawAsset": "exact current source SHA256a450090fd4e867718adf1553ba5badc3a859fe85fa61ff97583fdc351dfcf986",
+      "CcompiledBundle": "shell-scripts.61e9e4344ddee1065bdc.js",
+      "CcompiledBundleProof": {
+        "status": "PASS_EXACT_DERIVED_BUNDLE_AND_REFERENCE",
+        "bundle": "shell-scripts.61e9e4344ddee1065bdc.js",
+        "rawCmatches": true,
+        "oldBundlesReferenced": false
+      },
+      "sourceScan": {
+        "status": "PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE",
+        "head": "d8eca11ba0ff8b28a013c2ef61ecf86a7b335a82",
+        "commits": 617,
+        "uniqueBlobs": 5418,
+        "bytesTotal": 129172689,
+        "workingFiles": 2018,
+        "classifiedHistoricalFindings": 32,
+        "realDataOpened": false,
+        "credentialValuesReturned": false
+      },
+      "diffCheck": "PASS",
+      "logs": "Private task logs in /tmp/ipqc-c-discard-checks and /tmp/ipqc-c-discard-clean; no source/data packages committed",
+      "acceptanceDocumentLinks": 65,
+      "acceptanceAndPolicyDocumentLinks": 70
+    },
     "additionalGapRed": {
       "sourceCommit": "cf368bc08969a29abd373f7c4aa804d23c4c2b9f",
       "expected": 0,
