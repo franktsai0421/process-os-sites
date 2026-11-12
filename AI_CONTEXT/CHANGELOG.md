@@ -1,3 +1,7 @@
+## 2026-11-12 — Equipment-to-A/B transfer compatibility
+
+The A/B transfer client now pins its expected actor to the original equipment dialog owner, preserving current authorization, intent and CAS fences. Compiled transfer 7/7 and ownership/save 27/27 pass; see the [A/B evidence ledger](../docs/acceptance/ipqc-ab-integration-20261112/README.md). Draft only; no deployment or real-data changes.
+
 ## 2026-11-12 — A/B Cloud integration follow-up
 
 Received and verified all 41 source patches, reused main/old-branch changes selectively, and fixed photo-PUT revision races, actor-scoped original upload outcome queries and receipt-only departure. Whole-set mine preserves multiple original item IDs under existing authorization/CAS guards. Synthetic performance and validation limits: [A/B integration](../docs/acceptance/ipqc-ab-integration-20261112/README.md). No schema migration, merge, deployment or real-data writes.

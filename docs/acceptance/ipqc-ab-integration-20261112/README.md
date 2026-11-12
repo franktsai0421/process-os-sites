@@ -193,3 +193,31 @@ entire shared submission group 212/212; targeted lint PASS. Missing-closure
 negative controls and all original permission, snapshot, cancellation and
 zero-write assertions remain enforced. These fixes await a fresh Windows run
 on the uploaded successor.
+
+## Equipment-to-A/B compatibility follow-up
+
+At uploaded head `980632b6`, A/B integration (272 core, 186 browser, 4 compiled),
+AB/C, PROCESS, Feedback and IPQC-C CI passed. Windows Local safety passed the
+previously repaired departure and submission stages, then exposed a real
+equipment-to-A/B compatibility gap: the existing transfer client supplied an
+actor ID but omitted the A/B API expected-actor header. The client now pins
+`X-Process-Expected-Actor` to the original transfer dialog owner. Fresh server
+authorization, owner/intent checks and CAS remain required. Its script cache
+tag advances; exact historical source projections now include this narrow
+equipment change without masking arbitrary changes.
+
+The compiled transfer suite passes 7/7 across desktop zh and 390px vi; transfer
+ownership/save regressions pass 27/27, photo routes 19/19, navigation/cache
+contracts 72/72 and the repaired direct inverse proof 53/53. Normal synthetic
+A/B photo and transfer setup requests now supply their actual expected actor;
+anonymous, wrong-actor and permission-refusal cases remain unchanged. Guarded
+build, lint and full TypeScript pass.
+
+The Windows snapshot/source stage was also exercised locally in original
+command order: commands 1–46 passed. Command 47 (`snapshot-adapters`) reaches
+18 passing cases, then its existing Windows UNC-path assertion fails on Linux
+because `path.resolve` treats the Windows path as relative. This unrelated
+main-source behavior is not changed in the A/B integration; the actual Windows
+workflow remains the cross-platform acceptance gate. Remaining commands 48–50
+(chunked/ZIP profiles and Sites security) also passed locally. No snapshot permissions
+or CI conditions were relaxed.

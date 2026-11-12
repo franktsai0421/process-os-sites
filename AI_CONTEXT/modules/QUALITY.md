@@ -1,3 +1,7 @@
+## 2026-11-12 — Equipment-to-A/B transfer compatibility
+
+The A/B transfer client now pins its expected actor to the original equipment dialog owner, preserving current authorization, intent and CAS fences. Compiled transfer 7/7 and ownership/save 27/27 pass; see the [A/B evidence ledger](../../docs/acceptance/ipqc-ab-integration-20261112/README.md). Draft only; no deployment or real-data changes.
+
 ## 2026-11-12 — Isolated IPQC A/B integration candidate
 
 A/B grouped Save conflicts, original-ID retention, approved readonly history, explicit-check performance and completeness parity are integrated as a candidate based on main #100. Latest filter policy discards unsent RAM/Files. Photo ACK loss retains owner-scoped operation metadata, supports GET-only recovery and permits silent departure without restoring private forms. Whole-set mine retains multiple selected original identities with unchanged restore gates. No merge/deployment/live acceptance. [Sources, seven-scope coverage and test limits](../../docs/acceptance/ipqc-ab-integration-20261112/README.md).
