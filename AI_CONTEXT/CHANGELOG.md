@@ -1,3 +1,7 @@
+## 2026-11-12 — Silent Canvas navigation correction
+
+Reproduce CANVAS_REVIEW_CHANGED on #103 stage departure using actual controllers and isolated ports. Redraw a surviving authorized source only after releasing its checked abandonment lease, preserving original target/epoch and UNKNOWN protections. Retain genuine public preimages through exact source inverses and wire the 36 new handoff regressions into existing process-platform CI. Local targeted tests, source proofs, normal lint/TypeScript and guarded build pass; later source/synthetic steps 37, 48 and 51 pass, while 45/50 have source-only coverage. Compiled browser/Worker and Windows acceptance remain unrun locally. No UNKNOWN32 replay, merge, deployment or true-data mutation.
+
 ## 2026-11-11 — Authoring Begin recovery fences
 
 Reproduce eight failures against the #103 product using the real transport/history mount, then align authoring's initial guard and idle-owner marker discovery with the independently reviewed #104 candidate. Keep all other account/Routine and readback-comparison changes. Native failure reporting emits only bounded allowlisted state; an exact LF/CRLF inverse retains the original assertions, one-POST/receipt identity and 30-second deadline. Shared source evidence still reverses to both unchanged public predecessors. No account, database, schema, flag, merge or deployment change; native/latest-head acceptance remains separate.

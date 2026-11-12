@@ -349,7 +349,14 @@ function adopt(result,replace=true,preserveCanvas=false){assertHistoryCurrent();
    departureCheck(r);await (r.canvas.discardUnsentForDeparture||r.canvas.discardForDeparture).call(r.canvas,flow(),r.canvasLease);departureCheck(r);r.editor.discardLocal();
    if(r.unknown){if(!departureLocalClean(r))throw Error('CANVAS_UNSYNCHRONIZED');for(const {client,anchor}of r.plan.pins)r.coverage.push(client.coverDeparture(anchor,()=>r.committed||currentDeparture(r)&&departureLocalClean(r)));}
    r.phase='held';if(departureStatus().state!=='departing')throw Error('DEPENDENCY_CHANGED_RECONFIRM');
-   host.ProcessEditorV2?.refreshRecovery?.();
+   // Release the checked handoff before repainting a still-current source.
+   // A successful target render replaces this root; cancelled handoffs refresh it.
+   const recoveryRoot=document.querySelector('.pe-editor'),release=r.release;
+   r.release=()=>{
+    const sourceCurrent=()=>r.client===transport&&r.owner.identity===host.ProcessSync?.identity&&sameStamp(r.owner,identityStamp())&&!host.ProcessSync?.requiresReload&&r.contextEpoch===localContextEpoch&&state.view==='editor'&&state.category===r.category&&state.editorLine===r.line&&flow()?.generation===r.generation&&!historyReadOnly()&&permissions.view===true&&r.client.permission?.('view')!==false&&recoveryRoot?.isConnected&&document.querySelector('.pe-editor')===recoveryRoot;
+    const refresh=currentDeparture(r)&&sourceCurrent();
+    try{return release();}finally{if(refresh&&sourceCurrent())host.ProcessEditorV2?.refreshRecovery?.();}
+   };
    return {departureId:r.id,release:r.release};
   }catch(error){r.release();panel();throw error;}
  }

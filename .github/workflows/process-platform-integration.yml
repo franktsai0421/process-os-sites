@@ -63,7 +63,7 @@ jobs:
       - name: Existing IPQC source adoption and single atomic Save
         run: node --test tests/process-ipqc-source-adopt.test.mjs
       - name: Same-page Canvas approved history and read-only actor fences
-        run: node --test tests/canvas-approved-history.test.mjs tests/process-scripts-build.test.mjs
+        run: node --test tests/canvas-approved-history.test.mjs tests/canvas-silent-handoff.test.mjs tests/process-scripts-build.test.mjs
       - name: Page-specific ownership, independent permissions and approved-history fences
         run: node --experimental-vm-modules --test tests/draft-review-policy.test.mjs tests/master-page-approved-history.test.mjs tests/master-page-approved-history-ui.test.mjs tests/master-page-retention-snapshot.test.mjs
       - name: Actual isolated page routes and UI
