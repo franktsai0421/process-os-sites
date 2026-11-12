@@ -3,9 +3,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {execFileSync} from 'node:child_process';
+import proof from '../scripts/ipqc-ab-integration-source-contract.cjs';
 import ts from 'typescript';
 import {browserTimerInventory,readBrowserSources} from '../scripts/browser-timer-inventory.mjs';
-const read=name=>fs.readFileSync('public/process/'+name,'utf8');
+// Removed A/B producer: retain its exact historical no-op scheduler test; inventory below always reads current source.
+const read=name=>{const raw=fs.readFileSync('public/process/'+name);return name==='ipqc-ab.js'?proof.checkoutPredecessor(raw,execFileSync('git',['show','HEAD:public/process/'+name]),'public/process/'+name).toString('utf8'):raw.toString('utf8');};
 const shared=read('shared-draft-client.js');
 const shim=shared.slice(shared.indexOf('  window.createForegroundPoll ='),shared.indexOf('  // Local Begin feedback only:'));
 function declaration(source,name){const ast=ts.createSourceFile('caller.js',source,ts.ScriptTarget.Latest,true),found=[];function walk(n){if(ts.isFunctionDeclaration(n)&&n.name?.text===name)found.push(n.getText(ast));ts.forEachChild(n,walk);}walk(ast);assert.equal(found.length,1,name+' exact closure');return found[0];}

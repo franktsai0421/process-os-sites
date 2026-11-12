@@ -11,4 +11,10 @@ function restorePredecessor(bytes,file){
  assert.equal(hash(result),c.beforeHash);return result;
 }
 function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'A/B integration proof requires raw source bytes');return contracts.some(c=>c.file===file&&c.afterHash===hash(bytes))?restorePredecessor(bytes,file):bytes;}
-module.exports={contracts,restorePredecessor,projectKnown};
+function checkoutPredecessor(bytes,committed,file){
+ assert(Buffer.isBuffer(bytes)&&Buffer.isBuffer(committed),'A/B checkout proof requires raw source bytes');
+ const lf=value=>value.toString('utf8').replace(/\r\n/g,'\n');
+ assert.equal(lf(bytes),lf(committed),'A/B checkout proof differs beyond line endings');
+ return restorePredecessor(committed,file);
+}
+module.exports={contracts,restorePredecessor,projectKnown,checkoutPredecessor};

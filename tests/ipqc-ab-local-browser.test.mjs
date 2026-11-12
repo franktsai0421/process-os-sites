@@ -79,3 +79,14 @@ void test('AB legacy group create unknown stays blocked after reload until origi
 void test('AB empty local start/cancel does not initialize or Save shared state',async()=>{
  const s=await setup();try{await s.page.locator('#ipqcab-begin').click();await save(s);assert.equal(writes(s).length,0);await s.page.locator('#ipqcab-add-error').click();await s.page.locator('#ab-error-name').fill('Discard');await s.page.locator('[data-ab-close]').first().click();await save(s);assert.equal(writes(s).length,0);assert.deepEqual(s.errors,[]);}finally{await s.close();}
 });
+
+void test('current AB page stays idle with private input across five minutes and focus changes',{timeout:30000},async()=>{
+ const s=await setup();try{
+  await addError(s);await s.page.locator('#ipqcab-add-error').click();await s.page.locator('#ab-error-name').fill('保留未送出 / Giữ nội dung');
+  await s.page.clock.install();const count=s.requests.length,before=s.f.snapshot();
+  await s.page.evaluate(()=>{window.dispatchEvent(new Event('blur'));window.dispatchEvent(new Event('focus'));document.dispatchEvent(new Event('visibilitychange'));});
+  await s.page.clock.fastForward(300000);
+  assert.equal(s.requests.length,count,'idle/focus must never create background GET or POST');assert.equal(writes(s).length,0);
+  assert.equal(await s.page.locator('#ab-error-name').inputValue(),'保留未送出 / Giữ nội dung');assert.deepEqual(s.f.snapshot(),before);assert.deepEqual(s.errors,[]);
+ }finally{await s.close();}
+});

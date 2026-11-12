@@ -221,3 +221,32 @@ main-source behavior is not changed in the A/B integration; the actual Windows
 workflow remains the cross-platform acceptance gate. Remaining commands 48–50
 (chunked/ZIP profiles and Sites security) also passed locally. No snapshot permissions
 or CI conditions were relaxed.
+
+## Full integrated regression follow-up
+
+All 145 commands in the existing integrated-entry/read-only-delivery stage
+were exercised locally. After targeted compatibility repairs, 144 commands
+passed across the original and fixed-case runs. The remaining command's
+221 checks passed, while its Windows-only `powershell.exe` exit-propagation
+case is unavailable on Linux; the original Windows CI gate remains required.
+This is combined evidence, not a clean single invocation of all 145 commands.
+
+Normal A/B synthetic requests in restore, disabled-backup, lifecycle and
+acceptance fixtures now supply their own expected actor. All original
+permission-denial, unchanged-state, stale-generation and receipt assertions
+remain. The ACK-denial fixture now denies only the post-acknowledgment read,
+so fresh pre-Save authorization still executes; invalid display owners must
+reject before dispatch. Extracted role tests load the actual history/photo
+closures rather than omitting new dependencies.
+
+Removed A/B poll callbacks and the removed legacy history button are retained
+only as explicitly historical tests, using exact main predecessor bytes.
+Checkout line-ending equivalence is checked against the complete committed
+source before the inverse; extra bytes, wrong source and non-Buffer inputs
+are rejected. Current-source timer inventory, full approved-history 26/26,
+and current native page tests remain independent. A new actual browser case
+retains private bilingual input through five simulated minutes and focus/
+visibility changes with zero background GETs or writes. The conflict/no-poll
+source wiring test also checks the separate A/B integration workflow that
+runs the current actual-handler suite. No workflow or product runtime was
+changed by this compatibility follow-up.

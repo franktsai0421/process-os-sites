@@ -9,5 +9,5 @@ assert.match(source,/async function saveLocalModule\(/,'explicit Save remains av
 assert.match(source,/let result=await client\.read\(\)/,'explicit Save must read authority');
 const tests=fs.readFileSync(path.join(root,'tests/ipqc-ab-conflict-ui.test.mjs'),'utf8');
 assert.match(tests,/AB mount, visibility and scope refresh create no foreground polling timer or implicit draft reads/);
-assert.match(fs.readFileSync(path.join(root,'.github/workflows/local-safety.yml'),'utf8'),/node --test[^\n]*tests\/ipqc-ab-conflict-ui\.test\.mjs/);
+assert.match(['local-safety.yml','ipqc-ab-integration.yml'].map(name=>fs.readFileSync(path.join(root,'.github/workflows',name),'utf8')).join('\n'),/node --test[^\n]*tests\/ipqc-ab-conflict-ui\.test\.mjs/);
 console.log(JSON.stringify({status:'PASS_AB_NO_PERIODIC_DRAFT_READ_SOURCE',limits:'Source wiring only; runtime mount/focus/explicit Save is tested separately in the actual synthetic UI/handler suite.'}));

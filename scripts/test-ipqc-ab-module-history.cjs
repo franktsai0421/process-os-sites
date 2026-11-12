@@ -1,8 +1,9 @@
-/* Actual IPQC-AB history entry + real shared client/modal in isolated VM. GET-only memory responses; no SDK/network/browser/data writes. */
+/* Exact historical IPQC-AB history entry (current approved history uses its own actual-page suite).
+ * Released IPQC-AB history entry + real shared client/modal in isolated VM. GET-only memory responses; no SDK/network/browser/data writes. */
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const ts=require('typescript');
-const root=path.resolve(__dirname,'..'),source=fs.readFileSync(path.join(root,'public/process/ipqc-ab.js'),'utf8'),shared=fs.readFileSync(path.join(root,'public/process/shared-draft-client.js'),'utf8');
+const root=path.resolve(__dirname,'..'),source=require('./ipqc-ab-integration-source-contract.cjs').checkoutPredecessor(fs.readFileSync(path.join(root,'public/process/ipqc-ab.js')),require('node:child_process').execFileSync('git',['show','HEAD:public/process/ipqc-ab.js'],{cwd:root}),'public/process/ipqc-ab.js').toString('utf8'),shared=fs.readFileSync(path.join(root,'public/process/shared-draft-client.js'),'utf8');
 const results=[],at='2026-10-16T09:00:00Z';
 async function check(name,run){await run();results.push({name,status:'PASS'});}
 function sourceParts(text){
@@ -111,5 +112,5 @@ async function fixture(script,{whole=true,mayEdit=true,mayHistory=true,restore}=
  await check('a legacy opened entry cannot expose restore after module adoption',async()=>{const f=await fixture(source,{whole:false,mayEdit:true,restore:true});assert.equal(f.options.editable(),true);await f.openCase();const restore=f.overlay.querySelector('[data-restore]');assert(restore);f.initialControl.moduleDraft={workflow:{}};assert.equal(f.options.editable(),false);const count=f.requests.length;await restore.handlers.click();assert.equal(f.requests.length,count,'retained group Restore cannot read preview after module adoption');f.close();});
  await check('actor ownership remains enforced by the real durable Begin transport',async()=>{const f=await fixture(source);const count=f.requests.length;f.context.window.ProcessSync.identity={id:'other-synthetic',role:'admin'};await assert.rejects(()=>f.options.client.history(),/BEGIN_OWNER_CHANGED/);assert.equal(f.requests.length,count);f.close();});
  assert(source.includes("returned:t('已發回','Đã trả lại'),withdrawn:t('已撤回','Đã rút')"),'two status entries retained');
- console.log(JSON.stringify({status:'PASS_IPQCAB_MODULE_HISTORY_ENTRY_MEMORY_ONLY',groups:results.length,results,actualEntry:true,actualTransportAndModal:true,SDK:false,HTTP:false,GUI:false,realDataWrites:0,restoreApplyExecuted:false,moduleBodyDisplayAccepted:false,moduleBodyQualification:'Existing shared historyCollections does not flatten {scopes,bases}; entry/list/actor/decision tested only. No shared renderer fix or full content acceptance.'}));
+ console.log(JSON.stringify({status:'PASS_IPQCAB_HISTORICAL_MODULE_HISTORY_ENTRY_MEMORY_ONLY',sourceMode:'exact-main-predecessor',currentApprovedHistoryAcceptance:'tests/ipqc-ab-approved-history.test.mjs and actual browser suites',groups:results.length,results,actualEntry:true,actualTransportAndModal:true,SDK:false,HTTP:false,GUI:false,realDataWrites:0,restoreApplyExecuted:false,moduleBodyDisplayAccepted:false,moduleBodyQualification:'Existing shared historyCollections does not flatten {scopes,bases}; entry/list/actor/decision tested only. No shared renderer fix or full content acceptance.'}));
 })().catch(error=>{console.error(error);process.exitCode=1;});
