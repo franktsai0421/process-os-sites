@@ -33,7 +33,7 @@ No data migration, package replacement or real-account change is needed for thes
 
 ## Verification status
 
-Local final product inputs match ab07ad80f1455ec49308bcca2bb8a96e116baf26 (tree dc81402ee2f55d8f5d79f706181ca4f0be5bb0c4); subsequent changes are tests, source-proof composition and evidence documentation only. They do not invalidate the successful typed lint/TypeScript/guarded build for those identical inputs.
+Initial concentrated validation used product inputs at ab07ad80f1455ec49308bcca2bb8a96e116baf26. The final late-ACK follow-up changes only C presentation ownership; its exact byte hash is pinned in the integration source contract. Backend performance/ACL/ID evidence remains applicable; frontend source/owner/native tests and lint/types/build require fresh follow-up evidence, as recorded in the PR.
 
 | Check | Evidence/status |
 | --- | --- |
@@ -61,3 +61,9 @@ Before upload, #104 advanced to 15a5acb404edb1d4f1826b13430f61376e3accb4; its8 c
 At a8d0984, C run43157277709 failed the exact-source step because its default depth1 checkout omitted fixed historical blobs (9fbba823 and429e178). The checkout now fetches complete history and disables persisted credentials. AB/C run43157277653 and PROCESS run43157277720 failed only the navigation cache oracle expecting the old C URL; only that reviewed C tag assertion is updated. No runtime bytes, source pins, negative cases or CI test steps changed. Fresh current-HEAD results must be checked independently; these initial failures are retained.
 
 Windows run43157668888 exposed the Routine FQC cache proof depending on the complete shared index. The failure reproduces locally: the two C/version-UI tags prevented its existing background-check inverse from reaching the pinned predecessor. The shared test-only projection now first reverses only the exact C integration hash, then runs the unchanged background/Routine proof. All old Routine hashes, one-tag/authority/UNKNOWN/byte/EOL negatives and runtime code remain unchanged. No FQC feature branch or product change is included.
+
+## Final late-ACK presentation follow-up
+
+A normal successful Save ACK was deliberately held after server commit while the browser switched products. The old source reproduced a new-page reload barrier (expected0,actual1); it had not retired the old presentation owner. Scope change now advances the existing mount fence and clears only unsent UI busy/notice/quarantine state. Remount also clears obsolete presentation busy/notice state. The primary transport still owns and settles the exact sent command/receipt; it is never erased or replayed. Same-page history captures its new owner after silently abandoning unsent input.
+
+Native1440/390 tests now pass both cross-product delayed success and direct re-entry while a Save is in flight: no destination reload barrier, no stuck Save, original marker retained until its original response/terminal read, exactly one Save POST. Existing UNKNOWN404, lost ACK, history, conflict and photo/gauge cases remain. The extracted nine-module departure fixture also needed the actual C cancelSaveChoice declaration; it now executes that source binding alongside clearLocal and all154 cases pass. Full departure group and final source/build gates are evaluated on the follow-up candidate, without restoring old prompts/forms.

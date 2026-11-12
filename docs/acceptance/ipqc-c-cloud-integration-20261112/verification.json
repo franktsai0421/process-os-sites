@@ -1,5 +1,4 @@
 {
-  "productCommit": "ab07ad80f1455ec49308bcca2bb8a96e116baf26",
   "localCommandGroups": [
     {
       "command": [
@@ -224,5 +223,14 @@
     "workingFiles": 2017,
     "realDataOpened": false,
     "credentialValuesReturned": false
+  },
+  "initialProductCommit": "ab07ad80f1455ec49308bcca2bb8a96e116baf26",
+  "finalProductSourceContract": "scripts/ipqc-c-integration-source-contract.json",
+  "lateAckFollowup": {
+    "sourceSHA256": "039dcc7d35a04b386c3567d23f4d66a0d04fe20a1f8ed1411a7dde503bbce851",
+    "nativeCrossProductAndRemount": "PASS",
+    "sourceOwnedDepartureBindings": 154,
+    "originalSentMarker": "retained; no replay",
+    "finalBuild": "PENDING"
   }
 }

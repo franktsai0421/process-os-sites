@@ -1116,9 +1116,9 @@
     return {permission:key=>client.permission(key),uiHistory:async options=>({...await get({uiHistory:'1',...(options?.versionBefore?{versionBefore:options.versionBefore}:{})}),saves:{rows:[],next:null,total:0}}),version:id=>get({versionId:id})};
   }
   async function selectPageVersion(id){
+    const previousVersion=selectedVersionId;discardUnsentScope();
     const owner=errorRecoveryOwner(),client=sharedTransport(),sequence=++historySelection;
-    const current=()=>owner()&&historySelection===sequence;
-    const previousVersion=selectedVersionId;discardUnsentScope();working=null;
+    const current=()=>owner()&&historySelection===sequence;working=null;
     try{
       if(id===open()?.id){await read(false,current);if(!current())return;selectedVersionId=open()?.id||active()?.id||'';}
       else if(id===active()?.id){await read(false,current);if(!current())return;if(active()?.id!==id)throw Error('APPROVED_HISTORY_SUPERSEDED');selectedVersionId=id;working=null;}
@@ -1135,6 +1135,9 @@
   }
   let historySelection=0;
   function discardUnsentScope(){
+    // Retire presentation only. The primary transport keeps its in-flight
+    // command/receipt marker and may settle it; old callbacks cannot own this view.
+    mountSequence++;busy=false;saveInputNotice=null;readQuarantinedDraft=null;
     cancelSaveChoice?.();modal=null;picker=null;viewer=null;conflict=null;clearLocal();
     working=open()?.status==='draft'?copy(open().snapshot):null;
   }
@@ -1254,7 +1257,7 @@
     });
   }
   async function mount(element) {
-    cancelSaveChoice?.();const sequence=++mountSequence;pollTimer.cancel();clearLocal();
+    cancelSaveChoice?.();const sequence=++mountSequence;busy=false;saveInputNotice=null;readQuarantinedDraft=null;pollTimer.cancel();clearLocal();
     const current=()=>sequence===mountSequence&&host===element;
     host=element;navigationError=null; message=''; conflict=null; modal=null; caseHistory=null; host.innerHTML=`<section class="ipqcc-page"><p>${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</p></section>`;
     try { await read(false,current,true);if(!current())return;draw();scheduleSharedRefresh(); } catch(error) {if(!current()||isReadSuperseded(error))return;navigationError=error;message=error.message; host.innerHTML=`<section class="ipqcc-page"><p role="alert">${h(displayDraftError(message))}</p><button type="button" class="button signal" id="ipqcc-load-retry">${t('Tải lại dữ liệu','重新載入資料')}</button></section>`;host.querySelector('#ipqcc-load-retry').onclick=()=>mount(element); }
