@@ -392,7 +392,7 @@
   {
     "file": "public/process/index.html",
     "beforeHash": "41474215c11933274c47c35fc09e86f4fc930fd791322013da861c256b766fae",
-    "afterHash": "9957f27e9794e8017e7be0df430fd08a18ddf64d1475da3ece55273e61ea478e",
+    "afterHash": "8b2a9b129c3c7eb86f111d4f9b956fa20dd8285cc78cc89355c16e4e2af02ec1",
     "rules": [
       {
         "offset": 6899,
@@ -405,7 +405,12 @@
         "after": "    <script data-process-src=\"version-draft-ui.js?v=20261112-ipqc-ab-cloud1\"></script>\n"
       },
       {
-        "offset": 9578,
+        "offset": 8984,
+        "before": "    <script data-process-src=\"routine-equipment.js?v=20261108-equipment-ci-recovery1\"></script>\n",
+        "after": "    <script data-process-src=\"routine-equipment.js?v=20261112-ab-transfer-actor1\"></script>\n"
+      },
+      {
+        "offset": 9574,
         "before": "    <script data-process-src=\"ipqc-ab.js?v=20261105-ab-scope-input1\"></script>\n",
         "after": "    <script data-process-src=\"ipqc-ab.js?v=20261112-ipqc-ab-cloud1\"></script>\n"
       }
@@ -829,6 +834,18 @@
         "offset": 60699,
         "before": "  host.VersionDraftUI={createDeparture,masterChanges,mount,t,date,issueMessage,confirmSubmit,confirmReview,preserveView,reasonFor,updateSaved,updateSync};\n",
         "after": "  host.VersionDraftUI={createApprovedHistory,renderApprovedCollections,historyVersion,clearHistory,createDeparture,masterChanges,mount,t,date,issueMessage,confirmSubmit,confirmReview,preserveView,reasonFor,updateSaved,updateSync};\n"
+      }
+    ]
+  },
+  {
+    "file": "public/process/routine-equipment.js",
+    "beforeHash": "6f57fc37463575cb1ee59790bad2869f44c7583a8005cbde1e805494f816597f",
+    "afterHash": "b40d93a480b06dc9620619f21fb75997372943b09b1170e46a5446ba2becb0b3",
+    "rules": [
+      {
+        "offset": 189188,
+        "before": "          try{assertIntent();const endpoint='/api/ipqc-ab/workflow?scope='+encodeURIComponent(scopeKey)+'&caseMetadata=1',client=window.createSharedDraftClient({endpoint,actorId:dialog.owner.actorId,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});\n",
+        "after": "          try{assertIntent();const endpoint='/api/ipqc-ab/workflow?scope='+encodeURIComponent(scopeKey)+'&caseMetadata=1',client=window.createSharedDraftClient({endpoint,actorId:dialog.owner.actorId,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json','X-Process-Expected-Actor':dialog.owner.actorId})});\n"
       }
     ]
   }

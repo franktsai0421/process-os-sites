@@ -129,7 +129,7 @@ void test('changed persistent-navigation executable references have coherent new
   'permission-controls.js':'20261029-dispatch-rights1',
   'process-authoring-v3.js':'20261109-explicit-checks1',
   'quality-review-overview.js':'20261101-quality-review-admission1',
-  'routine-equipment.js':'20261108-equipment-ci-recovery1',
+  'routine-equipment.js':'20261112-ab-transfer-actor1',
   'routine-fqc.js':'20261108-manual-generate2',
   'access-event-reporter.js':'20261106-access-offline3',
   'shared-draft-client.js':'20261112-ipqc-ab-cloud1',

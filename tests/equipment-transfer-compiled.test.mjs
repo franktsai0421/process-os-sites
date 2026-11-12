@@ -23,7 +23,7 @@ for(const [width,language]of [[1280,'zh'],[390,'vi']])void test(`compiled four-m
  const s=await setup(width,language);try{
  await s.source.locator('[data-node-select="category"]').first().click();await s.source.locator('[data-node-select="subcategory"]').first().click();if(await s.source.locator('[data-node-select="group"]').count())await s.source.locator('[data-node-select="group"]').first().click();
  // Establish the real shared drafts before opening another page's unsent form.
- for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab']){const q=moduleId==='ipqc-ab'?'scope=A%3AG-A&caseMetadata=1':'caseMetadata=1';assert.equal(await s.source.evaluate(async({moduleId,q})=>(await fetch('/api/'+moduleId+'/workflow?'+q,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'begin'})})).status,{moduleId,q}),200);}
+ for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab']){const q=moduleId==='ipqc-ab'?'scope=A%3AG-A&caseMetadata=1':'caseMetadata=1';assert.equal(await s.source.evaluate(async({moduleId,q})=>(await fetch('/api/'+moduleId+'/workflow?'+q,{method:'POST',headers:{'Content-Type':'application/json','X-Process-Expected-Actor':ProcessSync.identity.id},body:JSON.stringify({action:'begin'})})).status,{moduleId,q}),200);}
  const targetPages=[];
  for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab']){
   const p=await s.page('quality-'+moduleId);
@@ -66,7 +66,7 @@ void test('compiled unknown FQC transfer Save leaves locally, returns/reloads, a
 });
 void test('compiled idle FQC target issues no poll, retains its form and rejects stale Save',async()=>{
  const s=await setup(1280,'zh');try{
- const source=s.source;assert.equal(await source.evaluate(async()=>(await fetch('/api/fqc/workflow?caseMetadata=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'begin'})})).status),200);
+ const source=s.source;assert.equal(await source.evaluate(async()=>(await fetch('/api/fqc/workflow?caseMetadata=1',{method:'POST',headers:{'Content-Type':'application/json','X-Process-Expected-Actor':ProcessSync.identity.id},body:JSON.stringify({action:'begin'})})).status),200);
  const target=await s.page('quality-fqc');await target.clock.install();await target.reload();await target.locator('[data-edit-item]').first().click();await target.locator('.fqc-modal-form [name="description"]').fill('Still unsent local input');await target.locator('.fqc-modal-form [name="toolType"][value="visual"]').check();
  const idleReads=[];target.on('request',request=>{if(request.method()==='GET'&&new URL(request.url()).pathname==='/api/fqc/workflow')idleReads.push(request.url());});
  await source.locator('[data-node-select="category"]').first().click();await source.locator('[data-node-select="subcategory"]').first().click();if(await source.locator('[data-node-select="group"]').count())await source.locator('[data-node-select="group"]').first().click();await source.locator('[data-equipment-transfer="source"]').click();await source.locator('#routine-target-eq-select').selectOption('target');const savedResponse=source.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/api/fqc/workflow'&&r.request().postDataJSON().command?.action==='save');await source.locator('#routine-confirm-transfer-fqc').click();assert.equal((await savedResponse).status(),200);await source.waitForFunction(()=>!window.sharedDraftAccountState().queued);const committed=flow(await s.controls(),'fqc');assert.equal(committed.saved.content.items[0].equipmentId,'target');

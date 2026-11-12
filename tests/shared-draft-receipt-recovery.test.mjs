@@ -68,7 +68,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
   'tooling.js':'20261105-tooling-local-save1',
   'tooling.css':'20261007-2',
   'ipqc-ab.js':'20261112-ipqc-ab-cloud1',
-  'routine-equipment.js':'20261108-equipment-ci-recovery1',
+  'routine-equipment.js':'20261112-ab-transfer-actor1',
   'process-equipment.js':'20261105-process-local-save1',
   'app.js':'20261105-process-local-save1',
   'bom-workspace.js':'20261105-bom-atomic1',
