@@ -721,9 +721,9 @@
     {
       "file": "public/process/index.html",
       "beforeHash": "499f83c29f4f6caa692c54c04c16535aae5d4884c534f9d36d0b3a93b58f8b4d",
-      "afterHash": "314443ed1514560f38cd02593245e8ef2da5ddb7d46c78367530a09621e66159",
+      "afterHash": "29bb9cb35d53c5037b12c3f7065440397353f71b1969d954ca4b41c682578d98",
       "beforeBlob": "7b7113a4f6805e35e33bcdf6a4bf560dfc42eb1c",
-      "afterBlob": "779c3f5aebb491feb7cd7451e3b094822324d70b",
+      "afterBlob": "023276fefc7c7b899f42f90cd8aebe61bd93a793",
       "rules": [
         {
           "offset": 5599,
@@ -733,25 +733,25 @@
         {
           "offset": 6903,
           "before": "    <script data-process-src=\"shared-draft-client.js?v=20261109-explicit-checks3\"></script>\n",
-          "after": "    <script data-process-src=\"shared-draft-client.js?v=20261111-begin-authoring-owner2\"></script>\n"
+          "after": "    <script data-process-src=\"shared-draft-client.js?v=20261111-authoring-access-epoch3\"></script>\n"
         },
         {
-          "offset": 7187,
+          "offset": 7188,
           "before": "    <script data-process-src=\"master-data.js?v=20261105-process-local-save1\"></script>\n",
           "after": "    <script data-process-src=\"page-draft-merge.js?v=20261110-master-pages1\"></script>\n    <script data-process-src=\"master-page-transfer.js?v=20261110-master-pages1\"></script>\n    <script data-process-src=\"master-page-approved-history.js?v=20261110-master-pages1\"></script>\n    <script data-process-src=\"master-page-editor.js?v=20261110-master-pages1\"></script>\n    <script data-process-src=\"master-data.js?v=20261110-master-pages1\"></script>\n"
         },
         {
-          "offset": 8734,
+          "offset": 8735,
           "before": "    <link rel=\"stylesheet\" href=\"version-draft-ui.css?v=20261030-manual-sharing-integrated1\">\n    <script data-process-src=\"version-draft-ui.js?v=20261103-unknown-departure1\"></script>\n    <script data-process-src=\"process-authoring-v3.js?v=20261109-explicit-checks1\"></script>\n",
           "after": "    <link rel=\"stylesheet\" href=\"version-draft-ui.css?v=20261110-canvas-history1\">\n    <script data-process-src=\"version-draft-ui.js?v=20261110-canvas-history1\"></script>\n    <script data-process-src=\"canvas-approved-history.js?v=20261110-canvas-history1\"></script>\n    <script data-process-src=\"process-authoring-v3.js?v=20261110-process-integration4\"></script>\n"
         },
         {
-          "offset": 9865,
+          "offset": 9866,
           "before": "    <script data-process-src=\"process-ipqc.js?v=20261109-explicit-checks1\"></script>\n",
           "after": "    <script data-process-src=\"process-ipqc.js?v=20261110-ipqc-source-single-save1\"></script>\n"
         },
         {
-          "offset": 10528,
+          "offset": 10529,
           "before": "    <script data-process-src=\"canvas-recovery-store.js?v=20261104-canvas-integration1\"></script>\n    <script data-process-src=\"canvas-local.js?v=20261104-begin-receipt1\"></script>\n    <script data-process-src=\"process-editor.js?v=20261104-canvas-integration1\"></script>\n",
           "after": "    <script data-process-src=\"canvas-recovery-store.js?v=20261110-process-integration2\"></script>\n    <script data-process-src=\"canvas-local.js?v=20261110-process-integration2\"></script>\n    <script data-process-src=\"process-editor.js?v=20261110-process-integration2\"></script>\n"
         }
@@ -1046,9 +1046,9 @@
     {
       "file": "public/process/shared-draft-client.js",
       "beforeHash": "b80c2e904a5a6ef7e384fb10229a35421eba684e60928958aa420e55d4c695f5",
-      "afterHash": "170c4c3102fd201f1a08e03cb68efd028cc66cf573859d47e9ec695e75d034f7",
+      "afterHash": "4a4b8006019462b84ea0fd511dce571a3c51ff026aab2a4139357c56db190c7e",
       "beforeBlob": "d5dc7f97a0f4a5ad73cbe3e2320f9628f8fb553a",
-      "afterBlob": "687bbbe0e593e6c9a31184ef2120f89c239e3c2a",
+      "afterBlob": "933523a1ff2c418717eff799859294a7327872c4",
       "rules": [
         {
           "offset": 1663,
@@ -1071,47 +1071,52 @@
           "after": "    const approvedAccessListeners=new Set(),approvedHistoryRoute=['/api/process-authoring/workflow','/api/master/pages'].includes(beginPath);\n"
         },
         {
-          "offset": 41227,
+          "offset": 38777,
+          "before": "    let accessGuard=guardAccessResults,accessEpoch=0,accessIssued=0,accessObserved=0,accessFence=0,accessRevision=-1;\n",
+          "after": "    // Authoring approved history enables this guard during first paint. Start it\n    // before any durable Begin receipt/readback so mounting cannot retire that read.\n    let accessGuard=guardAccessResults||durableBegin&&beginPath==='/api/process-authoring/workflow',accessEpoch=0,accessIssued=0,accessObserved=0,accessFence=0,accessRevision=-1;\n"
+        },
+        {
+          "offset": 41456,
           "before": "",
           "after": "      if(approvedHistoryRoute)for(const listener of approvedAccessListeners)try{listener();}catch{/* Presentation cannot change request or receipt authority. */}\n"
         },
         {
-          "offset": 45399,
+          "offset": 45628,
           "before": "",
           "after": "      // An idle retired authoring runtime never acquires a newer owner's Begin marker.\n      // Other modules keep explicit delivery-recheck discovery; captured evidence stays.\n      if(beginPath==='/api/process-authoring/workflow'&&!beginRecord&&!beginInvalid&&!beginRuntimeCurrent())return false;\n"
         },
         {
-          "offset": 61625,
+          "offset": 61854,
           "before": "",
           "after": "    // Only an issued Canvas Save and its original HTTP POST can prove that\n    // revision/field guards rejected the write. Public error flags, receipt GETs\n    // and copied commands cannot mint this private capability.\n    const canvasRejectionTokens=new WeakMap(),canvasRejectionIssued=new WeakMap(),canvasRejectionResponses=new WeakMap();\n    function canvasRejectionCurrent(pin){return !!pin&&!pin.consumed&&canvasTarget&&externalCurrent()&&clientPagehideGeneration===transportPagehideGeneration&&pin.pagehide===transportPagehideGeneration&&canvasOwnerCurrent(pin.owner)&&JSON.stringify(pin.command)===pin.raw;}\n    function canvasRejectionResponse(error,command,status,result){\n      const pin=canvasRejectionIssued.get(command),flight=preparedFlights.get(command?.operationId);\n      if(!canvasRejectionCurrent(pin)||!flight||pin.flight!==flight||JSON.stringify(command)!==pin.raw||status!==409||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(result.requestId||''))return;\n      const path=JSON.stringify(result.details?.path),guard=result.error==='DEPENDENCY_CHANGED_RECONFIRM'&&command.guards?.some(g=>JSON.stringify(g.path)===path);\n      if(result.error!=='DRAFT_REVISION_CHANGED_RECONFIRM'&&!guard)return;\n      canvasRejectionResponses.set(error,{pin,flight,kind:'http',status,code:result.error,requestId:result.requestId,details:JSON.stringify(result.details),notSent:error.notSent});\n    }\n    function canvasRejectionUnsent(error,command){\n      const pin=canvasRejectionIssued.get(command),flight=preparedFlights.get(command?.operationId);\n      if(!externalUnsent.has(error)||!canvasRejectionCurrent(pin)||!flight||pin.flight!==flight||JSON.stringify(command)!==pin.raw)return;\n      // This error is created only by the transport's failed durability check,\n      // before fetch. It is never inferred from a caller-supplied public flag.\n      canvasRejectionResponses.set(error,{pin,flight,kind:'unsent',status:error.status,code:error.message,requestId:error.requestId,details:JSON.stringify(error.details),notSent:true});\n    }\n    function confirmedCanvasRejection(error,command,token){\n      try{const pin=canvasRejectionTokens.get(token),proof=canvasRejectionResponses.get(error),failure=syncFailures.get(command?.operationId);\n        return canvasRejectionCurrent(pin)&&pin.command===command&&proof?.pin===pin&&proof.flight===pin.flight&&!!pin.flight&&failure?.error===error&&JSON.stringify(failure.command)===pin.raw&&(proof.kind==='http'||proof.kind==='unsent'&&externalUnsent.has(error))&&error.notSent===proof.notSent&&error.status===proof.status&&error.message===proof.code&&error.requestId===proof.requestId&&JSON.stringify(error.details)===proof.details;\n      }catch{return false;}\n    }\n"
         },
         {
-          "offset": 100827,
+          "offset": 101056,
           "before": "          catch(cause){const error=Object.assign(Error('CANVAS_DURABLE_DISPATCH_REQUIRED'),{notSent:true,cause});externalUnsent.add(error);throw error;}\n",
           "after": "          catch(cause){const error=Object.assign(Error('CANVAS_DURABLE_DISPATCH_REQUIRED'),{notSent:true,cause});externalUnsent.add(error);if(canvasTarget)canvasRejectionUnsent(error,body.command);throw error;}\n"
         },
         {
-          "offset": 105480,
+          "offset": 105709,
           "before": "        if(!response.ok){const error=Object.assign(Error(result.error||`HTTP ${response.status}`),{status:response.status,requestId:result.requestId,details:result.details});if(body?.action==='begin-v1')beginResponses.set(error,{record:beginRecord,raw:beginRaw});if(abEntry)abResponse(error,body.command,result);if(externalBounded&&body?.command)boundedResponses.set(error,{record:boundedRecord,operationId:body.command.operationId,raw:JSON.stringify(body.command),status:response.status,code:result.error,path:JSON.stringify(result.details?.path),flight:preparedFlights.get(body.command.operationId)?.promise,manualBodyTooLarge:boundedScope==='bom'&&(body.command.action==='apply'&&!body.command.moduleAction||body.command.action==='save'&&body.command.moduleAction==='save-local-v1')&&response.status===413&&result.error==='COMMAND_TOO_LARGE'&&new TextEncoder().encode(requestOptions.body).byteLength>2_000_000});throw error;}\n",
           "after": "        if(!response.ok){const error=Object.assign(Error(result.error||`HTTP ${response.status}`),{status:response.status,requestId:result.requestId,details:result.details});if(canvasTarget&&body?.command)canvasRejectionResponse(error,body.command,response.status,result);if(body?.action==='begin-v1')beginResponses.set(error,{record:beginRecord,raw:beginRaw});if(abEntry)abResponse(error,body.command,result);if(externalBounded&&body?.command)boundedResponses.set(error,{record:boundedRecord,operationId:body.command.operationId,raw:JSON.stringify(body.command),status:response.status,code:result.error,path:JSON.stringify(result.details?.path),flight:preparedFlights.get(body.command.operationId)?.promise,manualBodyTooLarge:boundedScope==='bom'&&(body.command.action==='apply'&&!body.command.moduleAction||body.command.action==='save'&&body.command.moduleAction==='save-local-v1')&&response.status===413&&result.error==='COMMAND_TOO_LARGE'&&new TextEncoder().encode(requestOptions.body).byteLength>2_000_000});throw error;}\n"
         },
         {
-          "offset": 128761,
+          "offset": 128990,
           "before": "",
           "after": "      ...(approvedHistoryRoute?{approvedHistory:(options,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true});},approvedVersion:(id,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true});},watchApprovedAccess(listener){approvedAccessListeners.add(listener);return ()=>approvedAccessListeners.delete(listener);}}:{}),\n"
         },
         {
-          "offset": 137417,
+          "offset": 137646,
           "before": "",
           "after": "      canvasRejectionCapability(command){\n        assertOwner();const snapshot=canvasCommands.get(command);\n        if(!canvasTarget||!snapshot||!canvasJSONMatches(command,snapshot)||command.action!=='apply'||command.moduleAction!=='save-canvas-v1'||!Number.isSafeInteger(command.expectedRevision)||command.expectedRevision<0||canvasRejectionIssued.has(command))throw Error('CANVAS_SAVE_PREPARATION_REQUIRED');\n        const raw=JSON.stringify(command);\n        const token=Object.freeze({}),pin={command,raw,owner:canvasOwner(),pagehide:transportPagehideGeneration,flight:null,consumed:false};\n        canvasRejectionTokens.set(token,pin);canvasRejectionIssued.set(command,pin);return token;\n      },\n      isConfirmedCanvasRejection:confirmedCanvasRejection,\n      discardRejectedCanvasSave(command,error,token){\n        assertOwner();if(unknown||queued||preparedFlights.size||!confirmedCanvasRejection(error,command,token))return false;\n        const pin=canvasRejectionTokens.get(token);syncFailures.delete(command.operationId);pin.consumed=true;canvasRejectionIssued.delete(command);return true;\n      },\n"
         },
         {
-          "offset": 144073,
+          "offset": 144302,
           "before": "        command=JSON.parse(JSON.stringify(command));\n",
           "after": "        const canvasRejectionPin=canvasTarget?canvasRejectionIssued.get(command):null;\n        command=JSON.parse(JSON.stringify(command));if(canvasRejectionPin)canvasRejectionIssued.set(command,canvasRejectionPin);\n"
         },
         {
-          "offset": 145489,
+          "offset": 145718,
           "before": "        const flight={command,promise:result};preparedFlights.set(command.operationId,flight);if(externalBounded)for(const proof of boundedCapabilities.get(command.operationId)||[])proof.flight=result;\n",
           "after": "        const flight={command,promise:result};preparedFlights.set(command.operationId,flight);if(canvasRejectionPin&&!canvasRejectionPin.flight&&canvasRejectionCurrent(canvasRejectionPin)&&canvasRejectionPin.raw===JSON.stringify(command))canvasRejectionPin.flight=flight;if(externalBounded)for(const proof of boundedCapabilities.get(command.operationId)||[])proof.flight=result;\n"
         }

@@ -129,3 +129,26 @@ void test('failure-only client probe forwards factory identity/options and does 
  vm.runInNewContext('('+installBeginRecoveryProbe.toString()+')()',realm);realm.window.createSharedDraftClient=function(value){assert.equal(this,realm.window);assert.equal(value,options);calls.push(value);return client;};
  assert.equal(realm.window.createSharedDraftClient(options),client);assert.equal(realm.window.createSharedDraftClient(options),client);assert.equal(calls.length,2);assert.equal(reads,0);const rows=realm.window.__beginRecoveryProbe();assert.equal(rows.length,1);assert.equal(reads,1);assert.equal(rows[0].module,'iqc');assert.equal(rows[0].unknown,true);assert.equal(rows[0].runtimeCurrent,false);
 });
+
+for(const runtime of ['same','successor','fresh-realm'])for(const fault of ['none','identity','epoch','delivery','revocation','newer-denial','malformed-receipt'])void test('actual approved-history mount during original authoring Begin receipt: '+fault+', runtime='+runtime,async()=>{
+ const writer=fixture('process-authoring');writer.mode('lost');await assert.rejects(writer.client.begin(),/lost ACK/);const retained=[...writer.disk],operationId=JSON.parse(retained[0][1]).operationId;writer.mode('ok');const f=runtime==='fresh-realm'?fixture('process-authoring',{disk:writer.disk,remote:writer.remote}):writer;if(runtime==='successor'){f.delivery();f.client=f.create();}const posts=()=>writer.posts().length+(f===writer?0:f.posts().length);
+ let release,entered;const held=new Promise(r=>release=r),ready=new Promise(r=>entered=r);f.hook(async call=>{
+  if(call.url.includes('operationId=')){entered();await held;if(fault==='malformed-receipt')return Response.json({operationKind:'begin-v1',receipt:{...f.remote.receipt,operationId:webcrypto.randomUUID()}});}
+  if(fault==='revocation')return Response.json({...f.data(),operationKind:'begin-v1',receipt:f.remote.receipt,permissions:{...f.data().permissions,view:false}});
+  return null;
+ });
+ const recovering=f.client.resolveUnknown();void recovering.catch(()=>{});await ready;
+ const {canvasDOM}=await import('../scripts/login-reentry-dom.mjs'),dom=canvasDOM();f.box.document=dom.document;f.box.VersionDraftUI={date:String,t:String};f.box.removeEventListener=()=>{};
+ const root=dom.document.createElement('main');root.innerHTML='<section class="vd-shell"><div class="vd-choice"></div><div class="vd-card"><div class="vd-top"><h3>Draft</h3></div></div></section>';dom.document.body.append(root);
+ vm.runInNewContext(fs.readFileSync('public/process/canvas-approved-history.js','utf8'),f.box);
+ const history=f.box.ProcessCanvasHistory.createApprovedHistory({root,shell:root.querySelector('.vd-shell'),client:f.client,selectId:'race-history',isCurrent:()=>true,canChoose:()=>false,onBoundary(){}});
+ assert.deepEqual([...f.disk],retained);
+ if(fault==='identity')f.box.ProcessSync.identity={id:'actor'};if(fault==='epoch')f.epoch();if(fault==='delivery')f.delivery();
+ if(fault==='newer-denial'){f.mode('denied');await assert.rejects(f.client.permissions(),{status:403});}
+ release();
+ try{
+  if(fault==='none'){const result=await recovering;assert.equal(result.receipt.operationId,operationId);assert.equal(f.disk.size,0);assert.deepEqual(copy(f.box.sharedDraftAccountState()),{queued:0,unknown:false,failed:false});}
+  else{const expected={identity:/^BEGIN_OWNER_CHANGED$/,epoch:/^BEGIN_OWNER_CHANGED$/,delivery:/^BEGIN_OWNER_CHANGED$/,revocation:/^BEGIN_AUTHORITY_READ_REQUIRED$/,'newer-denial':/^FORBIDDEN$/,'malformed-receipt':/^INVALID_OPERATION_RECEIPT$/};await assert.rejects(recovering,error=>expected[fault].test(error.message));assert.deepEqual([...f.disk],retained);assert.equal(f.client.hasUnknownBegin(),true);assert.equal(f.box.sharedDraftAccountState().unknown,true);}
+  assert.equal(posts(),1);for(const call of f.calls.filter(row=>row.url.includes('operationId=')))assert.equal(new URL(call.url,'https://fixture.invalid').searchParams.get('operationId'),operationId);
+ }finally{history.retire();}
+});

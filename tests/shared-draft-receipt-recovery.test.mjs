@@ -67,7 +67,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
   'master-page-approved-history.js':'20261110-master-pages1',
   'master-page-editor.js':'20261110-master-pages1',
   'local-draft-recovery.js':'20261103-fqc-generation1',
-  'shared-draft-client.js':'20261111-begin-authoring-owner2',
+  'shared-draft-client.js':'20261111-authoring-access-epoch3',
   'process-authoring-v3.js':'20261110-process-integration4',
   'process-ipqc.js':'20261110-ipqc-source-single-save1',
   'effective-version-notice.js':'20261109-explicit-checks1',

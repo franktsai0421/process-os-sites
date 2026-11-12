@@ -1,3 +1,7 @@
+## 2026-11-11 — Authoring Begin access guard starts before history paint
+
+Durable authoring clients use the existing access-result guard before their first request. Approved-history mount can therefore reuse that guard without changing the epoch of an in-flight original Begin receipt/readback. This fixes the deterministically reproduced late-enable race; it does not bypass superseded identity/delivery, revision ordering, denials, malformed receipts or original marker ownership. Actual history-mount tests require success for a current original receipt and retained UNKNOWN/no-repost under six invalidation variants. Native compiled and combined-PR/staging acceptance remain separate.
+
 ## 2026-11-11 — Native Begin inverse checkout boundary
 
 The original browser-source pin is independent of Git history: deterministic embedded baseline bytes retain the same fixed SHA256 and complete reverse byte comparison. Only checkout LF/CRLF equivalence is accepted; semantic mutation, extra suffix and invalid CR negatives remain fail-closed. This test compatibility fix does not change compiled Begin recovery or establish native acceptance. Native step36 remains unresolved until actual CI evidence is available. An additional independent integration-workflow job runs the same compiled Begin scenario after locked install/exact build; the original Windows step remains unchanged. It provides earlier evidence and does not confer broader acceptance.
