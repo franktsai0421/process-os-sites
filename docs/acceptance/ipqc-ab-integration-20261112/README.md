@@ -86,8 +86,8 @@ Cloud follow-up fixes:
   source and permission checks in the same CAS; general history restore is not
   enabled. Nonconflicting peer fields and matrix associations remain.
 - Browser fixtures forward the actual expected-actor/upload headers. The invalid
-  error-name case still reaches the real server validator for untrusted ACK
-  tests; invalid stages are rejected by preflight before POST.
+  create-error batch includes an invalid equipment reference so untrusted ACK
+  tests still reach the real server validator; invalid stages are rejected by preflight before POST.
 - Performance runners are reused byte-for-byte from `c2e0bbf` (the two
   `tests/ipqc-ab-speed-{measure,browser}.mjs` files). Synthetic timings remain
   distinct from real BOSEN/PHAODIEN and hosted performance.
@@ -126,3 +126,40 @@ Actual compiled Worker + system Chromium, synthetic loopback, no artificial I/O
 delay: 27 samples (9 operations × 3); browser medians image Save 1,025ms, Submit
 280ms, Withdraw 245ms. The later departure change does not alter the measured
 Save/upload path. Historical 40s/18.3s/16.5s timings are separate observations.
+
+## Final local validation ledger
+
+Runtime/build commit `bcf170610edc4df24de40fe882982ca2f2f4bcb1`;
+compiled entry SHA-256
+`c7f2c40c5806724adf22c7a2aa183d6ae9653c5f9ee51adbd67940e7e1a109d2`.
+Later `d34449a` changes only the compiled photo fixture; the final documentation
+commit does not change executable source.
+
+| Check | Result and scope |
+|---|---|
+| Lint / TypeScript | PASS, `npm run lint`; `tsc --noEmit --incremental false` |
+| Guarded build | PASS exit 0 and known auth-client postbuild gate; private server authentication retained |
+| A/B browser callers | 182/186 in the broad isolated run; remaining 4 failures corrected and PASS 4/4 final targeted rerun. Coverage: create/Save/conflict, actor/epoch/delivery drift, stale callbacks, original receipts and filter departure |
+| Compiled full app | PASS 4/4: desktop zh, 390px vi, restricted roles, unknown Save departure/reload/404/GET-only recovery |
+| Shared compatibility | PASS 307/307: AB/C local Save, master permission phases, shared receipt/Begin recovery, ownership, navigation and snapshot dispatch |
+| Compiled photo policy | PASS 10/10 synthetic stages across all six photo modules and feedback: exact actor, permission/source gates, lossless normalization, idempotency, format/size refusals, feature/maintenance protections |
+| Shell bundles | PASS 4/4; exactly 50 sources, 2 assets; execution/order/private-seed exclusions retained |
+| Final history, exact source and merged-main guards | PASS 93/93 after the last DOM fence change, including raw-byte inverse and negative controls; earlier 67/67 source checks also PASS |
+| Final conflict/departure edge checks | PASS 5/5: changed/added/resolved conflict, unrelated peer edits, photo-only receipt departure |
+| Source-only history/worktree | PASS: all reachable commits/blobs and 2,022 worktree files; 32 exactly reviewed historical findings; no live data or credential values opened/returned |
+
+The broad 341-case development sweep recorded 339 PASS and two failures while
+final edits were being made: an uncommitted source-byte pin and the obsolete
+expectation that a resolved same-value conflict must stop. Both were corrected
+and reverified in the 67 + 5 final targeted checks above. This is a combined
+evidence ledger, not a claim that that earlier 341-case invocation was clean.
+The final four browser failures were the three foreign-DOM quarantine paths
+and a premature UI redraw assertion after legacy receipt settlement; all four
+were reproduced and passed after correction. Raw exploratory failures remain
+in private temporary evidence. The new PR
+workflow runs the final committed source independently on GitHub.
+
+No SQL schema/migration, business records, permissions, production or deployment
+were modified. New R2 photo outcome metadata is additive and actor-scoped.
+Real hosted acceptance, physical devices, native IME and the historical BOSEN
+latency observations remain outside these synthetic checks.

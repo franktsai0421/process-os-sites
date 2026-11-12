@@ -1,6 +1,6 @@
 ## 2026-11-12 — Isolated IPQC A/B integration candidate
 
-A/B grouped Save conflicts, original-ID retention, approved readonly history, explicit-check performance and completeness parity are integrated on main #100. Latest filter policy discards unsent RAM/Files. No merge/deployment/live acceptance. [Sources, seven-scope coverage and test limits](docs/acceptance/ipqc-ab-integration-20261112/README.md).
+A/B grouped Save conflicts, original-ID retention, approved readonly history, explicit-check performance and completeness parity are integrated as a candidate based on main #100. All 41 text patches were verified. Latest filter policy discards unsent RAM/Files; original photo/Save receipts remain queryable after departure. Cloud follow-ups handle post-upload version races and same-value resolved conflicts without another Save click. No merge/deployment/live acceptance. [Sources, seven-scope coverage and test limits](docs/acceptance/ipqc-ab-integration-20261112/README.md).
 
 # 2026-11-09 — Process platform stage catalog batch
 
