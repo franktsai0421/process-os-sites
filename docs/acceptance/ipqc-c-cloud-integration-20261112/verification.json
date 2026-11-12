@@ -271,5 +271,39 @@
     "typedLint": "PASS",
     "buildEvidence": "Product/build inputs unchanged from b6abd587; exact 244adfe product build and b6abd587 Windows build passed; no redundant rebuild",
     "CI": "Evaluate latest PR HEAD"
+  },
+  "completeRequirementAudit": {
+    "document": "requirements-audit.zh-TW.md",
+    "requirements": 24,
+    "productBaseCommit": "f5c4154426869166091607273129c7f993c14924",
+    "productSourceChanged": false,
+    "newEvidence": [
+      "two C products one saved snapshot; same C scope/generation; every non-C persisted value unchanged",
+      "1440/390 search/product/stage views retain C scope/generation/draftId; no Begin or mutation"
+    ],
+    "comparisonStatus": "PASS 33 assertions plus exact snapshot/non-C model assertions",
+    "nativeStatus": "PASS IPQCC_PROFILE=1 1735 rows, 1440/390",
+    "localValidation": {
+      "typedLint": "PASS",
+      "sourceScan": {
+        "status": "PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE",
+        "head": "f5c4154426869166091607273129c7f993c14924",
+        "commits": 611,
+        "blobs": 5378,
+        "workingFiles": 2018,
+        "realDataOpened": false,
+        "credentialValuesReturned": false
+      },
+      "documentLinks": 62,
+      "diffCheck": "PASS",
+      "typesAndBuild": "REUSED exact unchanged app/lib/public/package inputs; current GitHub CI reruns its original gates"
+    },
+    "githubCI": "Evaluate current PR HEAD; f5c41544 prior five CI runs reused only where inputs unchanged",
+    "unverified": [
+      "real test-site latency",
+      "human dual-account sessions",
+      "physical devices and real IME",
+      "historical UNKNOWN32 outcome"
+    ]
   }
 }

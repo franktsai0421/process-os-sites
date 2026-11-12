@@ -34,8 +34,9 @@ local=copy(photosBase);remote=copy(photosBase);local.items[0].mediaItems[0].name
 result=compare(photosBase,local,remote);check(result.clashes.length===1,'only duplicate group conflicts');
 for(const choice of ['mine','theirs']){const merged=compare(photosBase,local,remote,{[result.clashes[0].key]:choice}).changes[0].patches[0].value;check(merged.filter(p=>p.id==='a').length===2,'duplicate references retained');check(merged.find(p=>p.id==='b').name==='Peer B','unrelated peer photo retained');check(merged.find(p=>p.id==='c').note==='Local C','unrelated local photo retained');}
 local=copy(photosBase);local.items[0].mediaItems.push(photo('a','A3'));result=compare(photosBase,local,photosBase);check(!result.clashes.length&&result.changes[0].patches[0].value.length===5,'repeated addition not deduplicated');
-const initial={schemaVersion:1,activeVersionId:null,source:null,issues:[],reservedErrorCodes:[],reservedItemCodes:[],versions:[{id:'initial',number:1,status:'draft',snapshot:base,baseVersionId:null,revision:1,creatorId:'fixture',creatorName:'fixture',createdAt:'fixture',updatedAt:'fixture',history:[]}]};
-(async()=>{const h=await fixture({ipqcCMasterControl:JSON.stringify(initial),masterDataControl:JSON.stringify({active:{C:{products:[{code:'C100',stages:['CUT']}],lines:[{stages:[{code:'CUT'}]}]}}})});try{
+const handlerBase=copy(base);handlerBase.errors.push({...copy(base.errors[0]),id:'e3',code:'E3',productCode:'C200',stageCode:'OTHER'});handlerBase.items.push({...item('i3','e3'),productCode:'C200',stageCode:'OTHER'});
+const initial={schemaVersion:1,activeVersionId:null,source:null,issues:[],reservedErrorCodes:[],reservedItemCodes:[],versions:[{id:'initial',number:1,status:'draft',snapshot:handlerBase,baseVersionId:null,revision:1,creatorId:'fixture',creatorName:'fixture',createdAt:'fixture',updatedAt:'fixture',history:[]}]};
+(async()=>{const h=await fixture({ipqcABMasterControl:JSON.stringify({schemaVersion:1,scopes:{},reservedErrorCodes:[],reservedItemCodes:[]}),bomMasterControl:JSON.stringify({schemaVersion:1,activeVersionId:null,versions:[]}),qualityMasterControl:JSON.stringify({schemaVersion:1,libraries:{}}),ipqcCMasterControl:JSON.stringify(initial),masterDataControl:JSON.stringify({active:{C:{products:[{code:'C100',stages:['CUT']},{code:'C200',stages:['OTHER']}],lines:[{stages:[{code:'CUT'},{code:'OTHER'}]}]}}})});try{
  await h.begin('ipqc-c');let sequence=0;
  const state=async()=>h.flow(await h.read('ipqc-c'));
  const send=(flow,changes,who='editor',status=200)=>h.call('ipqc-c/workflow','POST',{command:{action:'save',generation:flow.generation,expectedRevision:flow.revision,operationId:randomUUID(),clientId:'comparison-'+who,sequence:++sequence,localChanges:plain(changes)}},who,status,'?caseMetadata=1');
@@ -79,5 +80,19 @@ const initial={schemaVersion:1,activeVersionId:null,source:null,issues:[],reserv
  const pending=await h.command('ipqc-c','submit',{savedId:flow.saved.id,reason:'Synthetic'},'editor');
  const locked=h.snapshot();await send(await state(),[],'editor',409);assert.deepEqual(h.snapshot(),locked);
  await h.command('ipqc-c','withdraw',{caseId:pending.receipt.caseId,reason:'Synthetic'},'editor');
+ // Query selectors cannot split C or target AB/BOM/FQC persisted models.
+ const boundaryFlow=await state(),beforeQueries=h.snapshot();
+ for(const query of ['&productCode=C100&stageCode=CUT','&productCode=C200&stageCode=OTHER','&scope=ipqc-ab%3AA%3AG']){
+  const sameFlow=h.flow(await h.call('ipqc-c/workflow','GET',undefined,'editor',200,'?caseMetadata=1'+query));
+  assert.equal(sameFlow.scope,'ipqc-c');assert.equal(sameFlow.generation,boundaryFlow.generation);assert.deepEqual(sameFlow.working,boundaryFlow.working);
+ }
+ assert.deepEqual(h.snapshot(),beforeQueries);
+ const beforeValues=(await h.core.readState()).values,withoutC=values=>Object.fromEntries(Object.entries(values).filter(([key])=>key!=='ipqcCMasterControl'));
+ const wholeC=copy(boundaryFlow.working);wholeC.items.find(row=>row.id==='i2').note='C100 retained together';wholeC.items.find(row=>row.id==='i3').note='C200 retained together';
+ await send(boundaryFlow,compare(boundaryFlow.working,wholeC,boundaryFlow.working).changes);const afterBoundary=await state();
+ check(afterBoundary.scope==='ipqc-c'&&afterBoundary.generation===boundaryFlow.generation,'C products share one fixed module generation');
+ const savedModel=JSON.parse((await h.core.readState()).values.ipqcCMasterControl),savedBoundary=savedModel.workflow.saves.find(row=>row.id===afterBoundary.saved.id);assert(savedBoundary,'readback saved ID names the actual persisted immutable snapshot');
+ check(savedBoundary.content.items.find(row=>row.id==='i2').note==='C100 retained together'&&savedBoundary.content.items.find(row=>row.id==='i3').note==='C200 retained together','one C Save includes edits from both products');
+ assert.deepEqual(withoutC((await h.core.readState()).values),withoutC(beforeValues),'all non-C persisted model values remain byte-for-byte unchanged');
  console.log('PASS '+checks+' comparison assertions plus atomic rollback, permissions, pending and two-account handler checks');
 }finally{h.close();}})().catch(error=>{console.error(error);process.exitCode=1;});

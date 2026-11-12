@@ -18,6 +18,8 @@ Boundary 55d4672 supplies only C original-ID tombstone revival, optional legacy 
 | scripts/workflow-begin-source-contract.cjs and C proof helpers | Compose an exact seven-file successor inverse before the frozen main proofs; historical hashes, original negatives and raw-byte policy retained. |
 | Feedback CI paths/test proof | Add the C inverse dependency to existing triggers and compose exact source only; no reporting product/authority changes. |
 
+完整用戶需求與本輪補證逐項見 [requirements-audit.zh-TW.md](requirements-audit.zh-TW.md)，含程式、測試、缺漏／處理與尚未真人驗收項。
+
 ## Behavior and risk matrix
 
 | Requirement | Resulting behavior | Required evidence |
