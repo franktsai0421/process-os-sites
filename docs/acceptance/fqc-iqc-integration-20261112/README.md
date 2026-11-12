@@ -72,3 +72,5 @@ Cloud Chromium 下載實際回應 `403 Domain forbidden`，未改用替代主機
 後半段提前回歸另查獲實際 IQC 缺漏：設備頁 identified Begin 被 client 的 FQC-only 條件誤拒。修正僅容許既有 bounded IQC endpoint／scope 與 durable client，加入錯誤 scope／endpoint／非 durable 的零請求反例。IQC 原子移轉已保存時不再顯示未儲存或刷新其他頁；UNKNOWN 顯示原收據待查，既有標記保留。105 項輸入／Begin／恢復、83 項移轉意圖與四模組真實 handler 全流程回歸通過。FQC／IQC 舊輪詢反例固定使用已核 SHA 的 main Git 物件；目前兩模組嚴格斷言不存在閒置輪詢，另由當前原生流程驗證。新增編譯 IQC 失去 identified Begin ACK、離頁／重載後只查原收據而不自動 Save 的原生反例，結果列入最新 CI。
 
 最新編譯 IQC 反例已通過：Begin 已提交但 ACK 丟失時，離頁及重載保留兩份原標記；恢復只發 GET，未自動 Save，工作稿仍引用原設備且 saved=null。缺漏清單舊瀏覽器 fixture 補上精確 delivery token（以參考相等判斷當前頁），兩種語言／三種尺寸均通過定位、取消、保留未送輸入及即時語言切換；未放寬產品 owner 檢查。舊照片組合 17 項、FQC 目錄與 IQC deferred projection／歷史輪詢反例亦通過。
+
+來源預檢曾因既有合成儲存鍵的 fixture blob 更新而拒絕；推送命令當時仍繼續，已明確記錄此失敗而未宣稱通過。經逐 byte 比對，`349553800bb7b67c7f0a3684efe224da7e9b547a` 僅比原已核 fixture `f4c1d47bb90371b329c2f53f0b55a3023c09de3e` 增加 `this.isConnected=true;`，分類內容仍是同一個合成 actor／endpoint 儲存鍵。沿用既有精確複審機制追加 `e550da35585d8669b8f589b4f906c19a37e88b9b`／該 path／blob／WORKSTATION_PATH tuple；原掃描 pattern、來源 anchor、真實 Git 祖先／tree、敏感項目及變更後拒絕規則全部保留。新增單一差異證明、缺祖先／錯 tree／錯 path／改 bytes 反例；沒有新增目錄或通用格式豁免。完整歷史及 worktree 預檢隨後通過。

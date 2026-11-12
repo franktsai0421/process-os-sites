@@ -35,6 +35,7 @@ jobs:
       - run: npm run lint
       - run: npx tsc --noEmit --incremental false
       - run: node scripts/sites-ci-preflight.mjs
+      - run: node tests/sites-ci-negative-review.test.mjs
       - run: node --test tests/quality-integration-source-proof.test.cjs tests/access-event-main-integration.test.cjs tests/routine-fqc-source-contract.test.cjs
       - run: node --test tests/navigation-adapters.test.mjs tests/shared-draft-receipt-recovery.test.mjs
       - run: node --test tests/process-scripts-build.test.mjs tests/quality-shell-bundle-oracle.test.mjs tests/quality-submission-fences.test.mjs
