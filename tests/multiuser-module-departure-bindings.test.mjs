@@ -66,8 +66,8 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
  // Save remains the existing acknowledgement stub: these are binding tests, not transport/route acceptance.
  if(name==='ipqc-ab'){
   Object.assign(box,{actor:()=>window.ProcessSync.identity,sharedIdentity:'user:A:G',reviewHost:null,mutationLifetime:0,localBatch:null,inputBasisOwner:null,modalBase:null,modalGeneration:null,viewer:null,
-   API:'/api/ipqc-ab',sessionStorage:{length:0,key:()=>null},localScopes:new Map(),localPhotos:new Map(),legacyClients:new Map(),localModuleGeneration:null,localBeginReceipt:null,localSent:null,localConflict:null,moduleTransport:()=>client});
-  const closures=['legacyABClients','localPending','clearLocalEditing','abandonLocalEditing'];if(!omitInputClosures)closures.push('localDirty');
+   API:'/api/ipqc-ab',sessionStorage:{length:0,key:()=>null},localScopes:new Map(),localPhotos:new Map(),legacyClients:new Map(),localModuleGeneration:null,localBeginReceipt:null,localBeginExpectation:null,localBusinessBase:null,localSent:null,localConflict:null,localSaveIntent:null,conflictEscapeCleanup:null,approvedHistoryView:null,moduleTransport:()=>client});
+  const closures=['legacyABClients','photoOperationPrefix','photoOperations','localPending','clearConflictEscape','clearLocalEditing','abandonLocalEditing','historyAllowsMutation','photoDeparturePins','photoDepartureCoverage','photoDepartureTransport'];if(!omitInputClosures)closures.push('localDirty');
   vm.runInNewContext(closures.map(n=>sourceDeclaration(ast,n)).join('\n'),box);
   if(!omitInputClosures)vm.runInNewContext(sourceBlock(source,'  const sameInput=','  function mutationCurrent(')+sourceBlock(source,'  function hasPrivateInput(){','  function retainInputBase('),box);
  }

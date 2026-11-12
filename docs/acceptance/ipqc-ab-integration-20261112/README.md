@@ -174,3 +174,22 @@ read or command preparation; actual product code and all refusal conditions
 are unchanged. The full Save/revision-fence file then passed 23/23 locally,
 with targeted lint PASS. GitHub will independently re-run the corrected head.
 AB/C, PROCESS, Feedback and IPQC-C CI were already successful on `6263b3d6`.
+
+## Windows compatibility fixture follow-up
+
+At head `940b0b5a`, A/B integration CI independently passed core 272/272,
+browser 186/186, compiled full-app 4/4, guarded build and both synthetic
+performance runners. AB/C, PROCESS, Feedback and IPQC-C CI also passed.
+Windows Local safety subsequently reported failures in the performance/departure
+and shared submission contract stages. Local reproduction found outdated
+extracted-fixture dependencies: photo receipt/cleanup/history closures and
+history display epoch, plus a normal legacy HTTP request missing its expected
+actor header. The fixtures now load the actual source declarations and current
+owner metadata. No executable product source or CI gate is changed.
+
+After correction: actual departure bindings 154/154; entire performance and
+departure group 453/453 plus all six paired synthetic comparison scripts PASS;
+entire shared submission group 212/212; targeted lint PASS. Missing-closure
+negative controls and all original permission, snapshot, cancellation and
+zero-write assertions remain enforced. These fixes await a fresh Windows run
+on the uploaded successor.

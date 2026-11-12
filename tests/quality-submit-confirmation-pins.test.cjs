@@ -32,9 +32,9 @@ function fixture(kind){
  if(kind==='ab'||kind==='module'){
   const boundaryStart=source.indexOf('  // Caller-only RAM batch boundary.'),boundaryEnd=source.indexOf('  async function writeShared(',boundaryStart);
   assert(boundaryStart>=0&&boundaryEnd>boundaryStart,'Actual AB caller helpers are required');
-  Object.assign(g,{localScopes:new Map(),legacyClients:new Map(),localSent:null,API:'/api/ipqc-ab',sessionStorage:{length:0,key:()=>null}});
+  Object.assign(g,{historyDisplayEpoch:0,approvedHistoryView:null,localScopes:new Map(),legacyClients:new Map(),localSent:null,API:'/api/ipqc-ab',sessionStorage:{length:0,key:()=>null}});
   const ast=ts.createSourceFile(file,source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);
-  for(const name of ['localDirty','localOwnerCurrent','legacyABClients','localPending','saveLocalModule']){
+  for(const name of ['historyAllowsMutation','assertCurrentDisplay','captureHistoryDisplay','localDirty','localOwnerCurrent','legacyABClients','photoOperationPrefix','photoOperations','localPending','saveLocalModule']){
    const matches=[];function visit(node){if(ts.isFunctionDeclaration(node)&&node.name?.text===name)matches.push(node);if(ts.isVariableStatement(node)&&node.declarationList.declarations.some(d=>d.name.getText(ast)===name))matches.push(node);ts.forEachChild(node,visit);}visit(ast);
    assert.equal(matches.length,1,'actual AB '+name+' declaration required');vm.runInContext(matches[0].getText(ast),context);
   }
@@ -82,7 +82,7 @@ void test('iqc: unsaved Submit refusal preserves an existing unknown transport o
 
 for(const kind of ['ab','module'])for(const late of [false,true])void test(`${kind}: ${late?'late':'completed'} local edits block the old saved snapshot without auto Save`,async()=>{
  const f=fixture(kind),base={items:[]},snapshot={items:[{id:'local',name:'未存 Việt'}]},before=clone(f.flow);
- const edit=()=>{f.g.localScopes.set('A',{base,snapshot});};if(late)f.setAnswer(()=>{edit();return'confirmed';});else edit();
+ const edit=()=>{f.g.localScopes.set('A',{base,snapshot,owner:f.g.actor(),epoch:f.g.epoch,delivery:f.g.window.ProcessSync.captureDelivery(),lifetime:0,host:f.g.host});};if(late)f.setAnswer(()=>{edit();return'confirmed';});else edit();
  await f.run();assert.equal(f.sends().length,0);assert.equal(f.g.localScopes.get('A').snapshot,snapshot);assert.deepEqual(f.flow,before);
  assert.match(f.g.message,kind==='module'&&!late?/UNSAVED_CHANGES_SAVE_REQUIRED/:/套用|UNAPPLIED_CHANGES/);
  assert.equal(f.calls.filter(c=>c.action==='confirm').length,late?1:0);assert.equal(f.g.busy,false);
