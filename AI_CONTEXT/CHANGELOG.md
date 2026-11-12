@@ -1,3 +1,7 @@
+## 2026-11-12 — FQC／IQC 全域 Save、整頁例行與唯讀歷史整合候選
+
+以 main、已驗 52 份 patch 與選定舊分支成果交付單一 Draft #105。補齊 FQC／IQC 一次全域衝突選擇、最小復活、RAM 照片及原收據恢復；同頁唯讀核准歷史、例行整頁單草稿、兩個 quality 目標原子設備替換及編碼後 session fence。後半段真實 handler 修正 IQC identified Begin 的 FQC-only 誤拒；精確 fixture／來源複審維持所有 guard。實作索引見[QUALITY](modules/QUALITY.md)，需求對照、證據與未驗項見[單一追蹤](../docs/acceptance/fqc-iqc-integration-20261112/README.md)。未合併／部署／動正式資料。
+
 ## 2026-11-09 — Retire periodic web checks
 
 Source candidate stops shared draft/master polling and direct process/reference/effective-version/history permission timers. Entry and explicit operations retain fresh permissions/CAS/original receipt checks. [Scope and validation boundary](../docs/acceptance/global-background-checks-20261109.md).

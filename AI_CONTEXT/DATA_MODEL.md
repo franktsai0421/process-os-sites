@@ -1,3 +1,7 @@
+## 2026-11-12 — Quality 整合候選的資料界線
+
+FQC／IQC 沿用既有共享 workflow、不可變保存／審核快照與原操作收據；同頁核准歷史是授權讀取，不新增歷史還原寫入。例行 FQC 的 opt-in `page-v1` 結構仍位於 `routineFqcControl`，整頁 baseline／workflow 與 document dependency 索引見[例行模型](models/ROUTINE_FQC.md)。舊 document layout、ID／歷史／收據保留；離線工具只輸出候選，沒有執行正式切換、schema 或 migration。來源與驗收界線見[整合追蹤](../docs/acceptance/fqc-iqc-integration-20261112/README.md)。
+
 ## 2026-11-05 — 事件版本與匯出預覽內容核對
 
 無新增 schema。access_events 原結果首次核驗改變時 version 遞增，verified_at 保留首次證據時間；管理版本與原業務收據獨立。ZIP versions 預覽／生成協定增加非持久 contentHash，僅計算已授權的脫敏投影與所選圖片中繼資料，不含原操作 ID／收據。匯出原有 digest 自然涵蓋固定 pins，重試仍回原快照。首次 capability 失敗的新上報 metadata 不持久保存，無新資料保留架構。

@@ -1,3 +1,9 @@
+# 2026-11-12 — FQC／IQC 集中整合：Draft #105
+
+本工作續用 `codex/fqc-iqc-cloud-integration-20261112` 與 [Draft #105](https://github.com/franktsai0421/process-os-sites/pull/105)，不得重建或重複搬 main 成果。52/52 私人 patch 已驗 bytes/SHA256；manifest／傳輸包留 repo 外。main／#102／#103／#104 的固定來源與選擇、17 項需求、資料切換及真人／實站待驗界線，以[整合追蹤](docs/acceptance/fqc-iqc-integration-20261112/README.md)為準；目前實作入口見 [QUALITY](AI_CONTEXT/modules/QUALITY.md)及[例行模型](AI_CONTEXT/models/ROUTINE_FQC.md)。
+
+最新候選增補 IQC identified Begin／原收據恢復與原子替換；歷史來源 witness 來自真實 Git 物件。來源預檢曾因單一 DOM fixture 新 blob 拒絕，已保留失敗並完成精確 tuple 複審與正反例；不得擴充為通用豁免。遠端 SHA／最新 CI 以同一 PR 為準，歷史 PASS 不當作最新提交 PASS。共用自審規則沿用 main，未改 #103／#104 refs，未合併／部署／操作正式資料。
+
 # 2026-11-09 — Process platform stage catalog batch
 
 Isolated b06394c successor with main d4ac309 (#98) merged handles the missing approved custom types when adding a stage. It does not absorb the concurrently dirty unified-draft/canvas work. [Tracking matrix](docs/acceptance/process-platform-tracking-20261109.md) records ownership, sources, tests and outstanding decisions. No business data/schema/account permissions changed; no merge/deployment/live acceptance is implied.
