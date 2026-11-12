@@ -250,3 +250,30 @@ visibility changes with zero background GETs or writes. The conflict/no-poll
 source wiring test also checks the separate A/B integration workflow that
 runs the current actual-handler suite. No workflow or product runtime was
 changed by this compatibility follow-up.
+
+## Historical permission-phase composition follow-up
+
+On `0c1fa4d1`, GitHub A/B integration passed core 274/274, browser 187/187,
+compiled full-app 4/4, lint/types/build and both synthetic performance runners.
+AB/C, PROCESS, Feedback and IPQC-C workflows also passed. Windows Local safety
+passed all source/snapshot/authorization checks, equipment transfer, compiled
+A/B and the complete 145-command integrated-entry stage, including its native
+PowerShell exit-propagation check. It then failed `test-access-template-reuse`
+because the historical FQC permission span was sought in the modern A/B auth
+factory before reversing the exact A/B delta.
+
+The proof now applies the existing complete-source A/B inverse first, then
+the unchanged FQC and older AB inverses. Current checkout bytes remain checked
+against the current commit, and all old hash and mutation-negative controls
+remain. The complete four-command bounded-read stage passes locally; access
+template comparison covers 114 inputs, and the next bootstrap stage passes
+12 groups. This correction changes only the test composition, not product
+authorization, role data, CI conditions or historical contract hashes.
+
+All 37 later workflow commands were prechecked before the successor push:
+35 passed locally, using the existing explicit isolated-desktop/browser options
+where required. The two FQC native lifecycle/matrix runners explicitly require
+genuine CI; they remain unchanged and must run on GitHub. Compiled owner setup,
+bootstrap, delivery, original Begin recovery, PROCESS lifecycle, snapshot/import/
+observation/native-capability and photo policies all pass with ephemeral data.
+No CI environment was forged and no capability guard was changed.

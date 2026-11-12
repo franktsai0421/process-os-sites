@@ -36,9 +36,10 @@ check('T5 exact reuse plus pinned PR44, AB-phase and FQC-phase deltas; outside-s
  const lf=b=>Buffer.from([...b].filter((v,i)=>v!==13||b[i+1]!==10));assert.deepEqual(lf(fs.readFileSync('lib/user-access.ts')),lf(now));
  for(const file of ['lib/process-state.ts','lib/session-revocation.ts']){
   const committed=execFileSync('git',['show','HEAD:'+file]),original=execFileSync('git',['show',base+':'+file]);
-  assert.deepEqual(file==='lib/process-state.ts'?withoutMasterABPermissionPhase(withoutFqcPermissionPhase(committed),original):committed,original);
+  const phaseBytes=require('./ipqc-ab-integration-source-contract.cjs').projectKnown(committed,file);
+  assert.deepEqual(file==='lib/process-state.ts'?withoutMasterABPermissionPhase(withoutFqcPermissionPhase(phaseBytes),original):committed,original);
   assert.deepEqual(lf(fs.readFileSync(file)),lf(committed),'working auth source differs from committed bytes');
-  if(file==='lib/process-state.ts'){assert.equal(assertFqcPermissionPhaseContract(committed),5);assert.equal(assertMasterABPermissionPhaseContract(withoutFqcPermissionPhase(committed),original),6);}
+  if(file==='lib/process-state.ts'){assert.equal(assertFqcPermissionPhaseContract(phaseBytes),5);assert.equal(assertMasterABPermissionPhaseContract(withoutFqcPermissionPhase(phaseBytes),original),6);}
  }
  const policy='public/process/access-policy.mjs',committedPolicy=execFileSync('git',['show','HEAD:'+policy]);
  assert.deepEqual(withoutPR44AccessChanges(policy,committedPolicy),execFileSync('git',['show',base+':'+policy]));
