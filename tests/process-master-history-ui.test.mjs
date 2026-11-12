@@ -14,7 +14,7 @@ async function setup(t,{inline=false,lang='zh',intercept,initialVersion=null}={}
  vm.createContext(c);for(const name of ['shared-draft-client','master-shared-client','version-draft-ui','canvas-approved-history'])vm.runInContext(fs.readFileSync('public/process/'+name+'.js','utf8'),c,{filename:name+'.js'});
  const bridge=c.createMasterSharedBridge({control,processLocalSave:true});await bridge.load('PROCESS');c.MasterDataWorkflow={shared:bridge,loadScope:()=>bridge.load('PROCESS')};
  const draw=()=>{root.innerHTML='<section class="process-master-version"><h3>Current draft</h3><select id="process-master-version-select"></select><button id="save-master-data">Save</button><button id="process-master-submit">Submit</button></section><section id="current-process-content"><input id="process-name"><button id="current-process-action">Edit</button></section><div id="process-shared-status"></div><section class="process-master-history"><button data-process-history>Old history window</button></section>';const input=root.querySelector('#process-name');input.value=bridge.flow('PROCESS').working['A-CUT'][1].name;root.querySelector('#current-process-action').onclick=()=>bridge.patch('PROCESS',[],[]);c.bindDataInner('process-master');};c.repaintProcessMasterPage=draw;draw();
- return{f,c,bridge,root,control,calls,storage,select:()=>root.querySelector('#process-master-approved-version'),display:()=>root.querySelector('[data-vd-approved-view]'),async open(){await this.select().onfocus();},async choose(id){const select=this.select();select.value=id;await select.onchange();},rows(){for(const node of this.display().querySelectorAll('details')){node.open=true;node.ontoggle?.();}},discarded:()=>discarded,dirty:()=>localDirty,rotate:()=>epoch++,delivery:()=>delivery++,posts:()=>calls.filter(row=>row.method==='POST')};
+ return{f,c,bridge,root,control,calls,storage,redraw:draw,globalListeners:()=>[...dom.eventSets.keys()].filter(key=>key.target===c).length,select:()=>root.querySelector('#process-master-approved-version'),display:()=>root.querySelector('[data-vd-approved-view]'),async open(){await this.select().onfocus();},async choose(id){const select=this.select();select.value=id;await select.onchange();},rows(){for(const node of this.display().querySelectorAll('details')){node.open=true;node.ontoggle?.();}},discarded:()=>discarded,dirty:()=>localDirty,rotate:()=>epoch++,delivery:()=>delivery++,posts:()=>calls.filter(row=>row.method==='POST')};
 }
 for(const inline of [false,true])for(const lang of ['zh','vi'])void test('PROCESS '+lang+'/'+(inline?'inline':'records')+' same-page immutable history and fresh current draft, no writes or form restoration',async t=>{
  const x=await setup(t,{inline,lang}),before=x.f.row(),objects=[...x.f.objects],current=JSON.stringify(x.control),oldAction=x.root.querySelector('#current-process-action').onclick;assert(x.select());assert.equal(x.calls.filter(row=>row.url.includes('approvedOnly')).length,0);assert.equal(x.root.querySelectorAll('[data-process-history]').length,0);await x.open();assert(x.select().options.some(option=>option.value==='case0'));assert(!x.select().options.some(option=>option.value==='unproven'));await x.choose('case0');x.rows();assert.equal(x.display().hidden,false);assert.match(x.display().textContent,/IMMUTABLE_APPROVED_PROCESS/);assert.equal(x.dirty(),false);assert(x.discarded()>0);assert.equal(JSON.stringify(x.control),current);assert.deepEqual(x.f.row(),before);assert.deepEqual([...x.f.objects],objects);
@@ -45,4 +45,24 @@ void test('PROCESS denied access fences writes but does not discard existing uns
 });
 void test('PROCESS explicit approved entry from review opens the original-page immutable selector, then fresh current draft',async t=>{
  const x=await setup(t,{initialVersion:'case0'});await until(()=>x.display()?.hidden===false);x.rows();assert.equal(x.select().value,'case0');assert.match(x.display().textContent,/IMMUTABLE_APPROVED_PROCESS/);await x.choose('');await until(()=>x.select()?.value===''&&!x.root.inert);assert.equal(x.c.state.processMasterVersionId,null);assert.equal(x.posts().length,0);
+});
+void test('PROCESS committed SPA departure removes all four per-view listeners, repeated visits stay bounded',async t=>{
+ const x=await setup(t),mounted=x.globalListeners();
+ for(let visit=0;visit<4;visit++){
+  await x.open();await x.choose('case0');const stale=x.select().onchange;
+  assert.equal(x.globalListeners(),mounted);
+  // No completion event: a failed navigation retains source history and fence.
+  x.c.dispatchEvent({type:'process-destination-ready'});assert.equal(x.globalListeners(),mounted);await assert.rejects(x.bridge.execute('PROCESS','save'),/APPROVED_HISTORY_READ_ONLY/);
+  x.c.state.view='dashboard';x.c.dispatchEvent({type:'process-destination-ready'});
+  assert.equal(x.globalListeners(),mounted-4);assert.equal(x.display(),null);
+  await stale();assert.equal(x.posts().length,0);assert.equal(x.globalListeners(),mounted-4);
+  x.c.state.view='data';x.c.state.dataTab='process-master';x.redraw();assert.equal(x.globalListeners(),mounted);assert.equal(x.select().value,'');
+ }
+ assert.equal(x.posts().length,0);
+});
+void test('PROCESS history response pending at committed cross-module departure cannot recreate view/listeners',async t=>{
+ let release,entered;const held=new Promise(resolve=>release=resolve),ready=new Promise(resolve=>entered=resolve);let hold=false;
+ const x=await setup(t,{intercept:async(url,_options,send)=>{if(hold&&String(url).includes('versionId=')){entered();await held;}return send();}});await x.open();const mounted=x.globalListeners();hold=true;const pending=x.choose('case0');await ready;
+ x.c.state.dataTab='quality-fqc';x.c.dispatchEvent({type:'process-destination-ready'});assert.equal(x.globalListeners(),mounted-4);release();await pending;
+ assert.equal(x.display(),null);assert.equal(x.globalListeners(),mounted-4);assert.equal(x.posts().length,0);
 });

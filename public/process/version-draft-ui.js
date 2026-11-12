@@ -250,6 +250,13 @@
   host.renderSharedDraftValidation=options=>{const shell=options.after?.closest('.vd-shell');if(shell)shell.querySelectorAll('[data-shared-issue-kind]').forEach(node=>node.remove());priorValidation?.(options);if(shell){for(const kind of ['error','missing','warning']){const section=shell.querySelector(kind==='warning'?'.vd-history':'.vd-'+(kind==='error'?'errors':'missing'));for(const node of shell.querySelectorAll('.shared-validation [data-shared-issue-kind="'+kind+'"]')){section.querySelector('.vd-empty')?.remove();section.append(node);}}shell.querySelectorAll('.shared-validation').forEach(node=>node.remove());}};
   host.addEventListener('process-language-change',()=>document.querySelectorAll('.vd-shell').forEach(shell=>shell.refreshLabels?.()));
   let processHistoryState=null;
+  // Destination completion is the committed SPA boundary. Do not retire on
+  // an attempted navigation: denied destinations must retain the source view.
+  host.addEventListener('process-destination-ready',()=>{
+    const current=processHistoryState;if(!current)return;
+    if(state.view==='data'&&state.dataTab==='process-master'&&current.root.isConnected&&document.querySelector('#data-content')===current.root&&host.ProcessSync?.identity===current.actor&&host.ProcessSync?.identityGeneration?.()===current.epoch&&host.ProcessSync?.isCurrentDelivery?.(current.delivery)===true)return;
+    processHistoryState=null;current.ticket++;current.retire();current.lease?.release();current.lease=null;
+  });
   function processApprovedHistory(root,shared){
     const prior=processHistoryState,actor=host.ProcessSync?.identity,epoch=host.ProcessSync?.identityGeneration?.(),delivery=host.ProcessSync?.captureDelivery?.();
     const retained=prior&&prior.actor===actor&&prior.epoch===epoch&&host.ProcessSync?.isCurrentDelivery?.(prior.delivery)===true&&prior.blocked;
