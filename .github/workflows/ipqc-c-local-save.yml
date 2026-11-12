@@ -16,6 +16,9 @@ on:
       - 'lib/approved-history.ts'
       - 'tests/*ipqc-c*'
       - 'scripts/test-ipqc-c-compare-save.cjs'
+      - 'scripts/background-check-source-contract.cjs'
+      - 'scripts/workflow-begin-source-contract.cjs'
+      - 'scripts/access-event-source-contract.cjs'
       - 'public/process/version-draft-ui.js'
       - '.github/workflows/ipqc-c-local-save.yml'
 permissions:
