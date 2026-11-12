@@ -55,3 +55,7 @@ The first concentrated run exposed old expected contracts rather than hidden suc
 No storage/schema migration or development-data package is changed. A clean source build does not imply employee-data initialization or Site acceptance. Screenshots are synthetic local evidence, kept outside public source; mobile viewport simulation is not a physical device.
 
 Before upload, #104 advanced to 15a5acb404edb1d4f1826b13430f61376e3accb4; its8 changed files are CI/tests/documentation, with no new C/shared product delta. Main and #103 stayed pinned. No competing branch was changed here.
+
+## Initial GitHub CI follow-up
+
+At a8d0984, C run43157277709 failed the exact-source step because its default depth1 checkout omitted fixed historical blobs (9fbba823 and429e178). The checkout now fetches complete history and disables persisted credentials. AB/C run43157277653 and PROCESS run43157277720 failed only the navigation cache oracle expecting the old C URL; only that reviewed C tag assertion is updated. No runtime bytes, source pins, negative cases or CI test steps changed. Fresh current-HEAD results must be checked independently; these initial failures are retained.
