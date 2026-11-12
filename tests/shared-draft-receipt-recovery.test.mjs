@@ -59,7 +59,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
  const references=[...html.matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
  const versions={
   'process-editor.js':'20261110-process-integration2',
-  'version-draft-ui.js':'20261112-process-history1',
+  'version-draft-ui.js':'20261112-process-history-cleanup2',
   'version-draft-ui.css':'20261110-account-pages1',
   'canvas-approved-history.js':'20261110-account-pages1',
   'page-draft-merge.js':'20261110-account-pages1',
