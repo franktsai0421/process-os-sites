@@ -69,7 +69,7 @@ jobs:
       - name: Existing IPQC source adoption and single atomic Save
         run: node --test tests/process-ipqc-source-adopt.test.mjs
       - name: Same-page Canvas approved history and read-only actor fences
-        run: node --test tests/canvas-approved-history.test.mjs tests/process-scripts-build.test.mjs
+        run: node --test tests/canvas-approved-history.test.mjs tests/canvas-silent-handoff.test.mjs tests/process-scripts-build.test.mjs
       - name: Role reuse, policy metadata and exact historical authorization guards
         run: node scripts/test-access-template-reuse.cjs
       - name: Page-specific ownership, independent permissions and approved-history fences
@@ -98,9 +98,9 @@ jobs:
           node --test tests/batch3-workflow-source-contract.test.cjs tests/bom-workflow-source-contract.test.cjs tests/ipqc-c-read-io-source-contract.test.mjs
 
   begin-recovery-native:
-    # Run the unchanged compiled scenario independently of the long Windows chain.
+    # Run the unchanged compiled scenarios independently of the long Windows chain.
     # The original Windows step remains required; this is additional synthetic evidence.
-    name: Compiled Begin original-receipt recovery
+    name: Compiled Begin and process lifecycle
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -128,3 +128,5 @@ jobs:
         run: node node_modules/playwright/cli.js install --with-deps chromium
       - name: Original Begin receipt and zero-extra-POST acceptance
         run: node tests/begin-recovery-browser.mjs
+      - name: Original process lifecycle and silent navigation acceptance
+        run: node tests/process-draft-lifecycle-browser.mjs

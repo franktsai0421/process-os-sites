@@ -585,3 +585,10 @@ readback, unknown-effect rules and exact staging-only scope. No live schema,
 credential, upload, audience, owner password or deployment has changed.
 Security architecture requires independent review and informed per-action
 credential approval before enabling. Copy/restore/activate are excluded.
+
+
+## 2026-11-12 #104 靜默工段導航續修
+
+cb12823 的 Windows第36步已越過 Begin，但第一輪 silent-navigation-stage 30秒失敗；重用 #103 固定c92c43b的租約釋放後再刷新來源修正，36個真controller合成案例由4過32失敗變為全過。保留 #104 Begin與UNKNOWN／收據／防重送保護，未搬入FQC路由及AB/C Save等價增量。製程編輯cache tag與兩份精確fixture更新；原Windows runner未改，另加入獨立原生job提早執行原完整五循環製程runner。
+
+來源、測試及限制詳見 AI_CONTEXT/modules/PROCESS.md 的同日續修節。本機集中source回歸、lint／非增量TypeScript已通過；原生Worker oracle一次選取失誤被額外網路拒絕攔下，保留失敗、不重試、不算PASS；後段原生與Windows仍需新HEAD CI。真實資料、可信切換、共同HEAD與完整20項驗收仍未完成。原UNKNOWN32未重送；保持Draft，不合併部署。

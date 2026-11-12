@@ -1241,3 +1241,18 @@ See [photo policy](../docs/sites/PHOTO_UPLOAD.md) for limits and test boundaries
 - 使用同一合成 fixture 比較 main 與候選的 AB/C 操作；補驗歷史、未知結果恢復、多人與跨模組切頁。
 - 修正 FQC 切頁 adapter 讀取 `libraries.fqc.workflow`，更新單一資源版本與回歸測試。
 - GitHub、PR 與後續整合由使用者指定 dot 處理；本輪只保留本地程式與證據，未發布。
+
+
+## 2026-11-12：#104 靜默導航重用 #103 已完成修正
+
+cb12823 的 Local safety run 43126874931／job130881088426：1–35 通過，第36步實際製程 lifecycle 在第一輪 silent-navigation-stage 等待30秒失敗；Begin、local-layout、local-apply及Save已通過，pageErrors為空。不是已修的 Begin access epoch 競態。來源 controller 在 abandon 租約回傳前 refreshRecovery 重繪 editor，改變 history display epoch，後續既有工段 guard 拒絕目標切換。
+
+選擇性重用 #103 固定 c92c43b46f3a7f35494efdbc5b3147be37f7e9ac 的 process-authoring-v3.js 修正與 canvas-silent-handoff 36案例：先完成 checked handoff／釋放租約，只有取消且來源 owner、identity、epoch、delivery、generation、view 權限及原 DOM root 仍有效才刷新來源；成功切換不重刷已替換的頁。修前4過32失敗，修後36全過，涵蓋中越文、inline/records、取消／換帳號／epoch／delivery／reload／generation／歷史選取，保持零工作流程POST及合成資料列不變。
+
+#104 共用 client 的既有 Begin 修正與21個三種 runtime 收據案例保持原樣。#103 共用 client 的另三處差異為 routine-FQC departure/history 路由，以及只用於 AB/C master Save 的內容等價比較；不屬本次 process-authoring 失敗路徑，留在 #103，沒有整包覆寫。原 UNKNOWN32 未解決、未重送；新差異以已公開 #103 來源與本 PR 固定 predecessor 8eff928e 的26項精確逆向獨立驗證。
+
+製程編輯程式快取標籤更新為20261112-silent-handoff1，兩個既有 fixture 仍逐字要求版本及單次載入。原 Windows lifecycle／30秒／五循環／防額外POST斷言未改，另在較早的獨立原生job執行同一原始 process-draft-lifecycle-browser runner。
+
+集中本機驗證：導航／Begin292、畫布493、後續 lifecycle source184、精確來源127、handoff36案例通過；lint與完整非增量 TypeScript通過。第37／48及45／50 source、51合成檢查通過；16個後段原生入口語法通過但未執行。FQC source17通過；誤用篩選曾令已知原生Worker oracle被額外網路拒絕攔下，原失敗保留，該案例未完成且未重試。tsx四次可選本機IPC也被拒絕，23項 source仍通過，不能稱零嘗試。未在本機重試原生瀏覽器或改executor。依賴為同lockfile既有實體副本，不宣稱fresh npm ci；建置、來源預檢與新HEAD CI各以其獨立回執為準。
+
+維持 Draft；不合併、部署、啟用真資料或變更真人權限。完整20項、#103/#104共同HEAD及實站／實體裝置／效能驗收仍未完成。
