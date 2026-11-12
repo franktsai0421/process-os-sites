@@ -52,3 +52,5 @@
 3. 撤回5df6f865的 closeFilterEditors 與2192533「已核准保留修正」結論，恢復 f792 精確 C 前端 SHA-256 `039dcc7d35a04b386c3567d23f4d66a0d04fe20a1f8ed1411a7dde503bbce851`。C cache tag 改為 `20261112-c-discard3`，防止載入被撤回候選。舊 beforeHash、negative proof、其他模組來源不變。
 4. 正確 red：2192533 實際另一產品仍保留1筆／預期0；更正後完整原生 suite 與來源／導航／UNKNOWN／晚 ACK／歷史回歸另記於 [verification.json](verification.json)。先前保留測試即使 PASS 也不是需求合格證據。新候選集中預檢與 GitHub CI 必須分開核對。
 5. **未補成 PASS 的項目**：C02/C23真人／測試站／實體裝置／真 IME／實站延遲與 C24 舊 UNKNOWN32。未部署、未改正式資料或帳號、未重送 UNKNOWN。
+
+本輪集中預檢：產品候選 `81c3549366d98fe9cd1ab851cb5d31a8ac7f4aa3` 的1735列原生1440/390、C53、離頁451、共用123、導航／Begin／歷史291、比較33與既有五組projection/read/Apply/gauge均PASS。獨立乾淨clone同lockfile、lint、非增量types、來源10項、guarded build及實際C bundle/reference核對PASS。來源安全掃描615 commits／5404 blobs／2018檔PASS。這些是本機合成與build證據；上傳後HEAD／tree／CI另驗，不表示測試站或真人驗收。
