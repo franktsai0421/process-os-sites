@@ -202,8 +202,13 @@ if(profile){
   // replace the destination or leave a stale busy/reload notice there.
   await page.locator('#ipqcc-search').fill('');  mutations.length=0;await page.evaluate(()=>__localTest.edit());await page.locator('[name="note"]').fill('Late original Save');await page.locator('#ipqcc-editor button[type="submit"]').click();
   const held=new Promise(resolve=>{notifySaveACK=resolve;});holdSaveACK=true;await page.locator('#ipqcc-save').click();await held;
-  try{await page.locator('[data-ipqcc-product="C200"]').click();await page.locator('[data-ipqcc-product="C100"]').click();}
-  finally{releaseSaveACK();}
+  const heldMarkers=await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-receipt-only-v1:'))),heldSnapshot=h.snapshot(),heldWrites=mutations.length;assert(heldMarkers.length>0);
+  try{for(const product of ['C200','C100']){
+   await page.locator('[data-ipqcc-product="'+product+'"]').click();
+   assert.equal(await page.evaluate(()=>__localTest.state().unknown),true,'product switch cannot discard an in-flight original operation');
+   assert.deepEqual(await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-receipt-only-v1:'))),heldMarkers,'product switch retains the exact in-flight receipt');
+   assert.equal(mutations.length,heldWrites,'product switch never resends the held Save');assert.deepEqual(h.snapshot(),heldSnapshot,'already committed data is unchanged by navigation');
+  }}finally{releaseSaveACK();}
   await page.waitForFunction(()=>!__localTest.state().busy);
   assert.equal(await page.locator('[data-ipqcc-save-input-notice]').count(),0,'late scope ACK cannot add a reload barrier to a new page');
   assert.equal(await page.locator('#ipqcc-save').isDisabled(),false,'late scope ACK cannot leave destination Save disabled');
@@ -241,6 +246,13 @@ if(profile){
  assert.equal(await page.evaluate(()=>sharedDraftNavigationState().queued),0,'C write does not block browsing');
  assert.equal(await page.evaluate(()=>IPQCCUI.navigation.departure.inspect().state),'clean','navigation may leave without settling the write');
  assert(markers.length>0,'original operation has a durable marker');
+ const unknownWrites=mutations.length,unknownSnapshot=h.snapshot();
+ for(const product of ['C200','C100']){
+  await page.locator('[data-ipqcc-product="'+product+'"]').click();
+  assert.equal(await page.evaluate(()=>__localTest.state().unknown),true,'switching product cannot classify UNKNOWN as unsent input');
+  assert.deepEqual(await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-receipt-only-v1:'))),markers,'malformed ACK keeps its exact original receipt across products');
+  assert.equal(mutations.length,unknownWrites,'UNKNOWN product navigation sends no extra write');assert.deepEqual(h.snapshot(),unknownSnapshot);
+ }
  assert.equal(await page.evaluate(()=>{const event=new Event('beforeunload',{cancelable:true});window.dispatchEvent(event);return event.defaultPrevented;}),false,'C unknown alone does not prompt on close');
  await page.evaluate(()=>{IPQCCUI.navigation.departure.closeClean();IPQCCUI.navigation.reset();window.__delivery++;document.querySelector('main').innerHTML='<p id="other-data">Other data</p>';});
  assert.equal(await page.locator('#other-data').innerText(),'Other data');

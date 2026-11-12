@@ -354,9 +354,10 @@
       "sourceCommit": "21925339e4acee6543a9e32453713c022f690dcf",
       "expected": 0,
       "actual": 1,
-      "log": "private /tmp/ipqc-c-discard-red.log"
+      "log": "private /tmp/ipqc-c-discard-red.log",
+      "oracleApproval": "expected0 is authorized only by the final Frank reply; the earlier probe is not evidence of earlier approval"
     },
-    "githubCI": "Evaluate corrected PR HEAD after upload",
+    "githubCI": "6bac02e C/AB-C/PROCESS/Feedback success; Windows pending at policy reply. Evaluate latest document-followup HEAD separately.",
     "unverified": [
       "real test-site latency",
       "human dual-account sessions",
@@ -535,7 +536,7 @@
         "head": "d8eca11ba0ff8b28a013c2ef61ecf86a7b335a82"
       }
     ],
-    "documentationFollowup": "After product d8eca11 only evidence documents change; actual app/lib/public/package inputs stay identical to the clean built candidate.",
+    "documentationFollowup": "Final approval/evidence documents plus direct product-switch in-flight/UNKNOWN receipt assertions. Production app/lib/public/package/workflow inputs unchanged from d8eca11/6bac02e. Full native suite and lint rerun; unchanged build/types/source/other regression evidence reused; current upload HEAD/tree/CI checked separately.",
     "intermediateValidation81c3549": {
       "native": "PASS IPQCC_PROFILE=1,1735 rows,Chromium1440/390: search target/input preserved; modal prevents direct product switch; product/stage/coverage discard with no prompt/write; pending photos discarded; stored C identity and DB/R2 unchanged; existing UNKNOWN/lateACK/conflict/readonly history retained",
       "CcoreSourceControllerTests": 53,
@@ -608,7 +609,27 @@
       "sourceCommit": "cf368bc08969a29abd373f7c4aa804d23c4c2b9f",
       "expected": 0,
       "actual": 1,
-      "case": "pending-item crosses work context"
+      "case": "pending-item crosses work context",
+      "oracleApproval": "same final-reply boundary; no retrospective approval claim"
+    },
+    "finalProductSwitchApproval": {
+      "FrankQuote": "對要放棄未存修改",
+      "date": "2026-11-12",
+      "question": "切產品時未儲存修改和照片直接放棄，還是保留",
+      "status": "CONFIRMED_FINAL_REPLY_NO_LONGER_WAITING",
+      "priorApprovalClaim": "WITHDRAWN: earlier summaries/current direct instruction were not Frank approval",
+      "pausedHead": "6bac02e4c36b11639179811d0333419da22c4aa6",
+      "productChangedDuringPause": false,
+      "productRewriteAfterReply": false,
+      "evidenceReuseReason": "app/lib/public/scripts/tests/package/workflow inputs identical to d8eca11/6bac02e; latest tests cover product/photos/stored-data/UNKNOWN/lateACK/zero-extra-write",
+      "newNativeAssertions": "exact original marker/UNKNOWN/stored snapshot/write count unchanged across products during held success ACK and held malformed-ACK readback",
+      "newNativeStatus": "PASS full IPQCC_PROFILE=1 Chromium1440/390,1735 rows; exact receipt/UNKNOWN/DB-R2/write-count assertions across products during held ACK and pending malformed-ACK readback",
+      "newLintStatus": "PASS npm run lint",
+      "logs": [
+        "private /tmp/ipqc-c-final-frank-product-browser.log",
+        "private /tmp/ipqc-c-final-frank-product-lint.log"
+      ],
+      "applicationInputProof": "git diff6bac02e -- app lib public package.json package-lock.json .github is empty; C SHA256a450090fd4e867718adf1553ba5badc3a859fe85fa61ff97583fdc351dfcf986 matches exact built candidate"
     }
   }
 }

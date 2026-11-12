@@ -65,7 +65,7 @@
     "oldRedOracle": "f792 expected1 actual0 was an invalid expectation, not a product defect"
   },
   "workSelectionDiscardCorrection": {
-    "basis": "current direct instruction and delegated Frank excerpts: 11/4 editing cannot directly switch product; 11/9 page/line/stage silent discard; 11/4 Dot proposal is not confirmation",
+    "basis": "Final Frank answer in current handoff: 「對要放棄未存修改」, answering product switch unsaved changes/photos discard vs retain. Earlier delegated summaries/current direct instruction were not prior approval. Stage/page rules retain their earlier confirmed scope.",
     "originalThreadIndependentlyRead": false,
     "sourceBefore": "21925339e4acee6543a9e32453713c022f690dcf",
     "restoreFrontendFrom": "f7925ad three work-selection discard handlers; additional two old cross-work-context locate paths guarded",
@@ -80,6 +80,15 @@
       "actual": 1,
       "expected": 0,
       "case": "pending-item correction link selects another product but retained journal"
+    },
+    "approvalTimeline": {
+      "pausedAtHead": "6bac02e4c36b11639179811d0333419da22c4aa6",
+      "pausedCodeChanged": false,
+      "finalFrankQuote": "對要放棄未存修改",
+      "questionScope": "切產品時未儲存修改和照片直接放棄，還是保留",
+      "finalDecision": "DISCARD_UNSAVED_CHANGES_AND_PHOTOS_WITHOUT_PROMPT_OR_SAVE",
+      "status": "CONFIRMED_NOW_NOT_RETROACTIVE",
+      "implementation": "existing candidate matches; no product rewrite"
     }
   }
 }
