@@ -3,7 +3,7 @@
   const API = '/api/ipqc-ab';
   let historyDisplayEpoch=0,approvedHistoryView=null,historyPermissionFlight=null;
   const historyAllowsMutation=()=>!approvedHistoryView?.blocked;
-  const assertCurrentDisplay=()=>{if(!historyAllowsMutation())throw Error('APPROVED_HISTORY_READ_ONLY');};
+  const assertCurrentDisplay=()=>{if(!historyAllowsMutation()){rejectForeignBatch();throw Error('APPROVED_HISTORY_READ_ONLY');}};
   const captureHistoryDisplay=()=>{const epoch=historyDisplayEpoch,page=host;return()=>epoch===historyDisplayEpoch&&page===host&&historyAllowsMutation();};
   const guardWorking=(node,callback)=>{const current=captureHistoryDisplay();return function(...args){if(!node?.isConnected||!current())return;const result=callback.apply(this,args);if(result&&typeof result.finally==='function')return result.finally(()=>approvedHistoryView?.refreshControls());approvedHistoryView?.refreshControls();return result;};};
   const listenWorking=(node,type,callback)=>node?.addEventListener(type,guardWorking(node,callback));
