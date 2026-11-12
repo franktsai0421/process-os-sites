@@ -346,6 +346,30 @@
   },
   "completeRequirementAudit": {
     "document": "requirements-audit.zh-TW.md",
+    "decision": "product-switch-decision.zh-TW.md",
+    "requirements": 24,
+    "FrankQuote": "在同一個模組下切換產品可以保留 如果切換分頁就不保留 例如都在ipqc c下面 就保留 但是切換頁面到FQC就不保留",
+    "policy": "explicit same-C product selection retains unsaved changes/photos; actual module departure discards unsent; stored data and original UNKNOWN receipt protected",
+    "supersedes": "previous discard answer and10:14 conclusion; no expansion to other selectors",
+    "baseCommit": "dcf3e637a6ae8d24293f70166df727b52cd4ec32",
+    "productSHA256": "393941c3f4716bd5542f17f0eac9b65619e6da4f858ffc5cd0ec81b5a7b0e29f",
+    "redEvidence": {
+      "source": "dcf3e63",
+      "expectedStagedChanges": 1,
+      "actual": 0,
+      "meaning": "old discard candidate fails latest retain rule"
+    },
+    "localValidation": "IN_PROGRESS latest retention candidate; old build/CI not reused as new frontend pass",
+    "githubCI": "old dcf3e63 four module runs success and Windows in progress; new candidate must be uploaded and checked separately",
+    "unverified": [
+      "real test-site latency",
+      "human dual-account sessions",
+      "physical devices and real IME",
+      "historical UNKNOWN32 outcome"
+    ]
+  },
+  "supersededDiscardRequirementAudit": {
+    "document": "requirements-audit.zh-TW.md",
     "requirements": 24,
     "scopeIsolationEvidence": "PASS33 direct handler assertions retained; backend scope identity does not authorize UI retention",
     "productSHA256": "a450090fd4e867718adf1553ba5badc3a859fe85fa61ff97583fdc351dfcf986",
@@ -630,6 +654,7 @@
         "private /tmp/ipqc-c-final-frank-product-lint.log"
       ],
       "applicationInputProof": "git diff6bac02e -- app lib public package.json package-lock.json .github is empty; C SHA256a450090fd4e867718adf1553ba5badc3a859fe85fa61ff97583fdc351dfcf986 matches exact built candidate"
-    }
+    },
+    "status": "HISTORICAL_SUPERSEDED_NOT_NEW_PRODUCT_POLICY_ACCEPTANCE"
   }
 }

@@ -64,7 +64,7 @@
     "invalidAssumption": "same stored C module scope implies unsent input can survive actual work selection; no confirmed requirement supports this",
     "oldRedOracle": "f792 expected1 actual0 was an invalid expectation, not a product defect"
   },
-  "workSelectionDiscardCorrection": {
+  "supersededWorkSelectionDiscardCorrection": {
     "basis": "Final Frank answer in current handoff: 「對要放棄未存修改」, answering product switch unsaved changes/photos discard vs retain. Earlier delegated summaries/current direct instruction were not prior approval. Stage/page rules retain their earlier confirmed scope.",
     "originalThreadIndependentlyRead": false,
     "sourceBefore": "21925339e4acee6543a9e32453713c022f690dcf",
@@ -89,6 +89,19 @@
       "finalDecision": "DISCARD_UNSAVED_CHANGES_AND_PHOTOS_WITHOUT_PROMPT_OR_SAVE",
       "status": "CONFIRMED_NOW_NOT_RETROACTIVE",
       "implementation": "existing candidate matches; no product rewrite"
-    }
+    },
+    "status": "SUPERSEDED_BY_LATEST_FRANK_PRODUCT_RETENTION"
+  },
+  "latestProductRetention": {
+    "FrankQuote": "在同一個模組下切換產品可以保留 如果切換分頁就不保留 例如都在ipqc c下面 就保留 但是切換頁面到FQC就不保留",
+    "status": "CURRENT_EFFECTIVE_SUPERSEDES_1014_AND_PREVIOUS_DISCARD_ANSWER",
+    "baseHead": "dcf3e637a6ae8d24293f70166df727b52cd4ec32",
+    "frontendSHA256": "393941c3f4716bd5542f17f0eac9b65619e6da4f858ffc5cd0ec81b5a7b0e29f",
+    "cacheTag": "20261112-c-product4",
+    "changedSelector": "data-ipqcc-product only",
+    "otherSelectors": "stage/coverage/pending/validation are not newly confirmed or expanded",
+    "scope": "same C working/journal/pending files retained; actual module departure discards unsent; stored versions and exact sent receipts protected",
+    "reuse": "selectively reuse prior product-retention concept; do not revert all of5df6f865 or change other selectors",
+    "oldBranchesChanged": false
   }
 }

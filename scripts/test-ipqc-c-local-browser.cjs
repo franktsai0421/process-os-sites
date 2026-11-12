@@ -53,9 +53,9 @@ if(profile){
  await page.locator('#ipqcc-search').fill('C100');await page.evaluate(()=>__localTest.read());assert.equal(await page.evaluate(()=>__localTest.state().working.errors[0].name),'Local '+width,'read/filter preserves input');
  await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>__localTest.state().localChanges.length===0&&!__localTest.state().busy,{},{timeout:10000}).catch(async e=>{console.error(await page.evaluate(()=>__localTest.state()),mutations,errors);throw e;});
  assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')&&JSON.parse(m.body).command?.action==='save').length,1);const begins=mutations.filter(m=>m.path.endsWith('/workflow')&&JSON.parse(m.body).action==='begin-v1');assert.equal(begins.length,width===1440?1:0,'legacy first Save adopts once with a durable Begin identity');for(const mutation of begins)assert.match(JSON.parse(mutation.body).begin.operationId,/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i);assert.equal(mutations.filter(m=>JSON.parse(m.body).action==='begin').length,0,'no legacy Begin fallback');const savedControl=(await h.call('ipqc-c','GET',undefined,'editor',200,'?caseMetadata=1')).control,flow=savedControl.workflow,currentAuthority=await h.read('ipqc-c'),opened=savedControl.versions.find(v=>v.status==='draft');assert.deepEqual(currentAuthority.beginBasis,{generation:flow.generation,activeVersionId:savedControl.activeVersionId,openVersionId:opened.id,openVersionStatus:opened.status,openVersionRevision:opened.revision},'adopted Begin authority matches current workflow and draft metadata');assert.equal(flow.saved.content.errors[0].name,'Local '+width);assert.equal(flow.saved.content.errors[0].note,width===1440?'retained legacy note':'Late re-entry Save');
- // One persisted C scope does not authorize retaining unsent edits across work selections.
+ // Latest Frank decision: explicit product switches retain the same unsaved C draft; other selectors keep their existing rule.
  const scopeState=()=>page.evaluate(()=>{const s=__localTest.state();return {scope:s.flowScope,generation:s.generation,draftId:s.draftId};});
- const scopeBefore=await scopeState(),persistedBeforeSelections=h.snapshot(),writesBeforeSelections=mutations.length;
+ const scopeBefore=await scopeState();let persistedBeforeSelections=h.snapshot(),writesBeforeSelections=mutations.length;
  assert.equal(scopeBefore.scope,'ipqc-c');assert(scopeBefore.generation&&scopeBefore.draftId);
  let workDialogs=0;const dismissWorkPrompt=d=>{workDialogs++;void d.dismiss();};page.on('dialog',dismissWorkPrompt);
  await page.evaluate(()=>__localTest.edit());await page.locator('[name="note"]').fill('Unsent product '+width);
@@ -66,9 +66,17 @@ if(profile){
  await page.locator('#ipqcc-search').fill('C100');assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),1,'ordinary search retains unsent input');
  assert.deepEqual(await page.evaluate(()=>({product:__localTest.state().productCode,stage:__localTest.state().stageCode})),selectedBeforeSearch,'search does not select another work target');
  await page.locator('#ipqcc-search').fill('');await page.locator('[data-ipqcc-product="C200"]').click();
- assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),0,'actual product selection discards unsent changes');
- assert.equal(await page.evaluate(()=>__localTest.state().working.errors[0].note),flow.saved.content.errors[0].note);
+ assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),1,'same-C product selection retains unsaved changes');
+ assert.equal(await page.evaluate(()=>__localTest.state().working.errors[0].note),'Unsent product '+width);
+ const otherName='Retained other product '+width;await page.locator('[data-ipqcc-add="error"]').click();await page.locator('[name="name"]').fill(otherName);await page.locator('#ipqcc-editor button[type="submit"]').click();
  await page.locator('[data-ipqcc-product="C100"]').click();
+ assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),2,'returning product keeps both products in one unsaved C draft');
+ assert.deepEqual(await scopeState(),scopeBefore);assert.equal(mutations.length,writesBeforeSelections);assert.deepEqual(h.snapshot(),persistedBeforeSelections,'product switches do not Save or write');
+ await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>!__localTest.state().busy&&!__localTest.state().localChanges.length);
+ assert.equal(mutations.length,writesBeforeSelections+1,'one explicit Save commits retained C products');
+ const retainedSaved=h.flow(await h.call('ipqc-c','GET',undefined,'editor',200,'?caseMetadata=1'));
+ assert.equal(retainedSaved.saved.content.errors[0].note,'Unsent product '+width);assert(retainedSaved.saved.content.errors.some(row=>row.productCode==='C200'&&row.name===otherName&&!row.id.startsWith('local-')));
+ persistedBeforeSelections=h.snapshot();writesBeforeSelections=mutations.length;
  for(const destination of ['stage','coverage']){
   await page.evaluate(()=>__localTest.edit());await page.locator('[name="note"]').fill('Unsent '+destination+' '+width);await page.locator('#ipqcc-editor button[type="submit"]').click();
   if(destination==='stage')await page.locator('[data-ipqcc-stage="C-OTHER"]').click();
@@ -126,11 +134,21 @@ if(profile){
  };
  const beforePhotoSelection=h.snapshot();await createPhotoItem();
  await page.locator('#ipqcc-search').fill('C1');assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),1,'ordinary search retains local photo input');
- assert.equal(await page.evaluate(()=>__localTest.state().photoCount),1);
- await page.locator('#ipqcc-search').fill('');await page.locator('[data-ipqcc-product="C200"]').click();
- assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),0);assert.equal(await page.evaluate(()=>__localTest.state().photoCount),0,'actual work selection discards pending photo files');
- assert.equal(mutations.length,0);assert.deepEqual(h.snapshot(),beforePhotoSelection,'discard writes neither DB nor R2');
- await page.locator('[data-ipqcc-product="C100"]').click();await page.locator('[data-ipqcc-stage="C-CUT"]').click();await page.locator('[data-ipqcc-error="legacy-error"] > div').first().click();await createPhotoItem();
+ const photoState=()=>page.evaluate(()=>({working:__localTest.state().working,changes:__localTest.state().localChanges,photos:__localTest.state().photoCount}));
+ const originalPhotoState=await photoState();assert.equal(originalPhotoState.photos,1);
+ await page.locator('#ipqcc-search').fill('');
+ for(const code of ['C200','C100']){await page.locator('[data-ipqcc-product="'+code+'"]').click();assert.deepEqual(await photoState(),originalPhotoState,'same C product switch retains original pending photo file and journal');}
+ assert.equal(mutations.length,0);assert.deepEqual(h.snapshot(),beforePhotoSelection);
+ // Actual module departure, including the FQC destination, discards RAM only.
+ await page.evaluate(()=>{IPQCCUI.navigation.departure.closeClean();IPQCCUI.navigation.reset();window.__delivery++;const root=document.querySelector('main');root.dataset.activeTab='quality-fqc';root.innerHTML='<p id="fqc-destination">FQC destination</p>';});
+ assert.equal(await page.locator('#fqc-destination').innerText(),'FQC destination');assert.equal(await page.evaluate(()=>__localTest.state().photoCount),0);assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),0);
+ assert.equal(mutations.length,0);assert.deepEqual(h.snapshot(),beforePhotoSelection,'C departure writes neither DB nor R2');
+ await page.evaluate(()=>{document.querySelector('main').dataset.activeTab='quality-ipqc-c';IPQCCUI.mount(document.querySelector('main'));});await page.locator('#ipqcc-save').waitFor();
+ assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),0);assert.equal(await page.evaluate(()=>__localTest.state().photoCount),0,'returning from FQC cannot restore discarded photos');
+ assert.equal(mutations.length,0);assert.deepEqual(h.snapshot(),beforePhotoSelection);
+ await page.locator('[data-ipqcc-error="legacy-error"] > div').first().click();await createPhotoItem();const uploadPhotoState=await photoState();
+ for(const code of ['C200','C100']){await page.locator('[data-ipqcc-product="'+code+'"]').click();assert.deepEqual(await photoState(),uploadPhotoState);}
+ assert.equal(mutations.length,0);
 
  if(width===1440)photoRace=async()=>{const f=h.flow(await h.read('ipqc-c')),row=f.working.errors[0],path=['errors',{id:row.id},'note'];await h.command('ipqc-c','apply',{patches:[{op:'set',path,value:'Peer during upload'}],guards:[{path,value:row.note}]},'edit-only');};
  await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>__localTest.state().localChanges.length===0&&!__localTest.state().busy).catch(async e=>{console.error(await page.evaluate(()=>__localTest.state()),errors);throw e;});
@@ -222,9 +240,9 @@ if(profile){
  }
  mutations.length=0;await page.evaluate(()=>__localTest.edit());await page.locator('input[name="name"]').fill('Unsent scope edit');await page.locator('#ipqcc-editor button[type="submit"]').click();
  const scopeSnapshot=h.snapshot();let navigationDialogs=0;const rejectPrompt=dialog=>{navigationDialogs++;void dialog.dismiss();};page.on('dialog',rejectPrompt);
- await page.locator('#ipqcc-search').fill('');await page.locator('[data-ipqcc-product="C200"]').click();await page.locator('[data-ipqcc-product="C100"]').click();await page.locator('[data-ipqcc-stage="C-OTHER"]').click();await page.locator('[data-ipqcc-stage="C-CUT"]').click();
+ await page.locator('#ipqcc-search').fill('');await page.locator('[data-ipqcc-product="C200"]').click();await page.locator('[data-ipqcc-product="C100"]').click();assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),1,'product switches preserve unsaved C input before stage selection');await page.locator('[data-ipqcc-stage="C-OTHER"]').click();await page.locator('[data-ipqcc-stage="C-CUT"]').click();
  if(evidence)await page.screenshot({path:require('node:path').join(evidence,'c-'+width+'-zh.png'),fullPage:false});
- assert.equal(navigationDialogs,0);assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),0,'actual product/stage selection discards unsent C input');assert.notEqual(await page.evaluate(()=>__localTest.state().working.errors[0].name),'Unsent scope edit');assert.equal(mutations.length,0);assert.deepEqual(h.snapshot(),scopeSnapshot);
+ assert.equal(navigationDialogs,0);assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),0,'existing stage-selection discard remains separate from product retention');assert.notEqual(await page.evaluate(()=>__localTest.state().working.errors[0].name),'Unsent scope edit');assert.equal(mutations.length,0);assert.deepEqual(h.snapshot(),scopeSnapshot);
  // Actual departure still discards unsent content silently; it is not a filter.
  await page.evaluate(()=>{IPQCCUI.navigation.departure.closeClean();IPQCCUI.navigation.reset();window.__delivery++;document.querySelector('main').innerHTML='<p>Other page</p>';});
  await page.evaluate(()=>IPQCCUI.mount(document.querySelector('main')));await page.locator('#ipqcc-save').waitFor();page.off('dialog',rejectPrompt);
@@ -292,6 +310,6 @@ if(profile){
  await historyPage.locator('#ipqcc-version').selectOption('shared-'+h.flow(await h.read('ipqc-c')).generation);await historyPage.locator('#ipqcc-save').waitFor();
  assert.equal(mutations.length,0,'return to draft rechecks only');await historyPage.close();
  if(profile)console.log('IPQCC_PROFILE '+JSON.stringify({rowsAtStart:1735,browserProfile,networkProfile,limits:'Synthetic loopback HTTP; function timings overlap and are not additive. Browser requests include controlled fault/delay scenarios, never live latency. Resource entries are from the final document after reload; earlier phases are retained separately.'}));
- assert.deepEqual(errors,[]);console.log('PASS Chromium 1440/390: local edit, ordinary search/read preservation, five work-selection entry points discard unsent input without writes, one Save POST, shared saved result, silent departure and reload; both create-item/delete-other-error orders, group choices/cancel, choice/upload/CAS peer races and immutable same-page approved history');
+ assert.deepEqual(errors,[]);console.log('PASS Chromium 1440/390: local edit, ordinary search/read preservation, same-C products retain edits/photos, module departure discards, other selectors retain their existing rule, one Save POST, shared saved result, silent departure and reload; both create-item/delete-other-error orders, group choices/cancel, choice/upload/CAS peer races and immutable same-page approved history');
  }finally{releaseRecoveryRead?.();releaseSaveACK?.();await browser.close();await new Promise(resolve=>server.close(resolve));h.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

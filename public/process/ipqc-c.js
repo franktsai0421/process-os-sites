@@ -1147,6 +1147,11 @@
     search='';productCode=row.productCode;stageCode=row.stageCode;errorId=kind==='item'?row.errorId:row.id;
     startEditor(kind,row);
   }
+  function retainProductDraft(){
+    // Product selection stays in this C draft and its current operation owner.
+    // Keep staged edits/files and the primary transport's sent receipt intact.
+    cancelSaveChoice?.();modal=null;picker=null;viewer=null;conflict=null;
+  }
   function discardUnsentScope(){
     // Retire presentation only. The primary transport keeps its in-flight
     // command/receipt marker and may settle it; old callbacks cannot own this view.
@@ -1202,7 +1207,7 @@
         root.querySelector('#ipqcc-photo-input')?.click();return;
       }
       if(button.dataset.ipqccCoverage){discardUnsentScope();search='';productCode=button.dataset.ipqccCoverage;stageCode=button.dataset.stage;errorId='';draw();return;}
-      if(button.dataset.ipqccProduct){discardUnsentScope();productCode=button.dataset.ipqccProduct;stageCode='';errorId='';draw();return;}
+      if(button.dataset.ipqccProduct){retainProductDraft();productCode=button.dataset.ipqccProduct;stageCode='';errorId='';draw();return;}
       if(button.dataset.ipqccFixItem){locateWorkingEditor('item',button.dataset.ipqccFixItem);return;}
       if(button.dataset.ipqccStage){discardUnsentScope();stageCode=button.dataset.ipqccStage;errorId='';draw();return;}
       if(button.dataset.ipqccError){errorId=button.dataset.ipqccError;draw();return;}
