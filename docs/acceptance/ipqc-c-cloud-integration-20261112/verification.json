@@ -205,6 +205,24 @@
   "liveSite": "NOT_RUN",
   "humanAcceptance": "NOT_RUN",
   "deployment": "NOT_RUN",
-  "cleanClone": "PENDING",
-  "githubCI": "See PR current checks"
+  "cleanClone": {
+    "status": "PASS",
+    "commit": "edddedfe86d76d01415fb5050cca82d06799e45e",
+    "install": "npm ci --ignore-scripts --no-audit --no-fund",
+    "typedLint": "PASS",
+    "typescript": "PASS nonincremental",
+    "coreSourceAndControllerTests": 26,
+    "build": "PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK",
+    "dataImport": "NOT_RUN"
+  },
+  "githubCI": "See PR current checks",
+  "finalSourceScan": {
+    "commit": "edddedfe86d76d01415fb5050cca82d06799e45e",
+    "status": "PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE",
+    "commits": 605,
+    "blobs": 5355,
+    "workingFiles": 2017,
+    "realDataOpened": false,
+    "credentialValuesReturned": false
+  }
 }
