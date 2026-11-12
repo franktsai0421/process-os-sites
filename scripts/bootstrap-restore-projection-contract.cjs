@@ -33,7 +33,7 @@ function comparableBootstrap(response,candidate=false){
   // feature-off DTO; nonempty modules, missing fields and extras still reject.
   assert.deepEqual(body.features,{webFeedback:true,accessEvents:[]});delete body.features;
   assert.deepEqual(body.catalog.categoryGroups,[],'Fixed fixture must expose exactly the approved empty category groups');
-  const user=publicFixtureUser(body);assert.equal(user.cells['feedback.view'],true);assert(user.permissions.includes('feedback.view'));for(const key of restoreKeys){assert.equal(user.cells[key],false,'Fixture must not acquire restore: '+key);assert.equal(user.permissions.includes(key),false);}
+  const user=publicFixtureUser(body);assert.equal(Object.hasOwn(user,'draftReviewPolicyActive'),false,'Inactive fixture must omit policy metadata');assert.equal(Object.hasOwn(user,'reviewPolicy'),false,'Inactive fixture must omit policy result');assert.equal(user.cells['feedback.view'],true);assert(user.permissions.includes('feedback.view'));for(const key of restoreKeys){assert.equal(user.cells[key],false,'Fixture must not acquire restore: '+key);assert.equal(user.permissions.includes(key),false);}
  }else{
   assert.equal(Object.hasOwn(body,'features'),false);expectedRestoreProjection(body);
   assert.equal(Object.hasOwn(body.catalog,'categoryGroups'),false,'Pinned v20 must not contain category groups');
@@ -58,6 +58,8 @@ function assertRestoreProjectionContract(before,after){
   mutateUser(user=>{const value=user.cells[key];delete user.cells[key];user.cells[key]=value;});
   mutateBody(body=>{const entry=JSON.stringify(key)+':false';assert(body.values.platformUsers.includes(entry));body.values.platformUsers=body.values.platformUsers.replace(entry,entry+','+entry);});
  }
+ for(const value of [false,true,null,'false',0])mutateUser(user=>{user.draftReviewPolicyActive=value;});
+ for(const value of [{resolved:true,blocked:[]},{resolved:false,blocked:['synthetic-unresolved']},null])mutateUser(user=>{user.reviewPolicy=value;});
  mutateUser(user=>{user.cells['iqc.view']=!user.cells['iqc.view'];});
  mutateUser(user=>{user.cells['feedback.view']=false;});mutateUser(user=>{user.permissions=user.permissions.filter(key=>key!=='feedback.view');});mutateUser(user=>{user.cells['feedback.create']=!user.cells['feedback.create'];});mutateUser(user=>{user.permissions.push('feedback.create');});
  mutateUser(user=>{user.cells['unrelated.view']=false;});

@@ -58,6 +58,14 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
  const html=fs.readFileSync(path.join(root,'public/process/index.html'),'utf8');
  const references=[...html.matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
  const versions={
+  'process-editor.js':'20261110-process-integration2',
+  'version-draft-ui.js':'20261110-account-pages1',
+  'version-draft-ui.css':'20261110-account-pages1',
+  'canvas-approved-history.js':'20261110-account-pages1',
+  'page-draft-merge.js':'20261110-account-pages1',
+  'master-page-transfer.js':'20261110-account-pages1',
+  'master-page-approved-history.js':'20261110-account-pages1',
+  'master-page-editor.js':'20261110-account-pages1',
   'local-draft-recovery.js':'20261103-fqc-generation1',
   'shared-draft-client.js':'20261111-authoring-access-epoch3',
   'process-authoring-v3.js':'20261110-process-integration4',

@@ -6,6 +6,11 @@
 
 Frank 本次要求修改包含存取（Save）、真正獨立頁各有權限，同頁線別／群組／工段只作篩選；模組送審／撤回與版本平台最終核准分離，舊模組 reviewer 不能自動取得最終核准，已核准版不可撤回；有效啟用帳號可查看錯誤回報，其他操作及原圖／封存按授權。這取代下文歷史規則將 Save 與 Edit 完全獨立的要求，但不授權增加跨頁資料可見性或跳過既有 CAS／UNKNOWN 保護。#103 先對齊十二個已安裝流程的 Edit→Save（含現有 process:platform 及 routine 每文件交易）與回報查看／來源授權；lines.view-only 的已核准唯讀頁已獨立補完，不取得 AB/C workflow 或寫入權；line page 寫入／routine whole-page 草稿切換、page-v1 與最終核准分離尚未完成。[實作、缺口與驗證](../../acceptance/account-permissions-20261110.md#2026-11-10-擴充需求核對與本批結果)。
 
+<!-- Retained #104 source checkpoint; historical, not current joint acceptance. -->
+## 2026-11-10 製程頁面整合候選
+
+製程編輯台同頁群組／類別共用process:platform草稿；Save只採當前畫布本機變更，保留其他已存內容，送審為整份已存快照。切頁／線別／工段無提示放棄未送輸入，UNKNOWN原操作不可重送。AB、C類別及線別工段管理以AB.catalog／C.catalog／LINES分開擁有；可信page-v1及核准來源齊備才開放writer，不由一般寫入、query或環境變數啟用。模組送審／撤回／修正和版本最終核准分開，可信政策缺席不自動遷移權限。當前候選與未完成範圍見[20項矩陣](../../acceptance/process-platform-integration-20261110.md)；不是資料切換或整站驗收收據。
+
 ## 2026-11-09 全站取消背景定時檢查
 
 全站所有頁面取消固定秒數／分鐘向伺服器查詢、刷新、同步的背景檢查，不改成另一頻率。進頁、使用者明確更新及操作需要時讀取。草稿於存取時比對；存取、送審當下必要的最新版本、權限、狀態、CAS 和送出結果不明的防重送保護保留。歷史視窗也改於明確操作時核對權限；不承諾閒置畫面即時得知撤權或別人的修改。畫面時鐘、請求逾時和操作觸發的單次 UI 回呼不屬於背景輪詢。這項政策不等於已完成全站草稿拆分、衝突選擇或未存表單恢復移除。[候選逐頁盤點與驗證界線](../../acceptance/global-background-checks-20261109.md)。

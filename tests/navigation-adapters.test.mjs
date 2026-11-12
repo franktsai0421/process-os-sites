@@ -18,6 +18,13 @@ function masterTabFixture(tab,{registered=false,selected,projected=true,master=f
  }
  return{box,state,content,calls,control};
 }
+for(const tab of ['AB','C','line-admin'])void test('owned master destination '+tab+' keeps URL and page owner together',()=>{
+ const f=masterTabFixture('AB',{master:true});f.control.pageDraftLayout='page-v1';const writes=[],mounts=[];
+ f.box.history={state:{retained:true},pushState(state,unused,url){writes.push({state,url:String(url)});}};
+ f.box.ProcessMasterPages={mount(element,options){mounts.push({element,page:options.page});}};
+ f.box.selectDataTab(tab,true);assert.equal(mounts.length,1);assert.equal(mounts[0].element,f.content);assert.equal(mounts[0].page,tab==='line-admin'?'LINES':tab);assert.equal(f.content.dataset.activeTab,tab);assert.equal(f.state.dataTab,tab);
+ assert.equal(writes.length,tab==='AB'?0:1);if(writes.length){assert.equal(new URL(writes[0].url).searchParams.get('dataTab'),tab);assert.equal(writes[0].state.retained,true);assert.equal(writes[0].state.dataTab,tab);}
+});
 for(const tab of ['quality-fqc','quality-iqc','quality-ipqc-ab','quality-ipqc-c','quality-mold-equipment','quality-routine-equipment','quality-routine-reports'])void test('cold destination '+tab+' never falls back to an absent master scope',()=>{
  for(const registered of [false,true]){
   const f=masterTabFixture(tab,{registered}),before=JSON.stringify(f.control);f.box.bindData();

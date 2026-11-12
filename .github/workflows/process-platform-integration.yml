@@ -69,6 +69,14 @@ jobs:
       - run: node scripts/sites-source-check.mjs
       - name: Actual canvas Save, departure, conflict and original receipt contracts
         run: node --test tests/canvas-deletion-groups.test.mjs tests/canvas-save-conflict-choice.test.mjs tests/canvas-departure.test.mjs tests/canvas-manual-sync.test.mjs tests/canvas-pending-form-admission.test.mjs tests/process-editor-departure.test.mjs tests/multiuser-canvas-recovery-authority.test.mjs tests/multiuser-canvas-recovery-store.test.mjs tests/process-canvas-atomic-save-client.test.mjs tests/process-canvas-atomic-save-stack.test.mjs
+      - name: Joint source origins and complete boundary preservation
+        run: node --test tests/accounts-process-integration-source.test.mjs
+      - name: Begin receipt ownership across stale idle runtimes
+        run: node --test tests/shared-draft-begin-v1.test.mjs tests/module-begin-recovery.test.mjs tests/authoring-begin-readiness.test.mjs tests/shared-draft-tab-attribution.test.mjs tests/shared-draft-concurrent-prepared.test.mjs
+      - name: Compiled fixture acquisition and cleanup guards
+        run: node --test tests/equipment-transfer-setup-cleanup.test.mjs
+      - name: Role reuse and historical authorization projections
+        run: node scripts/test-access-template-reuse.cjs
       - name: Existing IPQC source adoption and single atomic Save
         run: node --test tests/process-ipqc-source-adopt.test.mjs
       - name: Same-page Canvas approved history and read-only actor fences

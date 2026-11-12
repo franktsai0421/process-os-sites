@@ -110,7 +110,11 @@ jobs:
           node scripts/test-routine-page-photo-outcome.cjs
       - run: node scripts/sites-ci-preflight.mjs
       - run: npm run build
+      - name: Joint compiled role denial and session revocation
+        run: node tests/user-permissions-native.test.mjs
       - name: Install isolated Chromium
         run: node node_modules/playwright/cli.js install --with-deps chromium
       - name: Native lines-only approved page without workflow grants
         run: node tests/account-lines-view-browser.mjs
+      - name: Joint desktop and mobile Canvas Save and silent departure
+        run: node tests/accounts-process-mobile-browser.mjs

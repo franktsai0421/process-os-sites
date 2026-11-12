@@ -130,8 +130,8 @@ void test('failure-only client probe forwards factory identity/options and does 
  assert.equal(realm.window.createSharedDraftClient(options),client);assert.equal(realm.window.createSharedDraftClient(options),client);assert.equal(calls.length,2);assert.equal(reads,0);const rows=realm.window.__beginRecoveryProbe();assert.equal(rows.length,1);assert.equal(reads,1);assert.equal(rows[0].module,'iqc');assert.equal(rows[0].unknown,true);assert.equal(rows[0].runtimeCurrent,false);
 });
 
-for(const fault of ['none','identity','epoch','delivery','revocation','newer-denial','malformed-receipt'])void test('actual approved-history mount during original authoring Begin receipt: '+fault,async()=>{
- const f=fixture('process-authoring');f.mode('lost');await assert.rejects(f.client.begin(),/lost ACK/);const retained=[...f.disk],operationId=JSON.parse(retained[0][1]).operationId;f.mode('ok');
+for(const runtime of ['same','successor','fresh-realm'])for(const fault of ['none','identity','epoch','delivery','revocation','newer-denial','malformed-receipt'])void test('actual approved-history mount during original authoring Begin receipt: '+fault+', runtime='+runtime,async()=>{
+ const writer=fixture('process-authoring');writer.mode('lost');await assert.rejects(writer.client.begin(),/lost ACK/);const retained=[...writer.disk],operationId=JSON.parse(retained[0][1]).operationId;writer.mode('ok');const f=runtime==='fresh-realm'?fixture('process-authoring',{disk:writer.disk,remote:writer.remote}):writer;if(runtime==='successor'){f.delivery();f.client=f.create();}const posts=()=>writer.posts().length+(f===writer?0:f.posts().length);
  let release,entered;const held=new Promise(r=>release=r),ready=new Promise(r=>entered=r);f.hook(async call=>{
   if(call.url.includes('operationId=')){entered();await held;if(fault==='malformed-receipt')return Response.json({operationKind:'begin-v1',receipt:{...f.remote.receipt,operationId:webcrypto.randomUUID()}});}
   if(fault==='revocation')return Response.json({...f.data(),operationKind:'begin-v1',receipt:f.remote.receipt,permissions:{...f.data().permissions,view:false}});
@@ -149,6 +149,6 @@ for(const fault of ['none','identity','epoch','delivery','revocation','newer-den
  try{
   if(fault==='none'){const result=await recovering;assert.equal(result.receipt.operationId,operationId);assert.equal(f.disk.size,0);assert.deepEqual(copy(f.box.sharedDraftAccountState()),{queued:0,unknown:false,failed:false});}
   else{const expected={identity:/^BEGIN_OWNER_CHANGED$/,epoch:/^BEGIN_OWNER_CHANGED$/,delivery:/^BEGIN_OWNER_CHANGED$/,revocation:/^BEGIN_AUTHORITY_READ_REQUIRED$/,'newer-denial':/^FORBIDDEN$/,'malformed-receipt':/^INVALID_OPERATION_RECEIPT$/};await assert.rejects(recovering,error=>expected[fault].test(error.message));assert.deepEqual([...f.disk],retained);assert.equal(f.client.hasUnknownBegin(),true);assert.equal(f.box.sharedDraftAccountState().unknown,true);}
-  assert.equal(f.posts().length,1);for(const call of f.calls.filter(row=>row.url.includes('operationId=')))assert.equal(new URL(call.url,'https://fixture.invalid').searchParams.get('operationId'),operationId);
+  assert.equal(posts(),1);for(const call of f.calls.filter(row=>row.url.includes('operationId=')))assert.equal(new URL(call.url,'https://fixture.invalid').searchParams.get('operationId'),operationId);
  }finally{history.retire();}
 });
