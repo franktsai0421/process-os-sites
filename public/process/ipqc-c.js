@@ -1134,12 +1134,6 @@
     }catch(error){if(current()){selectedVersionId=previousVersion;working=previousVersion===open()?.id?copy(open().snapshot):null;message=error.message;draw();}}
   }
   let historySelection=0;
-  function closeFilterEditors(){
-    // Product/stage filters are views of this same whole-C draft. Keep the
-    // Finish'ed journal, working snapshot and pending photo files until Save
-    // or actual page departure; only retire an unapplied editor/choice.
-    cancelSaveChoice?.();modal=null;picker=null;viewer=null;conflict=null;
-  }
   function discardUnsentScope(){
     // Retire presentation only. The primary transport keeps its in-flight
     // command/receipt marker and may settle it; old callbacks cannot own this view.
@@ -1194,11 +1188,11 @@
             ?`${before}\n\n${after}`:null};
         root.querySelector('#ipqcc-photo-input')?.click();return;
       }
-      if(button.dataset.ipqccCoverage){closeFilterEditors();search='';productCode=button.dataset.ipqccCoverage;stageCode=button.dataset.stage;errorId='';draw();return;}
-      if(button.dataset.ipqccProduct){closeFilterEditors();productCode=button.dataset.ipqccProduct;stageCode='';errorId='';draw();return;}
+      if(button.dataset.ipqccCoverage){discardUnsentScope();search='';productCode=button.dataset.ipqccCoverage;stageCode=button.dataset.stage;errorId='';draw();return;}
+      if(button.dataset.ipqccProduct){discardUnsentScope();productCode=button.dataset.ipqccProduct;stageCode='';errorId='';draw();return;}
       if(button.dataset.ipqccFixItem){const item=snapshot().items.find(row=>row.id===button.dataset.ipqccFixItem);if(!item)return;
         search='';productCode=item.productCode;stageCode=item.stageCode;errorId=item.errorId;startEditor('item',item);return;}
-      if(button.dataset.ipqccStage){closeFilterEditors();stageCode=button.dataset.ipqccStage;errorId='';draw();return;}
+      if(button.dataset.ipqccStage){discardUnsentScope();stageCode=button.dataset.ipqccStage;errorId='';draw();return;}
       if(button.dataset.ipqccError){errorId=button.dataset.ipqccError;draw();return;}
       if(button.dataset.ipqccAdd){startEditor(button.dataset.ipqccAdd);return;}
       if(button.dataset.ipqccViewError){startEditor('error',snapshot().errors.find(e=>e.id===button.dataset.ipqccViewError),true);return;}

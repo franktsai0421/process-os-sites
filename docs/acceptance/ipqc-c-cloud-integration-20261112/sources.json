@@ -56,14 +56,24 @@
     "action": "read-only comparison; not merged"
   },
   "completeAuditFilterFix": {
-    "basis": "f7925ad869426e4dd36e5eb67dde68810b0102c3",
-    "requirement": "C page filters must retain the same unsaved whole-module draft; actual page departure discards unsent content",
-    "reproduced": "native filter retention expected1 staged change, actual0",
-    "productFiles": [
-      "public/process/ipqc-c.js",
-      "public/process/index.html"
+    "status": "WITHDRAWN_UNAPPROVED_UX",
+    "commits": [
+      "5df6f8658b5b0a64b852c8fecf8a2664ea8ec31c",
+      "21925339e4acee6543a9e32453713c022f690dcf"
     ],
-    "sharedDependency": "index refreshes C tag only; seven-file inverse updates only C/index afterHash/rules; beforeHash and old proof chain unchanged",
+    "invalidAssumption": "same stored C module scope implies unsent input can survive actual work selection; no confirmed requirement supports this",
+    "oldRedOracle": "f792 expected1 actual0 was an invalid expectation, not a product defect"
+  },
+  "workSelectionDiscardCorrection": {
+    "basis": "current direct instruction and delegated Frank excerpts: 11/4 editing cannot directly switch product; 11/9 page/line/stage silent discard; 11/4 Dot proposal is not confirmation",
+    "originalThreadIndependentlyRead": false,
+    "sourceBefore": "21925339e4acee6543a9e32453713c022f690dcf",
+    "restoreFrontendFrom": "f7925ad869426e4dd36e5eb67dde68810b0102c3",
+    "frontendSHA256": "039dcc7d35a04b386c3567d23f4d66a0d04fe20a1f8ed1411a7dde503bbce851",
+    "cacheTag": "20261112-c-discard3",
+    "semantics": "ordinary search preserves target/input; product/stage/coverage work changes silently discard unsent RAM/photos; stored C identity and original sent receipt retained",
+    "correctRed": "2192533 actual1 expected0 staged changes after selecting another product",
+    "sharedDependency": "only C/index exact successor inverses refreshed; original beforeHash and negatives retained",
     "oldBranchesChanged": false
   }
 }

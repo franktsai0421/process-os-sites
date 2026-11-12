@@ -122,7 +122,7 @@ void test('changed persistent-navigation executable references have coherent new
   'effective-version-notice.js':'20261109-explicit-checks1',
   'fqc-master.js':'20261104-begin-generation2',
   'ipqc-ab.js':'20261105-ab-scope-input1',
-  'ipqc-c.js':'20261112-c-scope2',
+  'ipqc-c.js':'20261112-c-discard3',
   'iqc-master.js':'20261106-number-hint1',
   'master-data.js':'20261105-process-local-save1',
   'master-shared-client.js':'20261105-process-local-save1',

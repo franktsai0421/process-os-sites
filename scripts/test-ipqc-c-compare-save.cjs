@@ -82,6 +82,7 @@ const initial={schemaVersion:1,activeVersionId:null,source:null,issues:[],reserv
  await h.command('ipqc-c','withdraw',{caseId:pending.receipt.caseId,reason:'Synthetic'},'editor');
  // Query selectors cannot split C or target AB/BOM/FQC persisted models.
  const boundaryFlow=await state(),beforeQueries=h.snapshot();
+ // Backend scope identity is independent of UI unsent-input lifetime; work selections discard RAM.
  for(const query of ['&productCode=C100&stageCode=CUT','&productCode=C200&stageCode=OTHER','&scope=ipqc-ab%3AA%3AG']){
   const sameFlow=h.flow(await h.call('ipqc-c/workflow','GET',undefined,'editor',200,'?caseMetadata=1'+query));
   assert.equal(sameFlow.scope,'ipqc-c');assert.equal(sameFlow.generation,boundaryFlow.generation);assert.deepEqual(sameFlow.working,boundaryFlow.working);

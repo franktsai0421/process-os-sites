@@ -272,7 +272,7 @@
     "buildEvidence": "Product/build inputs unchanged from b6abd587; exact 244adfe product build and b6abd587 Windows build passed; no redundant rebuild",
     "CI": "Evaluate latest PR HEAD"
   },
-  "completeRequirementAudit": {
+  "withdrawnRetentionCandidateEvidence": {
     "document": "requirements-audit.zh-TW.md",
     "requirements": 24,
     "productBaseCommit": "f5c4154426869166091607273129c7f993c14924",
@@ -291,7 +291,7 @@
       "historical UNKNOWN32 outcome"
     ],
     "initialGenerationOnlyAuditCommit": "f7925ad869426e4dd36e5eb67dde68810b0102c3",
-    "initialConclusionCorrected": "C05 was a real missing behavior: in-page product/stage filters discarded Finish-ed unsaved content",
+    "initialConclusionCorrected": "The retention expectation was unauthorized; old red expected1 actual0 is withdrawn, not a product defect",
     "redEvidence": {
       "sourceCommit": "f7925ad869426e4dd36e5eb67dde68810b0102c3",
       "native": "product filter staged changes expected1 actual0"
@@ -340,6 +340,28 @@
       "documentLinks": "PASS62"
     },
     "productSHA256": "0eb9537d819d3b61c789536a9b3beb42939a490dd90690c43cfeee95dd07b3c3",
-    "fixedRequirement": "C05 in-page filters preserve the same unsaved whole-C draft and pending photos; true departure discards unsent input"
+    "fixedRequirement": "WITHDRAWN; see workSelectionDiscardCorrection",
+    "status": "WITHDRAWN_UNAPPROVED_UX_NOT_ACCEPTANCE"
+  },
+  "completeRequirementAudit": {
+    "document": "requirements-audit.zh-TW.md",
+    "requirements": 24,
+    "scopeIsolationEvidence": "PASS33 direct handler assertions retained; backend scope identity does not authorize UI retention",
+    "productSHA256": "039dcc7d35a04b386c3567d23f4d66a0d04fe20a1f8ed1411a7dde503bbce851",
+    "policy": "actual product/stage/coverage work changes silently discard unsent RAM/photos without Save; ordinary search retains target/input; stored versions and sent UNKNOWN receipt protected",
+    "correctRed": {
+      "sourceCommit": "21925339e4acee6543a9e32453713c022f690dcf",
+      "expected": 0,
+      "actual": 1,
+      "log": "private /tmp/ipqc-c-discard-red.log"
+    },
+    "localValidation": "IN_PROGRESS; no current candidate PASS claimed yet",
+    "githubCI": "Evaluate corrected PR HEAD after upload",
+    "unverified": [
+      "real test-site latency",
+      "human dual-account sessions",
+      "physical devices and real IME",
+      "historical UNKNOWN32 outcome"
+    ]
   }
 }
