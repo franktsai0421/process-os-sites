@@ -275,7 +275,13 @@ export async function runFqcDraftBrowser() {
         assert.equal((await localContent()).errors.find(row => row.id === seed.ids.error).name, forms.errorName);
       }, async () => assert.deepEqual(await control(), beforeMatrix), 0);
       await matrixChoice('matrix-choice');
-      await measure(editor.page, 'save', '#fqc-save', assertDraft, async () => {
+      const previousSavedId=(await control()).workflow.saved?.id||null;
+      await measure(editor.page, 'save', '#fqc-save', async()=>{
+        // The comparison GET runs before transport queues a POST. An already
+        // visible draft and queued===0 alone cannot acknowledge this Save.
+        await editor.page.waitForFunction(previous=>{const api=window.FQCMasterUI,flow=api?.control?.libraries?.fqc?.workflow,s=window.sharedDraftAccountState?.();return flow?.saved?.id&&flow.saved.id!==previous&&!api.navigation.hasLocalChanges()&&s?.queued===0&&!s.unknown&&!s.failed;},previousSavedId);
+        await assertDraft();
+      }, async () => {
         const c = await control(); assert(c.workflow.saved?.id); assert.deepEqual(c.workflow.saved.content, c.workflow.working);
         const content = c.workflow.saved.content;
         assert.equal(content.errors.find(row => row.id === seed.ids.error).name, forms.errorName);
