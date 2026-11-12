@@ -50,7 +50,8 @@ function equipment() {
 function routine() {
   const f=fixture();
   f.box.dialog=(_title,body)=>{f.box.confirmations++;f.box.confirmBody=body;return f.pending.promise;};
-  f.load(part('routine-fqc.js','  async function draft(','  async function save(target = doc()) {'));
+  Object.assign(f.box,{historyDisplayEpoch:0,approvedHistoryView:null});
+  f.load(part('routine-fqc.js','  const historyAllowsMutation=','  function retireApprovedHistory(')+part('routine-fqc.js','  async function draft(','  async function save(target = doc()) {'));
   return f;
 }
 for(const [name,make,execute] of [
@@ -122,4 +123,11 @@ void test('tooling Submit refuses completed local edits before confirmation, pre
  assert.equal(f.box.confirmations,0);assert.equal(f.calls.length,0);
  assert.equal(f.box.localSnapshot,local);assert.equal(f.box.localBase,basis);assert.equal(f.box.localGeneration,f.flow.generation);
  assert.equal(JSON.stringify(f.flow),before);
+});
+
+void test('routine FQC approved history cannot dispatch Submit after confirmation',async()=>{
+ const f=routine(),running=f.box.confirmSubmission();
+ f.box.approvedHistoryView={blocked:true};f.pending.resolve('confirmed');
+ const extra=await running;await assert.rejects(f.box.draft('submit',extra),/APPROVED_HISTORY_READ_ONLY/);
+ assert.equal(f.calls.length,0);
 });

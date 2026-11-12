@@ -37,10 +37,12 @@ jobs:
       - run: node scripts/sites-ci-preflight.mjs
       - run: node --test tests/quality-integration-source-proof.test.cjs tests/access-event-main-integration.test.cjs tests/routine-fqc-source-contract.test.cjs
       - run: node --test tests/navigation-adapters.test.mjs tests/shared-draft-receipt-recovery.test.mjs
+      - run: node --test tests/process-scripts-build.test.mjs tests/quality-shell-bundle-oracle.test.mjs tests/quality-submission-fences.test.mjs
       - run: node scripts/test-fqc-matrix-layout.mjs
       - run: node scripts/test-quality-integration.mjs
       - run: node --test --test-timeout=30000 tests/routine-fqc-explicit-refresh.test.mjs tests/routine-fqc-manual-generation.test.mjs tests/routine-fqc-durable-route.test.mjs tests/routine-fqc-durable-receipt.test.mjs tests/routine-fqc-receipt-only.test.mjs tests/routine-fqc-departure-attribution.test.mjs tests/multiuser-module-departure-routine-save.test.mjs
       - run: npm run build
+      - run: node tests/sites-root-entry-native.test.mjs
       - run: node --test tests/iqc-save-choice-compiled-http.test.mjs
       - run: node node_modules/playwright/cli.js install --with-deps chromium
       - run: node --test --test-concurrency=1 tests/equipment-transfer-compiled.test.mjs tests/fqc-single-save-browser.test.mjs tests/fqc-unknown-recovery-browser.test.mjs tests/iqc-unknown-browser.test.mjs tests/fqc-matrix-conflict-discard-browser.test.mjs
