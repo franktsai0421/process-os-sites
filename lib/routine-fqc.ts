@@ -1,3 +1,4 @@
+import {approvedMasterPageCatalog} from './master-approved-pages';
 import {legacyJsonValueText,type JsonValue} from './legacy-login-json';
 import type {FqcSnapshot} from './fqc-workflow';
 import {
@@ -12,6 +13,7 @@ import {
   type DraftActor,
   type DraftIssue,
   type DraftPermission,
+  type DraftContext,
 } from './shared-draft';
 import type { State } from './process-state';
 
@@ -97,6 +99,10 @@ export type Document = {
     resolvedBy?: string;
   }[];
 };
+export type RoutineDocumentMetadata = Omit<Document, 'flow'>;
+export type RoutineBusinessState = Omit<RoutineFqc, 'documents'> & { documents: RoutineDocumentMetadata[] };
+export type RoutineDocumentLinks = Partial<Pick<RoutineDocumentMetadata, 'planId' | 'caseId' | 'correctionOf'>>;
+
 export type Case = {
   id: string;
   number: string;
@@ -210,7 +216,7 @@ export function routineSources(state: State): Source[] {
     );
   if (!version) return [];
   const master = JSON.parse(state.values.masterDataControl || '{}'),
-    products = (master.active?.AB?.products || []) as {
+    products = ((master.pageDraftLayout==='page-v1'?approvedMasterPageCatalog(master,'AB').content:master.active?.AB)?.products || []) as {
       code: string;
       name: string;
     }[];
@@ -276,7 +282,7 @@ export function routineCatalog(state: State) {
         v.id === lib.activeVersionId && v.status === 'approved',
     ),
     master = JSON.parse(state.values.masterDataControl || '{}'),
-    active = master.active?.AB || {},
+    active = (master.pageDraftLayout==='page-v1'?approvedMasterPageCatalog(master,'AB').content:master.active?.AB) || {},
     categories = new Map<string, { name: string; line: string }>();
   const add = (name: string, line: string) => {
     if (name)
@@ -592,16 +598,18 @@ export type RoutineCommand = {
   notes?: string;
   photos?: string[];
   kind?: Document['kind'];
-  command?: DraftCommand;
+  command?: DraftCommand & { moduleAction?: 'save-local-v1' };
   selfReviewConfirmed?: boolean;
 };
-function addDocument(
-  c: RoutineFqc,
+export function buildRoutineDocumentDraft(
+  c: Pick<RoutineFqc, 'cases'> & { documents: Pick<Document, 'kind'>[] },
   kind: Document['kind'],
   jobs: Job[],
-  ctx: Context,
-  extra: Partial<Document> = {},
+  ctx: Pick<Context, 'actor' | 'at' | 'today'>,
+  extra: RoutineDocumentLinks = {},
 ) {
+  demand(Object.keys(extra).every(key => ['planId', 'caseId', 'correctionOf'].includes(key)) &&
+    Object.values(extra).every(value => value === null || typeof value === 'string'), 'DOCUMENT_LINKS_INVALID');
   const id = crypto.randomUUID(),
     number =
       (kind === 'plan'
@@ -641,29 +649,23 @@ function addDocument(
         : [{id:crypto.randomUUID(),samples:[],outcome:'' as Outcome,value:'',notes:'',photos:[]}]) : [],
     })),
   };
-  const flow = createSharedDraft(
-    'routine-fqc:' + id,
-    content,
-    null,
-    crypto.randomUUID(),
-  );
-  flow.active.content = { ...cloneDraft(content), lines: [] };
-  const doc: Document = {
-    id,
-    number,
-    kind,
-    planId: null,
-    caseId: null,
-    correctionOf: null,
-    createdAt: ctx.at,
-    owner: ctx.actor,
-    flow,
-    ...extra,
+  const metadata: RoutineDocumentMetadata = {
+    id, number, kind, planId: null, caseId: null, correctionOf: null,
+    createdAt: ctx.at, owner: cloneDraft(ctx.actor), ...extra,
   };
+  return {metadata, content};
+}
+// Legacy dispatch alone creates its historical per-document flow. The page
+// path can use the builder above without fabricating a flow, Save or review.
+function addDocument(c: RoutineFqc, kind: Document['kind'], jobs: Job[], ctx: Context, extra: RoutineDocumentLinks = {}) {
+  const {metadata, content} = buildRoutineDocumentDraft(c, kind, jobs, ctx, extra);
+  const flow = createSharedDraft('routine-fqc:' + metadata.id, content, null, crypto.randomUUID());
+  flow.active.content = { ...cloneDraft(content), lines: [] };
+  const doc: Document = {...metadata, flow};
   c.documents.push(doc);
   return doc;
 }
-function linkedCase(c: RoutineFqc, doc: Document, jobId: string) {
+function linkedCase(c: Pick<RoutineFqc, 'cases'>, doc: Pick<RoutineDocumentMetadata, 'caseId' | 'correctionOf'>, jobId: string) {
   if (doc.caseId)
     return c.cases.find((a) => a.id === doc.caseId && a.jobId === jobId);
   if (doc.correctionOf)
@@ -691,13 +693,13 @@ export function unresolvedFailureSamples(c: RoutineFqc, item: Case) {
   return [...unresolved];
 }
 
-function validateCaseLink(c: RoutineFqc, doc: Document) {
+export function validateRoutineCaseLink(c: Pick<RoutineFqc, 'cases'>, doc: RoutineDocumentMetadata, content: Content) {
   if (doc.kind === 'waiver' || doc.kind === 'disposal')
     demand(doc.caseId, 'CASE_LINK_REQUIRED');
   if (doc.caseId) {
     const item = c.cases.find((a) => a.id === doc.caseId);
     demand(
-      item && doc.flow.working.lines.every((l) => l.jobId === item.jobId),
+      item && content.lines.every((l) => l.jobId === item.jobId),
       'CASE_LINK_INVALID',
     );
     if (!doc.correctionOf) demand(['open', 'retest'].includes(item.status), 'CASE_CHANGED_USE_CURRENT_FLOW', 409);
@@ -711,9 +713,54 @@ function validateCaseLink(c: RoutineFqc, doc: Document) {
   }
 }
 
-function approveEffects(c: RoutineFqc, doc: Document, ctx: Context) {
-  validateCaseLink(c, doc);
-  const content = doc.flow.active.content;
+function validateCaseLink(c: RoutineFqc, doc: Document) {
+  validateRoutineCaseLink(c, doc, doc.flow.working);
+}
+
+// Shared structural rule for document edits and the unregistered whole-page
+// Save core. Read-only: no receipts, revisions, approvals or business effects.
+export function validateRoutineContentEdit(c: Pick<RoutineFqc, 'cases'>, doc: RoutineDocumentMetadata, content: Content, previous: Content) {
+  structure(content, previous);
+  if (doc.kind === 'report') for (const line of content.lines) {
+    const required = linkedCase(c, doc, line.jobId)?.requiredSamples || [];
+    if (!required.length) continue;
+    for (const row of line.results) {
+      const oldRow = previous.lines.find(l => l.id === line.id)?.results.find(r => r.id === row.id);
+      demand(row.samples.every(sample => required.includes(sample)) || (oldRow && stableDraftJSON(oldRow.samples) === stableDraftJSON(row.samples)), 'RETEST_SAMPLE_FIXED');
+    }
+  }
+}
+
+// Submission rules accept explicit metadata/content, without a per-document flow.
+export function routineDocumentReviewIssues(c: Pick<RoutineFqc, 'cases'>, doc: RoutineDocumentMetadata, content: Content): DraftIssue[] {
+  const issues = reportIssues(content, doc.kind);
+  if (doc.kind === 'report')
+    for (const line of content.lines) {
+      const a = linkedCase(c, doc, line.jobId);
+      if (!a) continue;
+      if (a.requiredSamples.length && line.results.some(row => row.samples.some(sample => !a.requiredSamples.includes(sample))))
+        issues.push({kind:'error',path:['lines',{id:line.id},'samples'],message:'RETEST_SAMPLE_FIXED'});
+      if (
+        !line.results.some((r) => r.outcome === 'unable') &&
+        a.requiredSamples.some(
+          (s) => !line.results.flatMap((r) => r.samples).includes(s),
+        )
+      )
+        issues.push({
+          kind: 'error',
+          path: ['lines', { id: line.id }],
+          message: 'RETEST_REQUIRED_SAMPLES',
+        });
+    }
+  return issues;
+}
+
+// Staged business effects only. No permissions, flow, Save, receipt, revision
+// or idempotence is created here. The authenticated transaction must first
+// approve its fixed case once and invoke only its server-derived changed set.
+export function applyRoutineDocumentApprovalEffects(c: RoutineBusinessState, doc: RoutineDocumentMetadata,
+  content: Content, ctx: Pick<Context, 'actor' | 'at'>) {
+  validateRoutineCaseLink(c, doc, content);
   if (doc.correctionOf) {
     const old = c.documents.find((d) => d.id === doc.correctionOf)!;
     old.impact ||= [];
@@ -868,6 +915,7 @@ export function executeRoutine(
           ? 'approve'
           : 'edit';
     demand(permission && ctx.allowed(permission), 'FORBIDDEN', 403);
+    if (cmd.command?.moduleAction === 'save-local-v1' && cmd.command.patches?.length) demand(ctx.allowed('edit'), 'FORBIDDEN', 403);
     if (cmd.action === 'configure') demand(ctx.settings, 'FORBIDDEN', 403);
     if (['revoke-plan', 'delete-plan'].includes(cmd.action)) demand(ctx.revoke, 'FORBIDDEN', 403);
     if (cmd.action === 'restore-document' && c.documents.find((d) => d.id === cmd.documentId)?.flow.active.id) demand(ctx.revoke, 'FORBIDDEN', 403);
@@ -987,7 +1035,10 @@ export function executeRoutine(
           'OPERATION_ID_MISMATCH',
         );
         demand(docStatus(doc) !== 'approved', 'FORMAL_DOCUMENT_IMMUTABLE', 409);
-        if (command.action === 'apply') {
+        const localSave = command.action === 'save' && command.moduleAction === 'save-local-v1';
+        demand(command.moduleAction === undefined || localSave, 'PATCH_NOT_ALLOWED');
+        if (localSave) demand(Number.isSafeInteger(command.expectedRevision), 'DRAFT_REVISION_REQUIRED', 409);
+        if (command.action === 'apply' || localSave) {
           demand(
             command.patches &&
               command.patches.every(
@@ -1029,7 +1080,7 @@ export function executeRoutine(
             'NO_SUBSTANTIVE_CHANGE',
             422,
           );
-        const applied = applyDraftCommand(doc.flow, command, {
+        const draftContext: DraftContext<Content> = {
           actor: ctx.actor,
           optionalReasonPolicy: 'routine-fqc',
           at: ctx.at,
@@ -1038,44 +1089,31 @@ export function executeRoutine(
           activeId: doc.flow.active.id,
           semantic: (x) => x,
           structure: (content, previous) => {
-            structure(content,previous);
-            if (doc.kind === 'report') for (const line of content.lines) {
-              const required = linkedCase(c,doc,line.jobId)?.requiredSamples || [];
-              if (!required.length) continue;
-              for (const row of line.results) {
-                const oldRow = previous.lines.find(l => l.id === line.id)?.results.find(r => r.id === row.id);
-                demand(row.samples.every(sample => required.includes(sample)) || (oldRow && stableDraftJSON(oldRow.samples) === stableDraftJSON(row.samples)), 'RETEST_SAMPLE_FIXED');
-              }
-            }
+            validateRoutineContentEdit(c, doc, content, previous);
           },
-          validate: (content) => {
-            const issues = reportIssues(content, doc.kind);
-            if (doc.kind === 'report')
-              for (const line of content.lines) {
-                const a = linkedCase(c, doc, line.jobId);
-                if (!a) continue;
-                if (a.requiredSamples.length && line.results.some(row => row.samples.some(sample => !a.requiredSamples.includes(sample))))
-                  issues.push({kind:'error',path:['lines',{id:line.id},'samples'],message:'RETEST_SAMPLE_FIXED'});
-                if (
-                  !line.results.some((r) => r.outcome === 'unable') &&
-                  a.requiredSamples.some(
-                    (s) => !line.results.flatMap((r) => r.samples).includes(s),
-                  )
-                )
-                  issues.push({
-                    kind: 'error',
-                    path: ['lines', { id: line.id }],
-                    message: 'RETEST_REQUIRED_SAMPLES',
-                  });
-              }
-            return issues;
-          },
-        });
+          validate: content => routineDocumentReviewIssues(c, doc, content),
+        };
+        // Preserve the conflict candidate's atomic per-document Save until
+        // the separately guarded whole-page orchestrator replaces this owner.
+        let saveSource = doc.flow, workingChanged = false;
+        if (localSave && command.patches!.length) {
+          demand(ctx.allowed('save'), 'FORBIDDEN', 403);
+          const staged = applyDraftCommand(doc.flow, { ...command, action: 'apply' }, draftContext);
+          workingChanged = !staged.receipt.unchanged;
+          saveSource = { ...doc.flow, working: staged.state.working, contributors: staged.state.contributors };
+        }
+        const applied = applyDraftCommand(saveSource, command, draftContext);
+        if (workingChanged && applied.receipt.unchanged) {
+          applied.state.revision = doc.flow.revision + 1;
+          applied.state.contributors = {};
+          applied.receipt = { ...applied.receipt, revision: applied.state.revision, unchanged: false };
+          applied.state.receipts[command.operationId] = { ...applied.state.receipts[command.operationId], result: cloneDraft(applied.receipt) };
+        }
         doc.flow = applied.state;
         result = applied.receipt;
         if (command.action === 'approve') {
           doc.reopened = false;
-          approveEffects(c, doc, ctx);
+          applyRoutineDocumentApprovalEffects(c, doc, doc.flow.active.content, ctx);
         }
         break;
       }

@@ -6,8 +6,9 @@ const beforeIndex=execFileSync('git',['show',contract.base+':'+contract.index]);
 // First prove checkout EOL equivalence to actual HEAD, then test its untouched
 // raw blob bytes. Neither Windows checkout nor unit setup relaxes pinned hashes.
 // Before the candidate is committed, this deliberately refuses working-only code.
-const after=proof.canonicalCheckout(fs.readFileSync(contract.file),execFileSync('git',['show','HEAD:'+contract.file]));
-const afterIndex=proof.canonicalCheckout(fs.readFileSync(contract.index),execFileSync('git',['show','HEAD:'+contract.index]));
+const quality=require('../scripts/quality-integration-source-contract.cjs');
+const after=quality.projectKnown(proof.canonicalCheckout(fs.readFileSync(contract.file),execFileSync('git',['show','HEAD:'+contract.file])),contract.file);
+const afterIndex=quality.projectKnown(proof.canonicalCheckout(fs.readFileSync(contract.index),execFileSync('git',['show','HEAD:'+contract.index])),contract.index);
 void test('Routine preimage and successor are exact raw bytes; verification never rewrites either',()=>{
  const prior=Buffer.from(before),current=Buffer.from(after);
  proof.assertPredecessor(before,contract.file);proof.assertSource(after,contract.file);

@@ -1,3 +1,5 @@
+import {approvedHistoryQuery} from './approved-history-query';
+import {approvedVersion,approvedVersions,approvedVersionEvidence} from './approved-history';
 import {parseBeginIdentity,replayBegin,assertBeginBasis,recordBegin} from './workflow-begin';
 import {assertFqcLocalSaveCommand} from './fqc-local-save';
 import {iqcWriteTiming} from './iqc-write-timing';
@@ -46,6 +48,11 @@ export type WorkflowAdapter<T,C extends VersionedControl<T>>={
   key:string;scope:string;parse:(raw:string|undefined,prepared?:unknown)=>C;empty:()=>T;preparedModel?:boolean;
   // Opt in only when access reads identity/role state, never domain content.
   permissionOnlyRead?:boolean;
+  // Explicit read-only union for existing legacy scopes; no stored aliases.
+  approvedHistory?:{
+    metadata:()=>{id:string;number:number;status:string;creatorName:string;createdAt:string;approvalEvidence:ReturnType<typeof approvedVersionEvidence>;sourceScope?:string;sourceVersionId?:string}[];
+    version:(id:string)=>(NumericVersion<T>&{approvalEvidence:NonNullable<ReturnType<typeof approvedVersionEvidence>>;sourceScope?:string;sourceVersionId?:string})|null|Promise<(NumericVersion<T>&{approvalEvidence:NonNullable<ReturnType<typeof approvedVersionEvidence>>;sourceScope?:string;sourceVersionId?:string})|null>;
+  };
   // Server-only opt-in; the mutation helper further checks storage and command.
   recordMutation?:'fqc-existing-set'|'process-save';
   processFlowMutation?:boolean;
@@ -158,6 +165,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
   return {
     async GET(request:Request){const reply=(body:unknown,status=200)=>Response.json(iqcEditingPayload(compactWorkflowPayload(body,new URL(request.url).searchParams.get('compact')==='1'),iqcEditingRequested(request,adapter.key,adapter.scope)),{status,headers:responseHeaders});try{
       const selectors=new URL(request.url).searchParams;
+      const approvedOnlyRead=approvedHistoryQuery(request,adapter.key,adapter.scope);
       const fqcReadAhead=adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!selectors.has('scope');
       let preflight:State|undefined;
       if(adapter.permissionOnlyRead){
@@ -181,6 +189,24 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       if(query.get('since')===`state:${state.revision}`)return reply({revision:state.revision,permissions,unchanged:true});
       const control=adapter.parse(state.values[adapter.key],state.recordStorage?.models.get(adapter.key)),flow=control.workflow;
       if(query.has('reviewMetadata'))return reply({revision:state.revision,permissions,review:workflowReviewMetadata(control,permissions.history)});
+      // Explicit approved-only reads share the same immutable-body and authority fences.
+      // Refresh authorization after all selected reads/hydration, including
+      // metadata aggregate I/O. No stale permission snapshot authorizes output.
+      const approvedReadCurrent=async()=>{
+        const fresh=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}),freshActor=await identity(request,fresh),freshPermissions=await currentPermissions(request,fresh);
+        if(!freshActor||freshActor.id!==actor.id||freshActor.sessionType!==actor.sessionType||!freshPermissions.view||!freshPermissions.history)return reply({error:'FORBIDDEN'},403);
+        if(fresh.revision!==state.revision||!await stateRevisionIsCurrent(fresh))return reply({error:'APPROVED_HISTORY_SUPERSEDED'},409);
+        // Session revocation is separate from the shared-state revision fence.
+        const finalActor=await identity(request,fresh);
+        return !finalActor||finalActor.id!==actor.id||finalActor.sessionType!==actor.sessionType?reply({error:'FORBIDDEN'},403):null;
+      };
+      if(approvedOnlyRead&&query.has('uiHistory')){
+        if(!permissions.history)return reply({error:'FORBIDDEN'},403);
+        const rows=adapter.approvedHistory?.metadata()||approvedVersions(control,true).filter(v=>approvedVersionEvidence(control,v,true)?.kind!=='formal-baseline').slice().reverse().map(v=>({id:v.id,number:v.number,status:v.id===control.activeVersionId?'approved':'superseded',creatorName:v.creatorName,createdAt:v.createdAt,approvalEvidence:approvedVersionEvidence(control,v,true)})),before=query.get('versionBefore'),start=before?rows.findIndex(v=>v.id===before)+1:0;
+        if(before&&!start)return reply({error:'HISTORY_CURSOR_INVALID'},409);
+        const body={approvedOnly:true,revision:state.revision,permissions,activeVersionId:control.activeVersionId,versions:{rows:rows.slice(start,start+20),next:rows.length>start+20?rows[start+19].id:null,total:rows.length}};
+        return await approvedReadCurrent()||reply(body);
+      }
       if(query.has('uiHistory'))return permissions.history?reply(workflowInterfaceMetadata(control,query)):reply({error:'FORBIDDEN'},403);
       if(query.has('legacyHistory')||query.has('legacyVersionId')){
         if(!permissions.history)return reply({error:'FORBIDDEN'},403);
@@ -188,6 +214,17 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         if(query.has('legacyVersionId')){const version=rows.find(v=>v.id===query.get('legacyVersionId'));return version?reply({legacyVersion:version}):reply({error:'VERSION_NOT_FOUND'},404);}
         const before=query.get('before'),start=before?rows.findIndex(v=>v.id===before)+1:0;if(before&&!start)return reply({error:'HISTORY_CURSOR_INVALID'},409);
         return reply({versions:rows.slice(start,start+20).map(v=>({id:v.id,number:v.number,status:v.status,creatorId:v.creatorId,creatorName:v.creatorName,createdAt:v.createdAt,updatedAt:v.updatedAt})),next:rows.length>start+20?rows[start+19].id:null,total:rows.length});
+      }
+      if(approvedOnlyRead&&query.has('versionId')){
+        if(!permissions.history)return reply({error:'FORBIDDEN'},403);
+        const version=adapter.approvedHistory?await adapter.approvedHistory.version(query.get('versionId')!):approvedVersion(control,query.get('versionId')!,true);
+        if(!version||version.approvalEvidence.kind==='formal-baseline')return reply({error:'VERSION_NOT_FOUND'},404);
+        const body={approvedOnly:true,version,revision:state.revision,permissions,activeVersionId:control.activeVersionId};
+        // One selected snapshot only. Compatibility history streams can start
+        // delivering before R2 hydration completes; this opt-in must not expose
+        // even a prefix until its final authorization check has passed.
+        const rendered=state.recordStorage?recordJSONResponse(body,env.STATE_ARCHIVE,responseHeaders):reply(body),json=await rendered.text();
+        return await approvedReadCurrent()||new Response(json,{headers:responseHeaders});
       }
       if(query.has('versionId')){const activeView=iqcEditingRequested(request,adapter.key,adapter.scope)&&query.get('versionId')===control.activeVersionId;if(!permissions.history&&!activeView)return reply({error:'FORBIDDEN'},403);const version=control.versions.find(v=>v.id===query.get('versionId'));return version?reply(activeView?{version,revision:state.revision,permissions,activeVersionId:control.activeVersionId,generation:flow?.generation||null}:{version}):reply({error:'VERSION_NOT_FOUND'},404);}
       if(query.has('restoreSaveId')){
@@ -308,7 +345,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         // a lost CAS. Never delete shared/deduplicated objects to simulate rollback.
         if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
         // Recheck session after immutable storage for original Begin, BOM atomic Save and exact equipment workflow.
-        if((begin||adapter.key==='bomMasterControl'&&adapter.scope==='bom'&&body.command?.action==='save'&&body.command.moduleAction==='save-local-v1'||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment')&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);
+        if((begin||(['fqc','iqc'].includes(adapter.scope)&&!!body.command)||adapter.key==='bomMasterControl'&&adapter.scope==='bom'&&body.command?.action==='save'&&body.command.moduleAction==='save-local-v1'||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment')&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);
         stage('state-cas');
         const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,encoded,at,state.revision).run();
         if(changed.meta.changes!==1)continue;

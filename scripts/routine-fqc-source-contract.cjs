@@ -52,8 +52,8 @@ function verifyRepository(directory=process.cwd()){
   git('merge-base','--is-ancestor',contract.base,'HEAD');
   const before=git('show',contract.base+':'+contract.file),beforeIndex=git('show',contract.base+':'+contract.index);
   assertPredecessor(before,contract.file);
-  const source=canonicalCheckout(fs.readFileSync(path.join(directory,contract.file)),git('show','HEAD:'+contract.file));
-  const index=canonicalCheckout(fs.readFileSync(path.join(directory,contract.index)),git('show','HEAD:'+contract.index));
+  const source=require('./quality-integration-source-contract.cjs').projectKnown(canonicalCheckout(fs.readFileSync(path.join(directory,contract.file)),git('show','HEAD:'+contract.file)),contract.file);
+  const index=require('./quality-integration-source-contract.cjs').projectKnown(canonicalCheckout(fs.readFileSync(path.join(directory,contract.index)),git('show','HEAD:'+contract.index)),contract.index);
   assertSource(source,contract.file);assertIndexSuccessor(index,beforeIndex,contract.index);
   return Object.freeze({status:'PASS_ROUTINE_FQC_SOURCE',base:contract.base,sourceHash:hash(source),indexHash:hash(index)});
 }

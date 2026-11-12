@@ -1,3 +1,5 @@
+import {retiredDraftSource} from '../scripts/entry-performance/retired-draft-source.mjs';
+import {assertNoDraftPoll} from '../scripts/entry-performance/draft-no-poll-fixture.mjs';
 // Actual retired scheduler and exact caller closures. Synthetic ports, no live data.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,7 +14,7 @@ function declaration(source,name){const ast=ts.createSourceFile('caller.js',sour
 function fixture(){let requests=0,timers=0,listeners=0;const events=new Map(),window={addEventListener(name,fn){listeners++;events.set(name,fn);}},document={visibilityState:'visible',hasFocus:()=>true,addEventListener(){listeners++;}};const c={window,document,setTimeout(){timers++;throw Error('BACKGROUND_TIMER');},setInterval(){timers++;throw Error('BACKGROUND_INTERVAL');},clearTimeout(){},performance:{now:()=>0},fetch(){requests++;throw Error('BACKGROUND_FETCH');}};vm.createContext(c);vm.runInContext(shim,c);return{c,window,document,state:()=>({requests,timers,listeners})};}
 for(const [file,fn,variable] of [['master-data.js','pollMaster','sharedPoll'],['fqc-master.js','pollShared','sharedPoll'],['iqc-master.js','scheduleRefresh','pollTimer'],['ipqc-ab.js','scheduleRefresh','pollTimer'],['ipqc-c.js','scheduleSharedRefresh','pollTimer']])void test(file+' real legacy owner cannot schedule any callback',()=>{
  const f=fixture(),poll=f.window.createForegroundPoll();Object.assign(f.c,{[variable]:poll,deliveryGeneration:1,mountSequence:1,workspaceReady:()=>true,currentReadOwner:()=>()=>true,actor:()=>({id:'synthetic'}),host:null});
- vm.runInContext(declaration(read(file),fn)+'\n'+fn+'();',f.c);
+ vm.runInContext(declaration(['fqc-master.js','iqc-master.js'].includes(file)?retiredDraftSource(process.cwd(),file):read(file),fn)+'\n'+fn+'();',f.c);
  for(let i=0;i<100;i++){poll.schedule(()=>{throw Error('CALLBACK_EXECUTED');});poll.cancel();vm.runInContext(fn+'();',f.c);}
  poll.dispose();assert.deepEqual(f.state(),{requests:0,timers:0,listeners:0});
 });
@@ -41,3 +43,5 @@ void test('inventory follows client imports and aliases without including server
  sources.set('lib/client.mjs',"import('./'+unreviewed);");assert.throws(()=>browserTimerInventory(sources),/REQUIRES_AUDIT/);
  sources.set('lib/client.mjs',"import './missing.mjs';");assert.throws(()=>browserTimerInventory(sources),/UNRESOLVED_BROWSER_IMPORT/);
 });
+
+for(const file of ['fqc-master.js','iqc-master.js'])void test(file+' shipped initializer has no recurring draft reader',()=>assertNoDraftPoll(process.cwd(),file));

@@ -119,6 +119,7 @@
   const departureOwnerCurrent=owner=>!!owner?.id&&!window.ProcessSync?.requiresReload&&owner.id===window.ProcessSync?.identity?.id&&(typeof owner.epoch==='number'?owner.epoch===window.ProcessSync?.identityGeneration?.():owner.identity===window.ProcessSync?.identity);
   const departureScope=endpoint=>{
     const [path,query='']=endpoint.split('?'),params={get(key){const values=query.split('&').filter(part=>part.split('=')[0]===key);if(values.length!==1)return null;try{return decodeURIComponent(values[0].slice(key.length+1).replaceAll('+',' '));}catch{return null;}}};
+    if(path==='/api/routine-fqc/page'&&!query)return 'routine-fqc:page';
     if(path==='/api/master/workflow')return ['AB','C','PROCESS'].includes(params.get('scope'))?'master:'+params.get('scope'):null;
     if(path==='/api/ipqc-ab/workflow')return params.get('module')==='1'?'ipqc-ab:module':/^[AB]:.+/.test(params.get('scope')||'')?'ipqc-ab:'+params.get('scope'):null;
     return {'/api/fqc/workflow':'fqc','/api/iqc/workflow':'iqc','/api/ipqc-c/workflow':'ipqc-c','/api/bom/workflow':'bom','/api/routine-equipment/workflow':'routine-equipment','/api/tooling/workflow':'tooling','/api/process-authoring/workflow':'process:platform'}[path]||null;
@@ -331,6 +332,8 @@
     const beginPredecessor=durableBegin?transports.get(transportKey):null;
     const boundedPredecessor=externalBounded?transports.get(transportKey):null;
     let boundedProjectionRetired=false,equipmentProjectionRetired=false;
+    const approvedAccessListeners=new Set();
+    const approvedHistoryRoute=['/api/fqc/workflow','/api/iqc/workflow','/api/routine-fqc/page'].includes(beginPath);
     let access=null,gates=permissionGates,permissionNotice=null,validation=null;
     // Opt-in UI access projection only; never order or alter command/receipt results.
     let accessGuard=guardAccessResults,accessEpoch=0,accessIssued=0,accessObserved=0,accessFence=0,accessRevision=-1;
@@ -354,6 +357,7 @@
       if(revision!==null)accessRevision=Math.max(accessRevision,revision);
       if(denied||revoked)accessFence=accessIssued;
       gateControls(denied||revoked);
+      if(approvedHistoryRoute)for(const listener of approvedAccessListeners)try{listener();}catch{/* Presentation cannot change request or receipt authority. */}
       return !restricted;
     }
     // A view denial retires navigation coverage, including on clients without UI gates.
@@ -934,7 +938,7 @@
         const postPin=bomPostPin(body?.command);
         const abEntry=abSelected.get(body?.command?.operationId);if(abEntry)abAssert(abEntry,body.command);
         if((fqcComparedSave||iqcComparedSave)&&body)try{fqcBeforeFetch(body);iqcBeforeFetch(body);}catch(cause){const error=Object.assign(Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED'),{notSent:true,cause});externalUnsent.add(error);throw error;}
-        let response;try{response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(fqcMutation&&body?.command?.action==='apply'?'&projection=fqc-apply-ack-v1':responseProjection==='iqc-edit-v1'?'&projection=iqc-edit-v1':''),requestOptions);}
+        let response;try{response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(fqcMutation&&body?.command?.action==='apply'?'&projection=fqc-apply-ack-v1':responseProjection==='iqc-edit-v1'&&!new URLSearchParams(url.split('?')[1]||'').has('approvedOnly')?'&projection=iqc-edit-v1':''),requestOptions);}
         catch(error){if(abEntry&&error&&typeof error==='object'&&!('status'in error))abFetchFailures.set(error,abEntry);throw error;}
         // An owned HTTP denial remains authoritative even when its body is not JSON.
         // Stale non-JSON replies preserve their original parse/HTTP error but cannot change access or read-pause state.
@@ -1150,6 +1154,7 @@
       },
       reviewMetadata:revision=>request(query('reviewMetadata=1'+(Number.isSafeInteger(revision)?'&since='+encodeURIComponent('state:'+revision):''))),
       history: (before,options)=>request(query(`history=cases${before?`&before=${encodeURIComponent(before)}`:''}`),undefined,options),
+      ...(approvedHistoryRoute?{approvedHistory:(options,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true});},approvedVersion:(id,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true});},watchApprovedAccess(listener){approvedAccessListeners.add(listener);return ()=>approvedAccessListeners.delete(listener);}}:{}),
       uiHistory: options=>request(query('uiHistory=1&'+new URLSearchParams(options))),
       version: (id,options)=>request(query('versionId='+encodeURIComponent(id)),undefined,options),
       contentIssues: caseId=>request(query('contentIssues=1'+(caseId?'&contentCaseId='+encodeURIComponent(caseId):''))),
@@ -1217,7 +1222,7 @@
       discardRejectedLocalSave(command){
         assertOwner();
         const failure=syncFailures.get(command?.operationId),error=failure?.error,proof=error&&boundedResponses.get(error);
-        if(!externalBounded||!(boundedScope==='fqc'||abModule)||unknown||boundedRecord||queued||beginPending||retryPending||preparedFlights.size||recoveryInvalid||command?.action!=='save'||command.moduleAction!=='save-local-v1'||!(abModule?Array.isArray(command.input?.scopes):Array.isArray(command.patches)&&Array.isArray(command.guards)&&Array.isArray(command.input?.matrixCells))||!failure||JSON.stringify(failure.command)!==JSON.stringify(command)||!boundedRejected.has(error)||!proof||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||proof.code!==error.message||proof.status!==error.status)return false;
+        if(!externalBounded||!(['fqc','iqc'].includes(boundedScope)||abModule)||unknown||boundedRecord||queued||beginPending||retryPending||preparedFlights.size||recoveryInvalid||command?.action!=='save'||command.moduleAction!=='save-local-v1'||!(abModule?Array.isArray(command.input?.scopes):Array.isArray(command.patches)&&Array.isArray(command.guards)&&(boundedScope==='iqc'||Array.isArray(command.input?.matrixCells)))||!failure||JSON.stringify(failure.command)!==JSON.stringify(command)||!boundedRejected.has(error)||!proof||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||proof.code!==error.message||proof.status!==error.status)return false;
         syncFailures.delete(command.operationId);return true;
       },
       // Explicit form cancellation can discard only confirmed rejections (or

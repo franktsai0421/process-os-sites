@@ -158,6 +158,7 @@ export async function POST(request: Request) {
     return Response.json(publicState(state,user.id), { status: 409, headers });
   const values = { ...state.values };
   for (const [key, value] of Object.entries(body.updates)) {
+    if(key==='routineFqcControl'&&[parse(state.values[key],null),parse(value as string,null)].some(root=>root&&typeof root==='object'&&(Object.hasOwn(root,'pageDraftLayout')||Object.hasOwn(root,'page'))))return Response.json({error:'ROUTINE_PAGE_CUTOVER_REQUIRED'},{status:409,headers});
     if (!allowedKey(key) || !(value === null || typeof value === 'string'))
       return Response.json(
         { error: '不允許的資料欄位' },

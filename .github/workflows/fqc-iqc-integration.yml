@@ -1,0 +1,42 @@
+name: FQC IQC integration
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'app/api/**'
+      - 'public/process/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - '.github/workflows/fqc-iqc-integration.yml'
+permissions:
+  contents: read
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PROCESS_PROGRAM_COMMIT: ${{ github.event.pull_request.head.sha }}
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npx tsc --noEmit --incremental false
+      - run: node scripts/sites-ci-preflight.mjs
+      - run: node --test tests/quality-integration-source-proof.test.cjs tests/access-event-main-integration.test.cjs tests/routine-fqc-source-contract.test.cjs
+      - run: node scripts/test-quality-integration.mjs
+      - run: npm run build
+      - run: node --test tests/iqc-save-choice-compiled-http.test.mjs
+      - run: node node_modules/playwright/cli.js install --with-deps chromium
+      - run: node --test --test-concurrency=1 tests/equipment-transfer-compiled.test.mjs
+      - run: node tests/fqc-matrix-multiuser-browser.mjs

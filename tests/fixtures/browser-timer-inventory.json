@@ -78,21 +78,21 @@
   },
   {
     "file": "public/process/fqc-master.js",
-    "line": 1230,
+    "line": 1415,
     "kind": "setTimeout",
     "hash": "35eab17034311e2f9e19d372b94b507479601f28cb2d4d240ed22b134d978256",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/fqc-master.js",
-    "line": 2060,
+    "line": 2245,
     "kind": "setTimeout",
     "hash": "3d682c9ba050cadb6c53b9f3f3780b33a163a86058347c473f45e0b33bfaa26e",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/fqc-master.js",
-    "line": 2066,
+    "line": 2251,
     "kind": "setTimeout",
     "hash": "030505c36323ad8c6752c5cfa43369fb3c84b29a38141a0f8ae43ccb1a5a88c5",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
@@ -106,14 +106,21 @@
   },
   {
     "file": "public/process/iqc-master.js",
-    "line": 82,
+    "line": 34,
+    "kind": "setTimeout",
+    "hash": "37e332670e8d966e14011e2787d6bf3f4c226d45dfba25c98c086e4eaef68802",
+    "purpose": "45s abort for an explicitly requested local photo PUT; timeout preserves UNKNOWN and does not retry or poll."
+  },
+  {
+    "file": "public/process/iqc-master.js",
+    "line": 114,
     "kind": "setTimeout",
     "hash": "ca7232c103adb4a1610a8bbf6e046c25b1449ffb627b2a3d4d19fce8b88bd4dd",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/iqc-master.js",
-    "line": 621,
+    "line": 981,
     "kind": "setTimeout",
     "hash": "418b477fa48d48f5b026d7c057ea4a9b47a5c8dce921c112c2af219f881b93b3",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
@@ -148,21 +155,21 @@
   },
   {
     "file": "public/process/routine-fqc.js",
-    "line": 1768,
+    "line": 1880,
     "kind": "setTimeout",
     "hash": "c49d5f5fd8f39cbf1298774a279937f6d29876ac207d15349d7e6de7e87adefb",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/routine-fqc.js",
-    "line": 1876,
+    "line": 1988,
     "kind": "setTimeout",
     "hash": "e295168eadf324da6d9337df83d99e3c57cee4135379dee37d7133803e4b6d93",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/shared-draft-client.js",
-    "line": 765,
+    "line": 922,
     "kind": "setTimeout",
     "hash": "9627d0d4438e91b6d1c66cc409a6531b91d7837cc1ff617a2c2a8c2805889c10",
     "purpose": "Deadline for one explicit/initial request or resource load."

@@ -2,7 +2,20 @@
 
 Base main `9fbba823090f03da8385c8d92f5e59293d19d2f1`。本次以獨立目錄、新分支及單一 Draft PR 交付；禁止合併、部署、真資料操作。
 
-來源為 Git 及當次遠端 refs；歷史文件中的 PASS 不當作本候選 PASS。#103 固定 `302e7515e8b5f7343352f1b0d5aa6066a4d9409b`；#104 當次 ref `cb12823316392103dd17a6684ec6ccc33d1ae341`，PR body 提及 f410c1a 不等於 ref 更新，需分開核對。並行 IPQC 不整批覆寫。
+本輪查證：main `9fbba823`；#102 `55d4672c`；#103 `2d2d79cb`；#104 `429d3bfa`。來源與逐檔候選 hash 見 `cloud-source-selection.json`。歷史 PASS 不當作本候選 PASS。
+
+
+## Cloud 第二批候選（2026-11-12）
+
+單一 Draft PR #105，分支 `codex/fqc-iqc-cloud-integration-20261112`；第一批 `b049d269` 已驗遠端 SHA/tree。其後增量仍以同一 PR 交付。來源檢查確認 #104 在本模組路徑沒有 main 未含的額外 commit，沒有搬移其 PROCESS 改動。
+
+已加入：FQC/IQC 同頁核准歷史與晚回應隔離；例行整頁單一草稿及舊文件歷史；FQC/IQC Save 在 immutable encoding 後重驗 session；IQC 照片 PUT 期間 peer 變更於同次 Save 重比較，重用確認 URI；設備替換各自保存 FQC／IQC 目標整份已套用草稿，不送審或搬其他頁未送表單。
+
+資料切換尚未執行。`scripts/prepare-routine-fqc-page.cjs` 只接受 stdin、輸出候選 JSON，不存取 DB／網路，保留舊 document ID／歷史／收據；遇待審資料拒絕。需在獨立驗收資料副本核對輸出與原始 SHA，再依另外授權的資料切換程序採用；舊 layout 不會被 GET 自動改寫。
+
+本輪已有實測：例行 kernel／handler（inline、records）與 UI 流程；歷史撤權／晚回應及 FQC 往返；IQC 本機照片 19 項；encoding 途中撤 session 2 項；編譯後 IQC HTTP 1 項。最新集中結果及 CI 另附更新，舊實測數字不沿用。型別、lint、受保護 build 已通過一次，其後候選會再執行。
+
+Cloud Chromium 下載實際回應 `403 Domain forbidden`，未改用替代主機繞過；原生瀏覽器檢查在獨立 GitHub CI 執行。所有測試使用合成身份／資料及私有暫存 SQLite/R2。真人新增／編輯、實體手機、當前正式 500／延遲根因及真實 IQC 缺漏數字仍未驗收，不能宣稱 17 項全部完成。
 
 |需求|目標|已查來源／現況|本次狀態|
 |---|---|---|---|
