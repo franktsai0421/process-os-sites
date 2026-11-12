@@ -226,7 +226,10 @@ export async function runMatrixMultiuserBrowser() {
       await functional('same-row-independent-add-remove-merge',[a,b],async()=>{
         await choose(a,seed.ids.item,seed.ids.product2);await choose(b,seed.ids.item,seed.ids.product,false);await save(b);assert.deepEqual(await codes(seed.ids.item),[]);await save(a);assert.deepEqual(await codes(seed.ids.item),[seed.ids.product2]);assert.deepEqual((await control()).workflow.saved.content,(await control()).workflow.working);
       });
-      await measure(a,'save','#fqc-save',async()=>{await a.page.waitForFunction(()=>!!window.FQCMasterUI.control.libraries.fqc.workflow.saved);await idle(a.page);},async()=>{const f=(await control()).workflow;assert.deepEqual(f.saved.content,f.working);assert.equal(f.saved.actor.id,a.actor.id);},1);
+      // A clean explicit Save can reuse its saved ID. Await its own response;
+      // an existing saved model also describes the pre-comparison state.
+      const cleanSaveResponse=a.page.waitForResponse(response=>response.request().method()==='POST'&&new URL(response.url()).pathname==='/api/fqc/workflow'&&response.request().postDataJSON().command?.action==='save');
+      await measure(a,'save','#fqc-save',async()=>{assert.equal((await cleanSaveResponse).status(),200);await matrixClean(a.page);await idle(a.page);},async()=>{const f=(await control()).workflow;assert.deepEqual(f.saved.content,f.working);assert.equal(f.saved.actor.id,a.actor.id);},1);
       const saved=clone((await control()).workflow.saved);await reload(b);
       // A real reload is tested only after the fresh peer has read a fully saved,
       // clean model. Unsaved/owned setup pages above are not reloaded through the
