@@ -75,24 +75,26 @@ export function fqcShellReady({actor, view}) {
 }
 export function fqcEditorReady({actor, status = null, pendingId = null, savedId = null}) {
   const sync = window.ProcessSync, api = window.FQCMasterUI, c = api?.control?.libraries?.fqc;
-  const host = document.querySelector('#data-content'), select = host?.querySelector('#fqc-version');
-  const v = c?.versions?.find(row => row.id === select?.value), flow = c?.workflow;
+  const host = document.querySelector('#data-content'), select = host?.querySelector('#fqc-approved-version');
+  const flow = c?.workflow, v = c?.versions?.find(row => row.id === flow?.pendingId) || c?.versions?.find(row => row.status === 'draft') || c?.versions?.find(row => row.id === c.activeVersionId);
+  const title = host?.querySelector('.vd-top h3');
   return sync?.identity?.id === actor && sync.destination?.view === 'data' &&
     document.documentElement.dataset.processNavigationStatus === 'ready' && !document.querySelector('#process-boot') &&
     host?.isConnected === true && host.dataset.activeTab === 'quality-fqc' && !!host.querySelector('#fqc-page') &&
     !host.querySelector('#fqc-load-retry') && api.navigation.error() === null && flow?.scope === 'fqc' &&
-    !!v && (status === null || v.status === status) && (pendingId === null || flow.pendingId === pendingId && v.id === pendingId) &&
+    select?.value === '' && select.dataset.vdApprovedChoice === 'true' && !!v && title?.textContent.startsWith('V'+v.number+' · ') && (status === null || v.status === status) && (pendingId === null || flow.pendingId === pendingId && v.id === pendingId) &&
     (savedId === null || flow.saved?.id === savedId);
 }
 export function fqcPendingReady({actor, savedId, generation}) {
   const sync = window.ProcessSync, c = window.FQCMasterUI?.control?.libraries?.fqc, flow = c?.workflow;
-  const host = document.querySelector('#data-content'), select = host?.querySelector('#fqc-version');
+  const host = document.querySelector('#data-content'), select = host?.querySelector('#fqc-approved-version');
   const pending = flow?.cases?.find(row => row.id === flow.pendingId);
-  const version = c?.versions?.find(row => row.id === select?.value);
+  const version = c?.versions?.find(row => row.id === flow?.pendingId);
+  const title = host?.querySelector('.vd-top h3');
   const withdraw = host?.querySelectorAll('#fqc-withdraw');
   return sync?.identity?.id === actor && sync.destination?.view === 'data' && host?.dataset.activeTab === 'quality-fqc' &&
     document.documentElement.dataset.processNavigationStatus === 'ready' && flow?.scope === 'fqc' && flow.generation === generation &&
-    typeof flow.pendingId === 'string' && !!flow.pendingId && version?.id === flow.pendingId && version.status === 'pending' &&
+    select?.value === '' && select.dataset.vdApprovedChoice === 'true' && title?.textContent.startsWith('V'+version?.number+' · ') && typeof flow.pendingId === 'string' && !!flow.pendingId && version?.id === flow.pendingId && version.status === 'pending' &&
     flow.saved?.id === savedId && pending?.savedId === savedId && pending.status === 'pending' &&
     host.querySelectorAll('#fqc-save,#fqc-submit,[data-edit-item],[data-edit-error],#fqc-add-item,#fqc-add-error').length === 0 &&
     withdraw?.length === 1 && !withdraw[0].disabled && withdraw[0].getClientRects().length > 0;
@@ -113,7 +115,7 @@ export function fqcReviewReady({actor, pendingId, generation}) {
 }
 export function fqcPageDiagnostic({actor, view}) {
   const sync = window.ProcessSync, c = window.FQCMasterUI?.control?.libraries?.fqc, flow = c?.workflow;
-  const host = document.querySelector('#data-content'), select = host?.querySelector('#fqc-version');
+  const host = document.querySelector('#data-content'), select = host?.querySelector('#fqc-approved-version');
   const panel = document.querySelector('#approval-panel-quality'), tabs = document.querySelectorAll('[data-review-tab="quality"]');
   const modules = panel?.querySelectorAll('details[data-review-module="fqc"]');
   return {path: location.pathname, expectedView: view, identityMatches: sync?.identity?.id === actor,
@@ -123,7 +125,7 @@ export function fqcPageDiagnostic({actor, view}) {
     syncLoadError: !!sync?.loadError, syncExpired: sync?.expired === true, syncLoginRequired: sync?.loginRequired === true, syncImportPending: sync?.importPending === true,
     syncBootstrapping: sync?.bootstrapping === true, activeTab: host?.dataset.activeTab ?? null,
     fqcPagePresent: !!host?.querySelector('#fqc-page'), loadErrorPresent: !!document.querySelector('#fqc-load-retry,#fqc-review-retry'),
-    selectedStatus: c?.versions?.find(row => row.id === select?.value)?.status ?? null,
+    selectedStatus: select?.value === '' ? (c?.versions?.find(row=>row.id===flow?.pendingId)||c?.versions?.find(row=>row.status==='draft')||c?.versions?.find(row=>row.id===c.activeVersionId))?.status ?? null : null,
     qualityTabCount: tabs.length, qualityTabSelected: tabs.length === 1 && tabs[0].getAttribute('aria-selected') === 'true',
     panelPresent: !!panel, panelHidden: panel?.hidden ?? null, fqcModuleCount: modules?.length ?? 0,
     fqcModuleOpen: modules?.length === 1 ? modules[0].open === true : null, flowScope: flow?.scope ?? null,
@@ -220,7 +222,7 @@ export async function runFqcDraftBrowser() {
       }
       const localContent = () => editor.page.evaluate(() => {
         const library = window.FQCMasterUI.control.libraries.fqc;
-        return library.versions.find(version => version.id === document.querySelector('#fqc-version').value).snapshot;
+        return library.versions.find(version => version.status === 'draft').snapshot;
       });
       async function stageForm(action, verify) {
         const before = await control();
@@ -290,11 +292,12 @@ export async function runFqcDraftBrowser() {
       const saved = (await control()).workflow.saved;
       await editor.context.close(); contexts.delete(editor.context); editor = await open(seed.actors.editor, 'data', 'saved-readback');
       assert.deepEqual(await editor.page.evaluate(flowOf).then(flow => flow.saved.content), saved.content);
-      const draftId = (await control()).versions.find(v => v.status === 'draft').id;
-      await editor.page.locator('#fqc-version').selectOption(seed.ids.active);
-      await editor.page.waitForFunction(({id}) => document.querySelector('#fqc-version')?.value === id && !document.querySelector('#fqc-save'), {id: seed.ids.active});
-      await measure(editor.page, 'read-saved-draft', '#fqc-version', async () => {
-        await editor.page.locator('#fqc-version').selectOption(draftId); await assertDraft();
+      await editor.page.locator('#fqc-approved-version').focus();
+      await editor.page.locator('#fqc-approved-version option[value="'+seed.ids.active+'"]').waitFor({state:'attached'});
+      await editor.page.locator('#fqc-approved-version').selectOption(seed.ids.active);
+      await editor.page.waitForFunction(({id}) => document.querySelector('#fqc-approved-version')?.value === id && document.querySelector('[data-vd-approved-view]')?.hidden === false && document.querySelector('#fqc-save')?.getClientRects().length === 0, {id: seed.ids.active});
+      await measure(editor.page, 'read-saved-draft', '#fqc-approved-version', async () => {
+        await editor.page.locator('#fqc-approved-version').selectOption(''); await assertDraft();
         assert.deepEqual(await editor.page.evaluate(flowOf).then(flow => flow.saved.content), saved.content);
       }, async () => assert.deepEqual((await control()).workflow.saved, saved), 0);
       async function submit(prefix) {

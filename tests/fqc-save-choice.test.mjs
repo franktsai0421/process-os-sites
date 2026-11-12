@@ -2,7 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),fixture=require('../scripts/fqc-apply-fixture.cjs'),{fixture:uiFixture}=require('../scripts/test-fqc-feedback-races.cjs');
-const clone=value=>JSON.parse(JSON.stringify(value)),tick=()=>new Promise(setImmediate);
+const clone=value=>JSON.parse(JSON.stringify(value));
+async function waitChoice(h){
+ if(h.ui.doc.querySelector('[data-fqc-save-choice]'))return;
+ const body=h.ui.doc.body,append=body.append;
+ await new Promise((resolve,reject)=>{const done=error=>{clearTimeout(timer);body.append=append;if(error)reject(error);else resolve();};const timer=setTimeout(()=>done(Error('Grouped Save chooser did not render')),10000);body.append=function(...nodes){const result=Reflect.apply(append,this,nodes);if(h.ui.doc.querySelector('[data-fqc-save-choice]'))done();return result;};});
+}
+
 const detail=(fields,base)=>({moduleAction:'save-local-v1',patches:Object.entries(fields).map(([key,value])=>({op:'set',path:['items',{id:'item'},key],value})),guards:Object.keys(fields).map(key=>({path:['items',{id:'item'},key],value:base[key]})),input:{matrixCells:[]}});
 async function setup({legacy=false,intercept,sourceRef}={}){
  const f=await fixture();
@@ -28,7 +34,7 @@ for(const mode of ['same','different-fields'])void test(`actual caller ${mode} s
 for(const when of ['compare','chooser'])for(const change of ['epoch','mount','local'])void test(`${when} ${change} retirement rejects without POST and preserves input`,async()=>{
  let hold=false,release,arrived;const wait=new Promise(r=>{arrived=r;});const h=await setup({intercept:async(url,options,send)=>{const response=await send();if(hold&&options.method!=='POST'&&!url.includes('operationId=')){hold=false;arrived();await new Promise(r=>{release=r;});}return response;}});try{
  await h.stage({name:'Mine'});await h.peerSave({name:'Peer'});if(when==='compare')hold=true;
- const task=h.ui.c.__fqcTest.sharedAction('save').catch(e=>e);if(when==='compare')await wait;else{for(let n=0;n<100&&!h.ui.doc.querySelector('[data-fqc-save-choice]');n++)await tick();assert(h.ui.doc.querySelector('[data-fqc-save-choice]'));}
+ const task=h.ui.c.__fqcTest.sharedAction('save').catch(e=>e);if(when==='compare')await wait;else{await waitChoice(h);assert(h.ui.doc.querySelector('[data-fqc-save-choice]'));}
  if(change==='epoch')h.ui.rotate();else if(change==='mount')h.ui.c.FQCMasterUI.navigation.reset();else h.ui.c.__fqcTest.selected().snapshot.items[0].name='Later';
  if(when==='compare')release();else if(change!=='mount')await h.choose('mine');const error=await task;if(change==='mount')assert.equal(error,false);else assert(error instanceof Error||error?.message);assert.equal(h.posts().length,0);
  }finally{release?.();h.f.close();}
@@ -54,9 +60,9 @@ void test('remote changes during grouped choice recompare and save the refreshed
  const h=await setup();try{
   await h.stage({name:'Mine',note:'Local note'});await h.peerSave({name:'Peer first'});
   const task=h.ui.c.__fqcTest.sharedAction('save');
-  for(let n=0;n<100&&!h.ui.doc.querySelector('[data-fqc-save-choice]');n++)await tick();
+  await waitChoice(h);
   await h.peerSave({name:'Peer newer',reason:'Peer independent'});await h.choose('mine');
-  for(let n=0;n<100&&!h.ui.doc.querySelector('[data-fqc-save-choice]');n++)await tick();
+  await waitChoice(h);
   assert(h.ui.doc.querySelector('[data-fqc-save-choice]'));assert.equal(h.posts().length,0);
   await h.choose('theirs');await task;assert.equal(h.posts().length,1);
   const saved=(await h.f.state()).workflow.saved.content.items[0];assert.equal(saved.name,'Peer newer');assert.equal(saved.note,'Local note');assert.equal(saved.reason,'Peer independent');
@@ -64,6 +70,6 @@ void test('remote changes during grouped choice recompare and save the refreshed
 });
 void test('refreshed conflict choice may cancel with original RAM and no business POST',async()=>{
  const h=await setup();try{await h.stage({name:'Mine'});await h.peerSave({name:'Peer'});const base=clone(h.ui.c.__fqcTest.syncBase());const task=h.ui.c.__fqcTest.sharedAction('save');
-  for(let n=0;n<100&&!h.ui.doc.querySelector('[data-fqc-save-choice]');n++)await tick();await h.peerSave({name:'Newer'});await h.choose('mine');await h.choose('cancel');assert.equal(await task,false);assert.equal(h.posts().length,0);assert.equal(h.ui.c.__fqcTest.selected().snapshot.items[0].name,'Mine');assert.deepEqual(clone(h.ui.c.__fqcTest.syncBase()),base);
+  await waitChoice(h);await h.peerSave({name:'Newer'});await h.choose('mine');await h.choose('cancel');assert.equal(await task,false);assert.equal(h.posts().length,0);assert.equal(h.ui.c.__fqcTest.selected().snapshot.items[0].name,'Mine');assert.deepEqual(clone(h.ui.c.__fqcTest.syncBase()),base);
  }finally{h.f.close();}
 });

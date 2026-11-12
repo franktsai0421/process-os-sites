@@ -30,7 +30,8 @@ export function buildFqcDraftLifecycleSeed(createSharedDraft, {cycle = 1, passwo
     accessOverrides: Object.fromEntries(accessKeys.map(key => [key, allowed.includes(key)]))});
   const dependencies = ['ab.view', 'equipment.view'];
   const actors = {
-    editor: actor('fqc-life-editor', 'staff', [...dependencies, ...['view', 'create', 'edit', 'delete', 'save', 'submit', 'withdraw'].map(op => 'fqc.' + op)]),
+    // History is an explicit capability for the current read-only selector scenario; reader remains denied.
+    editor: actor('fqc-life-editor', 'staff', [...dependencies, 'fqc.history', ...['view', 'create', 'edit', 'delete', 'save', 'submit', 'withdraw'].map(op => 'fqc.' + op)]),
     reviewer: actor('fqc-life-reviewer', 'rd', [...dependencies, 'c.view', 'templates.view', 'bom.view', 'approval.view', 'approval.approve', 'approval.return', 'fqc.view', 'fqc.approve', 'fqc.return'], true),
     reader: actor('fqc-life-reader', 'staff', [...dependencies, 'fqc.view']),
   };
