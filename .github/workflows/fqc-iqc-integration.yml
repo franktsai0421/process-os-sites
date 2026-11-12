@@ -54,7 +54,7 @@ jobs:
       - run: node scripts/test-routine-equipment-four-module-transfer.cjs
       - run: node scripts/test-fqc-matrix-layout.mjs
       - run: node scripts/test-quality-integration.mjs
-      - run: node --test tests/spinner-contract.test.mjs tests/routine-fqc-unload-contract.test.mjs tests/quality-module-command-isolation.test.mjs
+      - run: node --test tests/spinner-contract.test.mjs tests/routine-fqc-unload-contract.test.mjs tests/quality-module-command-isolation.test.mjs tests/sites-delivery-url-observer.test.mjs
       - run: node --test --test-timeout=30000 tests/routine-fqc-explicit-refresh.test.mjs tests/routine-fqc-manual-generation.test.mjs tests/routine-fqc-durable-route.test.mjs tests/routine-fqc-durable-receipt.test.mjs tests/routine-fqc-receipt-only.test.mjs tests/routine-fqc-departure-attribution.test.mjs tests/multiuser-module-departure-routine-save.test.mjs
       - run: npm run build
       - run: node tests/sites-root-entry-native.test.mjs

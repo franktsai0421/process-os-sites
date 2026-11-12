@@ -108,3 +108,5 @@ Windows `43176912352` 在 `5f8e39d` 的快照／授權階段停於舊 Routine un
 後續 `ad1d3a6`／Windows run `43184445003` 已通過原 unload 失敗點及整合入口，另於目的頁資源斷言停在 97≠94：舊測試把 dashboard 基準直接與仍掛載 IQC 歷史 owner 的頁面比較。僅修測試：新增逐事件 profile，嚴格驗證 IQC 當前頁僅多各一個 delivery-invalidated／sync-status／pagehide listener，回 dashboard 必須與原基準完全一致，再掛載不得累積；原 interval／timeout／object URL／無 document reload、撤權與零非授權 mutation 斷言保留。實際編譯瀏覽器全流程已通過 94→97→94→97，沒有發現產品監聽洩漏；此測試已加入專用 CI，未增加產品權限或放寬資源上限。
 
 該停止點後的四模組編譯 Begin 原收據恢復亦以腳本支援的 isolated-desktop 模式通過 8 項（未偽造 CI）；FQC browser contract／實際 route／多人矩陣／review readiness 共 108 項通過。兩項漏列的編譯入口與恢復檢查及品質契約已加入專用 CI。型別與產品編譯內容仍沿用同一 runtime，最後以新提交重建／驗證來源及遠端 SHA。
+
+`f6463b5`／Windows `43192788579` 隨後在 observer 的直接來源契約失敗：本工作先前漏同步目的頁計數 profile 的相依測試，導致舊 DTO 完全相等斷言拒絕新增欄位。已保留原 `fbaa4277` blob／SHA 基線與整份 canonical 比對，只額外核准前述兩段精確資源 profile／場景變更；LF／CRLF、任意修改拒絕及 URL descriptor／原函式 identity／動態 receiver／回傳／同步 throw／bookkeeping 順序全部保留。舊四個計數仍逐欄完整相等，新增 profile 總數、target／capture、重複註冊與移除反例；與既有隔離／unload／spinner 共 98 項通過，直接相依已全數搜尋，observer 亦納入專用 CI。此修正不涉及產品或資料。
