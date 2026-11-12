@@ -600,3 +600,12 @@ cb12823 的 Windows第36步已越過 Begin，但第一輪 silent-navigation-stag
 
 
 續作集中CI：既有獨立原生job在原Process runner後，追加原Windows第36步後半完全相同的FQC source／原生lifecycle及多人矩陣runner；重用同一build／瀏覽器，不改原Windows、不刪斷言、不延長25分鐘job上限。已知本機原生Worker限制不重試，完整新增CI結果待遠端新HEAD確認。此增量只有CI與紀錄，產品輸入不變。
+
+
+### 2026-11-12 Windows終態補正：來源inverse反例必須實際變造
+
+56e4051 的 Windows run43138700763／job130920154400 已自然結束：1–30通過，第31步 scripts/entry-performance/source-eol.test.cjs:50 的「Missing expected exception」失敗，32–57未跑；未取消或重跑。導航修正使第六個歷史departure片段不再直接出現在原始HEAD，舊raw.replace成為無效變造，並非產品接受了變造。
+
+已核對並逐blob重用 #103 公開302e7515e8b5f7343352f1b0d5aa6066a4d9409b 的source-eol修正（blob8b4b9c65ef6ee6523eb2e5ce2a9df3fe6c08be72）。只在測試port、真正HEAD admission與既有完整投影之後，變造實際departure inverse輸入；每個反例強制有效，LF/CRLF、六個span的changed/missing/duplicate共36種，必須以原exact-anchor錯誤拒絕，不能由先前HEAD hash拒絕冒充。原歷史inverse JSON、85fa來源與全部完整baseline/hash未改。96項全過；第31步失敗點與後續21個原命令集中預檢全過，全部網路邊界回執零實際嘗試。原helper93項與產品輸入保持不變。
+
+此source-EOL檢查也前置到整合job；原Windows命令與全部原生案例保留。來源修正獨立來自已確認的本輪HEAD與公開302e751，不取用或重送原UNKNOWN32，該狀態仍未解決。後續只在所有舊CI自然結束、核對ref後更新分支；最終新HEAD原生／完整Windows仍須獨立確認，不以前身或本機PASS替代。

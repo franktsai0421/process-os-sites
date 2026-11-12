@@ -56,6 +56,8 @@ jobs:
         with:
           node-version: '24'
       - run: npm ci --no-audit --no-fund
+      - name: Complete source inverse EOL and effective drift rejection
+        run: node scripts/entry-performance/source-eol.test.cjs
       - name: Current canvas count and exact historical source composition
         run: node --test tests/editor-projected-count.test.mjs tests/process-platform-count-contract.test.cjs tests/process-platform-canvas-contract.test.cjs tests/background-check-source-proof.test.cjs tests/routine-fqc-source-contract.test.cjs tests/access-event-main-integration.test.cjs tests/navigation-adapters.test.mjs tests/global-background-checks.test.mjs
       - run: node scripts/test-editor-line-selection.mjs
