@@ -73,7 +73,8 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
  }
  if(name==='ipqc-c'){
   Object.assign(box,{localChanges:[{action:'edit'}],localGeneration:'generation',localPhotos:new Map(),picker:{},viewer:{}});
-  vm.runInNewContext(sourceBlock(source,'  function clearLocal(){','\n'),box);
+  // The extracted callback reads the real module's idle choice binding too.
+  vm.runInNewContext(sourceDeclaration(ast,'cancelSaveChoice')+'\n'+sourceDeclaration(ast,'clearLocal'),box);
  }
  if(name==='routine-equipment'){
   const markers=new Map();

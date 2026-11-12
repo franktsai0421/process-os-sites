@@ -4,6 +4,7 @@ const contracts=require('./quality-integration-source-contracts.json');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 function restorePredecessor(bytes,file){
  assert(Buffer.isBuffer(bytes),'Quality proof requires raw Buffer bytes');
+ bytes=require('./quality-c-joint-source-contract.cjs').projectKnown(bytes,file,'quality');
  const c=contracts.find(c=>c.file===file);assert(c,'Quality proof wrong file');
  assert.equal(bytes.length,c.afterLength,'Quality proof pinned length');assert.equal(hash(bytes),c.afterHash,'Quality proof pinned bytes');
  let result=Buffer.from(bytes);
@@ -13,5 +14,5 @@ function restorePredecessor(bytes,file){
  }
  assert.equal(result.length,c.beforeLength);assert.equal(hash(result),c.beforeHash);return result;
 }
-function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Quality proof requires raw Buffer bytes');return contracts.some(c=>c.file===file&&hash(bytes)===c.afterHash)?restorePredecessor(bytes,file):bytes;}
+function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Quality proof requires raw Buffer bytes');bytes=require('./quality-c-joint-source-contract.cjs').projectKnown(bytes,file,'quality');return contracts.some(c=>c.file===file&&hash(bytes)===c.afterHash)?restorePredecessor(bytes,file):bytes;}
 module.exports={contracts,hash,restorePredecessor,projectKnown};

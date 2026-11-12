@@ -1,4 +1,4 @@
-/* Actual shared JS in a synthetic DOM/timer port; five cases also use actual C handlers
+/* Actual shared JS in a synthetic DOM/timer port; five cases also use actual Equipment handlers
  * with normal synthetic logins and private SQLite/R2. No browser/server/live-data claim. */
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const {webcrypto,createHash}=require('node:crypto');
@@ -6,7 +6,7 @@ const root=path.resolve(__dirname,'..'),source=fs.readFileSync(path.join(root,'p
 const clone=value=>JSON.parse(JSON.stringify(value));
 const rights=()=>({view:true,history:true,edit:true,restore:true,approve:true,return:true});
 const preview={generation:'g-restore',expectedRevision:7,restoreSaveId:'save0',before:{items:[{id:'row0',standard:'current'}]},after:{items:[{id:'row0',standard:'saved'}]},source:{actor:{name:'Synthetic author'},at:'synthetic'}};
-function fixture({routeFetch=null,guardAccessResults=false}={}){
+function fixture({routeFetch=null,guardAccessResults=false,endpoint='/api/ipqc-c/workflow?caseMetadata=1'}={}){
  const timers=new Map(),calls=[],memory=new Map(),storageWrites=[],overlays=[];let timerId=0,access=rights(),applied=0,editable=true,intercept=null;
  const input={text:'尚未儲存 中文 Việt',photos:[{id:'pending-photo',note:'retain'}]},inputBefore=clone(input);
  class Element{
@@ -39,7 +39,7 @@ function fixture({routeFetch=null,guardAccessResults=false}={}){
   call.status=response.status;return response;
  };
  vm.runInNewContext(source,{window,document,console,crypto:webcrypto,AbortController,URL,URLSearchParams,location:{origin:'http://fixture'},fetch,setTimeout:(fn,ms)=>{const id=++timerId;timers.set(id,{fn,ms});return id;},clearTimeout:id=>timers.delete(id),sessionStorage:{getItem:key=>memory.get(key)||null,setItem:(key,value)=>{storageWrites.push(['set',key,value]);memory.set(key,value);},removeItem:key=>{storageWrites.push(['remove',key]);memory.delete(key);}}},{filename:'actual-shared-draft-client.js'});
- const client=window.createSharedDraftClient({endpoint:'/api/ipqc-c/workflow?caseMetadata=1',actorId:'preview-editor',guardAccessResults,headers:()=>({})});
+ const client=window.createSharedDraftClient({endpoint,actorId:'preview-editor',guardAccessResults,headers:()=>({})});
  const openPreview=async(selectedClient=client)=>{await window.previewSharedDraftRestore({client:selectedClient,savedId:'save0',onApplied:async()=>{applied++;}});return overlays.at(-1);};
  const openHistory=async(options={})=>{await window.openSharedDraftHistory({client,editable:()=>editable,onApplied:async()=>{applied++;},caseId:'case0',...options});return overlays.at(-1);};
  function idle(){assert.equal(timers.size,0,'idle dialogs have no recurring timers or pending request deadlines');}
@@ -103,45 +103,45 @@ void test('known-revoked error rerender cannot re-enable Apply and authoring wra
  const f=fixture();await f.hydrate();let wrapped=0;const wrappedClient={...f.client,async command(){wrapped++;f.setAccess({...rights(),restore:false});await f.hydrate();throw Error('SUBMIT_STATE_UNCONFIRMED');}};
  const overlay=await f.openPreview(wrappedClient),apply=button(overlay,'apply'),before=f.stable();await apply.onclick();assert.equal(wrapped,1);assert.equal(button(overlay,'apply').disabled,true);assert.match(overlay.querySelector('#shared-restore-error').textContent,/SUBMIT_STATE_UNCONFIRMED/);const start=f.calls.length;await button(overlay,'apply').onclick();retained(f,before,start,'wrapped authoring refusal');assert.equal(f.calls.filter(call=>call.method==='POST').length,0);
 });
-void test('actual C route enforces revoked restore; opened UI sends nothing and all persisted values/R2 remain unchanged',async()=>{
- const {fixture:backendFixture}=require('../scripts/ipqc-c-operation-fixture.cjs'),seed=require('../scripts/v3-quality-growth-fixture.cjs')('ipqc-c',[{id:'a'.repeat(64),bytes:1}],1,1);
+void test('actual Equipment route enforces revoked restore; opened UI sends nothing and all persisted values/R2 remain unchanged',async()=>{
+ const {fixture:backendFixture}=require('../scripts/ipqc-c-operation-fixture.cjs'),seed=require('../scripts/v3-quality-growth-fixture.cjs')('routine-equipment',[{id:'a'.repeat(64),bytes:1}],1,1);
  const backend=await backendFixture(seed.values);
  try{
-  const f=fixture({routeFetch:async(url,options)=>backend.load('app/api/ipqc-c/workflow/route.ts')[options.method](new Request(new URL(url,'http://fixture'),{method:options.method,headers:backend.sessions.editor,...(options.body?{body:options.body}:{})}))});
+  const f=fixture({endpoint:'/api/routine-equipment/workflow?caseMetadata=1',routeFetch:async(url,options)=>backend.load('app/api/routine-equipment/workflow/route.ts')[options.method](new Request(new URL(url,'http://fixture'),{method:options.method,headers:backend.sessions.editor,...(options.body?{body:options.body}:{})}))});
   await f.hydrate();const overlay=await f.openPreview(),apply=button(overlay,'apply');
-  const state=await backend.core.readState(),users=JSON.parse(state.values.platformUsers);users.find(user=>user.id==='preview-editor').accessOverrides['ipqc-c.restore']=false;state.values.platformUsers=JSON.stringify(users);backend.db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(await backend.load('lib/state-records.ts').encodeRecordValues(backend.env.STATE_ARCHIVE,state.values));
+  const state=await backend.core.readState(),users=JSON.parse(state.values.platformUsers);users.find(user=>user.id==='preview-editor').accessOverrides['equipment.restore']=false;state.values.platformUsers=JSON.stringify(users);backend.db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(await backend.load('lib/state-records.ts').encodeRecordValues(backend.env.STATE_ARCHIVE,state.values));
   const persisted=backend.snapshot(),before=f.stable();f.idle();await apply.onclick();assert.equal(f.calls.filter(c=>c.method==='POST').length,0);assert.equal(overlay.isConnected,false);const start=f.calls.length;await apply.onclick();retained(f,before,start,'actual route capability refresh');assert.deepEqual(backend.snapshot(),persisted);
-  const denied=await backend.call('ipqc-c/workflow','POST',{command:{operationId:webcrypto.randomUUID(),clientId:'denial-probe',sequence:1,generation:seed.flow.generation,expectedRevision:seed.flow.revision,action:'restore',restoreSaveId:'save0'}},'editor',403,'?caseMetadata=1');assert.equal(denied.error,'RESTORE_PERMISSION_REQUIRED');assert.deepEqual(backend.snapshot(),persisted,'server refusal preserves complete values/history/receipts/R2');
+  const denied=await backend.call('routine-equipment/workflow','POST',{command:{operationId:webcrypto.randomUUID(),clientId:'denial-probe',sequence:1,generation:seed.flow.generation,expectedRevision:seed.flow.revision,action:'restore',restoreSaveId:'save0'}},'editor',403,'?caseMetadata=1');assert.equal(denied.error,'RESTORE_PERMISSION_REQUIRED');assert.deepEqual(backend.snapshot(),persisted,'server refusal preserves complete values/history/receipts/R2');
  }finally{backend.close();}
 });
-void test('actual C handler accepts exactly one authorized restore and retains fixed saves/cases',async()=>{
- const {fixture:backendFixture}=require('../scripts/ipqc-c-operation-fixture.cjs'),seed=require('../scripts/v3-quality-growth-fixture.cjs')('ipqc-c',[{id:'a'.repeat(64),bytes:1}],1,1);
+void test('actual Equipment handler accepts exactly one authorized restore and retains fixed saves/cases',async()=>{
+ const {fixture:backendFixture}=require('../scripts/ipqc-c-operation-fixture.cjs'),seed=require('../scripts/v3-quality-growth-fixture.cjs')('routine-equipment',[{id:'a'.repeat(64),bytes:1}],1,1);
  const backend=await backendFixture(seed.values);
  try{
-  const beforeState=await backend.core.readState(),beforeControl=JSON.parse(beforeState.values.ipqcCMasterControl);
-  const f=fixture({routeFetch:async(url,options)=>backend.load('app/api/ipqc-c/workflow/route.ts')[options.method](new Request(new URL(url,'http://fixture'),{method:options.method,headers:backend.sessions.editor,...(options.body?{body:options.body}:{})}))});
+  const beforeState=await backend.core.readState(),beforeControl=JSON.parse(beforeState.values.routineEquipmentControl);
+  const f=fixture({endpoint:'/api/routine-equipment/workflow?caseMetadata=1',routeFetch:async(url,options)=>backend.load('app/api/routine-equipment/workflow/route.ts')[options.method](new Request(new URL(url,'http://fixture'),{method:options.method,headers:backend.sessions.editor,...(options.body?{body:options.body}:{})}))});
   await f.hydrate();const overlay=await f.openPreview(),apply=button(overlay,'apply');await apply.onclick();await apply.onclick();
   const writes=f.calls.filter(call=>call.method==='POST');assert.equal(writes.length,1);assert.equal(writes[0].status,200);assert.equal(writes[0].body.command.restoreSaveId,'save0');assert.equal(writes[0].body.command.expectedRevision,seed.flow.revision);assert.equal(f.applied(),1);assert.equal(f.client.hasUnknown(),false);assert.deepEqual(f.input,f.inputBefore);
-  const afterState=await backend.core.readState(),afterControl=JSON.parse(afterState.values.ipqcCMasterControl);assert.deepEqual(afterControl.workflow.saves,beforeControl.workflow.saves);assert.deepEqual(afterControl.workflow.cases,beforeControl.workflow.cases);assert.equal(afterControl.workflow.working.items[0].standard,seed.flow.saves[0].content.items[0].standard);assert.notEqual(afterControl.workflow.working.items[0].standard,beforeControl.workflow.working.items[0].standard);
+  const afterState=await backend.core.readState(),afterControl=JSON.parse(afterState.values.routineEquipmentControl);assert.deepEqual(afterControl.workflow.saves,beforeControl.workflow.saves);assert.deepEqual(afterControl.workflow.cases,beforeControl.workflow.cases);assert.equal(afterControl.workflow.working.equipment[0].name,seed.flow.saves[0].content.equipment[0].name);assert.notEqual(afterControl.workflow.working.equipment[0].name,beforeControl.workflow.working.equipment[0].name);
  }finally{backend.close();}
 });
 void test('definitive synthetic401 closes preview without retrying or discarding dirty input',async()=>{
  const f=fixture();await f.hydrate();const overlay=await f.openPreview(),apply=button(overlay,'apply'),dirty=f.stable().dirtyInput;f.intercept((call,response)=>call.method==='POST'?Response.json({error:'LOGIN_REQUIRED'},{status:401}):response);await apply.onclick();assert.equal(overlay.isConnected,false);assert.equal(f.applied(),0);assert.equal(f.client.hasUnknown(),false);assert.equal(f.memory.size,0);assert.deepEqual(f.stable().dirtyInput,dirty);assert.deepEqual(f.input,f.inputBefore);
  const before=f.stable(),start=f.calls.length;await apply.onclick();retained(f,before,start,'definitive401 retained callback');assert.equal(f.calls.filter(call=>call.method==='POST').length,1);
 });
-void test('actual C fresh action detects cached stale restore and sends zero unauthorized POST',async()=>{
- const {fixture:backendFixture}=require('../scripts/ipqc-c-operation-fixture.cjs'),seed=require('../scripts/v3-quality-growth-fixture.cjs')('ipqc-c',[{id:'a'.repeat(64),bytes:1}],1,1);
+void test('actual Equipment fresh action detects cached stale restore and sends zero unauthorized POST',async()=>{
+ const {fixture:backendFixture}=require('../scripts/ipqc-c-operation-fixture.cjs'),seed=require('../scripts/v3-quality-growth-fixture.cjs')('routine-equipment',[{id:'a'.repeat(64),bytes:1}],1,1);
  const backend=await backendFixture(seed.values);
  try{
-  const f=fixture({routeFetch:async(url,options)=>backend.load('app/api/ipqc-c/workflow/route.ts')[options.method](new Request(new URL(url,'http://fixture'),{method:options.method,headers:backend.sessions.editor,...(options.body?{body:options.body}:{})}))});
+  const f=fixture({endpoint:'/api/routine-equipment/workflow?caseMetadata=1',routeFetch:async(url,options)=>backend.load('app/api/routine-equipment/workflow/route.ts')[options.method](new Request(new URL(url,'http://fixture'),{method:options.method,headers:backend.sessions.editor,...(options.body?{body:options.body}:{})}))});
   await f.hydrate();const overlay=await f.openPreview(),apply=button(overlay,'apply'),dirty=f.stable().dirtyInput;
-  const state=await backend.core.readState(),users=JSON.parse(state.values.platformUsers);users.find(user=>user.id==='preview-editor').accessOverrides['ipqc-c.restore']=false;state.values.platformUsers=JSON.stringify(users);backend.db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(await backend.load('lib/state-records.ts').encodeRecordValues(backend.env.STATE_ARCHIVE,state.values));
+  const state=await backend.core.readState(),users=JSON.parse(state.values.platformUsers);users.find(user=>user.id==='preview-editor').accessOverrides['equipment.restore']=false;state.values.platformUsers=JSON.stringify(users);backend.db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(await backend.load('lib/state-records.ts').encodeRecordValues(backend.env.STATE_ARCHIVE,state.values));
   const persisted=backend.snapshot();assert.equal(f.client.permission('restore'),true,'cached capability predates revocation; no background polling');await apply.onclick();
   const writes=f.calls.filter(call=>call.method==='POST');assert.equal(writes.length,0);assert.equal(overlay.isConnected,false);assert.equal(f.applied(),0);assert.equal(f.client.hasUnknown(),false);assert.equal(f.memory.size,0);assert.deepEqual(f.stable().dirtyInput,dirty);assert.deepEqual(f.input,f.inputBefore);assert.deepEqual(backend.snapshot(),persisted,'actual definitive denial preserves entire values/history/receipts/R2');
   const before=f.stable(),start=f.calls.length;await apply.onclick();retained(f,before,start,'actual403 retained callback');assert.deepEqual(backend.snapshot(),persisted);
  }finally{backend.close();}
 });
-void test('source receipt identifies exact shared implementation',t=>{t.diagnostic(JSON.stringify({sharedClientSha256:createHash('sha256').update(source).digest('hex'),boundary:'Actual shared JS; synthetic DOM/timers. Five actual C-handler/private SQLite/R2 cases; no native/browser/live-site acceptance.'}));});
+void test('source receipt identifies exact shared implementation',t=>{t.diagnostic(JSON.stringify({sharedClientSha256:createHash('sha256').update(source).digest('hex'),boundary:'Actual shared JS; synthetic DOM/timers. Five actual Equipment-handler/private SQLite/R2 cases plus C no-restore cases; no native/browser/live-site acceptance.'}));});
 
 function holdNext(f,predicate){let release,started;const ready=new Promise(resolve=>{started=resolve;});let used=false;f.intercept(async(call,response)=>{if(!used&&predicate(call)){used=true;started();await new Promise(resolve=>{release=resolve;});}return response;});return{ready,release:()=>release()};}
 const permissionsRead=call=>call.url.includes('permissions=1');
@@ -205,11 +205,11 @@ for(const method of ['history','reviewCase','previewRestore','legacyHistory','le
 void test('legacy and provided version previews remain readonly and explicitly authorized',async()=>{
  for(const kind of ['legacy','provided']){const f=fixture();await f.hydrate();f.client.withLegacyArchive();const overlay=await f.openHistory({caseId:null,editable:()=>false,...(kind==='legacy'?{legacyFirst:true,legacyVersionId:'legacy0'}:{versionPreview:{id:'provided0',status:'approved',snapshot:preview.after}})});assert(overlay.innerHTML.includes(kind==='legacy'?'legacy0':'provided0'));assert.equal(overlay.querySelector('[data-restore]'),null);assert.equal(posts(f).length,0);f.idle();const count=f.calls.length;f.setAccess({...rights(),history:false});await button(overlay,'back').listeners.click();assert.equal(f.calls.length,count+1);assert.equal(overlay.isConnected,false);f.idle();}
 });
-for(const mode of ['revision','pending'])void test(`actual C ${mode} change after preview stays guarded and preserves all data/history`,async()=>{
- const {fixture:backendFixture}=require('../scripts/ipqc-c-operation-fixture.cjs'),seed=require('../scripts/v3-quality-growth-fixture.cjs')('ipqc-c',[{id:'a'.repeat(64),bytes:1}],1,1),backend=await backendFixture(seed.values);
+for(const mode of ['revision','pending'])void test(`actual Equipment ${mode} change after preview stays guarded and preserves all data/history`,async()=>{
+ const {fixture:backendFixture}=require('../scripts/ipqc-c-operation-fixture.cjs'),seed=require('../scripts/v3-quality-growth-fixture.cjs')('routine-equipment',[{id:'a'.repeat(64),bytes:1}],1,1),backend=await backendFixture(seed.values);
  try{
-  const f=fixture({routeFetch:async(url,options)=>backend.load('app/api/ipqc-c/workflow/route.ts')[options.method](new Request(new URL(url,'http://fixture'),{method:options.method,headers:backend.sessions.editor,...(options.body?{body:options.body}:{})}))});await f.hydrate();const overlay=await f.openPreview();
-  const state=await backend.core.readState(),control=JSON.parse(state.values.ipqcCMasterControl);if(mode==='revision'){control.workflow.revision++;control.workflow.working.items[0].standard='Synthetic concurrent winner';}else{control.workflow.pendingId=control.workflow.cases[0].id;control.workflow.cases[0].status='pending';control.versions.find(v=>v.status==='draft').status='pending';}state.values.ipqcCMasterControl=JSON.stringify(control);backend.db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(await backend.load('lib/state-records.ts').encodeRecordValues(backend.env.STATE_ARCHIVE,state.values));
+  const f=fixture({endpoint:'/api/routine-equipment/workflow?caseMetadata=1',routeFetch:async(url,options)=>backend.load('app/api/routine-equipment/workflow/route.ts')[options.method](new Request(new URL(url,'http://fixture'),{method:options.method,headers:backend.sessions.editor,...(options.body?{body:options.body}:{})}))});await f.hydrate();const overlay=await f.openPreview();
+  const state=await backend.core.readState(),control=JSON.parse(state.values.routineEquipmentControl);if(mode==='revision'){control.workflow.revision++;control.workflow.working.equipment[0].name='Synthetic concurrent winner';}else{control.workflow.pendingId=control.workflow.cases[0].id;control.workflow.cases[0].status='pending';control.versions.find(v=>v.status==='draft').status='pending';}state.values.routineEquipmentControl=JSON.stringify(control);backend.db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(await backend.load('lib/state-records.ts').encodeRecordValues(backend.env.STATE_ARCHIVE,state.values));
   const stored=backend.snapshot();await button(overlay,'apply').onclick();assert.equal(posts(f).length,1);assert.equal(posts(f)[0].status,409);assert.equal(posts(f)[0].body.command.expectedRevision,seed.flow.revision);assert.deepEqual(backend.snapshot(),stored);assert.equal(f.applied(),0);assert.equal(f.client.hasUnknown(),false);assert.equal(f.memory.size,0);assert.deepEqual(f.input,f.inputBefore);f.idle();
  }finally{backend.close();}
 });
@@ -227,4 +227,34 @@ for(const query of ['permissions=1','history=cases'])void test('history initial 
  assert.notEqual(f.focused(),opener);assert.equal(f.focused(),button(overlay,'close'));
  assert.equal(f.calls.filter(call=>call.method==='POST').length,0);assert.deepEqual(f.stable(),before);f.idle();
  button(overlay,'close').onclick();assert.equal(overlay.isConnected,false);assert.equal(f.body.style.overflow,'');assert.equal(f.focused(),opener);
+});
+
+// C no longer supports new restore operations. Preserve the shared implementation's
+// real-handler positive/revocation/race coverage above on supported Equipment.
+for(const mode of ['authorized','revoked','revision','pending'])void test(`actual C ${mode} refuses new restore preview/POST without data or history writes`,async()=>{
+ const {fixture:backendFixture}=require('../scripts/ipqc-c-operation-fixture.cjs'),seed=require('../scripts/v3-quality-growth-fixture.cjs')('ipqc-c',[{id:'a'.repeat(64),bytes:1}],1,1),backend=await backendFixture(seed.values);
+ try{
+  const state=await backend.core.readState(),control=JSON.parse(state.values.ipqcCMasterControl);
+  if(mode==='revoked'){const users=JSON.parse(state.values.platformUsers);users.find(u=>u.id==='preview-editor').accessOverrides['ipqc-c.restore']=false;state.values.platformUsers=JSON.stringify(users);}
+  if(mode==='revision'){control.workflow.revision++;control.workflow.working.items[0].standard='Concurrent winner';}
+  if(mode==='pending'){control.workflow.pendingId=control.workflow.cases[0].id;control.workflow.cases[0].status='pending';control.versions.find(v=>v.status==='draft').status='pending';}
+  state.values.ipqcCMasterControl=JSON.stringify(control);backend.db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(await backend.load('lib/state-records.ts').encodeRecordValues(backend.env.STATE_ARCHIVE,state.values));
+  const before=backend.snapshot(),f=fixture({routeFetch:async(url,options)=>backend.load('app/api/ipqc-c/workflow/route.ts')[options.method](new Request(new URL(url,'http://fixture'),{method:options.method,headers:backend.sessions.editor,...(options.body?{body:options.body}:{})}))});
+  await f.hydrate();const input=f.stable();await assert.rejects(f.openPreview(),mode==='revoked'?/RESTORE_PERMISSION_REQUIRED/:/DRAFT_RESTORE_NOT_SUPPORTED/);assert.equal(f.overlays.length,0);assert.equal(posts(f).length,0);assert.deepEqual(f.stable(),input);
+  const body=await backend.call('ipqc-c/workflow','POST',{command:{operationId:webcrypto.randomUUID(),clientId:'new-restore-probe',sequence:1,generation:seed.flow.generation,expectedRevision:seed.flow.revision,action:'restore',restoreSaveId:'save0'}},'editor',422,'?caseMetadata=1');assert.equal(body.error,'DRAFT_RESTORE_NOT_SUPPORTED');assert.deepEqual(backend.snapshot(),before,'new restore cannot change values/history/receipts/R2');f.idle();
+ }finally{backend.close();}
+});
+void test('actual C preserves receipt-only recovery of a historical accepted restore without replaying any write',async()=>{
+ const {fixture:backendFixture}=require('../scripts/ipqc-c-operation-fixture.cjs'),seed=require('../scripts/v3-quality-growth-fixture.cjs')('ipqc-c',[{id:'a'.repeat(64),bytes:1}],1,1),backend=await backendFixture(seed.values);
+ try{
+  const state=await backend.core.readState(),control=JSON.parse(state.values.ipqcCMasterControl),command={operationId:webcrypto.randomUUID(),clientId:'historical-restore',sequence:1,generation:control.workflow.generation,expectedRevision:control.workflow.revision,action:'restore',restoreSaveId:'save0'};
+  // Reproduce an already accepted predecessor operation using the actual shared kernel.
+  const accepted=backend.load('lib/shared-draft.ts').applyDraftCommand(control.workflow,command,{actor:{id:'preview-editor',name:'Synthetic editor',admin:false},at:'synthetic predecessor',id:()=>webcrypto.randomUUID(),allowed:()=>true,structure(){},validate:()=>[],semantic:x=>x,activeId:control.activeVersionId});
+  control.workflow=accepted.state;control.versions.find(v=>v.status==='draft').snapshot=accepted.state.working;state.values.ipqcCMasterControl=JSON.stringify(control);backend.db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(await backend.load('lib/state-records.ts').encodeRecordValues(backend.env.STATE_ARCHIVE,state.values));
+  const before=backend.snapshot(),query='?operationId='+command.operationId;
+  for(let i=0;i<2;i++){const r=await backend.call('ipqc-c/workflow','GET',undefined,'editor',200,query);assert.deepEqual(r.receipt,clone(accepted.receipt));assert.deepEqual(backend.snapshot(),before);}
+  const replay=await backend.call('ipqc-c/workflow','POST',{command},'editor',200);assert.deepEqual(replay.receipt,clone(accepted.receipt));assert.equal(replay.unchanged,true);assert.deepEqual(backend.snapshot(),before);
+  await backend.call('ipqc-c/workflow','GET',undefined,'edit-only',403,query);assert.deepEqual(backend.snapshot(),before);
+  await backend.call('ipqc-c/workflow','POST',{command:{...command,restoreSaveId:'other-save'}},'editor',409);assert.deepEqual(backend.snapshot(),before);
+ }finally{backend.close();}
 });

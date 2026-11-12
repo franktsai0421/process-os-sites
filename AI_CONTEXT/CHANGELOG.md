@@ -1,3 +1,7 @@
+## 2026-11-12 — FQC／IQC＋IPQC C 共同測試候選
+
+合併 #105 d14808c 與 #106 21a1765 的六個衝突，保留共同歷史、C 產品保留、例行頁載入及嚴格來源證明；新增三模組同 DB 隔離回歸。[範圍與待驗](../docs/acceptance/quality-c-joint-20261112/README.md)。未合併 main、部署或修改正式資料。
+
 ## 2026-11-12 — Draft #105 未完成項續修
 
 Snapshot 目錄在 POSIX 正規化前拒絕 UNC／裝置根，保留原負例與 symlink 拒絕。補 FQC／IQC 實際 route 的隔離故障／零重送、延遲與合成缺漏診斷，以及例行舊核准歷史／收據保留的離線準備及雙格式 route 演練。未修改品質權限／CAS／pending、未執行正式遷移或部署；[證據與欠缺台帳](../docs/acceptance/fqc-iqc-integration-20261112/README.md#本輪未完成項續修跨平台路徑與隔離演練)。
@@ -5,6 +9,10 @@ Snapshot 目錄在 POSIX 正規化前拒絕 UNC／裝置根，保留原負例與
 ## 2026-11-12 — FQC／IQC 全域 Save、整頁例行與唯讀歷史整合候選
 
 以 main、已驗 52 份 patch 與選定舊分支成果交付單一 Draft #105。補齊 FQC／IQC 一次全域衝突選擇、最小復活、RAM 照片及原收據恢復；同頁唯讀核准歷史、例行整頁單草稿、兩個 quality 目標原子設備替換及編碼後 session fence。後半段真實 handler 修正 IQC identified Begin 的 FQC-only 誤拒；精確 fixture／來源複審維持所有 guard。實作索引見[QUALITY](modules/QUALITY.md)，需求對照、證據與未驗項見[單一追蹤](../docs/acceptance/fqc-iqc-integration-20261112/README.md)。未合併／部署／動正式資料。
+
+# 2026-11-12 — IPQC C Save comparison and readonly history candidate
+
+Selective Cloud integration adds whole-group choices retaining nonconflicts, fresh re-comparison after async peer changes, original-ID structural guards, duplicate-photo groups and silent unsent departure. Same-page immutable approved history and distinct platform review permissions are included. Main #91/#93/#96/#100 foundations remain. [Evidence and limits](../docs/acceptance/ipqc-c-cloud-integration-20261112/README.md). No schema/data/merge/deployment.
 
 ## 2026-11-09 — Retire periodic web checks
 

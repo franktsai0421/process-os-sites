@@ -393,3 +393,9 @@ see [policy and verification boundary](../../docs/sites/PHOTO_UPLOAD.md).
 - 不減 R2/SQL/fresh permission/CAS 次數，不改窄寫入依賴閉包，尚非實站 I/O 延遲或原生 UI 驗收。
 
 2026-10-30 AB/C 草稿切頁補驗：FQC navigation.requiresSave 使用 `control.libraries.fqc.workflow`，與 FQC 現行儲存 API 同一草稿來源；不讀外層不存在的 workflow。參見 `tests/ab-c-cross-module-browser.mjs` 與 AB/C acceptance 報告。
+
+## 2026-11-12 — IPQC C Cloud candidate
+
+C retains whole-group mine/theirs/cancel comparison, nonconflicts, necessary original IDs/relations/matrix, group-scoped duplicate photos, gauge/delete protections, readonly approved history and platform-review separation; no new restore.
+
+Frank's latest statement confirms retaining unsaved changes and pending photos across explicit product switches inside C, while actual module departure to FQC/other pages silently discards unsent RAM without Save. It supersedes the previous discard answer and10:14 conclusion. The product selector retains the same C draft and operation owner; stored versions and exact sent UNKNOWN receipts/dedup remain. Other selectors (stage/coverage/correction locators) are not newly confirmed or expanded by this example. Search and modal restrictions are unchanged. No schema/data change, merge or deployment is implied. [Effective decision and full requirement evidence](../../docs/acceptance/ipqc-c-cloud-integration-20261112/product-switch-decision.zh-TW.md).

@@ -1,0 +1,866 @@
+{
+  "localCommandGroups": [
+    {
+      "command": [
+        "node",
+        "--test",
+        "tests/ipqc-c-integration-source-contract.test.cjs",
+        "tests/ipqc-c-read-io-source-contract.test.mjs",
+        "tests/ipqc-c-operation-admission.test.cjs",
+        "tests/multiuser-ipqc-c-local-recovery-actual-stack.test.mjs",
+        "tests/ipqc-c-local-save-rejection.test.mjs",
+        "tests/ipqc-c-case-comparison.test.mjs",
+        "tests/ipqc-c-equipment-display.test.mjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "--test",
+        "tests/bounded-media-loading.test.mjs",
+        "tests/access-event-main-integration.test.cjs",
+        "tests/global-background-checks.test.mjs",
+        "tests/background-check-source-proof.test.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "--test",
+        "tests/workflow-begin-contract.test.cjs",
+        "tests/workflow-begin-receipt.test.cjs",
+        "tests/shared-draft-begin-v1.test.mjs",
+        "tests/module-begin-recovery.test.mjs",
+        "tests/iqc-begin-generation.test.mjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-compare-save.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-tombstone-revival.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-operation-permissions.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-local-save.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-local-gauge-browser.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-read-recovery.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-coverage-parity.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-entry-apply.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-submit-coverage.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-save-boundary.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-create-mutation.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-save-projection-server.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-save-projection-client.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-bounded-read.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-permissions-read.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-ipqc-c-local-read-io.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-approved-history-evidence.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-workflow-begin-old-server.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-process-ipqc-c-query.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-process-ipqc-choice-read.cjs"
+      ],
+      "status": "PASS"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/test-process-ipqc-choice-dom.cjs"
+      ],
+      "status": "PASS"
+    }
+  ],
+  "nodeTestGroups": [
+    53,
+    117,
+    103,
+    100
+  ],
+  "comparisonAssertions": 31,
+  "permissionHandlerCalls": 231,
+  "approvedHistoryGroups": 13,
+  "performance": {
+    "syntheticRows": 1735,
+    "localSaveMedianMs": 233.06,
+    "submitMedianMs": 264.21,
+    "withdrawMedianMs": 202.49,
+    "environment": "in-process SQLite/in-memory R2; no remote latency"
+  },
+  "liveSite": "NOT_RUN",
+  "humanAcceptance": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "cleanClone": {
+    "status": "PASS",
+    "commit": "244adfe2da325687102a24ec2da13859c4698d04",
+    "install": "npm ci --ignore-scripts --no-audit --no-fund",
+    "typedLint": "PASS",
+    "typescript": "PASS nonincremental",
+    "coreSourceAndControllerTests": 26,
+    "build": "PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK",
+    "dataImport": "NOT_RUN",
+    "dependencyReuse": "Originally clean npm ci; same exact lockfile retained for follow-up",
+    "followup": "Typed lint, nonincremental TypeScript, 26 source/controller tests and full guarded build rerun on 244adfe"
+  },
+  "githubCI": "See PR current checks",
+  "finalSourceScan": {
+    "commit": "b6abd587d339dd2b9b2362a82194b90503ca1dfe",
+    "status": "PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE",
+    "commits": 610,
+    "blobs": 5373,
+    "workingFiles": 2017,
+    "realDataOpened": false,
+    "credentialValuesReturned": false,
+    "includedWorkingChanges": "restore/receipt test follow-up and targeted Linux CI dependencies"
+  },
+  "initialProductCommit": "ab07ad80f1455ec49308bcca2bb8a96e116baf26",
+  "finalProductSourceContract": "scripts/ipqc-c-integration-source-contract.json",
+  "lateAckFollowup": {
+    "sourceSHA256": "039dcc7d35a04b386c3567d23f4d66a0d04fe20a1f8ed1411a7dde503bbce851",
+    "nativeCrossProductAndRemount": "PASS",
+    "sourceOwnedDepartureBindings": 154,
+    "originalSentMarker": "retained; no replay",
+    "finalBuild": "PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK",
+    "productCommit": "244adfe2da325687102a24ec2da13859c4698d04",
+    "completeDepartureTests": 451,
+    "sharedAndRoutineSourceTests": 123,
+    "native1735Profile": "PASS; includes delayed ACK cross-product and direct remount"
+  },
+  "equipmentFollowup": {
+    "compiledProductCommit": "244adfe2da325687102a24ec2da13859c4698d04",
+    "unitScopeTests": 18,
+    "nativeAtomicBrowserTests": 7,
+    "compiledAndTransferTests": 37,
+    "status": "PASS",
+    "typedLint": "PASS",
+    "CnegativeAndPositivePermissionCalls": 231
+  },
+  "restoreContractFollowup": {
+    "reason": "Windows31 reached old actual-C restore success assertions conflicting with confirmed C no-restore requirement",
+    "productSourceChanged": false,
+    "sharedRestoreTests": 155,
+    "sharedTerminalReceiptRestoreGroup": 219,
+    "actualSupportedEquipmentCasesRetained": 5,
+    "CnewRestoreRefusalModes": [
+      "authorized",
+      "revoked",
+      "revision",
+      "pending"
+    ],
+    "ChistoricalAcceptedReceipt": "PASS original GET and exact repeat result with no mutation; foreign actor/changed command refused",
+    "tenModuleLifecycle": "PASS 10 modules, complete Save/Submit/withdraw/review/race contracts retained",
+    "remainingWindows31Commands": {
+      "total": 107,
+      "portableCommands": "PASS after three supported browser path follow-ups and mixed portable subset rerun",
+      "nativePowerShellExitPropagation": "NOT_RUN Linux powershell.exe ENOENT; original CI assertion retained"
+    },
+    "typedLint": "PASS",
+    "buildEvidence": "Product/build inputs unchanged from b6abd587; exact 244adfe product build and b6abd587 Windows build passed; no redundant rebuild",
+    "CI": "Evaluate latest PR HEAD"
+  },
+  "withdrawnRetentionCandidateEvidence": {
+    "document": "requirements-audit.zh-TW.md",
+    "requirements": 24,
+    "productBaseCommit": "f5c4154426869166091607273129c7f993c14924",
+    "productSourceChanged": true,
+    "newEvidence": [
+      "two C products one saved snapshot; same C scope/generation; every non-C persisted value unchanged",
+      "1440/390 search/product/stage views retain C scope/generation/draftId; no Begin or mutation"
+    ],
+    "comparisonStatus": "PASS33 handler assertions; current backend unchanged",
+    "nativeStatus": "PASS IPQCC_PROFILE=1 1735 rows, 1440/390: unsaved C100+C200 retained across filters, pending photo retained, one whole C Save, actual departure still discards silently; existing UNKNOWN/late ACK/history/conflict cases retained",
+    "githubCI": "Evaluate current PR HEAD; f5c41544 prior five CI runs reused only where inputs unchanged",
+    "unverified": [
+      "real test-site latency",
+      "human dual-account sessions",
+      "physical devices and real IME",
+      "historical UNKNOWN32 outcome"
+    ],
+    "initialGenerationOnlyAuditCommit": "f7925ad869426e4dd36e5eb67dde68810b0102c3",
+    "initialConclusionCorrected": "The retention expectation was unauthorized; old red expected1 actual0 is withdrawn, not a product defect",
+    "redEvidence": {
+      "sourceCommit": "f7925ad869426e4dd36e5eb67dde68810b0102c3",
+      "native": "product filter staged changes expected1 actual0"
+    },
+    "previousLocalValidation": {
+      "typedLint": "PASS",
+      "sourceScan": {
+        "status": "PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE",
+        "head": "f5c4154426869166091607273129c7f993c14924",
+        "commits": 611,
+        "blobs": 5378,
+        "workingFiles": 2018,
+        "realDataOpened": false,
+        "credentialValuesReturned": false
+      },
+      "documentLinks": 62,
+      "diffCheck": "PASS",
+      "typesAndBuild": "REUSED exact unchanged app/lib/public/package inputs; current GitHub CI reruns its original gates"
+    },
+    "localValidation": {
+      "productCommit": "5df6f8658b5b0a64b852c8fecf8a2664ea8ec31c",
+      "typedLint": "PASS root and independent clean clone",
+      "typescript": "PASS nonincremental independent clean clone",
+      "CcoreSourceControllerTests": 53,
+      "departureTests": 451,
+      "sharedMediaBackgroundRoutineTests": 123,
+      "navigationBeginHistoryTests": 291,
+      "comparisonAssertions": 33,
+      "existingHandlerProjectionReadApplyGaugeScripts": 5,
+      "cleanCloneSourceControllerTests": 26,
+      "build": "PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK",
+      "CrawAsset": "exact new source bytes",
+      "CcompiledBundle": "shell-scripts.3928781c23ebfdfffb8e.js",
+      "CpreviousBundle": "shell-scripts.cad2668680b743b012bf.js",
+      "CcompiledBundleProof": "exact standard bundler output; new index references new bundle and not old bundle; C source included exactly once",
+      "initialExtraIndexCheck": "raw source index equality failed because the existing ordered CSS/script bundler intentionally rewrites it; derived bundle/content/reference verification passed without changing the build or any test",
+      "sourceScan": {
+        "status": "PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE",
+        "head": "5df6f8658b5b0a64b852c8fecf8a2664ea8ec31c",
+        "commits": 613,
+        "blobs": 5392,
+        "workingFiles": 2018,
+        "realDataOpened": false,
+        "credentialValuesReturned": false
+      },
+      "documentLinks": "PASS62"
+    },
+    "productSHA256": "0eb9537d819d3b61c789536a9b3beb42939a490dd90690c43cfeee95dd07b3c3",
+    "fixedRequirement": "WITHDRAWN; see workSelectionDiscardCorrection",
+    "status": "WITHDRAWN_UNAPPROVED_UX_NOT_ACCEPTANCE",
+    "interpretation": "Archived observations only: assertions used an unauthorized UX oracle; PASS here does not qualify the current requirement."
+  },
+  "completeRequirementAudit": {
+    "document": "requirements-audit.zh-TW.md",
+    "decision": "product-switch-decision.zh-TW.md",
+    "requirements": 24,
+    "FrankQuote": "在同一個模組下切換產品可以保留 如果切換分頁就不保留 例如都在ipqc c下面 就保留 但是切換頁面到FQC就不保留",
+    "policy": "explicit same-C product selection retains unsaved changes/photos; actual module departure discards unsent; stored data and original UNKNOWN receipt protected",
+    "supersedes": "previous discard answer and10:14 conclusion; no expansion to other selectors",
+    "baseCommit": "dcf3e637a6ae8d24293f70166df727b52cd4ec32",
+    "productSHA256": "393941c3f4716bd5542f17f0eac9b65619e6da4f858ffc5cd0ec81b5a7b0e29f",
+    "redEvidence": {
+      "source": "dcf3e63",
+      "expectedStagedChanges": 1,
+      "actual": 0,
+      "meaning": "old discard candidate fails latest retain rule"
+    },
+    "localValidation": {
+      "native": "PASS IPQCC_PROFILE=1,1735 rows,Chromium1440/390: same-C two-product edits and pending photos retained; one explicit Save; zero navigation writes; actual C departure/reset into synthetic FQC destination discards RAM/photos and return does not restore; storedDB/R2/scope/generation/draftId retained; original UNKNOWN/heldACK/group choice/cancel/gauge/history cases retained",
+      "nativeLog": "private /tmp/ipqc-c-latest-product-retain-green.log",
+      "CcoreSourceTests": 53,
+      "departureTests": 451,
+      "sharedMediaBackgroundRoutineTests": 123,
+      "navigationBeginHistoryTests": 291,
+      "comparisonAssertions": 33,
+      "existingProjectionReadApplyGaugeScripts": 5,
+      "typedLint": "PASS independent clean clone",
+      "typescript": "PASS nonincremental independent clean clone",
+      "cleanCloneSourceTests": 10,
+      "lockfile": "identical to candidate",
+      "build": "PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK",
+      "assetProof": {
+        "status": "PASS_EXACT_DERIVED_BUNDLE_AND_REFERENCE",
+        "bundle": "shell-scripts.ff5d3cd62d29090ebbf3.js",
+        "rawCmatches": true,
+        "oldBundlesReferenced": false
+      },
+      "sourceScan": {
+        "status": "PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE",
+        "head": "d3a2a2d534b866898fc31c38d27b791d4ab25cbe",
+        "commits": 620,
+        "uniqueBlobs": 5440,
+        "bytesTotal": 129880358,
+        "workingFiles": 2019,
+        "classifiedHistoricalFindings": 32,
+        "realDataOpened": false,
+        "credentialValuesReturned": false
+      },
+      "diffCheck": "PASS",
+      "acceptanceDecisionDocumentLinks": 66
+    },
+    "githubCI": "old dcf3e63 four module runs success and Windows in progress; new candidate must be uploaded and checked separately",
+    "unverified": [
+      "real test-site latency",
+      "human dual-account sessions",
+      "physical devices and real IME",
+      "historical UNKNOWN32 outcome"
+    ],
+    "productCommit": "d3a2a2d534b866898fc31c38d27b791d4ab25cbe",
+    "commandGroups": [
+      {
+        "command": [
+          "node",
+          "--test",
+          "tests/ipqc-c-integration-source-contract.test.cjs",
+          "tests/ipqc-c-read-io-source-contract.test.mjs",
+          "tests/ipqc-c-operation-admission.test.cjs",
+          "tests/multiuser-ipqc-c-local-recovery-actual-stack.test.mjs",
+          "tests/ipqc-c-local-save-rejection.test.mjs",
+          "tests/ipqc-c-case-comparison.test.mjs",
+          "tests/ipqc-c-equipment-display.test.mjs"
+        ],
+        "exit": 0,
+        "seconds": 1.232,
+        "log": "/tmp/ipqc-c-product-retain-final-checks/00.log"
+      },
+      {
+        "command": [
+          "node",
+          "--test",
+          "tests/shared-unknown-departure.test.mjs",
+          "tests/navigation-departure.test.mjs",
+          "tests/delivery-departure.test.mjs",
+          "tests/owned-draft-ledger.test.mjs",
+          "tests/owned-draft-revert.test.mjs",
+          "tests/owned-draft-recovery-transport.test.mjs",
+          "tests/canvas-departure.test.mjs",
+          "tests/process-editor-departure.test.mjs",
+          "tests/editor-selection-departure.test.mjs",
+          "tests/authoring-departure.test.mjs",
+          "tests/multiuser-module-departure-helper.test.mjs",
+          "tests/multiuser-module-departure-bindings.test.mjs",
+          "tests/authoring-begin-readiness.test.mjs",
+          "tests/authoring-readiness-render.test.mjs",
+          "tests/authoring-review-status.test.mjs",
+          "tests/master-shared-clone.test.mjs",
+          "tests/master-review-render-performance.test.mjs",
+          "tests/process-scripts-build.test.mjs",
+          "tests/process-styles-build.test.mjs",
+          "tests/spreadsheet-loader.test.mjs"
+        ],
+        "exit": 0,
+        "seconds": 13.081,
+        "log": "/tmp/ipqc-c-product-retain-final-checks/01.log"
+      },
+      {
+        "command": [
+          "node",
+          "--test",
+          "tests/bounded-media-loading.test.mjs",
+          "tests/access-event-main-integration.test.cjs",
+          "tests/global-background-checks.test.mjs",
+          "tests/background-check-source-proof.test.cjs",
+          "tests/routine-fqc-source-contract.test.cjs"
+        ],
+        "exit": 0,
+        "seconds": 5.295,
+        "log": "/tmp/ipqc-c-product-retain-final-checks/02.log"
+      },
+      {
+        "command": [
+          "node",
+          "scripts/test-ipqc-c-save-projection-client.cjs"
+        ],
+        "exit": 0,
+        "seconds": 0.155,
+        "log": "/tmp/ipqc-c-product-retain-final-checks/03.log"
+      },
+      {
+        "command": [
+          "node",
+          "scripts/test-ipqc-c-read-recovery.cjs"
+        ],
+        "exit": 0,
+        "seconds": 0.153,
+        "log": "/tmp/ipqc-c-product-retain-final-checks/04.log"
+      },
+      {
+        "command": [
+          "node",
+          "scripts/test-ipqc-c-entry-apply.cjs"
+        ],
+        "exit": 0,
+        "seconds": 0.146,
+        "log": "/tmp/ipqc-c-product-retain-final-checks/05.log"
+      },
+      {
+        "command": [
+          "node",
+          "scripts/test-ipqc-c-compare-save.cjs"
+        ],
+        "exit": 0,
+        "seconds": 2.381,
+        "log": "/tmp/ipqc-c-product-retain-final-checks/06.log"
+      },
+      {
+        "command": [
+          "node",
+          "--test",
+          "tests/navigation-adapters.test.mjs",
+          "tests/workflow-begin-contract.test.cjs",
+          "tests/workflow-begin-receipt.test.cjs",
+          "tests/shared-draft-begin-v1.test.mjs",
+          "tests/module-begin-recovery.test.mjs",
+          "tests/iqc-begin-generation.test.mjs",
+          "tests/shared-draft-restore-admission.test.cjs"
+        ],
+        "exit": 0,
+        "seconds": 7.582,
+        "log": "/tmp/ipqc-c-product-retain-final-checks/07.log"
+      },
+      {
+        "command": [
+          "node",
+          "scripts/test-ipqc-c-local-gauge-browser.cjs"
+        ],
+        "exit": 0,
+        "seconds": 11.067,
+        "log": "/tmp/ipqc-c-product-retain-final-checks/08.log"
+      }
+    ],
+    "cleanCloneCommands": [
+      {
+        "command": [
+          "npm",
+          "run",
+          "lint"
+        ],
+        "exit": 0,
+        "seconds": 21.264,
+        "log": "/tmp/ipqc-c-product-retain-final-clean/00.log",
+        "head": "d3a2a2d534b866898fc31c38d27b791d4ab25cbe"
+      },
+      {
+        "command": [
+          "node",
+          "node_modules/typescript/bin/tsc",
+          "--noEmit",
+          "--incremental",
+          "false"
+        ],
+        "exit": 0,
+        "seconds": 15.924,
+        "log": "/tmp/ipqc-c-product-retain-final-clean/01.log",
+        "head": "d3a2a2d534b866898fc31c38d27b791d4ab25cbe"
+      },
+      {
+        "command": [
+          "node",
+          "--test",
+          "tests/ipqc-c-integration-source-contract.test.cjs",
+          "tests/ipqc-c-read-io-source-contract.test.mjs"
+        ],
+        "exit": 0,
+        "seconds": 0.248,
+        "log": "/tmp/ipqc-c-product-retain-final-clean/02.log",
+        "head": "d3a2a2d534b866898fc31c38d27b791d4ab25cbe"
+      },
+      {
+        "command": [
+          "npm",
+          "run",
+          "build"
+        ],
+        "exit": 0,
+        "seconds": 8.858,
+        "log": "/tmp/ipqc-c-product-retain-final-clean/03.log",
+        "head": "d3a2a2d534b866898fc31c38d27b791d4ab25cbe"
+      }
+    ],
+    "documentationFollowup": "After d3a2a2d only verification/decision/ledger documents record actual passing checks; app/lib/public/tests/package/workflow inputs remain the exact preflighted candidate."
+  },
+  "supersededDiscardRequirementAudit": {
+    "document": "requirements-audit.zh-TW.md",
+    "requirements": 24,
+    "scopeIsolationEvidence": "PASS33 direct handler assertions retained; backend scope identity does not authorize UI retention",
+    "productSHA256": "a450090fd4e867718adf1553ba5badc3a859fe85fa61ff97583fdc351dfcf986",
+    "policy": "actual product/stage/coverage work changes silently discard unsent RAM/photos without Save; ordinary search retains target/input; stored versions and sent UNKNOWN receipt protected; pending/validation correction links discard only across actual product/stage contexts, with fresh target resolution",
+    "correctRed": {
+      "sourceCommit": "21925339e4acee6543a9e32453713c022f690dcf",
+      "expected": 0,
+      "actual": 1,
+      "log": "private /tmp/ipqc-c-discard-red.log",
+      "oracleApproval": "expected0 is authorized only by the final Frank reply; the earlier probe is not evidence of earlier approval"
+    },
+    "githubCI": "6bac02e C/AB-C/PROCESS/Feedback success; Windows pending at policy reply. Evaluate latest document-followup HEAD separately.",
+    "unverified": [
+      "real test-site latency",
+      "human dual-account sessions",
+      "physical devices and real IME",
+      "historical UNKNOWN32 outcome"
+    ],
+    "productCommit": "d8eca11ba0ff8b28a013c2ef61ecf86a7b335a82",
+    "commandGroups": [
+      {
+        "command": [
+          "node",
+          "--test",
+          "tests/ipqc-c-integration-source-contract.test.cjs",
+          "tests/ipqc-c-read-io-source-contract.test.mjs",
+          "tests/ipqc-c-operation-admission.test.cjs",
+          "tests/multiuser-ipqc-c-local-recovery-actual-stack.test.mjs",
+          "tests/ipqc-c-local-save-rejection.test.mjs",
+          "tests/ipqc-c-case-comparison.test.mjs",
+          "tests/ipqc-c-equipment-display.test.mjs"
+        ],
+        "exit": 0,
+        "seconds": 1.211,
+        "log": "/tmp/ipqc-c-discard-final-checks/00.log"
+      },
+      {
+        "command": [
+          "node",
+          "--test",
+          "tests/shared-unknown-departure.test.mjs",
+          "tests/navigation-departure.test.mjs",
+          "tests/delivery-departure.test.mjs",
+          "tests/owned-draft-ledger.test.mjs",
+          "tests/owned-draft-revert.test.mjs",
+          "tests/owned-draft-recovery-transport.test.mjs",
+          "tests/canvas-departure.test.mjs",
+          "tests/process-editor-departure.test.mjs",
+          "tests/editor-selection-departure.test.mjs",
+          "tests/authoring-departure.test.mjs",
+          "tests/multiuser-module-departure-helper.test.mjs",
+          "tests/multiuser-module-departure-bindings.test.mjs",
+          "tests/authoring-begin-readiness.test.mjs",
+          "tests/authoring-readiness-render.test.mjs",
+          "tests/authoring-review-status.test.mjs",
+          "tests/master-shared-clone.test.mjs",
+          "tests/master-review-render-performance.test.mjs",
+          "tests/process-scripts-build.test.mjs",
+          "tests/process-styles-build.test.mjs",
+          "tests/spreadsheet-loader.test.mjs"
+        ],
+        "exit": 0,
+        "seconds": 11.169,
+        "log": "/tmp/ipqc-c-discard-final-checks/01.log"
+      },
+      {
+        "command": [
+          "node",
+          "--test",
+          "tests/bounded-media-loading.test.mjs",
+          "tests/access-event-main-integration.test.cjs",
+          "tests/global-background-checks.test.mjs",
+          "tests/background-check-source-proof.test.cjs",
+          "tests/routine-fqc-source-contract.test.cjs"
+        ],
+        "exit": 0,
+        "seconds": 5.12,
+        "log": "/tmp/ipqc-c-discard-final-checks/02.log"
+      },
+      {
+        "command": [
+          "node",
+          "scripts/test-ipqc-c-save-projection-client.cjs"
+        ],
+        "exit": 0,
+        "seconds": 0.177,
+        "log": "/tmp/ipqc-c-discard-final-checks/03.log"
+      },
+      {
+        "command": [
+          "node",
+          "scripts/test-ipqc-c-read-recovery.cjs"
+        ],
+        "exit": 0,
+        "seconds": 0.199,
+        "log": "/tmp/ipqc-c-discard-final-checks/04.log"
+      },
+      {
+        "command": [
+          "node",
+          "scripts/test-ipqc-c-entry-apply.cjs"
+        ],
+        "exit": 0,
+        "seconds": 0.431,
+        "log": "/tmp/ipqc-c-discard-final-checks/05.log"
+      },
+      {
+        "command": [
+          "node",
+          "scripts/test-ipqc-c-compare-save.cjs"
+        ],
+        "exit": 0,
+        "seconds": 1.581,
+        "log": "/tmp/ipqc-c-discard-final-checks/06.log"
+      },
+      {
+        "command": [
+          "node",
+          "--test",
+          "tests/navigation-adapters.test.mjs",
+          "tests/workflow-begin-contract.test.cjs",
+          "tests/workflow-begin-receipt.test.cjs",
+          "tests/shared-draft-begin-v1.test.mjs",
+          "tests/module-begin-recovery.test.mjs",
+          "tests/iqc-begin-generation.test.mjs",
+          "tests/shared-draft-restore-admission.test.cjs"
+        ],
+        "exit": 0,
+        "seconds": 7.181,
+        "log": "/tmp/ipqc-c-discard-final-checks/07.log"
+      },
+      {
+        "command": [
+          "node",
+          "scripts/test-ipqc-c-local-gauge-browser.cjs"
+        ],
+        "exit": 0,
+        "seconds": 11.262,
+        "log": "/tmp/ipqc-c-discard-final-checks/08.log"
+      }
+    ],
+    "cleanCloneCommands": [
+      {
+        "command": [
+          "npm",
+          "run",
+          "lint"
+        ],
+        "exit": 0,
+        "seconds": 17.83,
+        "log": "/tmp/ipqc-c-discard-final-clean/00.log",
+        "head": "d8eca11ba0ff8b28a013c2ef61ecf86a7b335a82"
+      },
+      {
+        "command": [
+          "node",
+          "node_modules/typescript/bin/tsc",
+          "--noEmit",
+          "--incremental",
+          "false"
+        ],
+        "exit": 0,
+        "seconds": 15.193,
+        "log": "/tmp/ipqc-c-discard-final-clean/01.log",
+        "head": "d8eca11ba0ff8b28a013c2ef61ecf86a7b335a82"
+      },
+      {
+        "command": [
+          "node",
+          "--test",
+          "tests/ipqc-c-integration-source-contract.test.cjs",
+          "tests/ipqc-c-read-io-source-contract.test.mjs"
+        ],
+        "exit": 0,
+        "seconds": 0.231,
+        "log": "/tmp/ipqc-c-discard-final-clean/02.log",
+        "head": "d8eca11ba0ff8b28a013c2ef61ecf86a7b335a82"
+      },
+      {
+        "command": [
+          "npm",
+          "run",
+          "build"
+        ],
+        "exit": 0,
+        "seconds": 8.619,
+        "log": "/tmp/ipqc-c-discard-final-clean/03.log",
+        "head": "d8eca11ba0ff8b28a013c2ef61ecf86a7b335a82"
+      }
+    ],
+    "documentationFollowup": "Final approval/evidence documents plus direct product-switch in-flight/UNKNOWN receipt assertions. Production app/lib/public/package/workflow inputs unchanged from d8eca11/6bac02e. Full native suite and lint rerun; unchanged build/types/source/other regression evidence reused; current upload HEAD/tree/CI checked separately.",
+    "intermediateValidation81c3549": {
+      "native": "PASS IPQCC_PROFILE=1,1735 rows,Chromium1440/390: search target/input preserved; modal prevents direct product switch; product/stage/coverage discard with no prompt/write; pending photos discarded; stored C identity and DB/R2 unchanged; existing UNKNOWN/lateACK/conflict/readonly history retained",
+      "CcoreSourceControllerTests": 53,
+      "departureTests": 451,
+      "sharedMediaBackgroundRoutineTests": 123,
+      "navigationBeginHistoryTests": 291,
+      "comparisonAssertions": 33,
+      "existingHandlerProjectionReadApplyGaugeScripts": 5,
+      "typedLint": "PASS independent clean clone",
+      "typescript": "PASS nonincremental independent clean clone",
+      "cleanCloneSourceTests": 10,
+      "cleanCloneLockfile": "identical to working candidate",
+      "build": "PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK",
+      "CrawAsset": "exact source bytes SHA256039dcc7d35a04b386c3567d23f4d66a0d04fe20a1f8ed1411a7dde503bbce851",
+      "CcompiledBundle": "shell-scripts.cad2668680b743b012bf.js",
+      "CcompiledBundleProof": "exact existing standard bundler output and compiled index reference; withdrawn3928781c23ebfdfffb8e not referenced",
+      "sourceScan": {
+        "status": "PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE",
+        "head": "81c3549366d98fe9cd1ab851cb5d31a8ac7f4aa3",
+        "commits": 615,
+        "uniqueBlobs": 5404,
+        "bytesTotal": 128622634,
+        "workingFiles": 2018,
+        "classifiedHistoricalFindings": 32,
+        "realDataOpened": false,
+        "credentialValuesReturned": false
+      },
+      "diffCheck": "PASS",
+      "logs": "Private task logs in /tmp/ipqc-c-discard-checks and /tmp/ipqc-c-discard-clean; no source/data packages committed",
+      "acceptanceDocumentLinks": 65
+    },
+    "localValidation": {
+      "native": "PASS IPQCC_PROFILE=1,1735 rows,Chromium1440/390: ordinary search and same-context locate retain input; modal blocks direct product switch; product/stage/coverage/pending-item/validation cross-context selections discard unsent input with zero prompt/write; pending photos discarded; original UNKNOWN/lateACK/conflict/readonly history retained",
+      "CcoreSourceControllerTests": 53,
+      "departureTests": 451,
+      "sharedMediaBackgroundRoutineTests": 123,
+      "navigationBeginHistoryTests": 291,
+      "comparisonAssertions": 33,
+      "existingHandlerProjectionReadApplyGaugeScripts": 5,
+      "typedLint": "PASS independent clean clone",
+      "typescript": "PASS nonincremental independent clean clone",
+      "cleanCloneSourceTests": 10,
+      "cleanCloneLockfile": "identical to working candidate",
+      "build": "PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK",
+      "CrawAsset": "exact current source SHA256a450090fd4e867718adf1553ba5badc3a859fe85fa61ff97583fdc351dfcf986",
+      "CcompiledBundle": "shell-scripts.61e9e4344ddee1065bdc.js",
+      "CcompiledBundleProof": {
+        "status": "PASS_EXACT_DERIVED_BUNDLE_AND_REFERENCE",
+        "bundle": "shell-scripts.61e9e4344ddee1065bdc.js",
+        "rawCmatches": true,
+        "oldBundlesReferenced": false
+      },
+      "sourceScan": {
+        "status": "PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE",
+        "head": "d8eca11ba0ff8b28a013c2ef61ecf86a7b335a82",
+        "commits": 617,
+        "uniqueBlobs": 5418,
+        "bytesTotal": 129172689,
+        "workingFiles": 2018,
+        "classifiedHistoricalFindings": 32,
+        "realDataOpened": false,
+        "credentialValuesReturned": false
+      },
+      "diffCheck": "PASS",
+      "logs": "Private task logs in /tmp/ipqc-c-discard-checks and /tmp/ipqc-c-discard-clean; no source/data packages committed",
+      "acceptanceDocumentLinks": 65,
+      "acceptanceAndPolicyDocumentLinks": 70
+    },
+    "additionalGapRed": {
+      "sourceCommit": "cf368bc08969a29abd373f7c4aa804d23c4c2b9f",
+      "expected": 0,
+      "actual": 1,
+      "case": "pending-item crosses work context",
+      "oracleApproval": "same final-reply boundary; no retrospective approval claim"
+    },
+    "finalProductSwitchApproval": {
+      "FrankQuote": "對要放棄未存修改",
+      "date": "2026-11-12",
+      "question": "切產品時未儲存修改和照片直接放棄，還是保留",
+      "status": "CONFIRMED_FINAL_REPLY_NO_LONGER_WAITING",
+      "priorApprovalClaim": "WITHDRAWN: earlier summaries/current direct instruction were not Frank approval",
+      "pausedHead": "6bac02e4c36b11639179811d0333419da22c4aa6",
+      "productChangedDuringPause": false,
+      "productRewriteAfterReply": false,
+      "evidenceReuseReason": "app/lib/public/scripts/tests/package/workflow inputs identical to d8eca11/6bac02e; latest tests cover product/photos/stored-data/UNKNOWN/lateACK/zero-extra-write",
+      "newNativeAssertions": "exact original marker/UNKNOWN/stored snapshot/write count unchanged across products during held success ACK and held malformed-ACK readback",
+      "newNativeStatus": "PASS full IPQCC_PROFILE=1 Chromium1440/390,1735 rows; exact receipt/UNKNOWN/DB-R2/write-count assertions across products during held ACK and pending malformed-ACK readback",
+      "newLintStatus": "PASS npm run lint",
+      "logs": [
+        "private /tmp/ipqc-c-final-frank-product-browser.log",
+        "private /tmp/ipqc-c-final-frank-product-lint.log"
+      ],
+      "applicationInputProof": "git diff6bac02e -- app lib public package.json package-lock.json .github is empty; C SHA256a450090fd4e867718adf1553ba5badc3a859fe85fa61ff97583fdc351dfcf986 matches exact built candidate"
+    },
+    "status": "HISTORICAL_SUPERSEDED_NOT_NEW_PRODUCT_POLICY_ACCEPTANCE"
+  }
+}

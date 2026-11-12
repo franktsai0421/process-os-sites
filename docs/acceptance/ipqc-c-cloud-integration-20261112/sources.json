@@ -1,0 +1,107 @@
+{
+  "sources": [
+    {
+      "source": "main",
+      "commit": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+      "tree": "6eee3963fec61a540c144a920fbb3f65949d5e10"
+    },
+    {
+      "source": "boundary",
+      "commit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "tree": "7f3efd3f049c97c57f3f56cf321f6da325a17b13"
+    },
+    {
+      "source": "pr103",
+      "commit": "2d2d79cb23c4456e28adc4cdfc60624ec4f5e24b",
+      "tree": "df06420b82da8f7fc24e34ea4f85bb81b6376279"
+    },
+    {
+      "source": "pr104",
+      "commit": "429d3bfad9a5b4e1f937b9546201619ca5f65131",
+      "tree": "5b46ce952282dbfea2f5393b0105ca8dbd260dcd"
+    }
+  ],
+  "selectiveReuse": [
+    {
+      "path": "lib/ipqc-c-workflow.ts",
+      "boundaryBlob": "ed3d88fa52c6db57a31f11321f1b7844dfb084bd",
+      "matchesBoundaryExactly": true
+    },
+    {
+      "path": "lib/approved-history.ts",
+      "boundaryBlob": "37fd42301b2549e4b1e10829f79150f78546db5a",
+      "matchesBoundaryExactly": true
+    },
+    {
+      "path": "scripts/test-ipqc-c-tombstone-revival.cjs",
+      "boundaryBlob": "a033eefdd86d7dbc7604f28ac198826d2dc46b7f",
+      "matchesBoundaryExactly": true
+    }
+  ],
+  "mainAlreadyIncludes": [
+    91,
+    93,
+    96,
+    100
+  ],
+  "notMerged": [
+    103,
+    104
+  ],
+  "noSchemaMigration": true,
+  "pr104Recheck": {
+    "commit": "15a5acb404edb1d4f1826b13430f61376e3accb4",
+    "tree": "d385752707bddc857442d446c37c8d30e50d8ae3",
+    "changesSinceReviewedHead": "8 CI/test/documentation files; no C or shared product-source changes",
+    "action": "read-only comparison; not merged"
+  },
+  "completeAuditFilterFix": {
+    "status": "WITHDRAWN_UNAPPROVED_UX",
+    "commits": [
+      "5df6f8658b5b0a64b852c8fecf8a2664ea8ec31c",
+      "21925339e4acee6543a9e32453713c022f690dcf"
+    ],
+    "invalidAssumption": "same stored C module scope implies unsent input can survive actual work selection; no confirmed requirement supports this",
+    "oldRedOracle": "f792 expected1 actual0 was an invalid expectation, not a product defect"
+  },
+  "supersededWorkSelectionDiscardCorrection": {
+    "basis": "Final Frank answer in current handoff: 「對要放棄未存修改」, answering product switch unsaved changes/photos discard vs retain. Earlier delegated summaries/current direct instruction were not prior approval. Stage/page rules retain their earlier confirmed scope.",
+    "originalThreadIndependentlyRead": false,
+    "sourceBefore": "21925339e4acee6543a9e32453713c022f690dcf",
+    "restoreFrontendFrom": "f7925ad three work-selection discard handlers; additional two old cross-work-context locate paths guarded",
+    "frontendSHA256": "a450090fd4e867718adf1553ba5badc3a859fe85fa61ff97583fdc351dfcf986",
+    "cacheTag": "20261112-c-discard3",
+    "semantics": "ordinary search preserves target/input; product/stage/coverage work changes silently discard unsent RAM/photos; stored C identity and original sent receipt retained; pending/validation locate uses same discard on changed product/stage, then re-resolves target from stored draft; same-context locate preserves input",
+    "correctRed": "2192533 actual1 expected0 staged changes after selecting another product",
+    "sharedDependency": "only C/index exact successor inverses refreshed; original beforeHash and negatives retained",
+    "oldBranchesChanged": false,
+    "additionalGapRed": {
+      "sourceCommit": "cf368bc08969a29abd373f7c4aa804d23c4c2b9f",
+      "actual": 1,
+      "expected": 0,
+      "case": "pending-item correction link selects another product but retained journal"
+    },
+    "approvalTimeline": {
+      "pausedAtHead": "6bac02e4c36b11639179811d0333419da22c4aa6",
+      "pausedCodeChanged": false,
+      "finalFrankQuote": "對要放棄未存修改",
+      "questionScope": "切產品時未儲存修改和照片直接放棄，還是保留",
+      "finalDecision": "DISCARD_UNSAVED_CHANGES_AND_PHOTOS_WITHOUT_PROMPT_OR_SAVE",
+      "status": "CONFIRMED_NOW_NOT_RETROACTIVE",
+      "implementation": "existing candidate matches; no product rewrite"
+    },
+    "status": "SUPERSEDED_BY_LATEST_FRANK_PRODUCT_RETENTION"
+  },
+  "latestProductRetention": {
+    "FrankQuote": "在同一個模組下切換產品可以保留 如果切換分頁就不保留 例如都在ipqc c下面 就保留 但是切換頁面到FQC就不保留",
+    "status": "CURRENT_EFFECTIVE_SUPERSEDES_1014_AND_PREVIOUS_DISCARD_ANSWER",
+    "baseHead": "dcf3e637a6ae8d24293f70166df727b52cd4ec32",
+    "frontendSHA256": "393941c3f4716bd5542f17f0eac9b65619e6da4f858ffc5cd0ec81b5a7b0e29f",
+    "cacheTag": "20261112-c-product4",
+    "changedSelector": "data-ipqcc-product only",
+    "otherSelectors": "stage/coverage/pending/validation are not newly confirmed or expanded",
+    "scope": "same C working/journal/pending files retained; actual module departure discards unsent; stored versions and exact sent receipts protected",
+    "reuse": "selectively reuse prior product-retention concept; do not revert all of5df6f865 or change other selectors",
+    "oldBranchesChanged": false
+  }
+}
