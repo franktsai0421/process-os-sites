@@ -236,3 +236,6 @@ cb12823 的 Local safety run 43126874931／job130881088426：1–35 通過，第
 查到就緒探針仍要求已被Canvas核准歷史元件移除的authoring-version-choice；既有歷史測試也明確要求此舊selector不存在。四組實際controller、signed handler與隔離SQLite/R2待審畫面重現舊探針false，新UI映射true。只修pendingProcessUIReady，對齊唯一、可見、可用且具有approved-choice標記的canvas-approved-version當前值，並明確要求非歷史模式及歷史展示隱藏。原案件／savedId／generation、pending status、兩種唯讀鎖、禁止修改、零Save/Submit及唯一可用Withdraw全部保留；另加缺少／重複／隱藏／停用／錯誤選擇及真實核准歷史的反例。
 
 相關93項source／合成測試通過，包括四種中越文與inline/records真實controller及原五輪完整伺服器lifecycle。除上述helper外，整份browser runner bytes相同：五循環、90次action、所有等待、POST計數、native advisory、權威資料核對均未改。沒有產品程式、權限或資料模型修改。此候選尚待上傳後原生CI；目前Windows仍跑56e4051，不取消、不重跑、不以新push中斷。先前56批次的「原runner未改」是該批次歷史狀態。完整目標、共同HEAD與實站驗收仍未完成。
+
+
+續作集中CI：既有獨立原生job在原Process runner後，追加原Windows第36步後半完全相同的FQC source／原生lifecycle及多人矩陣runner；重用同一build／瀏覽器，不改原Windows、不刪斷言、不延長25分鐘job上限。已知本機原生Worker限制不重試，完整新增CI結果待遠端新HEAD確認。此增量只有CI與紀錄，產品輸入不變。

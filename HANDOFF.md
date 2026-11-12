@@ -597,3 +597,6 @@ cb12823 的 Windows第36步已越過 Begin，但第一輪 silent-navigation-stag
 ### #104 56e4051 後續：送審待審探針
 
 十檔已成功公開至56e4051／tree f1dc86e。新原生job確認Begin與三種靜默導航通過，後續submit-confirm仍30秒失敗；200不可視為驗收完成。已用四組真controller證實探針引用已移除的legacy selector，後續僅對齊當前Canvas selector與強化反例，相關93項通過。原案件／Save／generation／唯讀／Withdraw與五循環、90次action、所有等待、POST及權威資料斷言保留，產品不變。詳見PROCESS同日「待審就緒探針」節。新候選尚未上傳；不取消仍在執行的Windows CI，未合併部署或操作真資料。
+
+
+續作集中CI：既有獨立原生job在原Process runner後，追加原Windows第36步後半完全相同的FQC source／原生lifecycle及多人矩陣runner；重用同一build／瀏覽器，不改原Windows、不刪斷言、不延長25分鐘job上限。已知本機原生Worker限制不重試，完整新增CI結果待遠端新HEAD確認。此增量只有CI與紀錄，產品輸入不變。

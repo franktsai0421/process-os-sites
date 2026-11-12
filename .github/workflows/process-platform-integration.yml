@@ -130,3 +130,8 @@ jobs:
         run: node tests/begin-recovery-browser.mjs
       - name: Original process lifecycle and silent navigation acceptance
         run: node tests/process-draft-lifecycle-browser.mjs
+      - name: Original remaining FQC lifecycle contracts and native acceptance
+        run: |
+          node --test --test-concurrency=1 tests/fqc-draft-lifecycle-browser-contract.test.mjs tests/fqc-draft-lifecycle-route.test.mjs tests/fqc-matrix-multiuser.test.mjs tests/quality-review-readiness.test.mjs
+          node tests/fqc-draft-lifecycle-browser.mjs
+          node tests/fqc-matrix-multiuser-browser.mjs
