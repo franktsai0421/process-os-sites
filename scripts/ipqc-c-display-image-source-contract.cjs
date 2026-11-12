@@ -27,6 +27,7 @@ const rules=[
 const hash=source=>createHash('sha256').update(source).digest('hex');
 const hasDisplay=source=>source.includes('equipmentForDisplay(')||source.includes('equipmentDetailHTML(');
 function withoutDisplay(source){
+ source=require('./ipqc-c-integration-source-contract.cjs').projectKnown(Buffer.from(source),'public/process/ipqc-c.js');
  assert.equal(hash(source),afterHash,'C display source differs from exact reviewed bytes');
  let result=Buffer.from(source);
  for(const rule of [...rules].reverse()){

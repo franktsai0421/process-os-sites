@@ -1,3 +1,7 @@
+# 2026-11-12 — IPQC C Cloud integration candidate
+
+New independent C branch from main9fbba823; reuses the verified Dot source and selected C boundary fixes, with whole-group choices and automatic re-comparison. #103/#104 are unchanged comparison sources. [Provenance, scope and validation](docs/acceptance/ipqc-c-cloud-integration-20261112/README.md). Draft only; no merge/deployment/real-data change or human acceptance.
+
 # 2026-11-09 — Process platform stage catalog batch
 
 Isolated b06394c successor with main d4ac309 (#98) merged handles the missing approved custom types when adding a stage. It does not absorb the concurrently dirty unified-draft/canvas work. [Tracking matrix](docs/acceptance/process-platform-tracking-20261109.md) records ownership, sources, tests and outstanding decisions. No business data/schema/account permissions changed; no merge/deployment/live acceptance is implied.

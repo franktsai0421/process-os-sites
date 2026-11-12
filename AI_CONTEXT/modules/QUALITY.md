@@ -387,3 +387,7 @@ see [policy and verification boundary](../../docs/sites/PHOTO_UPLOAD.md).
 - 不減 R2/SQL/fresh permission/CAS 次數，不改窄寫入依賴閉包，尚非實站 I/O 延遲或原生 UI 驗收。
 
 2026-10-30 AB/C 草稿切頁補驗：FQC navigation.requiresSave 使用 `control.libraries.fqc.workflow`，與 FQC 現行儲存 API 同一草稿來源；不讀外層不存在的 workflow。參見 `tests/ab-c-cross-module-browser.mjs` 與 AB/C acceptance 報告。
+
+## 2026-11-12 — IPQC C Cloud candidate
+
+C now compares on explicit Save, with one whole-group mine/theirs/cancel choice and automatic fresh comparison after peer revisions during choice/upload or proven final-CAS rejection. Nonconflicts, original tombstone IDs/relations, gauge display and group-scoped duplicate photos are retained. Unsent forms are RAM-only and silently abandoned; approved versions are same-page readonly, with no new restore. C submit/withdraw never authorizes platform approve/return. No schema/data change or deployment is implied. [Sources, risks and exact verification](../../docs/acceptance/ipqc-c-cloud-integration-20261112/README.md).

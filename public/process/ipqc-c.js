@@ -12,7 +12,7 @@
     returned:t('Đã trả lại','已發回'), withdrawn:t('Đã rút lại','已撤回') })[value] || value;
   const lastEdit = version => [...(version?.history||[])].reverse().find(event=>!['submit','approve','reject','withdraw'].includes(event.action));
   const identity = () => window.ProcessSync?.identity || (typeof currentUser !== 'undefined' ? currentUser : null);
-  const permitted = key => !readAccessBlocked()&&(window.sharedDraftPermissionAllowed?.(sharedClient,key)??true)&&(typeof window.hasPermission === 'function' ? window.hasPermission(key==='approval.submit'?'view:data':key) : identity()?.role === 'admin');
+  const permitted = key => ['approval.approve','approval.reject','approval.withdraw'].includes(key)?operationAllowed(key==='approval.reject'?'return':key.split('.')[1]):!readAccessBlocked()&&(window.sharedDraftPermissionAllowed?.(sharedClient,key)??true)&&(typeof window.hasPermission === 'function' ? window.hasPermission(key==='approval.submit'?'view:data':key) : identity()?.role === 'admin');
   const headers = () => ({...(window.ProcessSync?.platformHeaders?.() || { 'Content-Type':'application/json' }),'X-IPQC-C-Save-Projection':'1'});
   let host = null, reviewHost = null, control = null, catalog = { products:[], stages:[] }, equipmentGroups = [], equipment = [], revision = null;
   let working = null, selectedVersionId = '', productCode = '', stageCode = '', errorId = '', search = '';
@@ -55,13 +55,14 @@
     if(!errorRecoveryBaseCache||tuple.some((value,index)=>value!==errorRecoveryBaseCache.tuple[index]))errorRecoveryBaseCache={tuple,value:JSON.stringify(tuple)};
     return errorRecoveryBaseCache.value;
   }
-  const errorRecoverySupported=target=>!!target&&!target.readonly&&target.kind==='error'&&!!target.existingId&&!!target.base&&!(target.photos?.length)&&!target.pendingInsert;
+  const errorRecoverySupported=()=>false; // Unsent forms have no durable recovery.
   function errorRecoveryOwner(){
     const actor=identity(),epoch=window.ProcessSync?.identityGeneration?.(),mount=mountSequence,delivery=window.ProcessSync?.captureDelivery?.();
     return()=>identity()===actor&&identity()?.id===actor?.id&&window.ProcessSync?.identityGeneration?.()===epoch&&mountSequence===mount&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
   }
   function paintErrorRecovery(){
     const node=host?.querySelector('[data-ipqcc-recovery-status]');if(!node)return;
+    if(!errorRecoveryPending){node.textContent='';return;}
     const state=errorRecovery?.session.status();
     node.textContent=[t('Chỉ khôi phục tên/ghi chú mã lỗi hiện có; mục mới, hạng mục và ảnh chưa được lưu cục bộ.','僅恢復既有錯誤代碼名稱／備註；新增列、檢查項目與照片尚未本機保存。'),errorRecoveryMessage,
       state&&!state.canRecover?t('Không thể khôi phục từ phiên khác khi thiếu khóa độc quyền.','缺少獨占鎖時，不能恢復其他執行階段的紀錄。'):'',errorRecoveryPending?t('Kết quả chưa xác định; chỉ kiểm tra biên nhận gốc, không gửi lại.','結果待確認；僅查原回執，不重送。'):''].filter(Boolean).join(' ');
@@ -311,7 +312,7 @@
     if(busy)return null;if(errorRecoveryPending){message=t('Thao tác trước chưa được xác nhận; hãy kiểm tra biên nhận gốc trước khi lưu.','前次操作尚未確認，請先查證原回執再存取。');draw();return null;}if(['save','submit'].includes(action)&&modal&&!modal.readonly){message=t('Hãy áp dụng hoặc hủy biểu mẫu trước khi lưu hoặc gửi duyệt.','請先套用或取消目前表單，再儲存或送審。');toast(message);return null;}if(saveInputNoticePending()){showSaveInputNotice(saveInputNotice);return null;}readAckContext=null;busy=true;message='';const restoreView=window.VersionDraftUI.preserveView(host,reviewHost),requestActor=identity(),requestActorId=requestActor?.id,requestEpoch=window.ProcessSync?.identityGeneration?.(),requestMount=mountSequence,delivery=window.ProcessSync?.captureDelivery?.(),
       targetModal=closeModal?modal:null,
       editorState=()=>targetModal?JSON.stringify({fields:targetModal.fields,photos:targetModal.photos,pendingInsert:targetModal.pendingInsert}):'',
-      submittedState=editorState(),sameActor=()=>identity()===requestActor && identity()?.id===requestActorId&&requestEpoch===window.ProcessSync?.identityGeneration?.()&&requestMount===mountSequence&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));let cancelled=false,refreshCurrent=false,readWasSuperseded=false,preserveInputs=false,submittedCommand=null;
+      submittedState=editorState(),sameActor=()=>identity()===requestActor && identity()?.id===requestActorId&&requestEpoch===window.ProcessSync?.identityGeneration?.()&&requestMount===mountSequence&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));let cancelled=false,refreshCurrent=false,readWasSuperseded=false,preserveInputs=false;
     const cancelResponse=()=>{cancelled=true;refreshCurrent=sameActor();return null;};
     if(action==='save'){const button=host?.querySelector('#ipqcc-save');if(button){button.disabled=true;button.setAttribute('aria-busy','true');button.textContent=t('Đang lưu…','存取中…');}}
     try {
@@ -347,7 +348,7 @@
       const flow=control.workflow;let commandAction=action,fields={},submissionGeneration=null;
       if(action==='save') {
         await transport.flush();
-        if(localChanges.length)fields={localChanges:await prepareLocalSave(sameActor)};
+        if(localChanges.length)fields=await compareBeforeSave(sameActor);
       } else if(action==='submit') {
         if(localChanges.length)throw Error('UNSAVED_CHANGES_SAVE_REQUIRED');
         const submission=window.captureSharedDraftSubmission(flow);submissionGeneration=flow.generation;
@@ -374,7 +375,22 @@
       const recovered=closeModal&&action==='apply'&&errorRecoverySupported(targetModal);
       let command,result;
       if(recovered)({command,result}=await sendErrorRecovery(fields,targetModal));
-      else{command=transport.prepare(submissionGeneration||saveCapture?.flow.generation||flow.generation,commandAction,fields);submittedCommand=command;if(action==='save'&&fields.localChanges)localSaveAttempt={operationId:command.operationId,generation:command.generation,changes:localChanges,raw:JSON.stringify(localChanges)};result=await transport.sendPrepared(command);}
+      else {
+        const originalInput=JSON.stringify({working,localChanges,localGeneration});
+        for(;;){
+          command=transport.prepare(submissionGeneration||saveCapture?.flow.generation||flow.generation,commandAction,fields);
+          if(action==='save'&&fields.localChanges)localSaveAttempt={operationId:command.operationId,generation:command.generation,changes:localChanges,raw:JSON.stringify(localChanges)};
+          try{result=await transport.sendPrepared(command);break;}
+          catch(error){
+            // Only this transport's exact original, proven non-writing response
+            // permits a fresh comparison/command. UNKNOWN never retries a write.
+            if(action!=='save'||!fields.localChanges||!sameActor()||transport.hasUnknown()||
+              !['DRAFT_REVISION_CHANGED_RECONFIRM','DEPENDENCY_CHANGED_RECONFIRM'].includes(error.message)||
+              !transport.isConfirmedRejection(error,command)||originalInput!==JSON.stringify({working,localChanges,localGeneration}))throw error;
+            fields=await compareBeforeSave(sameActor);
+          }
+        }
+      }
       if(saveCapture&&!saveCapture.owns()){readWasSuperseded=true;return null;}
       if(saveCapture&&control?.workflow?.generation!==saveCapture.generation){readWasSuperseded=true;return null;}
       if(saveCapture&&saveCapture.inputsChanged()){
@@ -417,13 +433,7 @@
     } catch(error) {if(isReadSuperseded(error)){readWasSuperseded=true;return null;}if(sameActor()){
       if(closeModal && targetModal && !targetModal.existingId && ['create-item','create-error'].includes(action) &&
         !sharedClient?.hasUnknownBegin?.()&&(sharedClient?.hasUnknown() || error.message==='RESULT_UNKNOWN_CHECK_BEFORE_RETRY'))targetModal.creationIdentityUnknown=true;
-      if(action==='save'&&submittedCommand?.localChanges&&error.message==='DEPENDENCY_CHANGED_RECONFIRM'&&
-        !sharedClient?.hasUnknown()&&sharedClient?.isConfirmedRejection(error,submittedCommand)){
-        const rejectedInput=JSON.stringify({working,localChanges,localGeneration});
-        conflict={items:[],localSave:true,owns:()=>sameActor()&&!sharedClient?.hasUnknown()&&
-          JSON.stringify({working,localChanges,localGeneration})===rejectedInput};
-      }
-      const terms=workflowErrors[error.message];message=terms?t(...terms):error.message;
+      const terms=workflowErrors[error.message];message=error.message==='LOCAL_SAVE_CANCELLED'?'':terms?t(...terms):error.message;
     }return null;}
     finally {if(requestMount===mountSequence)busy=false;if(!readWasSuperseded&&!preserveInputs&&sameActor()){
       if(!cancelled || refreshCurrent){draw();reviewDraw();}
@@ -583,12 +593,152 @@
     if(closeModal)closeEditor(true,false);
     message='';draw();toast(t('Đã cập nhật cục bộ · bấm Lưu để chia sẻ','已更新本機輸入 · 按存取後共用'));return {local:true};
   }
-  async function prepareLocalSave(isCurrent){
+  // Three-way comparison at explicit Save only. No shared state is changed by
+  // comparison or by a choice; the existing atomic handler owns the commit.
+  function compareLocalSave(base, local, latest, choices={}) {
+    const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
+    const equal=(a,b)=>JSON.stringify(a??null)===JSON.stringify(b??null);
+    const changes=[],clashes=[],live=clone(latest);
+    const fields={errors:['name','note','reason'],items:['standard','description','note','reason','tool','method','frequency','cpkEnabled','standardEnabled','notApplicable','notApplicableReason','equipmentGroupId','equipmentId','mediaItems','rule']};
+    const choose=(key,b,mine,theirs,label)=>{
+      if(equal(mine,b))return clone(theirs);
+      if(equal(theirs,b)||equal(mine,theirs))return clone(mine);
+      if(!choices[key])clashes.push({key,label,base:clone(b),mine:clone(mine),theirs:clone(theirs)});
+      return clone(choices[key]==='mine'?mine:theirs);
+    };
+    const photos=(b,m,r,key,label)=>{
+      const group=rows=>{const result=new Map();for(const row of rows||[]){const id=row.id||row.url;result.set(id,[...(result.get(id)||[]),row]);}return result;};
+      const bg=group(b),mg=group(m),rg=group(r),resolved=new Map();
+      for(const id of new Set([...rg.keys(),...mg.keys(),...bg.keys()])){
+        const before=bg.get(id)||[],mine=mg.get(id)||[],theirs=rg.get(id)||[];
+        // Repeated content hashes have no stable occurrence ID. Resolve only
+        // that ambiguous group, never the entire item's photo collection.
+        if(Math.max(before.length,mine.length,theirs.length)>1||!before.length||!mine.length||!theirs.length)
+          resolved.set(id,choose(key+':'+id,before,mine,theirs,label+' · '+id));
+        else {const row={...theirs[0]};for(const field of new Set([...Object.keys(before[0]),...Object.keys(mine[0]),...Object.keys(theirs[0])]))
+          row[field]=choose(key+':'+id+':'+field,before[0][field],mine[0][field],theirs[0][field],label+' · '+field);resolved.set(id,[row]);}
+      }
+      const ids=rows=>(rows||[]).map(row=>row.id||row.url);
+      const ordering=choose(key+':order',ids(b),ids(m),ids(r),label+' · order');
+      const remaining=new Map([...resolved].map(([id,rows])=>[id,[...rows]])),result=[];
+      for(const id of ordering){const row=remaining.get(id)?.shift();if(row)result.push(row);}
+      for(const rows of remaining.values())result.push(...rows);
+      return result;
+    };
+    const deletedParents=new Set(),revivedParents=new Set();
+    for(const kind of ['errors','items']){
+      const originals=new Map(base[kind].map(row=>[row.id,row]));
+      for(const mine of local[kind]){
+        if(kind==='items'&&deletedParents.has(mine.errorId))continue;
+        const before=originals.get(mine.id),theirs=live[kind].find(row=>row.id===mine.id);
+        if(!before){
+          if(mine.deleted)continue;
+          if(!mine.id.startsWith('local-'))throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');
+          const input=kind==='errors'?{productCode:mine.productCode,stageCode:mine.stageCode,name:mine.name,note:mine.note,reason:mine.reason}:{errorId:mine.errorId,item:Object.fromEntries(fields.items.filter(key=>mine[key]!==undefined).map(key=>[key,clone(mine[key])]))};
+          changes.push({moduleAction:kind==='errors'?'create-error':'create-item',localId:mine.id,input});live[kind].push(clone(mine));continue;
+        }
+        const childIntent=kind==='errors'&&local.items.some(row=>row.errorId===mine.id&&!equal(row,base.items.find(old=>old.id===row.id)));
+        if(equal(before,mine)&&!childIntent&&!(kind==='items'&&revivedParents.has(mine.errorId)))continue;
+        if(mine.deleted&&!before.deleted){
+          if(kind==='errors')deletedParents.add(mine.id);
+          if(!theirs||theirs.deleted)continue;
+          const beforeGroup=kind==='errors'?{row:before,items:base.items.filter(row=>row.errorId===mine.id)}:before;
+          const remoteGroup=kind==='errors'?{row:theirs,items:latest.items.filter(row=>row.errorId===mine.id)}:theirs;
+          const selected=choose(kind+':'+mine.id+':delete',beforeGroup,null,remoteGroup,mine.code+' · delete');
+          if(selected!==null)continue;
+          const guards=[{path:[kind,{id:mine.id}],value:clone(theirs)}];
+          if(kind==='errors')guards.push({path:['items'],value:clone(live.items)});
+          changes.push({moduleAction:kind==='errors'?'delete-error':'delete-item',input:{id:mine.id,...(kind==='errors'?{cascade:true}:{})},guards});
+          theirs.deleted=true;if(kind==='errors')for(const row of live.items)if(row.errorId===mine.id)row.deleted=true;
+          continue;
+        }
+        if(!theirs)throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');
+        if(theirs.deleted&&!mine.deleted){
+          const group=kind==='errors',key=kind+':'+mine.id+':revive';
+          const old=group?{row:before,items:base.items.filter(row=>row.errorId===mine.id)}:before;
+          const own=group?{row:mine,items:local.items.filter(row=>row.errorId===mine.id)}:mine;
+          const peer=group?{row:theirs,items:latest.items.filter(row=>row.errorId===mine.id)}:theirs;
+          const inherited=kind==='items'&&revivedParents.has(mine.errorId);
+          const selected=inherited?own:choose(key,old,own,peer,mine.code+' · deleted');
+          if(!equal(selected,own)){if(group)deletedParents.add(mine.id);continue;}
+          const guards=[{path:[kind,{id:mine.id}],value:clone(theirs)}];
+          if(group){guards.push({path:['items'],value:clone(live.items)});revivedParents.add(mine.id);}
+          else {const parent=live.errors.find(row=>row.id===mine.errorId&&!row.deleted);if(!parent)throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');guards.push({path:['errors',{id:parent.id}],value:clone(parent)});}
+          changes.push({moduleAction:group?'revive-error':'revive-item',input:{id:mine.id},guards});theirs.deleted=false;
+        }
+        const patches=[],guards=[],guardRow=clone(theirs);
+        for(const field of fields[kind]){
+          if(equal(before[field],mine[field]))continue;
+          const key=kind+':'+mine.id+':'+field,label=mine.code+' · '+field;
+          const value=field==='mediaItems'?photos(before[field],mine[field],theirs[field],key,label):choose(key,before[field],mine[field],theirs[field],label);
+          if(equal(value,theirs[field]))continue;
+          const path=[kind,{id:mine.id},field];patches.push({op:'set',path,value});guards.push(Object.hasOwn(theirs,field)?{path,value:clone(theirs[field])}:{path:[kind,{id:mine.id}],value:guardRow});theirs[field]=clone(value);
+        }
+        if(patches.length)changes.push({patches,guards});
+      }
+    }
+    return {changes,clashes};
+  }
+  let cancelSaveChoice=null;
+  function chooseSaveConflicts(rows,isCurrent){
+    return new Promise(resolve=>{
+      const overlay=document.createElement('div');overlay.className='ipqcc-overlay';overlay.dataset.ipqccSaveChoice='1';
+      overlay.innerHTML=`<section class="ipqcc-dialog" role="dialog" aria-modal="true" aria-label="${t('Xung đột','修訂衝突')}"><header><h3>${t('Chọn tất cả nội dung xung đột','整組選擇衝突內容')}</h3></header><div class="ipqcc-dialog-body"><p>${t('Lựa chọn áp dụng cho tất cả xung đột; giữ cả hai phần không xung đột.','選擇套用至全部衝突；雙方未衝突內容均保留。')}</p>${rows.map(row=>`<article><h4>${h(row.label)}</h4><strong>${t('Của tôi','我的')}</strong><pre style="white-space:pre-wrap;overflow-wrap:anywhere">${h(JSON.stringify(row.mine,null,2))}</pre><strong>${t('Của người khác','對方的')}</strong><pre style="white-space:pre-wrap;overflow-wrap:anywhere">${h(JSON.stringify(row.theirs,null,2))}</pre></article>`).join('')}</div><footer><button type="button" data-cancel>${t('Hủy','取消')}</button><button type="button" data-save-choice="mine">${t('Dùng tất cả của tôi','整組用我的')}</button><button type="button" data-save-choice="theirs">${t('Dùng tất cả của người khác','整組用對方的')}</button></footer></section>`;
+      const close=result=>{if(cancelSaveChoice===cancel)cancelSaveChoice=null;overlay.remove();resolve(isCurrent()?result:null);};
+      const cancel=()=>close(null);cancelSaveChoice=cancel;
+      overlay.querySelector('[data-cancel]').onclick=()=>close(null);
+      for(const choice of ['mine','theirs'])overlay.querySelector('[data-save-choice="'+choice+'"]').onclick=()=>close(Object.fromEntries(rows.map(row=>[row.key,choice])));
+      overlay.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();close(null);}else if(event.key==='Tab'){const nodes=[...overlay.querySelectorAll('button')].filter(node=>!node.disabled);if(document.activeElement===(event.shiftKey?nodes[0]:nodes.at(-1))){event.preventDefault();(event.shiftKey?nodes.at(-1):nodes[0]).focus();}}});
+      document.body.append(overlay);overlay.querySelector('[data-cancel]').focus();
+    });
+  }
+  async function compareBeforeSave(isCurrent){
+    const base=copy(control.workflow.working),local=copy(working),generation=control.workflow.generation;
+    const raw=JSON.stringify({working,localChanges,localGeneration});
+    const current=()=>isCurrent()&&raw===JSON.stringify({working,localChanges,localGeneration});
+    // Hash bytes locally before comparison; no upload occurs while a choice is open.
+    const photoIds=new Map();
+    for(const [id,photo] of localPhotos){
+      if(!photo.hash)photo.hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await photo.file.arrayBuffer())),byte=>byte.toString(16).padStart(2,'0')).join('');
+      if(!current())throw Error('IPQCC_READ_SUPERSEDED');photoIds.set(id,photo.hash);
+    }
+    for(const item of local.items)for(const photo of item.mediaItems||[])if(photoIds.has(photo.id))photo.id=photoIds.get(photo.id);
+    const readLatest=async()=>{
+      const latest=await sharedTransport().read();
+      if(!current())throw Error('IPQCC_READ_SUPERSEDED');
+      const flow=latest.workflow;
+      if(!flow||flow.generation!==generation)throw Error('STALE_GENERATION');
+      if(latest.permissions?.edit!==true||latest.permissions?.save!==true)throw Error('FORBIDDEN');
+      if(flow.pendingId||flow.editable===false)throw Error('PENDING_LOCKED');
+      return flow;
+    };
+    let flow=await readLatest();
+    while(current()){
+      let compared=compareLocalSave(base,local,flow.working);
+      if(compared.clashes.length){
+        const choices=await chooseSaveConflicts(compared.clashes,current);
+        if(!choices)throw Error('LOCAL_SAVE_CANCELLED');
+        // Consent applies only to the exact revision that was displayed.
+        const fresh=await readLatest();
+        if(fresh.revision!==flow.revision){flow=fresh;continue;}
+        compared=compareLocalSave(base,local,flow.working,choices);
+      }
+      const changes=await prepareLocalSave(current,compared.changes);
+      // Photo upload is also asynchronous. Compare again automatically if a peer
+      // wrote before the final Save; cancellation never uploads a selected file.
+      const fresh=await readLatest();
+      if(fresh.revision!==flow.revision){flow=fresh;continue;}
+      return {localChanges:changes,expectedRevision:flow.revision};
+    }
+    throw Error('IPQCC_READ_SUPERSEDED');
+  }
+
+  async function prepareLocalSave(isCurrent,selectedChanges=localChanges){
     if(localGeneration&&localGeneration!==control.workflow.generation)throw Error('STALE_GENERATION');
-    const changes=copy(localChanges),ids=new Map();
-    const referenced=new Set();
-    const collect=value=>{if(Array.isArray(value))value.forEach(collect);else if(value&&typeof value==='object'){if(localPhotos.has(value.id))referenced.add(value.id);Object.values(value).forEach(collect);}};collect(changes);
-    for(const id of referenced){const photo=localPhotos.get(id);if(!photo.uploaded)photo.uploaded=await upload(photo.file);if(!isCurrent())throw Error('IDENTITY_CHANGED');ids.set(id,photo.uploaded);}
+    const changes=copy(selectedChanges),ids=new Map();
+    const referenced=new Set(),photosById=new Map(localPhotos);for(const photo of localPhotos.values())if(photo.hash)photosById.set(photo.hash,photo);
+    const collect=value=>{if(Array.isArray(value))value.forEach(collect);else if(value&&typeof value==='object'){if(photosById.has(value.id))referenced.add(value.id);Object.values(value).forEach(collect);}};collect(changes);
+    for(const id of referenced){const photo=photosById.get(id);if(!photo.uploaded)photo.uploaded=await upload(photo.file);if(photo.hash&&photo.uploaded!==photo.hash)throw Error('PHOTO_HASH_MISMATCH');if(!isCurrent())throw Error('IDENTITY_CHANGED');ids.set(id,photo.uploaded);}
     const replace=value=>Array.isArray(value)?value.map(replace):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).map(([key,v])=>[key,key==='id'&&ids.has(v)?ids.get(v):replace(v)])):value;
     return replace(changes);
   }
@@ -725,7 +875,7 @@
       ${readRecoveryNeeded?`<div class="ipqcc-message" role="alert">${t('Trạng thái quyền đã thay đổi; cần đọc lại để tiếp tục. Không tự động gửi lại.','權限讀取狀態已改變，請重新讀取後繼續；不會自動重送。')} <button type="button" id="ipqcc-read-retry" class="button ghost">${t('Đọc lại dữ liệu và quyền','重新讀取資料與權限')}</button></div>`:''}
       <header class="ipqcc-header"><div><p class="eyebrow">IPQC-C</p><h2>${t('Tiêu chuẩn kiểm tra công đoạn C','C 線製程檢查標準')}</h2>
         <p>${t('Dữ liệu sản phẩm và công đoạn lấy từ danh mục hiện hành','產品與工段讀取現行主檔')}</p></div>
-        <div class="ipqcc-header-actions"><button type="button" id="ipqcc-recovery" class="button ghost">${t('Khôi phục cục bộ','本機恢復')}</button><label>${t('Phiên bản','版本')}<select id="ipqcc-version">${(control?.versions || []).slice().reverse().map(row => `<option value="${h(row.id)}" ${row.id === v?.id ? 'selected':''}>V${row.number} · ${h(status(row.status))} · ${h(lastEdit(row)?.actorName || row.creatorName)} · ${h(date(lastEdit(row)?.at || row.createdAt))}</option>`).join('')}</select></label>
+        <div class="ipqcc-header-actions"><label>${t('Phiên bản','版本')}<select id="ipqcc-version">${(control?.versions || []).filter(row=>row.id===open()?.id||row.id===active()?.id||row.approvalEvidence).slice().reverse().map(row => `<option value="${h(row.id)}" ${row.id === v?.id ? 'selected':''}>V${row.number} · ${h(status(row.status))} · ${h(lastEdit(row)?.actorName || row.creatorName)} · ${h(date(lastEdit(row)?.at || row.createdAt))}</option>`).join('')}</select></label>
           ${v ? `<span class="ipqcc-state">V${v.number} · ${h(status(v.status))}</span>`:''}
           ${!open() && operationAllowed('edit') ? `<button class="button signal" id="ipqcc-begin">${t('Bắt đầu sửa','開始修改')}</button>`:''}
           ${draftOpen() && operationAllowed('save') && (control?.workflow||operationAllowed('edit')) ? `<button class="button ghost" id="ipqcc-save" ${busy?'disabled':''}>${t('Lưu','存取')}</button>`:''}
@@ -735,7 +885,7 @@
         </div></header>
       <section class="ipqcc-meta" id="ipqcc-shared-status" role="status"><span>${t('Phạm vi: toàn bộ IPQC-C — bộ lọc không thu hẹp phạm vi lưu/gửi','範圍：全部 IPQC-C — 篩選不縮小儲存／送審範圍')}</span>${control?.workflow?`<span>${control.workflow.pendingId?t('Chờ duyệt · khóa toàn bộ','待審 · 全部鎖定'):control.workflow.saved&&same(control.workflow.working,control.workflow.saved.content)?t('Đã lưu','已儲存'):t('Đã đồng bộ · chưa lưu','已同步 · 尚未儲存')}</span>${control.workflow.saved?`<span>${t('Người lưu','儲存者')}: ${h(control.workflow.saved.actor.name)} · ${h(date(control.workflow.saved.at))}</span>`:''}`:''}</section>
       ${sharedClient?.hasUnknown()?`<div class="ipqcc-message"><button class="button ghost" id="ipqcc-check-operation">${t('Kiểm tra kết quả thao tác','查證操作結果')}</button><button class="button ghost" id="ipqcc-retry-operation">${t('Thử lại cùng thao tác','重試同一操作')}</button></div>`:''}
-      ${message ? `<div class="ipqcc-message" role="alert">${h(displayDraftError(message))}${conflict?`<div class="ipqcc-conflicts">${conflict.items.map(row=>`<article><b>${h(row.code)}</b>${Object.keys({...row.local,...row.remote}).filter(key=>!same(row.local?.[key],row.remote?.[key])&&!['id','code','sourceRow'].includes(key)).map(key=>`<p><strong>${h(key)}</strong><br>${t('Của bạn','你的版本')}: ${h(JSON.stringify(row.local?.[key]??null))}<br>${t('Trên máy chủ','伺服器版本')}: ${h(JSON.stringify(row.remote?.[key]??null))}</p>`).join('')}<button type="button" data-ipqcc-restore="${h(row.id)}" class="button ghost">${t('Khôi phục mục này từ máy chủ','將此項還原至伺服器版本')}</button></article>`).join('')}</div><button type="button" id="ipqcc-reload" class="button ghost">${t('Tải toàn bộ phiên bản mới','載入完整最新版')}</button>`:''}</div>`:''}
+      ${message ? `<div class="ipqcc-message" role="alert">${h(displayDraftError(message))}</div>`:''}
       ${v ? `<section class="ipqcc-meta"><span>${t('Người sửa cuối','最後編輯')}: ${h(lastEdit(v)?.actorName || v.creatorName)} · ${h(date(lastEdit(v)?.at || v.createdAt))}</span><span>${t('Gửi duyệt','送審')}: ${h(v.submittedBy || '—')} · ${h(date(v.submittedAt))}</span><span>${t('Xét duyệt','審核')}: ${h(v.reviewedBy || '—')} · ${h(date(v.reviewedAt))}</span>${v.reviewComment ? `<span>${t('Ý kiến','意見')}: ${h(v.reviewComment)}</span>`:''}</section>`:''}
       ${pending.length?`<details class="ipqcc-pending"><summary>${t('Mục cần bổ sung','待補項目')} · ${pending.length}</summary><div>${pending.slice(0,40).map(({item,missing})=>`<p><b>${h(item.code)}</b> · ${h(missing.join('、'))} ${editing()?`<button type="button" class="button ghost" data-ipqcc-fix-item="${h(item.id)}">${t('Đến sửa','前往修正')}</button>`:''}</p>`).join('')}${pending.length>40?`<p>${t('Còn','其餘')} ${pending.length-40} ${t('mục; lọc theo sản phẩm để sửa','項，請依產品篩選修正')}</p>`:''}</div></details>`:''}
       ${!v ? `<section class="ipqcc-empty">${t('Chưa có phiên bản IPQC-C','尚無 IPQC-C 版本')}</section>` :
@@ -772,7 +922,7 @@
       const id=issue.path?.[1]?.id,item=snapshot().items.find(row=>row.id===id),error=snapshot().errors.find(row=>row.id===id),row=item||error;if(!row||!editing())return;
       search='';productCode=row.productCode;stageCode=row.stageCode;errorId=item?.errorId||error.id;startEditor(item?'item':'error',row);
     }});
-    window.VersionDraftUI?.mount(host,{header:'.ipqcc-header',historyClient:sharedTransport,module:'IPQC-C',scope:t('Toàn bộ IPQC-C','IPQC-C 全庫'),version:version(),versions:control?.versions,active:control?.versions.find(v=>v.id===control.activeVersionId),flow:control?.workflow,localUnsaved:!!localChanges.length||!!modal?.dirty,busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#ipqcc-begin',save:'#ipqcc-save',submit:'#ipqcc-submit',withdraw:'#ipqcc-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-shared-issue-kind="error"]',missing:'.ipqcc-pending,[data-shared-issue-kind="missing"]',checked:{missing:true},history:['.ipqcc-history','#ipqcc-case-history','[data-shared-issue-kind="warning"]'],status:['#ipqcc-shared-status'],remove:['.ipqcc-meta']});
+    window.VersionDraftUI?.mount(host,{header:'.ipqcc-header',historyClient:approvedHistoryClient,historyVersionStatuses:['approved','superseded'],selectVersion:selectPageVersion,module:'IPQC-C',scope:t('Toàn bộ IPQC-C','IPQC-C 全庫'),version:version(),versions:control?.versions,active:control?.versions.find(v=>v.id===control.activeVersionId),flow:control?.workflow,localUnsaved:!!localChanges.length||!!modal?.dirty,busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#ipqcc-begin',save:'#ipqcc-save',submit:'#ipqcc-submit',withdraw:'#ipqcc-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-shared-issue-kind="error"]',missing:'.ipqcc-pending,[data-shared-issue-kind="missing"]',checked:{missing:true},history:['.ipqcc-history','#ipqcc-case-history','[data-shared-issue-kind="warning"]'],status:['#ipqcc-shared-status'],remove:['.ipqcc-meta']});
     const saveButton=host?.querySelector('#ipqcc-save');if(saveButton)saveButton.textContent=t('Lưu','存取');
     if(focusId){const field=document.getElementById(focusId);field?.focus({preventScroll:true});if(field?.setSelectionRange&&Number.isInteger(selectionStart))try{field.setSelectionRange(selectionStart,selectionEnd);}catch{/* Non-text controls have no selection range. */}}
     if (scroll) window.scrollTo(0,scroll);
@@ -810,7 +960,7 @@
     if (!readonly) host.querySelector('.ipqcc-dialog input:not([readonly]),.ipqcc-dialog textarea')?.focus({preventScroll:true});
   }
   function closeEditor(force = false, redraw = true) {
-    if (modal?.dirty && !force && !confirm(t('Bỏ thay đổi chưa lưu?','放棄尚未儲存的修改？'))) return;
+    void force;
     if(errorRecoverySupported(modal)){try{discardCurrentErrorRecovery();}catch(error){errorRecoveryMessage=error.message;paintErrorRecovery();return;}}
     modal?.photos.forEach(photo => { if (photo.preview && ![...localPhotos.values()].some(p=>p.preview===photo.preview)) URL.revokeObjectURL(photo.preview); });
     modal = null; picker = null; errorRecoveryRevision++;if(redraw)draw();
@@ -852,7 +1002,7 @@
     const parent = chosenError();
     const field = (key,label,textarea=false) => `<label class="ipqcc-field-${key}">${label}${textarea ? `<textarea name="${key}" data-i18n-skip="true" ${modal.readonly?'readonly':''}>${h(f[key]||'')}</textarea>` : `<input name="${key}" value="${h(f[key]||'')}" data-i18n-skip="true" ${modal.readonly?'readonly':''}>`}</label>`;
     return `<div class="ipqcc-overlay"><form class="ipqcc-dialog" id="ipqcc-editor" role="dialog" aria-modal="true"><header><h3>${modal.readonly?t('Xem','查看'):modal.existingId?t('Sửa','修改'):t('Thêm','新增')} ${isError?t('mã lỗi','錯誤代碼'):t('hạng mục kiểm tra','檢查項目')}</h3><button type="button" id="ipqcc-close" aria-label="Close">×</button></header><div class="ipqcc-dialog-body"><fieldset class="ipqcc-view-fields" ${modal.readonly?'disabled':''}>
-      <p data-ipqcc-recovery-status role="status"></p>${errorRecoverySupported(modal)?`<button type="button" id="ipqcc-recovery-reconcile" class="button ghost">${t('Đối chiếu bản mới','核對最新基準')}</button>`:''}
+      <p data-ipqcc-recovery-status role="status"></p>
       ${message?`<p class="ipqcc-message" role="alert">${h(displayDraftError(message))}</p>`:''}
       <section class="ipqcc-editor-context"><div><b>${t('Sản phẩm','產品')}</b><code>${h(productCode)}</code><span>${h(product()?.name||'')}</span></div><div><b>${t('Công đoạn','工段')}</b><code>${h(stageCode)}</code><span>${h(catalog.stages.find(s=>s.code===stageCode)?.name||'')}</span></div>${!isError?`<div><b>${t('Mã lỗi / tên','錯誤代碼／名稱')}</b><code>${h(parent?.code||'—')}</code><span>${h(parent?.name||'—')}</span></div>`:''}<div><b>${t('Mã do hệ thống cấp','系統編號')}</b><code>${h(f.code || (isError?'C-…-L…':`${parent?.code||'…'}-…`))}</code></div></section>
       ${isError ? `${field('name',t('Tên mã lỗi','錯誤名稱'))}${field('note',t('Ghi chú','備註'),true)}` :
@@ -953,11 +1103,46 @@
       name:fields.name, note:fields.note||'', reason:fields.reason }, true);
     else await write('create-item', { errorId, item:fields }, true);
   }
+  function approvedHistoryClient(){
+    const client=sharedTransport(),owner=errorRecoveryOwner();
+    const get=async parameters=>{
+      await client.permissions({isCurrent:owner});if(!owner())throw Error('IPQCC_READ_SUPERSEDED');
+      if(client.permission('history')!==true)throw Error('FORBIDDEN');
+      const response=await fetch(API+'/workflow?'+new URLSearchParams({approvedOnly:'1',caseMetadata:'1',...parameters}),{cache:'no-store',headers:headers()});
+      const result=await response.json();if(!owner())throw Error('IPQCC_READ_SUPERSEDED');
+      if(!response.ok)throw Error(result.error||'HISTORY_LOAD_FAILED');
+      if(result.approvedOnly!==true)throw Error('APPROVED_HISTORY_REQUIRED');return result;
+    };
+    return {permission:key=>client.permission(key),uiHistory:async options=>({...await get({uiHistory:'1',...(options?.versionBefore?{versionBefore:options.versionBefore}:{})}),saves:{rows:[],next:null,total:0}}),version:id=>get({versionId:id})};
+  }
+  async function selectPageVersion(id){
+    const owner=errorRecoveryOwner(),client=sharedTransport(),sequence=++historySelection;
+    const current=()=>owner()&&historySelection===sequence;
+    const previousVersion=selectedVersionId;discardUnsentScope();working=null;
+    try{
+      if(id===open()?.id){await read(false,current);if(!current())return;selectedVersionId=open()?.id||active()?.id||'';}
+      else if(id===active()?.id){await read(false,current);if(!current())return;if(active()?.id!==id)throw Error('APPROVED_HISTORY_SUPERSEDED');selectedVersionId=id;working=null;}
+      else {
+        await client.permissions({isCurrent:current});if(!current())return;
+        if(client.permission('history')!==true)throw Error('FORBIDDEN');
+        const result=await approvedHistoryClient().version(id);if(!current())return;
+        if(!['approved','superseded'].includes(result.version?.status))throw Error('APPROVED_VERSION_REQUIRED');
+        control={...control,versions:[...control.versions.filter(row=>row.id!==id),result.version]};
+        selectedVersionId=id;working=null;
+      }
+      message='';syncSelection();draw();
+    }catch(error){if(current()){selectedVersionId=previousVersion;working=previousVersion===open()?.id?copy(open().snapshot):null;message=error.message;draw();}}
+  }
+  let historySelection=0;
+  function discardUnsentScope(){
+    cancelSaveChoice?.();modal=null;picker=null;viewer=null;conflict=null;clearLocal();
+    working=open()?.status==='draft'?copy(open().snapshot):null;
+  }
   function bind() {
     const root = host?.querySelector('#ipqcc-page'); if (!root) return;
     root.querySelector('#ipqcc-recovery')?.addEventListener('click',()=>openErrorRecovery().catch(error=>{message=error.message;draw();}));
     root.querySelector('#ipqcc-recovery-reconcile')?.addEventListener('click',()=>reconcileErrorRecovery(async preview=>confirm(t('Giữ phần nhập nhưng dùng bản mới làm cơ sở?','保留目前輸入並採用最新基準？')+'\n'+JSON.stringify(preview))).catch(error=>{errorRecoveryMessage=error.message;paintErrorRecovery();}));
-    root.querySelector('#ipqcc-version')?.addEventListener('change', event => { clearLocal();selectedVersionId=event.target.value; working=open()?.status==='draft'&&selectedVersionId===open()?.id?copy(open().snapshot):null; draw(); });
+    root.querySelector('#ipqcc-version')?.addEventListener('change', event => { void selectPageVersion(event.target.value); });
     root.querySelector('#ipqcc-begin')?.addEventListener('click',()=>write('begin'));
     root.querySelector('#ipqcc-save')?.addEventListener('click',()=>write('save',{snapshot:working}));
     root.querySelector('#ipqcc-case-history')?.addEventListener('click',()=>loadCaseHistory());
@@ -969,42 +1154,12 @@
     root.querySelector('#ipqcc-case-next')?.addEventListener('click',()=>loadCaseHistory(caseHistory.next));
     root.querySelector('#ipqcc-case-back')?.addEventListener('click',()=>{caseHistory.reviewCase=null;draw();});
     root.querySelector('#ipqcc-case-all')?.addEventListener('click',()=>{caseHistory.showAll=!caseHistory.showAll;caseHistory.itemPage=0;draw();});
-    const caseFooter=root.querySelector('#ipqcc-case-dialog footer');
-    if(caseFooter&&caseHistory?.reviewCase&&operationAllowed('restore')&&permitted('approval.compare')){
-      const button=document.createElement('button');button.type='button';button.id='ipqcc-case-restore';button.className='button ghost';
-      button.textContent=t('Xem trước khôi phục','預覽還原');button.disabled=open()?.status!=='draft'||busy;caseFooter.prepend(button);
-      button.onclick=async()=>{if(!operationAllowed('restore'))return;try{await window.previewSharedDraftRestore({client:sharedTransport(),savedId:caseHistory.reviewCase.savedId,onApplied:async()=>{caseHistory=null;await read(false);message=t('Đã khôi phục vào bản nháp · chưa lưu','已還原至草稿 · 尚未儲存');draw();}});}catch(error){if(isReadSuperseded(error))return;caseHistory.error=error.message;draw();}};
-    }
     root.querySelectorAll('[data-ipqcc-case]').forEach(button=>button.addEventListener('click',()=>loadCase(button.dataset.ipqccCase)));
     for(const [id,delta] of [['prev',-1],['next',1]])root.querySelector(`#ipqcc-case-items-${id}`)?.addEventListener('click',()=>{caseHistory.itemPage+=delta;draw();});
     root.querySelector('#ipqcc-submit')?.addEventListener('click',()=>void write('submit'));
     root.querySelector('#ipqcc-withdraw')?.addEventListener('click',()=>write('withdraw'));
     for(const [selector,retry] of [['#ipqcc-check-operation',false],['#ipqcc-retry-operation',true]])root.querySelector(selector)?.addEventListener('click',async()=>{
       if(busy)return;if(errorRecoveryPending){try{await resolveErrorRecovery(errorRecovery.session.key);}catch(error){message=error.message;draw();}return;}await checkPreviousOperation(retry);
-    });
-    root.querySelector('#ipqcc-reload')?.addEventListener('click',async()=>{
-      if(conflict?.localSave){
-        const rejected=conflict,client=sharedClient;
-        if(busy||modal||!rejected.owns()||client.hasUnknown())return;
-        const priorControl=control,priorRevision=revision;
-        const current=()=>conflict===rejected&&sharedClient===client&&rejected.owns();
-        if(!confirm(t('Bỏ phần nhập chưa lưu và tải phiên bản mới?','放棄尚未儲存的輸入並載入最新版？')))return;
-        if(!current()||control!==priorControl||revision!==priorRevision)return;
-        busy=true;
-        try{
-          // Read owns the actor, delivery, revision and local input until adoption.
-          // Do not erase local edits if either permissions or the read fails.
-          await read(true,()=>current()&&control===priorControl&&revision===priorRevision);
-          if(!current())return;
-          clearLocal();working=open()?.status==='draft'?copy(open().snapshot):null;
-          conflict=null;message='';syncSelection();
-        }catch(error){if(!isReadSuperseded(error)&&current())message=error.message;}
-        finally{if(current()||conflict===null&&sharedClient===client){busy=false;draw();}}
-        return;
-      }
-      if(!confirm(t('Bỏ phần nhập chưa lưu và tải phiên bản mới?','放棄尚未儲存的輸入並載入最新版？')))return;
-      conflict=null;modal=null;working=null;selectedVersionId='';message='';
-      try{await read(false);draw();}catch(error){if(isReadSuperseded(error))return;message=error.message;draw();}
     });
     bindReadRetry(root);
     const searchBox=root.querySelector('#ipqcc-search');
@@ -1030,21 +1185,11 @@
             ?`${before}\n\n${after}`:null};
         root.querySelector('#ipqcc-photo-input')?.click();return;
       }
-      if(button.dataset.ipqccRestore&&conflict){
-        const row=conflict.items.find(item=>item.id===button.dataset.ipqccRestore);
-        if(!row||!row.remote)return;
-        const list=working?.[row.kind],index=list?.findIndex(item=>item.id===row.id);
-        if(index<0)return;list[index]=copy(row.remote);
-        if(modal?.existingId===row.id){modal.fields=copy(row.remote);modal.photos=copy(row.remote.mediaItems||[]);modal.dirty=false;}
-        conflict.items=conflict.items.filter(item=>item.id!==row.id);
-        if(!conflict.items.length){conflict=null;message=t('Đã xử lý xung đột; hãy lưu bản nháp','衝突已處理，請儲存草稿');}
-        draw();return;
-      }
-      if(button.dataset.ipqccCoverage){search='';productCode=button.dataset.ipqccCoverage;stageCode=button.dataset.stage;errorId='';draw();return;}
-      if(button.dataset.ipqccProduct){productCode=button.dataset.ipqccProduct;stageCode='';errorId='';draw();return;}
+      if(button.dataset.ipqccCoverage){discardUnsentScope();search='';productCode=button.dataset.ipqccCoverage;stageCode=button.dataset.stage;errorId='';draw();return;}
+      if(button.dataset.ipqccProduct){discardUnsentScope();productCode=button.dataset.ipqccProduct;stageCode='';errorId='';draw();return;}
       if(button.dataset.ipqccFixItem){const item=snapshot().items.find(row=>row.id===button.dataset.ipqccFixItem);if(!item)return;
         search='';productCode=item.productCode;stageCode=item.stageCode;errorId=item.errorId;startEditor('item',item);return;}
-      if(button.dataset.ipqccStage){stageCode=button.dataset.ipqccStage;errorId='';draw();return;}
+      if(button.dataset.ipqccStage){discardUnsentScope();stageCode=button.dataset.ipqccStage;errorId='';draw();return;}
       if(button.dataset.ipqccError){errorId=button.dataset.ipqccError;draw();return;}
       if(button.dataset.ipqccAdd){startEditor(button.dataset.ipqccAdd);return;}
       if(button.dataset.ipqccViewError){startEditor('error',snapshot().errors.find(e=>e.id===button.dataset.ipqccViewError),true);return;}
@@ -1109,7 +1254,7 @@
     });
   }
   async function mount(element) {
-    const sequence=++mountSequence;pollTimer.cancel();clearLocal();
+    cancelSaveChoice?.();const sequence=++mountSequence;pollTimer.cancel();clearLocal();
     const current=()=>sequence===mountSequence&&host===element;
     host=element;navigationError=null; message=''; conflict=null; modal=null; caseHistory=null; host.innerHTML=`<section class="ipqcc-page"><p>${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</p></section>`;
     try { await read(false,current,true);if(!current())return;draw();scheduleSharedRefresh(); } catch(error) {if(!current()||isReadSuperseded(error))return;navigationError=error;message=error.message; host.innerHTML=`<section class="ipqcc-page"><p role="alert">${h(displayDraftError(message))}</p><button type="button" class="button signal" id="ipqcc-load-retry">${t('Tải lại dữ liệu','重新載入資料')}</button></section>`;host.querySelector('#ipqcc-load-retry').onclick=()=>mount(element); }
@@ -1223,6 +1368,6 @@
     canSave:()=>draftOpen()&&operationAllowed('save'),canDiscard:()=>editing(),save:()=>write('save',{snapshot:working}),
     dialogs:()=>[...document.querySelectorAll('.ipqcc-overlay')],
     discard(){closeEditor(true,false);viewer=null;working=open()?.status==='draft'?copy(open().snapshot):null;draw();},
-    closeClean(){modal=null;picker=null;clearLocal();viewer=null;working=null;},
-  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>write('save',{snapshot:working}),canLeave:()=>true,error:()=>navigationError,reset(){clearLocal();busy=false;modal=null;picker=null;viewer=null;errorRecovery?.session.flush();errorRecovery?.session.close();errorRecovery=null;errorRecoveryPending=null;mountSequence++;saveInputNotice=null;readRecoveryNeeded=false;pollTimer.cancel();host=null;reviewHost=null;control=null;revision=null;working=null;catalog={products:[],stages:[]};equipment=[];equipmentGroups=[];equipmentCategories=[];equipmentSubcategories=[];selectedVersionId='';caseHistory=null;navigationError=null;}},html:()=>`<section class="ipqcc-page">${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</section>`,mount,reviewHTML,bindReview,pendingCount};
+    closeClean(){cancelSaveChoice?.();modal=null;picker=null;clearLocal();viewer=null;working=null;},
+  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>write('save',{snapshot:working}),canLeave:()=>true,error:()=>navigationError,reset(){cancelSaveChoice?.();clearLocal();busy=false;modal=null;picker=null;viewer=null;errorRecovery?.session.flush();errorRecovery?.session.close();errorRecovery=null;errorRecoveryPending=null;mountSequence++;saveInputNotice=null;readRecoveryNeeded=false;pollTimer.cancel();host=null;reviewHost=null;control=null;revision=null;working=null;catalog={products:[],stages:[]};equipment=[];equipmentGroups=[];equipmentCategories=[];equipmentSubcategories=[];selectedVersionId='';caseHistory=null;navigationError=null;}},html:()=>`<section class="ipqcc-page">${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</section>`,mount,reviewHTML,bindReview,pendingCount};
 })();

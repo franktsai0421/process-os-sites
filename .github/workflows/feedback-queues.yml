@@ -12,6 +12,8 @@ on:
       - 'app/api/master/workflow/route.ts'
       - 'scripts/master-route-successor-source-contract.cjs'
       - 'scripts/ipqc-c-read-io-source-contract.cjs'
+      - 'scripts/ipqc-c-integration-source-contract.cjs'
+      - 'scripts/ipqc-c-integration-source-contract.json'
       - 'scripts/access-event-source-contract.cjs'
       - 'scripts/equipment-no-poll-source-contract.cjs'
       - 'scripts/background-check-source-contract.cjs'

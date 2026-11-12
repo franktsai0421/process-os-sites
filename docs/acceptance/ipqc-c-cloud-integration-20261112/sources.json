@@ -1,0 +1,52 @@
+{
+  "sources": [
+    {
+      "source": "main",
+      "commit": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+      "tree": "6eee3963fec61a540c144a920fbb3f65949d5e10"
+    },
+    {
+      "source": "boundary",
+      "commit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "tree": "7f3efd3f049c97c57f3f56cf321f6da325a17b13"
+    },
+    {
+      "source": "pr103",
+      "commit": "2d2d79cb23c4456e28adc4cdfc60624ec4f5e24b",
+      "tree": "df06420b82da8f7fc24e34ea4f85bb81b6376279"
+    },
+    {
+      "source": "pr104",
+      "commit": "429d3bfad9a5b4e1f937b9546201619ca5f65131",
+      "tree": "5b46ce952282dbfea2f5393b0105ca8dbd260dcd"
+    }
+  ],
+  "selectiveReuse": [
+    {
+      "path": "lib/ipqc-c-workflow.ts",
+      "boundaryBlob": "ed3d88fa52c6db57a31f11321f1b7844dfb084bd",
+      "matchesBoundaryExactly": true
+    },
+    {
+      "path": "lib/approved-history.ts",
+      "boundaryBlob": "37fd42301b2549e4b1e10829f79150f78546db5a",
+      "matchesBoundaryExactly": true
+    },
+    {
+      "path": "scripts/test-ipqc-c-tombstone-revival.cjs",
+      "boundaryBlob": "a033eefdd86d7dbc7604f28ac198826d2dc46b7f",
+      "matchesBoundaryExactly": true
+    }
+  ],
+  "mainAlreadyIncludes": [
+    91,
+    93,
+    96,
+    100
+  ],
+  "notMerged": [
+    103,
+    104
+  ],
+  "noSchemaMigration": true
+}

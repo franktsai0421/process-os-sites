@@ -83,3 +83,9 @@ AB/C 送審明示本次已儲存快照的時間／儲存者，分頁列出未包
 ## 2026-10-30 離頁放棄的確認邊界
 
 使用者確認：離頁「放棄」僅撤銷本次可確認屬於自己的未儲存修改；不得整份還原而取消他人的共享工作。逐欄位核對前值與版本，同欄已被他人修改、身分/權限/世代變更或寫入結果未知時留在原頁，保留輸入並說明原因。已成功 Save 的快照、送審案件、正式版本與歷史不得刪除或重寫。儲存並離頁仍依既有規則儲存整個模組共用內容，需確認最新輸入已套用且後端保存成功。此為已確認需求，並非宣告所有模組已實作。
+
+## 2026-11-12 IPQC C confirmed behavior
+
+C Save performs a fresh three-way comparison of the whole independent C draft. One whole-group mine/theirs/cancel choice applies to all actual clashes, retaining nonconflicting changes from both editors; no per-field selection. Cancel sends no business write. If the server changes during a choice, photo upload or final CAS, automatically compare again in the same Save; only a proven original non-writing rejection permits a new command. Unknown outcomes retain original receipt inquiry and write guards.
+
+Unsent C forms are silently abandoned on scope/page departure, without restore or periodic polling. Approved versions are readonly in the same page, without draft/history restoration. Submission/withdrawal remain separate from final platform approval. This supersedes older C prompted-departure/restoration descriptions; existing sent operations and business history are retained. Candidate evidence: [Cloud C integration](../../acceptance/ipqc-c-cloud-integration-20261112/README.md).

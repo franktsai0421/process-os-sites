@@ -25,6 +25,7 @@ const rules=new Map([
 const lf=s=>s.replace(/\r\n/g,'\n');
 function span(text,start,end){const a=text.indexOf(start);assert(a>=0,'Operation start marker missing');assert.equal(text.indexOf(start,a+start.length),-1,'Operation start marker repeated');const b=text.indexOf(end,a+start.length);assert(b>a,'Operation end marker missing');return[a,b];}
 function withoutApprovedOperationAlignment(file,bytes){
+ bytes=require('./ipqc-c-integration-source-contract.cjs').projectKnown(bytes,file);
  const rule=rules.get(file);assert(rule,'Unexpected policy source');const text=bytes.toString('utf8'),[a,b]=span(text,rule.start,rule.end);
  assert.equal(lf(text.slice(a,b)),rule.expected,'Operation gate differs from exact approved contract: '+file);
  const original=execFileSync('git',['show',approvedBase+':'+file]).toString('utf8'),[x,y]=span(original,rule.start,rule.end);

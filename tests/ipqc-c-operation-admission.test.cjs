@@ -15,9 +15,9 @@ const recoveryKey='shared-draft-receipt-only-v1:'+JSON.stringify([actor,endpoint
 const rawUnknown='receipt-only-v1';
 const copy=x=>JSON.parse(JSON.stringify(x));
 const perms=(x={})=>({view:true,edit:false,save:false,submit:false,withdraw:false,approve:false,return:false,history:true,delete:false,...x});
-const probeHook=`\nwindow.__cOperationTest={operationAllowed:typeof operationAllowed==='function'?operationAllowed:null,editing,mainHTML,writeShared,upload,submitEditor,bind,sharedTransport,
+const probeHook=`\nwindow.__cOperationTest={operationAllowed:typeof operationAllowed==='function'?operationAllowed:null,editing,mainHTML,writeShared,upload,submitEditor,bind,sharedTransport,selectPageVersion,discardUnsentScope,
  setup(s){control=s.control;working=s.working;revision=7;selectedVersionId='draft-c';modal=s.modal||null;host=s.host||null;caseHistory=s.caseHistory||null;catalog={products:[],stages:[]};},
- snapshot(){return{control,working,modal,message,busy,sharedActor};}};\n`;
+ snapshot(){return{control,working,modal,message,busy,sharedActor,selectedVersionId};}};\n`;
 function fixture({permissions=perms(),recovery=null,adopted=true,malformedReceipt=false}={}){
  const calls=[],storageWrites=[],events=[],nodes=new Map(),memory=new Map(recovery?[[recoveryKey,recovery]]:[]);
  let nextResponse=null,caps=permissions;
@@ -61,6 +61,7 @@ function fixture({permissions=perms(),recovery=null,adopted=true,malformedReceip
   if(String(url).includes('operationId='))return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});
   if(String(url).startsWith('/api/ipqc-c?'))return Response.json({control:copy(serverControl),revision:7,catalog:{products:[],stages:[]}});
   const query=new URL(url,recoveryOrigin).searchParams;
+  if(query.has('versionId'))return Response.json({approvedOnly:true,version:{id:query.get('versionId'),number:2,status:'approved',snapshot:{errors:[],items:[]},history:[]}});
   return Response.json({permissions:caps,revision:7,otherReviewerAvailable:true,...(query.has('since')?{unchanged:true}:query.has('permissions')||query.has('restoreSaveId')?{}:{workflow:serverControl.workflow?{...copy(serverControl.workflow),editable:serverControl.versions[0]?.status==='draft'}:null})});
  }});
  vm.runInContext(clientSource,context,{filename:'actual-shared-draft-client.js'});
@@ -140,33 +141,24 @@ void test('unadopted Save or Submit cannot silently Begin without edit',async()=
  }
 });
 
-void test('history binding requires explicit restore; allowed button is disabled by unchanged revocation',async()=>{
- for(const {label,permissions} of [{label:'no edit or restore',permissions:perms()},{label:'edit-only with restore missing',permissions:perms({edit:true})},{label:'edit/save/submit with restore missing',permissions:perms({edit:true,save:true,submit:true})},...[false,null,0,1,'true',undefined].map(restore=>({label:'edit with restore '+String(restore),permissions:perms({edit:true,restore})}))]){
-  const denied=fixture({permissions});await denied.hydrate();denied.setModal();const before=stableInput(denied);denied.bindHistory();assert.equal(denied.nodes.has('#ipqcc-case-restore'),false,label);noWrites(denied,before,label+' history binding');
+void test('IPQC C history remains read-only even with explicit restore permission',async()=>{
+ for(const restore of [false,null,0,1,'true',undefined,true]){
+  const f=fixture({permissions:perms({edit:true,save:true,submit:true,restore})});await f.hydrate();f.setModal();const before=stableInput(f);f.bindHistory();
+  assert.equal(f.nodes.has('#ipqcc-case-restore'),false,'no historical overwrite entry');noWrites(f,before,'read-only history');
  }
- const f=fixture({permissions:perms({edit:true,save:true,submit:true,restore:true})});await f.hydrate();f.bindHistory();const restore=f.nodes.get('#ipqcc-case-restore');assert(restore);assert.equal(restore.disabled,false);
+});
+void test('read-only history does not weaken unchanged permission revocation',async()=>{
+ const f=fixture({permissions:perms({edit:true,save:true,submit:true,restore:true})});await f.hydrate();f.bindHistory();
  f.setModal();const before=stableInput(f);f.setCaps(perms());const update=await f.client.read('g-c:3');assert.equal(update.unchanged,true);
- for(const id of ['ipqcc-begin','ipqcc-case-restore','ipqcc-save','ipqcc-submit'])assert.equal(f.nodes.get('#'+id).disabled,true,id+' revoked');
- assert.equal(f.ui.operationAllowed('edit'),false);noWrites(f,before,'unchanged revocation');
+ for(const id of ['ipqcc-begin','ipqcc-save','ipqcc-submit'])assert.equal(f.nodes.get('#'+id).disabled,true,id+' revoked');
+ assert.equal(f.nodes.has('#ipqcc-case-restore'),false);assert.equal(f.ui.operationAllowed('edit'),false);noWrites(f,before,'unchanged revocation');
 });
 
-void test('Restore handler rechecks explicit permission, actor and terminal state before preview GET',async()=>{
- for(const mode of ['allowed','revoked','missing','malformed','actor','reload']){
-  const f=fixture({permissions:perms({edit:true,save:true,submit:true,restore:true})});await f.hydrate();f.setModal();f.bindHistory();
-  const restore=f.nodes.get('#ipqcc-case-restore');assert(restore);assert.equal(restore.disabled,false);const before=stableInput(f);
-  // Keep the actual C callback and actual shared-client GET, replacing only the preview overlay DOM.
-  const previews=[];f.window.previewSharedDraftRestore=async({client,savedId})=>{previews.push(savedId);return client.previewRestore(savedId);};
-  if(['revoked','missing','malformed'].includes(mode)){
-   f.setCaps(perms({edit:true,save:true,submit:true,...(mode==='missing'?{}:{restore:mode==='revoked'?false:'true'})}));
-   const update=await f.client.read('g-c:3');assert.equal(update.unchanged,true);assert.equal(f.ui.operationAllowed('edit'),true);assert.equal(f.ui.operationAllowed('restore'),false);
-   if(mode==='revoked'){assert.equal(restore.disabled,true,'restore-only revocation disables the retained button');for(const id of ['ipqcc-begin','ipqcc-save','ipqcc-submit'])assert.equal(f.nodes.get('#'+id).disabled,false,id+' remains independently allowed');}
-  }else if(mode==='actor')f.sync.identity={id:'new-synthetic-actor'};
-  else if(mode==='reload')f.sync.requiresReload=true;
-  const start=f.calls.length;await restore.onclick();
-  assert.deepEqual(previews,mode==='allowed'?['saved-c']:[],mode+' preview admission');
-  assert.deepEqual(f.calls.slice(start).map(c=>[c.method,new URL(c.url,'http://fixture').searchParams.get('restoreSaveId')]),mode==='allowed'?[['GET','saved-c']]:[],mode+' actual transport');
-  noWrites(f,before,mode+' retained Restore handler');
- }
+void test('same-page approved history is read-only, draft return rereads rights, and denied history never writes',async()=>{
+ const f=fixture({permissions:perms({edit:true,save:true,history:true})});await f.hydrate();f.setModal();
+ await f.ui.selectPageVersion('approved-c');assert.equal(f.state().selectedVersionId,'approved-c');assert.equal(f.state().working,null);assert.equal(f.state().modal,null);assert.equal(f.ui.editing(),false);assert.equal(f.mutations().length,0);
+ await f.ui.selectPageVersion('draft-c');assert.equal(f.state().selectedVersionId,'draft-c');assert.equal(f.ui.editing(),true);assert.equal(f.mutations().length,0);
+ f.setCaps(perms({edit:true,save:true,history:false}));await f.ui.selectPageVersion('approved-denied');assert.equal(f.state().message,'FORBIDDEN');assert.equal(f.ui.editing(),false);assert.equal(f.mutations().length,0);
 });
 
 void test('401 and 403 permission refresh fail closed without discarding unsaved input or unknown receipt',async()=>{

@@ -10,7 +10,13 @@ on:
       - 'tests/ipqc-c-equipment-display.test.mjs'
       - 'lib/ipqc-c-workflow.ts'
       - 'app/api/ipqc-c/workflow/route.ts'
-      - 'scripts/*ipqc-c-local*'
+      - 'scripts/*ipqc-c*'
+      - 'app/api/ipqc-c/route.ts'
+      - 'lib/ipqc-c-access.ts'
+      - 'lib/approved-history.ts'
+      - 'tests/*ipqc-c*'
+      - 'scripts/test-ipqc-c-compare-save.cjs'
+      - 'public/process/version-draft-ui.js'
       - '.github/workflows/ipqc-c-local-save.yml'
 permissions:
   contents: read
@@ -27,6 +33,11 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npx playwright install --with-deps chromium
       - run: node --test tests/ipqc-c-local-save-rejection.test.mjs tests/ipqc-c-case-comparison.test.mjs tests/ipqc-c-equipment-display.test.mjs
+      - run: node --test tests/ipqc-c-integration-source-contract.test.cjs tests/ipqc-c-operation-admission.test.cjs tests/multiuser-ipqc-c-local-recovery-actual-stack.test.mjs tests/ipqc-c-read-io-source-contract.test.mjs
+      - run: node scripts/test-ipqc-c-operation-permissions.cjs
+      - run: node scripts/test-approved-history-evidence.cjs
+      - run: node scripts/test-ipqc-c-compare-save.cjs
+      - run: node scripts/test-ipqc-c-tombstone-revival.cjs
       - run: node scripts/test-ipqc-c-local-save.cjs
       - run: node scripts/test-ipqc-c-local-browser.cjs
         env:

@@ -125,4 +125,13 @@ check('AB detail uses immutable approved case content and missing base remains n
   assert.equal(selected.approvalEvidence.kind, 'approved-case');
   assert.equal(ab.abApprovedMetadata(root).length, 1);
 });
+check('strict C history requires immutable saved identity and complete reviewer stamp while defaults remain compatible',()=>{
+ const v=version('strict-case'),c=approvedCase(v,{result:{actor:{id:'reviewer-id',name:'Reviewer'},at:'2026-11-12T00:00:00Z'}});
+ assert.equal(history.approvedVersionEvidence(control([v],v.id,[c]),v,true).kind,'approved-case');
+ for(const change of [{savedId:''},{savedId:undefined},{result:undefined},{result:{actor:{name:'Reviewer'},at:c.result.at}},{result:{actor:{id:'reviewer-id',name:''},at:c.result.at}},{result:{actor:c.result.actor,at:'invalid'}}]){
+  const root=frozen(control([v],v.id,[{...c,...change}]));assert.equal(history.approvedVersionEvidence(root,v,true),null);assert.equal(history.approvedVersion(root,v.id,true),null);
+ }
+ const legacy=version('strict-legacy',{history:[{...legacyApproval,at:'2026-11-12T00:00:00Z'}]});assert.equal(history.approvedVersionEvidence(control([legacy]),legacy,true).kind,'legacy-approval');
+ const malformed=version('strict-invalid',{history:[legacyApproval]});assert.equal(history.approvedVersionEvidence(control([malformed]),malformed,true),null);assert.equal(history.approvedVersionEvidence(control([malformed]),malformed).kind,'legacy-approval');
+});
 console.log('PASS approved-history evidence groups=' + groups + ' NO_STORAGE RUNTIME_UNREGISTERED');

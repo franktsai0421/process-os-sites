@@ -63,6 +63,7 @@ const contracts={
   }
 };
 function withoutLocalAtomicSave(bytes,file='app/api/ipqc-c/workflow/route.ts'){
+ bytes=require('./ipqc-c-integration-source-contract.cjs').projectKnown(bytes,file);
  if(file==='app/api/ipqc-c/workflow/route.ts')bytes=withoutDurableBegin(bytes,file);
  const {beforeHash,afterHash,rules}=contracts[file];
  assert.equal(hash(bytes),afterHash,'Local Save source differs from pinned bytes');let result=Buffer.from(bytes);
