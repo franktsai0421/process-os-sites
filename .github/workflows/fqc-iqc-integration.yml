@@ -43,6 +43,6 @@ jobs:
       - run: npm run build
       - run: node --test tests/iqc-save-choice-compiled-http.test.mjs
       - run: node node_modules/playwright/cli.js install --with-deps chromium
-      - run: node --test --test-concurrency=1 tests/equipment-transfer-compiled.test.mjs tests/fqc-single-save-browser.test.mjs tests/fqc-unknown-recovery-browser.test.mjs tests/iqc-unknown-browser.test.mjs
+      - run: node --test --test-concurrency=1 tests/equipment-transfer-compiled.test.mjs tests/fqc-single-save-browser.test.mjs tests/fqc-unknown-recovery-browser.test.mjs tests/iqc-unknown-browser.test.mjs tests/fqc-matrix-conflict-discard-browser.test.mjs
       - run: node tests/fqc-draft-lifecycle-browser.mjs
       - run: node tests/fqc-matrix-multiuser-browser.mjs
