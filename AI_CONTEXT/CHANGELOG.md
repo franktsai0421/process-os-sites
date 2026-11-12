@@ -1,3 +1,7 @@
+## 2026-11-12 — Current Canvas pending-readiness contract
+
+Reproduce the retired pending selector on #103 in four actual-controller Chinese/Vietnamese inline/record fixtures. Align the test probe with the uniquely visible current Canvas selector, preserving linked pending case, Save, generation, locks, no draft writes and one usable Withdraw; reject approved history and missing/duplicate/hidden/disabled controls. Outside this helper the full native process runner is byte-identical, retaining five cycles, 90 action samples, one-POST and authoritative verification. Run these source guards early and add the existing #104 independent compiled Begin/process/FQC scenarios without changing the Windows chain. No product, authority, schema or data change; native acceptance still requires the new HEAD CI.
+
 ## 2026-11-12 — Composed inverse negative-fixture boundary
 
 The source-EOL negative fixture could replace an obsolete raw departure span without changing any bytes after the exact source projection evolved. Mutate each uniquely present span at the actual projected inverse input instead, after unchanged HEAD admission. Changed/missing/duplicate cases now prove an effective mutation and must fail the original exact-anchor check for both LF and CRLF. Keep production code, projection helpers, inverse JSON and all historical/control hashes unchanged. Native step 36 and later validation remain separate.

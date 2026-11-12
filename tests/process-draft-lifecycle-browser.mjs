@@ -35,11 +35,14 @@ export function assertSubmitNotice(notices, stage) {
 export function pendingProcessUIReady({savedId, generation}) {
   const api = window.ProcessAuthoringV3, flow = api?.flow(), id = flow?.pendingId;
   const pending = flow?.cases?.find(row => row.id === id), panel = document.querySelector('#authoring-v3-panel');
-  const page = document.querySelector('.editor-page'), select = panel?.querySelector('#authoring-version-choice');
+  const page = document.querySelector('.editor-page'), choices = panel?.querySelectorAll('#canvas-approved-version');
+  const select = choices?.length === 1 ? choices[0] : null, historical = page?.querySelector('[data-vd-approved-view]');
   const writes = panel?.querySelectorAll('[data-av3="save"],[data-av3="submit"]');
   const withdraw = panel?.querySelectorAll('[data-av3="withdraw"]');
   return typeof id === 'string' && !!id && flow.scope === 'process:platform' && flow.generation === generation &&
-    flow.saved?.id === savedId && pending?.status === 'pending' && pending.savedId === savedId && select?.value === id &&
+    flow.saved?.id === savedId && pending?.status === 'pending' && pending.savedId === savedId && select?.value === '' &&
+    select.dataset.vdApprovedChoice === 'true' && !select.disabled && select.getClientRects().length > 0 &&
+    api.historyReadOnly() === false && historical?.hidden === true &&
     page?.classList.contains('editor-readonly') === true && page.classList.contains('editor-submitted-lock') &&
     api.canMutate() === false && api.canEditLocalCanvas() === false && writes?.length === 0 && withdraw?.length === 1 &&
     !withdraw[0].disabled && withdraw[0].getClientRects().length > 0;

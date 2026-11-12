@@ -54,6 +54,10 @@ jobs:
         with:
           node-version: '24'
       - run: npm ci --no-audit --no-fund
+      - name: Complete source inverse EOL and effective drift rejection
+        run: node scripts/entry-performance/source-eol.test.cjs
+      - name: Pending UI readiness and full synthetic lifecycle guards
+        run: node --test tests/draft-action-measurement.test.mjs tests/draft-lifecycle-scenarios.test.mjs tests/process-draft-lifecycle-browser-contract.test.mjs tests/process-draft-lifecycle-route.test.mjs
       - name: Current canvas count and exact historical source composition
         run: node --test tests/account-process-joint-source.test.cjs tests/editor-projected-count.test.mjs tests/process-platform-count-contract.test.cjs tests/process-platform-canvas-contract.test.cjs tests/background-check-source-proof.test.cjs tests/routine-fqc-source-contract.test.cjs tests/access-event-main-integration.test.cjs tests/navigation-adapters.test.mjs tests/global-background-checks.test.mjs
       - run: node scripts/test-editor-line-selection.mjs
@@ -88,3 +92,48 @@ jobs:
         run: |
           node scripts/test-workflow-begin-old-server.cjs
           node --test tests/batch3-workflow-source-contract.test.cjs tests/bom-workflow-source-contract.test.cjs tests/ipqc-c-read-io-source-contract.test.mjs
+
+  begin-recovery-native:
+    # Run the unchanged compiled scenarios independently of the long Windows chain.
+    # The original Windows step remains required; this is additional synthetic evidence.
+    name: Compiled Begin and process lifecycle
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PROCESS_PROGRAM_COMMIT: ${{ github.sha }}
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+      npm_config_update_notifier: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify Begin contracts before native execution
+        run: node --test tests/shared-draft-begin-v1.test.mjs tests/module-begin-recovery.test.mjs tests/authoring-begin-readiness.test.mjs
+      - name: Build exact checked-out source
+        id: build_exact
+        run: node scripts/local-build.mjs
+      - name: Install locked native browser
+        id: native_browser
+        run: node node_modules/playwright/cli.js install --with-deps chromium
+      - name: Original Begin receipt and zero-extra-POST acceptance
+        run: node tests/begin-recovery-browser.mjs
+      - name: Original process lifecycle and silent navigation acceptance
+        run: node tests/process-draft-lifecycle-browser.mjs
+      - name: Original remaining FQC source contracts
+        if: ${{ !cancelled() && steps.build_exact.outcome == 'success' && steps.native_browser.outcome == 'success' }}
+        run: node --test --test-concurrency=1 tests/fqc-draft-lifecycle-browser-contract.test.mjs tests/fqc-draft-lifecycle-route.test.mjs tests/fqc-matrix-multiuser.test.mjs tests/quality-review-readiness.test.mjs
+      - name: Original remaining FQC lifecycle native acceptance
+        if: ${{ !cancelled() && steps.build_exact.outcome == 'success' && steps.native_browser.outcome == 'success' }}
+        run: node tests/fqc-draft-lifecycle-browser.mjs
+      - name: Original remaining FQC multiuser native acceptance
+        if: ${{ !cancelled() && steps.build_exact.outcome == 'success' && steps.native_browser.outcome == 'success' }}
+        run: node tests/fqc-matrix-multiuser-browser.mjs
