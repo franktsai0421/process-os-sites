@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import {combineProcessStyles} from '../lib/process-styles-build.mjs';
 import {combineProcessScripts} from '../lib/process-scripts-build.mjs';
 import {createRootEntryFixture} from './root-entry-native-fixture.mjs';
+import {assertServedProcessScriptBundles} from './process-shell-bundle-oracle.mjs';
 const origin='https://root-entry.synthetic.invalid',tests=[],report={programCommit:process.env.PROCESS_PROGRAM_COMMIT,realData:false,realCredentials:false,remoteBindings:false,externalNetwork:false};let f,stage='startup',lastRequest;
 async function test(name,run){stage=name;await run();tests.push(name);}
 // These requests intentionally reject before consuming input. Use explicit
@@ -25,11 +26,10 @@ try{
  await test('static program shell matches the exact source-derived build transformation',async()=>{const r=await request('/process/index.html');assert.equal(r.status,200);assert.match(r.headers.get('Content-Type'),/^text\/html/);assert.notEqual(scripts.html,sourceHTML);assert.deepEqual(Buffer.from(await r.arrayBuffer()),Buffer.from(scripts.html));});
  await test('served stylesheet bundle preserves exact source bytes and cascade order',async()=>{const r=await request('/process/'+styles.name);assert.equal(r.status,200);assert.match(r.headers.get('Content-Type'),/^text\/css/);assert.deepEqual(Buffer.from(await r.arrayBuffer()),Buffer.from(styles.css));});
  await test('served script bundles preserve exact source order and completion receipts',async()=>{
-  assert.equal(scripts.assets.length,2);assert.equal(scripts.assets.reduce((n,a)=>n+a.sources.length,0),50);
+  await assertServedProcessScriptBundles(scripts.assets,readSource,request);
   const reporter=scripts.assets.find(asset=>asset.sources.includes('access-event-reporter.js'));assert(reporter);
   assert.equal(scripts.assets.flatMap(asset=>asset.sources).filter(name=>name==='access-event-reporter.js').length,1);
   assert(reporter.sources.indexOf('access-event-reporter.js')<reporter.sources.indexOf('shared-draft-client.js'));
-  for(const asset of scripts.assets){const r=await request('/process/'+asset.name);assert.equal(r.status,200);assert.match(r.headers.get('Content-Type'),/^(?:text|application)\/javascript/);assert.deepEqual(Buffer.from(await r.arrayBuffer()),Buffer.from(asset.source));}
  });
  await test('compiled login page remains reachable with no DEMO entry',async()=>{const r=await request('/login'),html=await r.text();assert.equal(r.status,200);assert.ok(html.includes('Đăng nhập')&&html.includes('name="password"'));assert.doesNotMatch(html,/demoRole|DEMO_ROLE/);});
  await test('compiled owner form is reachable but disabled bootstrap rejects before writes',async()=>{const page=await request('/setup/owner');assert.equal(page.status,200);assert.ok((await page.text()).includes('bootstrapKey'));const r=await request('/api/setup/owner','POST',{Origin:origin,'Content-Type':'application/json'});assert.equal(r.status,404);assert.deepEqual(await r.json(),{error:'OWNER_SETUP_DISABLED'});});

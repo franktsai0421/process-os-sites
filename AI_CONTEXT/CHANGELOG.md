@@ -1,3 +1,7 @@
+## 2026-11-12 — Reviewed 57-module shell bundle contract
+
+Replace the stale compiled-root total with a test-only independent ordered inventory: pinned main50, seven #103 additions and the already-reviewed VersionDraftUI move before page/history modules. Verify each module, exact source bytes, hash/cache URL and final completion receipt; preserve native status/MIME/served-byte and root security checks. Missing, duplicate, reordered, wrong-byte/receipt and failed-module negatives remain mandatory. Keep all product and Windows workflow bytes unchanged; add early source coverage and the original root/retired-entrypoint scenarios to the independent CI job. Native/latest Windows acceptance remains separate.
+
 ## 2026-11-12 — Current Canvas pending-readiness contract
 
 Reproduce the retired pending selector on #103 in four actual-controller Chinese/Vietnamese inline/record fixtures. Align the test probe with the uniquely visible current Canvas selector, preserving linked pending case, Save, generation, locks, no draft writes and one usable Withdraw; reject approved history and missing/duplicate/hidden/disabled controls. Outside this helper the full native process runner is byte-identical, retaining five cycles, 90 action samples, one-POST and authoritative verification. Run these source guards early and add the existing #104 independent compiled Begin/process/FQC scenarios without changing the Windows chain. No product, authority, schema or data change; native acceptance still requires the new HEAD CI.

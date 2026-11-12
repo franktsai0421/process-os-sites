@@ -36,6 +36,9 @@ on:
       - 'tests/*canvas*.test.*'
       - 'tests/editor-projected-count.test.mjs'
       - 'tests/process-ipqc-source-adopt.test.mjs'
+      - 'tests/process-shell-bundle-oracle*'
+      - 'tests/sites-root-entry-native.test.mjs'
+      - 'tests/sites-retired-entrypoints-browser.mjs'
       - '.github/workflows/process-platform-integration.yml'
 permissions:
   contents: read
@@ -54,6 +57,8 @@ jobs:
         with:
           node-version: '24'
       - run: npm ci --no-audit --no-fund
+      - name: Reviewed shell bundle order bytes and completion contract
+        run: node --test tests/process-shell-bundle-oracle.test.mjs tests/process-scripts-build.test.mjs
       - name: Complete source inverse EOL and effective drift rejection
         run: node scripts/entry-performance/source-eol.test.cjs
       - name: Pending UI readiness and full synthetic lifecycle guards
@@ -137,3 +142,9 @@ jobs:
       - name: Original remaining FQC multiuser native acceptance
         if: ${{ !cancelled() && steps.build_exact.outcome == 'success' && steps.native_browser.outcome == 'success' }}
         run: node tests/fqc-matrix-multiuser-browser.mjs
+      - name: Original compiled root entry guards
+        if: ${{ !cancelled() && steps.build_exact.outcome == 'success' && steps.native_browser.outcome == 'success' }}
+        run: node tests/sites-root-entry-native.test.mjs
+      - name: Original retired-entrypoint native guards
+        if: ${{ !cancelled() && steps.build_exact.outcome == 'success' && steps.native_browser.outcome == 'success' }}
+        run: node tests/sites-retired-entrypoints-browser.mjs

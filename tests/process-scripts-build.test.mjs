@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import { combineProcessScripts } from '../lib/process-scripts-build.mjs';
 import { combineProcessStyles } from '../lib/process-styles-build.mjs';
+import {assertProcessScriptBundles} from './process-shell-bundle-oracle.mjs';
 const tag = name => `<script data-process-src="${name}"></script>`;
 
 void test('real shell groups only expression scripts, retaining boundaries and private seed exclusions', () => {
@@ -11,6 +12,7 @@ void test('real shell groups only expression scripts, retaining boundaries and p
   const result = combineProcessScripts(html, name => fs.readFileSync('public/process/'+name,'utf8'));
   assert.equal(result.assets.length, 2);
   assert.equal(result.assets.reduce((n,a)=>n+a.sources.length,0), 57);
+  assertProcessScriptBundles(result.assets,name=>fs.readFileSync('public/process/'+name,'utf8'));
   assert.equal(result.assets.flatMap(asset=>asset.sources).filter(name=>name==='canvas-approved-history.js').length,1,'Canvas history is included exactly once');
   for(const name of ['page-draft-merge.js','master-page-transfer.js','master-page-approved-history.js','master-page-editor.js','master-page-excel.js','routine-page-approved-history.js','routine-fqc-page.js','routine-fqc.js'])assert.equal(result.assets.flatMap(a=>a.sources).filter(file=>file===name).length,1,name+' loads exactly once');
   // The two independent Routine page assets account for 55 -> 57. Keep
