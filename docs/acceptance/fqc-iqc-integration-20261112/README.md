@@ -74,3 +74,33 @@ Cloud Chromium 下載實際回應 `403 Domain forbidden`，未改用替代主機
 最新編譯 IQC 反例已通過：Begin 已提交但 ACK 丟失時，離頁及重載保留兩份原標記；恢復只發 GET，未自動 Save，工作稿仍引用原設備且 saved=null。缺漏清單舊瀏覽器 fixture 補上精確 delivery token（以參考相等判斷當前頁），兩種語言／三種尺寸均通過定位、取消、保留未送輸入及即時語言切換；未放寬產品 owner 檢查。舊照片組合 17 項、FQC 目錄與 IQC deferred projection／歷史輪詢反例亦通過。
 
 來源預檢曾因既有合成儲存鍵的 fixture blob 更新而拒絕；推送命令當時仍繼續，已明確記錄此失敗而未宣稱通過。經逐 byte 比對，`349553800bb7b67c7f0a3684efe224da7e9b547a` 僅比原已核 fixture `f4c1d47bb90371b329c2f53f0b55a3023c09de3e` 增加 `this.isConnected=true;`，分類內容仍是同一個合成 actor／endpoint 儲存鍵。沿用既有精確複審機制追加 `e550da35585d8669b8f589b4f906c19a37e88b9b`／該 path／blob／WORKSTATION_PATH tuple；原掃描 pattern、來源 anchor、真實 Git 祖先／tree、敏感項目及變更後拒絕規則全部保留。新增單一差異證明、缺祖先／錯 tree／錯 path／改 bytes 反例；沒有新增目錄或通用格式豁免。完整歷史及 worktree 預檢隨後通過。
+
+Windows `43176912352` 在 `5f8e39d` 的快照／授權階段停於舊 Routine unload fixture：它仍強制抽取已依目前需求移除的 beforeunload 提示，讓 48 個案例在執行 Save 前即失敗。修正為驗證目前沒有該提示、page layout 分派至自身離頁 owner，並保留舊 handler 作歷史反例。原 Save 的完整 SHA pin 經精確三種 display/read 插入還原後仍須匹配；原 pending／角色／版本／UNKNOWN／晚回覆反例保留，新增歷史選擇／顯示 epoch 反例及歷史唯讀零讀寫拒絕。與 spinner 共 81 項本機通過，納入本 PR 專用 CI。此修改只涉及測試與證據，未改產品、權限或寫入協議。
+
+## 全部 17 項及補充要求逐項補核
+
+下列程式均已在本分支；測試證據使用隔離合成資料，不代表真人測試站驗收。來源 commit／main 已含項目沿用上表與 `cloud-source-selection.json`，不重搬或重寫。最新 HEAD／run／結果集中更新於同一 PR #105；失敗候選不冒稱成功。
+
+|需求|現有程式證據|測試證據|缺漏與處理結果／尚待事項|
+|---|---|---|---|
+|F1 效能、500、處理中|`lib/fqc-workflow.ts`、`lib/versioned-shared-workflow.ts`、`public/process/fqc-master.js`|`scripts/test-fqc-record-mutation.cjs`、`scripts/test-fqc-lifecycle8-record-mutation.cjs`、`tests/fqc-draft-lifecycle-browser.mjs`|保留 main bounded 存取，已補最終 session 與晚收據隔離；最新產品 CI 5 輪／160 樣本通過。正式 500 根因、實站延遲仍缺現場證據，不冒稱已解決。|
+|F2 一次全域選擇、取消、晚輸入|`public/process/fqc-master.js` compared Save owner／選擇流程|`tests/fqc-save-choice.test.mjs`、`tests/quality-comparison-callback-owner.test.mjs`|保留無衝突欄位；Mine／Theirs／Cancel、取消零寫入、晚輸入保留已有反例，未重寫。|
+|F3 同 ID 刪除、關聯、矩陣|`lib/fqc-local-save.ts`、`lib/fqc-workflow.ts`|`tests/fqc-retained-deleted-save.test.mjs`、`tests/fqc-matrix-conflict-discard.test.mjs`、`tests/fqc-retained-deleted-ui.test.mjs`|僅必要同 ID／上層復活；矩陣並行與取消保留原關聯；不以歷史快照覆寫當前工作。|
+|F4 寫途中撤權、API 參數|`lib/versioned-shared-workflow.ts` 最終 session fence；main `lib/shared-draft.ts` 保持原碼|`tests/quality-final-session-fence.test.mjs`、成對 Apply／lifecycle8 mutation scripts|已補 immutable encoding 後撤權拒絕；401／CAS 前停止／無收據及原 guard 均保留。|
+|F5 設備目標原子保存|`public/process/routine-equipment.js`、各自 `/api/fqc/workflow`／`/api/iqc/workflow`|`tests/equipment-transfer-compiled.test.mjs`、`scripts/test-routine-equipment-four-module-transfer.cjs`|FQC／IQC 只 Save 選定目標整份已套用工作稿；其他頁未送表單、source equipment、active／cases 不變，不自動 Submit。|
+|F6 靜默離頁、無輪詢、UNKNOWN|`public/process/shared-draft-client.js`、`public/process/fqc-master.js`|`tests/fqc-save-choice-navigation.test.mjs`、`tests/fqc-unknown-recovery-browser.test.mjs`、`scripts/entry-performance/poll-wiring.test.mjs`|未送 RAM 可離頁；已送 UNKNOWN 原收據保留且只查原結果，不重送；舊輪詢只作固定歷史反例。|
+|F7 原頁已核准歷史、權限分離|`lib/master-approved-pages.ts`、`lib/master-page-boundary.ts`、`public/process/version-draft-ui.js`／`fqc-master.js`|`tests/tooling-fqc-approved-history.test.mjs`、`tests/quality-master-explicit-refresh.test.mjs`|僅有核准證據的唯讀版本，禁編輯／上傳／恢復覆寫；回當前頁保留未送輸入，撤權／晚 detail 隔離。|
+|R8 例行同頁單一草稿|`lib/routine-fqc-page.ts`、`lib/routine-fqc-page-save.ts`、`public/process/routine-fqc-page.js`、page route|`scripts/test-routine-whole-page.cjs`／`-route.cjs`／`-ui.cjs`、`tests/routine-page-cutover-preparation.test.cjs`|page-v1 整頁一次 Save／送審；舊 document layout 相容保留。離線 stdin/stdout 準備已實作，正式資料切換未執行，不能列為完成。|
+|R9 例行晚 Save、照片、歷史撤權|`public/process/routine-fqc.js`／`routine-fqc-page.js`／`routine-page-approved-history.js`、`lib/routine-page-approved-history.ts`|`tests/routine-fqc-approved-history.test.mjs`、`tests/routine-page-approved-history-ui.test.mjs`、`tests/routine-fqc-unload-contract.test.mjs`|原頁唯讀歷史與 File／UNKNOWN 保留已有測試；本次補修舊 unload fixture，保留完整 Save pin 並新增歷史／epoch 反例，未回退靜默離頁需求。|
+|I1 缺漏分類、統計|main `lib/iqc.ts`、`public/process/iqc-master.js`|`scripts/test-iqc-content-issues.cjs` 兩語／三 viewport|main #70 已含，不重搬；保留定位、取消、輸入與語言切換。真實 IQC 缺漏數字未取得，不代填業務資料。|
+|I2 固定抽樣 0、提示與送審界線|main `lib/iqc.ts` validation／blocking 與 `public/process/iqc-master.js`|`scripts/test-iqc-content-issues.cjs`、`tests/quality-submit-confirmation-pins.test.cjs`|main #90 已含；保留結構／數值拒絕、缺漏呈現及未存輸入不得 Submit，不降低權限或 validation。|
+|I3 三方比對、順序衝突、取消|`public/process/iqc-master.js` compareLocalSave／Save owner|`tests/iqc-save-choice.test.mjs`、`tests/iqc-stable-lists.test.mjs`、`tests/iqc-save-choice-compiled-http.test.mjs`|整組一次選擇，stable IDs 保留無衝突資料，歧義順序採明確整欄選擇；取消零寫入。|
+|I4 必要同 ID、上層、新增權限|`lib/iqc-local-save.ts`、`lib/iqc-workflow.ts`|`tests/iqc-revive-save.test.mjs`、`tests/iqc-revival-wire.test.mjs`|最小必要復活，guard／create 權限／pending／版本均保留；未提供歷史還原草稿入口。|
+|I5 照片預覽、首次存取、UNKNOWN|`public/process/iqc-master.js` staged File／照片上傳與原收據|`tests/iqc-local-photo-save.test.mjs`、`tests/iqc-unknown-browser.test.mjs`|File 留 RAM，Save 才 PUT；PUT 後 peer 變更於同次 Save 重比較、重用 URI。UNKNOWN 只查原收據，歷史 11/4 未知新增不重送。|
+|I6 獨立頁草稿、離頁鎖|`lib/iqc-workflow.ts` key/scope、`public/process/iqc-master.js`|`tests/iqc-save-choice-navigation.test.mjs`、`tests/quality-module-command-isolation.test.mjs`|本次新增實際雙路由同時草稿／待審測試；雙向各自 Save／Submit／撤回，錯用對方 case ID 必須拒絕且資料／收據不變。|
+|I7 設備目標、原頁歷史、角色|`public/process/routine-equipment.js` bounded identified IQC Begin、`lib/iqc-workflow.ts`、IQC 原頁 selector|`tests/equipment-transfer-compiled.test.mjs`、`tests/iqc-approved-history.test.mjs`、`tests/shared-draft-begin-v1.test.mjs`|修復 FQC-only Begin 拒絕 IQC；仍拒絕錯 endpoint／scope／非 durable。歷史唯讀零命令，不能混送或覆寫歷史。|
+|I8 速度、撤回修改再送審核准|`lib/iqc-workflow.ts`、`lib/shared-draft.ts`、`public/process/iqc-master.js`|`tests/quality-module-command-isolation.test.mjs`、`scripts/equipment-transfer-fixture.cjs`、集中 quality 回歸|保留各自 saved/case/generation；雙路由撤回後修改／再 Save／再送審／由另一合成 reviewer 核准及互不影響已補實測。合成計時不作真人延遲或改善幅度；真人修改／再送審／核准與實站計時待驗。|
+
+補充隔離測試以實際兩個 route、正常合成登入、private SQLite／Map R2 執行。FQC→IQC 與 IQC→FQC 兩種順序均驗證其他所有值逐 byte 不變；同時待審案件、saved ID 分離，錯模組撤回 409 `CASE_NOT_PENDING` 且完整 state／immutable objects 不變；另保留 pending Save 拒絕，逐模組撤回後修改／再儲存／再送審／由獨立 reviewer 核准亦互不影響。與 unload／spinner 共 83 項通過。設備的桌面／手機編譯測試與三頁歷史測試沿用已完成成果，未重新製作功能。
+
+目前分開三層：**已上傳程式**以 PR 當前遠端 SHA 為準；**合成測試**只標示實際通過的候選／run，本次 Windows 失敗已定位修正，修正候選仍須新的 CI；**尚未真人測試站驗收**包括實體手機／IME、真人兩人操作、正式 500 根因、實站延遲、實際 IQC 缺漏數字與正式 layout 資料切換。沒有合併、部署、正式資料／帳號操作。
