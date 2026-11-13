@@ -215,8 +215,12 @@ void test('joint reporting composition first restores exact merged-main bytes wi
 });
 void test('reporting-dependent workflows include the joint projection and original reporting assertions',()=>{
  for(const file of ['account-permissions','feedback-queues','process-platform-integration']){
-  const workflow=fs.readFileSync('.github/workflows/'+file+'.yml','utf8');
-  const paths=workflow.split('    paths:\n')[1]?.split('permissions:')[0];assert(paths);
-  for(const dependency of ['scripts/quality-main-source-contract.cjs','scripts/quality-main-source-contracts.json','tests/access-event-main-integration.test.cjs'])assert(paths.includes("      - '"+dependency+"'\n"),file+' must rerun for '+dependency);
+  const raw=fs.readFileSync('.github/workflows/'+file+'.yml','utf8');
+  // Git's Windows checkout uses CRLF; dependency assertions must be identical.
+  for(const checkout of [raw.replace(/\r\n/g,'\n'),raw.replace(/\r?\n/g,'\r\n')]){
+   const workflow=checkout.replace(/\r\n/g,'\n');
+   const paths=workflow.split('    paths:\n')[1]?.split('permissions:')[0];assert(paths);
+   for(const dependency of ['scripts/quality-main-source-contract.cjs','scripts/quality-main-source-contracts.json','tests/access-event-main-integration.test.cjs'])assert(paths.includes("      - '"+dependency+"'\n"),file+' must rerun for '+dependency);
+  }
  }
 });
