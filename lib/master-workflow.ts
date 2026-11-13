@@ -61,7 +61,6 @@ export function masterWorkflowAdapter(scope:string,options:{legacyArchive?:boole
   serializeModel,
   projectValues():Record<string,string>{return scope==='PROCESS'||linkedActivated?{processMasterData:JSON.stringify(root.active.PROCESS)}:{};},
   beforeBegin(){if(scope==='PROCESS')assertProcessLinkAvailable(root);},
-  beforeCommand(control,command){if(scope==='PROCESS'&&command.action==='restore'&&!control.workflow?.receipts[command.operationId])throw new DraftConflict('APPROVED_HISTORY_READ_ONLY',409);},
   requiresCreate(control,command){return scope==='PROCESS'&&!!command.patches?.some(patch=>patch.op==='set'&&patch.path.length===1&&typeof patch.path[0]==='string'&&!Object.hasOwn(control.workflow?.working||{},patch.path[0]));},
   requiresDelete(control,command){
    if(command.action==='restore')return true;
@@ -178,6 +177,8 @@ export function masterWorkflowAdapter(scope:string,options:{legacyArchive?:boole
    };
   },
   apply:function applyMaster(control,command,context){
+   // Route authorization precedes this module invariant; old committed receipts remain replayable.
+   if(scope==='PROCESS'&&command.action==='restore'&&!control.workflow?.receipts[command.operationId])throw new DraftConflict('APPROVED_HISTORY_READ_ONLY',409);
    const original=control.workflow!;
    if(command.action==='save'&&command.moduleAction==='save-local-v1'){
     if(original.receipts[command.operationId])return applyDraftCommand(original,command,context);

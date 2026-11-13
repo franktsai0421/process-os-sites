@@ -264,5 +264,99 @@
       "reason": "outdated PROCESS 15s expectation"
     },
     "finalCI": "See final PR #115 evidence"
+  },
+  "restoreAuthorizationFollowup": {
+    "status": "PASS_LOCAL_PENDING_FINAL_CI",
+    "priorWindowsRun": 43493755953,
+    "failure": "PROCESS readonly guard preceded original 403 restore permission gate",
+    "fix": "Move PROCESS new-restore invariant into adapter apply after existing route authorization; leave shared authorization framework unchanged",
+    "masterWorkflowBlob": "82bccdc679e7f5855d5e4aba051d4b7c27f6e36f",
+    "log": "/tmp/lines-flow-restore-auth-fix.log",
+    "actualAdapters": 10,
+    "preserved": [
+      "original no-grant 403 and full state unchanged",
+      "other nine adapters authorized restore 200 and effects assertions",
+      "PROCESS authorized and primary new restore 409 readonly and full state unchanged",
+      "trusted legacy committed PROCESS receipt 200 exact replay and full state unchanged"
+    ],
+    "realDataWrites": 0,
+    "finalCI": "See final PR #115 head evidence",
+    "localTargetedRegression": 147,
+    "lint": "PASS",
+    "fullNonIncrementalTypeScript": "PASS"
+  },
+  "nativeAcceptanceBoundary": {
+    "LINES": "current controller and actual signed routes in isolated native module harness; not adopted full SPA entry or live Site",
+    "PROCESS": "compiled full SPA with synthetic signed accounts/data",
+    "requiredAfterAuthorizedTestDeploymentAndDataDecision": [
+      "LINES full new-architecture entry",
+      "independent draft Save and reload",
+      "Submit Withdraw Resubmit Approve",
+      "PROCESS approved-only references and canvas refresh"
+    ],
+    "liveSiteAccepted": false
+  },
+  "failedWindowsStepLocalRerun": {
+    "workflowStep": "Integrated entry and read-only delivery contracts",
+    "originalCommands": 145,
+    "passedCommands": 138,
+    "notRunNativeCommands": 6,
+    "blockedWindowsPowerShellCommands": 1,
+    "functionalFailures": 0,
+    "nativeNotRun": [
+      [
+        "node",
+        "scripts/test-tooling-local-browser.cjs"
+      ],
+      [
+        "node",
+        "--test",
+        "tests/workflow-begin-contract.test.cjs",
+        "tests/workflow-begin-receipt.test.cjs",
+        "tests/shared-draft-begin-v1.test.mjs",
+        "tests/module-begin-recovery.test.mjs",
+        "tests/iqc-begin-generation.test.mjs"
+      ],
+      [
+        "node",
+        "scripts/test-quality-begin-generation-browser.cjs"
+      ],
+      [
+        "node",
+        "scripts/test-ipqc-ab-ack-deny.cjs"
+      ],
+      [
+        "node",
+        "scripts/test-iqc-content-issues.cjs"
+      ],
+      [
+        "node",
+        "scripts/test-iqc-number-hint.cjs"
+      ]
+    ],
+    "windowsOnly": [
+      [
+        "node",
+        "--test",
+        "tests/ab-c-route-reference.test.mjs",
+        "tests/master-bridge-ownership.test.mjs",
+        "tests/login-intent.test.mjs",
+        "tests/delivery-read-plan.test.mjs",
+        "tests/process-bootstrap.test.mjs",
+        "tests/integrated-bootstrap-client.test.mjs",
+        "tests/player-intent.test.mjs",
+        "tests/destination-delivery.test.mjs",
+        "tests/delivery-navigation.test.mjs",
+        "tests/navigation-lifecycle.test.mjs",
+        "tests/navigation-adapters.test.mjs",
+        "tests/destination-transaction.test.mjs",
+        "tests/bounded-media-loading.test.mjs",
+        "tests/shared-draft-no-change.test.mjs",
+        "tests/ci-integrated-exit.test.mjs"
+      ]
+    ],
+    "qualification": "Dot Linux lacks native socket/browser capability and powershell.exe. The Windows-only group still had 227 other cases PASS; no CI tests were skipped or weakened. Final full CI remains required.",
+    "results": "/tmp/lines-flow-integrated-step-results.json",
+    "log": "/tmp/lines-flow-integrated-step-full.log"
   }
 }

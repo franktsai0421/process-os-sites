@@ -96,3 +96,9 @@ Git HTTPS push 因雲端沒有登入憑證而未執行。其後單筆大型 GitH
 共同候選風險：#113／#114／#115 同改 `abc-master-source-contract.cjs` 的 `restore`／`projectKnown`、index 和導航／cache 斷言；#114／#115 同改 `shared-draft-client.js`。本 PR 未搬入兩個未合併候選。各自全綠不能證明三者相容，共同候選須保留三套 source proof 和負例、核對組合順序與完整真實前身，再跑實際合樹回歸；不能覆蓋任一組或降低 hash 門檻。
 
 最終 runtime `20ca6c2` 的 FQC/IQC 廣域回歸 1,137 項中 1,136 通過，唯一失敗是舊測試仍要求 PROCESS 15 秒；本輪 master transport 已依需求採用有界 45 秒。精確期望修正為 45 秒，另測 generic PROCESS 與獨立 LINES 預設路徑；15 秒 generic FQC／similar path、45 秒 FQC／IQC、deadline 前零讀回、截止後只查一個原收據、單次 POST 和 UNKNOWN 斷言全部保留。此後修正僅測試與證據，不改 runtime。
+
+Windows Local safety `43493755953` 的最後整合入口段落測出 PROCESS readonly 檢查早於原 restore 權限門檻，造成無權限操作由 403 變成 409。現移到 adapter apply（既有權限核對之後），不修改共用權限框架或帳號政策。原 403 與資料不變斷言保留；具 restore 權限與 primary 新還原都須 409／APPROVED_HISTORY_READ_ONLY／零寫入；合成可信 legacy committed receipt 透過真 API 可 200 冪等讀回，工作資料完全不變。其餘九個 adapter 還原成功／刪除／復活／重排測試全部保留。十個 adapter 真 route 檢查 PASS，並提前放入本 PR 專用 CI。
+
+驗收邊界再次明列：LINES 原生為目前 controller＋真 route 的隔離模組載具；PROCESS 原生為編譯後完整 SPA。測試站部署及適當資料切換另經授權決策後，仍須實測 LINES 完整新架構入口、獨立草稿保存／重載、送審／撤回／再送／核准，以及 PROCESS 已核准引用／畫布刷新。隔離載具 PASS 不替代完整入口或實站驗收；沒有宣稱本次已部署或實站已驗收。
+
+修正後本地完整重跑失敗的 145-command 段落：138 組 PASS；6 組已知需原生／socket、1 組需 Windows PowerShell，列本地 NOT_RUN／BLOCKED，不作成功計算。其中 PowerShell 混合命令組其餘 227 個案例 PASS。未改動任何 GitHub CI 原測試或退出碼檢查；147/147 定向來源／歷史／衝突／導航／回執回歸、lint 與完整非增量 TypeScript PASS，完整 Windows 結果仍待新 head CI。

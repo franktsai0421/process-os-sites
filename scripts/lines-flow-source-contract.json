@@ -144,8 +144,8 @@
       ]
     },
     "lib/master-workflow.ts": {
-      "afterHash": "c7f0e4470984be42d14da8cb0c8245c8b640e59919f6319b426f320d04055ffc",
-      "afterLength": 24093,
+      "afterHash": "28d21dd7b750412c4d0a2095fd8af4e318986a20a9fc3545c189f61ce7fbe887",
+      "afterLength": 24161,
       "beforeHash": "c454df67e25f0be469552ffdb02bac1c3a662acd97317b63a52c365000e95427",
       "beforeNormalizedHash": "c454df67e25f0be469552ffdb02bac1c3a662acd97317b63a52c365000e95427",
       "beforeBlob": "cf6b2b56ef618ea9328ffd24cad74b974d764b1e",
@@ -169,30 +169,35 @@
         {
           "offset": 5890,
           "before": "",
-          "after": "  beforeCommand(control,command){if(scope==='PROCESS'&&command.action==='restore'&&!control.workflow?.receipts[command.operationId])throw new DraftConflict('APPROVED_HISTORY_READ_ONLY',409);},\n  requiresCreate(control,command){return scope==='PROCESS'&&!!command.patches?.some(patch=>patch.op==='set'&&patch.path.length===1&&typeof patch.path[0]==='string'&&!Object.hasOwn(control.workflow?.working||{},patch.path[0]));},\n"
+          "after": "  requiresCreate(control,command){return scope==='PROCESS'&&!!command.patches?.some(patch=>patch.op==='set'&&patch.path.length===1&&typeof patch.path[0]==='string'&&!Object.hasOwn(control.workflow?.working||{},patch.path[0]));},\n"
         },
         {
-          "offset": 8592,
+          "offset": 8399,
           "before": "   const stages=new Set(['AB','C'].flatMap(s=>rows(master.active[s]?.lines||[]).flatMap(l=>rows(l.stages).map(s=>str(s.code)))));\n",
           "after": "   const stages=new Set((['AB','C'] as const).flatMap(s=>rows(((master as Root&{pageDraftLayout?:string}).pageDraftLayout==='page-v1'?approvedMasterPageCatalog(master,s).content:master.active[s])?.lines||[]).flatMap(l=>rows(l.stages).map(s=>str(s.code)))));\n"
         },
         {
-          "offset": 12123,
+          "offset": 11930,
           "before": "      assertStageTemplateAvailable(master,previous,content);\n",
           "after": "      if(!options.independentTopology)assertStageTemplateAvailable(master,previous,content);\n"
         },
         {
-          "offset": 17641,
+          "offset": 17448,
           "before": "      assertStageTemplateAvailable(master,master.active[scope],content,control.workflow?.pendingId||undefined);\n",
           "after": "      if(!options.independentTopology)assertStageTemplateAvailable(master,master.active[scope],content,control.workflow?.pendingId||undefined);\n"
         },
         {
-          "offset": 20959,
+          "offset": 18233,
+          "before": "",
+          "after": "   // Route authorization precedes this module invariant; old committed receipts remain replayable.\n   if(scope==='PROCESS'&&command.action==='restore'&&!control.workflow?.receipts[command.operationId])throw new DraftConflict('APPROVED_HISTORY_READ_ONLY',409);\n"
+        },
+        {
+          "offset": 21027,
           "before": "   if(p.op==='set'&&(path.length<3||typeof path[1]!=='object'))throw new DraftConflict('COLLECTION_REPLACEMENT_FORBIDDEN',422);\n",
           "after": "   const newStage=scope==='PROCESS'&&p.op==='set'&&path.length===1&&!Object.hasOwn(control.workflow!.working,first)&&Array.isArray(p.value);\n   if(p.op==='set'&&!newStage&&(path.length<3||typeof path[1]!=='object'))throw new DraftConflict('COLLECTION_REPLACEMENT_FORBIDDEN',422);\n"
         },
         {
-          "offset": 22321,
+          "offset": 22389,
           "before": "   if(!control.workflow!.receipts[command.operationId]&&p.op!=='insert'&&!(command.guards||[]).some(g=>stableDraftJSON(g.path)===stableDraftJSON(path)))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);\n",
           "after": "   if(!control.workflow!.receipts[command.operationId]&&p.op!=='insert'&&!(command.guards||[]).some(g=>stableDraftJSON(g.path)===stableDraftJSON(path)||newStage&&g.path.length===0&&sameDraftValue(g.value,control.workflow!.working)))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);\n"
         }
@@ -643,6 +648,26 @@
           "offset": 33287,
           "before": "    const mutationDeadline=fqcMutation||iqcMutation||/^\\/api\\/process-authoring\\/workflow(?:\\?|$)/.test(endpoint)?45000:15000;\n",
           "after": "    const mutationDeadline=fqcMutation||iqcMutation||/^\\/api\\/(?:process-authoring\\/workflow|master\\/(?:workflow|pages))(?:\\?|$)/.test(endpoint)?45000:15000;\n"
+        }
+      ]
+    },
+    "scripts/test-draft-restore-access.mjs": {
+      "afterHash": "7f47c89be79711ea1fff53c9795332111805617359854e5ba046972a029cdc18",
+      "afterLength": 11046,
+      "beforeHash": "a676b0d06d1cc047d5dffef50b89db8110b3422f603c6fea6ae920454d8ee9c9",
+      "beforeNormalizedHash": "a676b0d06d1cc047d5dffef50b89db8110b3422f603c6fea6ae920454d8ee9c9",
+      "beforeBlob": "a75f197de2267fe1ef11299ae72e2831cf4065e3",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 7702,
+          "before": " async function restore(){const flow=current.control.workflow;const r=await route.POST(new Request(seed.url,{method:'POST',headers:{Origin:'http://fixture',Cookie:await cookie('limited'),'Content-Type':'application/json'},body:JSON.stringify({command:{action:'restore',operationId:randomUUID(),clientId:'additional-restore',sequence:++sequence,generation:flow.generation,expectedRevision:flow.revision,restoreSaveId:'save0'}})}));return {status:r.status,body:await r.json()};}\n",
+          "after": " async function restore(id='limited'){const flow=current.control.workflow;const r=await route.POST(new Request(seed.url,{method:'POST',headers:{Origin:'http://fixture',Cookie:await cookie(id),'Content-Type':'application/json'},body:JSON.stringify({command:{action:'restore',operationId:randomUUID(),clientId:'additional-restore',sequence:++sequence,generation:flow.generation,expectedRevision:flow.revision,restoreSaveId:'save0'}})}));return {status:r.status,body:await r.json()};}\n"
+        },
+        {
+          "offset": 8368,
+          "before": " await grant(true);current=await read();r=await restore();assert.equal(r.status,200,fixtureId+JSON.stringify(r));await read();report.push({moduleId:fixtureId,restoreWithoutGrant:403,denialPreservedData:true,explicitRestore:200});\n",
+          "after": " await grant(true);current=await read();const authorizedBefore=await core.readState();r=await restore();\n if(fixtureId==='master-PROCESS'){\n  assert.equal(r.status,409,JSON.stringify(r));assert.equal(r.body.error,'APPROVED_HISTORY_READ_ONLY');assert.deepEqual(await core.readState(),authorizedBefore);\n  const primary=await restore('frank');assert.equal(primary.status,409,JSON.stringify(primary));assert.equal(primary.body.error,'APPROVED_HISTORY_READ_ONLY');assert.deepEqual(await core.readState(),authorizedBefore);\n  // A trusted legacy committed receipt is replayed through the actual route;\n  // no new history restore or state write is admitted under the new policy.\n  const values={...authorizedBefore.values},root=JSON.parse(values.masterDataControl),flow=root.workflowScopes.PROCESS,legacy={action:'restore',operationId:randomUUID(),clientId:'legacy-restore-receipt',sequence:++sequence,generation:flow.generation,expectedRevision:flow.revision,restoreSaveId:'save0'};\n  const receipt={operationId:legacy.operationId,generation:flow.generation,revision:flow.revision,savedId:flow.saved?.id||null,caseId:null,unchanged:true};\n  flow.receipts[legacy.operationId]={actorId:'limited',fingerprint:load('lib/shared-draft.ts').stableDraftJSON(legacy),result:receipt};values.masterDataControl=JSON.stringify(root);db.prepare('UPDATE shared_state SET revision=revision+1,\"values\"=? WHERE id=1').run(JSON.stringify(values));\n  const replayBefore=await core.readState(),reply=await route.POST(new Request(seed.url,{method:'POST',headers:{Origin:'http://fixture',Cookie:await cookie('limited'),'Content-Type':'application/json'},body:JSON.stringify({command:legacy})})),body=await reply.json();assert.equal(reply.status,200,JSON.stringify(body));assert.equal(body.unchanged,true);assert.deepEqual(body.receipt,receipt);assert.deepEqual(await core.readState(),replayBefore);\n  report.push({moduleId:fixtureId,restoreWithoutGrant:403,denialPreservedData:true,explicitRestore:409,primaryRestore:409,legacyCommittedReceiptReplay:200,replayPreservedData:true});\n }else{assert.equal(r.status,200,fixtureId+JSON.stringify(r));await read();report.push({moduleId:fixtureId,restoreWithoutGrant:403,denialPreservedData:true,explicitRestore:200});}\n"
         }
       ]
     },
