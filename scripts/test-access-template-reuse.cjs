@@ -42,7 +42,17 @@ check('T5 exact reuse plus pinned PR44, AB-phase and FQC-phase deltas; outside-s
  const lf=b=>Buffer.from([...b].filter((v,i)=>v!==13||b[i+1]!==10));assert.deepEqual(lf(fs.readFileSync('lib/user-access.ts')),lf(now));
  for(const file of ['lib/process-state.ts','lib/session-revocation.ts']){
   const committed=execFileSync('git',['show','HEAD:'+file]),original=execFileSync('git',['show',base+':'+file]);
-  const phaseBytes=require('./ipqc-ab-integration-source-contract.cjs').projectKnown(committed,file);
+  // Preserve the merged account/process layer before reversing its historical
+  // page changes; the isolated AB parent predates those account changes.
+  const joint=require('./quality-main-source-contract.cjs'),mainBytes=joint.projectKnown(committed,file,'main');
+  const mainContract=joint.contracts.find(c=>c.file===file&&c.target==='main'&&c.afterHash===joint.hash(committed));
+  if(mainContract){
+   assert.deepEqual(mainBytes,execFileSync('git',['show',mainContract.sourceCommit+':'+file]),'historical authority proof must begin at genuine merged main');
+   const unknown=Buffer.concat([committed,Buffer.from(' ')]);
+   assert.deepEqual(joint.projectKnown(unknown,file,'main'),unknown,'unattested authority bytes must not gain an inverse proof');
+   assert.throws(()=>require('./account-page-source-contract.cjs').projectFile(unknown,file),'unattested authority bytes must fail the account predecessor proof');
+  }
+  const phaseBytes=require('./ipqc-ab-integration-source-contract.cjs').projectKnown(mainBytes,file);
   const historical=file==='lib/process-state.ts'?require('./account-page-source-contract.cjs').projectFile(phaseBytes,file):phaseBytes;
   assert.deepEqual(file==='lib/process-state.ts'?withoutMasterABPermissionPhase(withoutFqcPermissionPhase(historical),original):historical,original);
   assert.deepEqual(lf(fs.readFileSync(file)),lf(committed),'working auth source differs from committed bytes');

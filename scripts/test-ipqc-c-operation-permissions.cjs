@@ -67,6 +67,7 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
       assert.equal(result.permissions.view, true); assert.equal(result.permissions.withdraw, who === 'edit-only');
       assert.equal(result.permissions.history, true);
     }
+    assert.equal(permissionMatrix['module-reviewer'].return,true);assert.equal(permissionMatrix['module-reviewer'].approve,false);
     assert.equal(permissionMatrix.reviewer.approve, true); assert.equal(permissionMatrix.reviewer.return, true);
     assert.equal(permissionMatrix.viewer.approve, false); assert.equal(permissionMatrix.viewer.return, false);
     const deletionOnly = (await h.read('ipqc-c', 'delete-only', '&permissions=1')).permissions;
@@ -112,8 +113,10 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
     await h.command('ipqc-c','withdraw',{caseId:submitted.receipt.caseId,reason:'Explicitly authorized withdrawal'},'edit-only');
     assert.equal((await caseRead(h, submitted.receipt.caseId)).reviewCase.status, 'withdrawn');
     const resubmitted = await h.command('ipqc-c', 'submit', { savedId: saved.id, reason: 'Synthetic reviewer return' }, 'submit-only');
-    await unchanged(h,()=>h.command('ipqc-c', 'return', { caseId: resubmitted.receipt.caseId, reason: 'Synthetic retained return' }, 'module-reviewer',403));
-    await h.command('ipqc-c', 'return', { caseId: resubmitted.receipt.caseId, reason: 'Synthetic retained return' }, 'reviewer');
+    await h.command('ipqc-c', 'return', { caseId: resubmitted.receipt.caseId, reason: 'Synthetic module-authorized return' }, 'module-reviewer');
+    assert.equal((await caseRead(h,resubmitted.receipt.caseId)).reviewCase.status,'returned');
+    const reviewerSubmit=await h.command('ipqc-c','submit',{savedId:saved.id,reason:'Synthetic reviewer return'},'submit-only');
+    await h.command('ipqc-c', 'return', { caseId: reviewerSubmit.receipt.caseId, reason: 'Synthetic retained return' }, 'reviewer');
     const finalSubmit = await h.command('ipqc-c', 'submit', { savedId: saved.id, reason: 'Synthetic independent adoption' }, 'submit-only');
     await unchanged(h,()=>h.command('ipqc-c', 'approve', { caseId: finalSubmit.receipt.caseId }, 'module-reviewer',403));
     await h.command('ipqc-c', 'approve', { caseId: finalSubmit.receipt.caseId }, 'reviewer');

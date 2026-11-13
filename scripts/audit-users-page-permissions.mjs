@@ -77,13 +77,35 @@ try{
    if(r.status!==200)differences.push({status:r.status,error:r.body.error});
    else for(const op of ['view','create','edit','save','submit','withdraw','approve','return','delete','restore']){
     if(!P.accessKeys.includes(module+'.'+op))continue;
-    const expected=actor.cells[module+'.'+op]===true;
+    // C final approval reads platform authority, never the module-review cell.
+    const expected=module==='ipqc-c'&&op==='approve'
+     ? actor.cells['ipqc-c.view']===true&&actor.cells['approval.view']===true&&actor.cells['approval.approve']===true
+     : actor.cells[module+'.'+op]===true;
     if(r.body.permissions[op]!==expected)differences.push({operation:op,configured:expected,api:r.body.permissions[op]});
    }
    report.workflows.push({module,granted:operation,status:differences.length?'MISMATCH':'MATCH',differences});
   }
   // An actual old session must not retain access after a saved revocation.
   await configure([module+'.view']);const old=cookie;await configure([]);const stale=await call(endpoint+(endpoint.includes('?')?'&':'?')+'permissions=1','GET',undefined,old);assert([401,403].includes(stale.status),module+' revoked session');report.sessions.push({module,oldSessionStatus:stale.status});
+ }
+ // Exercise both directions of C's final-platform gate, not just its denial.
+ for(const grants of [
+  ['ipqc-c.view','ipqc-c.approve'],
+  ['ipqc-c.view','approval.view','approval.approve'],
+  ['ipqc-c.view','approval.view']
+ ]){
+  const actor=await configure(grants,'audit-admin'),result=await call('ipqc-c/workflow?permissions=1');
+  assert.equal(result.status,200);const expected=grants.includes('approval.view')&&grants.includes('approval.approve');
+  for(const key of ['ipqc-c.view','ipqc-c.approve','approval.view','approval.approve'])assert.equal(actor.cells[key]===true,grants.includes(key),'saved authority must match the explicit C final-review test grant: '+key);
+  assert.equal(result.body.permissions.approve,expected,'C final approval requires both platform grants; module reviewer must not acquire it');
+  report.workflows.push({module:'ipqc-c',granted:grants.join(','),status:'MATCH',differences:[]});
+ }
+ // Reject final approval without its required view at configuration time.
+ {
+  const target=await editableTarget('audit-admin'),before=await core.readState();
+  const changes=Object.fromEntries(P.accessKeys.filter(key=>target.editable[key]).map(key=>[key,['ipqc-c.view','approval.approve'].includes(key)]));
+  const denied=await accounts.POST(new Request('http://fixture/api/user-access',{method:'POST',headers:{Origin:'http://fixture',Cookie:frankCookie,'Content-Type':'application/json'},body:JSON.stringify({action:'update-user',id:'audit-admin',baseRevision:before.revision,changes})}));
+  assert.equal(denied.status,400);assert.equal((await denied.json()).error,'VIEW_DEPENDENCY_REQUIRED');assert.deepEqual(await core.readState(),before);
  }
  await configure(['dispatch.view']);const before=await core.readState(),write=await call('shared-state','POST',{baseRevision:before.revision,updates:{dispatchBoard:JSON.stringify({A:['synthetic-dispatch-probe'],B:[],C:[]})}}),after=await core.readState();
  assert.equal(write.status,403);assert.deepEqual(after,before);report.findings.push({fixed:true,id:'DISPATCH_WRITE_WITH_VIEW_ONLY',configuredEdit:ctx.currentUser.cells['dispatch.edit'],status:write.status,persisted:JSON.parse(after.values.dispatchBoard).A.includes('synthetic-dispatch-probe'),revisionChanged:before.revision!==after.revision});
