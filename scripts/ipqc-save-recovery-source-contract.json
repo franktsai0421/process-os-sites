@@ -1,6 +1,61 @@
 {
   "base": "ba315149e7478c288d2f3af45c8668aa60070919",
   "files": {
+    "scripts/test-ipqc-c-save-projection-client.cjs": {
+      "beforeBlob": "bca7600d831fb652be827440caecd10ffc6db9b2",
+      "beforeHash": "ff47b6a14320f1ad39d5ffdaa09784e153fc1769632fb580a0f199acafc105c5",
+      "beforeLength": 18594,
+      "afterHash": "f5b9c3b0a84a97e2e096bbfca6d3e93e03f8a9528d490ac09d11f91ff0d8356f",
+      "afterNormalizedHash": "f5b9c3b0a84a97e2e096bbfca6d3e93e03f8a9528d490ac09d11f91ff0d8356f",
+      "afterCRLF": [],
+      "rules": [
+        {
+          "offset": 1095,
+          "before": "(async()=>{const {canvasDOM}=await import(require('node:url').pathToFileURL(path.join(root,'scripts/login-reentry-dom.mjs')).href);const shared=fs.readFileSync(path.join(root,'public/process/shared-draft-client.js'),'utf8'),source=fs.readFileSync(path.join(dir,'ipqc-c.js'),'utf8');const checks=[];\n",
+          "after": "(async()=>{const {canvasDOM}=await import(require('node:url').pathToFileURL(path.join(root,'scripts/login-reentry-dom.mjs')).href);const shared=fs.readFileSync(path.join(root,'public/process/shared-draft-client.js'),'utf8'),source=fs.readFileSync(path.join(dir,'ipqc-c.js'),'utf8');const checks=[];const {assertNoDraftPoll,assertDraftInitializerIdle}=await import('./entry-performance/draft-no-poll-fixture.mjs');assertNoDraftPoll(root,'ipqc-c.js',source);await assertDraftInitializerIdle(root,'ipqc-c.js');\n"
+        },
+        {
+          "offset": 5412,
+          "before": " const hook=`  window.__test={seed(node,value){host=node;control=value;revision=10;working=copy(value.workflow.working);selectedVersionId='shared-gen';},client:sharedTransport,save:()=>writeShared('save'),apply:()=>writeShared('apply',{patches:[]}),poll:scheduleSharedRefresh,read:()=>read(false),state:()=>({control,revision,working,modal,blocked:readAccessBlocked(),message,unknown:sharedClient.hasUnknown(),notice:saveInputNoticePending()}),change(kind){if(kind==='local')working.items.push({id:'local-unapplied'});if(kind==='read')readSequence++;if(kind==='generation')control.workflow.generation='new';if(kind==='modal')modal={kind:'error',fields:{name:'UNAPPLIED'},photos:[],dirty:true,readonly:false};}};\\n  window.IPQCCUI={`;\n",
+          "after": " const hook=`  window.__test={seed(node,value){host=node;control=value;revision=10;working=copy(value.workflow.working);selectedVersionId='shared-gen';},client:sharedTransport,save:()=>writeShared('save'),apply:()=>writeShared('apply',{patches:[]}),read:()=>read(false),state:()=>({control,revision,working,modal,blocked:readAccessBlocked(),message,unknown:sharedClient.hasUnknown(),notice:saveInputNoticePending()}),change(kind){if(kind==='local')working.items.push({id:'local-unapplied'});if(kind==='read')readSequence++;if(kind==='generation')control.workflow.generation='new';if(kind==='modal')modal={kind:'error',fields:{name:'UNAPPLIED'},photos:[],dirty:true,readonly:false};}};\\n  window.IPQCCUI={`;\n"
+        },
+        {
+          "offset": 12654,
+          "before": " if(mode==='unchanged-local'){const poll=f.poll();await tick();assert.equal(f.pending.length,3);assert(f.pending[2].url.includes('permissions=1'));f.respond(2,{revision:11,permissions});await poll;assert.equal(f.c.__test.state().working.items[0].id,'local-unapplied');assert.equal(f.pending.length,3);const deniedPoll=f.poll();await tick();assert.equal(f.pending.length,4);f.respond(3,{error:'FORBIDDEN'},403);await deniedPoll;assert(f.c.__test.state().blocked);assert.equal(f.pending.filter(p=>p.options.method==='POST').length,1);await f.poll();assert.equal(f.pending.length,4,'permissions denial pauses subsequent automatic permission requests');f.c.confirm=()=>true;const manual=f.host.querySelector('#ipqcc-read-retry');assert(manual);manual.dispatchEvent({type:'click',target:manual,currentTarget:manual});await tick();assert.equal(f.pending.length,5,'manual full read bypasses automatic pause');const recovered=clone(f.control);recovered.versions[1]={...body.cSaveProjection.draft,snapshot:clone(recovered.workflow.working)};f.respond(4,{revision:11,control:recovered,catalog:{products:[],stages:[]}});await tick();assert.equal(f.pending.length,6);f.respond(5,{revision:11,permissions});await tick();await tick();assert.equal(f.c.__test.state().blocked,false);assert.equal(f.c.__test.state().notice,false);assert.equal(f.c.__test.state().working.items.length,0);assert.equal(f.pending.filter(p=>p.options.method==='POST').length,1);}\n",
+          "after": " if(mode==='unchanged-local'){\n  // Permission refresh is explicit; the current module has no poll producer.\n  const explicit=f.c.__test.client().permissions();await tick();assert.equal(f.pending.length,3);assert(f.pending[2].url.includes('permissions=1'));f.respond(2,{revision:11,permissions});await explicit;\n  assert.equal(f.c.__test.state().working.items[0].id,'local-unapplied');await tick();assert.equal(f.pending.length,3,'waiting never starts an automatic permission read');\n  f.c.confirm=()=>true;button.dispatchEvent({type:'click',target:button,currentTarget:button});await tick();assert.equal(f.pending.length,4);assert.equal(f.pending[3].url,'/api/ipqc-c?caseMetadata=1');f.respond(3,{error:'FORBIDDEN'},403);await tick();await tick();\n  assert(f.c.__test.state().blocked);assert.equal(f.pending.filter(p=>p.options.method==='POST').length,1);await tick();assert.equal(f.pending.length,4,'denial never causes an automatic read or retry');\n  const manual=f.host.querySelector('#ipqcc-read-retry');assert(manual);manual.dispatchEvent({type:'click',target:manual,currentTarget:manual});await tick();assert.equal(f.pending.length,5,'explicit full read retries the owned denial');const recovered=clone(f.control);recovered.versions[1]={...body.cSaveProjection.draft,snapshot:clone(recovered.workflow.working)};f.respond(4,{revision:11,control:recovered,catalog:{products:[],stages:[]}});await tick();assert.equal(f.pending.length,6);f.respond(5,{revision:11,permissions});await tick();await tick();assert.equal(f.c.__test.state().blocked,false);assert.equal(f.c.__test.state().notice,false);assert.equal(f.c.__test.state().working.items.length,0);assert.equal(f.pending.filter(p=>p.options.method==='POST').length,1);\n }\n"
+        }
+      ]
+    },
+    "scripts/test-ipqc-ab-modal-quarantine.cjs": {
+      "beforeBlob": "9d306be34d3972a0e3a8de537f80f967fca4cfb7",
+      "beforeHash": "6b55a634eb54f253c107e1a44909e5f3aaa7a61495038d0e6802d339996341da",
+      "beforeLength": 6425,
+      "afterHash": "eeb5acc6f6826f3f700c67360b3f729ee543a79df934429897580cf5d35e57f2",
+      "afterNormalizedHash": "eeb5acc6f6826f3f700c67360b3f729ee543a79df934429897580cf5d35e57f2",
+      "afterCRLF": [],
+      "rules": [
+        {
+          "offset": 655,
+          "before": " const pending=[],identity={id:'owner',role:'admin'},listeners=[],retry={},nameInput={value:'UNSAVED PRIVATE'};\n",
+          "after": " const pending=[],identity={id:'owner',role:'admin'},listeners=[],progressNodes=[],retry={},nameInput={value:'UNSAVED PRIVATE'};\n"
+        },
+        {
+          "offset": 1224,
+          "before": "  querySelector(selector){if(selector==='[data-ab-access-retry]')return retry;if(selector==='#ab-error-name')return nameInput;if(selector.startsWith('#')&&this.innerHTML.includes('id=\"'+selector.slice(1)+'\"'))return{addEventListener:(type,handler)=>listeners.push({s:selector,type,handler})};return null;},querySelectorAll:()=>[]};\n const context={window,document:{documentElement:{lang:'zh'},contains:()=>true,querySelectorAll:()=>[],querySelector:()=>null},MutationObserver:class{observe(){}},setTimeout,clearTimeout,AbortController,crypto:require('node:crypto').webcrypto,sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},CustomEvent:class{},URLSearchParams,location:{search:''},structuredClone,console,\n",
+          "after": "  prepend(node){node.isConnected=true;progressNodes.unshift(node);},\n  querySelector(selector){if(selector==='[data-ipqc-request-progress]')return progressNodes.find(node=>node.isConnected)||null;if(selector==='[data-ab-access-retry]')return retry;if(selector==='#ab-error-name')return nameInput;if(selector.startsWith('#')&&this.innerHTML.includes('id=\"'+selector.slice(1)+'\"'))return{addEventListener:(type,handler)=>listeners.push({s:selector,type,handler})};return null;},querySelectorAll:()=>[]};\n const context={window,document:{documentElement:{lang:'zh'},createElement(tag){assert.equal(tag,'p','real progress widget creates a text-only paragraph');return{dataset:{},isConnected:false,hidden:false,textContent:'',setAttribute(name,value){this[name]=value;},remove(){this.isConnected=false;}};},contains:()=>true,querySelectorAll:()=>[],querySelector:()=>null},MutationObserver:class{observe(){}},setTimeout,clearTimeout,AbortController,crypto:require('node:crypto').webcrypto,sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},CustomEvent:class{},URLSearchParams,location:{search:''},structuredClone,console,\n"
+        },
+        {
+          "offset": 3624,
+          "before": " return{t,visible,pending,listeners,retry,sync,identity,answer,\n",
+          "after": " return{t,visible,pending,listeners,progressNodes,retry,sync,identity,answer,\n"
+        },
+        {
+          "offset": 5292,
+          "before": "",
+          "after": " assert(f.progressNodes.some(node=>node.isConnected&&node.dataset.ipqcRequestProgress==='true'&&node.role==='status'));assert(f.progressNodes.every(node=>!node.textContent.includes('UNSAVED PRIVATE')));\n"
+        }
+      ]
+    },
     "scripts/ipqc-c-display-image-source-contract.cjs": {
       "beforeBlob": "5a7cc52cecc46b0509273ff4d2106feaf38cf2c0",
       "beforeHash": "237369d007da33fd35ccfcd60c2b2cd21b58e0cae55f262bc1e6df5d0029e981",
@@ -1169,6 +1224,61 @@
     "base": "a85caf5a8f14770b02481f52f96e0ec1364458d3",
     "tree": "f900563685a2a8917d1066c4004e5a2675eb0796",
     "files": {
+      "scripts/test-ipqc-c-save-projection-client.cjs": {
+        "beforeBlob": "bca7600d831fb652be827440caecd10ffc6db9b2",
+        "beforeHash": "ff47b6a14320f1ad39d5ffdaa09784e153fc1769632fb580a0f199acafc105c5",
+        "beforeLength": 18594,
+        "afterHash": "f5b9c3b0a84a97e2e096bbfca6d3e93e03f8a9528d490ac09d11f91ff0d8356f",
+        "afterNormalizedHash": "f5b9c3b0a84a97e2e096bbfca6d3e93e03f8a9528d490ac09d11f91ff0d8356f",
+        "afterCRLF": [],
+        "rules": [
+          {
+            "offset": 1095,
+            "before": "(async()=>{const {canvasDOM}=await import(require('node:url').pathToFileURL(path.join(root,'scripts/login-reentry-dom.mjs')).href);const shared=fs.readFileSync(path.join(root,'public/process/shared-draft-client.js'),'utf8'),source=fs.readFileSync(path.join(dir,'ipqc-c.js'),'utf8');const checks=[];\n",
+            "after": "(async()=>{const {canvasDOM}=await import(require('node:url').pathToFileURL(path.join(root,'scripts/login-reentry-dom.mjs')).href);const shared=fs.readFileSync(path.join(root,'public/process/shared-draft-client.js'),'utf8'),source=fs.readFileSync(path.join(dir,'ipqc-c.js'),'utf8');const checks=[];const {assertNoDraftPoll,assertDraftInitializerIdle}=await import('./entry-performance/draft-no-poll-fixture.mjs');assertNoDraftPoll(root,'ipqc-c.js',source);await assertDraftInitializerIdle(root,'ipqc-c.js');\n"
+          },
+          {
+            "offset": 5412,
+            "before": " const hook=`  window.__test={seed(node,value){host=node;control=value;revision=10;working=copy(value.workflow.working);selectedVersionId='shared-gen';},client:sharedTransport,save:()=>writeShared('save'),apply:()=>writeShared('apply',{patches:[]}),poll:scheduleSharedRefresh,read:()=>read(false),state:()=>({control,revision,working,modal,blocked:readAccessBlocked(),message,unknown:sharedClient.hasUnknown(),notice:saveInputNoticePending()}),change(kind){if(kind==='local')working.items.push({id:'local-unapplied'});if(kind==='read')readSequence++;if(kind==='generation')control.workflow.generation='new';if(kind==='modal')modal={kind:'error',fields:{name:'UNAPPLIED'},photos:[],dirty:true,readonly:false};}};\\n  window.IPQCCUI={`;\n",
+            "after": " const hook=`  window.__test={seed(node,value){host=node;control=value;revision=10;working=copy(value.workflow.working);selectedVersionId='shared-gen';},client:sharedTransport,save:()=>writeShared('save'),apply:()=>writeShared('apply',{patches:[]}),read:()=>read(false),state:()=>({control,revision,working,modal,blocked:readAccessBlocked(),message,unknown:sharedClient.hasUnknown(),notice:saveInputNoticePending()}),change(kind){if(kind==='local')working.items.push({id:'local-unapplied'});if(kind==='read')readSequence++;if(kind==='generation')control.workflow.generation='new';if(kind==='modal')modal={kind:'error',fields:{name:'UNAPPLIED'},photos:[],dirty:true,readonly:false};}};\\n  window.IPQCCUI={`;\n"
+          },
+          {
+            "offset": 12654,
+            "before": " if(mode==='unchanged-local'){const poll=f.poll();await tick();assert.equal(f.pending.length,3);assert(f.pending[2].url.includes('permissions=1'));f.respond(2,{revision:11,permissions});await poll;assert.equal(f.c.__test.state().working.items[0].id,'local-unapplied');assert.equal(f.pending.length,3);const deniedPoll=f.poll();await tick();assert.equal(f.pending.length,4);f.respond(3,{error:'FORBIDDEN'},403);await deniedPoll;assert(f.c.__test.state().blocked);assert.equal(f.pending.filter(p=>p.options.method==='POST').length,1);await f.poll();assert.equal(f.pending.length,4,'permissions denial pauses subsequent automatic permission requests');f.c.confirm=()=>true;const manual=f.host.querySelector('#ipqcc-read-retry');assert(manual);manual.dispatchEvent({type:'click',target:manual,currentTarget:manual});await tick();assert.equal(f.pending.length,5,'manual full read bypasses automatic pause');const recovered=clone(f.control);recovered.versions[1]={...body.cSaveProjection.draft,snapshot:clone(recovered.workflow.working)};f.respond(4,{revision:11,control:recovered,catalog:{products:[],stages:[]}});await tick();assert.equal(f.pending.length,6);f.respond(5,{revision:11,permissions});await tick();await tick();assert.equal(f.c.__test.state().blocked,false);assert.equal(f.c.__test.state().notice,false);assert.equal(f.c.__test.state().working.items.length,0);assert.equal(f.pending.filter(p=>p.options.method==='POST').length,1);}\n",
+            "after": " if(mode==='unchanged-local'){\n  // Permission refresh is explicit; the current module has no poll producer.\n  const explicit=f.c.__test.client().permissions();await tick();assert.equal(f.pending.length,3);assert(f.pending[2].url.includes('permissions=1'));f.respond(2,{revision:11,permissions});await explicit;\n  assert.equal(f.c.__test.state().working.items[0].id,'local-unapplied');await tick();assert.equal(f.pending.length,3,'waiting never starts an automatic permission read');\n  f.c.confirm=()=>true;button.dispatchEvent({type:'click',target:button,currentTarget:button});await tick();assert.equal(f.pending.length,4);assert.equal(f.pending[3].url,'/api/ipqc-c?caseMetadata=1');f.respond(3,{error:'FORBIDDEN'},403);await tick();await tick();\n  assert(f.c.__test.state().blocked);assert.equal(f.pending.filter(p=>p.options.method==='POST').length,1);await tick();assert.equal(f.pending.length,4,'denial never causes an automatic read or retry');\n  const manual=f.host.querySelector('#ipqcc-read-retry');assert(manual);manual.dispatchEvent({type:'click',target:manual,currentTarget:manual});await tick();assert.equal(f.pending.length,5,'explicit full read retries the owned denial');const recovered=clone(f.control);recovered.versions[1]={...body.cSaveProjection.draft,snapshot:clone(recovered.workflow.working)};f.respond(4,{revision:11,control:recovered,catalog:{products:[],stages:[]}});await tick();assert.equal(f.pending.length,6);f.respond(5,{revision:11,permissions});await tick();await tick();assert.equal(f.c.__test.state().blocked,false);assert.equal(f.c.__test.state().notice,false);assert.equal(f.c.__test.state().working.items.length,0);assert.equal(f.pending.filter(p=>p.options.method==='POST').length,1);\n }\n"
+          }
+        ]
+      },
+      "scripts/test-ipqc-ab-modal-quarantine.cjs": {
+        "beforeBlob": "9d306be34d3972a0e3a8de537f80f967fca4cfb7",
+        "beforeHash": "6b55a634eb54f253c107e1a44909e5f3aaa7a61495038d0e6802d339996341da",
+        "beforeLength": 6425,
+        "afterHash": "eeb5acc6f6826f3f700c67360b3f729ee543a79df934429897580cf5d35e57f2",
+        "afterNormalizedHash": "eeb5acc6f6826f3f700c67360b3f729ee543a79df934429897580cf5d35e57f2",
+        "afterCRLF": [],
+        "rules": [
+          {
+            "offset": 655,
+            "before": " const pending=[],identity={id:'owner',role:'admin'},listeners=[],retry={},nameInput={value:'UNSAVED PRIVATE'};\n",
+            "after": " const pending=[],identity={id:'owner',role:'admin'},listeners=[],progressNodes=[],retry={},nameInput={value:'UNSAVED PRIVATE'};\n"
+          },
+          {
+            "offset": 1224,
+            "before": "  querySelector(selector){if(selector==='[data-ab-access-retry]')return retry;if(selector==='#ab-error-name')return nameInput;if(selector.startsWith('#')&&this.innerHTML.includes('id=\"'+selector.slice(1)+'\"'))return{addEventListener:(type,handler)=>listeners.push({s:selector,type,handler})};return null;},querySelectorAll:()=>[]};\n const context={window,document:{documentElement:{lang:'zh'},contains:()=>true,querySelectorAll:()=>[],querySelector:()=>null},MutationObserver:class{observe(){}},setTimeout,clearTimeout,AbortController,crypto:require('node:crypto').webcrypto,sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},CustomEvent:class{},URLSearchParams,location:{search:''},structuredClone,console,\n",
+            "after": "  prepend(node){node.isConnected=true;progressNodes.unshift(node);},\n  querySelector(selector){if(selector==='[data-ipqc-request-progress]')return progressNodes.find(node=>node.isConnected)||null;if(selector==='[data-ab-access-retry]')return retry;if(selector==='#ab-error-name')return nameInput;if(selector.startsWith('#')&&this.innerHTML.includes('id=\"'+selector.slice(1)+'\"'))return{addEventListener:(type,handler)=>listeners.push({s:selector,type,handler})};return null;},querySelectorAll:()=>[]};\n const context={window,document:{documentElement:{lang:'zh'},createElement(tag){assert.equal(tag,'p','real progress widget creates a text-only paragraph');return{dataset:{},isConnected:false,hidden:false,textContent:'',setAttribute(name,value){this[name]=value;},remove(){this.isConnected=false;}};},contains:()=>true,querySelectorAll:()=>[],querySelector:()=>null},MutationObserver:class{observe(){}},setTimeout,clearTimeout,AbortController,crypto:require('node:crypto').webcrypto,sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},CustomEvent:class{},URLSearchParams,location:{search:''},structuredClone,console,\n"
+          },
+          {
+            "offset": 3624,
+            "before": " return{t,visible,pending,listeners,retry,sync,identity,answer,\n",
+            "after": " return{t,visible,pending,listeners,progressNodes,retry,sync,identity,answer,\n"
+          },
+          {
+            "offset": 5292,
+            "before": "",
+            "after": " assert(f.progressNodes.some(node=>node.isConnected&&node.dataset.ipqcRequestProgress==='true'&&node.role==='status'));assert(f.progressNodes.every(node=>!node.textContent.includes('UNSAVED PRIVATE')));\n"
+          }
+        ]
+      },
       "scripts/ipqc-c-display-image-source-contract.cjs": {
         "beforeBlob": "5a7cc52cecc46b0509273ff4d2106feaf38cf2c0",
         "beforeHash": "237369d007da33fd35ccfcd60c2b2cd21b58e0cae55f262bc1e6df5d0029e981",
