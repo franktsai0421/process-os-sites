@@ -313,5 +313,19 @@
     "kind": "setTimeout",
     "hash": "89da54ee48e7872bab6366fa83c2b88540536b5783fb3c7e44d284bcd5682c2d",
     "purpose": "Deadline for one explicit startup/import/verification request; no periodic recurrence."
+  },
+  {
+    "file": "public/process/routine-equipment.js",
+    "line": 773,
+    "kind": "setTimeout",
+    "hash": "4e6e0f619bd4f6d606373f8aeade70f6b38f7f4ff95ce8f27aa201bdf4f65e12",
+    "purpose": "Single 45-second deadline for an explicit photo/read request; aborts and rejects, never repeats or resends a write."
+  },
+  {
+    "file": "public/process/tooling.js",
+    "line": 16,
+    "kind": "setTimeout",
+    "hash": "aef57849f2e4274c8f679bd3c40d98f3f5e49448dfda6c17d079decdaef8868e",
+    "purpose": "Single 45-second deadline for an explicit photo/read request; aborts and rejects, never repeats or resends a write."
   }
 ]

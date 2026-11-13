@@ -76,3 +76,18 @@ required and are not claimed passed by these synthetic results.
 
 NOT_RUN: physical phones, real IME, real users, real network/scale and hosted
 acceptance. New remote CI is pending. These limits prevent a release-ready claim.
+
+## CI follow-up
+
+PR #110's `a483b331` Equipment integration workflow completed successfully,
+including compiled Chromium Tooling and equipment browser tests. Quality C and
+FQC/IQC exposed extracted-function fixtures missing the new history guards;
+Process platform exposed stale removed-poller expectations and two unregistered
+single-request deadline timers. The revised fixtures execute the actual closures,
+retain the no-poll assertion, and pin the two timers with their explicit purpose.
+
+Additional regressions found and fixed: equipment rechecks readonly history after
+confirmation awaits; Tooling preserves main's ordinary Save permission behavior
+when no local changes exist. The 42 submission tests and 165 departure/timer tests
+pass locally. Latest-head CI remains the authority for final acceptance. No mobile
+hardware or human acceptance has been performed.

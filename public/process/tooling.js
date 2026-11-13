@@ -206,7 +206,7 @@
   if(action==='save'){
    if(localSnapshot&&localGeneration!==flow().generation)throw Error('STALE_GENERATION');
    if(client.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
-   const details=await prepareLocalSave();if(details===null)return null;await resolvePhotoFiles(details);
+   const details=localSnapshot?await prepareLocalSave():{};if(details===null)return null;if(localSnapshot)await resolvePhotoFiles(details);
    pendingLocalSave=!!localSnapshot;
    try{const result=await command('save',details);localBase=null;localSnapshot=null;localGeneration=null;pendingLocalSave=false;clearPhotoFiles(true);return result;}
    catch(e){if(!client.hasUnknown()){pendingLocalSave=false;client.discardRejected(details.patches?.map(p=>p.path)||[]);}throw e;}

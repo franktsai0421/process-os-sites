@@ -332,7 +332,7 @@
       !window.ProcessSync?.requiresReload&&(!!delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===true)&&
       host===page&&page?.dataset?.activeTab===tab&&page?.isConnected===connected&&reviewHost===reviewPage&&(action==='save'||equipmentEditRequest===lifecycle)&&selectedVersionId===versionId&&revision===modelRevision&&control?.workflow?.revision===flowRevision&&
       control?.workflow?.generation===generation&&control?.activeVersionId===activeId&&(!client||sharedClient===client)&&(!departureOwner||departureOwner.current());
-    const assertOwned=()=>{departureOwner?.assert();if(!owns())throw Error('DELIVERY_SUPERSEDED');};
+    const assertOwned=()=>{assertCurrentDisplay();departureOwner?.assert();if(!owns())throw Error('DELIVERY_SUPERSEDED');};
     const advance=()=>{versionId=selectedVersionId;generation=control?.workflow?.generation;activeId=control?.activeVersionId;modelRevision=revision;flowRevision=control?.workflow?.revision;rememberInputOwner(delivery);};
     const sentNodeDialog=nodeDialog,sentAddForm=newEquipmentForm,inputStamp=()=>JSON.stringify([nodeDialog,newEquipmentForm,editingEquipmentId]);
     let local=working&&clone(working);const sentInput=local&&clone(local),base=clone(syncBase||open()&&snapshotOf(open())||null),sentPhotos=new Map([...pendingPhotos].map(([id,entry])=>[id,{entry,file:entry.file,url:entry.url}])),stamp=inputStamp();
