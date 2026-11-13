@@ -128,7 +128,7 @@
   }
   function render(){
    if(!container||!container.isConnected||!owner()||container.dataset.activeTab!==(page==='LINES'?'line-admin':page))return;if(history?.historical())return;container.replaceChildren();container.dataset.masterPage=page;container.setAttribute('aria-busy',String(busy));
-   const panel=node('section',undefined,container);panel.className='panel';node('h2',page==='LINES'?t('線別與工段管理','Chuyền và công đoạn'):page+t(' 產線與類別',' · Sản phẩm và nhóm'),panel);
+   const panel=node('section',undefined,container);panel.className='panel';panel.dataset.i18nSkip='true';node('h2',page==='LINES'?t('線別與工段管理','Chuyền và công đoạn'):page+t(' 產線與類別',' · Sản phẩm và nhóm'),panel);
    const status=node('p','',panel);status.dataset.pageDirty='';showDirty();const activity=node('p',progress,panel);activity.dataset.pageProgress='';activity.setAttribute('role','status');activity.setAttribute('aria-live','polite');if(error){const message=node('p',error,panel);message.setAttribute('role','alert');}
    const toolbar=node('div',undefined,panel);toolbar.className='actions';
    button(toolbar,t('開啟草稿','Mở bản nháp'),async()=>{adopt(await client.begin(),true);},!busy&&!dirty()&&!control?.versions.some(version=>['draft','pending','pending-test'].includes(version.status))&&permissions.edit===true&&!client.hasUnknown());
@@ -146,7 +146,8 @@
    local:dirty,localSave:()=>true,canSave:()=>permissions.save===true,canDiscard:()=>permissions.edit===true,save,discard:discardLocal,discardUnknown:discardLocal,
    dialogs:()=>choiceDialog?[choiceDialog]:[],closeClean:()=>{if(choiceDialog&&!busy){choiceDialog.remove();choiceDialog=null;}}});
   if(departure){departure.autoAbandon=true;departure.allowUnload=()=>!busy;}
-  return {owner,departure,busy:()=>busy,deactivate(){history?.retire();container=null;if(!client.hasUnknown()&&!busy){control=undefined;base=undefined;mine=undefined;generation=undefined;}},mount(element){container=element;render();if(!control||!dirty()&&!busy)void act(()=>read(true));},dirty,save:()=>act(save),reset(){history?.retire();container=null;},inspect:()=>({base:copy(base),mine:copy(mine),generation,pendingImportFile,importApplied,error,permissions})};
+  return {owner,departure,relabel(){if(!busy&&!choiceDialog)render();},busy:()=>busy,deactivate(){history?.retire();container=null;if(!client.hasUnknown()&&!busy){control=undefined;base=undefined;mine=undefined;generation=undefined;}},mount(element){container=element;render();if(!control||!dirty()&&!busy)void act(()=>read(true));},dirty,save:()=>act(save),reset(){history?.retire();container=null;},inspect:()=>({base:copy(base),mine:copy(mine),generation,pendingImportFile,importApplied,error,permissions})};
  }
+ host.addEventListener('process-language-change',()=>instances.get(activePage)?.relabel());
  host.ProcessMasterPages={departure:()=>instances.get(activePage)?.departure,leave(){if(activePage)instances.get(activePage)?.deactivate();activePage=null;},mount(container,{page}){if(activePage&&activePage!==page)instances.get(activePage)?.deactivate();activePage=page;if(!['AB','C','LINES'].includes(page))throw Error('SCOPE_INVALID');let instance=instances.get(page);if(!instance?.owner()){instance=editor(page);instances.set(page,instance);}instance.mount(container);return instance;},reset(){for(const instance of instances.values())instance.reset();instances.clear();activePage=null;},busy:()=>[...instances.values()].some(instance=>instance.busy())};
 })(window);

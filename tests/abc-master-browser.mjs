@@ -2,7 +2,7 @@
 // constructed only inside this fixture; no hosted state or migration is used.
 import fs from 'node:fs';import assert from 'node:assert/strict';import {chromium} from 'playwright';import {createABCFixture} from './ab-c-native-fixture.mjs';
 const report={programCommit:process.env.PROCESS_PROGRAM_COMMIT,checks:[],timings:[],pageErrors:[],notRun:['human acceptance','physical phone','real IME','production-size data','live activation']};
-let f,browser,step='startup';
+let f,browser,currentPage,step='startup';
 try{
  f=await createABCFixture({products:8,decorate(values){const root=JSON.parse(values.masterDataControl),copy=structuredClone,topology={};
   for(const part of ['AB','C']){const full=root.active[part];for(const [collection,rows]of Object.entries({products:full.products,categoryGroups:full.categoryGroups,lines:full.lines}))for(const [i,row]of rows.entries()){row.id=part+'-'+collection+'-'+i;for(const [n,stage]of (row.stages||[]).entries())if(typeof stage==='object')stage.id=part+'-stage-'+n;}
@@ -13,7 +13,7 @@ try{
  browser=await chromium.launch({...(fs.existsSync('/usr/bin/chromium')?{executablePath:'/usr/bin/chromium'}:{}),headless:true,args:['--no-sandbox']});const origin=f.url.origin;
  const root=async()=>{const row=await f.db.prepare('SELECT "values" FROM shared_state WHERE id=1').first();return JSON.parse((await f.load('lib/process-state.ts').decodeValues(row.values)).masterDataControl);};
  for(const width of [1280,390])for(const lang of ['zh','vi']){
-  const context=await browser.newContext({viewport:{width,height:844}});await context.addCookies([{name:'process_demo',value:f.cookie('frank'),url:origin}]);await context.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());const p=await context.newPage();const posts=[];p.on('pageerror',e=>report.pageErrors.push(e.message));p.on('request',r=>{if(r.method()==='POST'&&r.url().includes('/api/master/pages'))posts.push(r.postDataJSON());});p.on('dialog',d=>{assert.notEqual(d.type(),'beforeunload');return d.accept(d.type()==='prompt'?'Synthetic catalog acceptance':undefined);});
+  const context=await browser.newContext({viewport:{width,height:844}});await context.addCookies([{name:'process_demo',value:f.cookie('frank'),url:origin}]);await context.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());const p=await context.newPage();currentPage=p;const posts=[];p.on('pageerror',e=>report.pageErrors.push(e.message));p.on('request',r=>{if(r.method()==='POST'&&r.url().includes('/api/master/pages'))posts.push(r.postDataJSON());});p.on('dialog',d=>{assert.notEqual(d.type(),'beforeunload');return d.accept(d.type()==='prompt'?'Synthetic catalog acceptance':undefined);});
   const text=(zh,vi)=>lang==='vi'?vi:zh,button=(zh,vi)=>p.getByRole('button',{name:text(zh,vi),exact:true}),field=(zh,vi)=>p.getByLabel(text(zh,vi),{exact:true});
   const idle=async()=>{await p.waitForFunction(()=>!!document.querySelector('[data-master-page]')&&document.querySelector('[data-master-page]').getAttribute('aria-busy')==='false'&&!document.querySelector('#process-boot'));};
   const click=async(zh,vi)=>{await button(zh,vi).click();await idle();assert.equal(await p.locator('#data-content [role=alert]').count(),0);};
@@ -29,5 +29,5 @@ try{
   await context.close();
  }
  assert.deepEqual(report.pageErrors,[]);report.status='PASS';report.buildEntrySha256=f.buildEntrySha256;
-}catch(error){report.status='FAIL';report.step=step;report.error=error.message;process.exitCode=1;}
+}catch(error){report.status='FAIL';report.step=step;report.error=error.message;if(currentPage){report.screen=await currentPage.locator('#data-content').innerText().catch(()=>null);report.language=await currentPage.locator('html').getAttribute('lang').catch(()=>null);report.buttons=await currentPage.locator('#data-content button').allTextContents().catch(()=>[]);}process.exitCode=1;}
 finally{await browser?.close();await f?.close();fs.mkdirSync('.sites-runtime',{recursive:true});fs.writeFileSync('.sites-runtime/abc-master-browser.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));}

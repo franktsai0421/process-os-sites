@@ -39,7 +39,7 @@
       "file": "public/process/master-page-editor.js",
       "beforeHash": "86d18cc053c713a511c5c06ef0d4bb45de88ac37dcd3704e38ecb036d6218983",
       "beforeNormalizedHash": "86d18cc053c713a511c5c06ef0d4bb45de88ac37dcd3704e38ecb036d6218983",
-      "afterHash": "a5141252568363a091ed6b51442adb0e9707732c61ab6606c036c442f275edfb",
+      "afterHash": "cb14e38b39d11b75ce733619df68fac5463151a7901b406916d2dff39004bded",
       "beforeCRLF": [],
       "rules": [
         {
@@ -74,18 +74,23 @@
         },
         {
           "offset": 27370,
-          "before": "   if(!container||!container.isConnected||!owner()||container.dataset.activeTab!==(page==='LINES'?'line-admin':page))return;if(history?.historical())return;container.replaceChildren();container.dataset.masterPage=page;\n",
-          "after": "   if(!container||!container.isConnected||!owner()||container.dataset.activeTab!==(page==='LINES'?'line-admin':page))return;if(history?.historical())return;container.replaceChildren();container.dataset.masterPage=page;container.setAttribute('aria-busy',String(busy));\n"
+          "before": "   if(!container||!container.isConnected||!owner()||container.dataset.activeTab!==(page==='LINES'?'line-admin':page))return;if(history?.historical())return;container.replaceChildren();container.dataset.masterPage=page;\n   const panel=node('section',undefined,container);panel.className='panel';node('h2',page==='LINES'?t('線別與工段管理','Chuyền và công đoạn'):page+t(' 產線與類別',' · Sản phẩm và nhóm'),panel);\n   const status=node('p','',panel);status.dataset.pageDirty='';showDirty();if(error){const message=node('p',error,panel);message.setAttribute('role','alert');}\n",
+          "after": "   if(!container||!container.isConnected||!owner()||container.dataset.activeTab!==(page==='LINES'?'line-admin':page))return;if(history?.historical())return;container.replaceChildren();container.dataset.masterPage=page;container.setAttribute('aria-busy',String(busy));\n   const panel=node('section',undefined,container);panel.className='panel';panel.dataset.i18nSkip='true';node('h2',page==='LINES'?t('線別與工段管理','Chuyền và công đoạn'):page+t(' 產線與類別',' · Sản phẩm và nhóm'),panel);\n   const status=node('p','',panel);status.dataset.pageDirty='';showDirty();const activity=node('p',progress,panel);activity.dataset.pageProgress='';activity.setAttribute('role','status');activity.setAttribute('aria-live','polite');if(error){const message=node('p',error,panel);message.setAttribute('role','alert');}\n"
         },
         {
-          "offset": 27858,
-          "before": "   const status=node('p','',panel);status.dataset.pageDirty='';showDirty();if(error){const message=node('p',error,panel);message.setAttribute('role','alert');}\n",
-          "after": "   const status=node('p','',panel);status.dataset.pageDirty='';showDirty();const activity=node('p',progress,panel);activity.dataset.pageProgress='';activity.setAttribute('role','status');activity.setAttribute('aria-live','polite');if(error){const message=node('p',error,panel);message.setAttribute('role','alert');}\n"
-        },
-        {
-          "offset": 29327,
+          "offset": 29357,
           "before": "   if(!control){node('p',t('載入中…','Đang tải…'),panel);return;}\n",
           "after": "   if(!control){if(error)button(panel,t('重試讀取','Thử tải lại'),()=>read(true),!busy);else node('p',t('載入中…','Đang tải…'),panel);return;}\n"
+        },
+        {
+          "offset": 30905,
+          "before": "  return {owner,departure,busy:()=>busy,deactivate(){history?.retire();container=null;if(!client.hasUnknown()&&!busy){control=undefined;base=undefined;mine=undefined;generation=undefined;}},mount(element){container=element;render();if(!control||!dirty()&&!busy)void act(()=>read(true));},dirty,save:()=>act(save),reset(){history?.retire();container=null;},inspect:()=>({base:copy(base),mine:copy(mine),generation,pendingImportFile,importApplied,error,permissions})};\n",
+          "after": "  return {owner,departure,relabel(){if(!busy&&!choiceDialog)render();},busy:()=>busy,deactivate(){history?.retire();container=null;if(!client.hasUnknown()&&!busy){control=undefined;base=undefined;mine=undefined;generation=undefined;}},mount(element){container=element;render();if(!control||!dirty()&&!busy)void act(()=>read(true));},dirty,save:()=>act(save),reset(){history?.retire();container=null;},inspect:()=>({base:copy(base),mine:copy(mine),generation,pendingImportFile,importApplied,error,permissions})};\n"
+        },
+        {
+          "offset": 31420,
+          "before": "",
+          "after": " host.addEventListener('process-language-change',()=>instances.get(activePage)?.relabel());\n"
         }
       ]
     },
@@ -93,7 +98,7 @@
       "file": "public/process/index.html",
       "beforeHash": "eca85f506d3043eb7f3c376260766990a1a9a5903d09f3f1f4b9eb6c47347d67",
       "beforeNormalizedHash": "eca85f506d3043eb7f3c376260766990a1a9a5903d09f3f1f4b9eb6c47347d67",
-      "afterHash": "073a0df5b9d3b75a6953d2d3bcc10eee99c0c0e34ecc775ab79e279b587247e3",
+      "afterHash": "d4a924bcbd5cc94ed3b0c351e53e5b26a98940e79b2e8418d7ecd10baa28ce75",
       "beforeCRLF": [],
       "rules": [
         {
@@ -104,7 +109,7 @@
         {
           "offset": 7721,
           "before": "    <script data-process-src=\"master-page-editor.js?v=20261110-account-pages1\"></script>\n",
-          "after": "    <script data-process-src=\"master-page-editor.js?v=20261113-abc-master1\"></script>\n"
+          "after": "    <script data-process-src=\"master-page-editor.js?v=20261113-abc-master2\"></script>\n"
         }
       ]
     },
@@ -112,13 +117,13 @@
       "file": "tests/account-page-entry.test.cjs",
       "beforeHash": "f04a81650d1b3d12365939f6a88340aaaa920243db99b037874fe21e8e5acd9b",
       "beforeNormalizedHash": "f04a81650d1b3d12365939f6a88340aaaa920243db99b037874fe21e8e5acd9b",
-      "afterHash": "d6874fc98c2f6420384aafbb43c2fcd7e751b8f0b8b4c8d036d73ec8768cc68c",
+      "afterHash": "3e49068bb7b725fd8c1db348c0dd20f7aa187e9a924d1b145bd3db9f60ee6058",
       "beforeCRLF": [],
       "rules": [
         {
           "offset": 454,
           "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-equipment-submit1','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
-          "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-abc-master1','master-page-editor.js':'20261113-abc-master1','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+          "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-abc-master1','master-page-editor.js':'20261113-abc-master2','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
         }
       ]
     },
@@ -140,18 +145,37 @@
       "file": "tests/shared-draft-receipt-recovery.test.mjs",
       "beforeHash": "3c6efeb0c9e8f01d1f665e3fcd686ab94613eb580b8ae9b29f1d1348a21db860",
       "beforeNormalizedHash": "3c6efeb0c9e8f01d1f665e3fcd686ab94613eb580b8ae9b29f1d1348a21db860",
-      "afterHash": "f15c646165de8e25c7d452a09bed8e4d18306f1c18998dec84e7d5209f29f7ba",
+      "afterHash": "beb565f8f28a6cb3374272bdd60c88742afc6f01abec44a10f4b1054ead6b521",
       "beforeCRLF": [],
       "rules": [
         {
           "offset": 14735,
           "before": "  'master-page-editor.js':'20261110-account-pages1',\n",
-          "after": "  'master-page-editor.js':'20261113-abc-master1',\n"
+          "after": "  'master-page-editor.js':'20261113-abc-master2',\n"
         },
         {
           "offset": 14841,
           "before": "  'shared-draft-client.js':'20261113-equipment-submit1',\n",
           "after": "  'shared-draft-client.js':'20261113-abc-master1',\n"
+        }
+      ]
+    },
+    {
+      "file": "tests/master-page-approved-history-ui-fixture.mjs",
+      "beforeHash": "f1c7d5c1bc4bc241efa3842314d1c055fa26cdd2cd88e287396b5374f9efcabf",
+      "beforeNormalizedHash": "f1c7d5c1bc4bc241efa3842314d1c055fa26cdd2cd88e287396b5374f9efcabf",
+      "afterHash": "437e5c48c52b40a7f522efaf49aa15b9e47a605e02547af7fec43a0716fdfa50",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 628,
+          "before": "export async function setup(t,page,{lang='zh',intercept}={}){\n",
+          "after": "export async function setup(t,page,{lang='zh',intercept,configure}={}){\n"
+        },
+        {
+          "offset": 3360,
+          "before": " vm.createContext(c);for(const file of ['shared-draft-client','version-draft-ui','canvas-approved-history','page-draft-merge','master-page-approved-history','master-page-editor'])vm.runInContext(fs.readFileSync('public/process/'+file+'.js','utf8'),c,{filename:file+'.js'});\n",
+          "after": " configure?.(c);vm.createContext(c);for(const file of ['shared-draft-client','version-draft-ui','canvas-approved-history','page-draft-merge','master-admin-ui','master-page-transfer','master-page-approved-history','master-page-editor'])vm.runInContext(fs.readFileSync('public/process/'+file+'.js','utf8'),c,{filename:file+'.js'});\n"
         }
       ]
     }

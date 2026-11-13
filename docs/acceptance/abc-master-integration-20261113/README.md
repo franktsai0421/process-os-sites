@@ -65,3 +65,13 @@
 本地程式候選 `51d024f6e2da4ddd7b6f74ca63d453a367bd90b1` guarded build通過，後續僅測試cache pins與文件修訂。完整lint及TypeScript已通過；actual catalog UI14/14、source/handoff/transport/history55/55、品質來源與cache／deadline165/165，及master runtime、review、boundary、LINES相容、C五工段→Canvas lifecycle、其他模組deadline13/13通過。共用回歸首輪447/449，兩項為舊cache tag精確預期；修正預期後相關完整組重跑通過，未放寬斷言。獨立group-maximum runner前9項PASS後因缺SOURCE fixture參數退出，未當完整PASS；不讀真資料補參數，以現行process-page-lifecycle C五工段實際handler鏈補覆蓋。遠端head與CI另以PR檢查為準。初始失敗（新增類別篩選缺陷、測試未遵循先移除產品Save再刪類別、型別及lint）保留雲端原輸出；修復後需有重跑PASS才改列完成。測試批次有覆蓋重疊，不加總為唯一操作數。
 
 實際資料啟用、legacy working/saved去向、pending在原owner結案、UNKNOWN原收據、approved baseline與ACL審查及可相容切換，仍須以真來源另行決定與授權。本函式不是可執行遷移器，也不是外部備份或真資料驗收。
+
+## 首輪遠端CI的續修
+
+`2bf70906`：既有legacy AB/C Chromium全流程通過；新增page-v1 runner在初次語言切換後找不到中文按鈕，尚未通過新頁瀏覽器驗收。程式檢查確認editor未監聽`process-language-change`，已翻成越文的動態控制不能由通用字典還原；續修由頁面自行重畫雙語控制，保留RAM／owner／generation／filter，不作網路請求，並標記自行翻譯的panel避免二次片段翻譯。新增正反切換的實際editor測試，瀏覽器失敗保留可讀合成畫面診斷，不放寬timeout或操作斷言。
+
+Process-platform首輪runtime清單失敗是新增純唯讀audit檔案尚未列入歷史union。續修保留原三個quality additions與全部舊檔bytes檢查，只明確加入此新檔，固定其SHA256並驗證原public來源沒有此檔；沒有改通用跳過規則或原來源pins。遠端原生Begin／PROCESS／FQC獨立job已PASS，其餘最新head需另核。
+
+## 規模量測（獨立於瀏覽器及實站）
+
+[12個原始合成樣本](scale-handler.json)綁定遠端2bf70906，Node24／signed handlers／records-v1／記憶體SQLite與Map R2，各頁各規模3個全新fixture，所有Save只有1次資料寫入。100產品Save中位數AB24.41ms／C18.09ms，1000產品AB109.12ms／C98.69ms；1000產品重讀AB35.62ms／C31.78ms。不含瀏覽器、HTTPS、實際DB/R2服務、真人資料；沒有前後提速宣稱或虛構門檻。後續語言重畫只改client顯示，不改這個handler工作量。

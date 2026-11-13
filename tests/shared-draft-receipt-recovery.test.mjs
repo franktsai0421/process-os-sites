@@ -65,7 +65,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
   'page-draft-merge.js':'20261110-account-pages1',
   'master-page-transfer.js':'20261110-account-pages1',
   'master-page-approved-history.js':'20261110-account-pages1',
-  'master-page-editor.js':'20261113-abc-master1',
+  'master-page-editor.js':'20261113-abc-master2',
   'local-draft-recovery.js':'20261103-fqc-generation1',
   'shared-draft-client.js':'20261113-abc-master1',
   'process-authoring-v3.js':'20261113-submit-outcome1',
