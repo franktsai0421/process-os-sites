@@ -14,7 +14,7 @@ const abNavigation=ab.slice(navigationStart,navigationEnd+1)+'};';
 function installABNavigation(f,control){
  // Execute the real navigation object; only module-local state/action ports are synthetic.
  Object.assign(f.box,{control,mutationLifetime:1,actor:()=>f.sync.identity.id,busy:false,accessBlocked:null,
-  host:{},modal:null,localInput:false,localDirty:()=>f.box.localInput,localPending:()=>f.client.hasUnknown(),
+  host:{},modal:null,localInput:false,localDirty:()=>f.box.localInput,hasLocalFilterForm:()=>false,historyAllowsMutation:()=>true,photoDepartureTransport:null,localPending:()=>f.client.hasUnknown(),
   moduleClient:f.client,legacyABClients:()=>[],permittedAction:()=>true,
   saveLocalModule:()=>assert.fail('Navigation inspection must never Save'),
   abandonLocalEditing(){f.box.localInput=false;f.box.modal=null;}});

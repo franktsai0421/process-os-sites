@@ -22,11 +22,14 @@ void test('every shared identical change and the three latest process-only regre
  for(const row of manifest.overlap.filter(row=>row.same))assert.deepEqual(published(git('show','HEAD:'+row.path),row.path),git('show',manifest.sources.pr104.commit+':'+row.path),row.path);
  const unique=manifest.files.pr104.filter(file=>!manifest.files.pr103.includes(file));
  assert.deepEqual(unique,['tests/equipment-transfer-compiled.test.mjs','tests/equipment-transfer-setup-cleanup.test.mjs','tests/shared-draft-tab-attribution.test.mjs']);
- for(const file of unique)assert.deepEqual(git('show','HEAD:'+file),git('show',manifest.sources.pr104.commit+':'+file),file);
+ for(const file of unique)assert.deepEqual(published(git('show','HEAD:'+file),file),git('show',manifest.sources.pr104.commit+':'+file),file);
 });
-void test('reviewed account/process runtime union retains every installed file, without other integration lines',()=>{
+void test('reviewed account/process runtime union retains every installed file with only the three pinned quality helpers',()=>{
  const files=git('ls-tree','-r','--name-only',manifest.sources.pr103.commit,'--','app','lib','public').toString().trim().split('\n');
- assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\n'),files);
+ const additions=['lib/ipqc-ab-local-lineage.ts','lib/ipqc-c-access.ts','lib/iqc-local-save.ts'];
+ assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\n'),[...files,...additions].sort());
+ for(const file of additions)assert.deepEqual(createRequire(import.meta.url)('../scripts/quality-main-source-contract.cjs').projectKnown(git('show','HEAD:'+file),file,'quality'),git('show','0850a46732ce4d468a2238450d83c3f2f8fb3d07:'+file),file);
+ // Preserve exact quality-parent bytes; C return semantics have an independently tested narrow inverse.
  for(const file of files)assert.deepEqual(published(git('show','HEAD:'+file),file),git('show',manifest.sources.pr103.commit+':'+file),file);
  for(const row of manifest.runtimeDecisions){
   assert(manifest.semanticDecisions[row.path],row.path+' needs explicit semantic decision');
@@ -38,5 +41,5 @@ void test('reviewed account/process runtime union retains every installed file, 
 void test('joint contract rejects byte drift and keeps original native timeouts and safety assertions',()=>{
  for(const row of manifest.runtimeDecisions){const bytes=git('show','HEAD:'+row.path);assert.notEqual(hash(Buffer.concat([bytes,Buffer.from('\n// drift')])),row.sha256);}
  for(const file of ['tests/begin-recovery-browser.mjs','tests/process-draft-lifecycle-browser.mjs'])assert.deepEqual(git('show','HEAD:'+file),git('show',manifest.sources.pr104.commit+':'+file));
- assert.deepEqual(git('show','HEAD:.github/workflows/local-safety.yml'),git('show',manifest.sources.main.commit+':.github/workflows/local-safety.yml'));
+ assert.deepEqual(published(git('show','HEAD:.github/workflows/local-safety.yml'),'.github/workflows/local-safety.yml'),git('show',manifest.sources.main.commit+':.github/workflows/local-safety.yml'));
 });

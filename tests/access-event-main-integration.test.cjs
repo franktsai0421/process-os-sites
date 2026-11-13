@@ -15,7 +15,9 @@ const accountSource=require('../scripts/account-permission-source-contract.cjs')
 const checkoutLF=bytes=>{const result=Buffer.alloc(bytes.length);let length=0;for(let i=0;i<bytes.length;i++){if(bytes[i]===13&&bytes[i+1]===10)continue;result[length++]=bytes[i];}return result.subarray(0,length);};
 const canonicalSource=(working,committed)=>{assert(Buffer.isBuffer(working)&&Buffer.isBuffer(committed),'Reporting proof requires raw source bytes');assert.deepEqual(checkoutLF(working),checkoutLF(committed),'Reporting worktree source differs from HEAD beyond checkout EOL');return committed;};
 const readSource=file=>canonicalSource(fs.readFileSync(file),execFileSync('git',['show','HEAD:'+file]));
-const project=(bytes,file)=>{assert(Buffer.isBuffer(bytes),'Access-event projection requires raw source bytes');bytes=require('../scripts/ipqc-c-integration-source-contract.cjs').projectKnown(bytes,file);if(file===lineFile)bytes=accountSource.projectFile(bytes,file);bytes=require('../scripts/background-check-source-contract.cjs').projectKnown(bytes,file);if(equipmentRepair.contracts.some(contract=>contract.file===file&&contract.afterHash===hash(bytes)))bytes=equipmentRepair.restorePredecessor(bytes,file);if(file===masterRoute.file)bytes=masterRoute.restoreMasterRoutePredecessor(bytes,file);if(file===noPoll.file&&hash(bytes)===noPoll.afterHash)bytes=noPoll.restoreEquipmentPolling(bytes,file);return metadataProject(file===cRoute&&hash(bytes)===readIO.afterHash?readIO.withoutWorkflowReadAhead(bytes):bytes,file);};
+const project=(bytes,file)=>{assert(Buffer.isBuffer(bytes),'Access-event projection requires raw source bytes');bytes=require('../scripts/quality-main-source-contract.cjs').projectKnown(bytes,file,'main');if(file===lineFile)bytes=accountSource.projectFile(bytes,file);bytes=require('../scripts/background-check-source-contract.cjs').projectKnown(bytes,file);if(equipmentRepair.contracts.some(contract=>contract.file===file&&contract.afterHash===hash(bytes)))bytes=equipmentRepair.restorePredecessor(bytes,file);if(file===masterRoute.file)bytes=masterRoute.restoreMasterRoutePredecessor(bytes,file);if(file===noPoll.file&&hash(bytes)===noPoll.afterHash)bytes=noPoll.restoreEquipmentPolling(bytes,file);return metadataProject(file===cRoute&&hash(bytes)===readIO.afterHash?readIO.withoutWorkflowReadAhead(bytes):bytes,file);};
+// Project the exact joint successor to merged main before older reporting
+// inverses. Projecting to the C-only parent first drops account/process layers.
 const main={
   "public/process/shared-draft-client.js": "194d0627c909f54a1bbf1c7c328cf9f98d5411234556e08c33538f9e55bf6589",
   "lib/versioned-shared-workflow.ts": "d1246a4b451206a4091afbc66e3c066c5f04fa4de0da319e5120b0a339a7f01e",
@@ -197,4 +199,24 @@ void test('approved-line inverse rejects corrupt offsets, spans, lengths and pre
  const bytes=readSource(lineFile),code=fs.readFileSync('scripts/account-permission-source-contract.cjs','utf8'),contract=accountSource.contract;
  const corrupt=[c=>c.rules[0].offset++,c=>c.rules[0].after+=' ',c=>c.afterLength--,c=>c.beforeLength--,c=>c.beforeHash='0'.repeat(64)];
  for(const change of corrupt){const cloned=structuredClone(contract);change(cloned.files[lineFile]);const mod={exports:{}};require('node:vm').runInNewContext(code,{require:name=>name==='./account-permission-source-contract.json'?cloned:require('node:module').createRequire(require('node:path').resolve('scripts/account-permission-source-contract.cjs'))(name),module:mod,Buffer});assert.throws(()=>mod.exports.projectFile(bytes,lineFile),assert.AssertionError);}
+});
+
+void test('joint reporting composition first restores exact merged-main bytes without changing historical pins',()=>{
+ const joint=require('../scripts/quality-main-source-contract.cjs');
+ for(const file of ['public/process/shared-draft-client.js','public/process/routine-equipment.js',lineFile]){
+  const current=readSource(file),copy=Buffer.from(current),parent=execFileSync('git',['show','fc2e83d4a2d4974fab6274e3f0b79558dad8af64:'+file]);
+  assert.deepEqual(joint.projectKnown(current,file,'main'),parent,'joint projection must match the genuine complete main file');
+  assert.equal(hash(project(current,file)),main[file]);assert.deepEqual(current,copy);
+  for(const altered of [Buffer.concat([current,Buffer.from(' ')]),current.subarray(0,-1)]){
+   assert.deepEqual(joint.projectKnown(altered,file,'main'),altered,'unattested bytes cannot be projected');
+   let result;try{result=hash(project(altered,file));}catch{continue;}assert.notEqual(result,main[file],'arbitrary changes cannot inherit historical acceptance');
+  }
+ }
+});
+void test('reporting-dependent workflows include the joint projection and original reporting assertions',()=>{
+ for(const file of ['account-permissions','feedback-queues','process-platform-integration']){
+  const workflow=fs.readFileSync('.github/workflows/'+file+'.yml','utf8');
+  const paths=workflow.split('    paths:\n')[1]?.split('permissions:')[0];assert(paths);
+  for(const dependency of ['scripts/quality-main-source-contract.cjs','scripts/quality-main-source-contracts.json','tests/access-event-main-integration.test.cjs'])assert(paths.includes("      - '"+dependency+"'\n"),file+' must rerun for '+dependency);
+ }
 });
