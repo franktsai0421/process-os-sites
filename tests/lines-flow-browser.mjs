@@ -17,12 +17,12 @@ try{
   page.on('pageerror',error=>report.pageErrors.push(error.message));page.on('dialog',dialog=>dialog.type()==='prompt'?dialog.accept('Synthetic review reason'):dialog.accept());
   try{
    await page.route('**/*',async route=>{const request=route.request(),url=new URL(request.url());
-    if(url.pathname==='/process/')return route.fulfill({contentType:'text/html',body:`<!doctype html><html lang="${lang}"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${styles}</style><section class="page"><main id="data-content" data-active-tab="line-admin"></main></section><script>window.ProcessSync={identity:{id:'writer'},identityGeneration:()=>1,captureDelivery:()=>1,isCurrentDelivery:()=>true};window.bindDataInner=()=>{};</script>${files.map(file=>`<script src="/process/${file}.js"></script>`).join('')}<script>window.api=ProcessMasterPages.mount(document.querySelector('main'),{page:'LINES'});</script></html>`});
-    if(files.some(file=>url.pathname==='/process/'+file+'.js'))return route.fulfill({contentType:'application/javascript',body:fs.readFileSync('public'+url.pathname,'utf8')});
+    if(url.pathname==='/process/')return route.fulfill({contentType:'text/html; charset=utf-8',body:`<!doctype html><html lang="${lang}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${styles}</style><section class="page"><main id="data-content" data-active-tab="line-admin"></main></section><script>window.ProcessSync={identity:{id:'writer'},identityGeneration:()=>1,captureDelivery:()=>1,isCurrentDelivery:()=>true};window.bindDataInner=()=>{};</script>${files.map(file=>`<script src="/process/${file}.js"></script>`).join('')}<script>window.api=ProcessMasterPages.mount(document.querySelector('main'),{page:'LINES'});</script></html>`});
+    if(files.some(file=>url.pathname==='/process/'+file+'.js'))return route.fulfill({contentType:'application/javascript; charset=utf-8',body:fs.readFileSync('public'+url.pathname,'utf8')});
     if(url.pathname==='/api/master/pages'){const body=request.postDataJSON();calls.push({method:request.method(),body,url:url.href});const result=await f.route[request.method()](new Request(url,{method:request.method(),headers:{cookie:f.cookies.writer,origin:f.base,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})}));return route.fulfill({status:result.status,headers:Object.fromEntries(result.headers),body:await result.text()});}
     return route.abort('blockedbyclient');
    });
-   await page.goto(f.base+'/process/');const vi=lang==='vi',label=(zh,vn)=>vi?vn:zh;
+   await page.goto(f.base+'/process/');assert.equal(await page.evaluate(()=>document.characterSet),'UTF-8');const vi=lang==='vi',label=(zh,vn)=>vi?vn:zh;
    const button=(zh,vn)=>page.getByRole('button',{name:label(zh,vn),exact:true});
    const idle=()=>page.waitForFunction(()=>!window.api.busy());
    const click=async(zh,vn)=>{await button(zh,vn).click();await idle();};

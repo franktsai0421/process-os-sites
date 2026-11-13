@@ -384,8 +384,8 @@
       ]
     },
     "public/process/master-data.js": {
-      "afterHash": "a8efc2600b1c02779d0bd3fcf7edbc7d7baad49179db1d9acc9dc477c8b3f8c1",
-      "afterLength": 64577,
+      "afterHash": "aba7f08be4324bad1964f479b79ae0e5cd499a809a546113170ae41320f5ea16",
+      "afterLength": 64812,
       "beforeHash": "6ef5e2502ad4803815c7ca4a926a21ce87d05f3b101bcb583f408964a22d46a8",
       "beforeNormalizedHash": "b132d8b1b08d0dbe82b9a9fa71fbb5c50e3cf480c61a53944f5ee86a191fb933",
       "beforeBlob": "1c161a9f35a82f51e545597e2862f4db06886dcb",
@@ -485,9 +485,14 @@
       ],
       "rules": [
         {
-          "offset": 19300,
+          "offset": 17364,
+          "before": "    content.innerHTML=`<section class=\"panel\" data-lines-readonly data-i18n-skip=\"true\"><h3>${t('線別與工段管理','Chuyền và công đoạn')}</h3><p role=\"status\">${t('目前僅查看已核准的線別與工段；此畫面不修改或保存資料。','Chỉ xem chuyền và công đoạn đã duyệt; màn hình này không sửa hoặc lưu dữ liệu.')}</p><div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px\">${rows.map(line=>`<article class=\"panel\" style=\"min-width:0;overflow-wrap:anywhere\"><h4>${safe(line.code)} · ${safe(line.name||line.code)}</h4>${line.stages.length?`<ol>${line.stages.map(stage=>`<li>${safe(stage.code)} · ${safe(stage.name||stage.code)}</li>`).join('')}</ol>`:`<p>${t('尚無已核准工段','Chưa có công đoạn đã duyệt')}</p>`}</article>`).join('')||`<p>${t('尚無已核准線別','Chưa có chuyền đã duyệt')}</p>`}</div></section>`;\n",
+          "after": "    content.innerHTML=`<p role=\"status\" data-i18n-skip=\"true\">${t('尚未完成獨立草稿資料切換；目前僅查看已核准資料。','Bản nháp độc lập chưa được chuyển đổi; chỉ xem dữ liệu đã duyệt.')}</p><section class=\"panel\" data-lines-readonly data-i18n-skip=\"true\"><h3>${t('線別與工段管理','Chuyền và công đoạn')}</h3><p role=\"status\">${t('目前僅查看已核准的線別與工段；此畫面不修改或保存資料。','Chỉ xem chuyền và công đoạn đã duyệt; màn hình này không sửa hoặc lưu dữ liệu.')}</p><div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px\">${rows.map(line=>`<article class=\"panel\" style=\"min-width:0;overflow-wrap:anywhere\"><h4>${safe(line.code)} · ${safe(line.name||line.code)}</h4>${line.stages.length?`<ol>${line.stages.map(stage=>`<li>${safe(stage.code)} · ${safe(stage.name||stage.code)}</li>`).join('')}</ol>`:`<p>${t('尚無已核准工段','Chưa có công đoạn đã duyệt')}</p>`}</article>`).join('')||`<p>${t('尚無已核准線別','Chưa có chuyền đã duyệt')}</p>`}</div></section>`;\n"
+        },
+        {
+          "offset": 19518,
           "before": "      const cells=currentUser?.cells,visible=scope=>!cells||cells[(scope==='C'?'c':'ab')+'.view']===true;\n      if(!visible(state.masterScope))state.masterScope=visible('AB')?'AB':'C';\n      if(!visible(state.masterScope)){content.dataset.activeTab=tab;dataError=null;dataReady=Promise.resolve();try{approvedLinesOnly(content);}catch(error){dataError=error;content.innerHTML=`<section class=\"panel\" data-line-permission-notice role=\"alert\"><h3>${document.documentElement.lang==='vi'?'Chuyền và công đoạn':'線別與工段管理'}</h3><p>${document.documentElement.lang==='vi'?'Chưa xác minh được dữ liệu đã duyệt; hãy tải lại để kiểm tra.':'尚無法核對已核准資料；請重新載入確認。'}</p></section>`;}bindTabButtons();return;}\n",
-          "after": "      // The pre-cutover page cannot borrow either catalog's draft or rights.\n      content.dataset.activeTab=tab;dataError=null;dataReady=Promise.resolve();\n      try{approvedLinesOnly(content);const notice=document.createElement('p');notice.setAttribute('role','status');notice.textContent=document.documentElement.lang==='vi'?'Bản nháp độc lập chưa được chuyển đổi; chỉ xem dữ liệu đã duyệt.':'尚未完成獨立草稿資料切換；目前僅查看已核准資料。';content.prepend(notice);}catch(error){dataError=error;content.textContent=displayDraftError(error);}\n      bindTabButtons();return;\n"
+          "after": "      // The pre-cutover page cannot borrow either catalog's draft or rights.\n      content.dataset.activeTab=tab;dataError=null;dataReady=Promise.resolve();\n      try{approvedLinesOnly(content);}catch(error){dataError=error;content.innerHTML=`<section class=\"panel\" data-line-permission-notice role=\"alert\"><h3>${document.documentElement.lang==='vi'?'Chuyền và công đoạn':'線別與工段管理'}</h3><p>${document.documentElement.lang==='vi'?'Chưa xác minh được dữ liệu đã duyệt; hãy tải lại để kiểm tra.':'尚無法核對已核准資料；請重新載入確認。'}</p></section>`;}\n      bindTabButtons();return;\n"
         }
       ]
     },
@@ -772,8 +777,8 @@
       ]
     },
     "tests/process-local-save-browser.mjs": {
-      "afterHash": "eece667f32f08d3de51b758e680fb823168011b0efe98a7d84f14879b1759e07",
-      "afterLength": 19086,
+      "afterHash": "8ce9ed9c2142b9c02be91a287b885772f7bd1dea1285328c5049ba4a27cb8129",
+      "afterLength": 19254,
       "beforeHash": "22bedbe1300c26cb25055270b2fc5584c45bc117fdb102135a295483f49f9bd1",
       "beforeNormalizedHash": "22bedbe1300c26cb25055270b2fc5584c45bc117fdb102135a295483f49f9bd1",
       "beforeBlob": "a64896b79fa1621a385bba66932d9d0a2c02f1d2",
@@ -781,8 +786,8 @@
       "rules": [
         {
           "offset": 8360,
-          "before": " await open(peer);await page.locator('[data-master-name]').nth(5).fill('Owner stale');await peer.locator('[data-master-name]').nth(5).fill('Peer current');await save(peer);const beforeConflict=await root();await page.locator('#save-master-data').click();await page.waitForFunction(()=>!MasterDataWorkflow.shared.busy());assert.deepEqual(await root(),beforeConflict);assert.equal(await page.locator('[data-master-name]').nth(5).inputValue(),'Owner stale');\n",
-          "after": " await open(peer);await page.locator('[data-master-name]').nth(5).fill('Owner stale');await peer.locator('[data-master-name]').nth(5).fill('Peer current');await save(peer);const beforeConflict=await root();const conflictPosts=posts('frank').length;await page.locator('#save-master-data').click();const conflict=page.locator('dialog.vd-dialog');await conflict.waitFor();assert.equal(posts('frank').length,conflictPosts);await conflict.getByRole('button',{name:/^(取消|Hủy)$/}).click();await page.waitForFunction(()=>!MasterDataWorkflow.shared.busy());assert.deepEqual(await root(),beforeConflict);assert.equal(await page.locator('[data-master-name]').nth(5).inputValue(),'Owner stale');\n await page.locator('#save-master-data').click();await conflict.waitFor();await conflict.getByRole('button',{name:/^(用對方的|Dùng của người khác)$/}).click();await page.waitForFunction(()=>!MasterDataWorkflow.shared.busy()&&!MasterDataWorkflow.shared.localDirty('PROCESS'));assert.equal(posts('frank').length,conflictPosts+1);assert.equal((await root()).workflowScopes.PROCESS.saved.content['A-A'][5].name,'Peer current');report.checks.push('actual two-account whole-group Cancel retains input with zero POST; chosen-theirs saves exactly once and keeps peer fields');\n"
+          "before": " await open(peer);await page.locator('[data-master-name]').nth(5).fill('Owner stale');await peer.locator('[data-master-name]').nth(5).fill('Peer current');await save(peer);const beforeConflict=await root();await page.locator('#save-master-data').click();await page.waitForFunction(()=>!MasterDataWorkflow.shared.busy());assert.deepEqual(await root(),beforeConflict);assert.equal(await page.locator('[data-master-name]').nth(5).inputValue(),'Owner stale');\n stage='silent SPA departure';await page.locator('[data-tab=line-admin]').click();await page.locator('#master-lines-scope').waitFor();assert.equal(await page.locator('[data-navigation-departure]').count(),0);await open(page);assert.equal(await page.locator('[data-master-name]').nth(5).inputValue(),'Peer current');report.checks.push('two actors retain different fields; true conflict retains input and storage; silent SPA abandonment');\n",
+          "after": " await open(peer);await page.locator('[data-master-name]').nth(5).fill('Owner stale');await peer.locator('[data-master-name]').nth(5).fill('Peer current');await save(peer);const beforeConflict=await root();const conflictPosts=posts('frank').length;await page.locator('#save-master-data').click();const conflict=page.locator('dialog.vd-dialog');await conflict.waitFor();assert.equal(posts('frank').length,conflictPosts);await conflict.getByRole('button',{name:/^(取消|Hủy)$/}).click();await page.waitForFunction(()=>!MasterDataWorkflow.shared.busy());assert.deepEqual(await root(),beforeConflict);assert.equal(await page.locator('[data-master-name]').nth(5).inputValue(),'Owner stale');\n await page.locator('#save-master-data').click();await conflict.waitFor();await conflict.getByRole('button',{name:/^(用對方的|Dùng của người khác)$/}).click();await page.waitForFunction(()=>!MasterDataWorkflow.shared.busy()&&!MasterDataWorkflow.shared.localDirty('PROCESS'));assert.equal(posts('frank').length,conflictPosts+1);assert.equal((await root()).workflowScopes.PROCESS.saved.content['A-A'][5].name,'Peer current');report.checks.push('actual two-account whole-group Cancel retains input with zero POST; chosen-theirs saves exactly once and keeps peer fields');\n stage='silent SPA departure';const departurePosts=posts('frank').length,departureRoot=await root();await page.locator('[data-tab=line-admin]').click();await page.locator('[data-lines-readonly]').waitFor();assert.equal(posts('frank').length,departurePosts);assert.deepEqual(await root(),departureRoot);assert.equal(await page.locator('[data-navigation-departure]').count(),0);await open(page);assert.equal(await page.locator('[data-master-name]').nth(5).inputValue(),'Peer current');report.checks.push('two actors retain different fields; true conflict retains input and storage; silent SPA abandonment');\n"
         }
       ]
     },

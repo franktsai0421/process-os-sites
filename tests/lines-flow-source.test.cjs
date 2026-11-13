@@ -12,7 +12,7 @@ void test('lines/flow actual committed checkout and pinned main source tree',()=
 
 void test('current independent LINES entry cannot bypass identity, delivery, view, approved source or readonly boundary',()=>{
  const file='public/process/master-data.js',bytes=proof.normalized(fs.readFileSync(file));
- for(const [from,to]of [["currentUser?.cells?.['lines.view']!==true",'false'],["sync.identity.id!==currentUser?.id",'false'],["d.key!=='data:line-admin'",'false'],["catalog?.format!=='PROCESS_RUNTIME_CATALOG_V1'",'false'],["catalog.loadedScopes?.includes(scope)",'true'],["safe(line.code)",'line.code'],["if(tab==='line-admin')",'if(false)'],["approvedLinesOnly(content);const notice",'void content;const notice']]){
+ for(const [from,to]of [["currentUser?.cells?.['lines.view']!==true",'false'],["sync.identity.id!==currentUser?.id",'false'],["d.key!=='data:line-admin'",'false'],["catalog?.format!=='PROCESS_RUNTIME_CATALOG_V1'",'false'],["catalog.loadedScopes?.includes(scope)",'true'],["safe(line.code)",'line.code'],["if(tab==='line-admin')",'if(false)'],["try{approvedLinesOnly(content);}",'try{void content;}']]){
   assert(bytes.includes(Buffer.from(from)),from);const altered=Buffer.from(bytes.toString().replace(from,to));assert(!altered.equals(bytes));assert.throws(()=>proof.restore(altered,file),/pinned/);assert(proof.projectKnown(altered,file).equals(altered));
  }
 });
