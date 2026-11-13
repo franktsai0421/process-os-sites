@@ -24,10 +24,15 @@ void test('every shared identical change and the three latest process-only regre
  assert.deepEqual(unique,['tests/equipment-transfer-compiled.test.mjs','tests/equipment-transfer-setup-cleanup.test.mjs','tests/shared-draft-tab-attribution.test.mjs']);
  for(const file of unique)assert.deepEqual(published(git('show','HEAD:'+file),file),git('show',manifest.sources.pr104.commit+':'+file),file);
 });
-void test('reviewed account/process runtime union retains every installed file with only the three pinned quality helpers',()=>{
+void test('reviewed account/process runtime union retains every installed file with the three pinned quality helpers and one pinned password helper',()=>{
  const files=git('ls-tree','-r','--name-only',manifest.sources.pr103.commit,'--','app','lib','public').toString().trim().split('\n');
  const additions=['lib/ipqc-ab-local-lineage.ts','lib/ipqc-c-access.ts','lib/iqc-local-save.ts'];
- assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\n'),[...files,...additions].sort());
+ const password=createRequire(import.meta.url)('../scripts/password-outcome-source-contract.cjs'),helper='lib/password-state.ts';
+ assert.equal(password.contract.runtime.file,helper);
+ assert.equal(git('ls-tree',password.contract.base,'--',helper).length,0,'Password helper is absent from genuine main');
+ assert.equal(git('rev-parse','HEAD:'+helper).toString().trim(),password.contract.runtime.blob);
+ password.assertRuntime(git('show','HEAD:'+helper),helper);password.assertRuntime(fs.readFileSync(helper),helper);
+ assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\n'),[...files,...additions,helper].sort());
  for(const file of additions)assert.deepEqual(createRequire(import.meta.url)('../scripts/quality-main-source-contract.cjs').projectKnown(git('show','HEAD:'+file),file,'quality'),git('show','0850a46732ce4d468a2238450d83c3f2f8fb3d07:'+file),file);
  // Preserve exact quality-parent bytes; C return semantics have an independently tested narrow inverse.
  for(const file of files)assert.deepEqual(published(git('show','HEAD:'+file),file),git('show',manifest.sources.pr103.commit+':'+file),file);
