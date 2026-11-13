@@ -2,8 +2,8 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const proof=require('../scripts/process-submit-outcome-source-contract.cjs');
 const git=(...args)=>execFileSync('git',args);
 for(const [file,c]of Object.entries(proof.contract.files))void test('exact outcome follow-up, cache and drift fence: '+file,()=>{
- const bytes=git('show','HEAD:'+file),before=git('show',proof.contract.base+':'+file),canonical=b=>b.toString().replace(/\r\n/g,'\n');
- assert.equal(canonical(fs.readFileSync(file)),canonical(bytes),'checkout equals commit beyond EOL');
+ const current=git('show','HEAD:'+file),bytes=require('../scripts/equipment-submit-source-contract.cjs').projectKnown(current,file,'submit'),before=git('show',proof.contract.base+':'+file),canonical=b=>b.toString().replace(/\r\n/g,'\n');
+ assert.equal(canonical(fs.readFileSync(file)),canonical(current),'checkout equals commit beyond EOL');
  assert.equal(git('rev-parse',proof.contract.base+'^{tree}').toString().trim(),proof.contract.baseTree);
  git('merge-base','--is-ancestor',proof.contract.base,'HEAD');
  assert.equal(proof.hash(bytes),c.afterHash);assert.equal(proof.hash(before),c.beforeHash);

@@ -13,6 +13,10 @@ function sourceDeclaration(ast,name){
  const matches=[];function visit(node){if(ts.isFunctionDeclaration(node)&&node.name?.text===name)matches.push(node);if(ts.isVariableStatement(node)&&node.declarationList.declarations.some(d=>d.name.getText(ast)===name))matches.push(node);ts.forEachChild(node,visit);}visit(ast);
  assert.equal(matches.length,1,`one actual declaration for ${name}`);return matches[0].getText(ast);
 }
+function sourceInitializers(ast,names){
+ const values=new Map();function visit(node){if(ts.isVariableDeclaration(node)&&ts.isIdentifier(node.name)&&names.includes(node.name.text)){assert(!values.has(node.name.text));assert(node.initializer);values.set(node.name.text,node.initializer.getText(ast));}ts.forEachChild(node,visit);}visit(ast);
+ return names.map(name=>{assert(values.has(name),`actual initializer for ${name}`);return `globalThis.${name}=${values.get(name)};`;}).join('\n');
+}
 function stageAB(box,key='A:G'){const base=structuredClone(box.flow().working),snapshot={...structuredClone(base),value:'unsaved local'};box.localScopes.set(key,{base,snapshot});return snapshot;}
 function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
  const source=fs.readFileSync(`public/process/${name}.js`,'utf8');
@@ -60,7 +64,7 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
  }
  // Tooling now owns a document-local candidate; its actual departure closure
  // reads and clears these variables even when no editor dialog is open.
- if(name==='tooling')Object.assign(box,{localBase:null,localSnapshot:null,localGeneration:null});
+ if(name==='tooling'){Object.assign(box,{localBase:null,localSnapshot:null,localGeneration:null});vm.runInNewContext(sourceInitializers(ast,['photoFiles','photoOutcomes','photoFileObjects'])+'\n'+sourceDeclaration(ast,'discardCatalogInputs')+'\n'+sourceDeclaration(ast,'clearPhotoFiles'),box);}
  if(name==='iqc-master'){box.localSnapshot=null;box.localBase=null;box.localGeneration=null;box.editorOwners=new Set();box.errorBatch=null;box.errorRecoverySession=null;box.errorLocalRevision=0;vm.runInNewContext(source.slice(source.indexOf('  function discardErrorInput('),source.indexOf('  async function discardErrorRecord(')),box);vm.runInNewContext(sourceBlock(source,'  function discardLocalInput(){','\n})(window);'),box);}
  // Run the actual caller closures, not always-true owner/local-input stand-ins.
  // Save remains the existing acknowledgement stub: these are binding tests, not transport/route acceptance.
@@ -77,6 +81,7 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
   vm.runInNewContext(sourceDeclaration(ast,'cancelSaveChoice')+'\n'+sourceDeclaration(ast,'clearLocal')+'\n'+sourceDeclaration(ast,'productForms')+'\n'+sourceDeclaration(ast,'clearProductForms'),box);
  }
  if(name==='routine-equipment'){
+  vm.runInNewContext(sourceInitializers(ast,['equipmentSaveChoice','equipmentSaveComparison'])+'\n'+sourceDeclaration(ast,'retireEquipmentSaveComparison'),box);
   const markers=new Map();
   Object.assign(box,{iqcTransferClient:null,fqcTransferClient:null,inputOwner:null,equipmentEditRequest:0,sessionStorage:{getItem:key=>markers.get(key)??null,setItem:(key,value)=>markers.set(key,value),removeItem:key=>markers.delete(key)},localBeginReceipt:null,pendingSaveBatch:null,formPendingPhoto:null,newEquipmentForm:null,newEquipmentOwner:null,syncBase:null,syncGeneration:f.generation,snapshotOf:v=>structuredClone(v.snapshot)});
   if(!omitInputClosures)vm.runInNewContext(sourceBlock(source,'  function inputPrincipalCurrent(){','  function sharedTransport(')+'\nrememberInputOwner();',box);

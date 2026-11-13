@@ -42,3 +42,15 @@
 - PASS：修正後Quality/source證據127項，保留所有既有hash及漂移負例；完整lint仍PASS。
 - PASS：首輪遠端 `a85d602` 的原生job `131839274787`（run `43411651405`）全部成功，包括原Begin原收據與零額外POST、原完整process lifecycle／silent navigation，以及FQC和root-entry後續原生測項。本次後續僅cache預期／測試來源adapter／文件變動，產品檔與此原生PASS完全相同。
 - PASS：實際遠端 `a85d602` 再次執行18項送審／來源檢查和build（含postbuild auth check）。最終提交CI另行核對，不能把首輪整個workflow標成PASS（其source job曾FAIL）。
+
+## #110 合併後整合（2026-11-13）
+
+新main為 `f0f425d90ea883bab479801dd54f5deaed6cce69`（#110於12:53:52 UTC合併），#111原head為 `663280247312513aad66fd22b75f8c02ebb654c7`。在原#111分支merge main，逐段處理8個共同檔案；未覆蓋任何整檔功能。共用client保留模具／檢具歷史路由及送審翻譯，使用新組合cache tag。quality-main兩個入口保留兩套精確inverse；新增固定雙向inverse只還原到兩個真實來源，原pins、負例和deadline不變。
+
+風險／驗證對應：共用client→送審確定拒絕、未知／慢回應、Begin及設備照片原操作恢復；cache／來源投影→雙來源完整bytes與漂移負例；設備→延後照片上傳、整組選擇／取消、原頁唯讀歷史、同頁保留及跨模組分界；整合→Process/Equipment工作流、lint、型別、build與遠端CI。schema、權限及真實資料皆無變更。
+
+合併關卡核對：#111 reviews目前為空；main branch摘要protected=false、rulesets=[]，但詳細protection API回403 Resource not accessible by integration。未用其他工具重試或繞過。完成驗證不代表review或保護已滿足；本任務不執行合併，交由主對話及Frank處理。
+
+集中預檢曾發現新測試inverse對constructor等繼承鍵取值造成TypeError，影響舊wrong-path錯誤分類負例。已改為自身鍵檢查，新增constructor／__proto__／toString正反例，保留舊錯誤類別斷言；不是產品行為或權限修改。
+
+整合本地驗證：PASS 製程21組原命令（19組初測通過，2組保留失敗記錄並完整定向重測exit0）；設備CI可用的6組非原生原命令全部exit0（含247項整合、233項保存／替換，及模具／設備生命週期與四模組替換）；雙來源／送審集中107項、adapter修復後90項、完整Quality/account來源127項；typed lint、非增量TypeScript、source-only檢查及固定8ba59c7 build/postbuild auth通過。後續只修測試adapter／負例及文件，產品來源相同。原生瀏覽器與Windows檢查交由新head的CI，未使用公司電腦、實站或真實資料；不得重用整合前CI當整合後的最終PASS。

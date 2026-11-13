@@ -6,6 +6,7 @@ const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 function restoreParent(bytes,file,target){
  assert(Buffer.isBuffer(bytes),'Joint proof requires raw Buffer bytes');
  bytes=require('./process-submit-outcome-source-contract.cjs').projectKnown(bytes,file);
+ bytes=require('./equipment-integration-source-contract.cjs').projectKnown(bytes,file);
  const c=contracts.find(c=>c.file===file&&c.target===target);assert(c,'Joint proof wrong file or target');
  assert.equal(bytes.length,c.afterLength,'Joint proof pinned length');assert.equal(hash(bytes),c.afterHash,'Joint proof differs from pinned bytes');
  let result=Buffer.from(bytes);
@@ -18,6 +19,7 @@ function restoreParent(bytes,file,target){
 function projectKnown(bytes,file,target){
  assert(Buffer.isBuffer(bytes),'Joint proof requires raw Buffer bytes');
  bytes=require('./process-submit-outcome-source-contract.cjs').projectKnown(bytes,file);
+ bytes=require('./equipment-integration-source-contract.cjs').projectKnown(bytes,file);
  return contracts.some(c=>c.file===file&&c.target===target&&c.afterHash===hash(bytes))?restoreParent(bytes,file,target):bytes;
 }
 module.exports={contracts,hash,restoreParent,projectKnown};

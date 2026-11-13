@@ -336,7 +336,7 @@
     const boundedPredecessor=externalBounded?transports.get(transportKey):null;
     let boundedProjectionRetired=false,equipmentProjectionRetired=false;
     let access=null,gates=permissionGates,permissionNotice=null,validation=null;
-    const approvedAccessListeners=new Set(),approvedHistoryRoute=['/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-ab/workflow','/api/process-authoring/workflow','/api/master/pages','/api/routine-fqc/page'].includes(beginPath)||processLocalSave&&masterLocalBegin&&beginParams.get('scope')==='PROCESS';
+    const approvedAccessListeners=new Set(),approvedHistoryRoute=['/api/tooling/workflow','/api/routine-equipment/workflow','/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-ab/workflow','/api/process-authoring/workflow','/api/master/pages','/api/routine-fqc/page'].includes(beginPath)||processLocalSave&&masterLocalBegin&&beginParams.get('scope')==='PROCESS';
     // Opt-in UI access projection only; never order or alter command/receipt results.
     // Authoring approved history enables this guard during first paint. Start it
     // before any durable Begin receipt/readback so mounting cannot retire that read.

@@ -1,3 +1,5 @@
+import equipmentProof from '../scripts/equipment-integration-source-contract.cjs';
+import {assertDraftInitializerIdle} from '../scripts/entry-performance/draft-no-poll-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -54,7 +56,7 @@ const pollingFixture=()=>{
  // Preserve legacy callback denial/ownership assertions without restoring runtime polling.
  vm.runInContext(fs.readFileSync(new URL('../scripts/entry-performance/fixtures/retired-foreground-scheduler.js',import.meta.url),'utf8'),box);
  box.client={canPoll:kind=>gate.canPoll(kind),hasUnknown:()=>false};box.transport=()=>({read:async token=>{calls.push(token);if(status!==200){gate.denied('state',status,gate.capture(),async()=>{});throw Error('synthetic read refusal '+status);}return{unchanged:true};}});
- const production=read('tooling.js'),foreground=production.includes('foregroundPoll.schedule(pollTick)');vm.runInContext(pollingScheduler(production),box);if(foreground){assert.equal(timers.length,0,'no legacy interval substituted');assert.equal(ports.pending(),0,'hidden document does not arm foreground poll');}else{assert.equal(timers.length,1);assert.equal(timers[0].ms,4000);}
+ const production=sourceMode==='current'?equipmentProof.restore(Buffer.from(read('tooling.js')),'public/process/tooling.js').toString('utf8'):read('tooling.js'),foreground=production.includes('foregroundPoll.schedule(pollTick)');vm.runInContext(pollingScheduler(production),box);if(foreground){assert.equal(timers.length,0,'no legacy interval substituted');assert.equal(ports.pending(),0,'hidden document does not arm foreground poll');}else{assert.equal(timers.length,1);assert.equal(timers[0].ms,4000);}
  return{box,gate,calls,updates,poll:async()=>{ports.syncVisibility();if(foreground){if(ports.pending())await ports.runNext();}else await timers[0].fn();},status:value=>{status=value;}};
 };
 // Actual production read gate; unrelated extracted-callback read ports stay synthetic.
@@ -62,7 +64,7 @@ const readGate=box=>{vm.runInContext(read('shared-draft-client.js'),box);return 
 const part=(source,a,b)=>{const i=source.indexOf(a),j=source.indexOf(b,i+a.length);assert(i>=0&&j>i);return source.slice(i,j);};
 const policy=JSON.parse(fs.readFileSync(new URL('./fixtures/bounded-image-policy.json',import.meta.url),'utf8'));
 for(const rule of policy)void test(`${rule.file}:${rule.baseLine} only audited image scheduling hints change`,()=>{
- const source=displayContract.imagePolicySource(rule.file,read(rule.file),{sourceMode,headSource:cHeadSource});assert(source.includes(rule.after));
+ const current=read(rule.file),selected=rule.file==='tooling.js'&&sourceMode==='current'?equipmentProof.restore(Buffer.from(current),'public/process/tooling.js').toString('utf8'):current;const source=displayContract.imagePolicySource(rule.file,selected,{sourceMode,headSource:cHeadSource});assert(source.includes(rule.after));if(rule.file==='tooling.js'&&sourceMode==='current'){const tag=rule.after.replace('/api/tooling/photo?id=${r.photos[0].id}','${h(photoUrl(r.photos[0]))}').replace('/api/tooling/photo?id=${p.id}','${h(photoUrl(p))}');assert(current.includes(tag),'current local-preview URL preserves every audited image scheduling attribute');}
  const normalize=s=>s.replace(/ \$\{hidden\?'loading="lazy" decoding="async"':''\}/g,'').replace(/\s+(?:loading="lazy"|decoding="async")/g,'');
  assert.equal(normalize(rule.after),normalize(rule.before));
 });
@@ -136,15 +138,16 @@ void test('selected fullsize viewers and exported print images are not deferred'
 void test('node preview cancellation releases only untransferred URLs, including repeated close',()=>{
  const source=read('routine-equipment.js'),revoked=[],box={URL:{revokeObjectURL:u=>revoked.push(u)},pendingPhotos:new Map(),nodeDialog:{pendingPhoto:{url:'blob:discard'}},render(){}};vm.createContext(box);vm.runInContext(part(source,'  function cancelNodeDialog()', '  async function confirmNodeDialog()')+'this.cancel=cancelNodeDialog;',box);
  box.cancel();box.cancel();assert.deepEqual(revoked,['blob:discard']);box.pendingPhotos.set('saved',{url:'blob:owned'});box.nodeDialog={pendingPhoto:{url:'blob:owned'}};box.cancel();assert.deepEqual(revoked,['blob:discard']);assert.equal(box.pendingPhotos.get('saved').url,'blob:owned');assert.equal(box.nodeDialog,null);
- assert(read('routine-equipment.js').includes("addEventListener('click', cancelNodeDialog)"));assert(read('routine-equipment.js').includes("if (event.target?.id === 'routine-node-dialog-backdrop') cancelNodeDialog();"));
+ assert(read('routine-equipment.js').includes("addEventListener('click', guardWorking(root.querySelector('#routine-dialog-close'),cancelNodeDialog))"));assert(read('routine-equipment.js').includes("if (event.target?.id === 'routine-node-dialog-backdrop') cancelNodeDialog();"));
 });
 for(const name of ['fqc-master.js','iqc-master.js','routine-equipment.js','ipqc-ab.js','tooling.js'])void test(`${name} actual transport opts into existing conditional protocol only`,()=>{
  const source=read(name),functionName=name==='routine-equipment.js'?'sharedTransport':'transport';
  const ast=ts.createSourceFile(name,source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS),functions=[];const collect=node=>{if(ts.isFunctionDeclaration(node)&&node.name?.text===functionName)functions.push(node.getText(ast));ts.forEachChild(node,collect);};collect(ast);assert.equal(functions.length,1,'exact transport declaration');let text=functions[0];if(name==='routine-equipment.js'){for(const helper of ['hasLocalDraftInput','inputPrincipalCurrent','inputTargetCurrent','inputOwnerCurrent','rememberInputOwner']){const found=[];const visit=n=>{if(ts.isFunctionDeclaration(n)&&n.name?.text===helper)found.push(n.getText(ast));ts.forEachChild(n,visit);};visit(ast);assert.equal(found.length,1,'exact routine owner helper '+helper);text+='\n'+found[0];}}
+ if(name==='tooling.js')for(const helper of ['discardCatalogInputs','clearPhotoFiles']){const found=[];const visit=n=>{if(ts.isFunctionDeclaration(n)&&n.name?.text===helper)found.push(n.getText(ast));ts.forEachChild(n,visit);};visit(ast);assert.equal(found.length,1,'actual tooling cleanup '+helper);text+='\n'+found[0];}
  let actorIdentity={id:'actor'},epoch=1,delivery={epoch:1};
  const options=[],box={identity:()=>actorIdentity,actor:()=>actorIdentity,key:()=> 'A:group',headers:()=>({}),API:'/api/ipqc-ab',api:'/api/routine-equipment',apiUrl:'/api/iqc',t:x=>x,sharedActor:'',sharedIdentity:'',sharedClientOwner:null,sharedClient:null,control:null,selected:'',iqc:null,checks:null,caseVersionNumbers:new Map(),window:{ProcessSync:{get identity(){return actorIdentity;},identityGeneration:()=>epoch,captureDelivery:()=>delivery,isCurrentDelivery:value=>value===delivery},createSharedDraftClient:o=>{options.push(o);return {};}}};
  if(name==='routine-equipment.js')Object.assign(box,{inputOwner:null,editingEquipmentId:null,nodeDialog:null,addingEquipment:false,pendingPhotos:new Set(),working:null,syncBase:null,selectedVersionId:'draft'});
- if(name==='tooling.js')Object.assign(box,{actor:'',client:null,checksRun:null,checksStatus:'unchecked',beginRecovery:null,sessionStorage:{getItem:()=>null}});box.host=name==='routine-equipment.js'?{isConnected:true,dataset:{activeTab:'quality-routine-equipment'}}:box.window;vm.createContext(box);
+ if(name==='tooling.js')Object.assign(box,{photoFiles:new Map(),photoOutcomes:new Map(),photoFileObjects:new WeakMap(),localBase:null,localSnapshot:null,localGeneration:null,actor:'',client:null,checksRun:null,checksStatus:'unchecked',beginRecovery:null,sessionStorage:{getItem:()=>null}});box.host=name==='routine-equipment.js'?{isConnected:true,dataset:{activeTab:'quality-routine-equipment'}}:box.window;if(name==='tooling.js')box.host={querySelectorAll:()=>[]};vm.createContext(box);
  vm.runInContext(text+';this.call='+functionName+';',box);box.call();box.call();assert.equal(options.length,1);assert.equal(options[0].conditionalState,true);assert.equal(options[0].actorId,'actor');assert(options[0].endpoint.includes('caseMetadata=1'));
  if(name==='routine-equipment.js'){box.editingEquipmentId='retained';epoch++;assert.throws(()=>box.call(),/ACCOUNT_CHANGED_REOPEN_REQUIRED/,'dirty old epoch cannot obtain transport');assert.equal(options.length,1);epoch--;delivery={epoch:1};assert.throws(()=>box.call(),/ACCOUNT_CHANGED_REOPEN_REQUIRED/,'dirty stale delivery cannot obtain transport');assert.equal(options.length,1);}
  if(['fqc-master.js','iqc-master.js'].includes(name)){
@@ -185,3 +188,5 @@ for(const status of [401,403])void test(`retired tooling callback stops after ${
  box.document.visibilityState='visible';for(let i=0;i<7;i++)await poll();assert.deepEqual(calls,['g:1']);assert.equal(updates.length,1);assert.equal(gate.canPoll('state'),false);assert.equal(gate.state('state').status,status);
  box.document.visibilityState='hidden';await poll();box.document.visibilityState='visible';await poll();assert.equal(calls.length,1,'visibility changes must not clear a refusal');assert.equal(updates.length,1,'one denied read produces one sync error');
 });
+
+void test('current Tooling complete initializer has no idle read or recurring scheduler',async()=>{if(sourceMode==='current')await assertDraftInitializerIdle(sourceRoot,'tooling.js');else assert.equal(sourceMode,'readonly-fixture');});

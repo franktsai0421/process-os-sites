@@ -23,7 +23,7 @@ async function list(x){await selector(x).onfocus();}
 async function choose(x,id){const s=selector(x);s.value=id;await s.onchange();}
 const display=x=>x.main.querySelector('[data-vd-approved-view]');
 const openRows=x=>{for(const d of display(x).querySelectorAll('details')){d.open=true;d.ontoggle?.();}};
-for(const moduleName of ['fqc']){
+for(const moduleName of ['tooling','fqc']){
  for(const lang of ['zh','vi'])void test(`${moduleName}/${lang}: same-page audited lazy pagination, immutable detail and RAM return`,async()=>{const x=await setup(moduleName,{lang});try{
  assert.equal(selector(x).disabled,false);assert.equal(x.requests.filter(r=>r.url.includes('approvedOnly')).length,0);assert.equal(x.main.querySelectorAll('.vd-choice select').length,1);assert(!x.main.querySelector(moduleName==='fqc'?'#fqc-cases':'#tooling-version'));await x.stage();const before=x.local(),state=await x.server(),posts=x.posts().length;
  await list(x);assert.equal(selector(x).options.length,22);assert(!selector(x).options.some(o=>['active','active-tooling','not-approved','shared-fake'].includes(o.value)));await choose(x,'__more');assert(selector(x).options.some(o=>o.value==='audited-case'));await choose(x,'audited-case');assert.equal(display(x).hidden,false);openRows(x);assert.match(display(x).textContent,/IMMUTABLE_APPROVED/);assert(!display(x).textContent.includes('MUTABLE_VERSION_COPY'));assert.equal(display(x).querySelectorAll('input,textarea,form,button').filter(n=>!n.matches('input[type=search],button')).length,0);assert.equal(x.posts().length,posts);assert.equal(x.local(),before);assert.deepEqual(await x.server(),state);assert(!x.doc.querySelector('dialog'));
