@@ -73,3 +73,18 @@
 Git HTTPS push 因雲端沒有登入憑證而未執行。其後單筆大型 GitHub create_tree 被中止；讀回預期 tree `4690514624d345bae43cc295efa4e7f0f63fe198` 與新分支皆 404，沒有重送該 tree。中止期間 main 已合併 #112 至 `a85caf5a8f14770b02481f52f96e0ec1364458d3`；本候選用正常 merge 逐段保留其 AB/C helper、原始 approved proof、語言／篩選與進度 UI、運作回執和 source gates，不帶未合併 #113/#114。
 
 合樹 runtime `3ad1f55` 的 guarded build/auth postbuild、完整 lint／TypeScript 通過；#112 專屬＋兩頁／來源／導航集中測試先 132/133，唯一失敗是新 CHANGELOG 尚未納入精確 inverse（非產品功能）。修正為完整逐 byte 的真 main 前身，不改其 hash／負面控制。上傳改為先比對各 blob SHA，再以 SHA 清單建立新 tree，避免再次使用大型 inline-content tree；新 tree 必須與本地完整候選 tree 一致才建立 commit/ref/PR。沒有憑證建立、main push、合併、部署或資料切換。
+
+### #115 CI 續修
+
+公開獨立 Draft PR [#115](https://github.com/franktsai0421/process-os-sites/pull/115)，第一個公開 commit `2ffd227` 的 tree 與本機候選完整相等。依實際 CI 逐項修正，沒有停用工作流程、刪除失敗斷言或調低來源 hash：
+
+- 歷史報表來源負面控制原本要求舊「AB/C view 決定線別入口」字串。現在先以精確 inverse 得到真 main 前身，原始控制全部保留；另對目前獨立 LINES 的身分、delivery、權限、核准來源與唯讀入口逐項變異並拒絕。
+- 真 compiled PROCESS 原生測出已移除的 review 按鈕被 status 直接存取，造成頁面載入失敗。加入空元素檢查；localProcess 不開本機恢復 session；真 binder DOM 回歸確認只保留 apply/discard，輸入不送 POST。
+- lines-only 原測試 12 項完全不改；唯讀路徑改用一致結構呈現採用提示與來源錯誤，避免缺少額外 DOM port 或只顯示錯誤代碼。
+- 舊 compiled AB/C／PROCESS runner 的跨頁目標原本等待舊線別編輯選單；改驗目前未採用資料的 LINES 唯讀與零寫入。AB/C 核准拓樸比對已保存的完整 canonical snapshot，保留所有穩定 ID；獨立 LINES 增刪及完整審核生命週期仍由專用原生 runner 執行。
+- 專用原生 harness 初版漏寫 UTF-8，按鈕顯示亂碼；補上 HTML／JS charset 及 characterSet 斷言，保留中文字與越南文原始按鈕選取。未改真站編碼。
+- 六個本輪資產標記更新為 `20261113-lines-flow3`，其餘 main tags 保留。
+
+`04e2c46` 對應本地 99/99；`c026e45` 前的來源／權限／導航修正 100/100。中途套件結果只作診斷；最終遠端 head、原生結果及 CI 以 PR 最後更新為準，不把前一輪 PASS 當新 HEAD 全部驗收。
+
+第三輪 `c026e45` 的 compiled PROCESS 原生 runner 已完整 PASS（同一 job 後續 AB/C 比對 fixture IDs 失敗，不能稱該工作流程已全綠）。LINES 原生已完成增刪、保存、重載、送審／撤回／退回／再送／核准，最後發現新輸入沒有即時啟用「取消本機修改」；已修正 discard／submit 可用狀態並加入實際 controller 零寫入回歸。完整原生重新驗收仍以最後 head CI 為準。

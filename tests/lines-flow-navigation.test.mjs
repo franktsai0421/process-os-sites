@@ -9,3 +9,8 @@ void test('LINES committed departure cancels an unsent conflict dialog; reentry 
 void test('LINES no-conflict Save performs one comparison read and one CAS without polling or redundant confirmation read',async t=>{
  const x=await setup(t,'LINES');await x.click('開啟草稿');x.fill('線別名稱','One LINES Save');const start=x.calls.length;await x.click('存取草稿');const calls=x.calls.slice(start),post=calls.findIndex(row=>row.method==='POST');assert.equal(calls.slice(0,post).filter(row=>row.method==='GET').length,1);assert.equal(calls.filter(row=>row.method==='POST').length,1);assert(Number.isSafeInteger(calls[post].body.command.expectedRevision));assert.equal((await x.readRoot()).workflowScopes.LINES.saved.content.AB.lines[0].name,'One LINES Save');
 });
+
+void test('LINES editing updates discard and submit availability immediately; cancel restores base with zero write',async t=>{
+ const x=await setup(t,'LINES');await x.click('開啟草稿');x.fill('線別名稱','Saved baseline');await x.click('存取草稿');const posts=x.posts().length;assert.equal(x.button('送審').disabled,false);assert.equal(x.button('取消本機修改').disabled,true);
+ x.fill('線別名稱','Unsent edit');assert.equal(x.button('取消本機修改').disabled,false);assert.equal(x.button('送審').disabled,true);await x.click('取消本機修改');assert.equal(x.field('線別名稱').value,'Saved baseline');assert.equal(x.button('取消本機修改').disabled,true);assert.equal(x.button('送審').disabled,false);assert.equal(x.posts().length,posts);
+});

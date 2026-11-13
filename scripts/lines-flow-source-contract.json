@@ -354,7 +354,7 @@
       ]
     },
     "public/process/index.html": {
-      "afterHash": "11fe2756ddeb3bd7317a1d1e068d89560a7392c41d3b671f3251dcf1d30cd49c",
+      "afterHash": "bdcd35fff818e5ecf151a04fa0a06092d77191840998f6d1745ccc5b797b0343",
       "afterLength": 11497,
       "beforeHash": "d4a924bcbd5cc94ed3b0c351e53e5b26a98940e79b2e8418d7ecd10baa28ce75",
       "beforeNormalizedHash": "d4a924bcbd5cc94ed3b0c351e53e5b26a98940e79b2e8418d7ecd10baa28ce75",
@@ -364,22 +364,22 @@
         {
           "offset": 6319,
           "before": "    <script data-process-src=\"app.js?v=20261105-process-local-save1\"></script>\n",
-          "after": "    <script data-process-src=\"app.js?v=20261113-lines-flow2\"></script>\n"
+          "after": "    <script data-process-src=\"app.js?v=20261113-lines-flow3\"></script>\n"
         },
         {
           "offset": 6890,
           "before": "    <script data-process-src=\"shared-draft-client.js?v=20261113-abc-master1\"></script>\n    <script data-process-src=\"master-shared-client.js?v=20261112-process-history1\"></script>\n",
-          "after": "    <script data-process-src=\"shared-draft-client.js?v=20261113-lines-flow2\"></script>\n    <script data-process-src=\"master-shared-client.js?v=20261113-lines-flow2\"></script>\n"
+          "after": "    <script data-process-src=\"shared-draft-client.js?v=20261113-lines-flow3\"></script>\n    <script data-process-src=\"master-shared-client.js?v=20261113-lines-flow3\"></script>\n"
         },
         {
           "offset": 7431,
           "before": "    <script data-process-src=\"page-draft-merge.js?v=20261110-account-pages1\"></script>\n",
-          "after": "    <script data-process-src=\"page-draft-merge.js?v=20261113-lines-flow2\"></script>\n"
+          "after": "    <script data-process-src=\"page-draft-merge.js?v=20261113-lines-flow3\"></script>\n"
         },
         {
           "offset": 7705,
           "before": "    <script data-process-src=\"master-page-editor.js?v=20261113-abc-master2\"></script>\n    <script data-process-src=\"master-data.js?v=20261110-account-pages1\"></script>\n",
-          "after": "    <script data-process-src=\"master-page-editor.js?v=20261113-lines-flow2\"></script>\n    <script data-process-src=\"master-data.js?v=20261113-lines-flow2\"></script>\n"
+          "after": "    <script data-process-src=\"master-page-editor.js?v=20261113-lines-flow3\"></script>\n    <script data-process-src=\"master-data.js?v=20261113-lines-flow3\"></script>\n"
         }
       ]
     },
@@ -497,8 +497,8 @@
       ]
     },
     "public/process/master-page-editor.js": {
-      "afterHash": "f6137da107d31873cd174d5ac967780c545d991a8344881f93901332987ac3b1",
-      "afterLength": 33089,
+      "afterHash": "f00db66d431b9aa936b8777052f7675dc23da81fe6788d97992b2bb100730ba0",
+      "afterLength": 33429,
       "beforeHash": "cb14e38b39d11b75ce733619df68fac5463151a7901b406916d2dff39004bded",
       "beforeNormalizedHash": "cb14e38b39d11b75ce733619df68fac5463151a7901b406916d2dff39004bded",
       "beforeBlob": "8ae5463ac8e829377f1d3849a99e6ba2e80c5ac2",
@@ -525,27 +525,42 @@
           "after": "  async function act(action,label=t('載入資料','Tải dữ liệu')){if(busy)return;actionEpoch=viewEpoch;busy=true;error='';progress=label+'…';render();try{assertOwner();history?.assertMutable();await action();}catch(failure){if(owner()&&actionEpoch===viewEpoch)error=host.sharedDraftErrorMessage?.(failure)||failure.message;}finally{busy=false;progress='';if(owner()){render();if(container&&!control&&actionEpoch!==viewEpoch)void act(()=>read(true));}}}\n"
         },
         {
-          "offset": 23467,
+          "offset": 4295,
+          "before": "  function showDirty(){const status=container?.querySelector('[data-page-dirty]');if(status)status.textContent=dirty()?t('本機尚未存取','Thay đổi chưa lưu'):t('沒有本機修改','Không có thay đổi cục bộ');}\n",
+          "after": "  function showDirty(){const status=container?.querySelector('[data-page-dirty]');if(status)status.textContent=dirty()?t('本機尚未存取','Thay đổi chưa lưu'):t('沒有本機修改','Không có thay đổi cục bộ');const discard=container?.querySelector('[data-page-discard]');if(discard)discard.disabled=!canEdit()||!dirty();const submit=container?.querySelector('[data-page-submit]');if(submit)submit.disabled=busy||!flow()?.saved||!!flow().pendingId||permissions.submit!==true||dirty()||client.hasUnknown();}\n"
+        },
+        {
+          "offset": 23762,
           "before": "    let closed=false;const finish=value=>{if(closed)return;closed=true;choiceDialog=null;dialog.remove();host.removeEventListener('pagehide',cancel);resolve(value);},cancel=()=>finish('cancel');\n",
           "after": "    let closed=false;const finish=value=>{if(closed)return;closed=true;choiceDialog=null;choiceCancel=null;dialog.remove();host.removeEventListener('pagehide',cancel);resolve(value);},cancel=()=>finish('cancel');choiceCancel=cancel;\n"
         },
         {
-          "offset": 25357,
+          "offset": 25652,
           "before": "    const confirmed=await client.read();assertOwner();if(!same(confirmed.control?.workflow,current))continue;\n",
           "after": "    const confirmed=comparison.conflicts.length?await client.read():fresh;assertOwner();if(!same(confirmed.control?.workflow,current))continue;\n"
         },
         {
-          "offset": 27444,
+          "offset": 27739,
           "before": "   const result=await client.command(current.generation,action,{reason,expectedRevision:current.revision,...(action==='submit'?host.captureSharedDraftSubmission(current):{caseId:pending}),...(self?{selfReviewConfirmed:true}:{})});adopt(result,true);\n",
           "after": "   const result=await client.command(current.generation,action,{reason,expectedRevision:current.revision,...(action==='submit'?host.captureSharedDraftSubmission(current):{caseId:pending}),...(self?{selfReviewConfirmed:true}:{})});adopt(result,true);if(action==='approve'){await host.MasterDataWorkflow?.loadScope?.(page==='LINES'?'LINES':page+'.catalog');assertOwner();host.MasterDataWorkflow?.applyActive?.();}\n"
         },
         {
-          "offset": 28789,
+          "offset": 29084,
           "before": "",
           "after": "   button(toolbar,t('重新載入','Tải lại'),async()=>{if(dirty()&&!host.confirm(t('放棄本頁未存輸入並重載已保存草稿？','Bỏ đầu vào chưa lưu và tải lại bản nháp đã lưu?')))return;await read(true);},!busy&&!client.hasUnknown());\n"
         },
         {
-          "offset": 31685,
+          "offset": 29757,
+          "before": "   button(toolbar,t('送審','Gửi duyệt'),()=>lifecycle('submit'),!busy&&!!flow()?.saved&&!flow().pendingId&&permissions.submit===true&&!dirty()&&!client.hasUnknown());\n",
+          "after": "   button(toolbar,t('送審','Gửi duyệt'),()=>lifecycle('submit'),!busy&&!!flow()?.saved&&!flow().pendingId&&permissions.submit===true&&!dirty()&&!client.hasUnknown()).dataset.pageSubmit='';\n"
+        },
+        {
+          "offset": 30784,
+          "before": "   transferToolbar(panel);button(toolbar,t('取消本機修改','Hủy thay đổi cục bộ'),()=>{if(host.confirm(t('放棄本頁尚未存取的修改？','Bỏ thay đổi chưa lưu của trang?'))){discardLocal();pendingImportFile=undefined;importApplied=false;}},canEdit()&&dirty());if(page==='LINES')lines(panel);else catalogs(panel);history?.mount(container);history?.guardDOM(container);\n",
+          "after": "   transferToolbar(panel);button(toolbar,t('取消本機修改','Hủy thay đổi cục bộ'),()=>{if(host.confirm(t('放棄本頁尚未存取的修改？','Bỏ thay đổi chưa lưu của trang?'))){discardLocal();pendingImportFile=undefined;importApplied=false;}},canEdit()&&dirty()).dataset.pageDiscard='';if(page==='LINES')lines(panel);else catalogs(panel);history?.mount(container);history?.guardDOM(container);\n"
+        },
+        {
+          "offset": 32025,
           "before": "  return {owner,departure,relabel(){if(!busy&&!choiceDialog)render();},busy:()=>busy,deactivate(){history?.retire();container=null;if(!client.hasUnknown()&&!busy){control=undefined;base=undefined;mine=undefined;generation=undefined;}},mount(element){container=element;render();if(!control||!dirty()&&!busy)void act(()=>read(true));},dirty,save:()=>act(save),reset(){history?.retire();container=null;},inspect:()=>({base:copy(base),mine:copy(mine),generation,pendingImportFile,importApplied,error,permissions})};\n",
           "after": "  return {owner,departure,relabel(){if(!busy&&!choiceDialog)render();},busy:()=>busy,deactivate(){viewEpoch++;choiceCancel?.();history?.retire();container=null;control=undefined;base=undefined;mine=undefined;generation=undefined;pendingImportFile=undefined;importApplied=false;},mount(element){container=element;render();if(!control||!dirty()&&!busy)void act(()=>read(true));},dirty,save:()=>act(save),reset(){viewEpoch++;choiceCancel?.();history?.retire();container=null;},inspect:()=>({base:base===undefined?undefined:copy(base),mine:mine===undefined?undefined:copy(mine),generation,pendingImportFile,importApplied,error,permissions})};\n"
         }
@@ -702,8 +717,8 @@
       ]
     },
     "tests/abc-local-save-browser.mjs": {
-      "afterHash": "d1a16f9278cb2f456c625a5ef56350951a57cc3d677b19474dc4feb3385c80c7",
-      "afterLength": 19213,
+      "afterHash": "f055bea35f12d7f41d36ed8ada1b83de12b8de7a9a9abea04c174a1cf3eb5c3b",
+      "afterLength": 19235,
       "beforeHash": "db9585cde9d013914cbf5118d78165fcdaaac59a232ea7c045498a29817d15f4",
       "beforeNormalizedHash": "db9585cde9d013914cbf5118d78165fcdaaac59a232ea7c045498a29817d15f4",
       "beforeBlob": "e42672498603c6d1400b5044bfb9d6442329edb2",
@@ -712,7 +727,7 @@
         {
           "offset": 11696,
           "before": "  stage=scope+' line stage';await open(page,scope,'line-admin');await page.locator('[data-stage-add=\"'+line+'\"]').click();await page.locator('#master-edit-dialog [name=code]').fill(line+'-NEW');await page.locator('#master-edit-dialog [name=name]').fill('隔離工段 Công đoạn mới');const n3=posts('frank').length;await page.locator('#master-edit-dialog [type=submit]').click();await page.locator('#master-edit-dialog').waitFor({state:'detached'});assert.equal(posts('frank').length,n3);assert(!(await root()).workflowScopes[scope].working.lines[0].stages.some(s=>s.code===line+'-NEW'));await save(page,scope);\n  stage=scope+' fixed review lifecycle';await submit(page);assert(!(await root()).active[scope].lines[0].stages.some(s=>s.code===line+'-NEW'));await review(reviewer,scope,'return');await open(page,scope,'line-admin');await submit(page);await page.locator('#master-withdraw').click();await confirm(page);await page.locator('#master-submit').waitFor();await submit(page);await review(reviewer,scope,'approve');assert((await root()).active.PROCESS[line+'-NEW']);assert((await root()).active[scope].lines[0].stages.some(s=>s.code===line+'-NEW'));\n  report.checks.push(scope+': products, exception→group, inherited route, lines/stages, polling, filters, two actors same/different fields, silent SPA departure, return/withdraw/resubmit/approve, pinned stageProcessLink');\n",
-          "after": "  // Legacy data has no independent page owner. The current LINES entry must be\n  // readonly, never recreate AB/C topology drafts or auto-publish PROCESS.\n  // Full create/remove/independent approval stays in lines-flow-browser.mjs.\n  stage=scope+' legacy line boundary';const beforeLines=await root(),linePosts=posts('frank').length;await page.goto(origin+'/process/?system=process&view=data&dataTab=line-admin');await page.waitForFunction(()=>typeof state!=='undefined'&&state.dataTab==='line-admin'&&document.documentElement.dataset.processNavigationStatus==='ready'&&!MasterDataWorkflow.shared.busy()&&!document.querySelector('#process-boot'));await page.locator('[data-lines-readonly]').waitFor();assert.equal(await page.locator('#master-lines-scope,[data-stage-add],#master-save-draft').count(),0);assert.equal(posts('frank').length,linePosts);assert.deepEqual(await root(),beforeLines);\n  stage=scope+' fixed review lifecycle';await open(page,scope);await submit(page);assert.deepEqual((await root()).active[scope],beforeLines.active[scope]);await review(reviewer,scope,'return');await open(page,scope);await submit(page);await page.locator('#master-withdraw').click();await confirm(page);await page.locator('#master-submit').waitFor();await submit(page);await review(reviewer,scope,'approve');const approved=await root();assert.equal(approved.active[scope].products.find(p=>p.code===code).name,'Peer same field');assert.deepEqual(approved.active[scope].lines,beforeLines.active[scope].lines);assert.deepEqual(approved.active.PROCESS,beforeLines.active.PROCESS);\n  report.checks.push(scope+': products, exception→group, inherited route, filters, two actors same/different fields, silent SPA departure, readonly unadopted LINES with zero writes, catalog return/withdraw/resubmit/approve; independent LINES creation/approval in dedicated native runner');\n"
+          "after": "  // Legacy data has no independent page owner. The current LINES entry must be\n  // readonly, never recreate AB/C topology drafts or auto-publish PROCESS.\n  // Full create/remove/independent approval stays in lines-flow-browser.mjs.\n  stage=scope+' legacy line boundary';const beforeLines=await root(),linePosts=posts('frank').length;await page.goto(origin+'/process/?system=process&view=data&dataTab=line-admin');await page.waitForFunction(()=>typeof state!=='undefined'&&state.dataTab==='line-admin'&&document.documentElement.dataset.processNavigationStatus==='ready'&&!MasterDataWorkflow.shared.busy()&&!document.querySelector('#process-boot'));await page.locator('[data-lines-readonly]').waitFor();assert.equal(await page.locator('#master-lines-scope,[data-stage-add],#master-save-draft').count(),0);assert.equal(posts('frank').length,linePosts);assert.deepEqual(await root(),beforeLines);\n  stage=scope+' fixed review lifecycle';await open(page,scope);await submit(page);assert.deepEqual((await root()).active[scope],beforeLines.active[scope]);await review(reviewer,scope,'return');await open(page,scope);await submit(page);await page.locator('#master-withdraw').click();await confirm(page);await page.locator('#master-submit').waitFor();await submit(page);await review(reviewer,scope,'approve');const approved=await root();assert.equal(approved.active[scope].products.find(p=>p.code===code).name,'Peer same field');assert.deepEqual(approved.active[scope].lines,beforeLines.workflowScopes[scope].saved.content.lines);assert.deepEqual(approved.active.PROCESS,beforeLines.active.PROCESS);\n  report.checks.push(scope+': products, exception→group, inherited route, filters, two actors same/different fields, silent SPA departure, readonly unadopted LINES with zero writes, catalog return/withdraw/resubmit/approve; independent LINES creation/approval in dedicated native runner');\n"
         }
       ]
     },
@@ -731,8 +746,23 @@
         }
       ]
     },
+    "tests/account-page-entry.test.cjs": {
+      "afterHash": "1dd3c0c500eca2c006b45fb3acad1e6403ff91cd7e837b90305295208c15bb10",
+      "afterLength": 3063,
+      "beforeHash": "3e49068bb7b725fd8c1db348c0dd20f7aa187e9a924d1b145bd3db9f60ee6058",
+      "beforeNormalizedHash": "3e49068bb7b725fd8c1db348c0dd20f7aa187e9a924d1b145bd3db9f60ee6058",
+      "beforeBlob": "f9f52ca7694bbb9edb87d563e693c3ac70b0a19b",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 454,
+          "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-abc-master1','master-page-editor.js':'20261113-abc-master2','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
+          "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-lines-flow3','master-page-editor.js':'20261113-lines-flow3','master-shared-client.js':'20261113-lines-flow3','page-draft-merge.js':'20261113-lines-flow3','master-data.js':'20261113-lines-flow3','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+        }
+      ]
+    },
     "tests/equipment-submit-source.test.cjs": {
-      "afterHash": "e76dc13d4ae9cad1309a30b86b1295a8f6ea8549ed6a1679850c48273113f178",
+      "afterHash": "3187a4d64b1a59b3db54e63c86fc7df6636e3b366478d32bfe4799cf5e3f7394",
       "afterLength": 3496,
       "beforeHash": "b4bd8f0a774e18363f4b64fd013ee96e73c551229d28ae94c1350798d1c565c0",
       "beforeNormalizedHash": "b4bd8f0a774e18363f4b64fd013ee96e73c551229d28ae94c1350798d1c565c0",
@@ -742,12 +772,12 @@
         {
           "offset": 3147,
           "before": " assert.equal(index.split('shared-draft-client.js?v=20261113-abc-master1').length,2);\n",
-          "after": " assert.equal(index.split('shared-draft-client.js?v=20261113-lines-flow2').length,2);\n"
+          "after": " assert.equal(index.split('shared-draft-client.js?v=20261113-lines-flow3').length,2);\n"
         }
       ]
     },
     "tests/navigation-adapters.test.mjs": {
-      "afterHash": "6d9df6f00c3bbd0f38cf8d8242d7f051b5df28d68824bf460a11c91bd538d8bc",
+      "afterHash": "97f2ac99566bdaa9c13b36ba209ff039084565472875fb22f6c818d4b71647d3",
       "afterLength": 21611,
       "beforeHash": "0652812d5f9e967868acc7cd7721bc144151cc7a1903997d7b721353a89d879c",
       "beforeNormalizedHash": "0652812d5f9e967868acc7cd7721bc144151cc7a1903997d7b721353a89d879c",
@@ -757,22 +787,22 @@
         {
           "offset": 16223,
           "before": "",
-          "after": "  'page-draft-merge.js':'20261113-lines-flow2',\n  'master-page-editor.js':'20261113-lines-flow2',\n"
+          "after": "  'page-draft-merge.js':'20261113-lines-flow3',\n  'master-page-editor.js':'20261113-lines-flow3',\n"
         },
         {
           "offset": 16445,
           "before": "  'app.js':'20261105-process-local-save1',\n",
-          "after": "  'app.js':'20261113-lines-flow2',\n"
+          "after": "  'app.js':'20261113-lines-flow3',\n"
         },
         {
           "offset": 17079,
           "before": "  'master-data.js':'20261110-account-pages1',\n  'master-shared-client.js':'20261112-process-history1',\n",
-          "after": "  'master-data.js':'20261113-lines-flow2',\n  'master-shared-client.js':'20261113-lines-flow2',\n"
+          "after": "  'master-data.js':'20261113-lines-flow3',\n  'master-shared-client.js':'20261113-lines-flow3',\n"
         },
         {
           "offset": 17523,
           "before": "  'shared-draft-client.js':'20261113-abc-master1',\n",
-          "after": "  'shared-draft-client.js':'20261113-lines-flow2',\n"
+          "after": "  'shared-draft-client.js':'20261113-lines-flow3',\n"
         }
       ]
     },
@@ -792,7 +822,7 @@
       ]
     },
     "tests/shared-draft-receipt-recovery.test.mjs": {
-      "afterHash": "15911e174d7985849d7aca1252b56403297620e80af1c378741a80b5ae197a98",
+      "afterHash": "c9665da8528b2b3f56235f77e77b50815f016b0a80d3c2284f7cf98433af2a51",
       "afterLength": 16599,
       "beforeHash": "beb565f8f28a6cb3374272bdd60c88742afc6f01abec44a10f4b1054ead6b521",
       "beforeNormalizedHash": "beb565f8f28a6cb3374272bdd60c88742afc6f01abec44a10f4b1054ead6b521",
@@ -802,27 +832,27 @@
         {
           "offset": 14566,
           "before": "  'page-draft-merge.js':'20261110-account-pages1',\n",
-          "after": "  'page-draft-merge.js':'20261113-lines-flow2',\n"
+          "after": "  'page-draft-merge.js':'20261113-lines-flow3',\n"
         },
         {
           "offset": 14732,
           "before": "  'master-page-editor.js':'20261113-abc-master2',\n",
-          "after": "  'master-page-editor.js':'20261113-lines-flow2',\n"
+          "after": "  'master-page-editor.js':'20261113-lines-flow3',\n"
         },
         {
           "offset": 14838,
           "before": "  'shared-draft-client.js':'20261113-abc-master1',\n",
-          "after": "  'shared-draft-client.js':'20261113-lines-flow2',\n"
+          "after": "  'shared-draft-client.js':'20261113-lines-flow3',\n"
         },
         {
           "offset": 15399,
           "before": "  'app.js':'20261105-process-local-save1',\n",
-          "after": "  'app.js':'20261113-lines-flow2',\n"
+          "after": "  'app.js':'20261113-lines-flow3',\n"
         },
         {
           "offset": 15530,
           "before": "  'master-shared-client.js':'20261112-process-history1',\n  'master-data.js':'20261110-account-pages1',\n",
-          "after": "  'master-shared-client.js':'20261113-lines-flow2',\n  'master-data.js':'20261113-lines-flow2',\n"
+          "after": "  'master-shared-client.js':'20261113-lines-flow3',\n  'master-data.js':'20261113-lines-flow3',\n"
         }
       ]
     }
