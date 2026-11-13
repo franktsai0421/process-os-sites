@@ -25,9 +25,11 @@ const comparable=({status,headers,body})=>({status,headers,body});
 // #44's existing explicit cells: no implicit withdraw from view, and restore
 // is retired for new requests. Keep every other historical DTO field.
 // Identity checks follow workflowAccess's seven explicit cells plus the three
-// restore and two create/delete checks when edit is present, plus two independent
-// platform-review readers; no authority cache.
-const extraRevocations=who=>(who?2:0)+(['frank','admin-two'].includes(who)?6:['reader','custom'].includes(who)?3:who==='approval-reader'?1:who==='approval'?-5:who?-1:0);
+// restore and two create/delete checks when edit is present, plus independent
+// platform/module review readers; module return now performs its own view and
+// return checks, rather than the retired single platform reader. No authority cache.
+const moduleViewActors=new Set(['frank','admin-two','reader','approval-reader','custom']);
+const extraRevocations=who=>(who?2:0)+(moduleViewActors.has(who)?1:0)+(['frank','admin-two'].includes(who)?6:['reader','custom'].includes(who)?3:who==='approval-reader'?1:who==='approval'?-5:who?-1:0);
 function policyParity(actual,prior,who='reader'){
  const expected=structuredClone(comparable(prior));
  if(prior.status===200&&prior.body.restoreSaveId){assert.deepEqual(comparable(actual),{status:422,headers:prior.headers,body:{error:'DRAFT_RESTORE_NOT_SUPPORTED'}},'new restores are retired without returning any body snapshot');return;}
@@ -51,6 +53,27 @@ function policyParity(actual,prior,who='reader'){
 }
 const checks=[];async function check(name,fn){await fn();checks.push(name);console.log('PASS '+name);}
 (async()=>{try{const raw=await records.encodeRecordValues(bucket,values),refs=JSON.parse(raw).__processRecords.values;install(raw);let baseline,reduced,grownBaseline;
+await check('P0 exact independent final-approval and module-return identity checks; return rechecks revocation',async()=>{
+ const review=load('lib/ipqc-c-access.ts'),state={revision:710,values},originalCan=core.can,originalReader=core.companyReader;let trace=[];
+ core.can=async(req,current,key)=>{trace.push('can:'+key);return originalCan(req,current,key);};
+ core.companyReader=async(req,current)=>{trace.push('companyReader');return originalReader(req,current);};
+ try{
+  for(const who of users.map(user=>user.id)){
+   const req=request(who);trace=[];revocations=0;testing=true;
+   try{await review.ipqcCFinalReviewAllowed(req,state,'approve');}finally{testing=false;}
+   assert.deepEqual(trace,['companyReader'],who+' final approval uses one independent identity reader');assert.equal(revocations,1);
+   trace=[];revocations=0;testing=true;let allowed;
+   try{allowed=await review.ipqcCFinalReviewAllowed(req,state,'return');}finally{testing=false;}
+   const viewed=moduleViewActors.has(who);
+   assert.deepEqual(trace,viewed?['can:ipqc-c.view','can:ipqc-c.return']:['can:ipqc-c.view'],who+' module return checks exact cells without platform authority');
+   assert.equal(revocations,viewed?2:1,who+' each explicit cell performs its own identity check');
+   assert.equal(allowed,['frank','admin-two'].includes(who),who+' return permission remains independently required');
+  }
+  const req=request('frank'),token=req.headers.get('cookie').slice('process_demo='.length),digest=createHash('sha256').update(token).digest('hex');let calls=0;
+  onRevocation=()=>{if(++calls===2)db.prepare('INSERT OR REPLACE INTO process_revoked_sessions VALUES(?,?,?)').run(digest,Date.now()+600000,Date.now());};
+  assert.equal(await review.ipqcCFinalReviewAllowed(req,state,'return'),false,'revocation between view and return denies operation');assert.equal(calls,2);
+ }finally{testing=false;onRevocation=null;db.exec('DELETE FROM process_revoked_sessions');core.can=originalCan;core.companyReader=originalReader;}
+});
 await check('P1 exact authorized operation-cell delta; other permissions revision headers and session parity',async()=>{
  for(const who of ['frank','admin-two','reader','approval','approval-reader','custom','template-denied','override-denied','other','disabled','deleted','']){const req=request(who,'?permissions=1',{forged:!who}),a=await run(req),b=await run(req,true);policyParity(a,b,who);assert.equal(a.metrics.revocations,b.metrics.revocations+extraRevocations(who),who+' exact explicit-cell identity-check delta');assert.equal(a.status,['frank','admin-two','reader','approval-reader','custom'].includes(who)?200:403,who);assert(!JSON.stringify(a.body).includes('private-access-sentinel'));}
  for(const who of ['approval','approval-reader'])for(const query of ['','?caseMetadata=1']){const req=request(who,query),a=await run(req),b=await run(req,true);policyParity(a,b,who);assert.equal(a.metrics.revocations,b.metrics.revocations+extraRevocations(who));}
@@ -96,5 +119,5 @@ await check('P8 exact composed performance plus #44 permission/restore spans and
  const candidateBytes=withoutApprovedOperationAlignment(route,withoutExplicitPermissionReadAlignment(explicitBytes)),delta=Buffer.from("...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:{}),"),at=candidateBytes.indexOf(delta);assert(at>=0);assert.equal(candidateBytes.indexOf(delta,at+delta.length),-1);assert.deepEqual(Buffer.concat([candidateBytes.subarray(0,at),candidateBytes.subarray(at+delta.length)]),priorBytes);
  const marker=Buffer.from('export async function POST('),a=priorBytes.indexOf(marker),b=candidateBytes.indexOf(marker);assert(a>=0&&b>=0);assert.deepEqual(candidateBytes.subarray(b),priorBytes.subarray(a));
 });
-console.log(JSON.stringify({status:'PASS',groups:checks.length,checks,baseline,reduced,grownBaseline,baselineCommit:base,baselineHashes:baselineHashes(),network:false,handlerWrites:0,limits:['Synthetic storage work counts, not live latency','Exact #44 view/operation deltas plus independent platform review readers; new restore previews are retired; composed Save/performance spans reverse to native #44; other response data and read boundaries retained','Unrelated records failure isolation deliberately differs; required records remain fail closed','No authority cache; exact per-actor identity-check deltas include denied actors and two platform review readers; retired restores perform no preview authorization reads']}));
+console.log(JSON.stringify({status:'PASS',groups:checks.length,checks,baseline,reduced,grownBaseline,baselineCommit:base,baselineHashes:baselineHashes(),network:false,handlerWrites:0,limits:['Synthetic storage work counts, not live latency','Exact #44 view/operation deltas plus independent final-review/module-return readers; new restore previews are retired; composed Save/performance spans reverse to native #44; other response data and read boundaries retained','Unrelated records failure isolation deliberately differs; required records remain fail closed','No authority cache; exact per-actor identity-check deltas include denied actors and independent final-review and module-return readers; retired restores perform no preview authorization reads']}));
 }finally{db.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
