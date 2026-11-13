@@ -1,6 +1,26 @@
 {
   "base": "ba315149e7478c288d2f3af45c8668aa60070919",
   "files": {
+    "scripts/test-scoped-read-pause.cjs": {
+      "beforeBlob": "46894805e1c40cf7383534d54b67cf8f9b267b62",
+      "beforeHash": "23de22f0de8053f3cdf86f252021c12d5511239119dc599acf1be0fc57e25bbf",
+      "beforeLength": 48944,
+      "afterHash": "014397ce4f917985477fb3e541e8104d9d03b50da5d9a37e394c3bd11720e9f2",
+      "afterNormalizedHash": "014397ce4f917985477fb3e541e8104d9d03b50da5d9a37e394c3bd11720e9f2",
+      "afterCRLF": [],
+      "rules": [
+        {
+          "offset": 1834,
+          "before": "const file=n=>{if(n==='tooling.js')return require('./equipment-integration-source-contract.cjs').restore(Buffer.from(readCurrent(n)),'public/process/'+n).toString('utf8');if(n==='ipqc-ab.js'){const raw=fs.readFileSync(path.join(source,'public/process',n));const committed=require('node:child_process').execFileSync('git',['show','HEAD:public/process/'+n],{cwd:root});return require('./ipqc-ab-integration-source-contract.cjs').checkoutPredecessor(raw,committed,'public/process/'+n).toString('utf8');}return retiredQuality.get(n)??readCurrent(n);};\n",
+          "after": "const file=n=>{if(n==='ipqc-c.js')return require('./ipqc-save-recovery-source-contract.cjs').restore(Buffer.from(readCurrent(n)),'public/process/'+n).toString('utf8');if(n==='tooling.js')return require('./equipment-integration-source-contract.cjs').restore(Buffer.from(readCurrent(n)),'public/process/'+n).toString('utf8');if(n==='ipqc-ab.js'){const raw=fs.readFileSync(path.join(source,'public/process',n));const committed=require('node:child_process').execFileSync('git',['show','HEAD:public/process/'+n],{cwd:root});return require('./ipqc-ab-integration-source-contract.cjs').checkoutPredecessor(raw,committed,'public/process/'+n).toString('utf8');}return retiredQuality.get(n)??readCurrent(n);};\n"
+        },
+        {
+          "offset": 20675,
+          "before": "",
+          "after": " await check('Current IPQC C complete initializer and focus remain idle',async()=>{const {assertDraftInitializerIdle}=await import('./entry-performance/draft-no-poll-fixture.mjs');await assertDraftInitializerIdle(source,'ipqc-c.js');});\n"
+        }
+      ]
+    },
     "tests/shared-draft-tab-attribution.test.mjs": {
       "beforeBlob": "fd213d08049ed534d197cdd1577f19fc5ab33ac9",
       "beforeHash": "2ca6584be82dda683e2fb44bdd836cfed19a1c2b71f8a852cb32be1b23c54447",
@@ -1114,6 +1134,26 @@
     "base": "a85caf5a8f14770b02481f52f96e0ec1364458d3",
     "tree": "f900563685a2a8917d1066c4004e5a2675eb0796",
     "files": {
+      "scripts/test-scoped-read-pause.cjs": {
+        "beforeBlob": "46894805e1c40cf7383534d54b67cf8f9b267b62",
+        "beforeHash": "23de22f0de8053f3cdf86f252021c12d5511239119dc599acf1be0fc57e25bbf",
+        "beforeLength": 48944,
+        "afterHash": "014397ce4f917985477fb3e541e8104d9d03b50da5d9a37e394c3bd11720e9f2",
+        "afterNormalizedHash": "014397ce4f917985477fb3e541e8104d9d03b50da5d9a37e394c3bd11720e9f2",
+        "afterCRLF": [],
+        "rules": [
+          {
+            "offset": 1834,
+            "before": "const file=n=>{if(n==='tooling.js')return require('./equipment-integration-source-contract.cjs').restore(Buffer.from(readCurrent(n)),'public/process/'+n).toString('utf8');if(n==='ipqc-ab.js'){const raw=fs.readFileSync(path.join(source,'public/process',n));const committed=require('node:child_process').execFileSync('git',['show','HEAD:public/process/'+n],{cwd:root});return require('./ipqc-ab-integration-source-contract.cjs').checkoutPredecessor(raw,committed,'public/process/'+n).toString('utf8');}return retiredQuality.get(n)??readCurrent(n);};\n",
+            "after": "const file=n=>{if(n==='ipqc-c.js')return require('./ipqc-save-recovery-source-contract.cjs').restore(Buffer.from(readCurrent(n)),'public/process/'+n).toString('utf8');if(n==='tooling.js')return require('./equipment-integration-source-contract.cjs').restore(Buffer.from(readCurrent(n)),'public/process/'+n).toString('utf8');if(n==='ipqc-ab.js'){const raw=fs.readFileSync(path.join(source,'public/process',n));const committed=require('node:child_process').execFileSync('git',['show','HEAD:public/process/'+n],{cwd:root});return require('./ipqc-ab-integration-source-contract.cjs').checkoutPredecessor(raw,committed,'public/process/'+n).toString('utf8');}return retiredQuality.get(n)??readCurrent(n);};\n"
+          },
+          {
+            "offset": 20675,
+            "before": "",
+            "after": " await check('Current IPQC C complete initializer and focus remain idle',async()=>{const {assertDraftInitializerIdle}=await import('./entry-performance/draft-no-poll-fixture.mjs');await assertDraftInitializerIdle(source,'ipqc-c.js');});\n"
+          }
+        ]
+      },
       "tests/shared-draft-tab-attribution.test.mjs": {
         "beforeBlob": "fd213d08049ed534d197cdd1577f19fc5ab33ac9",
         "beforeHash": "2ca6584be82dda683e2fb44bdd836cfed19a1c2b71f8a852cb32be1b23c54447",

@@ -12,7 +12,7 @@ for(const [name,sha] of [['fqc-master.js','f8a6969cb108d3d25b8e842d7d1bb1a97fff9
   assert.equal(createHash('sha256').update(raw).digest('hex'),sha,'exact immutable main polling source');retiredQuality.set(name,raw.toString());
  }
 }
-const file=n=>{if(n==='tooling.js')return require('./equipment-integration-source-contract.cjs').restore(Buffer.from(readCurrent(n)),'public/process/'+n).toString('utf8');if(n==='ipqc-ab.js'){const raw=fs.readFileSync(path.join(source,'public/process',n));const committed=require('node:child_process').execFileSync('git',['show','HEAD:public/process/'+n],{cwd:root});return require('./ipqc-ab-integration-source-contract.cjs').checkoutPredecessor(raw,committed,'public/process/'+n).toString('utf8');}return retiredQuality.get(n)??readCurrent(n);};
+const file=n=>{if(n==='ipqc-c.js')return require('./ipqc-save-recovery-source-contract.cjs').restore(Buffer.from(readCurrent(n)),'public/process/'+n).toString('utf8');if(n==='tooling.js')return require('./equipment-integration-source-contract.cjs').restore(Buffer.from(readCurrent(n)),'public/process/'+n).toString('utf8');if(n==='ipqc-ab.js'){const raw=fs.readFileSync(path.join(source,'public/process',n));const committed=require('node:child_process').execFileSync('git',['show','HEAD:public/process/'+n],{cwd:root});return require('./ipqc-ab-integration-source-contract.cjs').checkoutPredecessor(raw,committed,'public/process/'+n).toString('utf8');}return retiredQuality.get(n)??readCurrent(n);};
 async function check(name,fn){if(selected.length&&!selected.some(x=>name.startsWith(x)))return;await fn();results.push({name,status:'PASS'});console.log(name,'PASS');}
 const access={view:true,edit:true,save:true,submit:true,approve:true,return:true,withdraw:true,history:true,delete:true},model={revision:1,permissions:access,control:{versions:[{id:'draft',status:'draft'}],workflow:{scope:'synthetic',generation:'g',revision:1,pendingId:null,working:{items:[]},saved:null,cases:[]}}};
 async function fixture(endpoint='/api/process-authoring/workflow?caseMetadata=1'){
@@ -112,6 +112,7 @@ async function consumer(profile){if(profile[0]==='IQC')return iqcConsumer();if(p
  }
  vm.runInContext('globalThis.__poll=('+callback(fileName,4000,needle)+');',c);if(name==='tooling'){c.poll=c.__poll;vm.runInContext('globalThis.__focus=('+focusCallback(fileName)+');',c);}return{...f,toolingStats,poll:async()=>{await c.__poll();await tick();},focus:async()=>{assert.equal(name,'tooling');await c.__focus();await tick();}};}
 (async()=>{
+ await check('Current IPQC C complete initializer and focus remain idle',async()=>{const {assertDraftInitializerIdle}=await import('./entry-performance/draft-no-poll-fixture.mjs');await assertDraftInitializerIdle(source,'ipqc-c.js');});
  await check('Current Tooling complete initializer and focus remain idle',async()=>{const {assertDraftInitializerIdle}=await import('./entry-performance/draft-no-poll-fixture.mjs');await assertDraftInitializerIdle(source,'tooling.js');});
  if(masterSchedulerRemoved)await check('P master fully removed scheduler cannot restart on entry or refresh',async()=>{
   const source=file('master-data.js');assert.doesNotMatch(source,/function\s+pollMaster\b|\bpollMaster\s*\(|\bsharedPoll\b/);
