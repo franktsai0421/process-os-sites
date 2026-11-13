@@ -57,7 +57,7 @@ for(const scopeName of ['ipqc-ab','ipqc-c']){
  for(const mode of ['slow-headers','slow-body'])void test(scopeName+' real Save waits beyond15/45s with visible progress and exact receipt; duplicate click writes once '+mode,{timeout:20000},async t=>{
   const ctx=await setup(t,scopeName),x=transport(ctx),command=await prepared(ctx,x);x.setMode(mode);
   const task=x.client.sendPrepared(command);await x.ready;await x.advance(60000);
-  assert.equal(posts(x).length,1);assert.equal(posts(x)[0].signal.aborted,false);assert(x.client.hasUnknown());assert(x.client.requestProgress().length);assert(x.notices.some(notice=>notice.some(value=>value.elapsedMs===45000)));
+  assert.equal(posts(x).length,1);assert.equal(posts(x)[0].signal.aborted,false);assert(x.client.hasUnknown());assert.equal(x.box.sharedDraftAccountState().unknown,true);assert.equal(x.box.sharedDraftNavigationState().queued,0);assert.equal(x.box.sharedDraftDepartureBlocked(),false);assert(x.client.requestProgress().length);assert(x.notices.some(notice=>notice.some(value=>value.elapsedMs===45000)));
   const duplicate=x.client.sendPrepared(command);await turn();assert.equal(posts(x).length,1);
   x.release();const result=await task;await duplicate;assert.equal(result.receipt.operationId,command.operationId);assert.equal(x.client.hasUnknown(),false);assert.equal(x.client.requestProgress().length,0);assert.equal(x.pending(),0);
   const reloaded=await ctx.f.read(scopeName,'editor',ctx.suffix);assert.equal((reloaded.control||reloaded).workflow.working.items[0][ctx.field],'中文 / Tiếng Việt SYNTHETIC ONLY');
@@ -66,7 +66,7 @@ for(const scopeName of ['ipqc-ab','ipqc-c']){
   const ctx=await setup(t,scopeName),x=transport(ctx),command=await prepared(ctx,x),before=ctx.f.snapshot().row.revision;x.setMode('late');
   const task=assert.rejects(x.client.sendPrepared(command),/RESULT_UNKNOWN/);await x.ready;const bytes=[...x.memory];await x.advance(180000);await task;
   assert.equal(ctx.f.snapshot().row.revision,before);assert.equal(x.client.hasUnknown(),true);assert.deepEqual([...x.memory],bytes);assert.equal(posts(x).length,1);
-  await assert.rejects(x.client.resolveUnknown(),/OPERATION_NOT_FOUND/);assert.deepEqual([...x.memory],bytes);
+  await assert.rejects(x.client.resolveUnknown(),/OPERATION_NOT_FOUND/);assert.deepEqual([...x.memory],bytes);assert.equal(x.box.sharedDraftAccountState().unknown,true);assert.equal(x.box.sharedDraftNavigationState().unknown,false);
   await x.release();assert.equal(ctx.f.snapshot().row.revision,before+1);assert.equal(x.client.hasUnknown(),true);
   const fresh=transport(ctx,x.memory);await fresh.client.read();const result=await fresh.client.resolveUnknown();assert.equal(result.receipt.operationId,command.operationId);assert.equal(fresh.client.hasUnknown(),false);assert.equal(posts(fresh).length,0);assert.equal(ctx.f.snapshot().row.revision,before+1);
  });
@@ -99,4 +99,15 @@ for(const scopeName of ['ipqc-ab','ipqc-c'])for(const timeout of [false,true])vo
  const task=x.client.read(),checked=timeout?assert.rejects(task,/WORKFLOW_READ_TIMEOUT/):task;await x.ready;await x.advance(timeout?180000:90000);
  if(!timeout){assert.equal(x.calls[0].signal.aborted,false);assert(x.client.requestProgress().length);await x.release();}
  await checked;assert.equal(posts(x).length,0);assert.equal(x.client.hasUnknown(),false);assert.equal(x.pending(),0);assert.deepEqual(ctx.f.snapshot(),before);
+});
+
+for(const scopeName of ['ipqc-ab','ipqc-c'])for(const sameWindow of [false,true])void test(scopeName+' return during committed in-flight Save settles original; retired late ACK cannot resurrect the marker, sameWindow='+sameWindow,{timeout:20000},async t=>{
+ const ctx=await setup(t,scopeName),old=transport(ctx),command=await prepared(ctx,old),before=ctx.f.snapshot().row.revision;old.setMode('slow-headers');
+ const pending=old.client.sendPrepared(command).then(value=>({value}),error=>({error}));await old.ready;
+ const originalMarkers=[...old.memory];assert(originalMarkers.length);assert.equal(ctx.f.snapshot().row.revision,before+1);
+ old.box.ProcessSync.captureDelivery=()=>2;old.box.ProcessSync.isCurrentDelivery=value=>value===2;
+ const fresh=sameWindow?{box:old.box,calls:old.calls,client:old.box.createSharedDraftClient({endpoint:ctx.endpoint,externalDurableBounded:{scope:scopeName==='ipqc-ab'?'IPQC-AB':'IPQC-C'},durableBegin:true,guardAccessResults:true,allowUnknownDeparture:true,actorId:'preview-editor',headers:()=>ctx.f.sessions.editor})}:transport(ctx,old.memory);await fresh.client.read();const result=await fresh.client.resolveUnknown();
+ assert.equal(result.receipt.operationId,command.operationId);assert.equal(fresh.client.hasUnknown(),false);assert.equal(posts(fresh).length,sameWindow?1:0);if(sameWindow)assert.equal(old.box.sharedDraftAccountState().unknown,false);const settled=[...old.memory];
+ old.release();await pending;assert.deepEqual([...old.memory],settled,'late retired transport cannot restore, replace or clear the settled identity');
+ assert.equal(fresh.client.hasUnknown(),false);assert.equal(ctx.f.snapshot().row.revision,before+1);assert.equal(posts(old).length,1);
 });

@@ -140,7 +140,7 @@ if(profile){
  for(const code of ['C200','C100']){await page.locator('[data-ipqcc-product="'+code+'"]').click();assert.deepEqual(await photoState(),originalPhotoState,'same C product switch retains original pending photo file and journal');}
  assert.equal(mutations.length,0);assert.deepEqual(h.snapshot(),beforePhotoSelection);
  // Actual module departure, including the FQC destination, discards RAM only.
- await page.evaluate(async()=>{const departure=IPQCCUI.navigation.departure,status=departure.inspect();if(status.state!=='dirty'||status.canAbandon!==true)throw Error('EXPECTED_EXPLICIT_C_ABANDONMENT');let blocked=false;try{departure.closeClean();}catch{blocked=true;}if(!blocked)throw Error('C_INPUT_DISCARDED_WITHOUT_CHOICE');const lease=await departure.abandon();departure.closeClean();lease.release();IPQCCUI.navigation.reset();window.__delivery++;const root=document.querySelector('main');root.dataset.activeTab='quality-fqc';root.innerHTML='<p id="fqc-destination">FQC destination</p>';});
+ await page.evaluate(()=>{IPQCCUI.navigation.departure.closeClean();IPQCCUI.navigation.reset();window.__delivery++;const root=document.querySelector('main');root.dataset.activeTab='quality-fqc';root.innerHTML='<p id="fqc-destination">FQC destination</p>';});
  assert.equal(await page.locator('#fqc-destination').innerText(),'FQC destination');assert.equal(await page.evaluate(()=>__localTest.state().photoCount),0);assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),0);
  assert.equal(mutations.length,0);assert.deepEqual(h.snapshot(),beforePhotoSelection,'C departure writes neither DB nor R2');
  await page.evaluate(()=>{document.querySelector('main').dataset.activeTab='quality-ipqc-c';IPQCCUI.mount(document.querySelector('main'));});await page.locator('#ipqcc-save').waitFor();
@@ -243,7 +243,7 @@ if(profile){
  await page.locator('#ipqcc-search').fill('');await page.locator('[data-ipqcc-product="C200"]').click();await page.locator('[data-ipqcc-product="C100"]').click();assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),1,'product switches preserve unsaved C input before stage selection');await page.locator('[data-ipqcc-stage="C-OTHER"]').click();await page.locator('[data-ipqcc-stage="C-CUT"]').click();
  if(evidence)await page.screenshot({path:require('node:path').join(evidence,'c-'+width+'-zh.png'),fullPage:false});
  assert.equal(navigationDialogs,0);assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),0,'existing stage-selection discard remains separate from product retention');assert.notEqual(await page.evaluate(()=>__localTest.state().working.errors[0].name),'Unsent scope edit');assert.equal(mutations.length,0);assert.deepEqual(h.snapshot(),scopeSnapshot);
- // After the explicit stage discard there is no local input left; clean departure needs no choice.
+ // Actual departure still discards unsent content silently; it is not a filter.
  await page.evaluate(()=>{IPQCCUI.navigation.departure.closeClean();IPQCCUI.navigation.reset();window.__delivery++;document.querySelector('main').innerHTML='<p>Other page</p>';});
  await page.evaluate(()=>IPQCCUI.mount(document.querySelector('main')));await page.locator('#ipqcc-save').waitFor();page.off('dialog',rejectPrompt);
  assert.equal(navigationDialogs,0);assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),0);assert.notEqual(await page.evaluate(()=>__localTest.state().working.errors[0].name),'Unsent scope edit');assert.equal(mutations.length,0);assert.deepEqual(h.snapshot(),scopeSnapshot);
@@ -262,7 +262,7 @@ if(profile){
  assert.equal(await page.evaluate(()=>__localTest.state().unknown),true,'unfinished readback is not success or failure');
  assert.equal(await page.evaluate(()=>sharedDraftAccountState().queued>0),true,'mutation state stays queued');
  assert.equal(await page.evaluate(()=>sharedDraftNavigationState().queued),0,'C write does not block browsing');
- assert.equal(await page.evaluate(()=>IPQCCUI.navigation.departure.inspect().state),'busy','in-flight readback blocks cross-module departure');await assert.rejects(page.evaluate(()=>IPQCCUI.navigation.departure.abandon()));
+ assert.equal(await page.evaluate(()=>IPQCCUI.navigation.departure.inspect().state),'clean','navigation may leave without settling the write');
  assert(markers.length>0,'original operation has a durable marker');
  const unknownWrites=mutations.length,unknownSnapshot=h.snapshot();
  for(const product of ['C200','C100']){
@@ -271,28 +271,19 @@ if(profile){
   assert.deepEqual(await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-receipt-only-v1:'))),markers,'malformed ACK keeps its exact original receipt across products');
   assert.equal(mutations.length,unknownWrites,'UNKNOWN product navigation sends no extra write');assert.deepEqual(h.snapshot(),unknownSnapshot);
  }
- await assert.rejects(page.evaluate(()=>IPQCCUI.navigation.departure.closeClean()),'busy readback cannot be discarded or classified as clean');
- assert.deepEqual(h.snapshot(),unknownSnapshot);assert.equal(mutations.length,unknownWrites);
+ assert.equal(await page.evaluate(()=>{const event=new Event('beforeunload',{cancelable:true});window.dispatchEvent(event);return event.defaultPrevented;}),false,'C unknown alone does not prompt on close');
+ await page.evaluate(()=>{IPQCCUI.navigation.departure.closeClean();IPQCCUI.navigation.reset();window.__delivery++;document.querySelector('main').innerHTML='<p id="other-data">Other data</p>';});
+ assert.equal(await page.locator('#other-data').innerText(),'Other data');
+ assert.deepEqual(await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-receipt-only-v1:'))),markers,'navigation retains original operation identity');
  }finally{releaseRecoveryRead();}
- await page.waitForFunction(()=>!__localTest.state().busy&&!__localTest.state().unknown);
- assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1,'late readback settles the one original Save');
- // A separate explicitly requested Save loses its ACK and original receipt response.
- // Only idle UNKNOWN permits the checked abandon lease; the original marker survives.
- mutations.length=0;await page.evaluate(()=>__localTest.edit());await page.locator('[name="note"]').fill('Idle unknown recovery');await page.locator('#ipqcc-editor button[type="submit"]').click();
- dropSave=true;receiptMissing=true;await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>!__localTest.state().busy&&__localTest.state().unknown);
- const idleMarkers=await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-receipt-only-v1:'))),idleSnapshot=h.snapshot();assert(idleMarkers.length>0);
- assert.equal(await page.evaluate(()=>IPQCCUI.navigation.departure.inspect().state),'unknown');
- await assert.rejects(page.evaluate(()=>IPQCCUI.navigation.departure.closeClean()),'UNKNOWN is never silently clean');
- await page.evaluate(async()=>{const departure=IPQCCUI.navigation.departure;if(departure.inspect().canAbandon!==true)throw Error('EXPECTED_IDLE_UNKNOWN_ABANDONMENT');const lease=await departure.abandon();departure.closeClean();lease.release();IPQCCUI.navigation.reset();window.__delivery++;document.querySelector('main').innerHTML='<p id="other-data">Other data</p>';});
- assert.equal(await page.locator('#other-data').innerText(),'Other data');assert.deepEqual(h.snapshot(),idleSnapshot);
- assert.deepEqual(await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-receipt-only-v1:'))),idleMarkers,'explicit abandonment retains the original operation identity');
+ // A fresh destination owner recovers the same receipt. It never replays Save.
  await page.evaluate(()=>IPQCCUI.mount(document.querySelector('main')));await page.locator('#ipqcc-save').waitFor();
- assert.equal(await page.evaluate(()=>__localTest.state().unknown),true);assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1,'returning does not auto-resend');
- receiptMissing=false;await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>!__localTest.state().busy&&!__localTest.state().unknown);
- assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1,'lost ACK checks only the original receipt without resending');
+ assert.equal(await page.evaluate(()=>__localTest.state().unknown),true);
+ assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1,'returning does not auto-resend');
+ await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>!__localTest.state().busy&&!__localTest.state().unknown);
+ assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1,'lost ACK checks receipt without resending');
  }
-
- await page.evaluate(()=>__localTest.edit());await page.locator('input[name="name"]').fill('Abandoned');assert.equal(await page.evaluate(()=>IPQCCUI.navigation.departure.inspect().state),'dirty');await assert.rejects(page.evaluate(()=>IPQCCUI.navigation.departure.closeClean()));await page.evaluate(async()=>{const departure=IPQCCUI.navigation.departure,lease=await departure.abandon();departure.closeClean();lease.release();});assert.equal(await page.locator('#ipqcc-editor').count(),0,'explicit abandonment closes the unsaved form');
+ await page.evaluate(()=>__localTest.edit());await page.locator('input[name="name"]').fill('Abandoned');assert.equal(await page.evaluate(()=>IPQCCUI.navigation.departure.inspect().state),'clean');await page.evaluate(()=>IPQCCUI.navigation.departure.closeClean());assert.equal(await page.locator('#ipqcc-editor').count(),1,'departure closes model; navigation replaces DOM');
  if(profile)browserProfile.push({width,document:'before-reload',phases:await page.evaluate(()=>window.__ipqccProfile||[])});await page.reload();await page.locator('#ipqcc-save').waitFor();assert.equal(await page.evaluate(()=>__localTest.state().working.errors[0].name),width===390?'Recovered receipt':'Local '+width);
  const layout=await page.evaluate(()=>({width:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth}));assert(layout.scroll<=layout.width+1,JSON.stringify(layout));if(profile)browserProfile.push({width,phases:await page.evaluate(()=>window.__ipqccProfile||[]),resources:await page.evaluate(()=>performance.getEntriesByType('resource').filter(r=>new URL(r.name).pathname.startsWith('/api/')).map(r=>({path:new URL(r.name).pathname,ms:r.duration,transferSize:r.transferSize,encodedBodySize:r.encodedBodySize}))) });await page.close();
  }

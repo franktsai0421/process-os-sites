@@ -76,7 +76,7 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
   if(!omitInputClosures)vm.runInNewContext(sourceBlock(source,'  const sameInput=','  function mutationCurrent(')+sourceBlock(source,'  function hasPrivateInput(){','  function retainInputBase('),box);
  }
  if(name==='ipqc-c'){
-  Object.assign(box,{localChanges:[],localGeneration:'generation',localPhotos:new Map(),picker:{},viewer:{}});
+  Object.assign(box,{localChanges:[{action:'edit'}],localGeneration:'generation',localPhotos:new Map(),picker:{},viewer:{}});
   // The extracted callback reads the real module's idle choice binding too.
   vm.runInNewContext(sourceDeclaration(ast,'cancelSaveChoice')+'\n'+sourceDeclaration(ast,'clearLocal')+'\n'+sourceDeclaration(ast,'productForms')+'\n'+sourceDeclaration(ast,'clearProductForms'),box);
  }
@@ -110,7 +110,7 @@ for(const name of decisionModules){
  });
  void test(`${name}: actual adapter refuses unknown/revoked/pending without a write`,async()=>{
   const f=fixture(name);f.unknown(true);if(name==='routine-fqc')f.box.s.retry={operationId:'original'};
-  assert.equal(f.adapter.inspect().state,'unknown');await assert.rejects(f.adapter.save());await assert.rejects(f.adapter.discard());assert.equal(f.writes,0);
+  assert.equal(f.adapter.inspect().state,name==='ipqc-ab'?'clean':'unknown');await assert.rejects(f.adapter.save());await assert.rejects(f.adapter.discard());assert.equal(f.writes,0);
   f.unknown(false);f.box.s.retry=null;f.allowed(false);assert.equal(f.adapter.inspect().canSave,false);await assert.rejects(f.adapter.save());assert.equal(f.writes,0);
  });
 }
@@ -212,7 +212,7 @@ for(const name of decisionModules)for(const fault of ['identity','generation','u
  if(fault==='generation')b.window.ProcessSync.epoch++;
  if(fault==='unknown'){f.unknown(true);if(name==='routine-fqc')b.s.retry={operationId:'original'};}
  if(fault==='reload')b.window.ProcessSync.requiresReload=true;
- assert.equal(f.adapter.inspect().state,'unknown');assert.throws(()=>f.adapter.closeClean());assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);lease.release();assert.equal(b.root.inert,false);
+ if(name==='ipqc-ab'&&fault==='unknown'){assert.equal(f.adapter.inspect().state,'departing');f.adapter.closeClean();assert.equal(b.client.hasUnknown(),true);}else{assert.equal(f.adapter.inspect().state,'unknown');assert.throws(()=>f.adapter.closeClean());}assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);lease.release();assert.equal(b.root.inert,false);
 });
 
 void test('FQC extracted departure requires actual local input closures',()=>{
@@ -222,20 +222,18 @@ for(const action of ['discard','abandon'])void test(`FQC completed form ${action
  const f=fixture('fqc-master'),before=JSON.stringify(f.flow);f.box.editable().snapshot.errors[0].name='Completed local edit';assert.equal(f.box.localDirty(),true);assert.equal(f.adapter.inspect().state,'dirty');
  const lease=await f.adapter[action]();assert.equal(f.box.localDirty(),false);assert.equal(f.box.editable().snapshot.errors[0].name,'Shared current');assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);assert.equal(f.adapter.inspect().state,action==='abandon'?'departing':'clean');lease.release();
 });
-for(const condition of ['local','busy','unknown','failed','revoked','pending'])void test(`IPQC C checked departure during ${condition} preserves unknown and discards only after an explicit choice`,async()=>{
+for(const condition of ['local','busy','unknown','failed','revoked','pending'])void test(`IPQC C silent departure during ${condition} clears only RAM without settling or writing`,async()=>{
  const f=fixture('ipqc-c'),b=f.box;
- b.modal={dirty:true};b.working={value:'local'};b.closeEditor=()=>{b.modal=null;};
+ b.modal={dirty:true};b.working={value:'local'};
  if(condition==='busy')b.busy=true;
  if(condition==='unknown')f.unknown(true);
  if(condition==='failed')f.failed(true);
  if(condition==='revoked')f.allowed(false);
  if(condition==='pending')f.flow.pendingId='pending';
  const before=JSON.stringify(f.flow);
- const status=f.adapter.inspect();
- assert.equal(status.state,condition==='busy'?'busy':condition==='unknown'?'unknown':'dirty');
+ assert.equal(f.adapter.inspect().state,'clean');
  await assert.rejects(f.adapter.save());
- if(['busy','unknown'].includes(condition)){await assert.rejects(f.adapter.abandon());assert.equal(b.modal.dirty,true);assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);return;}
- assert.equal(status.canAbandon,true);await f.adapter.abandon();f.adapter.closeClean();
+ f.adapter.closeClean();
  assert.equal(b.localChanges.length,0);assert.equal(b.localPhotos.size,0);assert.equal(b.localGeneration,null);
  for(const key of ['modal','picker','viewer','working'])assert.equal(b[key],null);
  assert.equal(b.client.hasUnknown(),condition==='unknown');assert.equal(b.client.hasSyncFailures(),condition==='failed');
@@ -292,10 +290,10 @@ for(const condition of ['revoked','pending'])void test(`IPQC-AB ${condition} loc
  const before=JSON.stringify(b.control);assert.equal(f.adapter.inspect().canSave,false);await assert.rejects(f.adapter.save());
  const lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();assert.equal(b.localScopes.size,0);assert.equal(f.writes,0);assert.equal(JSON.stringify(b.control),before);
 });
-void test('IPQC-AB unknown departure clears RAM but preserves the original sent snapshot and receipt obligation',async()=>{
+void test('IPQC-AB unknown departure drops RAM payload but preserves the durable original receipt obligation',async()=>{
  const f=fixture('ipqc-ab'),b=f.box,anchor={operationId:'original-save'},client=b.moduleClient;stageAB(b);f.unknown(true);
  const sent={command:{operationId:anchor.operationId},snapshot:'original sent snapshot'};b.localSent=sent;
  Object.assign(client,{departureIdle:()=>true,departureUnknown:()=>anchor,coverDeparture:(value,current)=>{assert.equal(value,anchor);return{current,release(){}};}});
- const before=JSON.stringify(b.control);assert.equal(f.adapter.inspect().canAbandon,true);await assert.rejects(f.adapter.save());await assert.rejects(f.adapter.discard());
- const lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();assert.equal(b.localScopes.size,0);assert.equal(b.localSent,sent);assert.equal(client.departureUnknown(),anchor);assert.equal(client.hasUnknown(),true);assert.equal(f.writes,0);assert.equal(JSON.stringify(b.control),before);
+ const before=JSON.stringify(b.control);assert.equal(f.adapter.inspect().canAbandon,true);await assert.rejects(f.adapter.save());
+ const lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();assert.equal(b.localScopes.size,0);assert.equal(b.localSent,null);assert.equal(client.departureUnknown(),anchor);assert.equal(client.hasUnknown(),true);assert.equal(f.writes,0);assert.equal(JSON.stringify(b.control),before);
 });

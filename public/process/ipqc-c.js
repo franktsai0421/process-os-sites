@@ -1352,12 +1352,12 @@
     context:()=>[mountSequence,selectedVersionId,control?.workflow?.generation,operationAllowed('save'),operationAllowed('edit')],
     // This describes permission to browse, never whether a write succeeded.
     // Original transport markers and mutation admission survive navigation.
-    current:()=>!readAccessBlocked()&&sharedActor===identity()?.id,busy:()=>busy,unknown:()=>sharedClient?.hasUnknown()===true,failed:()=>false,
+    current:()=>!readAccessBlocked()&&sharedActor===identity()?.id,busy:()=>false,unknown:()=>false,failed:()=>false,
     unknownTransports:()=>[sharedClient],unknownReady:()=>!busy,discardUnknown:()=>{closeEditor(true,false);clearProductForms();clearLocal();working=null;},
-    local:()=>!!localChanges.length||productForms.size>0||!!modal&&!modal.readonly,
+    local:()=>false,
     canSave:()=>draftOpen()&&operationAllowed('save'),canDiscard:()=>editing(),save:()=>write('save',{snapshot:working}),
     dialogs:()=>[...document.querySelectorAll('.ipqcc-overlay')],
     discard(){closeEditor(true,false);clearProductForms();clearLocal();viewer=null;working=open()?.status==='draft'?copy(open().snapshot):null;draw();},
     closeClean(){clearProductForms();cancelSaveChoice?.();modal=null;picker=null;clearLocal();viewer=null;working=null;},
-  }),{autoAbandon:false});},requiresSave:()=>false,saveForDeparture:()=>write('save',{snapshot:working}),canLeave:()=>true,error:()=>navigationError,reset(){clearProductForms();cancelSaveChoice?.();clearLocal();busy=false;modal=null;picker=null;viewer=null;errorRecovery?.session.flush();errorRecovery?.session.close();errorRecovery=null;errorRecoveryPending=null;mountSequence++;saveInputNotice=null;readRecoveryNeeded=false;host=null;reviewHost=null;control=null;revision=null;working=null;catalog={products:[],stages:[]};equipment=[];equipmentGroups=[];equipmentCategories=[];equipmentSubcategories=[];selectedVersionId='';caseHistory=null;navigationError=null;}},html:()=>`<section class="ipqcc-page">${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</section>`,mount,reviewHTML,bindReview,pendingCount};
+  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>write('save',{snapshot:working}),canLeave:()=>true,error:()=>navigationError,reset(){clearProductForms();cancelSaveChoice?.();clearLocal();busy=false;modal=null;picker=null;viewer=null;errorRecovery?.session.flush();errorRecovery?.session.close();errorRecovery=null;errorRecoveryPending=null;mountSequence++;saveInputNotice=null;readRecoveryNeeded=false;host=null;reviewHost=null;control=null;revision=null;working=null;catalog={products:[],stages:[]};equipment=[];equipmentGroups=[];equipmentCategories=[];equipmentSubcategories=[];selectedVersionId='';caseHistory=null;navigationError=null;}},html:()=>`<section class="ipqcc-page">${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</section>`,mount,reviewHTML,bindReview,pendingCount};
 })();

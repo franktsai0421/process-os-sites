@@ -27,6 +27,9 @@ const rules=[
 const hash=source=>createHash('sha256').update(source).digest('hex');
 const hasDisplay=source=>source.includes('equipmentForDisplay(')||source.includes('equipmentDetailHTML(');
 function withoutDisplay(source){
+ // A pure inverse never gains checkout normalization from a successor projection.
+ const recovery=require('./ipqc-save-recovery-source-contract.cjs'),pin=recovery.contract.files['public/process/ipqc-c.js'];
+ if(pin&&hash(Buffer.from(source).toString('utf8').replaceAll('\r\n','\n'))===pin.afterNormalizedHash)assert.equal(hash(source),pin.afterHash,'C display source differs from exact reviewed bytes');
  source=require('./ipqc-c-integration-source-contract.cjs').projectKnown(Buffer.from(source),'public/process/ipqc-c.js');
  assert.equal(hash(source),afterHash,'C display source differs from exact reviewed bytes');
  let result=Buffer.from(source);

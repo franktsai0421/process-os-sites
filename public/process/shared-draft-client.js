@@ -479,7 +479,8 @@
       })();reservation.task=task;beginPending=task;try{return await task;}finally{release();if(comparison?.retireBegin===retire)delete comparison.retireBegin;}
     }
     if(durableBegin)beginOutstanding();
-    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||catalogPageBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);
+    // Installed IPQC navigation never settles a write: retain markers, account UNKNOWN and mutation admission.
+    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&(boundedScope==='ipqc-c'||ipqcSlowIO&&boundedScope==='ipqc-ab:module'),queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||catalogPageBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);
     function reportAccessEvent(command,phase='unknown') {
       try {
         const sources={'/api/fqc/workflow':'fqc','/api/iqc/workflow':'iqc','/api/ipqc-c/workflow':'ipqc-c','/api/bom/workflow':'bom','/api/tooling/workflow':'tooling','/api/routine-equipment/workflow':'equipment','/api/process-authoring/workflow':'editor'};

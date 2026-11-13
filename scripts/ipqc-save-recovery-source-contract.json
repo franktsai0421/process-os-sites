@@ -1,6 +1,96 @@
 {
   "base": "ba315149e7478c288d2f3af45c8668aa60070919",
   "files": {
+    "scripts/ipqc-c-display-image-source-contract.cjs": {
+      "beforeBlob": "5a7cc52cecc46b0509273ff4d2106feaf38cf2c0",
+      "beforeHash": "237369d007da33fd35ccfcd60c2b2cd21b58e0cae55f262bc1e6df5d0029e981",
+      "beforeLength": 4450,
+      "afterHash": "c108abf26c7939beb1c09e3ec7a7765b5ec91ba34f5f904dab7a1991ed7b72ae",
+      "afterNormalizedHash": "c108abf26c7939beb1c09e3ec7a7765b5ec91ba34f5f904dab7a1991ed7b72ae",
+      "afterCRLF": [],
+      "rules": [
+        {
+          "offset": 2594,
+          "before": "",
+          "after": " // A pure inverse never gains checkout normalization from a successor projection.\n const recovery=require('./ipqc-save-recovery-source-contract.cjs'),pin=recovery.contract.files['public/process/ipqc-c.js'];\n if(pin&&hash(Buffer.from(source).toString('utf8').replaceAll('\\r\\n','\\n'))===pin.afterNormalizedHash)assert.equal(hash(source),pin.afterHash,'C display source differs from exact reviewed bytes');\n"
+        }
+      ]
+    },
+    "tests/ipqc-ab-compiled-gaps.acceptance.mjs": {
+      "beforeBlob": "e609a8f9c64a0547967bde8299de1dc8aea57c25",
+      "beforeHash": "7fc43341b19c65145a27e140fb6b24b609a3eea4e325c0401f05bda61071dd5f",
+      "beforeLength": 16795,
+      "afterHash": "784fb2a846a7c9c10242c66fa5f4b0be3cfca89ed0e9421e2f48434c0fb09bb3",
+      "afterNormalizedHash": "784fb2a846a7c9c10242c66fa5f4b0be3cfca89ed0e9421e2f48434c0fb09bb3",
+      "afterCRLF": [],
+      "rules": [
+        {
+          "offset": 12916,
+          "before": "void test(\n  'compiled narrow 390 vi unknown Save keeps original marker across departure/reload/404, recovers GET-only',\n",
+          "after": "for(const inFlight of [false,true])for(const reloadBeforeRecovery of [false,true])void test(\n  `compiled narrow 390 vi original Save survives silent departure inFlight=${inFlight} reload=${reloadBeforeRecovery}, 404 and GET-only recovery`,\n"
+        },
+        {
+          "offset": 13776,
+          "before": "    let loss = false,\n      down = true;\n",
+          "after": "    let loss = false, releaseLoss, enterLoss;\n    const lossEntered=new Promise(resolve=>{enterLoss=resolve;}),lossGate=new Promise(resolve=>{releaseLoss=resolve;});\n    t.after(()=>releaseLoss());\n    let down = true;\n"
+        },
+        {
+          "offset": 14468,
+          "before": "        await route.fetch();\n",
+          "after": "        await route.fetch();enterLoss();if(inFlight)await lossGate;\n"
+        },
+        {
+          "offset": 14669,
+          "before": "    await idle(page);\n",
+          "after": "    if(inFlight)await lossEntered;else await idle(page);\n"
+        },
+        {
+          "offset": 14744,
+          "before": "",
+          "after": "    assert.equal(await page.evaluate(()=>sharedDraftAccountState().queued>0),inFlight);\n"
+        },
+        {
+          "offset": 15403,
+          "before": "    assert.deepEqual(await markers(page), keys);\n",
+          "after": "    assert.deepEqual(await markers(page), keys);releaseLoss();await idle(page);\n    assert.deepEqual(await markers(page),keys,'late interrupted response retains original identity and cannot mutate destination');\n    assert.equal(await page.evaluate(()=>state.view),'dashboard');\n"
+        },
+        {
+          "offset": 15855,
+          "before": "    await page.reload();\n    await page.locator('[data-ab-local-query]').waitFor({ timeout: 30000 });\n",
+          "after": "    if(reloadBeforeRecovery){await page.reload();\n    await page.locator('[data-ab-local-query]').waitFor({ timeout: 30000 });}\n"
+        }
+      ]
+    },
+    "tests/multiuser-module-departure-bindings.test.mjs": {
+      "beforeBlob": "93ca14818fadfb9b925314d8439af537f5e66512",
+      "beforeHash": "363aafba09a0e1a8f42568cef58e580b6e6b79124dc41fd517c882f69e7efaad",
+      "beforeLength": 34143,
+      "afterHash": "c76b415113b6905f03470109f030a0a812ea174a4c6dbc337a3665bd7e2e0550",
+      "afterNormalizedHash": "c76b415113b6905f03470109f030a0a812ea174a4c6dbc337a3665bd7e2e0550",
+      "afterCRLF": [],
+      "rules": [
+        {
+          "offset": 14443,
+          "before": "  assert.equal(f.adapter.inspect().state,'unknown');await assert.rejects(f.adapter.save());await assert.rejects(f.adapter.discard());assert.equal(f.writes,0);\n",
+          "after": "  assert.equal(f.adapter.inspect().state,name==='ipqc-ab'?'clean':'unknown');await assert.rejects(f.adapter.save());await assert.rejects(f.adapter.discard());assert.equal(f.writes,0);\n"
+        },
+        {
+          "offset": 26742,
+          "before": " assert.equal(f.adapter.inspect().state,'unknown');assert.throws(()=>f.adapter.closeClean());assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);lease.release();assert.equal(b.root.inert,false);\n",
+          "after": " if(name==='ipqc-ab'&&fault==='unknown'){assert.equal(f.adapter.inspect().state,'departing');f.adapter.closeClean();assert.equal(b.client.hasUnknown(),true);}else{assert.equal(f.adapter.inspect().state,'unknown');assert.throws(()=>f.adapter.closeClean());}assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);lease.release();assert.equal(b.root.inert,false);\n"
+        },
+        {
+          "offset": 33331,
+          "before": "void test('IPQC-AB unknown departure clears RAM but preserves the original sent snapshot and receipt obligation',async()=>{\n",
+          "after": "void test('IPQC-AB unknown departure drops RAM payload but preserves the durable original receipt obligation',async()=>{\n"
+        },
+        {
+          "offset": 33849,
+          "before": " const before=JSON.stringify(b.control);assert.equal(f.adapter.inspect().canAbandon,true);await assert.rejects(f.adapter.save());await assert.rejects(f.adapter.discard());\n const lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();assert.equal(b.localScopes.size,0);assert.equal(b.localSent,sent);assert.equal(client.departureUnknown(),anchor);assert.equal(client.hasUnknown(),true);assert.equal(f.writes,0);assert.equal(JSON.stringify(b.control),before);\n",
+          "after": " const before=JSON.stringify(b.control);assert.equal(f.adapter.inspect().canAbandon,true);await assert.rejects(f.adapter.save());\n const lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();assert.equal(b.localScopes.size,0);assert.equal(b.localSent,null);assert.equal(client.departureUnknown(),anchor);assert.equal(client.hasUnknown(),true);assert.equal(f.writes,0);assert.equal(JSON.stringify(b.control),before);\n"
+        }
+      ]
+    },
     "scripts/test-scoped-read-pause.cjs": {
       "beforeBlob": "46894805e1c40cf7383534d54b67cf8f9b267b62",
       "beforeHash": "23de22f0de8053f3cdf86f252021c12d5511239119dc599acf1be0fc57e25bbf",
@@ -25,14 +115,14 @@
       "beforeBlob": "fd213d08049ed534d197cdd1577f19fc5ab33ac9",
       "beforeHash": "2ca6584be82dda683e2fb44bdd836cfed19a1c2b71f8a852cb32be1b23c54447",
       "beforeLength": 21066,
-      "afterHash": "7020671bac813e42ab4a87facdd1a0b7956ecd04903b9270a10e7ced4a52c4fa",
-      "afterNormalizedHash": "7020671bac813e42ab4a87facdd1a0b7956ecd04903b9270a10e7ced4a52c4fa",
+      "afterHash": "5b230541822721afbe91edbf06225faa6922b76e88532bcbf29acfc5da21748a",
+      "afterNormalizedHash": "5b230541822721afbe91edbf06225faa6922b76e88532bcbf29acfc5da21748a",
       "afterCRLF": [],
       "rules": [
         {
-          "offset": 12116,
-          "before": " assert.equal(nav.departure.inspect().state,'clean');assert.equal(peer.departure.inspect().state,'clean');assert.equal(nav.departure.autoAbandon,true);assert.equal(nav.requiresSave(),false);\n const before=f.calls.length;f.box.localInput=true;assert.equal(nav.departure.inspect().state,'dirty');f.box.localInput=false;\n",
-          "after": " assert.equal(nav.departure.inspect().state,'clean');assert.equal(peer.departure.inspect().state,'clean');assert.equal(nav.departure.autoAbandon,false);assert.equal(nav.requiresSave(),false);\n const before=f.calls.length;f.box.localInput=true;assert.equal(nav.departure.inspect().state,'dirty');assert.throws(()=>nav.departure.closeClean());assert.equal(f.box.localInput,true);f.box.localInput=false;\n"
+          "offset": 12731,
+          "before": " const marker=[...f.memory];assert(marker.length);assert.equal(nav.departure.inspect().state,'unknown');assert.deepEqual([...f.memory],marker);\n",
+          "after": " const marker=[...f.memory];assert(marker.length);assert.equal(nav.departure.inspect().state,'clean');assert.equal(f.client.hasUnknown(),true);assert.deepEqual([...f.memory],marker);\n"
         }
       ]
     },
@@ -40,8 +130,8 @@
       "beforeBlob": "6c09d5be2a1598f62bd7479559ca12397a4d3729",
       "beforeHash": "7b3a7f0d424d698873ee8d84f311681cecd3259cfe7d033a5ffc8923bf65e920",
       "beforeLength": 198311,
-      "afterHash": "c2d842e59de821acf4808cfb0128506862ea75f09d1a6908b68ce0fbea25b14a",
-      "afterNormalizedHash": "c2d842e59de821acf4808cfb0128506862ea75f09d1a6908b68ce0fbea25b14a",
+      "afterHash": "6f6919ff923e1fa145246cb5496a40f882b1892084b707ada0b6d913454f7673",
+      "afterNormalizedHash": "6f6919ff923e1fa145246cb5496a40f882b1892084b707ada0b6d913454f7673",
       "afterCRLF": [],
       "rules": [
         {
@@ -62,35 +152,35 @@
         {
           "offset": 58916,
           "before": "    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);\n",
-          "after": "    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||catalogPageBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);\n"
+          "after": "    // Installed IPQC navigation never settles a write: retain markers, account UNKNOWN and mutation admission.\n    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&(boundedScope==='ipqc-c'||ipqcSlowIO&&boundedScope==='ipqc-ab:module'),queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||catalogPageBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);\n"
         },
         {
-          "offset": 118883,
+          "offset": 119042,
           "before": "      const requestDeadline=['begin','begin-v1'].includes(body?.action)||cCreate?45000:body?mutationDeadline:45000;\n",
           "after": "      const requestDeadline=ipqcSlowIO?180000:['begin','begin-v1'].includes(body?.action)||cCreate?45000:body?mutationDeadline:45000;\n"
         },
         {
-          "offset": 119066,
+          "offset": 119225,
           "before": "      const controller=new AbortController(),timer=setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);\n",
           "after": "      const controller=new AbortController(),timer=catalogExplicitIO?null:setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);\n      // One-shot UI notices only: no polling, read or resend. The finite deadline\n      // retains UNKNOWN and the original identity if no qualified ACK arrives.\n      const progressToken={},progressTimers=ipqcSlowIO?[10000,45000,120000].map(elapsedMs=>setTimeout(()=>{requestProgress.set(progressToken,{kind:body?'write':kind,phase,elapsedMs});publishRequestProgress();},elapsedMs)):[];\n"
         },
         {
-          "offset": 129119,
+          "offset": 129278,
           "before": "      } finally {clearTimeout(timer);if(canvasObserving){canvasRequests--;if(body?.command)canvasArms.delete(body.command.operationId);}}\n",
           "after": "      } finally {clearTimeout(timer);for(const timer of progressTimers)clearTimeout(timer);if(requestProgress.delete(progressToken))publishRequestProgress();if(canvasObserving){canvasRequests--;if(body?.command)canvasArms.delete(body.command.operationId);}}\n"
         },
         {
-          "offset": 131533,
+          "offset": 131692,
           "before": "      if(!masterLocalBegin||processLocalSave||command?.action!=='save'||command.moduleAction!=='save-local-v1')return result;\n",
           "after": "      if(!catalogExplicitIO||command?.action!=='save'||command.moduleAction!=='save-local-v1')return result;\n"
         },
         {
-          "offset": 132275,
+          "offset": 132434,
           "before": "      if(!beginRuntimeCurrent()||fresh.permissions?.view!==true||!flow||flow.generation!==r.generation||flow.revision<r.revision||flow.revision===r.revision&&(flow.saved?.id!==r.savedId||!equipmentContentEqual(flow.working,flow.saved?.content)))throw Error('SAVE_READBACK_REQUIRED');\n",
           "after": "      if(!beginRuntimeCurrent()||fresh.permissions?.view!==true||!flow||catalogPageBegin&&flow.scope!=='master:'+beginParams.get('scope')+'.catalog'||flow.generation!==r.generation||flow.revision<r.revision||flow.revision===r.revision&&(flow.saved?.id!==r.savedId||!equipmentContentEqual(flow.working,flow.saved?.content)))throw Error('SAVE_READBACK_REQUIRED');\n"
         },
         {
-          "offset": 145030,
+          "offset": 145189,
           "before": "",
           "after": "      requestProgress:()=>[...requestProgress.values()].map(value=>({...value})),\n      watchRequestProgress(listener){if(typeof listener!=='function')throw Error('PROGRESS_LISTENER_REQUIRED');requestProgressListeners.add(listener);return()=>requestProgressListeners.delete(listener);},\n"
         }
@@ -100,8 +190,8 @@
       "beforeBlob": "57ae9060074a807e97287681de0a367da0d33505",
       "beforeHash": "a697ce8b5743163c12d391f7ac8228494e70bad3ae216b4d075ea306d8308494",
       "beforeLength": 173876,
-      "afterHash": "831db140ad1a8049f431827d26bfb4bfb61acf8be41d861b2e14a14470dec386",
-      "afterNormalizedHash": "1e91e65536147a5723e1594433ccc5d1666128cd3a7ce645c02d99a575c069e9",
+      "afterHash": "9b3b8379b74319d27bee050313f817d37f62e39873053ae60efc4fb2358d91e6",
+      "afterNormalizedHash": "cd3e5a6c98d30243b940ef99d9b894e05b2c3fb335eb03e0fca108c0d6bf68d8",
       "afterCRLF": [
         0,
         1,
@@ -855,12 +945,11 @@
         1304,
         1305,
         1306,
-        1333,
         1334,
         1335,
         1336,
         1337,
-        1339,
+        1338,
         1340,
         1341,
         1342,
@@ -869,18 +958,29 @@
         1345,
         1346,
         1347,
-        1348
+        1348,
+        1349
       ],
       "rules": [
         {
-          "offset": 145436,
+          "offset": 55933,
+          "before": "  function abandonLocalEditing(){clearLocalEditing();if(moduleClient&&!moduleClient.hasUnknown())localSent=null;}\n",
+          "after": "  function abandonLocalEditing(){clearLocalEditing();localSent=null;} // Only RAM; durable transport retains the original submitted identity.\n"
+        },
+        {
+          "offset": 145464,
           "before": "",
           "after": "    window.mountSharedDraftRequestProgress?.(host,[moduleClient,sharedClient,...legacyABClients()],vi()?'vi':'zh');\n"
         },
         {
-          "offset": 171023,
+          "offset": 170390,
+          "before": "    context:()=>[mutationLifetime,actor(),window.ProcessSync?.identityGeneration?.()],current:()=>!accessBlocked,busy:()=>busy,\n    unknown:()=>localPending(),failed:()=>false,unknownTransports:()=>[moduleClient,...legacyABClients(),photoDepartureTransport].filter(Boolean),unknownReady:()=>!busy,\n",
+          "after": "    // Departure drops only RAM edits; pending transport identity and write admission remain independent.\n    context:()=>[mutationLifetime,actor(),window.ProcessSync?.identityGeneration?.()],current:()=>!accessBlocked,busy:()=>false,\n    unknown:()=>false,failed:()=>false,unknownTransports:()=>[moduleClient,...legacyABClients(),photoDepartureTransport].filter(Boolean),unknownReady:()=>!busy,\n"
+        },
+        {
+          "offset": 171149,
           "before": "  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>saveLocalModule(),canLeave:()=>!busy,error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;abandonLocalEditing();mutationLifetime++;mutationSequence++;activeMutation=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class=\"ipqcab-page\" id=\"ipqcab-page\">IPQC-AB…</section>',\n",
-          "after": "  }),{autoAbandon:false});},requiresSave:()=>false,saveForDeparture:()=>saveLocalModule(),canLeave:()=>!busy,error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;abandonLocalEditing();mutationLifetime++;mutationSequence++;activeMutation=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class=\"ipqcab-page\" id=\"ipqcab-page\">IPQC-AB…</section>',\n"
+          "after": "  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>saveLocalModule(),canLeave:()=>true,error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;abandonLocalEditing();mutationLifetime++;mutationSequence++;activeMutation=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class=\"ipqcab-page\" id=\"ipqcab-page\">IPQC-AB…</section>',\n"
         }
       ]
     },
@@ -888,8 +988,8 @@
       "beforeBlob": "ad1253c2e8e226f74a39bfbe37c680434e397302",
       "beforeHash": "6f80cdde1adb53ae2dc5eeeb6d276e88d1c0484f183fc0b4e1f56aaabf6e1f0f",
       "beforeLength": 153198,
-      "afterHash": "feaa32536bba84764b16de6f32e95883c2b9358cffa2e4728edb0f25f2a02edb",
-      "afterNormalizedHash": "feaa32536bba84764b16de6f32e95883c2b9358cffa2e4728edb0f25f2a02edb",
+      "afterHash": "f929cbdf6bc1b64670f7fee307ae92011f190e04d8b165ac0cff359bc52dc8d6",
+      "afterNormalizedHash": "f929cbdf6bc1b64670f7fee307ae92011f190e04d8b165ac0cff359bc52dc8d6",
       "afterCRLF": [],
       "rules": [
         {
@@ -925,22 +1025,17 @@
         {
           "offset": 148010,
           "before": "    current:()=>!readAccessBlocked()&&sharedActor===identity()?.id,busy:()=>busy&&sharedClient?.hasUnknownBegin?.()===true,unknown:()=>sharedClient?.hasUnknownBegin?.()===true,failed:()=>false,\n",
-          "after": "    current:()=>!readAccessBlocked()&&sharedActor===identity()?.id,busy:()=>busy,unknown:()=>sharedClient?.hasUnknown()===true,failed:()=>false,\n"
+          "after": "    current:()=>!readAccessBlocked()&&sharedActor===identity()?.id,busy:()=>false,unknown:()=>false,failed:()=>false,\n"
         },
         {
-          "offset": 148312,
-          "before": "    local:()=>false,\n",
-          "after": "    local:()=>!!localChanges.length||productForms.size>0||!!modal&&!modal.readonly,\n"
-        },
-        {
-          "offset": 148584,
+          "offset": 148494,
           "before": "    discard(){closeEditor(true,false);clearProductForms();viewer=null;working=open()?.status==='draft'?copy(open().snapshot):null;draw();},\n",
           "after": "    discard(){closeEditor(true,false);clearProductForms();clearLocal();viewer=null;working=open()?.status==='draft'?copy(open().snapshot):null;draw();},\n"
         },
         {
-          "offset": 148859,
+          "offset": 148769,
           "before": "  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>write('save',{snapshot:working}),canLeave:()=>true,error:()=>navigationError,reset(){clearProductForms();cancelSaveChoice?.();clearLocal();busy=false;modal=null;picker=null;viewer=null;errorRecovery?.session.flush();errorRecovery?.session.close();errorRecovery=null;errorRecoveryPending=null;mountSequence++;saveInputNotice=null;readRecoveryNeeded=false;pollTimer.cancel();host=null;reviewHost=null;control=null;revision=null;working=null;catalog={products:[],stages:[]};equipment=[];equipmentGroups=[];equipmentCategories=[];equipmentSubcategories=[];selectedVersionId='';caseHistory=null;navigationError=null;}},html:()=>`<section class=\"ipqcc-page\">${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</section>`,mount,reviewHTML,bindReview,pendingCount};\n",
-          "after": "  }),{autoAbandon:false});},requiresSave:()=>false,saveForDeparture:()=>write('save',{snapshot:working}),canLeave:()=>true,error:()=>navigationError,reset(){clearProductForms();cancelSaveChoice?.();clearLocal();busy=false;modal=null;picker=null;viewer=null;errorRecovery?.session.flush();errorRecovery?.session.close();errorRecovery=null;errorRecoveryPending=null;mountSequence++;saveInputNotice=null;readRecoveryNeeded=false;host=null;reviewHost=null;control=null;revision=null;working=null;catalog={products:[],stages:[]};equipment=[];equipmentGroups=[];equipmentCategories=[];equipmentSubcategories=[];selectedVersionId='';caseHistory=null;navigationError=null;}},html:()=>`<section class=\"ipqcc-page\">${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</section>`,mount,reviewHTML,bindReview,pendingCount};\n"
+          "after": "  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>write('save',{snapshot:working}),canLeave:()=>true,error:()=>navigationError,reset(){clearProductForms();cancelSaveChoice?.();clearLocal();busy=false;modal=null;picker=null;viewer=null;errorRecovery?.session.flush();errorRecovery?.session.close();errorRecovery=null;errorRecoveryPending=null;mountSequence++;saveInputNotice=null;readRecoveryNeeded=false;host=null;reviewHost=null;control=null;revision=null;working=null;catalog={products:[],stages:[]};equipment=[];equipmentGroups=[];equipmentCategories=[];equipmentSubcategories=[];selectedVersionId='';caseHistory=null;navigationError=null;}},html:()=>`<section class=\"ipqcc-page\">${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</section>`,mount,reviewHTML,bindReview,pendingCount};\n"
         }
       ]
     },
@@ -948,24 +1043,24 @@
       "beforeBlob": "8754650445c28f2827ac99f780eee3360929ed2b",
       "beforeHash": "eca85f506d3043eb7f3c376260766990a1a9a5903d09f3f1f4b9eb6c47347d67",
       "beforeLength": 11525,
-      "afterHash": "d07601a5f246a6344ccd26eea810fc63bc631eb68a688b5879f2d1e1c791644d",
-      "afterNormalizedHash": "d07601a5f246a6344ccd26eea810fc63bc631eb68a688b5879f2d1e1c791644d",
+      "afterHash": "3eb18c397d71558b3d0f6af0fb127829a3870e9094403160e0eab756c36b3e7b",
+      "afterNormalizedHash": "3eb18c397d71558b3d0f6af0fb127829a3870e9094403160e0eab756c36b3e7b",
       "afterCRLF": [],
       "rules": [
         {
           "offset": 6898,
           "before": "    <script data-process-src=\"shared-draft-client.js?v=20261113-equipment-submit1\"></script>\n",
-          "after": "    <script data-process-src=\"shared-draft-client.js?v=20261113-ipqc-main112-recovery2\"></script>\n"
+          "after": "    <script data-process-src=\"shared-draft-client.js?v=20261113-ipqc-silent3\"></script>\n"
         },
         {
-          "offset": 7732,
+          "offset": 7722,
           "before": "    <script data-process-src=\"master-page-editor.js?v=20261110-account-pages1\"></script>\n",
           "after": "    <script data-process-src=\"master-page-editor.js?v=20261113-abc-master2\"></script>\n"
         },
         {
-          "offset": 9983,
+          "offset": 9973,
           "before": "    <script data-process-src=\"ipqc-c.js?v=20261112-c-product4\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261112-ipqc-ab-filters2\"></script>\n",
-          "after": "    <script data-process-src=\"ipqc-c.js?v=20261113-ipqc-main112-recovery2\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261113-ipqc-main112-recovery2\"></script>\n"
+          "after": "    <script data-process-src=\"ipqc-c.js?v=20261113-ipqc-silent3\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261113-ipqc-silent3\"></script>\n"
         }
       ]
     },
@@ -973,8 +1068,8 @@
       "beforeBlob": "fc757b5dceedb2136f7f6218ffc8864a5bb729ac",
       "beforeHash": "3c6efeb0c9e8f01d1f665e3fcd686ab94613eb580b8ae9b29f1d1348a21db860",
       "beforeLength": 16627,
-      "afterHash": "8bf9fbbdd4eb0983a85de07818a8fc3b8b73b9b11fb94696bc48a5c380e07cf6",
-      "afterNormalizedHash": "8bf9fbbdd4eb0983a85de07818a8fc3b8b73b9b11fb94696bc48a5c380e07cf6",
+      "afterHash": "5a03c94f29101d20d63f8176fc1a82c3918045ad5939737fe8f32ef37780524d",
+      "afterNormalizedHash": "5a03c94f29101d20d63f8176fc1a82c3918045ad5939737fe8f32ef37780524d",
       "afterCRLF": [],
       "rules": [
         {
@@ -985,12 +1080,12 @@
         {
           "offset": 14841,
           "before": "  'shared-draft-client.js':'20261113-equipment-submit1',\n",
-          "after": "  'shared-draft-client.js':'20261113-ipqc-main112-recovery2',\n"
+          "after": "  'shared-draft-client.js':'20261113-ipqc-silent3',\n"
         },
         {
-          "offset": 15252,
+          "offset": 15242,
           "before": "  'ipqc-ab.js':'20261112-ipqc-ab-filters2',\n",
-          "after": "  'ipqc-ab.js':'20261113-ipqc-main112-recovery2',\n"
+          "after": "  'ipqc-ab.js':'20261113-ipqc-silent3',\n"
         }
       ]
     },
@@ -998,14 +1093,14 @@
       "beforeBlob": "5599fa201c8897cc8eb0a58d1e3159407bc388b6",
       "beforeHash": "f04a81650d1b3d12365939f6a88340aaaa920243db99b037874fe21e8e5acd9b",
       "beforeLength": 2942,
-      "afterHash": "a35425c984a540843aee734acbe0a48c2a03b17795c3e72625e9b20030c7b52a",
-      "afterNormalizedHash": "a35425c984a540843aee734acbe0a48c2a03b17795c3e72625e9b20030c7b52a",
+      "afterHash": "21b601668f2536444ef26a69ee237b250378ec21c20b11fff9ed70c18517c685",
+      "afterNormalizedHash": "21b601668f2536444ef26a69ee237b250378ec21c20b11fff9ed70c18517c685",
       "afterCRLF": [],
       "rules": [
         {
           "offset": 454,
           "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-equipment-submit1','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
-          "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-ipqc-main112-recovery2','master-page-editor.js':'20261113-abc-master2','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+          "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-ipqc-silent3','master-page-editor.js':'20261113-abc-master2','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
         }
       ]
     },
@@ -1013,19 +1108,19 @@
       "beforeBlob": "a88a95729e44edadb0f6d62f6c9ab661a7cc0e59",
       "beforeHash": "a8dc36ab460d6f449d208ee027268eefcd4fcd99c0d4f1f52f3867b3519bd98b",
       "beforeLength": 21535,
-      "afterHash": "f66ef66593f48f34a2157555f3b9b45cff933c641b9a33c1f5ff73d908b991b6",
-      "afterNormalizedHash": "f66ef66593f48f34a2157555f3b9b45cff933c641b9a33c1f5ff73d908b991b6",
+      "afterHash": "c543946ae19d79cf9103686e7e743d3ec111114d263d204d80ef4a1a9b518968",
+      "afterNormalizedHash": "c543946ae19d79cf9103686e7e743d3ec111114d263d204d80ef4a1a9b518968",
       "afterCRLF": [],
       "rules": [
         {
           "offset": 16857,
           "before": "  'ipqc-ab.js':'20261112-ipqc-ab-filters2',\n  'ipqc-c.js':'20261112-c-product4',\n",
-          "after": "  'ipqc-ab.js':'20261113-ipqc-main112-recovery2',\n  'ipqc-c.js':'20261113-ipqc-main112-recovery2',\n"
+          "after": "  'ipqc-ab.js':'20261113-ipqc-silent3',\n  'ipqc-c.js':'20261113-ipqc-silent3',\n"
         },
         {
-          "offset": 17459,
+          "offset": 17439,
           "before": "  'shared-draft-client.js':'20261113-equipment-submit1',\n",
-          "after": "  'shared-draft-client.js':'20261113-ipqc-main112-recovery2',\n"
+          "after": "  'shared-draft-client.js':'20261113-ipqc-silent3',\n"
         }
       ]
     },
@@ -1041,66 +1136,6 @@
           "offset": 2594,
           "before": " vm.runInContext(declaration(['fqc-master.js','iqc-master.js'].includes(file)?retiredDraftSource(process.cwd(),file):read(file),fn)+'\\n'+fn+'();',f.c);\n",
           "after": " vm.runInContext(declaration(['fqc-master.js','iqc-master.js','ipqc-c.js'].includes(file)?retiredDraftSource(process.cwd(),file):read(file),fn)+'\\n'+fn+'();',f.c);\n"
-        }
-      ]
-    },
-    "tests/begin-recovery-browser.mjs": {
-      "beforeBlob": "4c1b9b2bdc3d90994e4a65dd3fb41c0216ac5fa1",
-      "beforeHash": "126f32d896dbc0229b326499b2daa4f752530d6ffbcf041f5162bae85226e0cf",
-      "beforeLength": 14717,
-      "afterHash": "1cb650656602014f926243776ac6e39b0fc65371eea06719afd6a47508b4d971",
-      "afterNormalizedHash": "1cb650656602014f926243776ac6e39b0fc65371eea06719afd6a47508b4d971",
-      "afterCRLF": [],
-      "rules": [
-        {
-          "offset": 11387,
-          "before": "   stage=spec.module+':leave';const destination=spec.module==='process-authoring'?'dashboard':'quality-dashboard';await page.locator('.nav-item[data-view=\"'+destination+'\"]').click();await page.waitForFunction(view=>window.ProcessSync?.destination?.view===view&&document.documentElement.dataset.processNavigationStatus==='ready',destination);\n",
-          "after": "   stage=spec.module+':leave';const destination=spec.module==='process-authoring'?'dashboard':'quality-dashboard';await page.locator('.nav-item[data-view=\"'+destination+'\"]').click();\n   if(spec.module==='ipqc-c'){\n    const decision=page.locator('#process-navigation-departure');await decision.waitFor();assert.equal(posts,1);\n    await decision.locator('[data-departure-choice=\"stay\"]').click();await decision.waitFor({state:'detached'});\n    assert.equal(await page.evaluate(()=>window.ProcessSync.destination.dataTab),spec.tab);assert.deepEqual(await fixture.readRecordValues(),afterCommit);\n    assert.deepEqual(await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-begin-v1:')))),markers);\n    await page.locator('.nav-item[data-view=\"'+destination+'\"]').click();await decision.waitFor();await decision.locator('[data-departure-choice=\"abandon\"]').click();\n   }\n   await page.waitForFunction(view=>window.ProcessSync?.destination?.view===view&&document.documentElement.dataset.processNavigationStatus==='ready',destination);\n"
-        }
-      ]
-    },
-    "scripts/test-ipqc-c-local-browser.cjs": {
-      "beforeBlob": "20d91d479f9db5ede6b6cd7f8d9d84dd471ab223",
-      "beforeHash": "45de552dcedf8dccaad1faf470e0bef926a8320f5114d09dd7e3c5222eada9f9",
-      "beforeLength": 49660,
-      "afterHash": "d1662591323efec0cb83c3d732b8ecda4f3d93910fdc142e927f52b3cf47389d",
-      "afterNormalizedHash": "d1662591323efec0cb83c3d732b8ecda4f3d93910fdc142e927f52b3cf47389d",
-      "afterCRLF": [],
-      "rules": [
-        {
-          "offset": 23385,
-          "before": " await page.evaluate(()=>{IPQCCUI.navigation.departure.closeClean();IPQCCUI.navigation.reset();window.__delivery++;const root=document.querySelector('main');root.dataset.activeTab='quality-fqc';root.innerHTML='<p id=\"fqc-destination\">FQC destination</p>';});\n",
-          "after": " await page.evaluate(async()=>{const departure=IPQCCUI.navigation.departure,status=departure.inspect();if(status.state!=='dirty'||status.canAbandon!==true)throw Error('EXPECTED_EXPLICIT_C_ABANDONMENT');let blocked=false;try{departure.closeClean();}catch{blocked=true;}if(!blocked)throw Error('C_INPUT_DISCARDED_WITHOUT_CHOICE');const lease=await departure.abandon();departure.closeClean();lease.release();IPQCCUI.navigation.reset();window.__delivery++;const root=document.querySelector('main');root.dataset.activeTab='quality-fqc';root.innerHTML='<p id=\"fqc-destination\">FQC destination</p>';});\n"
-        },
-        {
-          "offset": 40052,
-          "before": " // Actual departure still discards unsent content silently; it is not a filter.\n",
-          "after": " // After the explicit stage discard there is no local input left; clean departure needs no choice.\n"
-        },
-        {
-          "offset": 42560,
-          "before": " assert.equal(await page.evaluate(()=>IPQCCUI.navigation.departure.inspect().state),'clean','navigation may leave without settling the write');\n",
-          "after": " assert.equal(await page.evaluate(()=>IPQCCUI.navigation.departure.inspect().state),'busy','in-flight readback blocks cross-module departure');await assert.rejects(page.evaluate(()=>IPQCCUI.navigation.departure.abandon()));\n"
-        },
-        {
-          "offset": 43527,
-          "before": " assert.equal(await page.evaluate(()=>{const event=new Event('beforeunload',{cancelable:true});window.dispatchEvent(event);return event.defaultPrevented;}),false,'C unknown alone does not prompt on close');\n await page.evaluate(()=>{IPQCCUI.navigation.departure.closeClean();IPQCCUI.navigation.reset();window.__delivery++;document.querySelector('main').innerHTML='<p id=\"other-data\">Other data</p>';});\n assert.equal(await page.locator('#other-data').innerText(),'Other data');\n assert.deepEqual(await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-receipt-only-v1:'))),markers,'navigation retains original operation identity');\n",
-          "after": " await assert.rejects(page.evaluate(()=>IPQCCUI.navigation.departure.closeClean()),'busy readback cannot be discarded or classified as clean');\n assert.deepEqual(h.snapshot(),unknownSnapshot);assert.equal(mutations.length,unknownWrites);\n"
-        },
-        {
-          "offset": 43799,
-          "before": " // A fresh destination owner recovers the same receipt. It never replays Save.\n",
-          "after": " await page.waitForFunction(()=>!__localTest.state().busy&&!__localTest.state().unknown);\n assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1,'late readback settles the one original Save');\n // A separate explicitly requested Save loses its ACK and original receipt response.\n // Only idle UNKNOWN permits the checked abandon lease; the original marker survives.\n mutations.length=0;await page.evaluate(()=>__localTest.edit());await page.locator('[name=\"note\"]').fill('Idle unknown recovery');await page.locator('#ipqcc-editor button[type=\"submit\"]').click();\n dropSave=true;receiptMissing=true;await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>!__localTest.state().busy&&__localTest.state().unknown);\n const idleMarkers=await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-receipt-only-v1:'))),idleSnapshot=h.snapshot();assert(idleMarkers.length>0);\n assert.equal(await page.evaluate(()=>IPQCCUI.navigation.departure.inspect().state),'unknown');\n await assert.rejects(page.evaluate(()=>IPQCCUI.navigation.departure.closeClean()),'UNKNOWN is never silently clean');\n await page.evaluate(async()=>{const departure=IPQCCUI.navigation.departure;if(departure.inspect().canAbandon!==true)throw Error('EXPECTED_IDLE_UNKNOWN_ABANDONMENT');const lease=await departure.abandon();departure.closeClean();lease.release();IPQCCUI.navigation.reset();window.__delivery++;document.querySelector('main').innerHTML='<p id=\"other-data\">Other data</p>';});\n assert.equal(await page.locator('#other-data').innerText(),'Other data');assert.deepEqual(h.snapshot(),idleSnapshot);\n assert.deepEqual(await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-receipt-only-v1:'))),idleMarkers,'explicit abandonment retains the original operation identity');\n"
-        },
-        {
-          "offset": 45779,
-          "before": " assert.equal(await page.evaluate(()=>__localTest.state().unknown),true);\n assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1,'returning does not auto-resend');\n await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>!__localTest.state().busy&&!__localTest.state().unknown);\n assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1,'lost ACK checks receipt without resending');\n",
-          "after": " assert.equal(await page.evaluate(()=>__localTest.state().unknown),true);assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1,'returning does not auto-resend');\n receiptMissing=false;await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>!__localTest.state().busy&&!__localTest.state().unknown);\n assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1,'lost ACK checks only the original receipt without resending');\n"
-        },
-        {
-          "offset": 46252,
-          "before": " await page.evaluate(()=>__localTest.edit());await page.locator('input[name=\"name\"]').fill('Abandoned');assert.equal(await page.evaluate(()=>IPQCCUI.navigation.departure.inspect().state),'clean');await page.evaluate(()=>IPQCCUI.navigation.departure.closeClean());assert.equal(await page.locator('#ipqcc-editor').count(),1,'departure closes model; navigation replaces DOM');\n",
-          "after": "\n await page.evaluate(()=>__localTest.edit());await page.locator('input[name=\"name\"]').fill('Abandoned');assert.equal(await page.evaluate(()=>IPQCCUI.navigation.departure.inspect().state),'dirty');await assert.rejects(page.evaluate(()=>IPQCCUI.navigation.departure.closeClean()));await page.evaluate(async()=>{const departure=IPQCCUI.navigation.departure,lease=await departure.abandon();departure.closeClean();lease.release();});assert.equal(await page.locator('#ipqcc-editor').count(),0,'explicit abandonment closes the unsaved form');\n"
         }
       ]
     },
@@ -1134,6 +1169,96 @@
     "base": "a85caf5a8f14770b02481f52f96e0ec1364458d3",
     "tree": "f900563685a2a8917d1066c4004e5a2675eb0796",
     "files": {
+      "scripts/ipqc-c-display-image-source-contract.cjs": {
+        "beforeBlob": "5a7cc52cecc46b0509273ff4d2106feaf38cf2c0",
+        "beforeHash": "237369d007da33fd35ccfcd60c2b2cd21b58e0cae55f262bc1e6df5d0029e981",
+        "beforeLength": 4450,
+        "afterHash": "c108abf26c7939beb1c09e3ec7a7765b5ec91ba34f5f904dab7a1991ed7b72ae",
+        "afterNormalizedHash": "c108abf26c7939beb1c09e3ec7a7765b5ec91ba34f5f904dab7a1991ed7b72ae",
+        "afterCRLF": [],
+        "rules": [
+          {
+            "offset": 2594,
+            "before": "",
+            "after": " // A pure inverse never gains checkout normalization from a successor projection.\n const recovery=require('./ipqc-save-recovery-source-contract.cjs'),pin=recovery.contract.files['public/process/ipqc-c.js'];\n if(pin&&hash(Buffer.from(source).toString('utf8').replaceAll('\\r\\n','\\n'))===pin.afterNormalizedHash)assert.equal(hash(source),pin.afterHash,'C display source differs from exact reviewed bytes');\n"
+          }
+        ]
+      },
+      "tests/ipqc-ab-compiled-gaps.acceptance.mjs": {
+        "beforeBlob": "e609a8f9c64a0547967bde8299de1dc8aea57c25",
+        "beforeHash": "7fc43341b19c65145a27e140fb6b24b609a3eea4e325c0401f05bda61071dd5f",
+        "beforeLength": 16795,
+        "afterHash": "784fb2a846a7c9c10242c66fa5f4b0be3cfca89ed0e9421e2f48434c0fb09bb3",
+        "afterNormalizedHash": "784fb2a846a7c9c10242c66fa5f4b0be3cfca89ed0e9421e2f48434c0fb09bb3",
+        "afterCRLF": [],
+        "rules": [
+          {
+            "offset": 12916,
+            "before": "void test(\n  'compiled narrow 390 vi unknown Save keeps original marker across departure/reload/404, recovers GET-only',\n",
+            "after": "for(const inFlight of [false,true])for(const reloadBeforeRecovery of [false,true])void test(\n  `compiled narrow 390 vi original Save survives silent departure inFlight=${inFlight} reload=${reloadBeforeRecovery}, 404 and GET-only recovery`,\n"
+          },
+          {
+            "offset": 13776,
+            "before": "    let loss = false,\n      down = true;\n",
+            "after": "    let loss = false, releaseLoss, enterLoss;\n    const lossEntered=new Promise(resolve=>{enterLoss=resolve;}),lossGate=new Promise(resolve=>{releaseLoss=resolve;});\n    t.after(()=>releaseLoss());\n    let down = true;\n"
+          },
+          {
+            "offset": 14468,
+            "before": "        await route.fetch();\n",
+            "after": "        await route.fetch();enterLoss();if(inFlight)await lossGate;\n"
+          },
+          {
+            "offset": 14669,
+            "before": "    await idle(page);\n",
+            "after": "    if(inFlight)await lossEntered;else await idle(page);\n"
+          },
+          {
+            "offset": 14744,
+            "before": "",
+            "after": "    assert.equal(await page.evaluate(()=>sharedDraftAccountState().queued>0),inFlight);\n"
+          },
+          {
+            "offset": 15403,
+            "before": "    assert.deepEqual(await markers(page), keys);\n",
+            "after": "    assert.deepEqual(await markers(page), keys);releaseLoss();await idle(page);\n    assert.deepEqual(await markers(page),keys,'late interrupted response retains original identity and cannot mutate destination');\n    assert.equal(await page.evaluate(()=>state.view),'dashboard');\n"
+          },
+          {
+            "offset": 15855,
+            "before": "    await page.reload();\n    await page.locator('[data-ab-local-query]').waitFor({ timeout: 30000 });\n",
+            "after": "    if(reloadBeforeRecovery){await page.reload();\n    await page.locator('[data-ab-local-query]').waitFor({ timeout: 30000 });}\n"
+          }
+        ]
+      },
+      "tests/multiuser-module-departure-bindings.test.mjs": {
+        "beforeBlob": "93ca14818fadfb9b925314d8439af537f5e66512",
+        "beforeHash": "363aafba09a0e1a8f42568cef58e580b6e6b79124dc41fd517c882f69e7efaad",
+        "beforeLength": 34143,
+        "afterHash": "c76b415113b6905f03470109f030a0a812ea174a4c6dbc337a3665bd7e2e0550",
+        "afterNormalizedHash": "c76b415113b6905f03470109f030a0a812ea174a4c6dbc337a3665bd7e2e0550",
+        "afterCRLF": [],
+        "rules": [
+          {
+            "offset": 14443,
+            "before": "  assert.equal(f.adapter.inspect().state,'unknown');await assert.rejects(f.adapter.save());await assert.rejects(f.adapter.discard());assert.equal(f.writes,0);\n",
+            "after": "  assert.equal(f.adapter.inspect().state,name==='ipqc-ab'?'clean':'unknown');await assert.rejects(f.adapter.save());await assert.rejects(f.adapter.discard());assert.equal(f.writes,0);\n"
+          },
+          {
+            "offset": 26742,
+            "before": " assert.equal(f.adapter.inspect().state,'unknown');assert.throws(()=>f.adapter.closeClean());assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);lease.release();assert.equal(b.root.inert,false);\n",
+            "after": " if(name==='ipqc-ab'&&fault==='unknown'){assert.equal(f.adapter.inspect().state,'departing');f.adapter.closeClean();assert.equal(b.client.hasUnknown(),true);}else{assert.equal(f.adapter.inspect().state,'unknown');assert.throws(()=>f.adapter.closeClean());}assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);lease.release();assert.equal(b.root.inert,false);\n"
+          },
+          {
+            "offset": 33331,
+            "before": "void test('IPQC-AB unknown departure clears RAM but preserves the original sent snapshot and receipt obligation',async()=>{\n",
+            "after": "void test('IPQC-AB unknown departure drops RAM payload but preserves the durable original receipt obligation',async()=>{\n"
+          },
+          {
+            "offset": 33849,
+            "before": " const before=JSON.stringify(b.control);assert.equal(f.adapter.inspect().canAbandon,true);await assert.rejects(f.adapter.save());await assert.rejects(f.adapter.discard());\n const lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();assert.equal(b.localScopes.size,0);assert.equal(b.localSent,sent);assert.equal(client.departureUnknown(),anchor);assert.equal(client.hasUnknown(),true);assert.equal(f.writes,0);assert.equal(JSON.stringify(b.control),before);\n",
+            "after": " const before=JSON.stringify(b.control);assert.equal(f.adapter.inspect().canAbandon,true);await assert.rejects(f.adapter.save());\n const lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();assert.equal(b.localScopes.size,0);assert.equal(b.localSent,null);assert.equal(client.departureUnknown(),anchor);assert.equal(client.hasUnknown(),true);assert.equal(f.writes,0);assert.equal(JSON.stringify(b.control),before);\n"
+          }
+        ]
+      },
       "scripts/test-scoped-read-pause.cjs": {
         "beforeBlob": "46894805e1c40cf7383534d54b67cf8f9b267b62",
         "beforeHash": "23de22f0de8053f3cdf86f252021c12d5511239119dc599acf1be0fc57e25bbf",
@@ -1158,14 +1283,14 @@
         "beforeBlob": "fd213d08049ed534d197cdd1577f19fc5ab33ac9",
         "beforeHash": "2ca6584be82dda683e2fb44bdd836cfed19a1c2b71f8a852cb32be1b23c54447",
         "beforeLength": 21066,
-        "afterHash": "7020671bac813e42ab4a87facdd1a0b7956ecd04903b9270a10e7ced4a52c4fa",
-        "afterNormalizedHash": "7020671bac813e42ab4a87facdd1a0b7956ecd04903b9270a10e7ced4a52c4fa",
+        "afterHash": "5b230541822721afbe91edbf06225faa6922b76e88532bcbf29acfc5da21748a",
+        "afterNormalizedHash": "5b230541822721afbe91edbf06225faa6922b76e88532bcbf29acfc5da21748a",
         "afterCRLF": [],
         "rules": [
           {
-            "offset": 12116,
-            "before": " assert.equal(nav.departure.inspect().state,'clean');assert.equal(peer.departure.inspect().state,'clean');assert.equal(nav.departure.autoAbandon,true);assert.equal(nav.requiresSave(),false);\n const before=f.calls.length;f.box.localInput=true;assert.equal(nav.departure.inspect().state,'dirty');f.box.localInput=false;\n",
-            "after": " assert.equal(nav.departure.inspect().state,'clean');assert.equal(peer.departure.inspect().state,'clean');assert.equal(nav.departure.autoAbandon,false);assert.equal(nav.requiresSave(),false);\n const before=f.calls.length;f.box.localInput=true;assert.equal(nav.departure.inspect().state,'dirty');assert.throws(()=>nav.departure.closeClean());assert.equal(f.box.localInput,true);f.box.localInput=false;\n"
+            "offset": 12731,
+            "before": " const marker=[...f.memory];assert(marker.length);assert.equal(nav.departure.inspect().state,'unknown');assert.deepEqual([...f.memory],marker);\n",
+            "after": " const marker=[...f.memory];assert(marker.length);assert.equal(nav.departure.inspect().state,'clean');assert.equal(f.client.hasUnknown(),true);assert.deepEqual([...f.memory],marker);\n"
           }
         ]
       },
@@ -1173,8 +1298,8 @@
         "beforeBlob": "faf42131ace8bcc959350ff98a940fed4a197264",
         "beforeHash": "32886b28ef01e46cf4b04b4b9f0d3b9e02047016226756c18731c0cddb43b70e",
         "beforeLength": 198750,
-        "afterHash": "c2d842e59de821acf4808cfb0128506862ea75f09d1a6908b68ce0fbea25b14a",
-        "afterNormalizedHash": "c2d842e59de821acf4808cfb0128506862ea75f09d1a6908b68ce0fbea25b14a",
+        "afterHash": "6f6919ff923e1fa145246cb5496a40f882b1892084b707ada0b6d913454f7673",
+        "afterNormalizedHash": "6f6919ff923e1fa145246cb5496a40f882b1892084b707ada0b6d913454f7673",
         "afterCRLF": [],
         "rules": [
           {
@@ -1188,22 +1313,27 @@
             "after": "    // Only the installed durable IPQC transports get the slow immutable-I/O budget.\n    // Similar URLs and old group clients retain their existing contracts.\n    const ipqcSlowIO=durableBegin&&(boundedScope==='ipqc-ab:module'&&endpoint==='/api/ipqc-ab/workflow?module=1&caseMetadata=1'||boundedScope==='ipqc-c'&&endpoint==='/api/ipqc-c/workflow?caseMetadata=1');\n    const requestProgressListeners=new Set(),requestProgress=new Map();\n    const publishRequestProgress=()=>{for(const listener of requestProgressListeners)try{listener();}catch{/* Status must never alter operation settlement. */}};\n"
           },
           {
-            "offset": 118883,
+            "offset": 58916,
+            "before": "    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||catalogPageBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);\n",
+            "after": "    // Installed IPQC navigation never settles a write: retain markers, account UNKNOWN and mutation admission.\n    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&(boundedScope==='ipqc-c'||ipqcSlowIO&&boundedScope==='ipqc-ab:module'),queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||catalogPageBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);\n"
+          },
+          {
+            "offset": 119042,
             "before": "      const requestDeadline=['begin','begin-v1'].includes(body?.action)||cCreate?45000:body?mutationDeadline:45000;\n",
             "after": "      const requestDeadline=ipqcSlowIO?180000:['begin','begin-v1'].includes(body?.action)||cCreate?45000:body?mutationDeadline:45000;\n"
           },
           {
-            "offset": 119216,
+            "offset": 119375,
             "before": "",
             "after": "      // One-shot UI notices only: no polling, read or resend. The finite deadline\n      // retains UNKNOWN and the original identity if no qualified ACK arrives.\n      const progressToken={},progressTimers=ipqcSlowIO?[10000,45000,120000].map(elapsedMs=>setTimeout(()=>{requestProgress.set(progressToken,{kind:body?'write':kind,phase,elapsedMs});publishRequestProgress();},elapsedMs)):[];\n"
           },
           {
-            "offset": 129119,
+            "offset": 129278,
             "before": "      } finally {clearTimeout(timer);if(canvasObserving){canvasRequests--;if(body?.command)canvasArms.delete(body.command.operationId);}}\n",
             "after": "      } finally {clearTimeout(timer);for(const timer of progressTimers)clearTimeout(timer);if(requestProgress.delete(progressToken))publishRequestProgress();if(canvasObserving){canvasRequests--;if(body?.command)canvasArms.delete(body.command.operationId);}}\n"
           },
           {
-            "offset": 145030,
+            "offset": 145189,
             "before": "",
             "after": "      requestProgress:()=>[...requestProgress.values()].map(value=>({...value})),\n      watchRequestProgress(listener){if(typeof listener!=='function')throw Error('PROGRESS_LISTENER_REQUIRED');requestProgressListeners.add(listener);return()=>requestProgressListeners.delete(listener);},\n"
           }
@@ -1213,8 +1343,8 @@
         "beforeBlob": "57ae9060074a807e97287681de0a367da0d33505",
         "beforeHash": "a697ce8b5743163c12d391f7ac8228494e70bad3ae216b4d075ea306d8308494",
         "beforeLength": 173876,
-        "afterHash": "831db140ad1a8049f431827d26bfb4bfb61acf8be41d861b2e14a14470dec386",
-        "afterNormalizedHash": "1e91e65536147a5723e1594433ccc5d1666128cd3a7ce645c02d99a575c069e9",
+        "afterHash": "9b3b8379b74319d27bee050313f817d37f62e39873053ae60efc4fb2358d91e6",
+        "afterNormalizedHash": "cd3e5a6c98d30243b940ef99d9b894e05b2c3fb335eb03e0fca108c0d6bf68d8",
         "afterCRLF": [
           0,
           1,
@@ -1968,12 +2098,11 @@
           1304,
           1305,
           1306,
-          1333,
           1334,
           1335,
           1336,
           1337,
-          1339,
+          1338,
           1340,
           1341,
           1342,
@@ -1982,18 +2111,29 @@
           1345,
           1346,
           1347,
-          1348
+          1348,
+          1349
         ],
         "rules": [
           {
-            "offset": 145436,
+            "offset": 55933,
+            "before": "  function abandonLocalEditing(){clearLocalEditing();if(moduleClient&&!moduleClient.hasUnknown())localSent=null;}\n",
+            "after": "  function abandonLocalEditing(){clearLocalEditing();localSent=null;} // Only RAM; durable transport retains the original submitted identity.\n"
+          },
+          {
+            "offset": 145464,
             "before": "",
             "after": "    window.mountSharedDraftRequestProgress?.(host,[moduleClient,sharedClient,...legacyABClients()],vi()?'vi':'zh');\n"
           },
           {
-            "offset": 171023,
+            "offset": 170390,
+            "before": "    context:()=>[mutationLifetime,actor(),window.ProcessSync?.identityGeneration?.()],current:()=>!accessBlocked,busy:()=>busy,\n    unknown:()=>localPending(),failed:()=>false,unknownTransports:()=>[moduleClient,...legacyABClients(),photoDepartureTransport].filter(Boolean),unknownReady:()=>!busy,\n",
+            "after": "    // Departure drops only RAM edits; pending transport identity and write admission remain independent.\n    context:()=>[mutationLifetime,actor(),window.ProcessSync?.identityGeneration?.()],current:()=>!accessBlocked,busy:()=>false,\n    unknown:()=>false,failed:()=>false,unknownTransports:()=>[moduleClient,...legacyABClients(),photoDepartureTransport].filter(Boolean),unknownReady:()=>!busy,\n"
+          },
+          {
+            "offset": 171149,
             "before": "  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>saveLocalModule(),canLeave:()=>!busy,error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;abandonLocalEditing();mutationLifetime++;mutationSequence++;activeMutation=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class=\"ipqcab-page\" id=\"ipqcab-page\">IPQC-AB…</section>',\n",
-            "after": "  }),{autoAbandon:false});},requiresSave:()=>false,saveForDeparture:()=>saveLocalModule(),canLeave:()=>!busy,error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;abandonLocalEditing();mutationLifetime++;mutationSequence++;activeMutation=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class=\"ipqcab-page\" id=\"ipqcab-page\">IPQC-AB…</section>',\n"
+            "after": "  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>saveLocalModule(),canLeave:()=>true,error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;abandonLocalEditing();mutationLifetime++;mutationSequence++;activeMutation=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class=\"ipqcab-page\" id=\"ipqcab-page\">IPQC-AB…</section>',\n"
           }
         ]
       },
@@ -2001,8 +2141,8 @@
         "beforeBlob": "ad1253c2e8e226f74a39bfbe37c680434e397302",
         "beforeHash": "6f80cdde1adb53ae2dc5eeeb6d276e88d1c0484f183fc0b4e1f56aaabf6e1f0f",
         "beforeLength": 153198,
-        "afterHash": "feaa32536bba84764b16de6f32e95883c2b9358cffa2e4728edb0f25f2a02edb",
-        "afterNormalizedHash": "feaa32536bba84764b16de6f32e95883c2b9358cffa2e4728edb0f25f2a02edb",
+        "afterHash": "f929cbdf6bc1b64670f7fee307ae92011f190e04d8b165ac0cff359bc52dc8d6",
+        "afterNormalizedHash": "f929cbdf6bc1b64670f7fee307ae92011f190e04d8b165ac0cff359bc52dc8d6",
         "afterCRLF": [],
         "rules": [
           {
@@ -2038,22 +2178,17 @@
           {
             "offset": 148010,
             "before": "    current:()=>!readAccessBlocked()&&sharedActor===identity()?.id,busy:()=>busy&&sharedClient?.hasUnknownBegin?.()===true,unknown:()=>sharedClient?.hasUnknownBegin?.()===true,failed:()=>false,\n",
-            "after": "    current:()=>!readAccessBlocked()&&sharedActor===identity()?.id,busy:()=>busy,unknown:()=>sharedClient?.hasUnknown()===true,failed:()=>false,\n"
+            "after": "    current:()=>!readAccessBlocked()&&sharedActor===identity()?.id,busy:()=>false,unknown:()=>false,failed:()=>false,\n"
           },
           {
-            "offset": 148312,
-            "before": "    local:()=>false,\n",
-            "after": "    local:()=>!!localChanges.length||productForms.size>0||!!modal&&!modal.readonly,\n"
-          },
-          {
-            "offset": 148584,
+            "offset": 148494,
             "before": "    discard(){closeEditor(true,false);clearProductForms();viewer=null;working=open()?.status==='draft'?copy(open().snapshot):null;draw();},\n",
             "after": "    discard(){closeEditor(true,false);clearProductForms();clearLocal();viewer=null;working=open()?.status==='draft'?copy(open().snapshot):null;draw();},\n"
           },
           {
-            "offset": 148859,
+            "offset": 148769,
             "before": "  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>write('save',{snapshot:working}),canLeave:()=>true,error:()=>navigationError,reset(){clearProductForms();cancelSaveChoice?.();clearLocal();busy=false;modal=null;picker=null;viewer=null;errorRecovery?.session.flush();errorRecovery?.session.close();errorRecovery=null;errorRecoveryPending=null;mountSequence++;saveInputNotice=null;readRecoveryNeeded=false;pollTimer.cancel();host=null;reviewHost=null;control=null;revision=null;working=null;catalog={products:[],stages:[]};equipment=[];equipmentGroups=[];equipmentCategories=[];equipmentSubcategories=[];selectedVersionId='';caseHistory=null;navigationError=null;}},html:()=>`<section class=\"ipqcc-page\">${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</section>`,mount,reviewHTML,bindReview,pendingCount};\n",
-            "after": "  }),{autoAbandon:false});},requiresSave:()=>false,saveForDeparture:()=>write('save',{snapshot:working}),canLeave:()=>true,error:()=>navigationError,reset(){clearProductForms();cancelSaveChoice?.();clearLocal();busy=false;modal=null;picker=null;viewer=null;errorRecovery?.session.flush();errorRecovery?.session.close();errorRecovery=null;errorRecoveryPending=null;mountSequence++;saveInputNotice=null;readRecoveryNeeded=false;host=null;reviewHost=null;control=null;revision=null;working=null;catalog={products:[],stages:[]};equipment=[];equipmentGroups=[];equipmentCategories=[];equipmentSubcategories=[];selectedVersionId='';caseHistory=null;navigationError=null;}},html:()=>`<section class=\"ipqcc-page\">${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</section>`,mount,reviewHTML,bindReview,pendingCount};\n"
+            "after": "  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>write('save',{snapshot:working}),canLeave:()=>true,error:()=>navigationError,reset(){clearProductForms();cancelSaveChoice?.();clearLocal();busy=false;modal=null;picker=null;viewer=null;errorRecovery?.session.flush();errorRecovery?.session.close();errorRecovery=null;errorRecoveryPending=null;mountSequence++;saveInputNotice=null;readRecoveryNeeded=false;host=null;reviewHost=null;control=null;revision=null;working=null;catalog={products:[],stages:[]};equipment=[];equipmentGroups=[];equipmentCategories=[];equipmentSubcategories=[];selectedVersionId='';caseHistory=null;navigationError=null;}},html:()=>`<section class=\"ipqcc-page\">${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</section>`,mount,reviewHTML,bindReview,pendingCount};\n"
           }
         ]
       },
@@ -2061,19 +2196,19 @@
         "beforeBlob": "7f7f52af72e9a3f9036c0a4e9f6ab4bba3e70421",
         "beforeHash": "d4a924bcbd5cc94ed3b0c351e53e5b26a98940e79b2e8418d7ecd10baa28ce75",
         "beforeLength": 11516,
-        "afterHash": "d07601a5f246a6344ccd26eea810fc63bc631eb68a688b5879f2d1e1c791644d",
-        "afterNormalizedHash": "d07601a5f246a6344ccd26eea810fc63bc631eb68a688b5879f2d1e1c791644d",
+        "afterHash": "3eb18c397d71558b3d0f6af0fb127829a3870e9094403160e0eab756c36b3e7b",
+        "afterNormalizedHash": "3eb18c397d71558b3d0f6af0fb127829a3870e9094403160e0eab756c36b3e7b",
         "afterCRLF": [],
         "rules": [
           {
             "offset": 6898,
             "before": "    <script data-process-src=\"shared-draft-client.js?v=20261113-abc-master1\"></script>\n",
-            "after": "    <script data-process-src=\"shared-draft-client.js?v=20261113-ipqc-main112-recovery2\"></script>\n"
+            "after": "    <script data-process-src=\"shared-draft-client.js?v=20261113-ipqc-silent3\"></script>\n"
           },
           {
-            "offset": 9983,
+            "offset": 9973,
             "before": "    <script data-process-src=\"ipqc-c.js?v=20261112-c-product4\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261112-ipqc-ab-filters2\"></script>\n",
-            "after": "    <script data-process-src=\"ipqc-c.js?v=20261113-ipqc-main112-recovery2\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261113-ipqc-main112-recovery2\"></script>\n"
+            "after": "    <script data-process-src=\"ipqc-c.js?v=20261113-ipqc-silent3\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261113-ipqc-silent3\"></script>\n"
           }
         ]
       },
@@ -2081,19 +2216,19 @@
         "beforeBlob": "3ecb82c3ec4facd7400d0ae84642ba17e12c0dd4",
         "beforeHash": "beb565f8f28a6cb3374272bdd60c88742afc6f01abec44a10f4b1054ead6b521",
         "beforeLength": 16618,
-        "afterHash": "8bf9fbbdd4eb0983a85de07818a8fc3b8b73b9b11fb94696bc48a5c380e07cf6",
-        "afterNormalizedHash": "8bf9fbbdd4eb0983a85de07818a8fc3b8b73b9b11fb94696bc48a5c380e07cf6",
+        "afterHash": "5a03c94f29101d20d63f8176fc1a82c3918045ad5939737fe8f32ef37780524d",
+        "afterNormalizedHash": "5a03c94f29101d20d63f8176fc1a82c3918045ad5939737fe8f32ef37780524d",
         "afterCRLF": [],
         "rules": [
           {
             "offset": 14841,
             "before": "  'shared-draft-client.js':'20261113-abc-master1',\n",
-            "after": "  'shared-draft-client.js':'20261113-ipqc-main112-recovery2',\n"
+            "after": "  'shared-draft-client.js':'20261113-ipqc-silent3',\n"
           },
           {
-            "offset": 15252,
+            "offset": 15242,
             "before": "  'ipqc-ab.js':'20261112-ipqc-ab-filters2',\n",
-            "after": "  'ipqc-ab.js':'20261113-ipqc-main112-recovery2',\n"
+            "after": "  'ipqc-ab.js':'20261113-ipqc-silent3',\n"
           }
         ]
       },
@@ -2101,14 +2236,14 @@
         "beforeBlob": "f9f52ca7694bbb9edb87d563e693c3ac70b0a19b",
         "beforeHash": "3e49068bb7b725fd8c1db348c0dd20f7aa187e9a924d1b145bd3db9f60ee6058",
         "beforeLength": 2983,
-        "afterHash": "a35425c984a540843aee734acbe0a48c2a03b17795c3e72625e9b20030c7b52a",
-        "afterNormalizedHash": "a35425c984a540843aee734acbe0a48c2a03b17795c3e72625e9b20030c7b52a",
+        "afterHash": "21b601668f2536444ef26a69ee237b250378ec21c20b11fff9ed70c18517c685",
+        "afterNormalizedHash": "21b601668f2536444ef26a69ee237b250378ec21c20b11fff9ed70c18517c685",
         "afterCRLF": [],
         "rules": [
           {
             "offset": 454,
             "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-abc-master1','master-page-editor.js':'20261113-abc-master2','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
-            "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-ipqc-main112-recovery2','master-page-editor.js':'20261113-abc-master2','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+            "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-ipqc-silent3','master-page-editor.js':'20261113-abc-master2','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
           }
         ]
       },
@@ -2116,19 +2251,19 @@
         "beforeBlob": "23ce03c98c2d7053e5a395148bc4b3e31e2fcecd",
         "beforeHash": "0652812d5f9e967868acc7cd7721bc144151cc7a1903997d7b721353a89d879c",
         "beforeLength": 21529,
-        "afterHash": "f66ef66593f48f34a2157555f3b9b45cff933c641b9a33c1f5ff73d908b991b6",
-        "afterNormalizedHash": "f66ef66593f48f34a2157555f3b9b45cff933c641b9a33c1f5ff73d908b991b6",
+        "afterHash": "c543946ae19d79cf9103686e7e743d3ec111114d263d204d80ef4a1a9b518968",
+        "afterNormalizedHash": "c543946ae19d79cf9103686e7e743d3ec111114d263d204d80ef4a1a9b518968",
         "afterCRLF": [],
         "rules": [
           {
             "offset": 16857,
             "before": "  'ipqc-ab.js':'20261112-ipqc-ab-filters2',\n  'ipqc-c.js':'20261112-c-product4',\n",
-            "after": "  'ipqc-ab.js':'20261113-ipqc-main112-recovery2',\n  'ipqc-c.js':'20261113-ipqc-main112-recovery2',\n"
+            "after": "  'ipqc-ab.js':'20261113-ipqc-silent3',\n  'ipqc-c.js':'20261113-ipqc-silent3',\n"
           },
           {
-            "offset": 17459,
+            "offset": 17439,
             "before": "  'shared-draft-client.js':'20261113-abc-master1',\n",
-            "after": "  'shared-draft-client.js':'20261113-ipqc-main112-recovery2',\n"
+            "after": "  'shared-draft-client.js':'20261113-ipqc-silent3',\n"
           }
         ]
       },
@@ -2144,66 +2279,6 @@
             "offset": 2594,
             "before": " vm.runInContext(declaration(['fqc-master.js','iqc-master.js'].includes(file)?retiredDraftSource(process.cwd(),file):read(file),fn)+'\\n'+fn+'();',f.c);\n",
             "after": " vm.runInContext(declaration(['fqc-master.js','iqc-master.js','ipqc-c.js'].includes(file)?retiredDraftSource(process.cwd(),file):read(file),fn)+'\\n'+fn+'();',f.c);\n"
-          }
-        ]
-      },
-      "tests/begin-recovery-browser.mjs": {
-        "beforeBlob": "4c1b9b2bdc3d90994e4a65dd3fb41c0216ac5fa1",
-        "beforeHash": "126f32d896dbc0229b326499b2daa4f752530d6ffbcf041f5162bae85226e0cf",
-        "beforeLength": 14717,
-        "afterHash": "1cb650656602014f926243776ac6e39b0fc65371eea06719afd6a47508b4d971",
-        "afterNormalizedHash": "1cb650656602014f926243776ac6e39b0fc65371eea06719afd6a47508b4d971",
-        "afterCRLF": [],
-        "rules": [
-          {
-            "offset": 11387,
-            "before": "   stage=spec.module+':leave';const destination=spec.module==='process-authoring'?'dashboard':'quality-dashboard';await page.locator('.nav-item[data-view=\"'+destination+'\"]').click();await page.waitForFunction(view=>window.ProcessSync?.destination?.view===view&&document.documentElement.dataset.processNavigationStatus==='ready',destination);\n",
-            "after": "   stage=spec.module+':leave';const destination=spec.module==='process-authoring'?'dashboard':'quality-dashboard';await page.locator('.nav-item[data-view=\"'+destination+'\"]').click();\n   if(spec.module==='ipqc-c'){\n    const decision=page.locator('#process-navigation-departure');await decision.waitFor();assert.equal(posts,1);\n    await decision.locator('[data-departure-choice=\"stay\"]').click();await decision.waitFor({state:'detached'});\n    assert.equal(await page.evaluate(()=>window.ProcessSync.destination.dataTab),spec.tab);assert.deepEqual(await fixture.readRecordValues(),afterCommit);\n    assert.deepEqual(await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-begin-v1:')))),markers);\n    await page.locator('.nav-item[data-view=\"'+destination+'\"]').click();await decision.waitFor();await decision.locator('[data-departure-choice=\"abandon\"]').click();\n   }\n   await page.waitForFunction(view=>window.ProcessSync?.destination?.view===view&&document.documentElement.dataset.processNavigationStatus==='ready',destination);\n"
-          }
-        ]
-      },
-      "scripts/test-ipqc-c-local-browser.cjs": {
-        "beforeBlob": "20d91d479f9db5ede6b6cd7f8d9d84dd471ab223",
-        "beforeHash": "45de552dcedf8dccaad1faf470e0bef926a8320f5114d09dd7e3c5222eada9f9",
-        "beforeLength": 49660,
-        "afterHash": "d1662591323efec0cb83c3d732b8ecda4f3d93910fdc142e927f52b3cf47389d",
-        "afterNormalizedHash": "d1662591323efec0cb83c3d732b8ecda4f3d93910fdc142e927f52b3cf47389d",
-        "afterCRLF": [],
-        "rules": [
-          {
-            "offset": 23385,
-            "before": " await page.evaluate(()=>{IPQCCUI.navigation.departure.closeClean();IPQCCUI.navigation.reset();window.__delivery++;const root=document.querySelector('main');root.dataset.activeTab='quality-fqc';root.innerHTML='<p id=\"fqc-destination\">FQC destination</p>';});\n",
-            "after": " await page.evaluate(async()=>{const departure=IPQCCUI.navigation.departure,status=departure.inspect();if(status.state!=='dirty'||status.canAbandon!==true)throw Error('EXPECTED_EXPLICIT_C_ABANDONMENT');let blocked=false;try{departure.closeClean();}catch{blocked=true;}if(!blocked)throw Error('C_INPUT_DISCARDED_WITHOUT_CHOICE');const lease=await departure.abandon();departure.closeClean();lease.release();IPQCCUI.navigation.reset();window.__delivery++;const root=document.querySelector('main');root.dataset.activeTab='quality-fqc';root.innerHTML='<p id=\"fqc-destination\">FQC destination</p>';});\n"
-          },
-          {
-            "offset": 40052,
-            "before": " // Actual departure still discards unsent content silently; it is not a filter.\n",
-            "after": " // After the explicit stage discard there is no local input left; clean departure needs no choice.\n"
-          },
-          {
-            "offset": 42560,
-            "before": " assert.equal(await page.evaluate(()=>IPQCCUI.navigation.departure.inspect().state),'clean','navigation may leave without settling the write');\n",
-            "after": " assert.equal(await page.evaluate(()=>IPQCCUI.navigation.departure.inspect().state),'busy','in-flight readback blocks cross-module departure');await assert.rejects(page.evaluate(()=>IPQCCUI.navigation.departure.abandon()));\n"
-          },
-          {
-            "offset": 43527,
-            "before": " assert.equal(await page.evaluate(()=>{const event=new Event('beforeunload',{cancelable:true});window.dispatchEvent(event);return event.defaultPrevented;}),false,'C unknown alone does not prompt on close');\n await page.evaluate(()=>{IPQCCUI.navigation.departure.closeClean();IPQCCUI.navigation.reset();window.__delivery++;document.querySelector('main').innerHTML='<p id=\"other-data\">Other data</p>';});\n assert.equal(await page.locator('#other-data').innerText(),'Other data');\n assert.deepEqual(await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-receipt-only-v1:'))),markers,'navigation retains original operation identity');\n",
-            "after": " await assert.rejects(page.evaluate(()=>IPQCCUI.navigation.departure.closeClean()),'busy readback cannot be discarded or classified as clean');\n assert.deepEqual(h.snapshot(),unknownSnapshot);assert.equal(mutations.length,unknownWrites);\n"
-          },
-          {
-            "offset": 43799,
-            "before": " // A fresh destination owner recovers the same receipt. It never replays Save.\n",
-            "after": " await page.waitForFunction(()=>!__localTest.state().busy&&!__localTest.state().unknown);\n assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1,'late readback settles the one original Save');\n // A separate explicitly requested Save loses its ACK and original receipt response.\n // Only idle UNKNOWN permits the checked abandon lease; the original marker survives.\n mutations.length=0;await page.evaluate(()=>__localTest.edit());await page.locator('[name=\"note\"]').fill('Idle unknown recovery');await page.locator('#ipqcc-editor button[type=\"submit\"]').click();\n dropSave=true;receiptMissing=true;await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>!__localTest.state().busy&&__localTest.state().unknown);\n const idleMarkers=await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-receipt-only-v1:'))),idleSnapshot=h.snapshot();assert(idleMarkers.length>0);\n assert.equal(await page.evaluate(()=>IPQCCUI.navigation.departure.inspect().state),'unknown');\n await assert.rejects(page.evaluate(()=>IPQCCUI.navigation.departure.closeClean()),'UNKNOWN is never silently clean');\n await page.evaluate(async()=>{const departure=IPQCCUI.navigation.departure;if(departure.inspect().canAbandon!==true)throw Error('EXPECTED_IDLE_UNKNOWN_ABANDONMENT');const lease=await departure.abandon();departure.closeClean();lease.release();IPQCCUI.navigation.reset();window.__delivery++;document.querySelector('main').innerHTML='<p id=\"other-data\">Other data</p>';});\n assert.equal(await page.locator('#other-data').innerText(),'Other data');assert.deepEqual(h.snapshot(),idleSnapshot);\n assert.deepEqual(await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-receipt-only-v1:'))),idleMarkers,'explicit abandonment retains the original operation identity');\n"
-          },
-          {
-            "offset": 45779,
-            "before": " assert.equal(await page.evaluate(()=>__localTest.state().unknown),true);\n assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1,'returning does not auto-resend');\n await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>!__localTest.state().busy&&!__localTest.state().unknown);\n assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1,'lost ACK checks receipt without resending');\n",
-            "after": " assert.equal(await page.evaluate(()=>__localTest.state().unknown),true);assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1,'returning does not auto-resend');\n receiptMissing=false;await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>!__localTest.state().busy&&!__localTest.state().unknown);\n assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1,'lost ACK checks only the original receipt without resending');\n"
-          },
-          {
-            "offset": 46252,
-            "before": " await page.evaluate(()=>__localTest.edit());await page.locator('input[name=\"name\"]').fill('Abandoned');assert.equal(await page.evaluate(()=>IPQCCUI.navigation.departure.inspect().state),'clean');await page.evaluate(()=>IPQCCUI.navigation.departure.closeClean());assert.equal(await page.locator('#ipqcc-editor').count(),1,'departure closes model; navigation replaces DOM');\n",
-            "after": "\n await page.evaluate(()=>__localTest.edit());await page.locator('input[name=\"name\"]').fill('Abandoned');assert.equal(await page.evaluate(()=>IPQCCUI.navigation.departure.inspect().state),'dirty');await assert.rejects(page.evaluate(()=>IPQCCUI.navigation.departure.closeClean()));await page.evaluate(async()=>{const departure=IPQCCUI.navigation.departure,lease=await departure.abandon();departure.closeClean();lease.release();});assert.equal(await page.locator('#ipqcc-editor').count(),0,'explicit abandonment closes the unsaved form');\n"
           }
         ]
       },

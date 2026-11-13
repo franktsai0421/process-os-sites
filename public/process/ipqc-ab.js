@@ -463,7 +463,7 @@
     working=entry.snapshot;versionId=entry.version.id;inputBasisOwner=inputOwner(transport());return entry;
   }
   function clearLocalEditing(){clearConflictEscape();localFilterViews.clear();localScopeSelections.clear();for(const p of localPhotos.values())URL.revokeObjectURL(p.preview);localPhotos.clear();localScopes.clear();localModuleGeneration=null;localBeginReceipt=null;localBeginExpectation=null;localBusinessBase=null;localConflict=null;localSaveIntent=null;localBatch=null;modal=null;viewer=null;modalBase=null;modalGeneration=null;working=null;}
-  function abandonLocalEditing(){clearLocalEditing();if(moduleClient&&!moduleClient.hasUnknown())localSent=null;}
+  function abandonLocalEditing(){clearLocalEditing();localSent=null;} // Only RAM; durable transport retains the original submitted identity.
   // Filters share one module batch. Only module departure/confirmed Save clears it.
   const localFilterKey=()=>JSON.stringify([key(),stage]);
   const hasLocalFilterForm=()=>[...localFilterViews.values()].some(view=>view.entry===localScopes.get(view.entry.scope)&&view.modal&&!view.modal.readonly);
@@ -1326,11 +1326,12 @@
   let moduleDeparture;const departureUploads=0;
   window.IPQCABUI = { navigation:{get departure(){return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({
     root:()=>host,flow:()=>control?.moduleDraft?.workflow,sharedDirty:()=>false,sharedOwned:()=>false,ownsRuntimeLocal:()=>true,
-    context:()=>[mutationLifetime,actor(),window.ProcessSync?.identityGeneration?.()],current:()=>!accessBlocked,busy:()=>busy,
-    unknown:()=>localPending(),failed:()=>false,unknownTransports:()=>[moduleClient,...legacyABClients(),photoDepartureTransport].filter(Boolean),unknownReady:()=>!busy,
+    // Departure drops only RAM edits; pending transport identity and write admission remain independent.
+    context:()=>[mutationLifetime,actor(),window.ProcessSync?.identityGeneration?.()],current:()=>!accessBlocked,busy:()=>false,
+    unknown:()=>false,failed:()=>false,unknownTransports:()=>[moduleClient,...legacyABClients(),photoDepartureTransport].filter(Boolean),unknownReady:()=>!busy,
     local:()=>localDirty()||hasLocalFilterForm()||!!modal&&!modal.readonly,canSave:()=>historyAllowsMutation()&&permittedAction('edit'),canDiscard:()=>true,save:()=>saveLocalModule(),
     discardUnknown(){abandonLocalEditing();},discard(){abandonLocalEditing();},closeClean(){abandonLocalEditing();},dialogs:()=>[...document.querySelectorAll('.ipqcab-overlay')],
-  }),{autoAbandon:false});},requiresSave:()=>false,saveForDeparture:()=>saveLocalModule(),canLeave:()=>!busy,error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;abandonLocalEditing();mutationLifetime++;mutationSequence++;activeMutation=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class="ipqcab-page" id="ipqcab-page">IPQC-AB…</section>',
+  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>saveLocalModule(),canLeave:()=>true,error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;abandonLocalEditing();mutationLifetime++;mutationSequence++;activeMutation=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class="ipqcab-page" id="ipqcab-page">IPQC-AB…</section>',
     openItemView(requestedVersion,itemId,requestedScope=''){
       pendingItemView={versionId:requestedVersion,itemId,scope:requestedScope};
       if (host?.dataset.activeTab==='quality-ipqc-ab' && document.contains(host)) { showPendingItem();return; }

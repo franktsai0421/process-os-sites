@@ -378,13 +378,9 @@ for (const [width, lang] of [
           await page.locator('#ab-standard').fill('Discard synthetic local');
           await page.locator('#ab-apply').click();
           const beforeLeave = requests.length;
-          await page.evaluate(() => { void ProcessDeliveryNavigation.navigate('dashboard'); });
-          {
-            const decision=page.locator('#process-navigation-departure');await decision.waitFor();assert.equal(requests.length,beforeLeave);
-            await decision.locator('[data-departure-choice="stay"]').click();await decision.waitFor({state:'detached'});
-            assert((await page.locator('.ipqcab-page').innerText()).includes('Discard synthetic local'),'Stay retains unsent local input');
-            await page.evaluate(() => { void ProcessDeliveryNavigation.navigate('dashboard'); });await decision.waitFor();await decision.locator('[data-departure-choice="abandon"]').click();
-          }
+          await page.evaluate(() =>
+            ProcessDeliveryNavigation.navigate('dashboard'),
+          );
           await page.waitForFunction(() => state.view === 'dashboard');
           assert.equal(
             await page.locator('#process-navigation-departure').count(),
@@ -401,7 +397,7 @@ for (const [width, lang] of [
             ),
           );
           mark(
-            'real router warns, Stay retains input, explicit abandonment discards without writes',
+            'real router silently discards unsent local edit without writes',
           );
           await page.locator('#ipqcab-begin').click();
           await page.locator('[data-ab-edit-item]').first().click();
@@ -440,13 +436,9 @@ for (const [width, lang] of [
               ),
             ),
             postCount = requests.length;
-          await page.evaluate(() => { void ProcessDeliveryNavigation.navigate('dashboard'); });
-          {
-            const decision=page.locator('#process-navigation-departure');await decision.waitFor();assert.equal(requests.length,postCount);
-            await decision.locator('[data-departure-choice="stay"]').click();await decision.waitFor({state:'detached'});
-            assert(await page.evaluate(()=>sharedDraftAccountState().unknown));assert.deepEqual(await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('shared-draft')))),markers);
-            await page.evaluate(() => { void ProcessDeliveryNavigation.navigate('dashboard'); });await decision.waitFor();await decision.locator('[data-departure-choice="abandon"]').click();
-          }
+          await page.evaluate(() =>
+            ProcessDeliveryNavigation.navigate('dashboard'),
+          );
           await page.waitForFunction(() => state.view === 'dashboard');
           await page.evaluate(() => {
             void ProcessDeliveryNavigation.navigate('data', 'quality-ipqc-ab');
