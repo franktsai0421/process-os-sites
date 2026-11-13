@@ -1,3 +1,7 @@
+## 2026-11-13 — 製程送審結果分類
+
+確定拒絕與讀取失敗不再顯示假「結果未知／同步失敗」；無差異送審說明草稿保留。真正未知仍鎖定原操作並唯讀查收據，404不提示重送。後端無差異保護與撤回原快照重送規則不變。[根因與隔離驗證](../../docs/acceptance/process-submit-outcome-20261113.md)。
+
 # 2026-11-12 — Joint account choices and PROCESS original-page history
 
 The same #108 follow-up adds group comparison with fresh authority/revision checks and a readonly PROCESS approved-source view with fresh return to draft. [Full requirement matrix and acceptance limits](../../docs/acceptance/accounts-process-joint-20261112/requirements.md). Keep old backups; stop new backup/recovery rehearsals; no deletion, live switch, merge or deployment. Earlier verification notes are historical.

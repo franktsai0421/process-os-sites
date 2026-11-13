@@ -1,3 +1,7 @@
+## 2026-11-13 — Process Submit outcome candidate
+
+Independent main-based draft-only repair separates confirmed refusal from UNKNOWN, preserves no-change/resubmission policy and receipt-only recovery. [Scope, reproduction and verification limits](docs/acceptance/process-submit-outcome-20261113.md). No merge/deployment/live-data/account change; equipment #110 remains independent.
+
 ## 2026-11-12 — #109 quality + merged main continuation
 
 New isolated follow-up retains #105/#106/#107 and merged #108 main without overwriting earlier candidates. [Current scope and verification limits](docs/acceptance/quality-main-joint-20261112/README.md). Older checkpoint statuses below remain historical. No deployment or production mutation.

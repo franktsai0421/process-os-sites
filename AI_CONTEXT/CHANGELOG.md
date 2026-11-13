@@ -1,3 +1,7 @@
+## 2026-11-13 — Process Submit refusal feedback
+
+Confirmed NO_SUBSTANTIVE_CHANGE now retains actionable draft feedback without a false UNKNOWN badge; genuine unknown writes keep their original receipt inquiry. Bilingual UI/transport/actual-route isolation and exact source evidence: [record](../docs/acceptance/process-submit-outcome-20261113.md). No backend/schema or publication change.
+
 ## 2026-11-12 — #109 quality + merged main continuation
 
 New isolated follow-up retains #105/#106/#107 and merged #108 main without overwriting earlier candidates. [Current scope and verification limits](../docs/acceptance/quality-main-joint-20261112/README.md). Older checkpoint statuses below remain historical. No deployment or production mutation.

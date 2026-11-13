@@ -7,6 +7,7 @@
   // Display only: retain raw transport/classifier/receipt errors.
   window.sharedDraftErrorMessage = (error, language = document.documentElement.lang) => {
     const messages = {
+      NO_SUBSTANTIVE_CHANGE:['本次未送審：已儲存內容相對正式版沒有實質變更。草稿仍保留；請修改並存取草稿後再送審。撤回或發回的原快照可依規則再次送審。','Chưa gửi duyệt: nội dung đã lưu không có thay đổi thực chất so với bản có hiệu lực. Bản nháp vẫn được giữ; hãy sửa và lưu rồi gửi duyệt. Có thể gửi lại bản chụp đã rút hoặc trả về theo quy tắc.'],
       SUCCESSFUL_SAVE_REQUIRED:['請先成功儲存目前共用草稿，再送出審核。','Hãy lưu bản nháp chung thành công trước khi gửi duyệt.'],
       UNSAVED_CHANGES_SAVE_REQUIRED:['共用草稿有儲存後的新修改。請先儲存，再核對版本並送審；目前修改仍保留。','Bản nháp chung có thay đổi sau lần lưu. Hãy lưu rồi kiểm tra phiên bản trước khi gửi duyệt; các thay đổi vẫn được giữ.'],
       DRAFT_REVISION_REQUIRED:['此分頁缺少送審版本確認。請先保留未套用內容，再重新開啟最新頁面。','Tab này thiếu thông tin xác nhận phiên bản gửi duyệt. Hãy giữ nội dung chưa áp dụng rồi mở lại trang mới nhất.'],

@@ -28,8 +28,13 @@ function functionSource(source, signature) {
   throw Error('Unclosed fixture function: ' + signature);
 }
 function helper(file, context = {}) {
-  const declaration = sources[file].split('\n').find(line => line.includes('const displayDraftError ='));
-  assert.ok(declaration, file);
+  const ts = require('typescript'), source = ts.createSourceFile(file, sources[file], ts.ScriptTarget.Latest, true);
+  const matches = [], dependencies = [];
+  function visit(node) { if (ts.isVariableStatement(node)) { if (node.declarationList.declarations.some(declaration => declaration.name.getText(source) === 'displayDraftError')) matches.push(node); if (node.declarationList.declarations.some(declaration => declaration.name.getText(source) === 'fqcRecoveryMessages')) dependencies.push(node.getText(source)); } ts.forEachChild(node, visit); }
+  visit(source);
+  // Helpers can span lines; execute the complete actual declaration.
+  assert.equal(matches.length, 1, file);
+  const declaration = [...dependencies, ...(file === 'fqc-master.js' ? [functionSource(sources[file], 'function isVi()')] : []), matches[0].getText(source)].join('\n');
   return { declaration, context: { window, document, ...context } };
 }
 function evaluate(file, expression, extra = {}) {
@@ -59,14 +64,14 @@ for (const language of ['zh', 'vi']) {
     const error = Object.freeze(Object.assign(Error(code), { status: code === codes[0] ? 409 : 422, details: Object.freeze({ field: 'note' }) }));
     const expected = format(error), alerts = [], alert = { textContent: '', className: '' };
     const overlay = { querySelector(selector) { assert.equal(selector, '.fqc-modal-alert'); return alert; }, input };
-    const show = evaluate('fqc-master.js', functionSource(sources['fqc-master.js'], 'function showModalAlert(') + '\nshowModalAlert', { toast: value => alerts.push(value) });
+    const show = evaluate('fqc-master.js', functionSource(sources['fqc-master.js'], 'function showModalAlert(') + '\nshowModalAlert', { toast: value => alerts.push(value), sharedClient: null });
     show(overlay, 'error', code);
     assert.equal(alert.textContent, expected); assert.equal(alert.className, 'fqc-modal-alert error'); assert.deepEqual(alerts, [expected]);
     show(overlay, 'success', code); assert.equal(alert.textContent, code, 'success/business text is not translated');
 
     const errorBox = { textContent: '' }, iqcOverlay = { querySelector(selector) { assert.equal(selector, '#iqc-part-error'); return errorBox; }, input };
-    const iqcLine = sources['iqc-master.js'].split('\n').find(line => line.includes('const showError = error => overlay.querySelector'));
-    vm.runInNewContext(helper('iqc-master.js').declaration + '\n' + iqcLine + '\nshowError(error);', { window, overlay: iqcOverlay, error });
+    const iqcLine = sources['iqc-master.js'].split('\n').find(line => line.includes('const showError = error =>') && line.includes("'#iqc-part-error'"));
+    vm.runInNewContext(helper('iqc-master.js').declaration + '\n' + iqcLine + '\nshowError(error);', { window, overlay: iqcOverlay, error, owner: {current: () => true} });
     assert.equal(errorBox.textContent, expected);
 
     for (const file of ['ipqc-ab.js', 'ipqc-c.js']) {
@@ -107,7 +112,7 @@ const terms = vm.runInNewContext(cSource.slice(termsStart, termsEnd + 5) + '\nwo
 for (const code of codes) assert.equal(Object.hasOwn(terms, code), false);
 assert.ok(terms.PENDING_LOCKED); assert.ok(terms.RESULT_UNKNOWN_CHECK_BEFORE_RETRY);
 assert.ok(cSource.includes("error.message==='RESULT_UNKNOWN_CHECK_BEFORE_RETRY'"));
-assert.ok(cSource.includes('const terms=workflowErrors[error.message];message=terms?t(...terms):error.message;'));
+assert.ok(cSource.includes("const terms=workflowErrors[error.message];message=error.message==='LOCAL_SAVE_CANCELLED'?'':terms?t(...terms):error.message;"));
 
 // The real shared history sink uses textContent; existing restore-specific
 // reconfirmation stays distinct from these two field-guard messages.
@@ -115,7 +120,7 @@ for (const language of ['zh', 'vi']) {
   document.documentElement.lang = language;
   const rows = [], main = { prepend: row => rows.push(row) }, overlay = { querySelector: () => main };
   const sharedDocument = { ...document, createElement: () => ({ role: '', textContent: '' }) };
-  const showHistory = vm.runInNewContext(functionSource(sources['shared-draft-client.js'], 'function showError(error)') + '\nshowError', { window, document: sharedDocument, overlay });
+  const showHistory = vm.runInNewContext(functionSource(sources['shared-draft-client.js'], 'function showError(error)') + '\nshowError', { window, document: sharedDocument, overlay, current: () => true, close() { throw Error('Unexpected history close'); } });
   for (const code of codes) { showHistory(Error(code)); assert.equal(rows.at(-1).textContent, format(code)); assert.equal(rows.at(-1).role, 'alert'); }
   showHistory(Error('<b>unrecognized</b>')); assert.equal(rows.at(-1).textContent, '<b>unrecognized</b>');
 }

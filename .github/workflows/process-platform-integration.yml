@@ -60,6 +60,12 @@ jobs:
         with:
           node-version: '24'
       - run: npm ci --no-audit --no-fund
+      - name: Process Submit refusal, receipt-only recovery and lifecycle
+        run: node --test tests/process-submit-outcome.test.mjs tests/process-submit-outcome-source.test.cjs tests/shared-draft-no-change.test.mjs tests/shared-draft-submit-contract.test.mjs tests/shared-draft-receipt-recovery.test.mjs
+      - name: Existing Save feedback and complete bilingual error sinks
+        run: |
+          node scripts/test-authoring-save-validation-ui.cjs
+          node scripts/test-shared-draft-error-messages.cjs
       - name: Reviewed shell bundle order bytes and completion contract
         run: node --test tests/process-shell-bundle-oracle.test.mjs tests/process-scripts-build.test.mjs
       - name: Complete source inverse EOL and effective drift rejection
