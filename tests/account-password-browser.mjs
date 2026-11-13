@@ -2,7 +2,7 @@
 // Do not record bodies, console messages, cookies, passwords or verifier material.
 import assert from 'node:assert/strict';import fs from 'node:fs';import {randomUUID} from 'node:crypto';import {chromium} from 'playwright';
 import {createRootEntryFixture} from './root-entry-native-fixture.mjs';import {workerSource} from './helpers/native-worker-source.mjs';
-let f,browser,stage='setup';const contexts=new Set(),report={status:'RUNNING',cases:[],physicalDevice:false,ime:false,live:false,realAccounts:false};
+let f,browser,stage='setup',observe=()=>({});const contexts=new Set(),report={status:'RUNNING',cases:[],physicalDevice:false,ime:false,live:false,realAccounts:false};
 const out='.sites-runtime/password-browser';fs.mkdirSync(out,{recursive:true});
 try{
  stage='native-fixture';f=await createRootEntryFixture({syntheticBindings:{PROCESS_IMPORT_ENABLED:'0',PROCESS_SESSION_SECRET:randomUUID(),DEMO_LOGIN_ENABLED:'false'}});
@@ -14,15 +14,15 @@ try{
   const values={platformUsers:JSON.stringify([{id:'frank',role:'admin',password:first},{id:'manager',role:'admin',password:first},{id:'missing',role:'staff'},{id:'unknown',role:'staff'}].map(u=>({name:'Synthetic '+u.id,enabled:true,inheritRole:true,authEpoch:1,...u}))),processCustomRoles:'[]',processRoleTemplateOverrides:'{}',processAccessControl:'{"schemaVersion":2,"primaryAdminId":"frank","audit":[]}',masterDataControl:'{"active":{"AB":{"products":[],"lines":[],"categoryGroups":[]},"C":{"products":[],"lines":[],"categoryGroups":[]},"PROCESS":{}},"versions":[]}',backupSettings:'{"enabled":false}',processMasterData:'{}',bomOverrides:'{"replaceAll":true,"data":{}}'};
   const envelope=await records.encodeRecordValues(bucket,values);await f.db.prepare('INSERT OR REPLACE INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').bind(envelope,'synthetic-password').run();
   const context=await browser.newContext({viewport:{width,height:900},serviceWorkers:'block'});contexts.add(context);await context.addInitScript(lang=>localStorage.setItem('processUILanguage',lang),language);await context.route('**/*',r=>new URL(r.request().url()).origin===origin?r.continue():r.abort());
-  const page=await context.newPage(),errors=[];page.setDefaultTimeout(30000);page.on('pageerror',e=>errors.push(e.name));let posts=0,mode='normal',releaseSlow,slowSeen;
+  const page=await context.newPage(),errors=[],errorSources=[];page.setDefaultTimeout(30000);page.on('pageerror',e=>{errors.push(['Error','TypeError','ReferenceError','SyntaxError','RangeError'].includes(e.name)?e.name:'OtherError');for(const m of (e.stack||'').matchAll(/\/process\/([a-z0-9.-]+\.js)(?:\?[^\s:]*)?:(\d+):(\d+)/gi))errorSources.push({file:m[1],line:Number(m[2]),column:Number(m[3])});});let posts=0,postStatus=null,mode='normal',releaseSlow,slowSeen;observe=()=>({posts,postStatus,mode,pageErrorNames:[...errors],errorSources:[...errorSources]});
   const slowReady=new Promise(r=>slowSeen=r),slowGate=new Promise(r=>releaseSlow=r);
   await context.route('**/api/user-access',async route=>{
-   if(route.request().method()!=='POST')return route.continue();posts++;const response=await route.fetch();
+   if(route.request().method()!=='POST')return route.continue();posts++;const response=await route.fetch();postStatus=response.status();
    if(mode==='slow'){slowSeen();await slowGate;}
    if(mode==='lost')return route.abort('connectionreset');
    return route.fulfill({response});
   });
-  stage=language+'-'+width+'-login';await page.goto(origin+'/login?view=data&dataTab=users');await page.locator('#id').fill('manager');await page.locator('#password').fill(first);await page.locator('.site-entry-submit').click();await page.locator('#ua-header-password').waitFor();
+  stage=language+'-'+width+'-login';await page.goto(origin+'/login?view=data&dataTab=users');await page.locator('#id').fill('manager');await page.locator('#password').fill(first);await page.locator('.site-entry-submit').click();await page.locator('#ua-header-password').waitFor();await page.waitForFunction(()=>document.documentElement.dataset.processNavigationStatus==='ready'&&!document.querySelector('#process-boot'));
   const reset=async id=>{await page.locator('[data-ua-more="'+id+'"]').click();await page.locator('.ua-dialog[open] [data-ua-password]').click();await page.locator('.ua-dialog[open] input[name=password]').waitFor();};
   const fill=async secret=>{await page.locator('.ua-dialog[open] input[name=password]').fill(secret);await page.locator('.ua-dialog[open] input[name=confirmation]').fill(secret);};
   const submit=()=>page.locator('.ua-dialog[open] [type=submit]');
@@ -37,10 +37,15 @@ try{
   // Actual form login below proves the new own password; avoid a duplicate API
   // login that would push four contexts beyond the 15/account/5min limit.
   // Fresh page owns a fresh session after own-password epoch change.
-  await page.goto(origin+'/login?view=data&dataTab=users');await page.locator('#id').fill('manager');await page.locator('#password').fill(ownNext);await page.locator('.site-entry-submit').click();await page.locator('#ua-header-password').waitFor();
-  stage=language+'-'+width+'-lost-ack';await reset('unknown');await fill(unknownNext);mode='lost';await submit().click();await page.waitForFunction(()=>!!document.querySelector('.ua-dialog[open] .ua-error button'));assert.equal(posts,4);assert.equal(await submit().isDisabled(),true);assert.equal(await page.locator('[data-ua-result]').count(),0);mode='normal';await page.locator('.ua-dialog[open] .ua-error button').click();assert.equal(posts,4);assert.equal(await submit().isDisabled(),true);await checkLogin('unknown',unknownNext,200);
-  assert.deepEqual(errors,[]);report.cases.push({language,width,storage:'records',resetAndNewLogin:true,ownChangeAndNewLogin:true,wrongOldPasswordRefused:true,lostAckUnknown:true,readOnlyRecoveryPosts:0,slowOver15s:language==='zh'&&width===1280,posts});await context.close();contexts.delete(context);
+  await page.goto(origin+'/login?view=data&dataTab=users');await page.locator('#id').fill('manager');await page.locator('#password').fill(ownNext);await page.locator('.site-entry-submit').click();await page.locator('#ua-header-password').waitFor();await page.waitForFunction(()=>document.documentElement.dataset.processNavigationStatus==='ready'&&!document.querySelector('#process-boot'));
+  stage=language+'-'+width+'-lost-ack-send';await reset('unknown');await fill(unknownNext);mode='lost';await submit().click();await page.waitForFunction(()=>!!document.querySelector('.ua-dialog[open] .ua-error button'));
+  stage=language+'-'+width+'-lost-ack-committed-response';assert.equal(postStatus,200);assert.equal(posts,4);
+  stage=language+'-'+width+'-lost-ack-disabled';assert.equal(await submit().isDisabled(),true);
+  stage=language+'-'+width+'-lost-ack-no-success';assert.equal(await page.locator('[data-ua-result]').count(),0);
+  stage=language+'-'+width+'-read-only-recovery';mode='normal';await page.locator('.ua-dialog[open] .ua-error button').click();assert.equal(posts,4);assert.equal(await submit().isDisabled(),true);
+  stage=language+'-'+width+'-lost-ack-new-login';await checkLogin('unknown',unknownNext,200);
+  stage=language+'-'+width+'-page-errors';assert.deepEqual(errors,[]);report.cases.push({language,width,storage:'records',resetAndNewLogin:true,ownChangeAndNewLogin:true,wrongOldPasswordRefused:true,lostAckUnknown:true,readOnlyRecoveryPosts:0,slowOver15s:language==='zh'&&width===1280,posts});await context.close();contexts.delete(context);
  }
  report.status='PASS_COMPILED_PASSWORD_BROWSER';report.programCommit=f.programCommit;
-}catch(error){report.status='FAIL_COMPILED_PASSWORD_BROWSER';report.failure={stage,reason:/Executable doesn't exist/.test(error?.message||'')?'CHROMIUM_MISSING':/NO_OUTBOUND|EGRESS|OUTBOUND/.test(error?.message||'')?'OUTBOUND_REFUSED':/socket\(\).*Operation not permitted/.test(error?.message||'')?'SOCKET_REFUSED':null,name:error?.name==='AssertionError'?'AssertionError':error?.name==='TimeoutError'?'TimeoutError':'Error'};process.exitCode=1;}
+}catch(error){report.status='FAIL_COMPILED_PASSWORD_BROWSER';report.failure={stage,observation:observe(),reason:/Executable doesn't exist/.test(error?.message||'')?'CHROMIUM_MISSING':/NO_OUTBOUND|EGRESS|OUTBOUND/.test(error?.message||'')?'OUTBOUND_REFUSED':/socket\(\).*Operation not permitted/.test(error?.message||'')?'SOCKET_REFUSED':null,name:error?.name==='AssertionError'?'AssertionError':error?.name==='TimeoutError'?'TimeoutError':'Error'};process.exitCode=1;}
 finally{for(const c of contexts)await c.close();await browser?.close();await f?.close();console.log(JSON.stringify(report));}

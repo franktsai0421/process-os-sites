@@ -47,3 +47,7 @@ void test('divergent inline account metadata cannot substitute for the SHA-verif
 void test('intentional failed snapshot comparison exposes no generated credential in its error',()=>{
  const secret=randomUUID();let caught;try{same({privateValue:secret},{privateValue:randomUUID()});}catch(error){caught=error;}assert(caught instanceof Error);assert.equal(caught.message.includes(secret),false);assert.equal(JSON.stringify(caught).includes(secret),false);
 });
+
+void test('valid older records without the optional inline user copy still initialize a password from verified authority',async t=>{
+ const f=await passwordFixture();t.after(()=>f.close());const envelope=JSON.parse(f.snapshot().values);delete envelope.platformUsers;f.db.prepare('UPDATE shared_state SET "values"=?').run(JSON.stringify(envelope));const next=randomUUID();assert.equal((await f.post('manager',change('missing',next))).status,200);assert.equal((await f.sign('missing',next)).status,200);assert.equal((await f.sign('missing')).status,401);assert.equal((await f.get('manager')).status,200);const state=await f.core.readState();assert.equal(JSON.parse(state.values.platformUsers).find(u=>u.id==='missing').authEpoch,2);same(JSON.parse(f.snapshot().values).platformUsers,state.values.platformUsers);
+});

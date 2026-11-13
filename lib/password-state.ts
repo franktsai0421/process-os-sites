@@ -35,7 +35,7 @@ export async function readPasswordState():Promise<State>{
   // Match GET's capabilities without hydrating unrelated workflow bodies.
   const root=JSON.parse(raw);return JSON.stringify({pageDraftLayout:root?.pageDraftLayout,active:{LINES:!!root?.active?.LINES},...(Array.isArray(root?.versions)?{versions:[]}: {})});
  }});
- if(stored.platformUsers!==decoded.values.platformUsers)fail();
+ if(stored.platformUsers!==undefined&&stored.platformUsers!==decoded.values.platformUsers)fail();
  const state={revision:row.revision,...decoded};
  pins.set(state,{raw:row.values,revision:row.revision,baseline:JSON.stringify(state.values),values:{...state.values},consumed:false});
  return state;
