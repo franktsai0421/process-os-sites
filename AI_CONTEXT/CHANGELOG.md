@@ -1,3 +1,7 @@
+## 2026-11-13 — Password-only persistence and slow response candidate
+
+Isolate records-v1 credential/audit writes from unrelated business hydration; avoid artificial password POST aborts while retaining UNKNOWN/no-replay, authorization, old-password and CAS fences. [Isolated evidence and limits](../docs/acceptance/password-outcome-20261113.md). Draft only; no deployment/account/data migration.
+
 ## 2026-11-13 — Equipment and Submit integration
 
 Merged #110 main into existing #111 with a combined shared-client cache tag and both exact source projection chains. No backend/schema or policy change; [risk and validation](../docs/acceptance/process-submit-outcome-20261113.md).

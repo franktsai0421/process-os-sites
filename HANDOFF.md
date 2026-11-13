@@ -1,3 +1,7 @@
+## 2026-11-13 — Password outcome repair candidate
+
+Independent main-based password-only records overlay and response-wait repair; administrator reset, own-password and fresh-login isolation with UNKNOWN/no-replay guards. [Evidence, source cause and live limitations](docs/acceptance/password-outcome-20261113.md). Draft review only; no real account, data, schema, merge or deployment change.
+
 ## 2026-11-13 — #111 integrates merged #110
 
 Existing #111 now merges main f0f425d and preserves both equipment/media/history and process Submit outcome behavior. Exact two-origin source proof, risk matrix and merge-gate limits: [record](docs/acceptance/process-submit-outcome-20261113.md). No deployment or real-data changes; historical checkpoints below retain their original scope.

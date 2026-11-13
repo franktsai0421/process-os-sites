@@ -1,3 +1,7 @@
+## 2026-11-13 — Password operation isolation
+
+Password POST on records-v1 uses a server-pinned one-use account/audit overlay, preserves opaque business refs and final revision CAS, and keeps primary/peer/self authorization plus old-password verification. General partial saves remain forbidden. Only password POST waits for a terminal response without the former 15s abort; unknown outcomes remain blocked with explicit read-only recovery and fresh-login verification. [Implementation evidence and remaining live limits](../../docs/acceptance/password-outcome-20261113.md). No schema or real credential change.
+
 ## 2026-11-11 — Snapshot directory network-root portability
 
 `assertPlainDirectory` rejects UNC and `//` network roots before host path normalization, retaining the resolved-root and symlink checks. POSIX previously normalized those inputs before the rejection could recognize them. Isolated adapter checks cover both forms without network access; snapshot content, DB/R2, permissions and transfer/publication behavior are unchanged.

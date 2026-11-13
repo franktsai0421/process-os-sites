@@ -4,6 +4,7 @@ import {env} from 'cloudflare:workers';
 import {readState,identity,sameOrigin,encodeValues,stateRevisionIsCurrent,responseHeaders as headers,parse,sessionCookie} from '@/lib/process-state';
 import {effectiveAccess,roleTemplates} from '@/lib/user-access';
 import {passwordHash,verifyPassword,validatePassword,passwordCredentialState} from '@/lib/passwords';
+import {readPasswordState,encodePasswordState,passwordStateIsSelected} from '@/lib/password-state';
 import {catalog,columns,accessKeys,isPrimary,managementRight,editableCells,PRIMARY_ADMIN_ID,invalidDependencies,effectiveCells,roleEditable,newDependencyIssues} from '../../../public/process/access-policy.mjs';
 const safe=(user:any)=>{const {password:_password,passwordHash:_hash,...rest}=user;return rest;};
 const denied=()=>{throw Error('FORBIDDEN');};
@@ -55,7 +56,7 @@ export async function POST(request:Request){if(!sameOrigin(request))return Respo
  try{
   if(!body||Array.isArray(body)||typeof body!=='object'||JSON.stringify(body).length>100000)throw Error('INVALID_INPUT');
   const allowedFields=['action','baseRevision','id','name','role','enabled','changes','password','confirmation','oldPassword','description','access','confirmFinalApproval'];if(Object.keys(body).some(k=>!allowedFields.includes(k)))throw Error('INVALID_INPUT');
-  const state=await readState({deferHistory:true,deferDependencyHistory:true}),signed=await identity(request,state);if(!signed)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers});
+  const state=body.action==='password'?await readPasswordState():await readState({deferHistory:true,deferDependencyHistory:true}),signed=await identity(request,state);if(!signed)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers});
   if(state.values.maintenanceMode==='1')return Response.json({error:'MAINTENANCE'},{status:503,headers});
   if(body.baseRevision!==state.revision)return Response.json({error:'REVISION_CHANGED',revision:state.revision},{status:409,headers});
   const {users,actor,access,roles}=actors(state,signed.id),values={...state.values},now=new Date().toISOString(),id=String(body.id||'').trim().toLowerCase(),target=users.find((u:any)=>u.id===id),roleControl=parse(values.processRoleTemplateOverrides,{}),custom=parse(values.processCustomRoles,[]);
@@ -119,7 +120,7 @@ export async function POST(request:Request){if(!sameOrigin(request))return Respo
   }
   assertEffectiveReviewChoices(values,body);
   if(!await stateRevisionIsCurrent(state))throw Error('REVISION_CHANGED');
-  const result=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,await encodeValues(values,state),now,state.revision).run();if(!result.meta.changes)throw Error('REVISION_CHANGED');
+  const result=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,await (passwordStateIsSelected(state)?encodePasswordState(values,state):encodeValues(values,state)),now,state.revision).run();if(!result.meta.changes)throw Error('REVISION_CHANGED');
   return Response.json({...projection({revision:state.revision+1,values},actor.id),ok:true,relogin:passwordOwn||users.find((u:any)=>u.id===actor.id)?.authEpoch!==parse(state.values.platformUsers,[]).find((u:any)=>u.id===actor.id)?.authEpoch},{headers:{...headers,...(passwordOwn?{'Set-Cookie':sessionCookie(request,'')}: {})}});
  }catch(error){const message=(error as Error).message,known=new Set(['REVIEW_PERMISSION_DERIVED','FORBIDDEN','INVALID_CELLS','EDIT_DEPENDENCY_REQUIRED','VIEW_DEPENDENCY_REQUIRED','INVALID_INPUT','INVALID_USER','ACCOUNT_EXISTS','INVALID_ROLE','GRANT_EXCEEDS_ACTOR','ACCOUNT_NOT_FOUND','OLD_PASSWORD_INCORRECT','USE_STATUS_ACTION','DEFAULT_ROLE_PROTECTED','ROLE_ASSIGNED','ROLE_EXISTS','INVALID_ACTION','REVISION_CHANGED','PRIMARY_BINDING_MISMATCH','PASSWORD_LENGTH','PASSWORD_MISMATCH','PASSWORD_SERVICE_UNAVAILABLE']);const code=known.has(message)?message:'SERVER_ERROR',status=code==='FORBIDDEN'?403:code==='ACCOUNT_NOT_FOUND'?404:code==='REVISION_CHANGED'?409:(code==='PRIMARY_BINDING_MISMATCH'||code==='PASSWORD_SERVICE_UNAVAILABLE')?503:code==='SERVER_ERROR'?500:400;return Response.json({error:code},{status,headers});}
 }
