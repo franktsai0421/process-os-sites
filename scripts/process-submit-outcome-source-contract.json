@@ -111,6 +111,44 @@
           "after": " return{f,box,doc,root,calls,local,session,api,timers,canvas:box.ProcessCanvasLocal,select:()=>doc.querySelector('#canvas-approved-version'),display:()=>doc.querySelector('[data-vd-approved-view]'),async open(){await this.select().onfocus();},async choose(id){const select=this.select();select.value=id;await select.onchange();},rotate:()=>epoch++,delivery:()=>delivery++,async get(extra){return route.GET(new Request('https://fixture.invalid/api/process-authoring/workflow?approvedOnly=1&'+extra,{headers:f.headers}));},close:()=>f.close()};\n"
         }
       ]
+    },
+    "tests/navigation-adapters.test.mjs": {
+      "beforeBlob": "e660711d2da187019c64d2294e80821de66bb5da",
+      "beforeHash": "b7caa79acbde452042792d5ad7bd6500565f15ad728a9f8c3a8e3986df7becb1",
+      "afterHash": "9862aa6d8d9f3869561880d5952c2f63b5971baedb4beaa1222ad1a18fc2297f",
+      "beforeLength": 21539,
+      "afterLength": 21526,
+      "rules": [
+        {
+          "offset": 17148,
+          "before": "  'process-authoring-v3.js':'20261110-process-integration4',\n",
+          "after": "  'process-authoring-v3.js':'20261113-submit-outcome1',\n"
+        },
+        {
+          "offset": 17437,
+          "before": "  'shared-draft-client.js':'20261112-quality-main-joint1',\n",
+          "after": "  'shared-draft-client.js':'20261113-submit-outcome1',\n"
+        },
+        {
+          "offset": 18094,
+          "before": "  'version-draft-ui.js':'20261112-quality-main-joint1',\n",
+          "after": "  'version-draft-ui.js':'20261113-submit-outcome1',\n"
+        }
+      ]
+    },
+    "tests/account-page-entry.test.cjs": {
+      "beforeBlob": "409503be1643a060e8e02ae757dbcdd8d26ef0b1",
+      "beforeHash": "4d9012abc04cd9e1e2897a95d4abcf402e21b07aecc3e98f7a1db8f9d6fadddd",
+      "afterHash": "52bd291a8a1de07baddb6c91b73acc506a3dc8549ea92e92a4cda9762deff112",
+      "beforeLength": 2948,
+      "afterLength": 2940,
+      "rules": [
+        {
+          "offset": 454,
+          "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261112-quality-main-joint1','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261112-quality-main-joint1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
+          "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-submit-outcome1','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+        }
+      ]
     }
   }
 }
