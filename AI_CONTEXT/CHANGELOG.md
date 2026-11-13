@@ -1,3 +1,10 @@
+## 2026-11-13 — Tooling/equipment cloud integration draft
+
+Integrated selected old-branch conflict, photo staging, page retention and
+approved-history UI into main2434507. Added bounded photo/IQC reads with original
+hash-only uncertain-upload verification. Preserved FQC/IQC transfer Save and
+IPQC manual boundary. [Sources, tests and native-browser blocker](../docs/acceptance/equipment-integration-20261113/README.md).
+
 ## 2026-11-12 — #109 quality + merged main continuation
 
 New isolated follow-up retains #105/#106/#107 and merged #108 main without overwriting earlier candidates. [Current scope and verification limits](../docs/acceptance/quality-main-joint-20261112/README.md). Older checkpoint statuses below remain historical. No deployment or production mutation.

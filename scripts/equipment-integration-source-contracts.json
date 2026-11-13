@@ -1,0 +1,1335 @@
+[
+  {
+    "file": "public/process/routine-equipment.js",
+    "beforeHash": "e4173e3c4aec865e77baa9b037426e364773a3eb0245e12caaec039d027c984b",
+    "afterHash": "9e8936fa50f694856586f06acbf1307ea618b5358fe276554ce97769a5bf9656",
+    "rules": [
+      {
+        "offset": 2269,
+        "before": "",
+        "after": "  let historyDisplayEpoch=0,approvedHistoryView=null,historyUploads=0;\n  const historyAllowsMutation=()=>!approvedHistoryView?.blocked;\n  const assertCurrentDisplay=()=>{if(!historyAllowsMutation())throw Error('APPROVED_HISTORY_READ_ONLY');};\n  const guardWorking=(node,callback)=>{const epoch=historyDisplayEpoch,page=host;return function(...args){if(epoch!==historyDisplayEpoch||!historyAllowsMutation()||page!==host||(!node?.isConnected&&args[0]?.type!=='close'))return;const result=callback.apply(this,args);if(result&&typeof result.finally==='function')return result.finally(()=>approvedHistoryView?.refreshControls?.());approvedHistoryView?.refreshControls?.();return result;};};\n"
+      },
+      {
+        "offset": 10386,
+        "before": "",
+        "after": "    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 12899,
+        "before": "",
+        "after": "        if(batch.comparedSave)settleEquipmentBatch(batch,canonical);\n"
+      },
+      {
+        "offset": 13609,
+        "before": "        syncBase=canonical;pendingSaveBatch=null;localBeginReceipt=null;\n",
+        "after": "        if(!batch.comparedSave)syncBase=canonical;pendingSaveBatch=null;localBeginReceipt=null;\n"
+      },
+      {
+        "offset": 18728,
+        "before": "",
+        "after": "  // Save compares only this captured RAM batch. Structural/source guards never\n  // become ordinary Mine/Theirs choices, and the original base stays untouched.\n  let equipmentSaveChoice = null, equipmentSaveComparison = null;\n  function retireEquipmentSaveComparison(){\n    const comparison=equipmentSaveComparison;\n    if(!comparison||!comparison.current())return;\n    // The comparison has not uploaded or dispatched. Invalidate only its private\n    // attempt before departure inspects busy again; late GETs cannot adopt/send.\n    equipmentSaveComparison=null;writeShared.attempt=null;busy=false;equipmentSaveChoice?.();\n  }\n  const equipmentSaveCollections = ['equipment','groups','categories','subcategories','issues'];\n  function compareEquipmentSave(base,mine,latest,photos){\n    for(const data of [base,mine,latest])for(const key of equipmentSaveCollections){\n      const rows=data?.[key];if(!Array.isArray(rows)||rows.some(row=>!row||typeof row!=='object'||Array.isArray(row)||typeof row.id!=='string'||!row.id)||new Set(rows.map(row=>row.id)).size!==rows.length)throw Error('INVALID_EQUIPMENT_SNAPSHOT');\n    }\n    for(const [id]of photos){\n      const count=data=>equipmentSaveCollections.filter(key=>key!=='issues').reduce((sum,key)=>sum+data[key].filter(row=>row.id===id).length,0);\n      if(count(mine)!==1||count(base)>1||count(latest)>1)throw Error(t('照片目標不明：不同類型有相同識別；本次未上傳或存取，輸入仍保留。','Không xác định được đích ảnh: các loại khác nhau có cùng mã. Chưa tải ảnh hay lưu; dữ liệu nhập được giữ lại.'));\n    }\n    const original=snapshotChanges(base,mine),units=[],conflicts=[],photoRows=new Set();\n    const photoKeys=key=>key==='equipment'?['photoId','photoHidden']:['photoId'];\n    const labels={name:['名稱','Tên'],nameZh:['中文名稱','Tên tiếng Trung'],nameVi:['越南文名稱','Tên tiếng Việt'],unit:['單位','Đơn vị'],spec:['規格','Quy cách'],owner:['保管人','Người giữ'],enabled:['啟用','Kích hoạt'],calibrationMethod:['校正方式','Cách hiệu chuẩn'],calibrationCycle:['校正週期','Chu kỳ hiệu chuẩn'],customCycle:['自訂週期','Chu kỳ tùy chỉnh'],calibratedAt:['校正日期','Ngày hiệu chuẩn'],expiresAt:['到期日期','Ngày hết hạn'],notes:['備註','Ghi chú'],intakeDate:['入庫日期','Ngày nhập kho'],confirmed:['來源確認','Xác nhận nguồn'],status:['狀態','Trạng thái'],resolution:['處理結果','Kết quả xử lý']};\n    const values=(row,fields)=>fields.map(field=>row?.[field]??(field==='photoHidden'?false:''));\n    const add=(key,id,fields,pending)=>{\n      const before=base[key].find(row=>row.id===id),local=mine[key].find(row=>row.id===id),peer=latest[key].find(row=>row.id===id);\n      if(!before||!local||!peer)throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');\n      const old=values(before,fields),next=values(local,fields),remote=values(peer,fields);\n      const conflict=!equipmentContentEqual(old,remote)&&(!!pending||!equipmentContentEqual(next,remote));\n      const unit={key,id,fields,pending,conflict};units.push(unit);\n      const preview=(row,entry)=>({hidden:row.photoHidden===true,url:row.photoHidden?'':entry?.url||(row.photoId?api+'/photo?id='+encodeURIComponent(row.photoId):row.photoSource?.webPath||'')});\n      if(conflict)conflicts.push({photo:fields.includes('photoId')?{mine:preview(local,pending),theirs:preview(peer)}:null,label:local.name||local.nameVi||local.assetCode||id,fields:fields.includes('photoId')?t('照片','Ảnh'):fields.map(field=>labels[field]?t(...labels[field]):field).join(' / '),mine:pending?t('新照片','Ảnh mới')+' · '+(pending.file.name||t('本機圖片','Ảnh cục bộ')):next,theirs:remote});\n    };\n    for(const patch of original.patches){\n      if(patch.op!=='set'||['groupId','categoryId','subcategoryId'].includes(patch.path[2]))continue;\n      const [key,entity,field]=patch.path;\n      if(['photoId','photoHidden'].includes(field)){const token=key+':'+entity.id;if(photoRows.has(token))continue;photoRows.add(token);add(key,entity.id,photoKeys(key),photos.get(entity.id));}\n      else add(key,entity.id,[field]);\n    }\n    for(const [id,pending]of photos){\n      const key=equipmentSaveCollections.find(kind=>kind!=='issues'&&mine[kind].some(row=>row.id===id));if(!key)throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');\n      if(!base[key].some(row=>row.id===id))continue; // Insert still uses original parent/source guards.\n      const token=key+':'+id;if(!photoRows.has(token)){photoRows.add(token);add(key,id,photoKeys(key),pending);}\n    }\n    return {conflicts,materialize(choice){\n      if(!['mine','theirs'].includes(choice))throw Error('INVALID_EQUIPMENT_SAVE_CHOICE');\n      const desired=clone(latest),patches=[],guards=[],chosenPhotos=new Map(photos),ordinary=new Set(units.flatMap(unit=>unit.fields.map(field=>JSON.stringify([unit.key,{id:unit.id},field]))));\n      // Keep original structural commands AND whole-parent/row guards verbatim.\n      for(const patch of original.patches)if(!ordinary.has(JSON.stringify(patch.path))){\n        patches.push(clone(patch));const [key,entity,field]=patch.path;\n        if(patch.op==='insert'){if(desired[key].some(row=>row.id===patch.value.id))throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');desired[key].push(clone(patch.value));}\n        else {const index=desired[key].findIndex(row=>row.id===entity.id);if(index<0)throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');if(patch.op==='remove')desired[key].splice(index,1);else desired[key][index][field]=clone(patch.value);}\n      }\n      for(const guard of original.guards)if(!ordinary.has(JSON.stringify(guard.path)))guards.push(clone(guard));\n      for(const unit of units){\n        if(unit.conflict&&choice==='theirs'){if(unit.pending)chosenPhotos.delete(unit.id);continue;}\n        const local=mine[unit.key].find(row=>row.id===unit.id),peer=latest[unit.key].find(row=>row.id===unit.id),row=desired[unit.key].find(row=>row.id===unit.id);\n        for(const field of unit.fields){const value=local[field]??(field==='photoHidden'?false:''),path=[unit.key,{id:unit.id},field];row[field]=clone(value);\n          if(!equipmentContentEqual(value,peer[field])||unit.pending){patches.push({op:'set',path,value:clone(value)});guards.push({path,value:peer[field]});}\n        }\n      }\n      const order=path=>{const index=original.patches.findIndex(patch=>equipmentContentEqual(patch.path,path));return index<0?original.patches.length:index;};\n      patches.sort((a,b)=>order(a.path)-order(b.path));\n      return {local:desired,patches,guards,chosenPhotos};\n    }};\n  }\n  function chooseEquipmentSave(conflicts,current){\n    return new Promise(resolve=>{\n      const overlay=document.createElement('div'),prior=document.activeElement;\n      overlay.className='routine-modal-backdrop';overlay.setAttribute('data-equipment-save-conflicts','');\n      const valueHTML=(item,side)=>{const image=item.photo?.[side];return image?image.hidden?h(t('已移除','Đã xóa')):image.url?'<img src=\"'+h(image.url)+'\" alt=\"'+h(t('衝突照片預覽','Xem trước ảnh xung đột'))+'\" style=\"display:block;max-width:180px;max-height:150px;object-fit:contain\">':h(t('無照片','Không có ảnh')):h(JSON.stringify(item[side]));};\n      overlay.innerHTML=`<section class=\"routine-modal\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"equipment-save-choice-title\" style=\"width:min(680px,calc(100vw - 24px));max-height:calc(100dvh - 32px);overflow:auto;overflow-wrap:anywhere\"><h2 id=\"equipment-save-choice-title\">${t('選擇衝突處理方式','Chọn cách xử lý xung đột')}</h2><p>${t('一次處理所有衝突，沒有衝突的雙方修改都會保留。','Áp dụng một lựa chọn cho tất cả xung đột; giữ các thay đổi không xung đột.')}</p><ul>${conflicts.map(item=>`<li><strong>${h(item.label)} · ${h(item.fields)}</strong><p>${t('我的','Của tôi')}: ${valueHTML(item,'mine')}</p><p>${t('對方的','Của người khác')}: ${valueHTML(item,'theirs')}</p></li>`).join('')}</ul><div style=\"display:flex;flex-wrap:wrap;gap:8px\"><button type=\"button\" class=\"button\" data-equipment-save-choice=\"mine\">${t('用我的','Dùng của tôi')}</button><button type=\"button\" class=\"button\" data-equipment-save-choice=\"theirs\">${t('用對方的','Dùng của người khác')}</button><button type=\"button\" class=\"button ghost\" data-equipment-save-choice=\"cancel\">${t('取消','Hủy')}</button></div></section>`;\n      let done=false;const close=value=>{if(done)return;done=true;overlay.remove();document.removeEventListener('keydown',keydown);window.removeEventListener('pagehide',cancel);if(equipmentSaveChoice===cancel)equipmentSaveChoice=null;if(current()&&prior?.isConnected)prior.focus?.({preventScroll:true});resolve(value);};\n      const cancel=()=>close('cancel'),keydown=event=>{if(event.key==='Escape'){event.preventDefault();cancel();}else if(event.key==='Tab'){const buttons=[...overlay.querySelectorAll('button')],first=buttons[0],last=buttons.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}};\n      equipmentSaveChoice=cancel;for(const button of overlay.querySelectorAll('[data-equipment-save-choice]'))button.onclick=()=>close(current()?button.dataset.equipmentSaveChoice:'cancel');\n      overlay.onclick=event=>{if(event.target===overlay)cancel();};document.addEventListener('keydown',keydown);window.addEventListener('pagehide',cancel);document.body.append(overlay);overlay.querySelector('[data-equipment-save-choice=\"cancel\"]').focus();\n    });\n  }\n  // Reconcile only after durable confirmation. Later input is kept, and fields\n  // changed after dispatch keep the basis they actually saw if peers changed it.\n  function settleEquipmentBatch(batch,canonical){\n    const next=clone(canonical),basis=clone(canonical),before=batch.sentInput;\n    for(const key of equipmentSaveCollections){\n      for(const prior of before[key]){\n        const current=working?.[key].find(row=>row.id===prior.id),index=next[key].findIndex(row=>row.id===prior.id),baseIndex=basis[key].findIndex(row=>row.id===prior.id);\n        if(!current){if(index>=0)next[key].splice(index,1);continue;}\n        const pending=pendingPhotos.get(prior.id),captured=batch.sentPhotos?.get(prior.id),sameCaptured=captured&&pending===captured.entry&&pending?.file===captured.file&&pending?.url===captured.url;\n        const photoFields=key==='equipment'?['photoId','photoHidden']:['photoId'],laterPhoto=key!=='issues'&&!sameCaptured&&!!(pending||captured||photoFields.some(field=>!equipmentContentEqual(current[field],prior[field])));\n        if(equipmentContentEqual(current,prior)&&!laterPhoto)continue;\n        if(index<0){next[key].push(clone(current));if(baseIndex<0)basis[key].push(clone(prior));continue;}\n        for(const field of new Set([...Object.keys(prior),...Object.keys(current)]))if(!equipmentContentEqual(current[field],prior[field])){\n          if(Object.hasOwn(current,field))next[key][index][field]=clone(current[field]);else delete next[key][index][field];\n          if(!['photoId','photoHidden'].includes(field)&&!equipmentContentEqual(canonical[key].find(row=>row.id===prior.id)?.[field],prior[field])){\n            if(Object.hasOwn(prior,field))basis[key][baseIndex][field]=clone(prior[field]);else delete basis[key][baseIndex][field];\n          }\n        }\n        if(laterPhoto){\n          const ownPhoto=captured&&batch.chosenPhotos?.has(prior.id);\n          for(const field of key==='equipment'?['photoId','photoHidden']:['photoId']){\n            // A new File is an intent even when its JSON fields equal the old\n            // batch. Theirs never hides it or silently changes its seen basis.\n            const value=ownPhoto&&pending&&field==='photoId'&&equipmentContentEqual(current[field],prior[field])?canonical[key].find(row=>row.id===prior.id)?.[field]:current[field];\n            if(value===undefined)delete next[key][index][field];else next[key][index][field]=clone(value);\n            if(!ownPhoto){if(Object.hasOwn(prior,field))basis[key][baseIndex][field]=clone(prior[field]);else delete basis[key][baseIndex][field];}\n          }\n        }\n      }\n      for(const row of working?.[key]||[])if(!before[key].some(prior=>prior.id===row.id)&&!next[key].some(actual=>actual.id===row.id))next[key].push(clone(row));\n      // Open handlers and nodeDialog.prior own row references, not just IDs.\n      // Update their existing objects rather than detaching the next form.\n      if(working)working[key]=next[key].map(row=>{\n        const current=working[key].find(value=>value.id===row.id);if(!current)return row;\n        if(nodeDialog?.prior===current){\n          const oldName=current.name||current.nameVi||current.nameZh||'';\n          const keepSeen=field=>{const seen=nodeDialog.comparisonBasis ||= {key,id:row.id,generation:syncGeneration,fields:{}};if(!Object.hasOwn(seen.fields,field))seen.fields[field]={present:Object.hasOwn(current,field),value:Object.hasOwn(current,field)?clone(current[field]):null};};\n          // Uncompleted node input is private too. Preserve the basis it saw,\n          // without applying its name/spec/photo or completing the dialog.\n          if(nodeDialog.name===oldName)nodeDialog.name=row.name||row.nameVi||row.nameZh||'';else keepSeen('name');\n          if(nodeDialog.spec===(current.spec||''))nodeDialog.spec=row.spec||'';else keepSeen('spec');\n          const pin=batch.sentPhotos?.get(row.id),photo=nodeDialog.pendingPhoto,nodePhotoChanged=nodeDialog.photoRemoved||photo&&(!pin||photo!==pin.entry||photo.file!==pin.file||photo.url!==pin.url);\n          if(nodePhotoChanged&&!batch.chosenPhotos?.has(row.id))keepSeen('photoId');\n          if(!nodeDialog.photoRemoved&&!photo&&nodeDialog.photoId===(current.photoId||''))nodeDialog.photoId=row.photoId||'';\n        }\n        for(const field of Object.keys(current))if(!Object.hasOwn(row,field))delete current[field];Object.assign(current,row);return current;\n      });\n      if(key==='equipment'&&formSnapshot){\n        const prior=before[key].find(row=>row.id===formSnapshot.id),sent=canonical[key].find(row=>row.id===formSnapshot.id);\n        if(prior&&sent)for(const field of new Set([...Object.keys(prior),...Object.keys(sent)]))if(equipmentContentEqual(formSnapshot[field],prior[field])){\n          if(Object.hasOwn(sent,field))formSnapshot[field]=clone(sent[field]);else delete formSnapshot[field];\n        }\n      }\n    }\n    syncBase=basis;\n  }\n"
+      },
+      {
+        "offset": 33378,
+        "before": "",
+        "after": "    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 34072,
+        "before": "    if(busy)return null;\n",
+        "after": "    if(busy||equipmentSaveChoice)return null;\n"
+      },
+      {
+        "offset": 36669,
+        "before": "    const local=working&&clone(working),sentInput=local&&clone(local),base=clone(syncBase||open()&&snapshotOf(open())||null),sentPhotos=new Map([...pendingPhotos].map(([id,entry])=>[id,{entry,file:entry.file,url:entry.url}])),stamp=inputStamp();\n    const uploadedPhotos=new Map(),samePhoto=(id,pin)=>{const entry=pendingPhotos.get(id);return entry===pin.entry&&entry.file===pin.file&&entry.url===pin.url;};\n",
+        "after": "    let local=working&&clone(working);const sentInput=local&&clone(local),base=clone(syncBase||open()&&snapshotOf(open())||null),sentPhotos=new Map([...pendingPhotos].map(([id,entry])=>[id,{entry,file:entry.file,url:entry.url}])),stamp=inputStamp();\n    const uploadedPhotos=new Map();let chosenPhotos=sentPhotos,comparedSave=false,comparisonAttempt=null;const samePhoto=(id,pin)=>{const entry=pendingPhotos.get(id);return entry===pin.entry&&entry.file===pin.file&&entry.url===pin.url;};\n"
+      },
+      {
+        "offset": 39658,
+        "before": "        // Only the captured photo entries belong to this dispatch. A later preview is a next batch.\n        for(const [id,pending]of sentPhotos){const row=['equipment','categories','subcategories','groups'].flatMap(k=>local[k]||[]).find(r=>r.id===id);if(row){assertOwned();const photoId=await uploadImage(pending.file);assertOwned();row.photoId=photoId;uploadedPhotos.set(id,pending);}}\n        detail={moduleAction:'save-local-v1',...snapshotChanges(base||flow.working,local||flow.working)};\n",
+        "after": "        comparisonAttempt={current:owns};equipmentSaveComparison=comparisonAttempt;\n        const inspectFresh=fresh=>{const latest=fresh.control?.workflow;\n          if(fresh.permissions?.view!==true||fresh.permissions?.edit!==true)throw Error('FORBIDDEN');\n          if(!Number.isSafeInteger(fresh.revision)||fresh.revision<revision||latest?.scope!=='routine-equipment'||latest.generation!==flow.generation||latest.pendingId||!Number.isSafeInteger(latest.revision)||latest.revision<flow.revision||fresh.control.activeVersionId!==control.activeVersionId||!fresh.control.versions?.some(version=>version.id===open()?.id&&version.status==='draft'))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');\n          return latest;\n        };\n        let fresh=await client.read(undefined,{isCurrent:owns,requireAcceptedAccess:true});assertOwned();\n        // Nothing is uploaded/dispatched in this loop. Every new peer revision\n        // is compared against the same captured base/input/File entries.\n        for(;;){const latest=inspectFresh(fresh),comparison=compareEquipmentSave(base||flow.working,sentInput||flow.working,latest.working,sentPhotos);\n          const choice=comparison.conflicts.length?await chooseEquipmentSave(comparison.conflicts,owns):'mine';assertOwned();if(choice==='cancel')return null;\n          if(comparison.conflicts.length){\n            const confirmed=await client.read(undefined,{isCurrent:owns,requireAcceptedAccess:true});assertOwned();const next=inspectFresh(confirmed);\n            if(confirmed.revision<fresh.revision||next.revision<latest.revision)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');\n            if(confirmed.revision!==fresh.revision||next.revision!==latest.revision||!equipmentContentEqual(next.working,latest.working)){fresh=confirmed;continue;}\n          }\n          const plan=comparison.materialize(choice);local=plan.local;chosenPhotos=plan.chosenPhotos;comparedSave=true;\n          detail={moduleAction:'save-local-v1',expectedRevision:latest.revision,patches:plan.patches,guards:plan.guards};break;\n        }\n        equipmentSaveComparison=null;\n        // Only captured, chosen photos upload. Later previews remain a next batch.\n        for(const [id,pending]of chosenPhotos){const row=['equipment','categories','subcategories','groups'].flatMap(k=>local[k]||[]).find(r=>r.id===id);if(row){assertOwned();const photoId=await uploadImage(pending.file);assertOwned();row.photoId=photoId;uploadedPhotos.set(id,pending);\n          const key=equipmentSaveCollections.find(kind=>local[kind].includes(row)),insert=detail.patches.find(patch=>patch.op==='insert'&&patch.path[0]===key&&patch.value.id===id),path=[key,{id},'photoId'];\n          if(insert)insert.value.photoId=photoId;else {const patch=detail.patches.find(patch=>equipmentContentEqual(patch.path,path));if(!patch)throw Error('DEPENDENCY_GUARD_REQUIRED');patch.value=photoId;}\n        }}\n"
+      },
+      {
+        "offset": 44024,
+        "before": "      if(action==='save')pendingSaveBatch={local,sentInput,sentPhotos};\n",
+        "after": "      if(action==='save')pendingSaveBatch={local,sentInput,sentPhotos,chosenPhotos,comparedSave};\n"
+      },
+      {
+        "offset": 46254,
+        "before": "      const nextInput=JSON.stringify(working)!==JSON.stringify(sentInput)||nodeDialog!==sentNodeDialog||newEquipmentForm!==sentAddForm||stamp!==inputStamp()||action==='save'&&sentPhotos.size!==uploadedPhotos.size||pendingPhotos.size!==sentPhotos.size||[...sentPhotos].some(([id,entry])=>!samePhoto(id,entry));\n",
+        "after": "      const nextInput=JSON.stringify(working)!==JSON.stringify(sentInput)||nodeDialog!==sentNodeDialog||newEquipmentForm!==sentAddForm||stamp!==inputStamp()||action==='save'&&chosenPhotos.size!==uploadedPhotos.size||pendingPhotos.size!==sentPhotos.size||[...sentPhotos].some(([id,entry])=>!samePhoto(id,entry));\n"
+      },
+      {
+        "offset": 47505,
+        "before": "          for(const [id,entry]of sentPhotos){const find=data=>['equipment','categories','subcategories','groups'].flatMap(k=>data?.[k]||[]).find(row=>row.id===id),current=find(working),before=find(sentInput),sent=find(local);\n",
+        "after": "          if(!comparedSave)for(const [id,entry]of sentPhotos){const find=data=>['equipment','categories','subcategories','groups'].flatMap(k=>data?.[k]||[]).find(row=>row.id===id),current=find(working),before=find(sentInput),sent=find(local);\n"
+      },
+      {
+        "offset": 47924,
+        "before": "          syncBase=clone(local);\n",
+        "after": "          if(comparedSave)settleEquipmentBatch({sentInput,sentPhotos,chosenPhotos},local);else syncBase=clone(local);\n"
+      },
+      {
+        "offset": 48199,
+        "before": "      if(action==='save')for(const [id,entry]of uploadedPhotos){\n",
+        "after": "      if(action==='save')for(const [id,entry]of sentPhotos){\n"
+      },
+      {
+        "offset": 51331,
+        "before": "    }finally{const updateUI=owns();if(writeShared.attempt===attempt){writeShared.attempt=null;busy=false;}if(updateUI){if(action==='apply'&&document.activeElement?.matches('[data-issue-result]')){const status=host?.querySelector('#routine-shared-status');if(status)status.textContent=displayDraftError(message);}else{\n",
+        "after": "    }finally{if(equipmentSaveComparison===comparisonAttempt)equipmentSaveComparison=null;const updateUI=owns();if(writeShared.attempt===attempt){writeShared.attempt=null;busy=false;}if(updateUI){if(action==='apply'&&document.activeElement?.matches('[data-issue-result]')){const status=host?.querySelector('#routine-shared-status');if(status)status.textContent=displayDraftError(message);}else{\n"
+      },
+      {
+        "offset": 54620,
+        "before": "    drawer.addEventListener('input', capture);\n    drawer.addEventListener('change', capture);\n",
+        "after": "    drawer.addEventListener('input', guardWorking(drawer,capture));\n    drawer.addEventListener('change', guardWorking(drawer,capture));\n"
+      },
+      {
+        "offset": 67227,
+        "before": "  const editable = () => !readUnavailable && inputOwnerCurrent() && selected()?.status === 'draft' && !!working && permitted('approval.submit');\n",
+        "after": "  const editable = () => historyAllowsMutation() && !readUnavailable && inputOwnerCurrent() && selected()?.status === 'draft' && !!working && permitted('approval.submit');\n"
+      },
+      {
+        "offset": 68868,
+        "before": "    const actor=identity()?.id,actorObject=identity(),epoch=window.ProcessSync?.identityGeneration?.(),intent=++readIntent,delivery=window.ProcessSync?.captureDelivery?.(),page=host,tab=page?.dataset?.activeTab,connected=page?.isConnected,reviewPage=reviewHost,lifecycle=equipmentEditRequest,versionId=selectedVersionId,owns=()=>intent===readIntent&&actor===identity()?.id&&actorObject===identity()&&(Number.isSafeInteger(epoch)&&epoch>=0&&epoch===window.ProcessSync?.identityGeneration?.())&&(!!delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===true)&&!window.ProcessSync?.requiresReload&&host===page&&page?.dataset?.activeTab===tab&&page?.isConnected===connected&&reviewHost===reviewPage&&equipmentEditRequest===lifecycle&&selectedVersionId===versionId;\n",
+        "after": "    assertCurrentDisplay();const displayEpoch=historyDisplayEpoch;\n    const actor=identity()?.id,actorObject=identity(),epoch=window.ProcessSync?.identityGeneration?.(),intent=++readIntent,delivery=window.ProcessSync?.captureDelivery?.(),page=host,tab=page?.dataset?.activeTab,connected=page?.isConnected,reviewPage=reviewHost,lifecycle=equipmentEditRequest,versionId=selectedVersionId,owns=()=>historyAllowsMutation()&&displayEpoch===historyDisplayEpoch&&intent===readIntent&&actor===identity()?.id&&actorObject===identity()&&(Number.isSafeInteger(epoch)&&epoch>=0&&epoch===window.ProcessSync?.identityGeneration?.())&&(!!delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===true)&&!window.ProcessSync?.requiresReload&&host===page&&page?.dataset?.activeTab===tab&&page?.isConnected===connected&&reviewHost===reviewPage&&equipmentEditRequest===lifecycle&&selectedVersionId===versionId;\n"
+      },
+      {
+        "offset": 74509,
+        "before": "",
+        "after": "    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 76340,
+        "before": "",
+        "after": "  // Keep outcomes by bytes and actor epoch, including abandoned/reselected Files.\n  // A timed-out PUT can still commit: only GET the original hash thereafter.\n  const photoUploadOutcomes=new Map();\n  async function photoRequest(url,options={},kind='json'){\n    const controller=new AbortController();let timer;\n    try{return await Promise.race([(async()=>{const response=await fetch(url,{...options,signal:controller.signal});const body=await response[kind]();return {response,body};})(),new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(Error('PHOTO_UPLOAD_RESULT_UNKNOWN'));},45000);})]);}\n    finally{clearTimeout(timer);}\n  }\n"
+      },
+      {
+        "offset": 77033,
+        "before": "    if (!file || file.size > 5_000_000) throw Error(t('照片限 5 MB', 'Ảnh giới hạn 5 MB'));\n    const response = await fetch(`${api}/photo${query}`, {\n      method: 'PUT', headers: { ...headers(), 'Content-Type': file.type || 'image/jpeg' }, body: file,\n    });\n    const body = await response.json().catch(() => ({}));\n    if (!response.ok || !/^[a-f0-9]{64}$/.test(body.id || '')) throw Error(body.error || t('照片未上傳成功', 'Tải ảnh không thành công'));\n    return body.id;\n",
+        "after": "    assertCurrentDisplay();const displayEpoch=historyDisplayEpoch,owner=identity(),ownerEpoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.();historyUploads++;\n    const check=()=>{if(displayEpoch!==historyDisplayEpoch||identity()!==owner||window.ProcessSync?.identityGeneration?.()!==ownerEpoch||!delivery||window.ProcessSync?.isCurrentDelivery?.(delivery)!==true)throw Error('PHOTO_UPLOAD_CONTEXT_CHANGED');assertCurrentDisplay();};\n    const digest=async bytes=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),byte=>byte.toString(16).padStart(2,'0')).join('');\n    try{\n      if (!file || file.size > 5_000_000) throw Error(t('照片限 5 MB', 'Ảnh giới hạn 5 MB'));\n      const hash=await digest(await file.arrayBuffer());check();\n      const key=JSON.stringify([owner.id,ownerEpoch,hash]);let outcome=photoUploadOutcomes.get(key);\n      if(!outcome){outcome={dispatched:false,confirmed:false};photoUploadOutcomes.set(key,outcome);}\n      if(outcome.confirmed)return hash;\n      if(outcome.dispatched){\n        const {response,body}=await photoRequest(`${api}/photo?id=${hash}`,{cache:'no-store',headers:headers()},'arrayBuffer');check();\n        if(!response.ok||await digest(body)!==hash)throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');check();outcome.confirmed=true;return hash;\n      }\n      outcome.dispatched=true;\n      const {response,body}=await photoRequest(`${api}/photo${query}`,{method:'PUT',headers:{...headers(),'Content-Type':file.type||'image/jpeg'},body:file});\n      if(response.ok&&body.id===hash)outcome.confirmed=true;\n      check();if(!outcome.confirmed)throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');return hash;\n    }catch(error){if(error.message==='PHOTO_UPLOAD_CONTEXT_CHANGED')throw error;throw Error(t('圖片上傳結果尚未確認。再次按存取只查證原圖片，不會重傳。','Chưa xác nhận tải ảnh. Bấm Lưu lần nữa chỉ kiểm tra ảnh gốc, không tải lại.')+' '+error.message);}\n    finally{historyUploads--;}\n"
+      },
+      {
+        "offset": 79117,
+        "before": "",
+        "after": "    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 109611,
+        "before": "  const canDraftAction=op=>!readUnavailable&&selected()?.status==='draft'&&sharedClient?.permission(op)===true&&(control?.workflow||editable());\n",
+        "after": "  const canDraftAction=op=>historyAllowsMutation()&&!readUnavailable&&selected()?.status==='draft'&&sharedClient?.permission(op)===true&&(control?.workflow||editable());\n"
+      },
+      {
+        "offset": 109833,
+        "before": "",
+        "after": "    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 118769,
+        "before": "    const group = tree.groups.find(g => g.id === selectedGroup);\n    const cat = tree.categories.find(c => c.id === (group?.categoryId || selectedCategory));\n    const sub = tree.subcategories.find(s => s.id === (group?.subcategoryId || selectedSubcategory));\n\n",
+        "after": ""
+      },
+      {
+        "offset": 118804,
+        "before": "",
+        "after": "    const group = tree.groups.find(g => g.id === form.groupId);\n    const cat = tree.categories.find(c => c.id === group?.categoryId);\n    const sub = tree.subcategories.find(s => s.id === group?.subcategoryId);\n"
+      },
+      {
+        "offset": 121240,
+        "before": "              ${tree.groups.filter(g => g.subcategoryId === selectedSubcategory).map(g => `<option value=\"${h(g.id)}\" ${g.id === (form.groupId || selectedGroup) ? 'selected' : ''}>${h(g.id)} · ${h(g.name || g.nameVi || g.nameZh || '')}</option>`).join('')}\n",
+        "after": "              ${tree.groups.filter(g => g.subcategoryId === group?.subcategoryId).map(g => `<option value=\"${h(g.id)}\" ${g.id === (form.groupId || selectedGroup) ? 'selected' : ''}>${h(g.id)} · ${h(g.name || g.nameVi || g.nameZh || '')}</option>`).join('')}\n"
+      },
+      {
+        "offset": 126380,
+        "before": "",
+        "after": "      parentCategoryId: parentCat?.id || '',\n      parentSubcategoryId: parentSub?.id || '',\n"
+      },
+      {
+        "offset": 128037,
+        "before": "",
+        "after": "    if(prior&&!collection.includes(prior)){\n      nodeDialog.error=t('此項目已變更或移除；輸入仍保留，請重新核對，不會自動新增。','Mục này đã đổi hoặc bị xóa; giữ dữ liệu nhập để đối chiếu, không tự tạo lại.');render();return;\n    }\n    if(!prior&&kind!=='category'&&(!working.categories.some(row=>row.id===dialog.parentCategoryId)||kind==='group'&&!working.subcategories.some(row=>row.id===dialog.parentSubcategoryId&&row.categoryId===dialog.parentCategoryId))){\n      dialog.error=t('原上層分類已變更或移除；輸入仍保留，請重新核對。','Nhóm cha gốc đã đổi hoặc bị xóa; giữ dữ liệu nhập để đối chiếu.');render();return;\n    }\n"
+      },
+      {
+        "offset": 129821,
+        "before": "      const rec = { id: newId, categoryId: selectedCategory, name, photoId: '' };\n",
+        "after": "      const rec = { id: newId, categoryId: dialog.parentCategoryId, name, photoId: '' };\n"
+      },
+      {
+        "offset": 130117,
+        "before": "      selectedSubcategory = newId; selectedGroup = '';\n",
+        "after": "      selectedCategory = rec.categoryId; selectedSubcategory = newId; selectedGroup = '';\n"
+      },
+      {
+        "offset": 130261,
+        "before": "      const rec = { id: newId, categoryId: selectedCategory, subcategoryId: selectedSubcategory, name, spec, notes: '', photoId: '' };\n",
+        "after": "      const rec = { id: newId, categoryId: dialog.parentCategoryId, subcategoryId: dialog.parentSubcategoryId, name, spec, notes: '', photoId: '' };\n"
+      },
+      {
+        "offset": 130617,
+        "before": "      selectedGroup = newId;\n",
+        "after": "      selectedCategory = rec.categoryId; selectedSubcategory = rec.subcategoryId; selectedGroup = newId;\n"
+      },
+      {
+        "offset": 130729,
+        "before": "",
+        "after": "    if(dialog.comparisonBasis){\n      const seen=dialog.comparisonBasis,before=seen.generation===syncGeneration&&syncBase?.[seen.key]?.find(row=>row.id===seen.id);\n      if(!before)throw Error('STALE_GENERATION');\n      for(const [field,value]of Object.entries(seen.fields)){if(value.present)before[field]=clone(value.value);else delete before[field];}\n      delete dialog.comparisonBasis;\n    }\n"
+      },
+      {
+        "offset": 145541,
+        "before": "      const chosenGroup = root.querySelector('#routine-add-group-select')?.value || selectedGroup;\n      const group = tree.groups.find(g => g.id === chosenGroup) || tree.groups.find(g => g.id === selectedGroup);\n",
+        "after": "      const chosenGroup = root.querySelector('#routine-add-group-select')?.value || form.groupId;\n      const group = tree.groups.find(g => g.id === chosenGroup);\n"
+      },
+      {
+        "offset": 161822,
+        "before": "    root.querySelectorAll('[data-view-ref-kind]').forEach(details=>details.addEventListener('toggle',()=>{\n",
+        "after": "    root.querySelectorAll('[data-view-ref-kind]').forEach(details=>details.addEventListener('toggle',guardWorking(details,()=>{\n"
+      },
+      {
+        "offset": 162125,
+        "before": "    }));\n    root.querySelectorAll('[data-view-ref-retry]').forEach(button=>button.onclick=()=>readViewReferences(session,button.dataset.viewRefRetry,true));\n    root.querySelectorAll('[data-view-ab-detail]').forEach(button=>button.onclick=()=>{\n",
+        "after": "    })));\n    root.querySelectorAll('[data-view-ref-retry]').forEach(button=>button.onclick=guardWorking(button,()=>readViewReferences(session,button.dataset.viewRefRetry,true)));\n    root.querySelectorAll('[data-view-ab-detail]').forEach(button=>button.onclick=guardWorking(button,()=>{\n"
+      },
+      {
+        "offset": 162822,
+        "before": "    });\n    root.querySelectorAll('[data-view-ref-detail]').forEach(button=>button.onclick=()=>{\n",
+        "after": "    }));\n    root.querySelectorAll('[data-view-ref-detail]').forEach(button=>button.onclick=guardWorking(button,()=>{\n"
+      },
+      {
+        "offset": 163693,
+        "before": "    });\n",
+        "after": "    }));\n"
+      },
+      {
+        "offset": 183477,
+        "before": "    root.querySelectorAll('[data-transfer-module]').forEach(button => button.onclick = event => {\n",
+        "after": "    root.querySelectorAll('[data-transfer-module]').forEach(button => button.onclick = guardWorking(button,event => {\n"
+      },
+      {
+        "offset": 183707,
+        "before": "    });\n    root.querySelectorAll('[data-std-module]').forEach(link => link.onclick = event => {\n",
+        "after": "    }));\n    root.querySelectorAll('[data-std-module]').forEach(link => link.onclick = guardWorking(link,event => {\n"
+      },
+      {
+        "offset": 183971,
+        "before": "    });\n",
+        "after": "    }));\n"
+      },
+      {
+        "offset": 184129,
+        "before": "      delivery: window.ProcessSync?.captureDelivery?.(), page: host, versionId: selectedVersionId,\n",
+        "after": "      delivery: window.ProcessSync?.captureDelivery?.(), page: host, versionId: selectedVersionId,displayEpoch:historyDisplayEpoch,\n"
+      },
+      {
+        "offset": 184400,
+        "before": "    return !!owner?.actorId && owner.actorId === identity()?.id && controlActor === owner.actorId &&\n",
+        "after": "    return historyAllowsMutation()&&owner?.displayEpoch===historyDisplayEpoch&&!!owner?.actorId && owner.actorId === identity()?.id && controlActor === owner.actorId &&\n"
+      },
+      {
+        "offset": 255194,
+        "before": "    host.querySelectorAll('[data-equipment-page]').forEach(button => button.onclick = () => { equipmentPage += button.dataset.equipmentPage === 'next' ? 1 : -1; renderEquipmentResults(); });\n    host.querySelectorAll('[data-equipment-select]').forEach(button => button.onclick = () => {\n",
+        "after": "    host.querySelectorAll('[data-equipment-page]').forEach(button => button.onclick = guardWorking(button,() => { equipmentPage += button.dataset.equipmentPage === 'next' ? 1 : -1; renderEquipmentResults(); }));\n    host.querySelectorAll('[data-equipment-select]').forEach(button => button.onclick = guardWorking(button,() => {\n"
+      },
+      {
+        "offset": 255598,
+        "before": "    });\n    host.querySelectorAll('[data-equipment-view]').forEach(button => button.onclick = async event => {\n",
+        "after": "    }));\n    host.querySelectorAll('[data-equipment-view]').forEach(button => button.onclick = guardWorking(button,async event => {\n"
+      },
+      {
+        "offset": 256224,
+        "before": "    });\n    host.querySelectorAll('[data-equipment-edit]').forEach(button => button.onclick = async event => {\n",
+        "after": "    }));\n    host.querySelectorAll('[data-equipment-edit]').forEach(button => button.onclick = guardWorking(button,async event => {\n"
+      },
+      {
+        "offset": 256448,
+        "before": "    });\n    host.querySelectorAll('[data-equipment-delete]').forEach(button => button.onclick = event => {\n",
+        "after": "    }));\n    host.querySelectorAll('[data-equipment-delete]').forEach(button => button.onclick = guardWorking(button,event => {\n"
+      },
+      {
+        "offset": 256676,
+        "before": "    });\n    host.querySelectorAll('[data-equipment-transfer]').forEach(button => button.onclick = event => {\n",
+        "after": "    }));\n    host.querySelectorAll('[data-equipment-transfer]').forEach(button => button.onclick = guardWorking(button,event => {\n"
+      },
+      {
+        "offset": 256896,
+        "before": "    });\n    host.querySelector('#routine-add')?.addEventListener('click', openAddEquipmentDialog);\n",
+        "after": "    }));\n    host.querySelector('#routine-add')?.addEventListener('click', guardWorking(host.querySelector('#routine-add'),openAddEquipmentDialog));\n"
+      },
+      {
+        "offset": 257264,
+        "before": "",
+        "after": "  const historyFields={equipment:['檢具與設備','Dụng cụ và thiết bị'],groups:['規格群組','Nhóm quy cách'],categories:['類別','Loại'],subcategories:['子類別','Phân loại'],issues:['問題紀錄','Bản ghi vấn đề'],id:['識別碼','Mã'],name:['名稱','Tên'],nameVi:['越文名稱','Tên tiếng Việt'],nameZh:['中文名稱','Tên tiếng Hoa'],code:['編號','Mã'],assetCode:['資產編號','Mã tài sản'],pieceMark:['件號','Số chi tiết'],unit:['單位','Đơn vị'],spec:['規格','Quy cách'],owner:['保管者','Người giữ'],enabled:['使用中','Đang dùng'],calibrationMethod:['校正方式','Phương pháp hiệu chuẩn'],calibrationCycle:['校正週期','Chu kỳ hiệu chuẩn'],customCycle:['自訂週期','Chu kỳ riêng'],calibratedAt:['校正日期','Ngày hiệu chuẩn'],expiresAt:['有效期限','Ngày hết hạn'],notes:['備註','Ghi chú'],intakeDate:['入庫日期','Ngày nhập'],confirmed:['已確認','Đã xác nhận'],photoId:['照片識別碼','Mã ảnh'],photoHidden:['隱藏照片','Ẩn ảnh'],photos:['照片','Ảnh'],photoSource:['照片來源','Nguồn ảnh'],groupId:['規格群組','Nhóm quy cách'],categoryId:['類別','Loại'],subcategoryId:['子類別','Phân loại'],status:['狀態','Trạng thái'],resolution:['處理結果','Kết quả xử lý'],type:['問題類型','Loại vấn đề'],createdAt:['建立日期','Ngày tạo'],updatedAt:['更新日期','Ngày cập nhật']};\n  function mountApprovedHistory(shell,log,empty){\n    const client=sharedTransport(),page=host;approvedHistoryView?.retire();\n    approvedHistoryView=window.VersionDraftUI.createApprovedHistory({root:host.querySelector('.routine-page'),shell,client,empty,selectId:'equipment-approved-version',cacheKey:control?.activeVersionId||null,\n      isCurrent:()=>host===page&&sharedClient===client&&routineTabIsActive(),\n      canChoose:()=>!busy&&!equipmentSaveChoice&&!equipmentSaveComparison&&!equipmentReadAttempt&&!historyUploads&&!editingEquipmentId&&!nodeDialog&&!addingEquipment&&!viewDialog&&!transferDialog&&!pendingPhotos.size&&!transferBusy(),\n      onBoundary(){historyDisplayEpoch++;readIntent++;},\n      onDenied(){retireEquipmentSaveComparison();},\n      renderCurrent(){approvedHistoryView=null;render();},\n      validateSnapshot:snapshot=>snapshot&&['equipment','groups','categories','subcategories','issues'].every(key=>Array.isArray(snapshot[key])&&snapshot[key].every(row=>row&&typeof row==='object'&&!Array.isArray(row))),\n      renderSnapshot(target,snapshot,current){for(const key of ['equipment','groups','categories','subcategories'])for(const row of snapshot[key]){if(row.photoHidden)continue;if(row.photoId)row.photos=[{id:row.photoId}];else if(row.photoSource?.webPath)row.photos=[{src:row.photoSource.webPath}];}window.VersionDraftUI.renderApprovedCollections(target,snapshot,{collections:['equipment','groups','categories','subcategories','issues'],fields:historyFields,mediaURL:photo=>/^[a-f0-9]{64}$/.test(photo?.id||'')?api+'/photo?id='+encodeURIComponent(photo.id):typeof photo?.src==='string'&&/^(?:\\/process\\/assets\\/|assets\\/)[^?#]*\\.(?:webp|png|jpg|jpeg|gif)$/i.test(photo.src)?photo.src.startsWith('assets/')?'/process/'+photo.src:photo.src:null},current);}\n    });\n  }\n"
+      },
+      {
+        "offset": 260582,
+        "before": "",
+        "after": "    if(approvedHistoryView?.blocked){approvedHistoryView.relabel();return;}approvedHistoryView?.retire();approvedHistoryView=null;\n"
+      },
+      {
+        "offset": 261976,
+        "before": "      host.querySelector('#routine-begin-recheck')?.addEventListener('click', enterExistingDraft);\n    host.querySelector('#routine-load-retry')?.addEventListener('click', async () => {\n",
+        "after": "      host.querySelector('#routine-begin-recheck')?.addEventListener('click', guardWorking(host.querySelector('#routine-begin-recheck'),enterExistingDraft));\n    host.querySelector('#routine-load-retry')?.addEventListener('click', guardWorking(host.querySelector('#routine-load-retry'),async () => {\n"
+      },
+      {
+        "offset": 262419,
+        "before": "      });\n",
+        "after": "      }));\n"
+      },
+      {
+        "offset": 270954,
+        "before": "    host.querySelector('#routine-begin-recheck')?.addEventListener('click', enterExistingDraft);\n    host.querySelector('#routine-load-retry')?.addEventListener('click',async()=>{if(addingEquipment&&newEquipmentForm&&inputOwnerCurrent()){await recoverAddEquipmentRead();return;}const preserveInput=isDirty()||pendingPhotos.size>0;try{await read(preserveInput,true);message=preserveInput?t('已載入最新版，未套用輸入仍保留；套用時重新核對來源。','Đã tải bản mới; giữ đầu vào chưa áp dụng, kiểm tra nguồn khi áp dụng.'):'';render();}catch(error){message=error.message;render();}});\n",
+        "after": "    host.querySelector('#routine-begin-recheck')?.addEventListener('click', guardWorking(host.querySelector('#routine-begin-recheck'),enterExistingDraft));\n    host.querySelector('#routine-load-retry')?.addEventListener('click',guardWorking(host.querySelector('#routine-load-retry'),async()=>{if(addingEquipment&&newEquipmentForm&&inputOwnerCurrent()){await recoverAddEquipmentRead();return;}const preserveInput=isDirty()||pendingPhotos.size>0;try{await read(preserveInput,true);message=preserveInput?t('已載入最新版，未套用輸入仍保留；套用時重新核對來源。','Đã tải bản mới; giữ đầu vào chưa áp dụng, kiểm tra nguồn khi áp dụng.'):'';render();}catch(error){message=error.message;render();}}));\n"
+      },
+      {
+        "offset": 272548,
+        "before": "      if(permitted('approval.compare')){const b=document.createElement('button');b.id='routine-case-history';b.className='button ghost';b.textContent=t('送審案件','Hồ sơ gửi duyệt');b.onclick=()=>window.openSharedDraftHistory({client:sharedTransport(),editable:()=>open()?.status==='draft'&&permitted('approval.submit'),onApplied:async()=>{await read();render();}}).catch(failed);panel.append(b);}\n      if(sharedClient?.hasUnknown())for(const [label,method]of [[t('查詢上次操作','Kiểm tra thao tác trước'),'resolveUnknown'],[t('重試同一操作','Thử lại cùng thao tác'),'retryUnknown']]){const b=document.createElement('button');b.textContent=label;b.onclick=async()=>{try{await sharedTransport()[method]();await read();render();}catch(e){failed(e);}};panel.append(b);}\n",
+        "after": "      if(sharedClient?.hasUnknown())for(const [label,method]of [[t('查詢上次操作','Kiểm tra thao tác trước'),'resolveUnknown'],[t('重試同一操作','Thử lại cùng thao tác'),'retryUnknown']]){const b=document.createElement('button');b.textContent=label;b.onclick=guardWorking(b,async()=>{try{await sharedTransport()[method]();await read();render();}catch(e){failed(e);}});panel.append(b);}\n"
+      },
+      {
+        "offset": 273062,
+        "before": "    window.VersionDraftUI?.mount(host,{header:'.routine-version',historyClient:sharedTransport,module:t('檢具與測試設備','Dưỡng kiểm và thiết bị đo'),scope:t('檢具全庫','Toàn bộ thiết bị'),version,versions:control.versions,active:active(),flow:control.workflow,busy,failed:readUnavailable||sharedClient?.hasUnknown(),actions:{begin:'#routine-begin',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-routine-issue-kind=\"error\"]',missing:'.routine-issues-card,[data-routine-issue-kind=\"missing\"]',history:['.routine-history-card','#routine-case-history','[data-routine-issue-kind=\"warning\"]'],status:['#routine-shared-status'],remove:['.routine-top']});\n",
+        "after": "    window.VersionDraftUI?.mount(host,{header:'.routine-version',historyClient:sharedTransport,mountApprovedHistory,module:t('檢具與測試設備','Dưỡng kiểm và thiết bị đo'),scope:t('檢具全庫','Toàn bộ thiết bị'),version,versions:control.versions,active:active(),flow:control.workflow,busy,failed:readUnavailable||sharedClient?.hasUnknown(),actions:{begin:'#routine-begin',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-routine-issue-kind=\"error\"]',missing:'.routine-issues-card,[data-routine-issue-kind=\"missing\"]',history:['.routine-history-card','[data-routine-issue-kind=\"warning\"]'],status:['#routine-shared-status'],remove:['.routine-top','#routine-case-history']});\n"
+      },
+      {
+        "offset": 273932,
+        "before": "    root.querySelector('#routine-import')?.addEventListener('click', importSource);\n    root.querySelector('#routine-begin')?.addEventListener('click', () => write('begin'));\n    root.querySelector('#routine-save')?.addEventListener('click', () => saveDraft('save'));\n    root.querySelector('#routine-submit')?.addEventListener('click', () => { void saveDraft('submit'); });\n    root.querySelector('#routine-withdraw')?.addEventListener('click', () => write('withdraw'));\n",
+        "after": "    root.querySelector('#routine-import')?.addEventListener('click', guardWorking(root.querySelector('#routine-import'),importSource));\n    root.querySelector('#routine-begin')?.addEventListener('click', guardWorking(root.querySelector('#routine-begin'),() => write('begin')));\n    root.querySelector('#routine-save')?.addEventListener('click', guardWorking(root.querySelector('#routine-save'),() => saveDraft('save')));\n    root.querySelector('#routine-submit')?.addEventListener('click', guardWorking(root.querySelector('#routine-submit'),() => { void saveDraft('submit'); }));\n    root.querySelector('#routine-withdraw')?.addEventListener('click', guardWorking(root.querySelector('#routine-withdraw'),() => write('withdraw')));\n"
+      },
+      {
+        "offset": 274664,
+        "before": "    root.querySelector('#routine-version-select')?.addEventListener('change', event => {\n",
+        "after": "    root.querySelector('#routine-version-select')?.addEventListener('change', guardWorking(root.querySelector('#routine-version-select'),event => {\n"
+      },
+      {
+        "offset": 275429,
+        "before": "    });\n",
+        "after": "    }));\n"
+      },
+      {
+        "offset": 275502,
+        "before": "    searchInput?.addEventListener('compositionstart', () => { composing = true; });\n    searchInput?.addEventListener('compositionend', event => { composing = false; search = event.target.value; equipmentPage = 1; renderEquipmentResults(); });\n    searchInput?.addEventListener('input', event => { search = event.target.value; if (!composing) { equipmentPage = 1; renderEquipmentResults(); } });\n",
+        "after": "    searchInput?.addEventListener('compositionstart', guardWorking(searchInput,() => { composing = true; }));\n    searchInput?.addEventListener('compositionend', guardWorking(searchInput,event => { composing = false; search = event.target.value; equipmentPage = 1; renderEquipmentResults(); }));\n    searchInput?.addEventListener('input', guardWorking(searchInput,event => { search = event.target.value; if (!composing) { equipmentPage = 1; renderEquipmentResults(); } }));\n"
+      },
+      {
+        "offset": 275993,
+        "before": "    root.querySelectorAll('[data-node-select]').forEach(button => button.onclick = () => {\n",
+        "after": "    root.querySelectorAll('[data-node-select]').forEach(button => button.onclick = guardWorking(button,() => {\n"
+      },
+      {
+        "offset": 276640,
+        "before": "      editingEquipmentId = '';\n",
+        "after": "      // Hierarchy selections filter this same page. Keep open RAM editors,\n      // their original parent/basis and exact File entries until completion/cancel.\n"
+      },
+      {
+        "offset": 276833,
+        "before": "      addingEquipment = false;\n      newEquipmentForm = null;\n      formSnapshot = null;\n",
+        "after": ""
+      },
+      {
+        "offset": 276868,
+        "before": "    });\n    root.querySelectorAll('[data-node-view]').forEach(button => button.onclick = event => {\n",
+        "after": "    }));\n    root.querySelectorAll('[data-node-view]').forEach(button => button.onclick = guardWorking(button,event => {\n"
+      },
+      {
+        "offset": 277495,
+        "before": "    });\n    root.querySelectorAll('[data-node-add]').forEach(button => button.onclick = () => openNodeDialog(button.dataset.nodeAdd));\n    root.querySelectorAll('[data-node-edit]').forEach(button => button.onclick = event => { event.stopPropagation(); openNodeDialog(button.dataset.nodeEdit, button.dataset.id); });\n    root.querySelectorAll('[data-node-delete]').forEach(button => button.onclick = event => { event.stopPropagation(); deleteNode(button.dataset.nodeDelete, button.dataset.id).catch(failed); });\n",
+        "after": "    }));\n    root.querySelectorAll('[data-node-add]').forEach(button => button.onclick = guardWorking(button,() => openNodeDialog(button.dataset.nodeAdd)));\n    root.querySelectorAll('[data-node-edit]').forEach(button => button.onclick = guardWorking(button,event => { event.stopPropagation(); openNodeDialog(button.dataset.nodeEdit, button.dataset.id); }));\n    root.querySelectorAll('[data-node-delete]').forEach(button => button.onclick = guardWorking(button,event => { event.stopPropagation(); deleteNode(button.dataset.nodeDelete, button.dataset.id).catch(failed); }));\n"
+      },
+      {
+        "offset": 278137,
+        "before": "    for(const field of ['name','spec'])root.querySelector('#routine-dialog-'+field)?.addEventListener('input',event=>{if(nodeDialog===boundNodeDialog)nodeDialog[field]=event.target.value;});\n    root.querySelector('#routine-dialog-close')?.addEventListener('click', cancelNodeDialog);\n    root.querySelector('#routine-dialog-cancel')?.addEventListener('click', cancelNodeDialog);\n    root.querySelector('#routine-dialog-confirm')?.addEventListener('click', confirmNodeDialog);\n    root.querySelector('#routine-node-dialog-backdrop')?.addEventListener('click', event => {\n",
+        "after": "    for(const field of ['name','spec'])root.querySelector('#routine-dialog-'+field)?.addEventListener('input',guardWorking(root.querySelector('#routine-dialog-'+field),event=>{if(nodeDialog===boundNodeDialog)nodeDialog[field]=event.target.value;}));\n    root.querySelector('#routine-dialog-close')?.addEventListener('click', guardWorking(root.querySelector('#routine-dialog-close'),cancelNodeDialog));\n    root.querySelector('#routine-dialog-cancel')?.addEventListener('click', guardWorking(root.querySelector('#routine-dialog-cancel'),cancelNodeDialog));\n    root.querySelector('#routine-dialog-confirm')?.addEventListener('click', guardWorking(root.querySelector('#routine-dialog-confirm'),confirmNodeDialog));\n    root.querySelector('#routine-node-dialog-backdrop')?.addEventListener('click', guardWorking(root.querySelector('#routine-node-dialog-backdrop'),event => {\n"
+      },
+      {
+        "offset": 279092,
+        "before": "    });\n    root.querySelector('#routine-dialog-photo-input')?.addEventListener('change', event => {\n",
+        "after": "    }));\n    root.querySelector('#routine-dialog-photo-input')?.addEventListener('change', guardWorking(root.querySelector('#routine-dialog-photo-input'),event => {\n"
+      },
+      {
+        "offset": 279835,
+        "before": "    });\n    root.querySelector('#routine-dialog-photo-remove')?.addEventListener('click', () => {\n",
+        "after": "    }));\n    root.querySelector('#routine-dialog-photo-remove')?.addEventListener('click', guardWorking(root.querySelector('#routine-dialog-photo-remove'),() => {\n"
+      },
+      {
+        "offset": 280401,
+        "before": "    });\n",
+        "after": "    }));\n"
+      },
+      {
+        "offset": 280439,
+        "before": "    root.querySelector('#routine-view-close')?.addEventListener('click', () => { viewDialog?.references?.closeDetail?.();viewDialog = null; render(); });\n    root.querySelector('#routine-view-dismiss')?.addEventListener('click', () => { viewDialog?.references?.closeDetail?.();viewDialog = null; render(); });\n    root.querySelector('#routine-view-modal-backdrop')?.addEventListener('click', event => {\n",
+        "after": "    root.querySelector('#routine-view-close')?.addEventListener('click', guardWorking(root.querySelector('#routine-view-close'),() => { viewDialog?.references?.closeDetail?.();viewDialog = null; render(); }));\n    root.querySelector('#routine-view-dismiss')?.addEventListener('click', guardWorking(root.querySelector('#routine-view-dismiss'),() => { viewDialog?.references?.closeDetail?.();viewDialog = null; render(); }));\n    root.querySelector('#routine-view-modal-backdrop')?.addEventListener('click', guardWorking(root.querySelector('#routine-view-modal-backdrop'),event => {\n"
+      },
+      {
+        "offset": 281155,
+        "before": "    });\n",
+        "after": "    }));\n"
+      },
+      {
+        "offset": 281197,
+        "before": "    root.querySelector('#routine-transfer-close')?.addEventListener('click', () => { transferDialog = null; render(); });\n    root.querySelector('#routine-transfer-dismiss')?.addEventListener('click', () => { transferDialog = null; render(); });\n    root.querySelector('#routine-transfer-backdrop')?.addEventListener('click', event => {\n",
+        "after": "    root.querySelector('#routine-transfer-close')?.addEventListener('click', guardWorking(root.querySelector('#routine-transfer-close'),() => { transferDialog = null; render(); }));\n    root.querySelector('#routine-transfer-dismiss')?.addEventListener('click', guardWorking(root.querySelector('#routine-transfer-dismiss'),() => { transferDialog = null; render(); }));\n    root.querySelector('#routine-transfer-backdrop')?.addEventListener('click', guardWorking(root.querySelector('#routine-transfer-backdrop'),event => {\n"
+      },
+      {
+        "offset": 281815,
+        "before": "    });\n",
+        "after": "    }));\n"
+      },
+      {
+        "offset": 281825,
+        "before": "    root.querySelector('#routine-target-cat')?.addEventListener('change', event => {\n",
+        "after": "    root.querySelector('#routine-target-cat')?.addEventListener('change', guardWorking(root.querySelector('#routine-target-cat'),event => {\n"
+      },
+      {
+        "offset": 282125,
+        "before": "    });\n",
+        "after": "    }));\n"
+      },
+      {
+        "offset": 282135,
+        "before": "    root.querySelector('#routine-target-eq-select')?.addEventListener('change', event => {\n",
+        "after": "    root.querySelector('#routine-target-eq-select')?.addEventListener('change', guardWorking(root.querySelector('#routine-target-eq-select'),event => {\n"
+      },
+      {
+        "offset": 282410,
+        "before": "    });\n",
+        "after": "    }));\n"
+      },
+      {
+        "offset": 282488,
+        "before": "      chk.onchange = () => {\n",
+        "after": "      chk.onchange = guardWorking(chk,() => {\n"
+      },
+      {
+        "offset": 282787,
+        "before": "      };\n",
+        "after": "      });\n"
+      },
+      {
+        "offset": 282806,
+        "before": "    root.querySelector('#routine-confirm-transfer-fqc')?.addEventListener('click', () => executeTransfer('fqc'));\n    root.querySelector('#routine-confirm-transfer-iqc')?.addEventListener('click', () => executeTransfer('iqc'));\n    root.querySelector('#routine-confirm-transfer-ipqc-c')?.addEventListener('click', () => executeTransfer('ipqcC'));\n    root.querySelector('#routine-confirm-transfer-ipqc-ab')?.addEventListener('click', () => executeTransfer('ipqcAB'));\n",
+        "after": "    root.querySelector('#routine-confirm-transfer-fqc')?.addEventListener('click', guardWorking(root.querySelector('#routine-confirm-transfer-fqc'),() => executeTransfer('fqc')));\n    root.querySelector('#routine-confirm-transfer-iqc')?.addEventListener('click', guardWorking(root.querySelector('#routine-confirm-transfer-iqc'),() => executeTransfer('iqc')));\n    root.querySelector('#routine-confirm-transfer-ipqc-c')?.addEventListener('click', guardWorking(root.querySelector('#routine-confirm-transfer-ipqc-c'),() => executeTransfer('ipqcC')));\n    root.querySelector('#routine-confirm-transfer-ipqc-ab')?.addEventListener('click', guardWorking(root.querySelector('#routine-confirm-transfer-ipqc-ab'),() => executeTransfer('ipqcAB')));\n"
+      },
+      {
+        "offset": 283609,
+        "before": "    root.querySelectorAll('[data-jump-asset]').forEach(btn => btn.onclick = () => {\n",
+        "after": "    root.querySelectorAll('[data-jump-asset]').forEach(btn => btn.onclick = guardWorking(btn,() => {\n"
+      },
+      {
+        "offset": 284169,
+        "before": "    });\n    root.querySelectorAll('[data-fix-equipment]').forEach(button => button.onclick = () => locateEquipment(button.dataset.fixEquipment, button.dataset.fixField));\n    root.querySelectorAll('[data-retry-action]').forEach(button => button.onclick = () => {\n",
+        "after": "    }));\n    root.querySelectorAll('[data-fix-equipment]').forEach(button => button.onclick = guardWorking(button,() => locateEquipment(button.dataset.fixEquipment, button.dataset.fixField)));\n    root.querySelectorAll('[data-retry-action]').forEach(button => button.onclick = guardWorking(button,() => {\n"
+      },
+      {
+        "offset": 284614,
+        "before": "    });\n    root.querySelectorAll('[data-issue-result]').forEach(input => input.oninput = () => { if (working?.issues?.[Number(input.dataset.issueResult)]) working.issues[Number(input.dataset.issueResult)].resolution = input.value; });\n    root.querySelectorAll('[data-issue-result]').forEach(input=>input.onchange=async()=>{await writeShared('apply');});\n    root.querySelectorAll('[data-issue-resolve]').forEach(button => button.onclick = async () => {\n",
+        "after": "    }));\n    root.querySelectorAll('[data-issue-result]').forEach(input => input.oninput = guardWorking(input,() => { if (working?.issues?.[Number(input.dataset.issueResult)]) working.issues[Number(input.dataset.issueResult)].resolution = input.value; }));\n    root.querySelectorAll('[data-issue-result]').forEach(input=>input.onchange=guardWorking(input,async()=>{await writeShared('apply');}));\n    root.querySelectorAll('[data-issue-resolve]').forEach(button => button.onclick = guardWorking(button,async () => {\n"
+      },
+      {
+        "offset": 285543,
+        "before": "    });\n",
+        "after": "    }));\n"
+      },
+      {
+        "offset": 286509,
+        "before": "    root.querySelector('#routine-close')?.addEventListener('click', tryCloseForm);\n    root.querySelector('#routine-form-cancel')?.addEventListener('click', tryCloseForm);\n    root.querySelector('#routine-backdrop')?.addEventListener('click', event => {\n",
+        "after": "    root.querySelector('#routine-close')?.addEventListener('click', guardWorking(root.querySelector('#routine-close'),tryCloseForm));\n    root.querySelector('#routine-form-cancel')?.addEventListener('click', guardWorking(root.querySelector('#routine-form-cancel'),tryCloseForm));\n    root.querySelector('#routine-backdrop')?.addEventListener('click', guardWorking(root.querySelector('#routine-backdrop'),event => {\n"
+      },
+      {
+        "offset": 286991,
+        "before": "    });\n    root.querySelector('#routine-language-toggle')?.addEventListener('click', () => document.querySelector('.top-actions .language-switch')?.click());\n",
+        "after": "    }));\n    root.querySelector('#routine-language-toggle')?.addEventListener('click', guardWorking(root.querySelector('#routine-language-toggle'),() => document.querySelector('.top-actions .language-switch')?.click()));\n"
+      },
+      {
+        "offset": 287515,
+        "before": "          cycleSelect.onchange = () => {\n",
+        "after": "          cycleSelect.onchange = guardWorking(cycleSelect,() => {\n"
+      },
+      {
+        "offset": 287757,
+        "before": "          };\n",
+        "after": "          });\n"
+      },
+      {
+        "offset": 287854,
+        "before": "          input.oninput = () => { item[input.dataset.field] = input.value; };\n",
+        "after": "          input.oninput = guardWorking(input,() => { item[input.dataset.field] = input.value; });\n"
+      },
+      {
+        "offset": 288084,
+        "before": "        input.oninput = () => {\n",
+        "after": "        input.oninput = guardWorking(input,() => {\n"
+      },
+      {
+        "offset": 288234,
+        "before": "        };\n",
+        "after": "        });\n"
+      },
+      {
+        "offset": 288338,
+        "before": "        select.onchange = () => {\n",
+        "after": "        select.onchange = guardWorking(select,() => {\n"
+      },
+      {
+        "offset": 288940,
+        "before": "        };\n",
+        "after": "        });\n"
+      },
+      {
+        "offset": 288963,
+        "before": "      root.querySelector('#routine-edit-category')?.addEventListener('change', event => {\n",
+        "after": "      root.querySelector('#routine-edit-category')?.addEventListener('change', guardWorking(root.querySelector('#routine-edit-category'),event => {\n"
+      },
+      {
+        "offset": 289506,
+        "before": "      });\n",
+        "after": "      }));\n"
+      },
+      {
+        "offset": 289518,
+        "before": "      root.querySelector('#routine-edit-subcategory')?.addEventListener('change', event => {\n",
+        "after": "      root.querySelector('#routine-edit-subcategory')?.addEventListener('change', guardWorking(root.querySelector('#routine-edit-subcategory'),event => {\n"
+      },
+      {
+        "offset": 289971,
+        "before": "      });\n",
+        "after": "      }));\n"
+      },
+      {
+        "offset": 289983,
+        "before": "      root.querySelector('#routine-edit-group')?.addEventListener('change', event => {\n",
+        "after": "      root.querySelector('#routine-edit-group')?.addEventListener('change', guardWorking(root.querySelector('#routine-edit-group'),event => {\n"
+      },
+      {
+        "offset": 290474,
+        "before": "      });\n",
+        "after": "      }));\n"
+      },
+      {
+        "offset": 290486,
+        "before": "      root.querySelector('#routine-photo-input')?.addEventListener('change', event => {\n",
+        "after": "      root.querySelector('#routine-photo-input')?.addEventListener('change', guardWorking(root.querySelector('#routine-photo-input'),event => {\n"
+      },
+      {
+        "offset": 291276,
+        "before": "      });\n      root.querySelector('#routine-photo-remove')?.addEventListener('click', () => {\n",
+        "after": "      }));\n      root.querySelector('#routine-photo-remove')?.addEventListener('click', guardWorking(root.querySelector('#routine-photo-remove'),() => {\n"
+      },
+      {
+        "offset": 291980,
+        "before": "      });\n",
+        "after": "      }));\n"
+      },
+      {
+        "offset": 291992,
+        "before": "      root.querySelector('#routine-form-apply')?.addEventListener('click', async () => {\n",
+        "after": "      root.querySelector('#routine-form-apply')?.addEventListener('click', guardWorking(root.querySelector('#routine-form-apply'),async () => {\n"
+      },
+      {
+        "offset": 295581,
+        "before": "      });\n",
+        "after": "      }));\n"
+      },
+      {
+        "offset": 295593,
+        "before": "      root.querySelector('#routine-delete')?.addEventListener('click', () => {\n",
+        "after": "      root.querySelector('#routine-delete')?.addEventListener('click', guardWorking(root.querySelector('#routine-delete'),() => {\n"
+      },
+      {
+        "offset": 295781,
+        "before": "      });\n",
+        "after": "      }));\n"
+      },
+      {
+        "offset": 298232,
+        "before": "          cycleSelect.onchange = () => {\n",
+        "after": "          cycleSelect.onchange = guardWorking(cycleSelect,() => {\n"
+      },
+      {
+        "offset": 298488,
+        "before": "          };\n",
+        "after": "          });\n"
+      },
+      {
+        "offset": 298578,
+        "before": "          input.oninput = () => {\n",
+        "after": "          input.oninput = guardWorking(input,() => {\n"
+      },
+      {
+        "offset": 298932,
+        "before": "          };\n",
+        "after": "          });\n"
+      },
+      {
+        "offset": 299161,
+        "before": "      assetCodeInput?.addEventListener('input', () => {\n",
+        "after": "      assetCodeInput?.addEventListener('input', guardWorking(assetCodeInput,() => {\n"
+      },
+      {
+        "offset": 299428,
+        "before": "      });\n",
+        "after": "      }));\n"
+      },
+      {
+        "offset": 299440,
+        "before": "      root.querySelector('#routine-add-name')?.addEventListener('input', e => {\n",
+        "after": "      root.querySelector('#routine-add-name')?.addEventListener('input', guardWorking(root.querySelector('#routine-add-name'),e => {\n"
+      },
+      {
+        "offset": 299621,
+        "before": "      });\n",
+        "after": "      }));\n"
+      },
+      {
+        "offset": 299633,
+        "before": "      root.querySelector('#routine-add-photo-input')?.addEventListener('change', event => {\n",
+        "after": "      root.querySelector('#routine-add-photo-input')?.addEventListener('change', guardWorking(root.querySelector('#routine-add-photo-input'),event => {\n"
+      },
+      {
+        "offset": 300189,
+        "before": "      });\n",
+        "after": "      }));\n"
+      },
+      {
+        "offset": 300201,
+        "before": "      root.querySelector('#routine-add-photo-remove')?.addEventListener('click', () => {\n",
+        "after": "      root.querySelector('#routine-add-photo-remove')?.addEventListener('click', guardWorking(root.querySelector('#routine-add-photo-remove'),() => {\n"
+      },
+      {
+        "offset": 300544,
+        "before": "      });\n",
+        "after": "      }));\n"
+      },
+      {
+        "offset": 300556,
+        "before": "      root.querySelector('#routine-add-calibration-method')?.addEventListener('change', event => {\n",
+        "after": "      root.querySelector('#routine-add-calibration-method')?.addEventListener('change', guardWorking(root.querySelector('#routine-add-calibration-method'),event => {\n"
+      },
+      {
+        "offset": 301061,
+        "before": "      });\n",
+        "after": "      }));\n"
+      },
+      {
+        "offset": 301661,
+        "before": "      root.querySelector('#routine-add-close')?.addEventListener('click', cancelAdd);\n      root.querySelector('#routine-add-cancel')?.addEventListener('click', cancelAdd);\n      root.querySelector('#routine-add-backdrop')?.addEventListener('click', event => {\n",
+        "after": "      root.querySelector('#routine-add-close')?.addEventListener('click', guardWorking(root.querySelector('#routine-add-close'),cancelAdd));\n      root.querySelector('#routine-add-cancel')?.addEventListener('click', guardWorking(root.querySelector('#routine-add-cancel'),cancelAdd));\n      root.querySelector('#routine-add-backdrop')?.addEventListener('click', guardWorking(root.querySelector('#routine-add-backdrop'),event => {\n"
+      },
+      {
+        "offset": 302160,
+        "before": "      });\n",
+        "after": "      }));\n"
+      },
+      {
+        "offset": 302172,
+        "before": "      root.querySelector('#routine-add-submit')?.addEventListener('click', confirmAddEquipment);\n",
+        "after": "      root.querySelector('#routine-add-submit')?.addEventListener('click', guardWorking(root.querySelector('#routine-add-submit'),confirmAddEquipment));\n"
+      },
+      {
+        "offset": 302810,
+        "before": "",
+        "after": "    historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;\n"
+      },
+      {
+        "offset": 315765,
+        "before": "    return {...base,autoAbandon:true,allowUnload:()=>!busy&&!transferBusy(),\n",
+        "after": "    return {...base,autoAbandon:true,allowUnload:()=>!(busy&&!equipmentSaveComparison)&&!transferBusy(),\n"
+      },
+      {
+        "offset": 317103,
+        "before": "    current:()=>controlActor===identity()?.id&&inputOwnerCurrent(),busy:()=>busy||transferBusy()||!!equipmentReadAttempt,\n",
+        "after": "    current:()=>controlActor===identity()?.id&&inputOwnerCurrent(),busy:()=>busy&&!equipmentSaveComparison||transferBusy()||!!equipmentReadAttempt,\n"
+      },
+      {
+        "offset": 318064,
+        "before": "    discard(){equipmentEditRequest++;const urls=new Set([...pendingPhotos.values()].map(pending=>pending.url));for(const photo of [newEquipmentForm?.pendingPhoto,nodeDialog?.pendingPhoto])if(photo?.url)urls.add(photo.url);for(const url of urls)URL.revokeObjectURL(url);pendingPhotos.clear();localBeginReceipt=null;pendingSaveBatch=null;formPendingPhoto=null;editingEquipmentId='';formSnapshot=null;nodeDialog=null;transferDialog=null;addingEquipment=false;newEquipmentForm=null;newEquipmentOwner=null;working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow?.generation;render();},\n  });},requiresSave:()=>false,saveForDeparture:()=>saveDraft('save'),canLeave:()=>!busy&&!transferBusy(),error:()=>navigationError,reset(){viewDialog?.references?.closeDetail?.();equipmentEditRequest++;writeShared.attempt=null;busy=false;equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;localBeginReceipt=null;pendingSaveBatch=null;inputOwner=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},\n",
+        "after": "    discard(){retireEquipmentSaveComparison();equipmentEditRequest++;const urls=new Set([...pendingPhotos.values()].map(pending=>pending.url));for(const photo of [newEquipmentForm?.pendingPhoto,nodeDialog?.pendingPhoto])if(photo?.url)urls.add(photo.url);for(const url of urls)URL.revokeObjectURL(url);pendingPhotos.clear();localBeginReceipt=null;pendingSaveBatch=null;formPendingPhoto=null;editingEquipmentId='';formSnapshot=null;nodeDialog=null;transferDialog=null;addingEquipment=false;newEquipmentForm=null;newEquipmentOwner=null;working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow?.generation;render();},\n  });},requiresSave:()=>false,saveForDeparture:()=>saveDraft('save'),canLeave:()=>!(busy&&!equipmentSaveComparison)&&!transferBusy(),error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;retireEquipmentSaveComparison();equipmentSaveChoice?.();viewDialog?.references?.closeDetail?.();equipmentEditRequest++;writeShared.attempt=null;busy=false;equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;localBeginReceipt=null;pendingSaveBatch=null;inputOwner=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},\n"
+      }
+    ],
+    "beforeNormalizedHash": "fe8c8ef620729aea175a978d1363309a757236922ee60087d22bb2192bb643ea",
+    "beforeCRLF": [
+      [
+        0,
+        42
+      ],
+      [
+        44,
+        45
+      ],
+      [
+        54,
+        55
+      ],
+      [
+        63,
+        64
+      ],
+      [
+        73,
+        73
+      ],
+      [
+        175,
+        175
+      ],
+      [
+        200,
+        203
+      ],
+      [
+        228,
+        228
+      ],
+      [
+        234,
+        235
+      ],
+      [
+        237,
+        237
+      ],
+      [
+        278,
+        278
+      ],
+      [
+        283,
+        290
+      ],
+      [
+        292,
+        293
+      ],
+      [
+        295,
+        295
+      ],
+      [
+        419,
+        534
+      ],
+      [
+        537,
+        537
+      ],
+      [
+        541,
+        545
+      ],
+      [
+        560,
+        560
+      ],
+      [
+        563,
+        566
+      ],
+      [
+        570,
+        864
+      ],
+      [
+        866,
+        969
+      ],
+      [
+        971,
+        971
+      ],
+      [
+        973,
+        1498
+      ],
+      [
+        1500,
+        1674
+      ],
+      [
+        1676,
+        1750
+      ],
+      [
+        1752,
+        1891
+      ],
+      [
+        1904,
+        1923
+      ],
+      [
+        1925,
+        1946
+      ],
+      [
+        1948,
+        1952
+      ],
+      [
+        1954,
+        1976
+      ],
+      [
+        1978,
+        1982
+      ],
+      [
+        1984,
+        2007
+      ],
+      [
+        2009,
+        2030
+      ],
+      [
+        2032,
+        2052
+      ],
+      [
+        2060,
+        2061
+      ],
+      [
+        2076,
+        2248
+      ],
+      [
+        2263,
+        2279
+      ],
+      [
+        2281,
+        2298
+      ],
+      [
+        2302,
+        2302
+      ],
+      [
+        2304,
+        2305
+      ],
+      [
+        2307,
+        2313
+      ],
+      [
+        2315,
+        2319
+      ],
+      [
+        2576,
+        2577
+      ],
+      [
+        2586,
+        2587
+      ],
+      [
+        2591,
+        2592
+      ],
+      [
+        2594,
+        2594
+      ],
+      [
+        2597,
+        2602
+      ],
+      [
+        2605,
+        2605
+      ],
+      [
+        2607,
+        2612
+      ],
+      [
+        2627,
+        2627
+      ],
+      [
+        2633,
+        2633
+      ],
+      [
+        2645,
+        2648
+      ],
+      [
+        2650,
+        2650
+      ],
+      [
+        2652,
+        2652
+      ],
+      [
+        2660,
+        2661
+      ],
+      [
+        2664,
+        2664
+      ],
+      [
+        2667,
+        2667
+      ],
+      [
+        2669,
+        2671
+      ],
+      [
+        2673,
+        2677
+      ],
+      [
+        2679,
+        2683
+      ],
+      [
+        2689,
+        2692
+      ],
+      [
+        2694,
+        2694
+      ],
+      [
+        2696,
+        2700
+      ],
+      [
+        2702,
+        2711
+      ],
+      [
+        2714,
+        2717
+      ],
+      [
+        2719,
+        2760
+      ],
+      [
+        2762,
+        2764
+      ],
+      [
+        2766,
+        2801
+      ],
+      [
+        2803,
+        2803
+      ],
+      [
+        2806,
+        2828
+      ],
+      [
+        2830,
+        2853
+      ],
+      [
+        2856,
+        2868
+      ],
+      [
+        2870,
+        3101
+      ],
+      [
+        3104,
+        3108
+      ],
+      [
+        3110,
+        3112
+      ],
+      [
+        3115,
+        3145
+      ],
+      [
+        3147,
+        3210
+      ],
+      [
+        3212,
+        3332
+      ],
+      [
+        3334,
+        3339
+      ],
+      [
+        3341,
+        3346
+      ],
+      [
+        3348,
+        3391
+      ],
+      [
+        3393,
+        3397
+      ],
+      [
+        3399,
+        3472
+      ],
+      [
+        3474,
+        3475
+      ],
+      [
+        3477,
+        3479
+      ],
+      [
+        3481,
+        3665
+      ],
+      [
+        3667,
+        3667
+      ],
+      [
+        3671,
+        3674
+      ],
+      [
+        3676,
+        3690
+      ],
+      [
+        3692,
+        3783
+      ],
+      [
+        3785,
+        3794
+      ],
+      [
+        3808,
+        3808
+      ],
+      [
+        3810,
+        3810
+      ],
+      [
+        3822,
+        3833
+      ],
+      [
+        3835,
+        3843
+      ]
+    ]
+  },
+  {
+    "file": "public/process/tooling.js",
+    "beforeHash": "f7f80c688a67c9c70a21491ca4104c41531fc7aac55d5401840d53c6d11afdda",
+    "afterHash": "ff68923ec857e2d3796937ce0fe6565cb8d00430d8cf5904d0b99ea04b9f3db7",
+    "rules": [
+      {
+        "offset": 300,
+        "before": "",
+        "after": " function toolingErrorText(code){switch(code){\n  case 'PHOTO_UPLOAD_RESULT_UNKNOWN':return t('Chưa xác nhận kết quả tải ảnh. Bấm Lưu lần nữa để kiểm tra; ảnh này sẽ không được tải lại.','圖片上傳結果尚未確認。再次按存取查證，這張圖片不會重傳。');\n  case 'PHOTO_OWNER_CHANGED':return t('Tài khoản hoặc bản nháp gắn với ảnh đã thay đổi. Hãy kiểm tra tài khoản và bản nháp hiện tại; giữ trang này để đối chiếu ảnh.','圖片所屬的登入或草稿已變更。請核對目前登入與草稿，並保留此頁以便確認圖片。');\n  case 'PHOTO_SAVE_CONTEXT_CHANGED':return t('Nội dung trang hoặc bản nháp đã thay đổi. Hãy kiểm tra nội dung hiện tại rồi bấm Lưu để so sánh lại; giữ trang này để đối chiếu ảnh.','頁面或草稿內容已變更。請核對目前內容，再按存取重新比較；保留此頁以便確認圖片。');\n  default:return code;\n }}\n"
+      },
+      {
+        "offset": 1440,
+        "before": "",
+        "after": " // Bound both headers and response bodies; abort is best-effort and never proves a write failed.\n async function boundedToolingRead(url,options={},kind='json'){\n  const controller=new AbortController(),owner=window.ProcessSync?.identity,delivery=window.ProcessSync?.captureDelivery?.(),epoch=viewEpoch;let timer;\n  try{return await Promise.race([(async()=>{const response=await fetch(url,{...options,signal:options.signal?AbortSignal.any([options.signal,controller.signal]):controller.signal});const body=await response[kind]();if(owner!==window.ProcessSync?.identity||epoch!==viewEpoch||delivery!=null&&window.ProcessSync?.isCurrentDelivery?.(delivery)!==true)throw Error('DELIVERY_SUPERSEDED');return {response,body};})(),new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(Error(t('Hết thời gian chờ; hãy kiểm tra lại.','讀取逾時，請重新檢查。')));},45000);})]);}\n  finally{clearTimeout(timer);}\n }\n"
+      },
+      {
+        "offset": 2488,
+        "before": " const clone=v=>JSON.parse(JSON.stringify(v)),same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);\n let readOnlyBusy=false,polling=false,readEpoch=0,viewEpoch=0,beginRecovery=null,checksRun=null,checksStatus='unchecked',checksPaintPending=false;\n",
+        "after": " const clone=v=>v===undefined?undefined:JSON.parse(JSON.stringify(v)),same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);\n let readOnlyBusy=false,viewEpoch=0,beginRecovery=null,checksRun=null,checksStatus='unchecked',checksPaintPending=false;\n"
+      },
+      {
+        "offset": 2814,
+        "before": "",
+        "after": " let historyDisplayEpoch=0,approvedHistoryView=null;\n const historyAllowsMutation=()=>!approvedHistoryView?.blocked;\n const assertCurrentDisplay=()=>{if(!historyAllowsMutation())throw Error('APPROVED_HISTORY_READ_ONLY');};\n const guardWorking=(node,callback)=>{const epoch=historyDisplayEpoch,page=host;return function(...args){if(epoch!==historyDisplayEpoch||!historyAllowsMutation()||page!==host||(!node?.isConnected&&args[0]?.type!=='close'))return;const result=callback.apply(this,args);if(result&&typeof result.finally==='function')return result.finally(()=>approvedHistoryView?.refreshControls?.());approvedHistoryView?.refreshControls?.();return result;};};\n // Page RAM only. A dispatched photo PUT has no durable operation receipt:\n // retain its content hash and only read that URI after an ambiguous response.\n const photoFiles=new Map(),photoOutcomes=new Map();let photoFileObjects=new WeakMap();\n const photoUrl=photo=>photoFiles.get(photo.id)?.url||'/api/tooling/photo?id='+photo.id;\n function clearPhotoFiles(retainConfirmed=false){for(const entry of photoFiles.values())URL.revokeObjectURL(entry.url);photoFiles.clear();if(!retainConfirmed){photoFileObjects=new WeakMap();photoOutcomes.clear();}}\n function prunePhotoFiles(extra=[]){const used=new Set([...(localSnapshot?.tools||[]).flatMap(row=>row.photos||[]),...extra].map(photo=>photo.id));for(const [id,entry]of photoFiles)if(!used.has(id)){URL.revokeObjectURL(entry.url);photoFiles.delete(id);}}\n const photoOwner=()=>({identity:window.ProcessSync?.identity,epoch:window.ProcessSync?.identityGeneration?.(),delivery:window.ProcessSync?.captureDelivery?.(),generation:flow()?.generation,client,view:viewEpoch});\n const photoOwnerCurrent=owner=>owner.identity===window.ProcessSync?.identity&&Number.isSafeInteger(owner.epoch)&&owner.epoch>=0&&owner.epoch===window.ProcessSync?.identityGeneration?.()&&owner.delivery!=null&&window.ProcessSync?.isCurrentDelivery?.(owner.delivery)===true&&owner.generation===flow()?.generation&&owner.client===client&&owner.client?.isRuntimeCurrent?.()!==false&&owner.client?.isBeginRuntimeCurrent?.()!==false&&owner.view===viewEpoch&&!window.ProcessSync?.requiresReload;\n async function resolvePhotoFiles(details){\n  const owner=photoOwner(),snapshot=localSnapshot,basis=localBase,selectedId=selected,c=client;\n  const check=()=>{if(!photoOwnerCurrent(owner)||snapshot!==localSnapshot||basis!==localBase||selectedId!==selected||c.hasUnknown())throw Error('PHOTO_SAVE_CONTEXT_CHANGED');};\n  const digest=async bytes=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),byte=>byte.toString(16).padStart(2,'0')).join('');\n  for(const patch of details.patches){const photos=patch.op==='insert'&&patch.path[0]==='tools'?patch.value.photos:patch.op==='set'&&patch.path[0]==='tools'&&patch.path[2]==='photos'?patch.value:null;if(!Array.isArray(photos))continue;\n   for(const photo of photos){const entry=photoFiles.get(photo.id);if(!entry)continue;check();if(!photoOwnerCurrent(entry.owner))throw Error('PHOTO_OWNER_CHANGED');\n    if(!entry.hash){const {prepareBrowserPhoto}=await import('./photo-policy.mjs?v=20261023-lossless1');check();entry.payload=(await prepareBrowserPhoto(entry.file)).blob;check();const bytes=await entry.payload.arrayBuffer();check();entry.hash=await digest(bytes);check();}\n    // File selection may return a new File object for the same bytes. Keep\n    // outcomes by normalized content hash, without retaining File/payload data.\n    let outcome=photoOutcomes.get(entry.hash);if(!outcome){outcome={owner:entry.owner,dispatched:false,confirmed:null};photoOutcomes.set(entry.hash,outcome);}if(!photoOwnerCurrent(outcome.owner))throw Error('PHOTO_OWNER_CHANGED');entry.dispatched=outcome.dispatched;entry.confirmed=outcome.confirmed;\n    if(!entry.confirmed){\n     if(entry.dispatched){const {response,body}=await boundedToolingRead('/api/tooling/photo?id='+entry.hash,{cache:'no-store'},'arrayBuffer');check();if(!response.ok||await digest(body)!==entry.hash)throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');check();entry.confirmed=outcome.confirmed=entry.hash;}\n     else{entry.dispatched=outcome.dispatched=true;let response,result;try{({response,body:result}=await boundedToolingRead('/api/tooling/photo',{method:'PUT',headers:{'Content-Type':entry.payload.type},body:entry.payload}));}catch{throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');}if(response.ok&&result.id===entry.hash)entry.confirmed=outcome.confirmed=result.id;check();if(!entry.confirmed)throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');}\n    }\n    photo.id=entry.confirmed;\n   }\n   // A reselected File may be the same content as an existing/peer photo.\n   const seen=new Set();for(let i=0;i<photos.length;)if(seen.has(photos[i].id))photos.splice(i,1);else{seen.add(photos[i].id);i++;}\n  }\n  check();return details;\n }\n\n"
+      },
+      {
+        "offset": 8485,
+        "before": " const draftActionAllowed=permission=>!beginRecovery&&!window.ProcessSync?.requiresReload&&actor===window.ProcessSync?.identity?.id&&version()?.status==='draft'&&!flow()?.pendingId&&client?.isRuntimeCurrent?.()!==false&&client?.isBeginRuntimeCurrent?.()!==false&&client?.permission(permission)===true;\n",
+        "after": " const draftActionAllowed=permission=>historyAllowsMutation()&&!beginRecovery&&!window.ProcessSync?.requiresReload&&actor===window.ProcessSync?.identity?.id&&version()?.status==='draft'&&!flow()?.pendingId&&client?.isRuntimeCurrent?.()!==false&&client?.isBeginRuntimeCurrent?.()!==false&&client?.permission(permission)===true;\n"
+      },
+      {
+        "offset": 9478,
+        "before": " function transport(){const id=window.ProcessSync?.identity?.id;if(!id)throw Error(t('Vui lòng đăng nhập','請先登入'));if(actor!==id||client?.isRuntimeCurrent?.()===false||client?.isBeginRuntimeCurrent?.()===false){localBase=null;localSnapshot=null;localGeneration=null;checksRun?.controller.abort();checksRun=null;checksStatus='unchecked';actor=id;control=null;selected='';iqc=null;checks=null;caseVersionNumbers.clear();try{beginRecovery=JSON.parse(sessionStorage.getItem('tooling-begin-recovery:'+id)||'null');}catch{beginRecovery={invalid:true};}client=window.createSharedDraftClient({durableBegin:true,externalDurableBounded:{scope:'TOOLING'},allowUnknownDeparture:true,guardAccessResults:true,endpoint:'/api/tooling/workflow?caseMetadata=1',conditionalState:true,actorId:id,headers:()=>({'Content-Type':'application/json'})});}return client;}\n async function read(response,current=()=>true){const delivery=window.ProcessSync?.captureDelivery?.(),assertOwned=()=>{if(!current()||delivery&&window.ProcessSync.isCurrentDelivery(delivery)===false)throw Error('DELIVERY_SUPERSEDED');};const c=transport();if(c.hasUnknown()){const recovered=await c.resolveUnknown();assertOwned();response=recovered?.control?recovered:undefined;if(recovered?.recoveryKind==='begin-v1')selected='';if(recovered&&pendingLocalSave&&!c.hasUnknown()){localBase=null;localSnapshot=null;localGeneration=null;pendingLocalSave=false;}}const result=response||await c.read();assertOwned();control=result.control;if(beginRecovery?.acknowledged===true&&confirmedBegin(result)){sessionStorage.removeItem('tooling-begin-recovery:'+actor);beginRecovery=null;selected='';error='';}if(beginRecovery)error=beginUnconfirmed();if(!control.versions.some(v=>v.id===selected))selected=open()?.id||active()?.id||'';\n",
+        "after": " function discardCatalogInputs(){host?.querySelectorAll('.tooling-catalog-entry,.tooling-inline-editor').forEach(node=>node.remove());}\n function transport(){const id=window.ProcessSync?.identity?.id;if(!id)throw Error(t('Vui lòng đăng nhập','請先登入'));if(actor!==id||client?.isRuntimeCurrent?.()===false||client?.isBeginRuntimeCurrent?.()===false){discardCatalogInputs();clearPhotoFiles();localBase=null;localSnapshot=null;localGeneration=null;checksRun?.controller.abort();checksRun=null;checksStatus='unchecked';actor=id;control=null;selected='';iqc=null;checks=null;caseVersionNumbers.clear();try{beginRecovery=JSON.parse(sessionStorage.getItem('tooling-begin-recovery:'+id)||'null');}catch{beginRecovery={invalid:true};}client=window.createSharedDraftClient({durableBegin:true,externalDurableBounded:{scope:'TOOLING'},allowUnknownDeparture:true,guardAccessResults:true,endpoint:'/api/tooling/workflow?caseMetadata=1',conditionalState:true,actorId:id,headers:()=>({'Content-Type':'application/json'})});}return client;}\n async function read(response,current=()=>true){assertCurrentDisplay();const displayEpoch=historyDisplayEpoch;const delivery=window.ProcessSync?.captureDelivery?.(),assertOwned=()=>{if(displayEpoch!==historyDisplayEpoch||!historyAllowsMutation()||!current()||delivery&&window.ProcessSync.isCurrentDelivery(delivery)===false)throw Error('DELIVERY_SUPERSEDED');};const c=transport();if(c.hasUnknown()){const recovered=await c.resolveUnknown();assertOwned();response=recovered?.control?recovered:undefined;if(recovered?.recoveryKind==='begin-v1')selected='';if(recovered&&pendingLocalSave&&!c.hasUnknown()){localBase=null;localSnapshot=null;localGeneration=null;pendingLocalSave=false;clearPhotoFiles(true);}}const result=response||await c.read();assertOwned();control=result.control;if(beginRecovery?.acknowledged===true&&confirmedBegin(result)){sessionStorage.removeItem('tooling-begin-recovery:'+actor);beginRecovery=null;selected='';error='';}if(beginRecovery)error=beginUnconfirmed();if(!control.versions.some(v=>v.id===selected))selected=open()?.id||active()?.id||'';\n"
+      },
+      {
+        "offset": 11657,
+        "before": "  if((control.workflow?.cases||[]).some(c=>!caseVersionNumbers.has(c.id))){let cursor='';try{do{const r=await fetch('/api/tooling/workflow?uiHistory=1'+(cursor?'&versionBefore='+encodeURIComponent(cursor):''),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const metadata=await r.json();assertOwned();for(const v of metadata.versions.rows)caseVersionNumbers.set(v.id,v.number);cursor=metadata.versions.next||'';}while(cursor&&(control.workflow?.cases||[]).some(c=>!caseVersionNumbers.has(c.id)));}catch{assertOwned();error=t('Không tải được số phiên bản lịch sử; tải lại để thử lại','歷史版本編號載入失敗；重新載入重試');}}\n",
+        "after": "  if((control.workflow?.cases||[]).some(c=>!caseVersionNumbers.has(c.id))){let cursor='';try{do{const {response:r,body:metadata}=await boundedToolingRead('/api/tooling/workflow?uiHistory=1'+(cursor?'&versionBefore='+encodeURIComponent(cursor):''),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);assertOwned();for(const v of metadata.versions.rows)caseVersionNumbers.set(v.id,v.number);cursor=metadata.versions.next||'';}while(cursor&&(control.workflow?.cases||[]).some(c=>!caseVersionNumbers.has(c.id)));}catch{assertOwned();error=t('Không tải được số phiên bản lịch sử; tải lại để thử lại','歷史版本編號載入失敗；重新載入重試');}}\n"
+      },
+      {
+        "offset": 14319,
+        "before": "  void (async()=>{try{const r=await fetch('/api/tooling/checks',{cache:'no-store',signal:task.controller.signal});if(!r.ok)throw Error('HTTP '+r.status);const next=await r.json();if(!owns())return;\n",
+        "after": "  void (async()=>{try{const {response:r,body:next}=await boundedToolingRead('/api/tooling/checks',{cache:'no-store',signal:task.controller.signal});if(!r.ok)throw Error('HTTP '+r.status);if(!owns())return;\n"
+      },
+      {
+        "offset": 15008,
+        "before": " function flushChecks(){if(checksPaintPending&&!checksPaintPending()){checksPaintPending=false;return;}if(!checksPaintPending||busy||dialog||host?.querySelector('.tooling-inline-editor')||document.activeElement?.isConnected&&document.activeElement.matches('input,textarea,select'))return;checksPaintPending=false;paint();paintReview();syncActions();}\n function syncActions(){for(const [selector,permission,allowed]of [['#tooling-begin','edit',!beginRecovery&&!flow()?.pendingId],['#tooling-save','save',draftActionAllowed('save')],['#tooling-submit','submit',draftActionAllowed('submit')&&!localSnapshot],['#tooling-withdraw','withdraw',!!flow()?.pendingId]]){const b=host?.querySelector(selector);if(b)b.disabled=busy||!allowed||!client?.permission(permission);}const recovery=host?.querySelector('#tooling-enter-existing');if(recovery)recovery.disabled=busy||!beginRecovery||!!beginRecovery.invalid;reviewHost?.querySelectorAll('[data-tooling-action]').forEach(b=>b.disabled=busy||!client?.permission(b.dataset.toolingAction));}\n async function run(action,readOnly=false){if(busy)return;readEpoch++;readOnlyBusy=readOnly;const epoch=viewEpoch,delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>epoch===viewEpoch&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));busy=true;syncActions();error='';window.VersionDraftUI.updateSync(host,true,false);try{const response=await action();await read(response?.control?response:undefined,owns);if(!owns())return;paint();paintReview();return response;}catch(e){if(!owns())return;error=e.message;const node=dialog?.querySelector('[data-editor-error]')||host?.querySelector('.tooling-inline-editor [role=alert]');if(node)node.textContent=error;else paint();paintReview();}finally{if(owns()){busy=false;readOnlyBusy=false;window.VersionDraftUI.updateSync(host,false,!!error);syncActions();}}}\n",
+        "after": " function flushChecks(){if(!historyAllowsMutation()||approvedHistoryView?.reading)return;if(checksPaintPending&&!checksPaintPending()){checksPaintPending=false;return;}if(!checksPaintPending||busy||dialog||host?.querySelector('.tooling-inline-editor')||document.activeElement?.isConnected&&document.activeElement.matches('input,textarea,select'))return;checksPaintPending=false;paint();paintReview();syncActions();}\n function syncActions(){approvedHistoryView?.refreshControls?.();for(const [selector,permission,allowed]of [['#tooling-begin','edit',!beginRecovery&&!flow()?.pendingId],['#tooling-save','save',draftActionAllowed('save')],['#tooling-submit','submit',draftActionAllowed('submit')&&!localSnapshot],['#tooling-withdraw','withdraw',!!flow()?.pendingId]]){const b=host?.querySelector(selector);if(b)b.disabled=busy||!allowed||!client?.permission(permission);}const recovery=host?.querySelector('#tooling-enter-existing');if(recovery)recovery.disabled=busy||!beginRecovery||!!beginRecovery.invalid;reviewHost?.querySelectorAll('[data-tooling-action]').forEach(b=>b.disabled=busy||!client?.permission(b.dataset.toolingAction));}\n async function run(action,readOnly=false){if(busy||!historyAllowsMutation())return;readOnlyBusy=readOnly;const epoch=viewEpoch,delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>epoch===viewEpoch&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));busy=true;syncActions();error='';window.VersionDraftUI.updateSync(host,true,false);try{const response=await action();await read(response?.control?response:undefined,owns);if(!owns())return;paint();paintReview();return response;}catch(e){if(!owns())return;error=e.message;const node=dialog?.querySelector('[data-editor-error]')||host?.querySelector('.tooling-inline-editor [role=alert]');if(node)node.textContent=toolingErrorText(error);else paint();paintReview();}finally{if(owns()){busy=false;readOnlyBusy=false;window.VersionDraftUI.updateSync(host,false,!!error);syncActions();}}}\n"
+      },
+      {
+        "offset": 17283,
+        "before": "",
+        "after": "  assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 19396,
+        "before": "  if(!editing())throw Error('FORBIDDEN');\n",
+        "after": "  if(busy)throw Error('OPERATION_IN_PROGRESS');if(!editing())throw Error('FORBIDDEN');\n"
+      },
+      {
+        "offset": 20375,
+        "before": " async function command(action,details={}){if(beginRecovery)throw Error(beginUnconfirmed());readEpoch++;if(action==='apply'){stageChanges(details);return;}return transport().command(flow().generation,action,details);}\n",
+        "after": " async function command(action,details={}){assertCurrentDisplay();if(beginRecovery)throw Error(beginUnconfirmed());if(action==='apply'){stageChanges(details);return;}return transport().command(flow().generation,action,details);}\n function chooseSaveConflicts(conflicts){return new Promise(resolve=>{\n  const d=document.createElement('dialog');d.className='tooling-save-conflicts pe-shared-preview';d.dataset.i18nSkip='true';\n  const add=(tag,text,parent=d)=>{const n=document.createElement(tag);n.textContent=text;parent.append(n);return n;};\n  add('h2',t('Xung đột khi lưu: chọn cho tất cả trường xung đột','儲存衝突：一次選擇全部衝突欄位'));\n  add('p',t('Giữ mọi thay đổi không xung đột. Lựa chọn sẽ tiếp tục lưu; hủy không lưu.','非衝突修改完整保留。選擇後繼續儲存；取消不儲存。'));\n  for(const c of conflicts){const section=add('section','');add('h3',c.path.map(p=>typeof p==='string'?p:p.id).join(' / '),section);for(const [label,value]of [[t('Của tôi','我的內容'),c.mine],[t('Của người khác','對方內容'),c.latest]]){add('h4',label,section);add('pre',JSON.stringify(value,null,2)??t('Đã xóa','已移除'),section);}}\n  const actions=add('div','');actions.className='pe-review-actions';\n  let answer=null;for(const [value,label]of [['mine',t('Dùng của tôi','用我的')],['latest',t('Dùng của người khác','用對方的')],[null,t('Hủy','取消')]]){const b=add('button',label,actions);b.type='button';b.dataset.conflictChoice=value||'cancel';b.onclick=()=>{answer=value;d.close();};}\n  d.onclose=()=>{d.remove();resolve(answer);};document.body.append(d);d.showModal();\n });}\n // IQC links are membership, not an ordered replacement. Replay only local\n // additions/removals over the fresh set so independent peer links survive.\n function mergeReferences(before,mine,latest){\n  const valid=rows=>Array.isArray(rows)&&rows.every(id=>typeof id==='string'&&id)&&new Set(rows).size===rows.length;\n  if(![before,mine,latest].every(valid))return null;\n  const removed=new Set(before.filter(id=>!mine.includes(id))),added=mine.filter(id=>!before.includes(id));return [...latest.filter(id=>!removed.has(id)),...added.filter(id=>!latest.includes(id))];\n }\n // Stable photo IDs permit field merge and independent appends. Deletion vs\n // modification is one conflict for that ID; ambiguous arrays stay whole-field.\n function mergePhotos(before,mine,latest,choice='mine',path=[]){\n  const valid=rows=>Array.isArray(rows)&&rows.every(row=>row&&typeof row==='object'&&!Array.isArray(row)&&typeof row.id==='string'&&row.id)&&new Set(rows.map(row=>row.id)).size===rows.length;\n  if(![before,mine,latest].every(valid))return null;\n  const result=[],conflicts=[],ids=[...new Set([...latest.map(row=>row.id),...mine.map(row=>row.id),...before.map(row=>row.id)])];\n  for(const id of ids){const b=before.find(row=>row.id===id),m=mine.find(row=>row.id===id),r=latest.find(row=>row.id===id);let value;\n   if(same(m,b))value=r;else if(same(r,b)||same(m,r))value=m;\n   else if(!m||!r){conflicts.push({path:[...path,{id}],before:b,mine:m,latest:r});value=choice==='latest'?r:m;}\n   else{value={id};for(const field of new Set([...Object.keys(b||{}),...Object.keys(m),...Object.keys(r)])){if(field==='id')continue;const base=b?.[field],local=m[field],remote=r[field];let next;if(same(local,base))next=remote;else if(same(remote,base)||same(local,remote))next=local;else{conflicts.push({path:[...path,{id},field],before:base,mine:local,latest:remote});next=choice==='latest'?remote:local;}if(next!==undefined)value[field]=clone(next);}}\n   if(value)result.push(clone(value));\n  }\n  const rows=new Map(result.map(row=>[row.id,row])),oldIds=before.map(row=>row.id),oldSet=new Set(oldIds),mineIds=mine.map(row=>row.id).filter(id=>rows.has(id)),latestIds=latest.map(row=>row.id).filter(id=>rows.has(id));\n  const common=oldIds.filter(id=>mineIds.includes(id)&&latestIds.includes(id)),commonSet=new Set(common),ownOrder=mineIds.filter(id=>commonSet.has(id)),peerOrder=latestIds.filter(id=>commonSet.has(id)),ownMoved=!same(common,ownOrder),peerMoved=!same(common,peerOrder);\n  const addedBoth=mineIds.filter(id=>!oldSet.has(id)&&latestIds.includes(id)),slot=(list,id)=>list.slice(0,list.indexOf(id)).filter(key=>commonSet.has(key)).sort();\n  let orderConflict=ownMoved&&peerMoved&&!same(ownOrder,peerOrder)||!same(mineIds.filter(id=>addedBoth.includes(id)),latestIds.filter(id=>addedBoth.includes(id)))||addedBoth.some(id=>!same(slot(mineIds,id),slot(latestIds,id)));\n  const candidateOrder=ownMoved?ownOrder:peerOrder;\n  // Independent insertions retain their relative slot, including \"after all\"\n  // when a peer reorders existing photos. Crossing anchors require one choice.\n  for(const list of [mineIds,latestIds])for(const id of list.filter(id=>!commonSet.has(id))){const at=list.indexOf(id),left=list.slice(0,at).filter(key=>commonSet.has(key)),right=list.slice(at+1).filter(key=>commonSet.has(key));if(left.some(a=>right.some(b=>candidateOrder.indexOf(a)>candidateOrder.indexOf(b))))orderConflict=true;}\n  if(orderConflict)conflicts.push({path:[...path,'order'],before:oldIds,mine:mineIds,latest:latestIds});\n  const preferMine=orderConflict?choice!=='latest':ownMoved,primary=preferMine?mineIds:latestIds,secondary=preferMine?latestIds:mineIds,order=primary.slice();\n  for(const id of secondary)if(!order.includes(id)){const after=new Set(secondary.slice(secondary.indexOf(id)+1).filter(key=>commonSet.has(key))),index=order.findIndex(key=>after.has(key));if(index>=0)order.splice(index,0,id);else order.push(id);}\n  for(const id of rows.keys())if(!order.includes(id))order.push(id);\n  return {value:order.map(id=>rows.get(id)),conflicts};\n }\n async function prepareLocalSave(){\n  const c=client,owner=actor,identity=window.ProcessSync?.identity,identityEpoch=window.ProcessSync?.identityGeneration?.(),epoch=viewEpoch,selectedId=selected,basis=localBase,snapshot=localSnapshot,generation=localGeneration||flow()?.generation,delivery=window.ProcessSync?.captureDelivery?.();\n  const owns=()=>c===client&&owner===actor&&owner===window.ProcessSync?.identity?.id&&epoch===viewEpoch&&selectedId===selected&&basis===localBase&&snapshot===localSnapshot&&!window.ProcessSync?.requiresReload&&(typeof identityEpoch==='number'?identityEpoch===window.ProcessSync?.identityGeneration?.():identity===window.ProcessSync?.identity)&&(!delivery||window.ProcessSync.isCurrentDelivery?.(delivery)!==false);\n  const original=localChanges();let fresh=await c.read(undefined,{requireAcceptedAccess:true}),f=fresh.control?.workflow;\n  const check=()=>{if(!owns())throw Error('DELIVERY_SUPERSEDED');if(f?.generation!==generation||flow()?.generation!==generation)throw Error('STALE_GENERATION');if(fresh.permissions?.view!==true||fresh.permissions?.edit!==true||fresh.permissions?.save!==true||f.pendingId||!fresh.control.versions.some(v=>v.status==='draft'))throw Error('PENDING_OR_PERMISSION_LOCKED');};\n  for(;;){check();\n  const value=path=>{let v=f.working;for(const part of path)v=typeof part==='string'?v?.[part]:Array.isArray(v)?v.find(row=>row.id===part.id):undefined;return v;};\n  const comparisons=original.patches.map(p=>{const before=original.guards.find(g=>same(g.path,p.path))?.value,latest=p.op==='insert'?value(p.path)?.find(r=>r.id===p.value.id):value(p.path),mine=p.op==='remove'?undefined:p.value,item={patch:p,path:p.path,before,latest,mine,conflict:p.op==='insert'?!!latest&&!same(latest,mine):!same(latest,before)&&!same(latest,mine)};\n   if(p.op==='set'&&p.path[0]==='tools'&&p.path[2]==='iqcIds'){const merged=mergeReferences(before,mine,latest);if(merged){item.resolve=()=>merged;item.conflict=false;}}\n   if(p.op==='set'&&p.path[0]==='tools'&&p.path[2]==='photos'){const merged=mergePhotos(before,mine,latest,'mine',p.path);if(merged){item.resolve=choice=>mergePhotos(before,mine,latest,choice,p.path).value;item.conflict=!!merged.conflicts.length;item.conflicts=merged.conflicts;}}\n   return item;\n  }),conflicts=comparisons.flatMap(item=>item.conflicts|| (item.conflict?[item]:[]));\n  const choice=conflicts.length?await chooseSaveConflicts(conflicts):'mine';if(!choice)return null;check();\n  if(conflicts.length){const checked=await c.read(undefined,{requireAcceptedAccess:true}),basis=value=>{const c=value.control,f=c.workflow;return {generation:f.generation,revision:f.revision,working:f.working,savedId:f.saved?.id,pendingId:f.pendingId,baseId:f.baseId,activeVersionId:c.activeVersionId,drafts:c.versions.filter(v=>v.status==='draft').map(v=>v.id)};},changed=!same(basis(fresh),basis(checked));fresh=checked;f=fresh.control?.workflow;check();if(changed)continue;}\n\n  const patches=[],guards=[];\n  for(const item of comparisons){const p=item.patch,desired=item.resolve?item.resolve(choice):item.mine;if(item.conflict&&choice==='latest'&&!item.resolve||same(item.latest,desired))continue;\n   // A removed row is authoritative; choosing local fields cannot recreate its\n   // immutable source/code/history under a different insert operation.\n   if(p.op!=='insert'&&p.path.length===3&&!value(p.path.slice(0,2)))throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');\n   if(p.op==='insert'&&item.latest)throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');\n   patches.push(p.op==='set'?{...clone(p),value:clone(desired)}:clone(p));if(p.op!=='insert')guards.push({path:clone(p.path),value:clone(item.latest)});\n  }\n  return {moduleAction:'save-local-v1',patches,guards,expectedRevision:f.revision};\n  }\n }\n"
+      },
+      {
+        "offset": 30335,
+        "before": "   const details=localSnapshot?{moduleAction:'save-local-v1',...localChanges()}:{};\n",
+        "after": "   if(client.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');\n   const details=await prepareLocalSave();if(details===null)return null;await resolvePhotoFiles(details);\n"
+      },
+      {
+        "offset": 30553,
+        "before": "   try{const result=await command('save',details);localBase=null;localSnapshot=null;localGeneration=null;pendingLocalSave=false;return result;}\n",
+        "after": "   try{const result=await command('save',details);localBase=null;localSnapshot=null;localGeneration=null;pendingLocalSave=false;clearPhotoFiles(true);return result;}\n"
+      },
+      {
+        "offset": 32019,
+        "before": "  readEpoch++;return c.command(generation,'submit',{...snapshot,reason});\n",
+        "after": "  return c.command(generation,'submit',{...snapshot,reason});\n"
+      },
+      {
+        "offset": 34763,
+        "before": " function paint(){if(!host?.isConnected||host.dataset.activeTab!=='quality-mold-equipment')return;const preserve=window.VersionDraftUI.preserveView(host),s=content(),v=version(),f=flow(),editable=editing();\n",
+        "after": " const historyFields={tools:['器具','Dụng cụ'],categories:['器具類別','Loại dụng cụ'],custodians:['內部保管單位','Đơn vị giữ nội bộ'],suppliers:['供應商','Nhà cung cấp'],manufacturers:['製造商','Nhà chế tạo'],transfers:['移轉紀錄','Lịch sử chuyển'],id:['識別碼','Mã'],code:['編號','Mã'],nameVi:['越文名稱','Tên tiếng Việt'],nameZh:['中文名稱','Tên tiếng Hoa'],categoryId:['類別','Loại'],assetCode:['資產編號','Mã tài sản'],specification:['規格','Quy cách'],quantity:['數量','Số lượng'],unit:['單位','Đơn vị'],manufacturerId:['製造商','Nhà chế tạo'],location:['位置','Vị trí'],kind:['類型','Loại'],holderId:['保管單位','Đơn vị giữ'],inboundDate:['入庫日期','Ngày nhập'],inboundDateLost:['入庫日期遺失','Thiếu ngày nhập'],enabled:['使用中','Đang dùng'],inactiveReason:['停用原因','Lý do ngưng'],archived:['封存','Lưu trữ'],archiveReason:['封存原因','Lý do lưu trữ'],notes:['備註','Ghi chú'],frequencyMonths:['檢查週期（月）','Chu kỳ kiểm tra (tháng)'],inspectionFrequency:['檢查頻率','Tần suất kiểm tra'],photos:['照片','Ảnh'],iqcIds:['IQC 關聯','Liên kết IQC'],toolId:['器具','Dụng cụ'],from:['原位置','Vị trí cũ'],to:['新位置','Vị trí mới'],reason:['原因','Lý do'],createdAt:['建立時間','Thời gian tạo'],createdBy:['建立者','Người tạo'],approvedAt:['核准時間','Thời gian duyệt'],approvedBy:['核准者','Người duyệt'],caseId:['核准案件','Hồ sơ duyệt'],correctionOf:['更正紀錄','Sửa bản ghi'],quantityAtTransfer:['移轉時數量','Số lượng khi chuyển']};\n function mountApprovedHistory(shell,log,emptyNode){\n  const c=client,pageRoot=host;approvedHistoryView?.retire();\n  approvedHistoryView=window.VersionDraftUI.createApprovedHistory({root:host.querySelector('.tooling-page'),shell,client:c,empty:emptyNode,selectId:'tooling-approved-version',cacheKey:control?.activeVersionId||null,\n   isCurrent:()=>client===c&&host===pageRoot&&host.dataset.activeTab==='quality-mold-equipment',\n   canChoose:()=>!busy&&!beginRecovery&&!dialog&&!document.querySelector('.tooling-save-conflicts,.tooling-inline-editor'),\n   onIdle(){flushChecks();},\n   onBoundary(){historyDisplayEpoch++;checksRun?.controller.abort();checksRun=null;checksPaintPending=false;},\n   onDenied(){const old=dialog;dialog=null;if(old){old.close();old.remove();}host?.querySelector('.tooling-inline-editor')?.remove();},\n   renderCurrent(){approvedHistoryView=null;paint();},\n   validateSnapshot:snapshot=>snapshot&&['tools','categories','custodians','suppliers','manufacturers','transfers'].every(key=>Array.isArray(snapshot[key])&&snapshot[key].every(row=>row&&typeof row==='object'&&!Array.isArray(row)))&&snapshot.tools.every(row=>Array.isArray(row.photos)&&Array.isArray(row.iqcIds)),\n   renderSnapshot:(target,snapshot,current)=>window.VersionDraftUI.renderApprovedCollections(target,snapshot,{collections:['tools','categories','custodians','suppliers','manufacturers','transfers'],fields:historyFields,mediaURL:photo=>typeof photo?.id==='string'&&/^[a-f0-9]{64}$/.test(photo.id)?'/api/tooling/photo?id='+encodeURIComponent(photo.id):null},current)\n  });\n }\n function paint(){if(!host?.isConnected||host.dataset.activeTab!=='quality-mold-equipment')return;if(approvedHistoryView?.blocked){approvedHistoryView.relabel();return;}approvedHistoryView?.retire();approvedHistoryView=null;const catalogInputs=Object.keys(names).map(key=>({key,inputs:Array.from(host.querySelector(`[data-catalog=\"${key}\"] [data-catalog-editor]`)?.children||[])}));const preserve=window.VersionDraftUI.preserveView(host),s=content(),v=version(),f=flow(),editable=editing();\n"
+      },
+      {
+        "offset": 39238,
+        "before": "   <p role=\"status\" data-tooling-local>${localSnapshot?h(t('Chưa lưu; chỉ có trên trang này','尚未存取；修改僅在本畫面')):''}</p><div id=\"tooling-errors\">${error?`<details class=\"has-issues\" open><summary>${h(t('Thao tác chưa hoàn tất','操作尚未完成'))}</summary><p role=\"alert\">${h(error)}</p>${button('tooling-retry',t('Tải lại / kiểm tra kết quả','重新載入／查詢結果'))}${beginRecovery?button('tooling-enter-existing',t('Kiểm tra lại và vào bản nháp đã tồn tại','重新檢查並進入已存在草稿'),busy||!!beginRecovery.invalid):''}</details>`:''}</div>\n",
+        "after": "   <p role=\"status\" data-tooling-local>${localSnapshot?h(t('Chưa lưu; chỉ có trên trang này','尚未存取；修改僅在本畫面')):''}</p><div id=\"tooling-errors\">${error?`<details class=\"has-issues\" open><summary>${h(t('Thao tác chưa hoàn tất','操作尚未完成'))}</summary><p role=\"alert\">${h(toolingErrorText(error))}</p>${button('tooling-retry',toolingErrorText(error)===error?t('Tải lại / kiểm tra kết quả','重新載入／查詢結果'):t('Kiểm tra trạng thái','查詢狀態'))}${beginRecovery?button('tooling-enter-existing',t('Kiểm tra lại và vào bản nháp đã tồn tại','重新檢查並進入已存在草稿'),busy||!!beginRecovery.invalid):''}</details>`:''}</div>\n"
+      },
+      {
+        "offset": 42952,
+        "before": "  host.querySelector('#tooling-version').onchange=e=>{localBase=null;localSnapshot=null;localGeneration=null;selected=e.target.value;page=0;paint();};host.querySelector('#tooling-begin')?.addEventListener('click',()=>run(beginDraft));host.querySelector('#tooling-reset').onclick=()=>{Object.assign(filters,{search:'',category:'',supplier:'',manufacturer:'',archived:false});page=0;paint();};host.querySelector('#tooling-save').onclick=()=>run(()=>saveOrSubmit('save'));\n  host.querySelector('#tooling-submit').onclick=()=>run(()=>saveOrSubmit('submit'));host.querySelector('#tooling-withdraw')?.addEventListener('click',()=>reviewAction('withdraw',f.pendingId));host.querySelector('#tooling-retry')?.addEventListener('click',()=>run(async()=>{}));host.querySelector('#tooling-enter-existing')?.addEventListener('click',()=>run(enterExistingDraft));\n  for(const key of ['search','category','supplier','manufacturer','archived'])host.querySelector('#tooling-'+key).addEventListener(key==='search'?'input':'change',e=>{filters[key]=key==='archived'?e.target.checked:e.target.value;page=0;paintList();});\n  host.querySelector('#tooling-add')?.addEventListener('click',()=>editTool());host.querySelectorAll('[data-issue-tool]').forEach(b=>b.onclick=()=>editTool(b.dataset.issueTool));\n  host.querySelectorAll('[data-issue-catalog]').forEach(b=>b.onclick=()=>{host.querySelector('#tooling-catalogs').open=true;editCatalog(b.dataset.issueCatalog,b.dataset.id,!editing());});host.querySelectorAll('[data-catalog-view]').forEach(b=>b.onclick=()=>editCatalog(b.dataset.catalogView,b.dataset.id,true));host.querySelectorAll('[data-catalog-add]').forEach(b=>b.onclick=()=>editCatalog(b.dataset.catalogAdd));host.querySelectorAll('[data-catalog-edit]').forEach(b=>b.onclick=()=>editCatalog(b.dataset.catalogEdit,b.dataset.id));host.querySelectorAll('[data-catalog-delete]').forEach(b=>b.onclick=()=>remove(b.dataset.catalogDelete,b.dataset.id));\n  window.VersionDraftUI.mount(host,{header:'.tooling-version',module:title(),scope:scope(),version:v,versions:control?.versions||[],active:active(),flow:f,historyClient:()=>client,actions:{begin:'#tooling-begin',save:'#tooling-save',submit:'#tooling-submit',withdraw:'#tooling-withdraw'},errors:error?'#tooling-errors details':null,missing:'#tooling-missing>details,#tooling-missing>.vd-unchecked',checked:{errors:!!control},failed:!!error,review:()=>showReview(f?.pendingId)});\n",
+        "after": "  for(const {key,inputs}of catalogInputs){host.querySelector(`[data-catalog=\"${key}\"] [data-catalog-editor]`)?.append(...inputs);for(const entry of inputs){const allowed=editable&&entry.toolingCatalogEditable&&entry.toolingCatalogCurrent?.()===true;entry.querySelectorAll('fieldset').forEach(node=>node.disabled=!allowed);const submit=entry.querySelector('button[type=submit]');if(submit)submit.disabled=!allowed;}}\n  host.querySelector('#tooling-version').onchange=guardWorking(host.querySelector('#tooling-version'),e=>{discardCatalogInputs();clearPhotoFiles();localBase=null;localSnapshot=null;localGeneration=null;selected=e.target.value;page=0;paint();});host.querySelector('#tooling-begin')?.addEventListener('click',guardWorking(host.querySelector('#tooling-begin'),()=>run(beginDraft)));host.querySelector('#tooling-reset').onclick=guardWorking(host.querySelector('#tooling-reset'),()=>{Object.assign(filters,{search:'',category:'',supplier:'',manufacturer:'',archived:false});page=0;paint();});host.querySelector('#tooling-save').onclick=guardWorking(host.querySelector('#tooling-save'),()=>run(()=>saveOrSubmit('save')));\n  host.querySelector('#tooling-submit').onclick=guardWorking(host.querySelector('#tooling-submit'),()=>run(()=>saveOrSubmit('submit')));host.querySelector('#tooling-withdraw')?.addEventListener('click',guardWorking(host.querySelector('#tooling-withdraw'),()=>reviewAction('withdraw',f.pendingId)));host.querySelector('#tooling-retry')?.addEventListener('click',guardWorking(host.querySelector('#tooling-retry'),()=>run(async()=>{})));host.querySelector('#tooling-enter-existing')?.addEventListener('click',guardWorking(host.querySelector('#tooling-enter-existing'),()=>run(enterExistingDraft)));\n  for(const key of ['search','category','supplier','manufacturer','archived'])host.querySelector('#tooling-'+key).addEventListener(key==='search'?'input':'change',guardWorking(host.querySelector('#tooling-'+key),e=>{filters[key]=key==='archived'?e.target.checked:e.target.value;page=0;paintList();}));\n  host.querySelector('#tooling-add')?.addEventListener('click',guardWorking(host.querySelector('#tooling-add'),()=>editTool()));host.querySelectorAll('[data-issue-tool]').forEach(b=>b.onclick=guardWorking(b,()=>editTool(b.dataset.issueTool)));\n  host.querySelectorAll('[data-issue-catalog]').forEach(b=>b.onclick=guardWorking(b,()=>{host.querySelector('#tooling-catalogs').open=true;editCatalog(b.dataset.issueCatalog,b.dataset.id,!editing());}));host.querySelectorAll('[data-catalog-view]').forEach(b=>b.onclick=guardWorking(b,()=>editCatalog(b.dataset.catalogView,b.dataset.id,true)));host.querySelectorAll('[data-catalog-add]').forEach(b=>b.onclick=guardWorking(b,()=>editCatalog(b.dataset.catalogAdd)));host.querySelectorAll('[data-catalog-edit]').forEach(b=>b.onclick=guardWorking(b,()=>editCatalog(b.dataset.catalogEdit,b.dataset.id)));host.querySelectorAll('[data-catalog-delete]').forEach(b=>b.onclick=guardWorking(b,()=>remove(b.dataset.catalogDelete,b.dataset.id)));\n  window.VersionDraftUI.mount(host,{header:'.tooling-version',module:title(),scope:scope(),version:v,versions:control?.versions||[],active:active(),flow:f,historyClient:()=>client,mountApprovedHistory,actions:{begin:'#tooling-begin',save:'#tooling-save',submit:'#tooling-submit',withdraw:'#tooling-withdraw'},errors:error?'#tooling-errors details':null,missing:'#tooling-missing>details,#tooling-missing>.vd-unchecked',checked:{errors:!!control},failed:!!error,review:()=>showReview(f?.pendingId)});\n"
+      },
+      {
+        "offset": 47226,
+        "before": "  area.innerHTML=`<div class=\"tooling-table\"><table><thead><tr>${[t('Ảnh','照片'),t('Mã / tên dụng cụ','器具代碼／名稱'),t('Mã tài sản','資產編號'),t('Số lượng','數量'),t('Vị trí đã duyệt','核准位置'),t('Trạng thái','狀態'),t('Thao tác','操作')].map(x=>`<th>${h(x)}</th>`).join('')}</tr></thead><tbody>${rows.slice(page*20,page*20+20).map(r=>`<tr><td>${r.photos[0]?`<button type=\"button\" class=\"button ghost\" data-photo=\"${r.photos[0].id}\"><img decoding=\"async\" class=\"tooling-photo\" loading=\"lazy\" src=\"/api/tooling/photo?id=${r.photos[0].id}\" alt=\"${h(r.code)}\"></button>`:'—'}</td><td><strong>${h(r.code)}</strong><br>${h(r.nameVi)}<small>${h(r.nameZh)}</small></td><td>${h(r.assetCode||'—')}</td><td>${r.quantity} ${h(r.unit)}</td><td>${h(active()?.snapshot.tools.some(x=>x.id===r.id)?locationName(active().snapshot,currentLocation(active().snapshot,r.id)):t('Chưa có vị trí được duyệt','尚無核准位置'))}<small>${h(t('Bản đang xem: ','目前檢視：')+locationName(s,currentLocation(s,r.id)))}</small></td><td>${h(r.archived?t('Lưu trữ','封存'):r.enabled?t('Đang sử dụng','使用中'):t('Ngưng sử dụng','停用'))}</td><td><div class=\"tooling-row-actions\">${button(`data-tool-view=\"${h(r.id)}\"`,t('Xem','查看'))}${editing()?button(`data-tool-edit=\"${h(r.id)}\"`,t('Sửa','修改')):''}${editing()&&client.permission('delete')?button(`data-tool-delete=\"${h(r.id)}\"`,t('Xóa','刪除'),false,'ghost tooling-danger'):''}</div></td></tr>`).join('')}</tbody></table></div><div class=\"tooling-pager\">${button('tooling-prev',t('Trang trước','上一頁'),page===0)}<span>${page+1} / ${Math.max(1,Math.ceil(rows.length/20))} · ${rows.length}</span>${button('tooling-next',t('Trang sau','下一頁'),(page+1)*20>=rows.length)}</div>`;\n  area.querySelector('#tooling-prev').onclick=()=>{page--;paintList();};area.querySelector('#tooling-next').onclick=()=>{page++;paintList();};area.querySelectorAll('[data-tool-view]').forEach(b=>b.onclick=()=>editTool(b.dataset.toolView,true));area.querySelectorAll('[data-tool-edit]').forEach(b=>b.onclick=()=>editTool(b.dataset.toolEdit));area.querySelectorAll('[data-tool-delete]').forEach(b=>b.onclick=()=>remove('tools',b.dataset.toolDelete));area.querySelectorAll('[data-photo]').forEach(b=>b.onclick=()=>showPhoto('/api/tooling/photo?id='+b.dataset.photo));\n",
+        "after": "  area.innerHTML=`<div class=\"tooling-table\"><table><thead><tr>${[t('Ảnh','照片'),t('Mã / tên dụng cụ','器具代碼／名稱'),t('Mã tài sản','資產編號'),t('Số lượng','數量'),t('Vị trí đã duyệt','核准位置'),t('Trạng thái','狀態'),t('Thao tác','操作')].map(x=>`<th>${h(x)}</th>`).join('')}</tr></thead><tbody>${rows.slice(page*20,page*20+20).map(r=>`<tr><td>${r.photos[0]?`<button type=\"button\" class=\"button ghost\" data-photo=\"${r.photos[0].id}\"><img decoding=\"async\" class=\"tooling-photo\" loading=\"lazy\" src=\"${h(photoUrl(r.photos[0]))}\" alt=\"${h(r.code)}\"></button>`:'—'}</td><td><strong>${h(r.code)}</strong><br>${h(r.nameVi)}<small>${h(r.nameZh)}</small></td><td>${h(r.assetCode||'—')}</td><td>${r.quantity} ${h(r.unit)}</td><td>${h(active()?.snapshot.tools.some(x=>x.id===r.id)?locationName(active().snapshot,currentLocation(active().snapshot,r.id)):t('Chưa có vị trí được duyệt','尚無核准位置'))}<small>${h(t('Bản đang xem: ','目前檢視：')+locationName(s,currentLocation(s,r.id)))}</small></td><td>${h(r.archived?t('Lưu trữ','封存'):r.enabled?t('Đang sử dụng','使用中'):t('Ngưng sử dụng','停用'))}</td><td><div class=\"tooling-row-actions\">${button(`data-tool-view=\"${h(r.id)}\"`,t('Xem','查看'))}${editing()?button(`data-tool-edit=\"${h(r.id)}\"`,t('Sửa','修改')):''}${editing()&&client.permission('delete')?button(`data-tool-delete=\"${h(r.id)}\"`,t('Xóa','刪除'),false,'ghost tooling-danger'):''}</div></td></tr>`).join('')}</tbody></table></div><div class=\"tooling-pager\">${button('tooling-prev',t('Trang trước','上一頁'),page===0)}<span>${page+1} / ${Math.max(1,Math.ceil(rows.length/20))} · ${rows.length}</span>${button('tooling-next',t('Trang sau','下一頁'),(page+1)*20>=rows.length)}</div>`;\n  area.querySelector('#tooling-prev').onclick=guardWorking(area.querySelector('#tooling-prev'),()=>{page--;paintList();});area.querySelector('#tooling-next').onclick=guardWorking(area.querySelector('#tooling-next'),()=>{page++;paintList();});area.querySelectorAll('[data-tool-view]').forEach(b=>b.onclick=guardWorking(b,()=>editTool(b.dataset.toolView,true)));area.querySelectorAll('[data-tool-edit]').forEach(b=>b.onclick=guardWorking(b,()=>editTool(b.dataset.toolEdit)));area.querySelectorAll('[data-tool-delete]').forEach(b=>b.onclick=guardWorking(b,()=>remove('tools',b.dataset.toolDelete)));area.querySelectorAll('[data-photo]').forEach(b=>b.onclick=guardWorking(b,()=>showPhoto(photoUrl({id:b.dataset.photo}))));\n"
+      },
+      {
+        "offset": 51585,
+        "before": " function editCatalog(key,id,viewOnly=false){const s=content(),before=s[key].find(r=>r.id===id),row=clone(before||{id:crypto.randomUUID(),nameVi:'',...(key==='custodians'?{}:{nameZh:''}),...(['suppliers','manufacturers'].includes(key)?{erp:'',addresses:[],phones:[],contacts:[]}:{} )}),area=host.querySelector(`[data-catalog=\"${key}\"] [data-catalog-editor]`),editable=editing()&&!viewOnly;\n",
+        "after": " function editCatalog(key,id,viewOnly=false){const holder=host.querySelector(`[data-catalog=\"${key}\"] [data-catalog-editor]`),entryId=id||'$new',existing=[...holder.children].find(node=>node.dataset.catalogEntry===entryId);\n  // Same-page catalog selection never replaces another unfinished form. Keep\n  // one DOM-owned entry per row, including raw text not yet staged locally.\n  if(existing&&(viewOnly||existing.querySelector('button[type=submit]'))){existing.querySelector('input')?.focus();return;}existing?.remove();\n  const s=content(),before=s[key].find(r=>r.id===id),row=clone(before||{id:crypto.randomUUID(),nameVi:'',...(key==='custodians'?{}:{nameZh:''}),...(['suppliers','manufacturers'].includes(key)?{erp:'',addresses:[],phones:[],contacts:[]}:{} )}),area=document.createElement('div'),editable=editing()&&!viewOnly,editorClient=client,editorActor=window.ProcessSync?.identity,editorEpoch=window.ProcessSync?.identityGeneration?.(),editorGeneration=flow()?.generation,editorVersion=selected,editorView=viewEpoch,editorDelivery=window.ProcessSync?.captureDelivery?.();\n  const current=()=>area.isConnected&&editorClient===client&&editorActor===window.ProcessSync?.identity&&editorEpoch===window.ProcessSync?.identityGeneration?.()&&editorGeneration===flow()?.generation&&editorVersion===selected&&editorView===viewEpoch&&(!editorDelivery||window.ProcessSync?.isCurrentDelivery?.(editorDelivery)!==false);\n  area.className='tooling-catalog-entry';area.dataset.catalogEntry=entryId;area.toolingCatalogCurrent=current;area.toolingCatalogEditable=editable;holder.append(area);\n"
+      },
+      {
+        "offset": 54240,
+        "before": "  const paintArray=f=>{const box=area.querySelector(`[data-array=\"${f}\"]`);box.innerHTML=row[f].map((v,i)=>`<div><input aria-label=\"${f} ${i+1}\" value=\"${h(v)}\" data-array-index=\"${i}\">${button(`data-array-remove=\"${i}\"`,'−')}</div>`).join('');box.querySelectorAll('input').forEach(el=>el.oninput=()=>row[f][Number(el.dataset.arrayIndex)]=el.value);box.querySelectorAll('button').forEach(el=>el.onclick=()=>{row[f].splice(Number(el.dataset.arrayRemove),1);paintArray(f);});};\n  area.querySelectorAll('[data-plus]').forEach(b=>{const f=b.dataset.plus;paintArray(f);b.onclick=()=>{row[f].push('');paintArray(f);area.querySelector(`[data-array=\"${f}\"] input:last-of-type`)?.focus();};});area.querySelector('[data-catalog-cancel]').onclick=()=>{client.discardRejected(area.rejectedPaths||[]);area.replaceChildren();flushChecks();};\n  area.querySelector('form').onsubmit=async e=>{e.preventDefault();if(!editable)return;for(const el of area.querySelectorAll('[name]'))row[el.name]=el.value;try{await applyRow(key,before,row);paint();}catch(err){area.rejectedPaths=err.toolingPaths||[];area.querySelector('[role=alert]').textContent=err.message;}};area.querySelector('input')?.focus();\n",
+        "after": "  const paintArray=f=>{const box=area.querySelector(`[data-array=\"${f}\"]`);box.innerHTML=row[f].map((v,i)=>`<div><input aria-label=\"${f} ${i+1}\" value=\"${h(v)}\" data-array-index=\"${i}\">${button(`data-array-remove=\"${i}\"`,'−')}</div>`).join('');box.querySelectorAll('input').forEach(el=>el.oninput=guardWorking(el,()=>row[f][Number(el.dataset.arrayIndex)]=el.value));box.querySelectorAll('button').forEach(el=>el.onclick=guardWorking(el,()=>{row[f].splice(Number(el.dataset.arrayRemove),1);paintArray(f);}));};\n  area.querySelectorAll('[data-plus]').forEach(b=>{const f=b.dataset.plus;paintArray(f);b.onclick=guardWorking(b,()=>{row[f].push('');paintArray(f);area.querySelector(`[data-array=\"${f}\"] input:last-of-type`)?.focus();});});area.querySelector('[data-catalog-cancel]').onclick=guardWorking(area.querySelector('[data-catalog-cancel]'),()=>{if(current())client.discardRejected(area.rejectedPaths||[]);area.remove();flushChecks();});\n  area.querySelector('form').onsubmit=guardWorking(area.querySelector('form'),async e=>{e.preventDefault();if(!editable)return;try{if(!current()||!editing())throw Error('DELIVERY_SUPERSEDED');for(const el of area.querySelectorAll('[name]'))row[el.name]=el.value;await applyRow(key,before,row);area.remove();paint();}catch(err){area.rejectedPaths=err.toolingPaths||[];const alert=area.querySelector('[role=alert]');if(alert)alert.textContent=err.message;}});area.querySelector('input')?.focus();\n"
+      },
+      {
+        "offset": 55680,
+        "before": " function makeDialog(label,body){const opener=document.activeElement,d=document.createElement('dialog');d.className='tooling-dialog';d.dataset.i18nSkip='true';d.setAttribute('aria-label',label);d.innerHTML=body;document.body.append(d);d.showModal();d.addEventListener('close',()=>{d.remove();if(dialog===d)dialog=null;if(opener?.isConnected)opener.focus({preventScroll:true});flushChecks();},{once:true});return d;}\n",
+        "after": " function makeDialog(label,body){const opener=document.activeElement,d=document.createElement('dialog');d.className='tooling-dialog';d.dataset.i18nSkip='true';d.setAttribute('aria-label',label);d.innerHTML=body;document.body.append(d);d.showModal();d.addEventListener('close',()=>{d.remove();if(dialog===d)dialog=null;approvedHistoryView?.refreshControls?.();if(opener?.isConnected)opener.focus({preventScroll:true});flushChecks();},{once:true});return d;}\n"
+      },
+      {
+        "offset": 57112,
+        "before": " function editTool(id,viewOnly=false){if(dialog)return;const s=content(),before=s.tools.find(r=>r.id===id),row=clone(before||{id:crypto.randomUUID(),nameVi:'',nameZh:'',categoryId:s.categories[0]?.id||'',assetCode:'',specification:'',quantity:1,unit:'PCS',manufacturerId:'',location:{kind:'internal',holderId:''},inboundDate:'',inboundDateLost:false,enabled:true,inactiveReason:'',archived:false,archiveReason:'',notes:'',frequencyMonths:null,photos:[],iqcIds:[]}),editable=editing()&&!viewOnly,formal=active()?.snapshot.tools.some(x=>x.id===row.id),transfers=clone(s.transfers.filter(r=>r.toolId===row.id)),originalFrequency=frequencyValue(row),editorClient=client,editorActor=actor,editorDelivery=window.ProcessSync?.captureDelivery?.();\n",
+        "after": " function editTool(id,viewOnly=false){if(dialog||busy)return;const s=content(),before=s.tools.find(r=>r.id===id),row=clone(before||{id:crypto.randomUUID(),nameVi:'',nameZh:'',categoryId:s.categories[0]?.id||'',assetCode:'',specification:'',quantity:1,unit:'PCS',manufacturerId:'',location:{kind:'internal',holderId:''},inboundDate:'',inboundDateLost:false,enabled:true,inactiveReason:'',archived:false,archiveReason:'',notes:'',frequencyMonths:null,photos:[],iqcIds:[]}),editable=editing()&&!viewOnly,formal=active()?.snapshot.tools.some(x=>x.id===row.id),transfers=clone(s.transfers.filter(r=>r.toolId===row.id)),originalFrequency=frequencyValue(row),fileOwner=photoOwner(),editorClient=client,editorActor=actor,editorDelivery=window.ProcessSync?.captureDelivery?.();\n"
+      },
+      {
+        "offset": 64238,
+        "before": "  const locationFields=(area,l,disabled=false)=>{area.innerHTML=`<div class=\"tooling-fields\"><label>${h(t('Loại vị trí','位置類型'))}<select data-kind ${disabled?'disabled':''}>${option('internal',t('Nội bộ','內部'),l.kind)}${option('external',t('Bên ngoài','外部'),l.kind)}</select></label><label>${h(t('Đơn vị giữ','保管單位'))}<select data-holder ${disabled?'disabled':''}>${options(l.kind==='internal'?s.custodians:s.suppliers,l.holderId)}</select></label></div>`;area.querySelector('[data-kind]').onchange=e=>{l.kind=e.target.value;l.holderId='';locationFields(area,l,disabled);};area.querySelector('[data-holder]').onchange=e=>l.holderId=e.target.value;};locationFields(d.querySelector('[data-tool-location]'),formal?clone(currentLocation(s,row.id)):row.location);\n",
+        "after": "  const locationFields=(area,l,disabled=false)=>{area.innerHTML=`<div class=\"tooling-fields\"><label>${h(t('Loại vị trí','位置類型'))}<select data-kind ${disabled?'disabled':''}>${option('internal',t('Nội bộ','內部'),l.kind)}${option('external',t('Bên ngoài','外部'),l.kind)}</select></label><label>${h(t('Đơn vị giữ','保管單位'))}<select data-holder ${disabled?'disabled':''}>${options(l.kind==='internal'?s.custodians:s.suppliers,l.holderId)}</select></label></div>`;area.querySelector('[data-kind]').onchange=guardWorking(area.querySelector('[data-kind]'),e=>{l.kind=e.target.value;l.holderId='';locationFields(area,l,disabled);});area.querySelector('[data-holder]').onchange=guardWorking(area.querySelector('[data-holder]'),e=>l.holderId=e.target.value);};locationFields(d.querySelector('[data-tool-location]'),formal?clone(currentLocation(s,row.id)):row.location);\n"
+      },
+      {
+        "offset": 65812,
+        "before": "  lostInput.addEventListener('change',syncBasic);enabledInput.addEventListener('change',()=>{if(!enabledInput.checked)disabledIntent=true;syncBasic();});inactiveInput.addEventListener('input',syncBasic);syncBasic();\n  const showTab=b=>{d.querySelectorAll('[data-tab]').forEach(x=>{x.setAttribute('aria-selected',String(x===b));x.tabIndex=x===b?0:-1;});d.querySelectorAll('[data-panel]').forEach(x=>x.hidden=x.dataset.panel!==b.dataset.tab);};d.querySelectorAll('[data-tab]').forEach(b=>{b.onclick=()=>showTab(b);b.onkeydown=e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const buttons=[...d.querySelectorAll('[data-tab]')],i=buttons.indexOf(b),next=e.key==='Home'?0:e.key==='End'?buttons.length-1:(i+(e.key==='ArrowRight'?1:-1)+buttons.length)%buttons.length;showTab(buttons[next]);buttons[next].focus();};});d.querySelector('[data-editor-cancel]').onclick=d.querySelector('[data-editor-close]').onclick=()=>d.close();d.addEventListener('close',()=>{if(editorClient===client&&editorActor===window.ProcessSync?.identity?.id&&(!editorDelivery||window.ProcessSync.isCurrentDelivery(editorDelivery)))editorClient.discardRejected(d.rejectedPaths||[]);});\n  const linked=()=>{if(!d.isConnected)return;const area=d.querySelector('[data-iqc-linked]');area.innerHTML=row.iqcIds.map(id=>{const p=iqc?.parts.find(p=>p.id===id),url=iqcPhoto(p);return`<article class=\"tooling-linked-card\">${url?`<button type=\"button\" class=\"button ghost tooling-image-button\" data-iqc-photo=\"${h(id)}\" aria-label=\"${h(t('Xem ảnh gốc','查看原圖'))}\"><img class=\"tooling-photo\" src=\"${h(url)}\" alt=\"${h(p.code)}\"></button>`:`<span class=\"tooling-photo-placeholder\">${h(t('Chưa có ảnh','暫無照片'))}</span>`}<div><strong>${h(p?.code||id)}</strong><p>${h(p?displayName(p):t('Nguồn đã bị gỡ; cần đối chiếu lại','來源已移除／待重新對應'))}</p><small>${h(p?.sourceStatus==='disabled'?t('Đã ngưng sử dụng','已停用'):p?.sourceStatus==='removed'||!p?t('Nguồn đã bị gỡ; cần đối chiếu lại','來源已移除／待重新對應'):t('Dữ liệu đã duyệt','正式生效資料'))}</small>${p?button(`data-iqc-detail=\"${h(id)}\"`,t('Xem nguồn IQC','查看 IQC 來源')):''}</div>${editable?button(`data-iqc-remove=\"${h(id)}\"`,t('Bỏ liên kết','移除引用')):''}</article>`;}).join('')||`<p class=\"tooling-empty\">${h(t('Chưa chọn sản phẩm IQC','尚未選取 IQC 產品'))}</p>`;area.querySelectorAll('[data-iqc-remove]').forEach(b=>b.onclick=()=>{row.iqcIds=row.iqcIds.filter(id=>id!==b.dataset.iqcRemove);linked();});area.querySelectorAll('[data-iqc-detail]').forEach(b=>b.onclick=()=>showIqcDetail(b.dataset.iqcDetail));area.querySelectorAll('[data-iqc-photo]').forEach(b=>b.onclick=()=>showPhoto(iqcPhoto(iqc.parts.find(p=>p.id===b.dataset.iqcPhoto))));};linked();\n  if(row.iqcIds.length)void (async()=>{try{const r=await fetch('/api/tooling/iqc',{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const result=await r.json();if(d.isConnected){iqc=result;linked();}}catch(e){if(d.isConnected){const p=document.createElement('p');p.className='tooling-error';p.textContent=t('Không tải được IQC; giữ nguyên liên kết. ','IQC 載入失敗；保留既有引用。 ')+e.message;d.querySelector('[data-iqc-linked]').append(p);}}})();\n  d.querySelector('[data-iqc-picker]')?.addEventListener('click',()=>picker(d.querySelector('[data-iqc-picker-host]'),row,linked));\n  const album=()=>{d.querySelector('[data-album]').innerHTML=row.photos.map(p=>`<figure><button type=\"button\" class=\"button ghost tooling-image-button\" data-original=\"${p.id}\" aria-label=\"${h(t('Xem ảnh gốc','查看原圖'))}\"><img decoding=\"async\" loading=\"lazy\" src=\"/api/tooling/photo?id=${p.id}\" alt=\"${h(row.code||t('Ảnh','照片'))}\"></button>${editable?button(`data-photo-remove=\"${p.id}\"`,t('Bỏ ảnh','移除照片')):''}</figure>`).join('')||`<p class=\"tooling-empty\">${h(t('Chưa có ảnh','尚無照片'))}</p>`;d.querySelectorAll('[data-original]').forEach(b=>b.onclick=()=>showPhoto('/api/tooling/photo?id='+b.dataset.original));d.querySelectorAll('[data-photo-remove]').forEach(b=>b.onclick=()=>{row.photos=row.photos.filter(p=>p.id!==b.dataset.photoRemove);album();});};album();\n  d.querySelector('[data-upload]')?.addEventListener('change',async e=>{const submit=d.querySelector('button[type=submit]');submit.disabled=true;try{for(const file of e.target.files){const r=await fetch('/api/tooling/photo',{method:'PUT',headers:{'Content-Type':file.type},body:file});const result=await r.json();if(!r.ok)throw Error(result.error);if(!row.photos.some(p=>p.id===result.id))row.photos.push({id:result.id});}album();}catch(err){d.querySelector('[data-editor-error]').textContent=err.message;}finally{submit.disabled=false;}});\n",
+        "after": "  lostInput.addEventListener('change',guardWorking(lostInput,syncBasic));enabledInput.addEventListener('change',guardWorking(enabledInput,()=>{if(!enabledInput.checked)disabledIntent=true;syncBasic();}));inactiveInput.addEventListener('input',guardWorking(inactiveInput,syncBasic));syncBasic();\n  const showTab=b=>{d.querySelectorAll('[data-tab]').forEach(x=>{x.setAttribute('aria-selected',String(x===b));x.tabIndex=x===b?0:-1;});d.querySelectorAll('[data-panel]').forEach(x=>x.hidden=x.dataset.panel!==b.dataset.tab);};d.querySelectorAll('[data-tab]').forEach(b=>{b.onclick=guardWorking(b,()=>showTab(b));b.onkeydown=guardWorking(b,e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const buttons=[...d.querySelectorAll('[data-tab]')],i=buttons.indexOf(b),next=e.key==='Home'?0:e.key==='End'?buttons.length-1:(i+(e.key==='ArrowRight'?1:-1)+buttons.length)%buttons.length;showTab(buttons[next]);buttons[next].focus();});});d.querySelector('[data-editor-cancel]').onclick=d.querySelector('[data-editor-close]').onclick=guardWorking(d.querySelector('[data-editor-close]'),()=>d.close());d.addEventListener('close',guardWorking(d,()=>{prunePhotoFiles();if(editorClient===client&&editorActor===window.ProcessSync?.identity?.id&&(!editorDelivery||window.ProcessSync.isCurrentDelivery(editorDelivery)))editorClient.discardRejected(d.rejectedPaths||[]);}));\n  const linked=()=>{if(!d.isConnected)return;const area=d.querySelector('[data-iqc-linked]');area.innerHTML=row.iqcIds.map(id=>{const p=iqc?.parts.find(p=>p.id===id),url=iqcPhoto(p);return`<article class=\"tooling-linked-card\">${url?`<button type=\"button\" class=\"button ghost tooling-image-button\" data-iqc-photo=\"${h(id)}\" aria-label=\"${h(t('Xem ảnh gốc','查看原圖'))}\"><img class=\"tooling-photo\" src=\"${h(url)}\" alt=\"${h(p.code)}\"></button>`:`<span class=\"tooling-photo-placeholder\">${h(t('Chưa có ảnh','暫無照片'))}</span>`}<div><strong>${h(p?.code||id)}</strong><p>${h(p?displayName(p):t('Nguồn đã bị gỡ; cần đối chiếu lại','來源已移除／待重新對應'))}</p><small>${h(p?.sourceStatus==='disabled'?t('Đã ngưng sử dụng','已停用'):p?.sourceStatus==='removed'||!p?t('Nguồn đã bị gỡ; cần đối chiếu lại','來源已移除／待重新對應'):t('Dữ liệu đã duyệt','正式生效資料'))}</small>${p?button(`data-iqc-detail=\"${h(id)}\"`,t('Xem nguồn IQC','查看 IQC 來源')):''}</div>${editable?button(`data-iqc-remove=\"${h(id)}\"`,t('Bỏ liên kết','移除引用')):''}</article>`;}).join('')||`<p class=\"tooling-empty\">${h(t('Chưa chọn sản phẩm IQC','尚未選取 IQC 產品'))}</p>`;area.querySelectorAll('[data-iqc-remove]').forEach(b=>b.onclick=guardWorking(b,()=>{row.iqcIds=row.iqcIds.filter(id=>id!==b.dataset.iqcRemove);linked();}));area.querySelectorAll('[data-iqc-detail]').forEach(b=>b.onclick=guardWorking(b,()=>showIqcDetail(b.dataset.iqcDetail)));area.querySelectorAll('[data-iqc-photo]').forEach(b=>b.onclick=guardWorking(b,()=>showPhoto(iqcPhoto(iqc.parts.find(p=>p.id===b.dataset.iqcPhoto)))));};linked();\n  if(row.iqcIds.length)void (async()=>{try{const {response:r,body:result}=await boundedToolingRead('/api/tooling/iqc',{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);if(d.isConnected){iqc=result;linked();}}catch(e){if(d.isConnected){const p=document.createElement('p');p.className='tooling-error';p.textContent=t('Không tải được IQC; giữ nguyên liên kết. ','IQC 載入失敗；保留既有引用。 ')+e.message;d.querySelector('[data-iqc-linked]').append(p);}}})();\n  d.querySelector('[data-iqc-picker]')?.addEventListener('click',guardWorking(d.querySelector('[data-iqc-picker]'),()=>picker(d.querySelector('[data-iqc-picker-host]'),row,linked)));\n  const album=()=>{d.querySelector('[data-album]').innerHTML=row.photos.map(p=>`<figure><button type=\"button\" class=\"button ghost tooling-image-button\" data-original=\"${p.id}\" aria-label=\"${h(t('Xem ảnh gốc','查看原圖'))}\"><img decoding=\"async\" loading=\"lazy\" src=\"${h(photoUrl(p))}\" alt=\"${h(row.code||t('Ảnh','照片'))}\"></button>${editable?button(`data-photo-remove=\"${p.id}\"`,t('Bỏ ảnh','移除照片')):''}</figure>`).join('')||`<p class=\"tooling-empty\">${h(t('Chưa có ảnh','尚無照片'))}</p>`;d.querySelectorAll('[data-original]').forEach(b=>b.onclick=guardWorking(b,()=>showPhoto(photoUrl({id:b.dataset.original}))));d.querySelectorAll('[data-photo-remove]').forEach(b=>b.onclick=guardWorking(b,()=>{row.photos=row.photos.filter(p=>p.id!==b.dataset.photoRemove);prunePhotoFiles(row.photos);album();}));};album();\n  d.querySelector('[data-upload]')?.addEventListener('change',guardWorking(d.querySelector('[data-upload]'),e=>{try{if(!editable||busy||dialog!==d||!d.isConnected||!photoOwnerCurrent(fileOwner)||!editing())throw Error('PHOTO_OWNER_CHANGED');for(const file of e.target.files){if(!['image/png','image/jpeg','image/gif','image/webp'].includes(file.type)||file.size<=0||file.size>25000000)throw Error('TOOLING_PHOTO_INVALID');let entry=photoFileObjects.get(file);if(!entry){entry={id:'local-photo:'+crypto.randomUUID(),file,owner:fileOwner,url:URL.createObjectURL(file),hash:null,dispatched:false,confirmed:null};photoFileObjects.set(file,entry);}else if(!photoFiles.has(entry.id))entry.url=URL.createObjectURL(file);photoFiles.set(entry.id,entry);if(!row.photos.some(p=>p.id===entry.id||entry.confirmed&&p.id===entry.confirmed))row.photos.push({id:entry.id});}album();}catch(err){d.querySelector('[data-editor-error]').textContent=toolingErrorText(err.message);}}));\n"
+      },
+      {
+        "offset": 72962,
+        "before": "  const paintTransfers=()=>{const area=d.querySelector('[data-transfers]'),drafts=transfers.filter(tr=>!approvedTransfer(tr)),history=transfers.filter(approvedTransfer);area.innerHTML=drafts.map(tr=>`<article class=\"tooling-transfer tooling-transfer-draft\" data-transfer=\"${h(tr.id)}\"><div class=\"tooling-section-heading\"><h3>${h(tr.correctionOf?t('Bản ghi sửa','更正紀錄'):t('Chuyển vị trí mới','新增移轉'))}</h3><span class=\"tooling-status\">${h(editable?t('Có thể chỉnh sửa','可修改草稿'):version()?.status==='pending'?t('Đang chờ duyệt','待審鎖定'):t('Chỉ xem','唯讀'))}</span></div><small>${h(tr.createdBy||t('Chưa áp dụng','尚未套用'))} · ${h(window.VersionDraftUI.date(tr.createdAt))}</small><fieldset ${editable?'':'disabled'}><div class=\"tooling-transfer-route\"><div><h4>${h(t('Từ','來源'))}</h4><div data-from></div></div><span aria-hidden=\"true\">→</span><div><h4>${h(t('Đến','目的'))}</h4><div data-to></div></div>${input(t('Lý do','原因'),'transferReason',tr.reason)}</fieldset></article>`).join('')||`<p class=\"tooling-empty\">${h(t('Không có bản ghi đang soạn','目前沒有移轉草稿'))}</p>`;for(const tr of drafts){const box=area.querySelector(`[data-transfer=\"${CSS.escape(tr.id)}\"]`);locationFields(box.querySelector('[data-from]'),tr.from,!tr.correctionOf);locationFields(box.querySelector('[data-to]'),tr.to);box.querySelector('[name=transferReason]').oninput=e=>tr.reason=e.target.value;}\n   d.querySelector('[data-transfer-history-count]').textContent=' · '+history.length;d.querySelector('[data-transfer-history]').innerHTML=history.slice().reverse().map(historyCard).join('')||`<p class=\"tooling-empty\">${h(t('Chưa có lịch sử đã duyệt','尚無已核准移轉歷史'))}</p>`;d.querySelectorAll('[data-transfer-case]').forEach(b=>b.onclick=()=>showReview(b.dataset.transferCase));const targets=d.querySelector('[data-correction-target]');if(targets){const prior=targets.value;targets.innerHTML=history.map(tr=>option(tr.id,window.VersionDraftUI.date(tr.createdAt)+' · '+locationName(s,tr.from)+' → '+locationName(s,tr.to)+' · '+(tr.reason||t('Chưa ghi lý do','未填原因')),prior)).join('');}};paintTransfers();\n  d.querySelector('[data-transfer-mode]')?.addEventListener('change',e=>{d.querySelector('[data-correction-label]').hidden=e.target.value!=='correction';});\n  d.querySelector('[data-transfer-add]')?.addEventListener('click',()=>{const mode=d.querySelector('[data-transfer-mode]').value,correctionOf=mode==='correction'?d.querySelector('[data-correction-target]').value:'';if(mode==='correction'&&!correctionOf){d.querySelector('[data-editor-error]').textContent=t('Chưa có bản ghi đã duyệt để sửa.','尚無已核准紀錄可更正。');return;}const target=correctionOf?transfers.find(tr=>tr.id===correctionOf):null,current=currentLocation({...s,tools:[row],transfers},row.id);transfers.push({id:crypto.randomUUID(),toolId:row.id,from:clone(target?.from||current),to:clone(target?.to||current),reason:target?.reason||'',...(correctionOf?{correctionOf}:{})});paintTransfers();areaFocus();});\n",
+        "after": "  const paintTransfers=()=>{const area=d.querySelector('[data-transfers]'),drafts=transfers.filter(tr=>!approvedTransfer(tr)),history=transfers.filter(approvedTransfer);area.innerHTML=drafts.map(tr=>`<article class=\"tooling-transfer tooling-transfer-draft\" data-transfer=\"${h(tr.id)}\"><div class=\"tooling-section-heading\"><h3>${h(tr.correctionOf?t('Bản ghi sửa','更正紀錄'):t('Chuyển vị trí mới','新增移轉'))}</h3><span class=\"tooling-status\">${h(editable?t('Có thể chỉnh sửa','可修改草稿'):version()?.status==='pending'?t('Đang chờ duyệt','待審鎖定'):t('Chỉ xem','唯讀'))}</span></div><small>${h(tr.createdBy||t('Chưa áp dụng','尚未套用'))} · ${h(window.VersionDraftUI.date(tr.createdAt))}</small><fieldset ${editable?'':'disabled'}><div class=\"tooling-transfer-route\"><div><h4>${h(t('Từ','來源'))}</h4><div data-from></div></div><span aria-hidden=\"true\">→</span><div><h4>${h(t('Đến','目的'))}</h4><div data-to></div></div>${input(t('Lý do','原因'),'transferReason',tr.reason)}</fieldset></article>`).join('')||`<p class=\"tooling-empty\">${h(t('Không có bản ghi đang soạn','目前沒有移轉草稿'))}</p>`;for(const tr of drafts){const box=area.querySelector(`[data-transfer=\"${CSS.escape(tr.id)}\"]`);locationFields(box.querySelector('[data-from]'),tr.from,!tr.correctionOf);locationFields(box.querySelector('[data-to]'),tr.to);box.querySelector('[name=transferReason]').oninput=guardWorking(box.querySelector('[name=transferReason]'),e=>tr.reason=e.target.value);}\n   d.querySelector('[data-transfer-history-count]').textContent=' · '+history.length;d.querySelector('[data-transfer-history]').innerHTML=history.slice().reverse().map(historyCard).join('')||`<p class=\"tooling-empty\">${h(t('Chưa có lịch sử đã duyệt','尚無已核准移轉歷史'))}</p>`;d.querySelectorAll('[data-transfer-case]').forEach(b=>b.onclick=guardWorking(b,()=>showReview(b.dataset.transferCase)));const targets=d.querySelector('[data-correction-target]');if(targets){const prior=targets.value;targets.innerHTML=history.map(tr=>option(tr.id,window.VersionDraftUI.date(tr.createdAt)+' · '+locationName(s,tr.from)+' → '+locationName(s,tr.to)+' · '+(tr.reason||t('Chưa ghi lý do','未填原因')),prior)).join('');}};paintTransfers();\n  d.querySelector('[data-transfer-mode]')?.addEventListener('change',guardWorking(d.querySelector('[data-transfer-mode]'),e=>{d.querySelector('[data-correction-label]').hidden=e.target.value!=='correction';}));\n  d.querySelector('[data-transfer-add]')?.addEventListener('click',guardWorking(d.querySelector('[data-transfer-add]'),()=>{const mode=d.querySelector('[data-transfer-mode]').value,correctionOf=mode==='correction'?d.querySelector('[data-correction-target]').value:'';if(mode==='correction'&&!correctionOf){d.querySelector('[data-editor-error]').textContent=t('Chưa có bản ghi đã duyệt để sửa.','尚無已核准紀錄可更正。');return;}const target=correctionOf?transfers.find(tr=>tr.id===correctionOf):null,current=currentLocation({...s,tools:[row],transfers},row.id);transfers.push({id:crypto.randomUUID(),toolId:row.id,from:clone(target?.from||current),to:clone(target?.to||current),reason:target?.reason||'',...(correctionOf?{correctionOf}:{})});paintTransfers();areaFocus();}));\n"
+      },
+      {
+        "offset": 76398,
+        "before": "  d.querySelector('form').onsubmit=async e=>{e.preventDefault();if(!editable)return;const submit=d.querySelector('button[type=submit]');if(submit.disabled)return;if(requiresInactiveReason()&&!inactiveInput.value.trim()){d.querySelector('[data-editor-error]').textContent=t('Hãy nhập lý do ngưng sử dụng.','請填寫停用原因。');inactiveInput.focus();return;}submit.disabled=true;for(const el of d.querySelectorAll('[name]:not([name=transferReason])'))row[el.name]=el.type==='checkbox'?el.checked:el.name==='quantity'?el.value===''?null:Number(el.value):el.value;\n",
+        "after": "  d.querySelector('form').onsubmit=guardWorking(d.querySelector('form'),async e=>{e.preventDefault();if(!editable)return;const submit=d.querySelector('button[type=submit]');if(submit.disabled)return;if(requiresInactiveReason()&&!inactiveInput.value.trim()){d.querySelector('[data-editor-error]').textContent=t('Hãy nhập lý do ngưng sử dụng.','請填寫停用原因。');inactiveInput.focus();return;}submit.disabled=true;for(const el of d.querySelectorAll('[name]:not([name=transferReason])'))row[el.name]=el.type==='checkbox'?el.checked:el.name==='quantity'?el.value===''?null:Number(el.value):el.value;\n"
+      },
+      {
+        "offset": 77958,
+        "before": "   try{if(patches.length)await command('apply',{patches,guards});d.close();paint();}catch(err){d.rejectedPaths=patches.map(p=>p.path);d.querySelector('[data-editor-error]').textContent=err.message;}finally{submit.disabled=false;}\n  };d.querySelector(editable?'input':'[data-editor-close]')?.focus({preventScroll:true});\n",
+        "after": "   try{if(patches.length)await command('apply',{patches,guards});d.close();paint();}catch(err){d.rejectedPaths=patches.map(p=>p.path);d.querySelector('[data-editor-error]').textContent=toolingErrorText(err.message);}finally{submit.disabled=false;}\n  });d.querySelector(editable?'input':'[data-editor-close]')?.focus({preventScroll:true});\n"
+      },
+      {
+        "offset": 78300,
+        "before": " async function picker(area,row,onchange){area.innerHTML=`<p>${h(t('Đang tải IQC…','正在載入 IQC…'))}</p>`;try{const r=await fetch('/api/tooling/iqc',{cache:'no-store'});const result=await r.json();if(!r.ok)throw Error(result.error);iqc=result;onchange();}catch(e){area.innerHTML=`<p class=\"tooling-error\">${h(e.message)} · ${h(t('Giữ nguyên liên kết hiện có','保留既有引用'))}</p>${button('data-iqc-retry',t('Thử lại','重試'))}`;area.querySelector('button').onclick=()=>picker(area,row,onchange);return;}\n",
+        "after": " async function picker(area,row,onchange){if(area.classList.contains('tooling-iqc-picker')||area.dataset.pickerLoading==='true'){area.querySelector('[data-iqc-search]')?.focus();return;}area.dataset.pickerLoading='true';area.innerHTML=`<p>${h(t('Đang tải IQC…','正在載入 IQC…'))}</p>`;try{const {response:r,body:result}=await boundedToolingRead('/api/tooling/iqc',{cache:'no-store'});if(!r.ok)throw Error(result.error);if(!area.isConnected)return;iqc=result;onchange();}catch(e){area.innerHTML=`<p class=\"tooling-error\">${h(e.message)} · ${h(t('Giữ nguyên liên kết hiện có','保留既有引用'))}</p>${button('data-iqc-retry',t('Thử lại','重試'))}`;area.querySelector('button').onclick=guardWorking(area.querySelector('button'),()=>picker(area,row,onchange));return;}finally{delete area.dataset.pickerLoading;}\n"
+      },
+      {
+        "offset": 80112,
+        "before": "  function paint(){const query=normalize(filter.search),rows=iqc.parts.filter(p=>p.sourceStatus!=='removed'&&(filter.disabled||p.sourceStatus!=='disabled')&&normalize(p.code+' '+p.nameVi+' '+(p.nameZh||'')+' '+p.specificationVi+' '+(p.specificationZh||'')).includes(query)&&(!filter.categories.size||filter.categories.has(p.categoryId))&&(!filter.suppliers.size||(p.supplierIds||[]).some(id=>filter.suppliers.has(id))));state.page=Math.min(state.page,Math.max(0,Math.ceil(rows.length/8)-1));const target=area.querySelector('[data-iqc-results]');target.innerHTML=`<p>${rows.length} · ${h(t('Đã chọn','已選取'))} ${selection.size}</p><div class=\"tooling-iqc-list\">${rows.slice(state.page*8,state.page*8+8).map(p=>{const photo=p.photos?.[0],url=photo?(photo.src&&/^(?:\\/|assets\\/|data:image\\/)/.test(photo.src)?photo.src.startsWith('assets/')?'/process/'+photo.src:photo.src:'/api/iqc/photo?id='+photo.id):'';return`<label class=\"tooling-iqc-row\"><input type=\"checkbox\" value=\"${h(p.id)}\" ${selection.has(p.id)?'checked':''} ${p.sourceStatus==='disabled'?'disabled':''}>${url?`<img decoding=\"async\" class=\"tooling-photo\" loading=\"lazy\" src=\"${h(url)}\" alt=\"${h(p.code)}\">`:''}<span><strong>${h(p.code)}</strong>${p.sourceStatus==='disabled'?` · ${h(t('Đã ngưng sử dụng','已停用'))}`:''}<br>${h(p.nameVi)}<small>${h(iqc.categories.find(c=>c.id===p.categoryId)?.nameVi||'')} · ${h((p.supplierIds||[]).map(id=>iqc.suppliers.find(s=>s.id===id)?.nameVi||id).join(', '))}</small></span></label>`;}).join('')}</div><div class=\"tooling-pager\">${button('data-iqc-prev',t('Trang trước','上一頁'),!state.page)}<span>${state.page+1} / ${Math.max(1,Math.ceil(rows.length/8))}</span>${button('data-iqc-next',t('Trang sau','下一頁'),(state.page+1)*8>=rows.length)}</div>`;target.querySelectorAll('input').forEach(el=>el.onchange=()=>{if(el.checked)selection.add(el.value);else selection.delete(el.value);});target.querySelector('[data-iqc-prev]').onclick=()=>{state.page--;paint();};target.querySelector('[data-iqc-next]').onclick=()=>{state.page++;paint();};}\n  area.querySelector('[data-iqc-disabled]').onchange=e=>{filter.disabled=e.target.checked;state.page=0;paint();};area.querySelector('[data-iqc-search]').oninput=e=>{filter.search=e.target.value;state.page=0;paint();};for(const [name,key]of [['category','categories'],['supplier','suppliers']])area.querySelector('[data-iqc-'+name+']').onchange=e=>{filter[key]=new Set([...e.target.selectedOptions].map(o=>o.value));state.page=0;paint();};area.querySelector('[data-iqc-add]').onclick=()=>{row.iqcIds=[...selection];onchange();area.replaceChildren();area.classList.remove('tooling-iqc-picker');};area.querySelector('[data-iqc-cancel]').onclick=()=>{area.replaceChildren();area.classList.remove('tooling-iqc-picker');};paint();\n",
+        "after": "  function paint(){const query=normalize(filter.search),rows=iqc.parts.filter(p=>p.sourceStatus!=='removed'&&(filter.disabled||p.sourceStatus!=='disabled')&&normalize(p.code+' '+p.nameVi+' '+(p.nameZh||'')+' '+p.specificationVi+' '+(p.specificationZh||'')).includes(query)&&(!filter.categories.size||filter.categories.has(p.categoryId))&&(!filter.suppliers.size||(p.supplierIds||[]).some(id=>filter.suppliers.has(id))));state.page=Math.min(state.page,Math.max(0,Math.ceil(rows.length/8)-1));const target=area.querySelector('[data-iqc-results]');target.innerHTML=`<p>${rows.length} · ${h(t('Đã chọn','已選取'))} ${selection.size}</p><div class=\"tooling-iqc-list\">${rows.slice(state.page*8,state.page*8+8).map(p=>{const photo=p.photos?.[0],url=photo?(photo.src&&/^(?:\\/|assets\\/|data:image\\/)/.test(photo.src)?photo.src.startsWith('assets/')?'/process/'+photo.src:photo.src:'/api/iqc/photo?id='+photo.id):'';return`<label class=\"tooling-iqc-row\"><input type=\"checkbox\" value=\"${h(p.id)}\" ${selection.has(p.id)?'checked':''} ${p.sourceStatus==='disabled'?'disabled':''}>${url?`<img decoding=\"async\" class=\"tooling-photo\" loading=\"lazy\" src=\"${h(url)}\" alt=\"${h(p.code)}\">`:''}<span><strong>${h(p.code)}</strong>${p.sourceStatus==='disabled'?` · ${h(t('Đã ngưng sử dụng','已停用'))}`:''}<br>${h(p.nameVi)}<small>${h(iqc.categories.find(c=>c.id===p.categoryId)?.nameVi||'')} · ${h((p.supplierIds||[]).map(id=>iqc.suppliers.find(s=>s.id===id)?.nameVi||id).join(', '))}</small></span></label>`;}).join('')}</div><div class=\"tooling-pager\">${button('data-iqc-prev',t('Trang trước','上一頁'),!state.page)}<span>${state.page+1} / ${Math.max(1,Math.ceil(rows.length/8))}</span>${button('data-iqc-next',t('Trang sau','下一頁'),(state.page+1)*8>=rows.length)}</div>`;target.querySelectorAll('input').forEach(el=>el.onchange=guardWorking(el,()=>{if(el.checked)selection.add(el.value);else selection.delete(el.value);}));target.querySelector('[data-iqc-prev]').onclick=guardWorking(target.querySelector('[data-iqc-prev]'),()=>{state.page--;paint();});target.querySelector('[data-iqc-next]').onclick=guardWorking(target.querySelector('[data-iqc-next]'),()=>{state.page++;paint();});}\n  area.querySelector('[data-iqc-disabled]').onchange=guardWorking(area.querySelector('[data-iqc-disabled]'),e=>{filter.disabled=e.target.checked;state.page=0;paint();});area.querySelector('[data-iqc-search]').oninput=guardWorking(area.querySelector('[data-iqc-search]'),e=>{filter.search=e.target.value;state.page=0;paint();});for(const [name,key]of [['category','categories'],['supplier','suppliers']])area.querySelector('[data-iqc-'+name+']').onchange=guardWorking(area.querySelector('[data-iqc-'+name+']'),e=>{filter[key]=new Set([...e.target.selectedOptions].map(o=>o.value));state.page=0;paint();});area.querySelector('[data-iqc-add]').onclick=guardWorking(area.querySelector('[data-iqc-add]'),()=>{row.iqcIds=[...selection];onchange();area.replaceChildren();area.classList.remove('tooling-iqc-picker');});area.querySelector('[data-iqc-cancel]').onclick=guardWorking(area.querySelector('[data-iqc-cancel]'),()=>{area.replaceChildren();area.classList.remove('tooling-iqc-picker');});paint();\n"
+      },
+      {
+        "offset": 83308,
+        "before": " async function showIqcDetail(id){const d=makeDialog(t('Nguồn IQC đã duyệt','正式 IQC 來源'),`<p data-status>${h(t('Đang tải…','載入中…'))}</p><div data-iqc-detail-body></div>${button('data-close',t('Trở lại dụng cụ','返回器具'))}`);d.querySelector('[data-close]').onclick=()=>d.close();try{const response=await fetch('/api/tooling/iqc?partId='+encodeURIComponent(id),{cache:'no-store'}),result=await response.json();if(!response.ok)throw Error(result.error);if(!d.isConnected)return;d.querySelector('[data-status]').textContent=(result.sourceStatus==='removed'?t('Nguồn đã bị gỡ; nội dung lưu trữ','來源已移除；保留固定歷史'):result.sourceStatus==='disabled'?t('Đã ngưng sử dụng','已停用'):t('Dữ liệu đã duyệt','正式生效資料'))+' · '+result.versionId;window.IQCMasterUI.renderApprovedDetail(d.querySelector('[data-iqc-detail-body]'),result.snapshot,id,showPhoto);}catch(e){if(d.isConnected)d.querySelector('[data-status]').textContent=e.message;}}\n",
+        "after": " async function showIqcDetail(id){const d=makeDialog(t('Nguồn IQC đã duyệt','正式 IQC 來源'),`<p data-status>${h(t('Đang tải…','載入中…'))}</p><div data-iqc-detail-body></div>${button('data-close',t('Trở lại dụng cụ','返回器具'))}`);d.querySelector('[data-close]').onclick=guardWorking(d.querySelector('[data-close]'),()=>d.close());try{const {response,body:result}=await boundedToolingRead('/api/tooling/iqc?partId='+encodeURIComponent(id),{cache:'no-store'});if(!response.ok)throw Error(result.error);if(!d.isConnected)return;d.querySelector('[data-status]').textContent=(result.sourceStatus==='removed'?t('Nguồn đã bị gỡ; nội dung lưu trữ','來源已移除；保留固定歷史'):result.sourceStatus==='disabled'?t('Đã ngưng sử dụng','已停用'):t('Dữ liệu đã duyệt','正式生效資料'))+' · '+result.versionId;window.IQCMasterUI.renderApprovedDetail(d.querySelector('[data-iqc-detail-body]'),result.snapshot,id,showPhoto);}catch(e){if(d.isConnected)d.querySelector('[data-status]').textContent=e.message;}}\n"
+      },
+      {
+        "offset": 86619,
+        "before": "  area.innerHTML=pending.map(card).join('')||`<p>${h(t('Không có hồ sơ chờ duyệt','目前沒有待審案件'))}</p>`;area.insertAdjacentHTML('beforeend',`<details class=\"quality-review-history\"><summary>${h(t('Lịch sử duyệt và nội dung','確認歷史與內容'))} · ${history.length}</summary>${history.map(card).join('')||`<p>${h(t('Chưa có lịch sử duyệt','尚無確認歷史'))}</p>`}</details>`);area.querySelectorAll('[data-tooling-compare]').forEach(b=>b.onclick=()=>showReview(b.dataset.toolingCompare));area.querySelectorAll('[data-tooling-action]').forEach(b=>b.onclick=()=>reviewAction(b.dataset.toolingAction,b.dataset.case));if(error){const p=document.createElement('p');p.className='tooling-error';p.textContent=error;area.append(p);}preserve();}\n",
+        "after": "  area.innerHTML=pending.map(card).join('')||`<p>${h(t('Không có hồ sơ chờ duyệt','目前沒有待審案件'))}</p>`;area.insertAdjacentHTML('beforeend',`<details class=\"quality-review-history\"><summary>${h(t('Lịch sử duyệt và nội dung','確認歷史與內容'))} · ${history.length}</summary>${history.map(card).join('')||`<p>${h(t('Chưa có lịch sử duyệt','尚無確認歷史'))}</p>`}</details>`);area.querySelectorAll('[data-tooling-compare]').forEach(b=>b.onclick=()=>showReview(b.dataset.toolingCompare));area.querySelectorAll('[data-tooling-action]').forEach(b=>b.onclick=()=>reviewAction(b.dataset.toolingAction,b.dataset.case));if(error){const p=document.createElement('p');p.className='tooling-error';p.textContent=toolingErrorText(error);area.append(p);}preserve();}\n"
+      },
+      {
+        "offset": 89956,
+        "before": "  discard(){localBase=null;localSnapshot=null;localGeneration=null;const old=dialog;dialog=null;if(old){old.close();old.remove();}host?.querySelector('.tooling-inline-editor')?.remove();},\n }),{autoAbandon:true,allowUnload:()=>!busy});},requiresSave:()=>false,saveForDeparture:()=>run(()=>saveOrSubmit('save')),canLeave:()=>!(busy&&!readOnlyBusy)&&!dialog&&!host?.querySelector('.tooling-inline-editor'),error:()=>error?Error(error):null,reset(){localBase=null;localSnapshot=null;localGeneration=null;viewEpoch++;readEpoch++;checksRun?.controller.abort();checksRun=null;checksStatus='unchecked';checksPaintPending=false;polling=false;busy=false;readOnlyBusy=false;host=null;reviewHost=null;control=null;checks=null;selected='';iqc=null;caseVersionNumbers.clear();error='';}},html,mount(root){host=root;return run(async()=>{},true);},reviewHTML,bindReview(root){reviewHost=root;return run(async()=>{},true);},pendingCount:()=>flow()?.pendingId?1:0};\n",
+        "after": "  discard(){clearPhotoFiles();localBase=null;localSnapshot=null;localGeneration=null;const old=dialog;dialog=null;if(old){old.close();old.remove();}discardCatalogInputs();},\n }),{autoAbandon:true,allowUnload:()=>!busy});},requiresSave:()=>false,saveForDeparture:()=>run(()=>saveOrSubmit('save')),canLeave:()=>!(busy&&!readOnlyBusy)&&!dialog&&!host?.querySelector('.tooling-inline-editor'),error:()=>error?Error(error):null,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;discardCatalogInputs();clearPhotoFiles();localBase=null;localSnapshot=null;localGeneration=null;viewEpoch++;checksRun?.controller.abort();checksRun=null;checksStatus='unchecked';checksPaintPending=false;busy=false;readOnlyBusy=false;host=null;reviewHost=null;control=null;checks=null;selected='';iqc=null;caseVersionNumbers.clear();error='';}},html,mount(root){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;host=root;return run(async()=>{},true);},reviewHTML,bindReview(root){reviewHost=root;return run(async()=>{},true);},pendingCount:()=>flow()?.pendingId?1:0};\n"
+      },
+      {
+        "offset": 91154,
+        "before": " // A background read is not a mutation. Keep action availability stable and\n // discard stale read results once a user action or navigation takes ownership.\n async function poll(){flushChecks();const visible=host?.isConnected&&host.dataset.activeTab==='quality-mold-equipment'||reviewHost?.isConnected;if(beginRecovery||document.visibilityState==='hidden'||!visible||!client||!client.canPoll('state')||client.hasUnknown()&&!client.canPoll('receipt')||busy||polling||dialog||host?.querySelector('.tooling-inline-editor')||document.activeElement?.matches('input,textarea,select'))return;\n  const epoch=viewEpoch,readToken=readEpoch,delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>epoch===viewEpoch&&readToken===readEpoch&&!busy&&!dialog&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));polling=true;\n  try{const f=flow(),result=await transport().read(f?`${f.generation}:${f.revision}`:undefined);if(!owns())return;if(!result.unchanged){await read(result,owns);if(owns()){paint();paintReview();syncActions();}}}\n  catch(e){if(owns()){error=e.message;window.VersionDraftUI.updateSync(host,false,true);}}\n  finally{if(epoch===viewEpoch)polling=false;}\n }\n",
+        "after": ""
+      },
+      {
+        "offset": 91242,
+        "before": " const foregroundPoll=window.createForegroundPoll();\n async function pollTick(){try{await poll();}finally{foregroundPoll.schedule(pollTick);}}\n foregroundPoll.schedule(pollTick);\n",
+        "after": "\n"
+      }
+    ],
+    "beforeNormalizedHash": "1da0771b29b86eadc210edf297384db05625d631c1b2277d7b6de43f9b206750",
+    "beforeCRLF": [
+      [
+        0,
+        7
+      ],
+      [
+        10,
+        10
+      ],
+      [
+        12,
+        15
+      ],
+      [
+        19,
+        19
+      ],
+      [
+        21,
+        22
+      ],
+      [
+        28,
+        28
+      ],
+      [
+        103,
+        104
+      ],
+      [
+        106,
+        107
+      ],
+      [
+        110,
+        113
+      ],
+      [
+        116,
+        122
+      ],
+      [
+        124,
+        126
+      ],
+      [
+        128,
+        134
+      ],
+      [
+        137,
+        137
+      ],
+      [
+        139,
+        139
+      ],
+      [
+        177,
+        178
+      ],
+      [
+        180,
+        181
+      ],
+      [
+        183,
+        184
+      ],
+      [
+        188,
+        188
+      ],
+      [
+        211,
+        211
+      ],
+      [
+        224,
+        224
+      ]
+    ]
+  },
+  {
+    "file": "public/process/shared-draft-client.js",
+    "beforeHash": "d9e7d8ec3eac218b804dd60440c496f52b795243759293f74750c4b4cf21f750",
+    "afterHash": "3692acee722dbe565f41e32f4fd0aa45f003f900dcf0ec377f29d83a4bc3691b",
+    "rules": [
+      {
+        "offset": 39158,
+        "before": "    const approvedAccessListeners=new Set(),approvedHistoryRoute=['/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-ab/workflow','/api/process-authoring/workflow','/api/master/pages','/api/routine-fqc/page'].includes(beginPath)||processLocalSave&&masterLocalBegin&&beginParams.get('scope')==='PROCESS';\n",
+        "after": "    const approvedAccessListeners=new Set(),approvedHistoryRoute=['/api/tooling/workflow','/api/routine-equipment/workflow','/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-ab/workflow','/api/process-authoring/workflow','/api/master/pages','/api/routine-fqc/page'].includes(beginPath)||processLocalSave&&masterLocalBegin&&beginParams.get('scope')==='PROCESS';\n"
+      }
+    ],
+    "beforeNormalizedHash": "d9e7d8ec3eac218b804dd60440c496f52b795243759293f74750c4b4cf21f750",
+    "beforeCRLF": []
+  },
+  {
+    "file": "public/process/index.html",
+    "beforeHash": "b5e57f0977ac29935f027c85330d3ebf531bcfed13cccb841a6ee4e2b00947a6",
+    "afterHash": "0401166caf5d0a64667ae0585c8c2c35e0a4326a5fefcf3545aca2649cbd2335",
+    "rules": [
+      {
+        "offset": 6898,
+        "before": "    <script data-process-src=\"shared-draft-client.js?v=20261112-quality-main-joint1\"></script>\n",
+        "after": "    <script data-process-src=\"shared-draft-client.js?v=20261113-equipment-integration1\"></script>\n"
+      },
+      {
+        "offset": 9475,
+        "before": "    <script data-process-src=\"routine-equipment.js?v=20261112-quality-abc-joint1\"></script>\n",
+        "after": "    <script data-process-src=\"routine-equipment.js?v=20261113-equipment-integration1\"></script>\n"
+      },
+      {
+        "offset": 9631,
+        "before": "    <script data-process-src=\"tooling.js?v=20261105-tooling-local-save1\"></script>\n",
+        "after": "    <script data-process-src=\"tooling.js?v=20261113-equipment-integration1\"></script>\n"
+      }
+    ],
+    "beforeNormalizedHash": "b5e57f0977ac29935f027c85330d3ebf531bcfed13cccb841a6ee4e2b00947a6",
+    "beforeCRLF": []
+  }
+]

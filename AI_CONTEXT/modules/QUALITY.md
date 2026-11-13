@@ -1,3 +1,12 @@
+## 2026-11-13 — Equipment integration candidate
+
+Inspection equipment retains per-page RAM across filters, offers one grouped
+conflict decision and audited same-page readonly history. Photo header/body
+waits are bounded; uncertain PUT uses only original-hash byte verification.
+FQC/IQC atomic replacement Save and original receipt journals remain; IPQC
+replacement does not gain automatic Save. No schema or persisted data changes.
+[Evidence and limitations](../../docs/acceptance/equipment-integration-20261113/README.md).
+
 ## 2026-11-12 — FQC／IQC 單一整合候選（Draft #105）
 
 FQC／IQC Save 以一次全域 Mine／Theirs／Cancel 決定目前整頁本機批次，最小同 ID／上層復活保留 peer 其他欄位；取消不寫入。未送表單與 IQC File 只留 RAM，首次照片 PUT 僅在明確 Save；UNKNOWN 保留原操作／照片收據，不盲重送，晚回應不得清除後來輸入。當前核准歷史同頁唯讀，顯示 owner、角色、revision、session 及換頁失效均隔離。設備頁替換 FQC／IQC 各自原子保存其整份共享 working，不含其他頁未送表單、不 Submit；IQC identified Begin 僅接受既有 bounded IQC client，失去 ACK 後只查原收據、不自動繼續 Save。其餘 IPQC 移轉維持既有協議。例行整頁資料關係見 [模型](../models/ROUTINE_FQC.md)。

@@ -1,3 +1,7 @@
+## 2026-11-13 — Tooling/equipment cloud draft candidate
+
+Fresh main2434507 integration; [scope, provenance, safety and pending checks](docs/acceptance/equipment-integration-20261113/README.md). Preserve FQC/IQC transfer saves and IPQC manual Save boundary. No merge/deployment/live-data action.
+
 ## 2026-11-12 — #109 quality + merged main continuation
 
 New isolated follow-up retains #105/#106/#107 and merged #108 main without overwriting earlier candidates. [Current scope and verification limits](docs/acceptance/quality-main-joint-20261112/README.md). Older checkpoint statuses below remain historical. No deployment or production mutation.

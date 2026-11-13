@@ -1,0 +1,37 @@
+name: Equipment integration
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  equipment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+      PROCESS_PROGRAM_COMMIT: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: node scripts/sites-source-check.mjs
+      - run: node --test --test-concurrency=1 tests/equipment-integration-source.test.cjs tests/equipment-bounded-media.test.mjs tests/equipment-save-choice.test.mjs tests/equipment-page-local-retention.test.mjs tests/equipment-approved-history.test.mjs tests/tooling-global-save-choice.test.mjs tests/tooling-save-only-files.test.mjs tests/tooling-fqc-approved-history.test.mjs
+      - run: node scripts/test-tooling-workflow-request.mjs
+      - run: node scripts/test-routine-equipment-isolated-workflow.cjs
+      - run: node scripts/test-routine-equipment-four-module-transfer.cjs
+      - run: node --test --test-concurrency=1 tests/equipment-sent-batch.test.mjs tests/equipment-sent-batch-insert-ack.test.mjs tests/equipment-fqc-transfer-save.test.mjs tests/equipment-transfer-setup-cleanup.test.mjs
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/test-tooling-local-browser.cjs
+      - run: node --test --test-concurrency=1 tests/equipment-atomic-browser.test.mjs tests/equipment-atomic-compiled.test.mjs tests/equipment-transfer-compiled.test.mjs
