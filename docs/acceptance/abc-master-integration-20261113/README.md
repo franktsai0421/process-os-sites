@@ -75,3 +75,9 @@ Process-platform首輪runtime清單失敗是新增純唯讀audit檔案尚未列�
 ## 規模量測（獨立於瀏覽器及實站）
 
 [12個原始合成樣本](scale-handler.json)綁定遠端2bf70906，Node24／signed handlers／records-v1／記憶體SQLite與Map R2，各頁各規模3個全新fixture，所有Save只有1次資料寫入。100產品Save中位數AB24.41ms／C18.09ms，1000產品AB109.12ms／C98.69ms；1000產品重讀AB35.62ms／C31.78ms。不含瀏覽器、HTTPS、實際DB/R2服務、真人資料；沒有前後提速宣稱或虛構門檻。後續語言重畫只改client顯示，不改這個handler工作量。
+
+## 設備既有測試的非同步就緒修正
+
+第二輪Equipment CI為246/247，失敗是`equipment-bounded-media`在真WebCrypto SHA-256完成前只讓出30次setImmediate，尚未走到fake timer便斷言必須有timer。未改設備或照片產品程式；fixture改等待實際timer註冊／PUT開始的promise，再執行原45000ms定時器及全部hash、404、防重PUT斷言。新增15秒測試程序上限以避免preflight永遠不抵達；不延長產品期限、不重跑CI冒充修復、不改skip規則。
+
+第二輪新page-v1 native runner仍失敗，資料根節點已離開，但缺少精確操作階段。fixture補上與既有runner一致的navigation-status＋state.view/dataTab＋page-owner就緒條件，避免只見暫態DOM便提前操作；失敗固定輸出合成body／URL／phase與runtime狀態，維持原30秒上限和全部生命週期／POST／隔離斷言。這個失敗尚未當PASS，待下一個exact head原生證明。
