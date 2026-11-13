@@ -65,11 +65,20 @@ export function legacyAllowed(user,preset,module,op){
  if(module==='dispatch')return views.has('dispatch');
  return perms.has('approval.submit')||perms.has('approval.revise');
 }
-export function effectiveCells(user,roles){
+export function basePermissionCells(user,roles){
  const preset=roles[user.role];if(!preset||user.enabled===false||user.deletedAt)return Object.fromEntries(accessKeys.map(k=>[k,false]));
  if(isPrimary(user))return Object.fromEntries(accessKeys.map(k=>[k,true]));
- return Object.fromEntries(catalog.flatMap(r=>r.ops.map(op=>{const key=r.id+'.'+op;let value=Object.hasOwn(preset.access||{},key)?preset.access[key]===true:legacyAllowed(user,preset,r.id,op);if(Object.hasOwn(user.accessOverrides||{},key))value=user.accessOverrides[key]===true;if((r.adminOnly||r.adminOps?.includes(op))&&user.role!=='admin')value=false;if(key==='users.view')value=user.role==='admin';return[key,value];})));
+ return Object.fromEntries(catalog.flatMap(r=>r.ops.map(op=>{const key=r.id+'.'+op;let value=Object.hasOwn(preset.access||{},key)?preset.access[key]===true:legacyAllowed(user,preset,r.id,op);if(Object.hasOwn(user.accessOverrides||{},key))value=user.accessOverrides[key]===true;if((r.adminOnly||r.adminOps?.includes(op))&&user.role!=='admin')value=false;if(key==='users.view')value=user.role==='admin';if(key==='feedback.view')value=true;return[key,value];})));
 }
+// Edit includes Save within each installed workflow's existing transaction scope.
+// This does not change its draft boundary or grant submit/review/create/delete.
+export const editIncludesSave=Object.freeze(['ab','c','templates','bom','fqc','iqc','ipqc-ab','ipqc-c','tooling','equipment','editor','routine','lines']);
+export function withEditSave(source){
+ const cells={...source};
+ for(const id of editIncludesSave)if(cells[id+'.view']===true&&cells[id+'.edit']===true)cells[id+'.save']=true;
+ return cells;
+}
+export function effectiveCells(user,roles){return withEditSave(basePermissionCells(user,roles));}
 export function managementRight(actor,target,action,cells){
  if(!actor||!target||actor.enabled===false||actor.deletedAt)return false;
  if(target.authMode==='demo'&&action!=='view')return false;
@@ -79,24 +88,24 @@ export function managementRight(actor,target,action,cells){
  if(actor.role!=='admin'||actor.id===target.id||target.role==='admin'||isPrimary(target))return false;
  return cells[({'edit':'users.edit',create:'users.create',delete:'users.delete',status:'user-status.edit',password:'user-password.edit'})[action]]===true;
 }
-export const roleEditable=role=>Object.fromEntries(catalog.flatMap(r=>r.ops.map(op=>[r.id+'.'+op,r.id+'.'+op!=='users.view'&&(!(r.adminOnly||r.adminOps?.includes(op))||role==='admin')])));
+export const roleEditable=role=>Object.fromEntries(catalog.flatMap(r=>r.ops.map(op=>[r.id+'.'+op,!['users.view','feedback.view'].includes(r.id+'.'+op)&&(!(r.adminOnly||r.adminOps?.includes(op))||role==='admin')])));
 export const editableCells=(actor,target,cells,action='edit')=>{const allowed=roleEditable(target.role),manage=!isPrimary(target)&&managementRight(actor,target,action,cells);return Object.fromEntries(accessKeys.map(key=>[key,allowed[key]&&manage&&(isPrimary(actor)||cells[key]===true)]));};
 // Reject invalid combinations rather than silently granting view or removing actions.
-export function invalidDependencies(cells){return catalog.filter(r=>r.id!=='lines'&&r.ops.includes('view')&&!cells[r.id+'.view']&&r.ops.some(op=>op!=='view'&&cells[r.id+'.'+op])).map(r=>r.id);}
+export function invalidDependencies(cells,options={}){return catalog.filter(r=>(r.id!=='lines'||options.lines===true)&&r.ops.includes('view')&&!cells[r.id+'.view']&&r.ops.some(op=>op!=='view'&&cells[r.id+'.'+op])).map(r=>r.id);}
 // Existing inconsistent settings are reported, not silently rewritten. Writers
 // reject newly introduced dependencies so unrelated edits remain possible.
-export function dependencyIssues(cells){return catalog.flatMap(r=>r.ops.filter(op=>r.id!=='lines'&&cells[r.id+'.'+op]).flatMap(op=>{
- const required=[...(op!=='view'&&r.ops.includes('view')?['view']:[]),...(restoreModules.includes(r.id)&&['create','delete','restore'].includes(op)?['edit']:[])];
+export function dependencyIssues(cells,options={}){return catalog.flatMap(r=>r.ops.filter(op=>(r.id!=='lines'||options.lines===true)&&cells[r.id+'.'+op]).flatMap(op=>{
+ const required=[...(op!=='view'&&r.ops.includes('view')?['view']:[]),...((restoreModules.includes(r.id)||r.id==='lines'&&options.lines===true)&&['create','delete','restore'].includes(op)?['edit']:[])];
  const issues=required.filter(need=>!cells[r.id+'.'+need]).map(need=>({key:r.id+'.'+op,requires:r.id+'.'+need}));
  if(r.id==='fqc'&&op==='view')for(const key of ['ab.view','equipment.view'])if(!cells[key])issues.push({key:'fqc.view',requires:key});
  return issues;
 }));}
-export function newDependencyIssues(cells,previous={}){const old=new Set(dependencyIssues(previous).map(i=>i.key+':'+i.requires));return dependencyIssues(cells).filter(i=>!old.has(i.key+':'+i.requires));}
+export function newDependencyIssues(cells,previous={},options={}){const old=new Set(dependencyIssues(previous,options).map(i=>i.key+':'+i.requires));return dependencyIssues(cells,options).filter(i=>!old.has(i.key+':'+i.requires));}
 export function moduleForURL(input){
  const url=new URL(input,'http://localhost'),p=url.pathname,q=url.searchParams;
  const api=[['/api/bom','bom'],['/api/ipqc-ab','ipqc-ab'],['/api/ipqc-c','ipqc-c'],['/api/iqc','iqc'],['/api/tooling','tooling'],['/api/routine-equipment','equipment'],['/api/routine-fqc','routine'],['/api/web-feedback','feedback'],['/api/process-authoring','editor'],['/api/process-ipqc','editor'],['/api/fqc','fqc']];
  for(const [prefix,id]of api)if(p===prefix||p.startsWith(prefix+'/'))return id;
- const scope=q.get('scope');if(scope==='AB')return'ab';if(scope==='C')return'c';if(scope==='PROCESS')return'templates';
+ const scope=q.get('scope');if(['/api/master/workflow','/api/master/pages'].includes(p)&&scope==='LINES')return'lines';if(scope==='AB')return'ab';if(scope==='C')return'c';if(scope==='PROCESS')return'templates';
  const tab=q.get('dataTab'),tabs={AB:'ab',C:'c',bom:'bom','line-admin':'lines','process-master':'templates',users:'users',fqc:'fqc','quality-fqc':'fqc',iqc:'iqc','quality-iqc':'iqc','quality-ipqc-ab':'ipqc-ab','quality-ipqc-c':'ipqc-c','quality-tooling':'tooling','quality-mold-equipment':'tooling','quality-routine-reports':'routine-reports','routine-equipment':'equipment','quality-routine-equipment':'equipment','web-feedback':'feedback'};
  if(q.get('view')==='data'&&tabs[tab])return tabs[tab];
  return ({editor:'editor',approval:'approval','quality-dashboard':'quality-dashboard','quality-search':'quality-search','quality-reports':'quality-reports',fpy:'fpy','quality-fpy':'fpy',routine:'routine','quality-inspections':'routine',dashboard:'dashboard',player:'player',dispatch:'dispatch',productStatus:'status'})[q.get('view')]||null;

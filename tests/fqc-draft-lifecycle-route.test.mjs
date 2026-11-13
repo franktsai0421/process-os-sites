@@ -193,7 +193,7 @@ for (let cycle = 1; cycle <= 5; cycle++) void test(`FQC routeVM lifecycle ${cycl
   finally { f.close(); }
 });
 
-void test('canonical pure FQC seed reaches real bootstrap, AB catalog, effective equipment and reviewer shell without grant changes', async t => {
+void test('canonical pure FQC seed reaches real bootstrap and catalogs with effective feedback visibility and unchanged persisted ACLs', async t => {
   const f = await createFqcDraftLifecycleFixture(); t.after(f.close);
   const report = {name: 'canonical-bootstrap-and-grants', status: 'RUNNING', requests: f.measurements}; probes.push(report);
   assert.deepEqual(buildFqcDraftLifecycleSeed(f.load('lib/shared-draft.ts').createSharedDraft), f.seed);
@@ -201,7 +201,12 @@ void test('canonical pure FQC seed reaches real bootstrap, AB catalog, effective
     const bootstrap = await unchanged(f, () => f.request({actor, target: 'bootstrap', suffix, label: actor + '-bootstrap'}), 200);
     assert.equal(bootstrap.body.identity.id, f.seed.actors[actor].id); assert.equal(bootstrap.body.destination.module, module); assert.equal(bootstrap.body.deliveryProjection, true);
     const users = JSON.parse(bootstrap.body.values.platformUsers), user = users.find(row => row.id === f.seed.actors[actor].id);
-    for (const [key, value] of Object.entries(f.seed.actors[actor].accessOverrides)) assert.equal(user.cells[key], value, actor + ' keeps explicit ' + key);
+    // Effective feedback viewing is available to every enabled authenticated actor;
+    // it does not persist a grant or confer feedback operations on these fixtures.
+    assert.equal(f.seed.actors[actor].accessOverrides['feedback.view'], false);
+    for (const [key, value] of Object.entries(f.seed.actors[actor].accessOverrides)) assert.equal(user.cells[key], key === 'feedback.view' ? true : value, actor + ' effective ' + key);
+    for (const operation of ['create', 'edit', 'exchange']) assert.equal(user.cells['feedback.' + operation], false, actor + ' has no feedback ' + operation);
+    assert.equal((await f.inspect()).values.platformUsers, f.seed.values.platformUsers, 'bootstrap derives visibility without rewriting raw ACLs');
     const catalog = await unchanged(f, () => f.request({actor, target: 'ab-catalog', label: actor + '-AB-effective-catalog'}), 200);
     assert.equal(catalog.body.control.activeVersionId, f.seed.ids.masterAB); assert.deepEqual(catalog.body.control.versions[0].snapshot.products.map(row => row.code), [f.seed.ids.product, f.seed.ids.product2]);
     const equipment = await unchanged(f, () => f.request({actor, target: 'equipment', label: actor + '-equipment-effective-catalog'}), 200);

@@ -14,7 +14,7 @@
    const header=document.createElement('section');header.className='routine-page-version';container.querySelector('[data-routine-page-panel]')?.prepend(header);
    const pending=flow.cases.find(c=>c.id===flow.pendingId),active=flow.cases.find(c=>c.id===flow.active.id),version={id:pending?.id||'shared-'+flow.generation,number:pending?flow.cases.indexOf(pending)+1:flow.cases.length+1,status:pending?'pending':'draft'};
    host.VersionDraftUI.mount(container,{header:'.routine-page-version',module:text('例行 FQC','FQC định kỳ'),scope:'routine-fqc:page',version,versions:[],active:active?{id:active.id,number:flow.cases.indexOf(active)+1,status:'approved'}:null,flow,busy:context.busy(),localUnsaved:context.dirty(),historyClient:()=>client,mountApprovedHistory(shell,_log,empty){
-    view=host.VersionDraftUI.createApprovedHistory({root:container,shell,empty,client,selectId:'routine-page-approved-version',cacheKey:flow.active.id||null,
+    view=host.ProcessCanvasHistory.createApprovedHistory({root:container,shell,empty,client,selectId:'routine-page-approved-version',cacheKey:flow.active.id||null,
      isCurrent:()=>root===container&&context.root()===container&&context.data()===data&&context.owner()&&!context.reviewOnly(),
      canChoose:()=>!context.busy()&&!context.dialog()&&!context.locked()&&!document.querySelector('dialog[open]'),
      onBoundary(){epoch++;},onDenied(){epoch++;},onIdle(){if(context.owner()&&mutable())context.permissions(permissions());},
@@ -24,7 +24,7 @@
      renderSnapshot(target,snapshot,isCurrent){
       const note=document.createElement('p');note.textContent=text('整頁核准與舊文件核准各自保留原來源；舊文件版本只代表該文件。','Giữ nguồn duyệt cả trang và hồ sơ cũ riêng biệt; bản cũ chỉ đại diện hồ sơ đó.');target.append(note);
       const fields={documents:['文件','Hồ sơ'],metadata:['固定文件資料','Thông tin hồ sơ cố định'],content:['核准內容','Nội dung đã duyệt'],id:['識別碼','Mã'],number:['文件編號','Số hồ sơ'],kind:['文件類型','Loại hồ sơ'],title:['標題','Tiêu đề'],date:['日期','Ngày'],notes:['備註','Ghi chú'],reason:['原因','Lý do'],disposition:['處置','Xử lý'],evidence:['證據圖片','Ảnh bằng chứng'],photos:['結果圖片','Ảnh kết quả'],lines:['檢查項目','Hạng mục kiểm tra'],results:['結果','Kết quả'],samples:['樣品','Mẫu'],outcome:['結果','Kết quả'],value:['實際值','Giá trị thực tế'],cancelled:['取消標記','Đánh dấu hủy'],source:['固定來源','Nguồn cố định']};
-      host.VersionDraftUI.renderApprovedCollections(target,snapshot,{collections:['documents'],fields,mediaFields:['evidence'],mediaURL:photo=>{const id=typeof photo==='string'?photo:photo?.id;return /^[a-f0-9]{64}$/.test(id||'')?'/api/routine-fqc/page/photo?id='+id:'';}},isCurrent);
+      host.ProcessCanvasHistory.renderApprovedCollections(target,snapshot,{collections:['documents'],fields,mediaFields:['evidence'],mediaURL:photo=>{const id=typeof photo==='string'?photo:photo?.id;return /^[a-f0-9]{64}$/.test(id||'')?'/api/routine-fqc/page/photo?id='+id:'';}},isCurrent);
      }
     });
    }});

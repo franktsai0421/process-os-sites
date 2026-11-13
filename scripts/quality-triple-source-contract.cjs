@@ -4,7 +4,7 @@ const assert=require('node:assert/strict'),{createHash}=require('node:crypto');
 const contracts=require('./quality-triple-source-contracts.json');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 function restoreParent(bytes,file,target){
- assert(Buffer.isBuffer(bytes),'Joint proof requires raw Buffer bytes');
+ assert(Buffer.isBuffer(bytes),'Joint proof requires raw Buffer bytes');bytes=require('./quality-main-source-contract.cjs').projectKnown(bytes,file,'quality');
  const c=contracts.find(c=>c.file===file&&c.target===target);assert(c,'Joint proof wrong file or target');
  assert.equal(bytes.length,c.afterLength,'Joint proof pinned length');assert.equal(hash(bytes),c.afterHash,'Joint proof differs from pinned bytes');
  let result=Buffer.from(bytes);
@@ -15,7 +15,7 @@ function restoreParent(bytes,file,target){
  assert.equal(result.length,c.beforeLength,'Joint proof parent length');assert.equal(hash(result),c.beforeHash,'Joint proof parent bytes');return result;
 }
 function projectKnown(bytes,file,target){
- assert(Buffer.isBuffer(bytes),'Joint proof requires raw Buffer bytes');
+ assert(Buffer.isBuffer(bytes),'Joint proof requires raw Buffer bytes');bytes=require('./quality-main-source-contract.cjs').projectKnown(bytes,file,'quality');
  return contracts.some(c=>c.file===file&&c.target===target&&c.afterHash===hash(bytes))?restoreParent(bytes,file,target):bytes;
 }
 module.exports={contracts,hash,restoreParent,projectKnown};

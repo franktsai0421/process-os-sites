@@ -20,6 +20,12 @@
   let localChanges=[],localGeneration=null;const localPhotos=new Map();
   function clearLocal(){localSaveAttempt=null;localChanges=[];localGeneration=null;for(const photo of localPhotos.values())if(photo.preview)URL.revokeObjectURL(photo.preview);localPhotos.clear();}
   let busy = false, message = '', modal = null, viewer = null, conflict = null;
+  const productForms = new Map();
+  function clearProductForms(){
+    for(const saved of productForms.values())for(const photo of saved.modal?.photos||[])
+      if(photo.preview&&![...localPhotos.values()].some(row=>row.preview===photo.preview))URL.revokeObjectURL(photo.preview);
+    productForms.clear();
+  }
   let equipmentCategories = [], equipmentSubcategories = [], picker = null;
   let caseHistory=null;
   let sharedClient=null, sharedActor='';const pollTimer=window.createForegroundPoll();let mountSequence=0, readSequence=0, readRecoveryNeeded=false, readAccessBlock=null, readAckContext=null, readQuarantinedDraft=null, saveInputNotice=null;
@@ -1147,15 +1153,22 @@
     search='';productCode=row.productCode;stageCode=row.stageCode;errorId=kind==='item'?row.errorId:row.id;
     startEditor(kind,row);
   }
-  function retainProductDraft(){
-    // Product selection stays in this C draft and its current operation owner.
-    // Keep staged edits/files and the primary transport's sent receipt intact.
+  function retainProductDraft(nextProduct){
+    // RAM-only form state belongs to its original product/stage, never to the
+    // newly selected product. No apply/save/upload occurs while browsing.
+    if(modal&&!modal.readonly)productForms.set(productCode,{modal,stageCode,errorId,versionId:selectedVersionId});
     cancelSaveChoice?.();modal=null;picker=null;viewer=null;conflict=null;
+    productCode=nextProduct;stageCode='';errorId='';
+    const saved=productForms.get(productCode);
+    if(saved&&saved.versionId===selectedVersionId&&saved.modal.generation===control?.workflow?.generation&&saved.modal.recoveryOwned?.()!==false&&editing()){
+      modal=saved.modal;stageCode=saved.stageCode;errorId=saved.errorId;
+      productForms.delete(productCode);
+    }
   }
   function discardUnsentScope(){
     // Retire presentation only. The primary transport keeps its in-flight
     // command/receipt marker and may settle it; old callbacks cannot own this view.
-    mountSequence++;busy=false;saveInputNotice=null;readQuarantinedDraft=null;
+    clearProductForms();mountSequence++;busy=false;saveInputNotice=null;readQuarantinedDraft=null;
     cancelSaveChoice?.();modal=null;picker=null;viewer=null;conflict=null;clearLocal();
     working=open()?.status==='draft'?copy(open().snapshot):null;
   }
@@ -1207,7 +1220,7 @@
         root.querySelector('#ipqcc-photo-input')?.click();return;
       }
       if(button.dataset.ipqccCoverage){discardUnsentScope();search='';productCode=button.dataset.ipqccCoverage;stageCode=button.dataset.stage;errorId='';draw();return;}
-      if(button.dataset.ipqccProduct){retainProductDraft();productCode=button.dataset.ipqccProduct;stageCode='';errorId='';draw();return;}
+      if(button.dataset.ipqccProduct){retainProductDraft(button.dataset.ipqccProduct);draw();return;}
       if(button.dataset.ipqccFixItem){locateWorkingEditor('item',button.dataset.ipqccFixItem);return;}
       if(button.dataset.ipqccStage){discardUnsentScope();stageCode=button.dataset.ipqccStage;errorId='';draw();return;}
       if(button.dataset.ipqccError){errorId=button.dataset.ipqccError;draw();return;}
@@ -1274,7 +1287,7 @@
     });
   }
   async function mount(element) {
-    cancelSaveChoice?.();const sequence=++mountSequence;busy=false;saveInputNotice=null;readQuarantinedDraft=null;pollTimer.cancel();clearLocal();
+    cancelSaveChoice?.();const sequence=++mountSequence;busy=false;saveInputNotice=null;readQuarantinedDraft=null;pollTimer.cancel();clearProductForms();clearLocal();
     const current=()=>sequence===mountSequence&&host===element;
     host=element;navigationError=null; message=''; conflict=null; modal=null; caseHistory=null; host.innerHTML=`<section class="ipqcc-page"><p>${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</p></section>`;
     try { await read(false,current,true);if(!current())return;draw();scheduleSharedRefresh(); } catch(error) {if(!current()||isReadSuperseded(error))return;navigationError=error;message=error.message; host.innerHTML=`<section class="ipqcc-page"><p role="alert">${h(displayDraftError(message))}</p><button type="button" class="button signal" id="ipqcc-load-retry">${t('Tải lại dữ liệu','重新載入資料')}</button></section>`;host.querySelector('#ipqcc-load-retry').onclick=()=>mount(element); }
@@ -1383,11 +1396,11 @@
     // This describes permission to browse, never whether a write succeeded.
     // Original transport markers and mutation admission survive navigation.
     current:()=>!readAccessBlocked()&&sharedActor===identity()?.id,busy:()=>busy&&sharedClient?.hasUnknownBegin?.()===true,unknown:()=>sharedClient?.hasUnknownBegin?.()===true,failed:()=>false,
-    unknownTransports:()=>[sharedClient],unknownReady:()=>!busy,discardUnknown:()=>{closeEditor(true,false);clearLocal();working=null;},
+    unknownTransports:()=>[sharedClient],unknownReady:()=>!busy,discardUnknown:()=>{closeEditor(true,false);clearProductForms();clearLocal();working=null;},
     local:()=>false,
     canSave:()=>draftOpen()&&operationAllowed('save'),canDiscard:()=>editing(),save:()=>write('save',{snapshot:working}),
     dialogs:()=>[...document.querySelectorAll('.ipqcc-overlay')],
-    discard(){closeEditor(true,false);viewer=null;working=open()?.status==='draft'?copy(open().snapshot):null;draw();},
-    closeClean(){cancelSaveChoice?.();modal=null;picker=null;clearLocal();viewer=null;working=null;},
-  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>write('save',{snapshot:working}),canLeave:()=>true,error:()=>navigationError,reset(){cancelSaveChoice?.();clearLocal();busy=false;modal=null;picker=null;viewer=null;errorRecovery?.session.flush();errorRecovery?.session.close();errorRecovery=null;errorRecoveryPending=null;mountSequence++;saveInputNotice=null;readRecoveryNeeded=false;pollTimer.cancel();host=null;reviewHost=null;control=null;revision=null;working=null;catalog={products:[],stages:[]};equipment=[];equipmentGroups=[];equipmentCategories=[];equipmentSubcategories=[];selectedVersionId='';caseHistory=null;navigationError=null;}},html:()=>`<section class="ipqcc-page">${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</section>`,mount,reviewHTML,bindReview,pendingCount};
+    discard(){closeEditor(true,false);clearProductForms();viewer=null;working=open()?.status==='draft'?copy(open().snapshot):null;draw();},
+    closeClean(){clearProductForms();cancelSaveChoice?.();modal=null;picker=null;clearLocal();viewer=null;working=null;},
+  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>write('save',{snapshot:working}),canLeave:()=>true,error:()=>navigationError,reset(){clearProductForms();cancelSaveChoice?.();clearLocal();busy=false;modal=null;picker=null;viewer=null;errorRecovery?.session.flush();errorRecovery?.session.close();errorRecovery=null;errorRecoveryPending=null;mountSequence++;saveInputNotice=null;readRecoveryNeeded=false;pollTimer.cancel();host=null;reviewHost=null;control=null;revision=null;working=null;catalog={products:[],stages:[]};equipment=[];equipmentGroups=[];equipmentCategories=[];equipmentSubcategories=[];selectedVersionId='';caseHistory=null;navigationError=null;}},html:()=>`<section class="ipqcc-page">${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</section>`,mount,reviewHTML,bindReview,pendingCount};
 })();

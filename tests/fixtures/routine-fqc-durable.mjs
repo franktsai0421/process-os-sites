@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';import {webcrypto} from 'node:crypto';
 const source=fs.readFileSync('public/process/routine-fqc.js','utf8'),shared=fs.readFileSync('public/process/shared-draft-client.js','utf8'),copy=structuredClone;
-const instrument=source.replace('  function paint() {','  function paint() { if(window.skipPaint)return;').replace(/\}\)\(\);\s*$/,'window.testRoutine={s,postOwned,read,save,refresh,act,bind,settings,buffer,dirty,setHistorySearch:v=>historySearch=v,setDialog:fn=>dialog=fn,record:()=>receiptRecord,setData:v=>data=v,getData:()=>data,setRoot:v=>root=v};})();');
+const instrument=source.replace('  function paint() {','  function paint() { if(window.skipPaint)return;').replace(/\}\)\(\);\s*$/,'window.testRoutine={s,post,postOwned,read,save,refresh,act,bind,settings,buffer,dirty,setHistorySearch:v=>historySearch=v,setApprovedHistory:v=>{historyDisplayEpoch++;approvedHistoryView=v;},setDialog:fn=>dialog=fn,record:()=>receiptRecord,setData:v=>data=v,getData:()=>data,setRoot:v=>root=v};})();');
 assert.notEqual(instrument,source);assert(instrument.includes('window.testRoutine='));
 function storage(){const map=new Map(),calls=[];let fault=null;return{map,calls,setFault:fn=>fault=fn,get length(){fault?.('length');return map.size;},key(i){fault?.('key');return [...map.keys()][i]??null;},getItem(k){calls.push(['get',k]);fault?.('get',k);return map.get(k)??null;},setItem(k,v){calls.push(['set',k,v]);fault?.('set',k,v);map.set(k,v);},removeItem(k){calls.push(['remove',k]);fault?.('remove',k);map.delete(k);}};}
 export function fixture({store=storage(),actor='owner',remote=null,schedulers={setInterval(){},setTimeout,clearTimeout}}={}){
@@ -16,7 +16,14 @@ export function fixture({store=storage(),actor='owner',remote=null,schedulers={s
    const d=remote.control.documents.find(d=>d.id===body.documentId),cmd=body.command;let result={ok:true};
    if(body.action==='draft'){
     if(cmd.action==='apply')for(const p of cmd.patches){d.flow.working[p.path[0]]=copy(p.value);}
-    if(cmd.action==='save')d.flow.saved={id:'saved-'+body.operationId,revision:d.flow.revision,content:copy(d.flow.working)};
+    if(cmd.action==='save'){
+     if(cmd.moduleAction==='save-local-v1'){
+      assert.equal(cmd.expectedRevision,d.flow.revision,'synthetic store admits only the captured current revision');
+      for(const guard of cmd.guards){assert.equal(guard.path.length,1,'this fixture uses scalar document fields');assert.deepEqual(d.flow.working[guard.path[0]],guard.value,'atomic Save preserves exact field guards');}
+      for(const patch of cmd.patches){assert.equal(patch.op,'set');assert.equal(patch.path.length,1);d.flow.working[patch.path[0]]=copy(patch.value);}
+     }
+     d.flow.saved={id:'saved-'+body.operationId,revision:d.flow.revision,content:copy(d.flow.working)};
+    }
     if(cmd.action==='submit')d.flow.pendingId='case-'+body.operationId;
     if(['approve','return','withdraw'].includes(cmd.action)){d.flow.generation='generation-'+body.operationId;d.flow.pendingId=null;if(cmd.action==='approve')d.flow.saved=null;}
     d.flow.revision++;result={operationId:body.operationId,generation:d.flow.generation,revision:d.flow.revision,savedId:d.flow.saved?.id||null,caseId:d.flow.pendingId,unchanged:false};

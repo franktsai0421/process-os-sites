@@ -3,7 +3,7 @@
   const _copy=v=>JSON.parse(JSON.stringify(v)), h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
   const t=(zh,vi)=>document.documentElement.lang==='vi'?vi:zh;
   function processSnapshot(catalog){return catalog&&typeof catalog==='object'&&!Array.isArray(catalog)&&!Array.isArray(catalog.products)&&!Array.isArray(catalog.lines);}
-  function rows(catalog){if(processSnapshot(catalog))return Object.entries(catalog||{}).flatMap(([stage,templates])=>(templates||[]).flatMap(template=>[
+  function rows(catalog){if(['AB','C'].every(part=>catalog?.[part]&&Array.isArray(catalog[part].lines)))return ['AB','C'].flatMap(part=>rows(catalog[part]).map(row=>({...row,key:part+':'+row.key,code:part+' · '+row.code})));if(processSnapshot(catalog))return Object.entries(catalog||{}).flatMap(([stage,templates])=>(templates||[]).flatMap(template=>[
     {key:'process:'+stage+':'+template.id,kind:t('流程','Quy trình'),code:stage+' · '+template.id,value:[template.name,(template.mediaItems||[]).length+t(' 張照片',' ảnh')].join(' · '),fingerprint:JSON.stringify({...template,equipment:undefined})},
     ...(template.equipment||[]).map(e=>({key:'equipment:'+e.id,kind:t('設備','Thiết bị'),code:stage+' · '+(e.number||e.id),value:[template.name,e.number||t('待補編號','Chưa có mã'),e.name,e.nameVi,e.process,e.purpose,e.purposeVi,e.note,(e.mediaItems||[]).length+t(' 張照片',' ảnh')].filter(Boolean).join(' · '),fingerprint:JSON.stringify(e)}))
   ]));return [
@@ -12,14 +12,14 @@
     ...(host.MasterAdminUI?.categoryEntries(catalog)||[]).map(g=>({key:'category:'+g.line+':'+g.name,kind:t('類別','Nhóm'),code:g.line,value:g.name+' · '+(Array.isArray(g.defaultStages)?t('預設路線：','Tuyến mặc định: ')+(g.defaultStages.join(' → ')||t('空路線','Tuyến trống')):g.defaultStages===null?t('已移除預設，保留產品路線','Đã bỏ mặc định, giữ tuyến sản phẩm'):t('尚未設定群組路線','Chưa đặt tuyến nhóm'))}))
   ];}
   function diff(next,previous){const before=new Map(rows(previous).map(r=>[r.key,r])),after=new Map(rows(next).map(r=>[r.key,r]));return [...new Set([...before.keys(),...after.keys()])].flatMap(key=>{const a=before.get(key),b=after.get(key);if(a&&b&&(a.fingerprint||a.value)===(b.fingerprint||b.value))return [];const mediaOnly=a&&b&&a.value===b.value;return [{kind:(b||a).kind,code:(b||a).code,type:!a?'add':!b?'delete':'edit',before:a?.value||'—',after:(b?.value||'—')+(mediaOnly?t('（照片或詳細內容已更新）',' (Đã cập nhật ảnh hoặc chi tiết)'):'')}];});}
-  const readableScopes=()=>['AB','C','PROCESS'].filter(scope=>host.hasPermission?.({AB:'ab.view',C:'c.view',PROCESS:'templates.view'}[scope])===true);
+  const readableScopes=()=> (host.MasterDataWorkflow?.control()?.pageDraftLayout==='page-v1'?['AB.catalog','C.catalog','LINES','PROCESS']:['AB','C','PROCESS']).filter(scope=>host.hasPermission?.({AB:'ab.view',C:'c.view','AB.catalog':'ab.view','C.catalog':'c.view',LINES:'lines.view',PROCESS:'templates.view'}[scope])===true);
   function install({state,control,persist: _persist,record: _record,validateCatalog: _validateCatalog,applyActive,showVersion: _showVersion,shared}){
     let busy=false,error='',owner='',epoch=0;
     const bodies=new Map(),requests=new Map();
     const statuses=()=>({pending:t('待確認','Chờ duyệt'),approved:t('已確認','Đã duyệt'),withdrawn:t('已撤回','Đã rút'),returned:t('已發回','Đã trả lại'),superseded:t('歷史版本','Phiên bản trước')});
     const actor=()=>host.ProcessSync?.identity?.id||'';
     const key=item=>item.scope+':'+item.id;
-    const scopeLabel=item=>item.scope==='PROCESS'?t('流程資料','Dữ liệu quy trình'):item.scope;
+    const scopeLabel=item=>item.scope==='PROCESS'?t('流程資料','Dữ liệu quy trình'):item.scope==='LINES'?t('線別與工段','Chuyền và công đoạn'):item.scope.endsWith('.catalog')?item.scope.slice(0,-8):item.scope;
     const stamp=value=>value?new Date(value).toLocaleString(document.documentElement.lang==='vi'?'vi-VN':'zh-TW'):'—';
     function renderStamp(){
       // Date#toLocaleString defaults to these six numeric fields. Share only

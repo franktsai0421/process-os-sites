@@ -20,7 +20,7 @@ const contract=Object.freeze({
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 function raw(bytes){assert(Buffer.isBuffer(bytes),'Routine source proof requires raw Buffer bytes');}
 function assertSource(bytes,file){
-  raw(bytes);assert.equal(file,contract.file,'Routine source proof wrong file');
+  raw(bytes);assert.equal(file,contract.file,'Routine source proof wrong file');bytes=require('./account-page-source-contract.cjs').projectKnown(bytes,file);
   assert.equal(bytes.length,contract.afterLength,'Routine source pinned byte length');
   assert.equal(hash(bytes),contract.afterHash,'Routine source differs from pinned successor');
 }
@@ -52,10 +52,10 @@ function verifyRepository(directory=process.cwd()){
   git('merge-base','--is-ancestor',contract.base,'HEAD');
   const before=git('show',contract.base+':'+contract.file),beforeIndex=git('show',contract.base+':'+contract.index);
   assertPredecessor(before,contract.file);
-  const source=require('./quality-integration-source-contract.cjs').projectKnown(canonicalCheckout(fs.readFileSync(path.join(directory,contract.file)),git('show','HEAD:'+contract.file)),contract.file);
-  const index=require('./quality-integration-source-contract.cjs').projectKnown(canonicalCheckout(fs.readFileSync(path.join(directory,contract.index)),git('show','HEAD:'+contract.index)),contract.index);
-  assertSource(source,contract.file);assertIndexSuccessor(index,beforeIndex,contract.index);
-  return Object.freeze({status:'PASS_ROUTINE_FQC_SOURCE',base:contract.base,sourceHash:hash(source),indexHash:hash(index)});
+  const source=canonicalCheckout(fs.readFileSync(path.join(directory,contract.file)),git('show','HEAD:'+contract.file));
+  const index=canonicalCheckout(fs.readFileSync(path.join(directory,contract.index)),git('show','HEAD:'+contract.index));
+  const page=require('./account-page-source-contract.cjs');page.assertCurrent(source,contract.file);assertSource(source,contract.file);assertIndexSuccessor(index,beforeIndex,contract.index);
+  return Object.freeze({status:'PASS_ROUTINE_FQC_SOURCE',base:contract.base,sourceHash:hash(source),attestedSourceHash:hash(page.projectFile(source,contract.file)),indexHash:hash(index)});
 }
 module.exports=Object.freeze({contract,hash,assertSource,assertPredecessor,assertIndexSuccessor,canonicalCheckout,verifyRepository});
 if(require.main===module)console.log(JSON.stringify(verifyRepository()));

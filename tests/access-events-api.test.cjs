@@ -38,7 +38,7 @@ void test('actual access-event API: minimal collection, original receipts, curre
   await t.test('existing page viewers see only authorized minimal metadata, not operation IDs or receipts',async()=>{
    const list=await call('list');assert.equal(list.status,200);assert.equal(list.value.events.length,3);assert.equal(list.value.complete,false);assert.equal(list.value.coverage,'received-events-only');id=list.value.events.find(row=>row.outcome==='receipt-confirmed').id;
    assert(!JSON.stringify(list.value).includes(operationId));assert(!JSON.stringify(list.value).includes('commandDigestV1'));assert(list.value.events.every(row=>!Object.hasOwn(row,'notes')&&!Object.hasOwn(row,'history')&&!Object.hasOwn(row,'actorId')));
-   assert.equal((await call('list',undefined,'restricted')).value.events.length,0);assert.equal((await call('list',undefined,'no-feedback')).status,403);
+   assert.equal((await call('list',undefined,'restricted')).value.events.length,0);const publicOnly=await call('list',undefined,'no-feedback');assert.equal(publicOnly.status,200);assert(publicOnly.value.events.every(row=>!Object.hasOwn(row,'notes')&&!Object.hasOwn(row,'actorId')));assert.equal((await call('update',{id},'no-feedback')).status,403);
    assert.equal((await call('detail&id='+id,undefined,'restricted')).status,404);
   });
   await t.test('management follows configured existing permissions, with exactly-once notes and separate handling status',async()=>{
@@ -71,7 +71,7 @@ void test('actual access-event API: minimal collection, original receipts, curre
   await t.test('authorization revision change at the event CAS rejects rather than silently writing',async()=>{
    const count=db.prepare('SELECT COUNT(*) AS n FROM access_events').get().n;let fired=false;beforeRun=sql=>{if(!fired&&sql.startsWith('INSERT INTO access_events')){fired=true;db.prepare('UPDATE shared_state SET revision=revision+1 WHERE id=1').run();}};
    assert.equal((await call('observe',event('race-operation-000001'))).status,409);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM access_events').get().n,count);beforeRun=null;
-   const revised=JSON.parse(original.values),revoked=JSON.parse(revised.platformUsers);revoked.find(user=>user.id==='other-admin').accessOverrides['feedback.view']=false;revised.platformUsers=JSON.stringify(revoked);db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(JSON.stringify(revised));assert.equal((await call('list',undefined,'other-admin')).status,403);
+   const revised=JSON.parse(original.values),revoked=JSON.parse(revised.platformUsers);revoked.find(user=>user.id==='other-admin').enabled=false;revised.platformUsers=JSON.stringify(revoked);db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(JSON.stringify(revised));assert.equal((await call('list',undefined,'other-admin')).status,401);
   });
   await t.test('flag alone cannot enable access events when required schema is incomplete',async()=>{
    const before=db.prepare('SELECT COUNT(*) n FROM access_events').get().n;

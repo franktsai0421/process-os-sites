@@ -190,7 +190,7 @@
     for(const selector of model.remove||[])root.querySelectorAll(selector).forEach(node=>node.remove());
     root.querySelectorAll('.shared-validation,.master-version-bar').forEach(node=>{if(!node.children.length&&!node.textContent.trim())node.remove();});
     if(model.failed&&!shell.querySelector('.vd-errors details')){const detail=create('details','has-issues'),summary=create('summary','',t(model.rejected?'rejected':'failed'));detail.append(summary,create('p','',t('locked')));shell.querySelector('.vd-errors').replaceChildren(label(create('h3','',t('errors')),'errors'),detail);}
-    decorateIssues(shell);shell.dataset.vdMounted='true';void historyMetadata(shell,model,select,log,empty);let priorLanguage=document.documentElement.lang;
+    decorateIssues(shell);shell.dataset.vdMounted='true';if(model.mountApprovedHistory)model.mountApprovedHistory(shell,log,empty);else void historyMetadata(shell,model,select,log,empty);let priorLanguage=document.documentElement.lang;
     shell.refreshLabels=()=>{const lang=document.documentElement.lang;if(lang===priorLanguage)return;const before=priorLanguage==='vi'?1:0,after=lang==='vi'?1:0;for(const area of [heading,meta]){const walker=document.createTreeWalker(area,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode())){for(const pair of Object.values(words))node.nodeValue=node.nodeValue.split(pair[before]).join(pair[after]);}}for(const refresh of translations)refresh();for(const option of select?.options||[]){const row=versions.find(item=>item.id===option.value);if(row)option.textContent=`${number(row)} · ${t(row.status)}`;}const recorded=saved||model.savedMetadata;const saverNode=meta.querySelector('[data-vd-saver]');if(saverNode)saverNode.textContent=t('savedBy')+'：'+savedStamp(recorded?.actor?.name||saveEvent?.actorName||saveEvent?.actor,recorded?.at||saveEvent?.at);shell.refreshHistoryLabels?.();priorLanguage=lang;};return shell;
   }
   const issueWords={NO_SUBSTANTIVE_CHANGE:['內容與正式版相同；交由審核者確認','Nội dung giống bản có hiệu lực; người duyệt xác nhận'],IPQC_UNASSIGNED:['IPQC 項目尚未分配','Hạng mục IPQC chưa được phân công'],IPQC_REFERENCE_CHANGED:['IPQC 來源或產品關聯已變更','Nguồn hoặc sản phẩm IPQC đã thay đổi'],IPQC_SOURCE_NOT_APPROVED:['IPQC 來源尚未核准','Nguồn IPQC chưa được duyệt'],PRODUCT_MISSING:['產品主資料不存在','Thiếu dữ liệu gốc sản phẩm'],NAME_REQUIRED:['流程名稱待補','Thiếu tên quy trình'],MACHINE_REQUIRED:['設備待選擇','Chưa chọn thiết bị'],INSTRUCTIONS_REQUIRED:['操作說明待補','Thiếu hướng dẫn thao tác'],STEP_STANDARD_REQUIRED:['步驟標準待補','Thiếu tiêu chuẩn bước'],SINGLE_SUCCESSOR_REQUIRED:['後續流程超過一個','Có nhiều hơn một bước tiếp theo'],CONNECTION_TARGET_MISSING:['連線目標不存在','Đích kết nối không tồn tại'],DISCONNECTED_OPERATIONS:['流程尚未連通','Các bước chưa kết nối'],PRODUCT_ROUTE_CHANGED:['產品路線已變更','Tuyến sản phẩm đã thay đổi'],PRODUCT_STAGE_REQUIRED:['產品缺少工段流程','Thiếu bước tại công đoạn'],BOM_ASSIGNMENT_REQUIRED:['BOM 配置待補','Cần bổ sung phân bổ BOM'],EQUIPMENT_REFERENCE_MISSING:['設備引用待確認','Cần xác nhận liên kết thiết bị']};
@@ -330,9 +330,53 @@
   const priorValidation=host.renderSharedDraftValidation;
   host.renderSharedDraftValidation=options=>{const shell=options.after?.closest('.vd-shell');if(shell)shell.querySelectorAll('[data-shared-issue-kind]').forEach(node=>node.remove());priorValidation?.(options);if(shell){for(const kind of ['error','missing','warning']){const section=shell.querySelector(kind==='warning'?'.vd-history':'.vd-'+(kind==='error'?'errors':'missing'));for(const node of shell.querySelectorAll('.shared-validation [data-shared-issue-kind="'+kind+'"]')){section.querySelector('.vd-empty')?.remove();section.append(node);}}shell.querySelectorAll('.shared-validation').forEach(node=>node.remove());}};
   host.addEventListener('process-language-change',()=>document.querySelectorAll('.vd-shell').forEach(shell=>shell.refreshLabels?.()));
+  let processHistoryState=null;
+  // Destination completion is the committed SPA boundary. Do not retire on
+  // an attempted navigation: denied destinations must retain the source view.
+  host.addEventListener('process-destination-ready',()=>{
+    const current=processHistoryState;if(!current)return;
+    if(state.view==='data'&&state.dataTab==='process-master'&&current.root.isConnected&&document.querySelector('#data-content')===current.root&&host.ProcessSync?.identity===current.actor&&host.ProcessSync?.identityGeneration?.()===current.epoch&&host.ProcessSync?.isCurrentDelivery?.(current.delivery)===true)return;
+    processHistoryState=null;current.ticket++;current.retire();current.lease?.release();current.lease=null;
+  });
+  function processApprovedHistory(root,shared){
+    const prior=processHistoryState,actor=host.ProcessSync?.identity,epoch=host.ProcessSync?.identityGeneration?.(),delivery=host.ProcessSync?.captureDelivery?.();
+    const retained=prior&&prior.actor===actor&&prior.epoch===epoch&&host.ProcessSync?.isCurrentDelivery?.(prior.delivery)===true&&prior.blocked;
+    prior?.retire?.();if(!retained)prior?.lease?.release();
+    const current={root,actor,epoch,delivery,blocked:!!retained,lease:retained?prior.lease:null,view:null,ticket:0};processHistoryState=current;
+    const owned=()=>processHistoryState===current&&root.isConnected&&state.view==='data'&&state.dataTab==='process-master'&&host.ProcessSync?.identity===actor&&host.ProcessSync?.identityGeneration?.()===epoch&&host.ProcessSync?.isCurrentDelivery?.(delivery)===true;
+    const boundary=()=>{current.ticket++;current.blocked=true;if(owned())current.lease||=shared.holdReadOnly('PROCESS');};
+    const canChoose=()=>owned()&&!shared.busy()&&!host.MasterAdminUI?.departureBusy?.()&&!document.querySelector('dialog[open]');
+    const client=shared.client('PROCESS');
+    const relabel=()=>{if(owned()&&current.view?.historical)current.view.relabel();};host.addEventListener('process-language-change',relabel);current.retire=()=>{current.view?.retire();host.removeEventListener('process-language-change',relabel);};
+    const back=async()=>{
+      current.blocked=true;root.inert=true;const ticket=++current.ticket;
+      try{await host.MasterDataWorkflow.loadScope('PROCESS');if(!owned()||ticket!==current.ticket)return;
+        if(client.permission('view')!==true)throw Error('FORBIDDEN');
+        current.lease?.release();current.lease=null;current.blocked=false;state.processMasterVersionId=null;root.inert=false;current.retire();processHistoryState=null;repaintProcessMasterPage();document.querySelector('#process-master-approved-version')?.focus({preventScroll:true});
+      }catch(error){if(!owned()||ticket!==current.ticket)return;root.inert=false;repaintProcessMasterPage();const notice=document.querySelector('#data-content .vd-approved-notice');if(notice)notice.textContent=String(error.message||error);}
+    };
+    return {initialBlocked:current.blocked,mount(shell,_log,empty){
+      current.view=host.ProcessCanvasHistory.createApprovedHistory({root,shell,empty,client,selectId:'process-master-approved-version',cacheKey:shared.flow('PROCESS')?.active?.id||null,initialBlocked:current.blocked,
+        isCurrent:owned,canChoose,onBoundary:boundary,onDenied:boundary,renderCurrent:()=>void back(),
+        validateSnapshot:snapshot=>!!snapshot&&typeof snapshot==='object'&&!Array.isArray(snapshot)&&Object.values(snapshot).every(rows=>Array.isArray(rows)&&rows.every(row=>row&&typeof row==='object'&&!Array.isArray(row))),
+        renderSnapshot(target,snapshot,isCurrent){
+          host.ProcessCanvasHistory.renderApprovedCollections(target,{stages:Object.entries(snapshot).map(([code,templates])=>({code,templates}))},{collections:['stages'],fields:{stages:['工段與流程範本','Công đoạn và mẫu quy trình'],code:['工段','Công đoạn'],templates:['流程範本','Mẫu quy trình'],name:['名稱','Tên'],editorType:['流程類型','Loại quy trình'],instructionSteps:['作業步驟','Bước thao tác'],equipment:['設備','Thiết bị'],mediaItems:['歷史圖片','Ảnh lịch sử']},mediaURL:photo=>client.mediaURL(photo)},isCurrent);
+        }
+      });
+      const choice=root.querySelector('#process-master-approved-version'),choose=choice.onchange;
+      // Only an explicit selection abandons unsent input. A denied/late access
+      // notification must fence the view without deleting its local journal.
+      choice.onchange=function(...args){if(canChoose()&&client.permission('view')===true&&client.permission('history')===true&&!['__more','__loading','__blocked'].includes(choice.value)){host.ProcessMasterVersioning?.departureNames.discard();shared.discardLocal('PROCESS');host.ProcessEquipment?.abandon?.();}return choose.apply(this,args);};
+      const requested=state.processMasterVersionId,selected=processMasterVersions().find(version=>version.id===requested);if(requested&&(!selected||['approved','superseded'].includes(selected.status)))void current.view.openVersion(requested);
+      // Previously captured handlers cannot mutate or open old history dialogs
+      // after the explicit history boundary, even if invoked programmatically.
+      const ticket=current.ticket;for(const node of root.querySelectorAll('input,select,button,textarea')){if(node.closest('.vd-shell,[data-vd-approved-view]'))continue;for(const key of ['onclick','oninput','onchange']){const fn=node[key];if(typeof fn==='function')node[key]=function(...args){if(!owned()||ticket!==current.ticket||current.blocked||!node.isConnected)return;return fn.apply(this,args);};}}
+    }};
+  }
   const previousDataBind=bindDataInner;
   bindDataInner=function(tab){previousDataBind(tab);if(tab!=='process-master')return;
     const shared=host.MasterDataWorkflow?.shared;
-    mount(document.querySelector('#data-content'),{header:'.process-master-version',historyClient:()=>shared.client('PROCESS'),module:document.documentElement.lang==='vi'?'Dữ liệu quy trình PROCESS':'PROCESS 流程資料',scope:'PROCESS',version:selectedProcessMasterVersion(),versions:processMasterVersions(),active:processMasterVersions().find(v=>v.status==='approved'),flow:shared?.flow('PROCESS'),actions:{begin:'#process-master-new-draft',save:'#save-master-data',submit:'#process-master-submit',review:'#process-master-review',withdraw:'#process-master-withdraw'},errors:'[data-shared-issue-kind="error"]',missing:'[data-shared-issue-kind="missing"]',history:['.process-master-history','[data-process-history]','[data-shared-issue-kind="warning"]'],status:['#process-shared-status']});
+    const root=document.querySelector('#data-content'),approved=processApprovedHistory(root,shared);
+    mount(document.querySelector('#data-content'),{header:'.process-master-version',historyClient:()=>shared.client('PROCESS'),module:document.documentElement.lang==='vi'?'Dữ liệu quy trình PROCESS':'PROCESS 流程資料',scope:'PROCESS',version:selectedProcessMasterVersion(),versions:processMasterVersions(),active:processMasterVersions().find(v=>v.status==='approved'),flow:shared?.flow('PROCESS'),actions:{begin:'#process-master-new-draft',save:'#save-master-data',submit:'#process-master-submit',review:'#process-master-review',withdraw:'#process-master-withdraw'},errors:'[data-shared-issue-kind="error"]',missing:'[data-shared-issue-kind="missing"]',history:['[data-shared-issue-kind="warning"]'],remove:['.process-master-history','[data-process-history]'],mountApprovedHistory:(shell,log,empty)=>approved.mount(shell,log,empty),status:['#process-shared-status']});
   };
 })(window);

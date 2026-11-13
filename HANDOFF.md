@@ -1,3 +1,7 @@
+## 2026-11-12 — #109 quality + merged main continuation
+
+New isolated follow-up retains #105/#106/#107 and merged #108 main without overwriting earlier candidates. [Current scope and verification limits](docs/acceptance/quality-main-joint-20261112/README.md). Older checkpoint statuses below remain historical. No deployment or production mutation.
+
 # 2026-11-12 — #105＋#106 共同測試候選
 
 隔離整合固定 d14808c 與 21a1765，保留各來源和草稿邊界，供 Frank 決定合併及實測；未納入 #107／#108。以[共同證據與界線](docs/acceptance/quality-c-joint-20261112/README.md)為準。下方是各來源分支的歷史交接，不是本候選已通過的新證據。
@@ -20,6 +24,93 @@ The A/B transfer client now pins its expected actor to the original equipment di
 ## 2026-11-12 — Isolated IPQC A/B integration candidate
 
 A/B grouped Save conflicts, original-ID retention, approved readonly history, explicit-check performance and completeness parity are integrated as a candidate based on main #100. All 41 text patches were verified. Latest policy retains unsent RAM/Files/forms across A/B line/group/stage filters; only departure to another module discards unsent input; original photo/Save receipts remain queryable after departure. Cloud follow-ups handle post-upload version races and same-value resolved conflicts without another Save click. No merge/deployment/live acceptance. [Sources, seven-scope coverage and test limits](docs/acceptance/ipqc-ab-integration-20261112/README.md).
+
+# 2026-11-12 — Joint account choices and PROCESS original-page history
+
+The same #108 follow-up adds group comparison with fresh authority/revision checks and a readonly PROCESS approved-source view with fresh return to draft. [Full requirement matrix and acceptance limits](docs/acceptance/accounts-process-joint-20261112/requirements.md). Keep old backups; stop new backup/recovery rehearsals; no deletion, live switch, merge or deployment. Earlier verification notes are historical.
+
+# 2026-11-12 — Independent account/process joint verification
+
+Latest isolated #103 fb62c259 + #104 15a5acb4 composition and exact limits: [joint verification](docs/acceptance/accounts-process-joint-20261112/README.md). Source heads remain unchanged Draft; no live activation, schema/data/account change, merge or deployment. Older checkpoint statuses below remain historical.
+
+# 2026-11-10 — Local account/process joint composition
+
+The isolated candidate combines known #103/#104 products and preserves both exact public source histories. No PR merge, publication, flags or live-data action. Current composition, verification state and remaining approval/activation boundaries: [joint local record](AI_CONTEXT/ACCOUNT_PROCESS_JOINT_LOCAL.md).
+
+# 2026-11-10 — Independent page/account local candidate
+
+The exact legacy-rights four-file correction is published at Draft #103 `22567b26`. Owner confirmation also permitted applying the previously reviewed local configuration proposal; it was applied once and isolated tests passed. Additional line/Routine page and platform review work remains local, with no real activation. Sources, effective pre-adoption line ACL impact, fresh authority/UNKNOWN guards and precise validation limits: [continuation](AI_CONTEXT/ACCOUNT_PERMISSION_INTEGRATION_LOCAL.md).
+
+# 2026-11-10 — Account-priority independent integration
+
+New main-based account branch extracts login/password/operation feedback from closed #102 and preserves imported older permission work. Expanded batch aligns twelve installed workflow Edit→Save resolvers and fixed active-account feedback view with source/image/archive checks; Lines-only accounts now render the existing approved catalog without AB/C workflow grants; AB/C Save readback accepts equal JSON objects regardless of key order and retains genuine UNKNOWN mismatches. Independent line editing/routine whole-page boundaries and legacy reviewer/final-approval separation remain incomplete. a9b33d83 AB C, PROCESS and Feedback full native workflows passed, including the prior C group/product stage. Local safety still required the individual reset baseline fix and fresh-CAS paired-policy updates; latest-head native verification remains separate. The 72dfacf5 source-gate follow-up retains original reporting hashes through an exact approved-lines inverse and aligns both asset tags; complete AB C/PROCESS and Feedback source steps pass locally, latest native CI remains separate. Scope, exact old-branch inventory, isolated checks and unrun native/real-account gates: [acceptance](docs/acceptance/account-permissions-20261110.md). No page-v1 activation, account migration, old UNKNOWN replay, branch deletion, merge or deployment.
+
+<!-- Retained #104 source checkpoint; historical, not current joint acceptance. -->
+# 2026-11-11 — Reproduced authoring native Begin/history access-epoch race
+
+Publica503b7a is the verified five-file successor of735e014 (tree53f1ee2); Feedback now passes. Its independent native job42970482533/130357562436 fails at process-authoring:native:reopen with original receipt200, queued0/UNKNOWNtrue, one Begin marker, current runtime/owner and visible ACCESS_READ_SUPERSEDED. The head's CI has now naturally completed: Feedback, AB C, PROCESS and IPQC C workflows and the original integration job pass. Local safety42970482282/130357561477 passes1–35 then fails36 on the same ACCESS_READ_SUPERSEDED after SPA authoring reentry;37–57 are skipped. No CI was cancelled or rerun.
+
+The actual shared client plus actual approved-history constructor reproduce the same error deterministically: hold the original receipt response, mount approved history, then release. Mounting enabled accessGuard late and incremented accessEpoch, so the valid in-flight request no longer owned its access result. Earlier memory-only probes omitted that real history mount; the IQC write was not the failing module. Start the existing guard at construction only for durable /api/process-authoring/workflow clients. Keep the exact projectAccess/owner/revision/denial fences, original marker validation, authoritative fresh readback and no-repost behavior. Other modules and Canvas secondary transports keep their existing modes. No guard is removed and no timeout is extended.
+
+The new positive race clears only the exact original marker after valid receipt/readback. Identity, epoch, delivery, view revocation, newer403 and malformed-receipt variants retain the original bytes and UNKNOWN and send no extra POST. The same runtime, an actual successor transport with the original predecessor marker, and a fresh VM realm sharing only the original storage/server state run all seven variants. This covers the native-reload and SPA client lifetimes without claiming native execution. Full original native runner and30s deadline remain unchanged. This local reproduction/fix is not native acceptance: both the independent job and original Windows step must validate the final public head. Exact source inverse and cache tag are updated independently of UNKNOWN32. No schema, real data, accounts, policy activation, merge or deployment.
+
+# 2026-11-11 — Shallow-checkout Begin proof compatibility, local follow-up
+
+The exact approved twelve-file candidatebc84bf9 was uploaded successfully as public735e014 with tree025b41aae7769e8b917867eb33676342ec447a01, single parent5707352 and verified nonforce lease/ref/PR. #104 remains Draft; no merge/deploy. Current735e014 CI has naturally completed: four module workflows pass; Local safety run42964143164/job130337323130 passes steps1–30 and fails step31 only at the new inverse newline anchor (1!==2 at112:370) under Windows CRLF. Steps32–57, including36, are skipped. No new compiled Begin result exists. Feedback run42964143200/job130337322705 fails314/315 only because the new Begin inverse asks git show for an older tree absent from its depth-one checkout; the inverse comparison had not run there.
+
+The local follow-up embeds the exact11,155 original browser-source bytes as a deterministic gzip fixture in the existing Begin test. The original SHA2567a2275f825ca24163ffe718630541ce5a2eda75ff32b0cacd06f86427d2cd1f6 and full reverse byte comparison remain fixed; no Git history/executable is required. Reproduce the raw CRLF anchor failure independently, then accept LF/CRLF checkout conversion alone before the same full-byte comparison. Ten effective negatives reject changed30s timeout, removed POST/receipt assertions, changed commit state, extra suffix and unpaired CR; four semantic mutations run under both LF and CRLF. This does not change the browser runner or its actual deadlines/assertions.
+
+Current full Begin90 passes with Git unavailable; the exact Feedback synthetic command passes315/315. A true local-disk depth-one checkout of4c998fb, with one commit and the original tree absent, also passes the exact315-case command using the same locked dependencies; this is not a fresh install/native claim. An additional independent Ubuntu CI job is prepared in the existing integration workflow: locked install, Begin contracts, exact build and the unchanged native Begin runner. It keeps the original Windows step and all30s/receipt/data/no-extra-POST checks, so a later serial failure cannot hide the early compiled evidence. Native execution of this new job remains unrun locally under the existing restriction. Native compiled step36 is still unresolved; do not label this test-only follow-up a product fix or native PASS. This is a new five-file local payload after the approved twelve-file publication (test, CI workflow and three history/module documents); retain and review its exact scope before a subsequent upload. No UNKNOWN32 replay, real data, schema, policy/account mutation, CI rerun/cancellation, merge or deployment.
+
+# 2026-11-11 — Consolidated pre-upload local sweep
+
+At Frank's request, run later available checks before another publication rather than waiting for each serial CI failure. All17 inspected socket-free command groups now pass after repairing two stale AB fixture calls to the removed departureOwnShared. The real current RAM-only navigation object is executed without substituting product logic: acknowledged shared writes do not become a leave prompt, while local input/modal and UNKNOWN remain visible; same-account tab ownership, saved global cutoff, subsequent ACK/identity retirement and zero-request repeated inspection remain checked. The unchanged legacy/invalid-scope/foreign receipt/revision-zero negatives remain. The attribution/prepared suites pass57; register both in the existing integration Begin step without removing any prior suite.
+
+The sweep also passes canvas180, process lifecycle90, FQC route/matrix/readiness87, shared submission222, master authority54, terminal/receipt214, startup16, incident42, v1922, observation state23 and two existing V3 scripts. Seven synthetic native-authority/transport/source entry files pass; FQC contract17 passes with its one socket-requiring record-oracle case explicitly not run. Observation route/client direct scripts pass. These overlap existing evidence and are not a total coverage claim. Current native browser/root Worker cases remain unavailable locally under the prior socket/ptrace restriction. Step36 compiled root cause is still unresolved; the candidate contains diagnostics, not a claimed fix. GitHub Windows ZIP/Pwsh/clean-install and native compiled checks still require the authorized CI environment. No test deadlines/assertions are reduced. No real data, schema, merge or deployment change.
+
+Local consolidated candidate has12 changed paths: the prior ten plus tests/shared-draft-tab-attribution.test.mjs and .github/workflows/process-platform-integration.yml. Earlier nine-file upload was denied and known not executed; the prior ten-file diagnostic question is superseded by this final consolidated scope. No new upload has been attempted. Public #104 remains Draft5707352; UNKNOWN32 is not replayed.
+
+# 2026-11-11 — Step36 unresolved; bounded diagnostics prepared locally
+
+5707352 Local safety naturally completed failure: step7 matches the unchanged equipment-sent-batch test259/261 rejection reproduced locally, and step36 again times out at begin-recovery-browser83 after original receipt200. Steps37–57 skipped; role-layout and delivery browser preceding Begin passed. Artifacts are empty. The e3b8a17 nine-file equipment repair remains correct locally (282/182/43 plus lint/types/build/preflight PASS), but does not cover the repeated compiled failure. Its upload was rejected as a later modified payload outside the exact earlier approval; no tree/ref was created and no retry occurred.
+
+Private socket-free probes using the exact browser seed, real handlers and actual shared client recover all four modules with one POST, original receipt, no remaining markers and account UNKNOWN false. The full IQC closure/load/post/reset/reopen/checkOperation probe also passes. Last IQC write in CI is only a clue; no module/cause is proven. Do not change production logic from that inference, extend the browser timeout, remove assertions, rerun/cancel CI or switch executors around the native restriction. Add one browser-fixture edit and tests in the existing Begin suite for failure-only allowlisted diagnostics and privacy-negative verification; these initially expanded the public candidate to10 paths. The consolidated local sweep below adds two more paths; all12 require a new exact public scope. An exact pinned inverse proves every original browser assertion and its30s deadline unchanged. No full repair or compiled/staging acceptance is claimed.
+
+# 2026-11-11 — Equipment step7 compatibility repair, local pending active CI
+
+5707352 Local safety run42954544869/job130306421564 is still running but step7 failed. Complete job logs were unavailable (GitHub BlobNotFound404); the exact five inspected memory-only suites independently reproduce281/282 PASS, with only equipment-sent-batch.test.mjs:259 missing the expected unresolved-Begin rejection. The previous generic stale-idle discovery guard interfered with equipment's explicit permission-renewal contract. Narrow that guard to /api/process-authoring/workflow, preserve the equipment test unchanged, and add non-authoring explicit-observation tests so this boundary cannot silently broaden again. Keep the original authoring receipt/anti-resend fix and sent-marker protections. Do not publish while the current workflow is active: its concurrency policy would cancel it. No CI rerun/cancellation, native local retry, real data, UNKNOWN32 replay, merge or deployment.
+
+# 2026-11-11 — Begin receipt stale-idle runtime fix
+
+Published e85b048 Local safety run42943336090/job130270108084 passes steps1–35, including bootstrap13; step36 fails the unchanged compiled Begin recovery browser assertion after original-operation receipt200. Memory-only actual-client reproduction isolates one process-authoring failure out of74 tests: an idle stale transport can capture a later runtime's marker during account inspection and retain invalid evidence after the successor clears it. The product fix prevents only that stale empty acquisition; original captured/invalid records retain all UNKNOWN/owner/admission guards. Six module successions and stale owned-marker/identity/epoch/pagehide negatives cover the boundary. Local220 receipt/module/readiness/cache/source/deadline checks, lint, nonincremental TypeScript, source preflight and exact product build/postbuild-auth check PASS; overlapping tests are not a coverage sum. The native browser scenario, its30s deadline, exact receipt, zero-extra-POST and unchanged-server-data assertions remain intact. Local native execution remains unavailable under the earlier socket/ptrace restriction; do not retry or change executor. Final head CI must validate compiled recovery; no old CI result substitutes for it. Full requirements, UNKNOWN32 and joint/staging acceptance limits remain as recorded below.
+
+# 2026-11-11 — Local bootstrap policy-metadata continuation
+
+Published #104 head8d78c70 passes five module workflows; Local safety run42934382324/job130240714452 passes steps1–32 then fails step33 on the expected DTO missing draftReviewPolicyActive:false. Steps34–57 were not functionally run. Local test-only changes preserve the complete observed response, insert one explicitly inactive field into the fixed v20 expectation, and reject 81 mutations for each owner/reader. All 13 bootstrap groups pass, including separate real-handler active-policy checks in four synthetic memory formats with explicit audit provenance, fresh-call revocation, no private control/role delivery and zero writes. Existing legacy fallback/read-count/storage/epoch/final-session negatives remain. The two modified bootstrap scripts are outside the previous exact six-file public-upload approval; retain this follow-up locally and report its full payload before any upload. No production code, policy activation, schema, real accounts/data, UNKNOWN32 replay, merge or deployment changes.
+
+# 2026-11-10 — Access-template policy-state contract
+
+Local safety run42867042538/job130008127877 stopped at step32 because effectiveAccess now deliberately exposes draftReviewPolicyActive:false for legacy state. Keep that runtime contract: compare every historical field plus explicit false, reject missing/spurious metadata or grants, and test active policy independently with real synthetic audit provenance, fresh-call revocation and malformed-layout fail-closed behavior. Compose the exact Canvas inverse before the unchanged historical authorization guards; never remove fields from the observed DTO. The dedicated integration workflow now runs this regression earlier. Local validation: seven groups/116 exact legacy comparisons, policy12, actual page roles14, historical source guards91, cleanup16, lint and nonincremental TypeScript PASS. These overlapping checks are not a coverage sum. No policy marker, live account, data, merge or deployment is changed. Full requirements and combined-PR/staging acceptance remain incomplete as recorded below.
+
+# 2026-11-10 — Transfer fixture acquisition cleanup
+
+A navigation error before setup returned could leave the browser/Worker outside the caller's finally block. The test-only patch closes acquired resources on setup failure and preserves both setup and cleanup errors; no native assertions or wait budgets change. Pure fault injection runs without sockets or browsers. The dd9be45 CI is terminal: five module workflows passed; Local safety failed at the separate access-template policy-state assertion. The cleanup patch can accompany that next test-only update; no running CI is cancelled or rerun.
+
+# 2026-11-10 — IPQC comparison single-Save notices
+
+The source comparison preview and adoption result now direct users to finish the operation and press one Save, without a removed synchronization step. Source-adoption regressions use the actual current-stage renderer and single atomic Save; unsent assignments stay in the form and source libraries remain unchanged. No data-model or permission changes, merge or deployment.
+
+# 2026-11-10 — Revision messaging and post-failure safety continuation
+
+71feb2f five module workflows passed; Local safety passed steps1–30 and the previous Flow/FQC/read-scope/departure/Fit fixes, then failed on a later shared-client fixture expecting Submit-only revision text. All three client modes now verify the correct Save/Submit-neutral bilingual message plus raw revision409/Save fences, keeping quota/UNKNOWN/actor/immutable-error negatives (10 groups each). Actual Canvas/controller/handler race stack139 and exact panel differential17 pass. Of61 later scripts,60 now pass; one indirectly launched native AB fixture is blocked by socket/ptrace and was not retried. #103 fixed22567b2 remains independent; original policy-only union evidence81791d1 is historical. [Full evidence and blockers](docs/acceptance/process-platform-integration-20261110.md). No product edits, UNKNOWN32 replay, real data, merge or deployment.
+
+# 2026-11-10 — Lifecycle and Local safety continuation
+
+88f8 five module workflows passed, including original AB C native 17 cases; Local safety failed two stale fixture extractions. Both affected scripts now pass with full DOM/guard/CAS assertions retained (IPQC 8 groups, Flow 114). New actual memory-backed page lifecycle 16 and role 14 checks join dedicated CI. #103 has five product overlaps requiring semantic composition; offline policy-only union passes 17 checks but is not merged acceptance. See [matrix and precise blockers](docs/acceptance/process-platform-integration-20261110.md). Follow-on synthetic checks found five stale contracts: own Return versus final approval (179 paired cases), exact approved-history route composition (37 pairs/74 GETs), removed master scheduler, RAM-only unsent departure with durable UNKNOWN quota/tamper guards, and removed undo/redo staying inert during Fit. All five now pass locally; the separate poll-wiring test also requires master scheduler/callers absent while retaining all six other legacy producers and IQC owner negatives. Five additional entry-performance VM suites pass. Final successor CI must verify them. No product edits, marker activation, real data, UNKNOWN32 replay, merge or deploy.
+
+# 2026-11-10 — Full process integration candidate, incomplete acceptance
+
+Draft #104 includes Canvas Save/departure/grouped conflict/history/count changes plus AB/C catalog and LINES independent-owner dependencies. Core 510 and history/policy/bundle 88 synthetic cases pass; actual SQLite/MapR2 page handlers and synthetic UI have dedicated regression tests. Trusted layout/review-policy markers remain off. Main #77/#96/#99/#100 are preserved, #101/#102 remain closed sources, #103 account work is separate. [Twenty-item matrix, UNKNOWN32 boundary and outstanding real acceptance](docs/acceptance/process-platform-integration-20261110.md). PROCESS master repaint from the original UNKNOWN32 operation was not replayed. No data migration, real ACL, merge or deployment.
 
 # 2026-11-09 — Process platform stage catalog batch
 
@@ -542,3 +633,45 @@ readback, unknown-effect rules and exact staging-only scope. No live schema,
 credential, upload, audience, owner password or deployment has changed.
 Security architecture requires independent review and informed per-action
 credential approval before enabling. Copy/restore/activate are excluded.
+
+## 2026-11-10 — PR103 CI follow-up
+
+Local safety f608 step 9 is an account status/alert regression; step 31 needs exact account-cache composition before the retained background predecessor proof. Product status semantics and independent source evidence are corrected without changing the UNKNOWN-32 role fixture or replaying its request. [Details and final CI gate](docs/acceptance/account-permissions-20261110.md#local-safety-ci-follow-up-status-regions-and-composed-source-evidence).
+
+<!-- Retained #104 source checkpoint; historical, not current joint acceptance. -->
+
+## 2026-11-12 #104 靜默工段導航續修
+
+cb12823 的 Windows第36步已越過 Begin，但第一輪 silent-navigation-stage 30秒失敗；重用 #103 固定c92c43b的租約釋放後再刷新來源修正，36個真controller合成案例由4過32失敗變為全過。保留 #104 Begin與UNKNOWN／收據／防重送保護，未搬入FQC路由及AB/C Save等價增量。製程編輯cache tag與兩份精確fixture更新；原Windows runner未改，另加入獨立原生job提早執行原完整五循環製程runner。
+
+來源、測試及限制詳見 AI_CONTEXT/modules/PROCESS.md 的同日續修節。本機集中source回歸、lint／非增量TypeScript已通過；原生Worker oracle一次選取失誤被額外網路拒絕攔下，保留失敗、不重試、不算PASS；後段原生與Windows仍需新HEAD CI。真實資料、可信切換、共同HEAD與完整20項驗收仍未完成。原UNKNOWN32未重送；保持Draft，不合併部署。
+
+
+### #104 56e4051 後續：送審待審探針
+
+十檔已成功公開至56e4051／tree f1dc86e。新原生job確認Begin與三種靜默導航通過，後續submit-confirm仍30秒失敗；200不可視為驗收完成。已用四組真controller證實探針引用已移除的legacy selector，後續僅對齊當前Canvas selector與強化反例，相關93項通過。原案件／Save／generation／唯讀／Withdraw與五循環、90次action、所有等待、POST及權威資料斷言保留，產品不變。詳見PROCESS同日「待審就緒探針」節。新候選尚未上傳；不取消仍在執行的Windows CI，未合併部署或操作真資料。
+
+
+續作集中CI：既有獨立原生job在原Process runner後，追加原Windows第36步後半完全相同的FQC source／原生lifecycle及多人矩陣runner；重用同一build／瀏覽器，不改原Windows、不刪斷言、不延長25分鐘job上限。已知本機原生Worker限制不重試，完整新增CI結果待遠端新HEAD確認。此增量只有CI與紀錄，產品輸入不變。
+
+
+### 2026-11-12 Windows終態補正：來源inverse反例必須實際變造
+
+56e4051 的 Windows run43138700763／job130920154400 已自然結束：1–30通過，第31步 scripts/entry-performance/source-eol.test.cjs:50 的「Missing expected exception」失敗，32–57未跑；未取消或重跑。導航修正使第六個歷史departure片段不再直接出現在原始HEAD，舊raw.replace成為無效變造，並非產品接受了變造。
+
+已核對並逐blob重用 #103 公開302e7515e8b5f7343352f1b0d5aa6066a4d9409b 的source-eol修正（blob8b4b9c65ef6ee6523eb2e5ce2a9df3fe6c08be72）。只在測試port、真正HEAD admission與既有完整投影之後，變造實際departure inverse輸入；每個反例強制有效，LF/CRLF、六個span的changed/missing/duplicate共36種，必須以原exact-anchor錯誤拒絕，不能由先前HEAD hash拒絕冒充。原歷史inverse JSON、85fa來源與全部完整baseline/hash未改。96項全過；第31步失敗點與後續21個原命令集中預檢全過，全部網路邊界回執零實際嘗試。原helper93項與產品輸入保持不變。
+
+此source-EOL檢查也前置到整合job；原Windows命令與全部原生案例保留。來源修正獨立來自已確認的本輪HEAD與公開302e751，不取用或重送原UNKNOWN32，該狀態仍未解決。後續只在所有舊CI自然結束、核對ref後更新分支；最終新HEAD原生／完整Windows仍須獨立確認，不以前身或本機PASS替代。
+
+
+### 2026-11-12 #104：compiled root bundle來源與回執契約
+
+429d3bf 的 Windows Local safety run43147004029／job130947047036已自然結束：1–38通過，第39步sites-root-entry-native的served script bundles階段actual55／expected50失敗，40–57跳過。前七個root入口／關閉資料API／shell HTML／stylesheet案例已通過；舊數量斷言在抓取JavaScript bundle前就失敗。
+
+固定main9fbba823的兩組bundle合計50個來源；#104只新增page-draft-merge、master-page-transfer、master-page-approved-history、master-page-editor與canvas-approved-history五個IIFE，沒有移除舊來源。master-page-excel原本就在main，未誤算新增。#103固定2d2d79cb的root測試仍為舊50，沒有可直接重用的修正；其其他帳號／例行FQC增量不帶入。原UNKNOWN32／舊62-source候選未取用或重送。
+
+新增test-only獨立oracle：固定main有序50清單加五個具名插入點，與builder輸出的兩組逐項核對，不能從目前輸出反推期望。依已審閱來源清單和各來源原始bytes獨立組合預期內容，核對SHA／cache URL、整份bundle與末端成功回執；compiled root仍驗200、JavaScript MIME、每個served byte與reporter單次／先於shared-client。其他root安全檢查不變，沒有改為單純55常數。
+
+49項本機回歸通過（新oracle、原build及startup source）：遺漏／額外／重複／亂序來源、私有seed與global邊界、錯誤cache／回執identity、改動byte、缺少／提前／false回執、尾端額外程式、served狀態／MIME／內容／EOL漂移都拒絕；LF/CRLF正向與真builder合成55個模組執行通過，兩組各自的途中來源失敗不得產生完成回執或執行後續模組。負向byte比較用等精度Buffer.equals與短錯誤，避免在assert錯誤中展開大型JS內容。
+
+CI提前跑同一原始compiled root與retired-entrypoint runner，重用既有build及瀏覽器；原Windows第39步與25分鐘job上限保留。此批只改測試／CI／紀錄，產品、權限與資料模型不變。guarded build及編譯產物另依本輪精確HEAD回執核對；本機沒有重試受限原生Worker，新HEAD的HTTP／Windows完整結果仍待CI。先前429d3bf的Process90／導航15、FQC160及矩陣60原生合成成功仍是前身證據，不代表本批或測試站／真人／共同HEAD驗收完成。維持Draft，不合併部署。

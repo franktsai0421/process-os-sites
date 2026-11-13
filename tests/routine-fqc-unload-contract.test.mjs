@@ -1,14 +1,21 @@
-// Current Routine FQC deliberately installs no beforeunload prompt: unsent RAM
-// is silently abandoned through the existing departure owner. The pinned old
-// handler remains a historical counterfactual, never a current native claim.
+// Paired source contract: preserve the exact genuine public predecessor checks,
+// then exercise current full-closure Save/departure behavior independently.
+// Modern predecessor beforeunload capability only; synthetic cancellation is not
+// proof of a native prompt, user activation, browser floor or mobile delivery.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {test} from 'node:test';
+import {createRequire} from 'node:module';
+import {fixture as fullFixture} from './fixtures/routine-fqc-durable.mjs';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import ts from 'typescript';
-const file='public/process/routine-fqc.js',current=fs.readFileSync(file,'utf8'),previous=execFileSync('git',['show','51bda3eda99c98ab30d3c46b6615065588be564c'],{encoding:'utf8'});
+const require=createRequire(import.meta.url),pageProof=require('../scripts/account-page-source-contract.cjs'),{canonicalCheckout}=require('../scripts/routine-fqc-source-contract.cjs');
+// The checkout may use CRLF. Attest it against actual HEAD bytes before the
+// unchanged exact source/predecessor checks; never normalize their hashes.
+function assertCurrentCheckout(working,committed){const source=canonicalCheckout(working,committed);pageProof.assertCurrent(source,file);return source;}
+const file='public/process/routine-fqc.js',committedSuccessor=execFileSync('git',['show','HEAD:'+file]),successor=assertCurrentCheckout(fs.readFileSync(file),committedSuccessor),legacyBytes=execFileSync('git',['show','5f9d34b04fbbc87bd473c0ff7ddd9f5ac8e9a035:'+file]),legacy=legacyBytes.toString(),previous=execFileSync('git',['show','51bda3eda99c98ab30d3c46b6615065588be564c'],{encoding:'utf8'});
 assert.equal(createHash('sha256').update(previous).digest('hex'),'ed342c34242df88c2b6edb71d2f2025b284a4fe41026ffbd92d0fb614f03c3f7');
 const lf=text=>text.replace(/\r\n/g,'\n');
 // Among the pinned functions, only Save changed in checkpoint1ab4ccf: ownership,
@@ -17,21 +24,16 @@ const lf=text=>text.replace(/\r\n/g,'\n');
 const reviewedSaveSHA='2b085f67fcfe5d5fa250624abba7ed5bc1dc3bcfb65b66ecc815119fa60ba29b';
 function assertPreservedContract(source){
  const actual=functions(lf(source)),baseline=functions(lf(previous));
- for(const key of ['dirty','docs'])assert.equal(actual[key],baseline[key],key+' retains its existing behavior');
- const dispatch='pageDraftMode?window.RoutineFqcPage.canLeave():';assert(actual.leave.includes(dispatch));assert.equal(actual.leave.replace(dispatch,''),baseline.leave,'legacy SPA barriers survive page-owner dispatch');
- assert.equal(actual.save.split('assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();').length,2);
- assert.equal(actual.save.split('displayCurrent()&&root===page').length,2);assert.equal(actual.save.split("read('',current)").length,3);
- const legacySave=actual.save.replace('    assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();\n','').replace('displayCurrent()&&root===page','root===page').replaceAll("read('',current)",'read()');
- assert.equal(createHash('sha256').update(legacySave).digest('hex'),reviewedSaveSHA,'complete reviewed per-document Save is retained with exact display/read fences');
- assert.equal(actual.unload,undefined,'unsent Routine RAM must not install a beforeunload prompt');
+ for(const key of ['dirty','docs','leave'])assert.equal(actual[key],baseline[key],key+' retains its existing behavior');
+ assert.equal(createHash('sha256').update(actual.save).digest('hex'),reviewedSaveSHA,'complete reviewed per-document Save contract is preserved');
+ assert.equal(actual.unload,baseline.unload.replace("      e.returnValue = '';\n",''),'only the legacy returnValue assignment is removed from beforeunload');
 }
-void test('dirty/docs and legacy SPA/Save stay exact with page/history fences and silent unload',()=>{assertPreservedContract(current);});
-void test('LF and CRLF contracts agree; removing any retained guard or Save revision still fails',()=>{
- for(const text of [current,lf(current).replace(/\n/g,'\r\n')])assertPreservedContract(text);
- const text=lf(current),code=functions(text);
+void test('genuine public predecessor: dirty/docs/SPA/unload remain exact; manual Save matches original reviewed contract',()=>{assertPreservedContract(legacy);});
+void test('genuine public predecessor LF and CRLF contracts agree; removing any retained guard or Save revision still fails',()=>{
+ for(const text of [legacy,lf(legacy).replace(/\n/g,'\r\n')])assertPreservedContract(text);
+ const text=lf(legacy),code=functions(text);
  for(const [key,changed]of [
-  ['save',code.save.replace('displayCurrent()&&root===page','root===page')],
-  ['save',code.save.replace("read('',current)",'read()')],
+  ['unload',code.unload.replace('e.preventDefault();','')],
   ['save',code.save.replace("{ expectedRevision: latest.flow.revision }",'{}')],
   ['save',code.save.replace('clone(buffer(d))','buffer(d)')],
   ['save',code.save.replace('const d = target;','const d = doc();')],
@@ -43,14 +45,14 @@ void test('LF and CRLF contracts agree; removing any retained guard or Save revi
   ['leave',code.leave.replace('!s.retry&&','')],
  ]){const target=key==='docs'?code[key].slice(6,-1):code[key],replacement=key==='docs'?changed.slice(6,-1):changed;assert.notEqual(replacement,target,key+' negative fixture changed');assert.ok(text.includes(target),key+' mutation locates actual source');assert.throws(()=>assertPreservedContract(text.replace(target,replacement)),key+' protection is required');}
 });
-function functions(source){const tree=ts.createSourceFile(file,source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);const out={};function visit(n){if(ts.isFunctionDeclaration(n)&&['dirty','save','draft','buffer'].includes(n.name?.text))out[n.name.text]=n.getText(tree);if(ts.isVariableDeclaration(n)&&['docs','doc','status','historyAllowsMutation','assertCurrentDisplay','captureHistoryDisplay'].includes(n.name.getText(tree))&&ts.isArrowFunction(n.initializer))out[n.name.getText(tree)]='const '+n.getText(tree)+';';if(ts.isPropertyAssignment(n)&&n.name.getText(tree)==='canLeave')out.leave=n.initializer.getText(tree);if(ts.isCallExpression(n)&&n.expression.getText(tree)==='window.addEventListener'&&n.arguments[0]?.text==='beforeunload')out.unload=n.getText(tree);ts.forEachChild(n,visit);}visit(tree);for(const key of ['dirty','docs','leave','save'])assert.ok(out[key],key);return out;}
-function fixture(source){const code=functions(source),s={buffers:new Map(),bases:new Map(),busy:false,retry:false,dialogOpen:false},data={control:{documents:[{id:'a'},{id:'b'}]}},listeners=[];const c={s,data,inFlightMutation:false,pageDraftMode:false,window:{addEventListener:(name,fn)=>listeners.push({name,fn})}};vm.createContext(c);vm.runInContext(code.dirty+'\n'+code.docs+'\n'+(code.unload||'')+';this.canLeave='+code.leave,c);assert.equal(listeners.length,source===previous?1:0);if(listeners.length)assert.equal(listeners[0].name,'beforeunload');return{s,c,handler:event=>{for(const listener of listeners)listener.fn(event);}};}
-for(const mode of ['no-buffer','equal-buffer','dirty-first','dirty-second','reverted'])void test('historical prompt versus current silent unload '+mode,()=>{
- const result=[];for(const source of [previous,current]){const f=fixture(source);if(mode!=='no-buffer'){f.s.bases.set('a',{notes:'saved'});f.s.buffers.set('a',{notes:mode==='dirty-first'?'new':'saved'});}if(mode==='dirty-second'){f.s.bases.set('b',{notes:'saved'});f.s.buffers.set('b',{notes:'new'});}if(mode==='reverted'){f.s.buffers.get('a').notes='new';f.s.buffers.get('a').notes='saved';}
- const event=new Event('beforeunload',{cancelable:true});let writes=0;Object.defineProperty(event,'returnValue',{get:()=>true,set:()=>writes++});const snapshot=JSON.stringify([...f.s.buffers]);const value=f.handler(event);assert.equal(value,undefined);assert.equal(JSON.stringify([...f.s.buffers]),snapshot);const dirty=mode.startsWith('dirty');assert.equal(event.defaultPrevented,source===previous&&dirty);assert.equal(f.c.canLeave(),!dirty);assert.equal(writes,source===previous&&dirty?1:0);result.push({cancelled:event.defaultPrevented,leave:f.c.canLeave()});}assert.equal(result[1].leave,result[0].leave);assert.equal(result[1].cancelled,false);
+function functions(source,{requireUnload=true}={}){const tree=ts.createSourceFile(file,source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);const out={};function visit(n){if(ts.isFunctionDeclaration(n)&&['dirty','save','draft','buffer'].includes(n.name?.text))out[n.name.text]=n.getText(tree);if(ts.isVariableDeclaration(n)&&['docs','doc','status'].includes(n.name.getText(tree))&&ts.isArrowFunction(n.initializer))out[n.name.getText(tree)]='const '+n.getText(tree)+';';if(ts.isPropertyAssignment(n)&&n.name.getText(tree)==='canLeave')out.leave=n.initializer.getText(tree);if(ts.isCallExpression(n)&&n.expression.getText(tree)==='window.addEventListener'&&n.arguments[0]?.text==='beforeunload')out.unload=n.getText(tree);ts.forEachChild(n,visit);}visit(tree);for(const key of ['dirty','docs','leave','save',...(requireUnload?['unload']:[])])assert.ok(out[key],key);return out;}
+function fixture(source){const code=functions(source),s={buffers:new Map(),bases:new Map(),busy:false,retry:false,dialogOpen:false},data={control:{documents:[{id:'a'},{id:'b'}]}},listeners=[];const c={s,data,inFlightMutation:false,window:{addEventListener:(name,fn)=>listeners.push({name,fn})}};vm.createContext(c);vm.runInContext(code.dirty+'\n'+code.docs+'\n'+code.unload+';this.canLeave='+code.leave,c);assert.equal(listeners.length,1);assert.equal(listeners[0].name,'beforeunload');return{s,c,handler:listeners[0].fn};}
+for(const mode of ['no-buffer','equal-buffer','dirty-first','dirty-second','reverted'])void test('genuine public predecessor dirty and beforeunload handler '+mode,()=>{
+ const result=[];for(const source of [previous,legacy]){const f=fixture(source);if(mode!=='no-buffer'){f.s.bases.set('a',{notes:'saved'});f.s.buffers.set('a',{notes:mode==='dirty-first'?'new':'saved'});}if(mode==='dirty-second'){f.s.bases.set('b',{notes:'saved'});f.s.buffers.set('b',{notes:'new'});}if(mode==='reverted'){f.s.buffers.get('a').notes='new';f.s.buffers.get('a').notes='saved';}
+ const event=new Event('beforeunload',{cancelable:true});let writes=0;Object.defineProperty(event,'returnValue',{get:()=>true,set:()=>writes++});const snapshot=JSON.stringify([...f.s.buffers]);const value=f.handler(event);assert.equal(value,undefined);assert.equal(JSON.stringify([...f.s.buffers]),snapshot);const dirty=mode.startsWith('dirty');assert.equal(event.defaultPrevented,dirty);assert.equal(f.c.canLeave(),!dirty);assert.equal(writes,source===previous&&dirty?1:0);result.push({cancelled:event.defaultPrevented,leave:f.c.canLeave()});}assert.deepEqual(result[1],result[0]);
 });
-void test('remaining SPA busy/retry/dialog/inflight guards are independently retained',()=>{const f=fixture(current);for(const key of ['busy','retry','dialogOpen']){f.s[key]=true;assert.equal(f.c.canLeave(),false);f.s[key]=false;}f.c.inFlightMutation=true;assert.equal(f.c.canLeave(),false);f.c.inFlightMutation=false;assert.equal(f.c.canLeave(),true);});
-void test('silent current unload never touches legacy returnValue even when accessor would throw',()=>{const f=fixture(current);f.s.bases.set('a',{});f.s.buffers.set('a',{notes:'dirty'});const event=new Event('beforeunload',{cancelable:true});Object.defineProperty(event,'returnValue',{get(){throw Error('LEGACY_READ');},set(){throw Error('LEGACY_WRITE');}});assert.doesNotThrow(()=>f.handler(event));assert.equal(event.defaultPrevented,false);});
+void test('genuine public predecessor SPA busy/retry/dialog/inflight guards are independently retained',()=>{const f=fixture(legacy);for(const key of ['busy','retry','dialogOpen']){f.s[key]=true;assert.equal(f.c.canLeave(),false);f.s[key]=false;}f.c.inFlightMutation=true;assert.equal(f.c.canLeave(),false);f.c.inFlightMutation=false;assert.equal(f.c.canLeave(),true);});
+void test('genuine public predecessor modern handler never touches legacy returnValue even when accessor would throw',()=>{const f=fixture(legacy);f.s.bases.set('a',{});f.s.buffers.set('a',{notes:'dirty'});const event=new Event('beforeunload',{cancelable:true});Object.defineProperty(event,'returnValue',{get(){throw Error('LEGACY_READ');},set(){throw Error('LEGACY_WRITE');}});assert.doesNotThrow(()=>f.handler(event));assert.equal(event.defaultPrevented,true);});
 
 
 // Execute actual extracted Save/draft/buffer/dirty/status. Only the acknowledged
@@ -59,16 +61,15 @@ const copy=value=>JSON.parse(JSON.stringify(value));
 function saveFixture({changeAt,change,failAt,mismatchedReadback=false}={}){
  const content=id=>({title:id,date:'2026-10-30',notes:id+'-saved',reason:'',disposition:'',evidence:[],lines:[{id:id+'-line',results:[]}]});
  const server={identity:{id:'A'},permissions:{save:true,edit:true},control:{revision:10,documents:['a','b'].map((id,index)=>({id,kind:'plan',flow:{generation:id+'-generation',revision:index?17:3,working:content(id),saved:{id:id+'-saved',content:content(id)},active:{id:null},pendingId:null}}))}};
- const s={selected:'b',buffers:new Map(),bufferGenerations:new Map(),bases:new Map(),client:'unload-fixture',seq:0};
+ const s={selected:'b',buffers:new Map(),bases:new Map(),client:'unload-fixture',seq:0};
  for(const d of server.control.documents){s.bases.set(d.id,copy(d.flow.working));s.buffers.set(d.id,{...copy(d.flow.working),notes:d.id+'-local'});}
  let epoch=1,delivery=1,reads=0,operation=0;
  const calls=[],sync={identity:{id:'A'},identityGeneration:()=>epoch,captureDelivery:()=>delivery,isCurrentDelivery:token=>token===delivery};
- const c={s,data:copy(server),root:{},historyDisplayEpoch:0,approvedHistoryView:null,window:{ProcessSync:sync},clone:copy,id:()=>`operation-${++operation}`};
+ const c={s,data:copy(server),root:{},window:{ProcessSync:sync},clone:copy,id:()=>`operation-${++operation}`};
  const mutate=()=>{
   if(change==='page')c.root={};else if(change==='actor')sync.identity={id:'B'};else if(change==='data-actor')c.data.identity.id='B';
   else if(change==='epoch')epoch++;else if(change==='delivery')delivery++;else if(change==='reload')sync.requiresReload=true;
   else if(change==='generation')c.data.control.documents.find(d=>d.id==='a').flow.generation='new-generation';
-  else if(change==='history')c.approvedHistoryView={blocked:true};else if(change==='history-epoch')c.historyDisplayEpoch++;
   else if(change==='new-input')s.buffers.get('a').notes='new input during Save';
  };
  async function boundary(name){if(changeAt===name)mutate();if(failAt===name)throw Error('RESULT_UNKNOWN');}
@@ -81,10 +82,10 @@ function saveFixture({changeAt,change,failAt,mismatchedReadback=false}={}){
   d.flow.revision++;server.control.revision++;await boundary(cmd.action);return{documentId:d.id,operationId:body.operationId};
  };
  c.read=async()=>{reads++;await boundary('read'+reads);const next=copy(server);if(mismatchedReadback&&reads===2)next.control.documents.find(d=>d.id==='a').flow.saved.content.notes='different saved content';return next;};
- const code=functions(lf(current));vm.createContext(c);vm.runInContext([code.docs,code.doc,code.status,code.dirty,code.buffer,code.historyAllowsMutation,code.assertCurrentDisplay,code.captureHistoryDisplay,code.draft,code.save].join('\n'),c);
+ const code=functions(lf(legacy));vm.createContext(c);vm.runInContext([code.docs,code.doc,code.status,code.dirty,code.buffer,code.draft,code.save].join('\n'),c);
  return{c,s,calls,server,target:()=>c.data.control.documents.find(d=>d.id==='a'),get reads(){return reads;}};
 }
-void test('actual Save targets explicit document with original guards/latest revision, not selected other document',async()=>{
+void test('genuine public predecessor Save targets explicit document with original guards/latest revision, not selected other document',async()=>{
  const f=saveFixture(),other=copy(f.server.control.documents[1]),otherBuffer=copy(f.s.buffers.get('b'));
  f.s.buffers.get('a').lines[0].results=[{id:'result-a',outcome:'pass'}];
  const result=await f.c.save(f.target());assert.equal(result.documentId,'a');
@@ -92,28 +93,82 @@ void test('actual Save targets explicit document with original guards/latest rev
  assert.deepEqual(f.calls[0].command.patches.map(p=>p.path),[['notes'],['lines',{id:'a-line'},'results']]);assert.equal(f.reads,2);
  assert.equal(f.s.buffers.has('a'),false);assert.equal(f.s.bases.has('a'),false);assert.deepEqual(f.s.buffers.get('b'),otherBuffer);assert.deepEqual(f.server.control.documents[1],other);
 });
-void test('actual Save keeps edits made after its cloned batch and leaves them dirty',async()=>{
+void test('genuine public predecessor Save keeps edits made after its cloned batch and leaves them dirty',async()=>{
  const f=saveFixture({changeAt:'apply',change:'new-input'});await f.c.save(f.target());
  assert.equal(f.server.control.documents[0].flow.saved.content.notes,'a-local');assert.equal(f.s.buffers.get('a').notes,'new input during Save');assert.equal(f.s.bases.get('a').notes,'a-local');assert.equal(f.c.dirty(f.target()),true);
 });
-for(const changeAt of ['apply','read1','save','read2'])for(const change of ['page','actor','data-actor','epoch','delivery','reload','generation','history','history-epoch'])void test(`actual Save ${changeAt} ${change} refuses late retirement or further writes`,async()=>{
+for(const changeAt of ['apply','read1','save','read2'])for(const change of ['page','actor','data-actor','epoch','delivery','reload','generation'])void test(`genuine public predecessor Save ${changeAt} ${change} refuses late retirement or further writes`,async()=>{
  const f=saveFixture({changeAt,change}),inputs=copy([...f.s.buffers]);await assert.rejects(f.c.save(f.target()),/DELIVERY_SUPERSEDED/);
  assert.deepEqual(copy([...f.s.buffers]),inputs);assert.deepEqual(f.calls.map(call=>call.command.action),changeAt==='apply'||changeAt==='read1'?['apply']:['apply','save']);
  assert.equal(f.reads,{apply:0,read1:1,save:1,read2:2}[changeAt]);
 });
-for(const failAt of ['apply','read1','save','read2'])void test('actual Save unknown '+failAt+' retains input without retry',async()=>{
+for(const failAt of ['apply','read1','save','read2'])void test('genuine public predecessor Save unknown '+failAt+' retains input without retry',async()=>{
  const f=saveFixture({failAt}),inputs=copy([...f.s.buffers]);await assert.rejects(f.c.save(f.target()),/RESULT_UNKNOWN/);assert.deepEqual(copy([...f.s.buffers]),inputs);
  assert.deepEqual(f.calls.map(call=>call.command.action),failAt==='apply'||failAt==='read1'?['apply']:['apply','save']);
 });
-for(const denied of ['missing-target','pending','save-permission','edit-permission'])void test('actual Save '+denied+' rejects before any write',async()=>{
+for(const denied of ['missing-target','pending','save-permission','edit-permission'])void test('genuine public predecessor Save '+denied+' rejects before any write',async()=>{
  const f=saveFixture(),inputs=copy([...f.s.buffers]);if(denied==='pending')f.target().flow.pendingId='pending';if(denied==='save-permission')f.c.data.permissions.save=false;if(denied==='edit-permission')f.c.data.permissions.edit=false;
  await assert.rejects(f.c.save(denied==='missing-target'?null:f.target()),/FORBIDDEN/);assert.equal(f.calls.length,0);assert.equal(f.reads,0);assert.deepEqual(copy([...f.s.buffers]),inputs);
 });
-void test('actual Save permits save-only for clean local input and rejects mismatched saved readback',async()=>{
+void test('genuine public predecessor Save permits save-only for clean local input and rejects mismatched saved readback',async()=>{
  const clean=saveFixture();clean.s.buffers.set('a',copy(clean.s.bases.get('a')));clean.c.data.permissions.edit=false;await clean.c.save(clean.target());assert.deepEqual(clean.calls.map(call=>call.command.action),['save']);
  const f=saveFixture({mismatchedReadback:true}),inputs=copy([...f.s.buffers]);await assert.rejects(f.c.save(f.target()),/SAVE_RECHECK_REQUIRED/);assert.deepEqual(copy([...f.s.buffers]),inputs);assert.equal(f.calls.length,2);
 });
 
-void test('current page-layout departure dispatch and legacy barriers stay distinct',()=>{const f=fixture(current);let calls=0;f.c.pageDraftMode=true;f.c.window.RoutineFqcPage={canLeave:()=>{calls++;return false;}};assert.equal(f.c.canLeave(),false);assert.equal(calls,1);f.c.window.RoutineFqcPage.canLeave=()=>true;assert.equal(f.c.canLeave(),true);});
-void test('reintroducing the historical unload prompt is rejected',()=>{assert.throws(()=>assertPreservedContract(current+'\n'+functions(previous).unload+';'),/unsent Routine RAM/);});
-void test('actual Save rejects approved history before read or write and preserves input',async()=>{const f=saveFixture(),before=copy([...f.s.buffers]);f.c.approvedHistoryView={blocked:true};await assert.rejects(f.c.save(f.target()),/APPROVED_HISTORY_READ_ONLY/);assert.equal(f.calls.length,0);assert.equal(f.reads,0);assert.deepEqual(copy([...f.s.buffers]),before);});
+// The successor deliberately delegates silent RAM departure and whole-page
+// ownership. Do not mint a new reviewedSaveSHA or run restored proof bytes.
+void test('current Routine source exactly attests and restores the genuine public predecessor without changing its Save pin',()=>{
+ pageProof.assertCurrent(successor,file);
+ assert.deepEqual(pageProof.projectFile(successor,file),legacyBytes);
+ const code=functions(lf(successor.toString()),{requireUnload:false});
+ assert.equal(code.unload,undefined,'the reviewed page-owner successor has no document-local native prompt listener');
+ assert.notEqual(code.save,functions(lf(legacy)).save,'current atomic Save is independently exercised, not falsely described as unchanged');
+ for(const [from,to]of [["assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();",''],["moduleAction:'save-local-v1'","moduleAction:'unknown'"],["if(!current())throw Error('DELIVERY_SUPERSEDED');",'']]){
+  assert.ok(successor.toString().includes(from));assert.throws(()=>pageProof.assertCurrent(Buffer.from(successor.toString().replace(from,to)),file));
+ }
+});
+void test('current Routine LF and CRLF checkouts attest to the same untouched raw Git source and genuine predecessor',()=>{
+ const crlf=Buffer.from(lf(committedSuccessor.toString()).replace(/\n/g,'\r\n'));
+ assert.equal(committedSuccessor.includes(Buffer.from('\r\n')),false,'the actual pinned Git blob uses LF');
+ assert.notEqual(crlf.length,committedSuccessor.length,'reproduce Windows checkout byte growth');
+ assert.throws(()=>pageProof.assertCurrent(crlf,file),/successor length differs/,'raw source proof remains strict');
+ const rawBefore=Buffer.from(committedSuccessor),checkoutBefore=Buffer.from(crlf);
+ for(const checkout of [committedSuccessor,crlf]){
+  const attested=assertCurrentCheckout(checkout,committedSuccessor);
+  assert.deepEqual(attested,committedSuccessor);assert.notEqual(attested,committedSuccessor,'no shared mutable evidence buffer');
+  assert.deepEqual(pageProof.projectFile(attested,file),legacyBytes);
+ }
+ assert.deepEqual(committedSuccessor,rawBefore);assert.deepEqual(crlf,checkoutBefore);
+});
+void test('current Routine EOL admission rejects content drift and cannot bless a substituted Git source',()=>{
+ const raw=committedSuccessor.toString(),guard='assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();';assert.ok(raw.includes(guard));
+ const altered=[raw+'\n// unrelated drift',raw.slice(0,-1),raw.replace(guard,''),raw.replace(/\n/,'\r')];
+ for(const changed of altered){
+  assert.notEqual(changed,raw);
+  for(const checkout of [changed,changed.replace(/\r?\n/g,'\r\n')])assert.throws(()=>assertCurrentCheckout(Buffer.from(checkout),committedSuccessor),/beyond checkout EOL/);
+  assert.throws(()=>assertCurrentCheckout(Buffer.from(changed),Buffer.from(changed)),/successor (length differs|differs)/,'matching forged inputs do not replace the pinned source');
+ }
+ const crlf=Buffer.from(raw.replace(/\n/g,'\r\n'));
+ assert.throws(()=>assertCurrentCheckout(crlf,crlf),/successor length differs/,'a CRLF Git blob is not the attested LF blob');
+});
+void test('current full Routine legacy-layout navigation retains dirty, busy, retry and dialog fences',()=>{
+ const f=fullFixture(),navigation=f.win.RoutineFQCUI.navigation,d=f.api.getData().control.documents[0];
+ assert.equal(navigation.canLeave(),true);f.api.buffer(d).title='Local unsent';assert.equal(navigation.canLeave(),false);
+ f.api.buffer(d).title=d.flow.working.title;assert.equal(navigation.canLeave(),true);
+ for(const key of ['busy','retry','dialogOpen']){f.api.s[key]=true;assert.equal(navigation.canLeave(),false);f.api.s[key]=false;}
+ assert.equal(navigation.canLeave(),true);assert.equal(f.posts(),0);
+});
+void test('current full Routine pagehide suspends an unknown original receipt without replay or clearing it',async()=>{
+ const f=fullFixture();f.setMode('lost');await assert.rejects(f.api.postOwned(f.draft()));
+ const retained=[...f.store.map],calls=f.calls.length;assert.equal(f.win.RoutineFQCUI.navigation.canLeave(),false);
+ f.event('pagehide');assert.deepEqual([...f.store.map],retained);assert.equal(f.calls.length,calls);assert.equal(f.posts(),1);
+});
+
+void test('current full Routine navigation refuses departure while its actual mutation is in flight',async()=>{
+ const f=fullFixture(),navigation=f.win.RoutineFQCUI.navigation;
+ assert.equal(navigation.canLeave(),true);let observed=false;
+ f.afterPost(()=>{observed=true;const retry=f.api.s.retry;f.api.s.retry=null;try{assert.equal(navigation.canLeave(),false,'actual in-flight guard independently fences departure');}finally{f.api.s.retry=retry;}});
+ await f.api.post(f.draft());assert.equal(observed,true);assert.equal(f.posts(),1);
+ assert.equal(navigation.canLeave(),false,'ACK alone does not settle the original durable marker');
+ await f.api.read();assert.equal(navigation.canLeave(),true);assert.equal(f.store.map.size,0);
+});

@@ -28,6 +28,11 @@ function changeEditorSelection(line,category){
     if(editorSelectionReady())ensureCategoryEditor();
     render();
   };
+  if(window.ProcessAuthoringV3?.enabled?.()&&window.ProcessAuthoringV3.changeCanvasView){
+    const lineSelect=document.querySelector('#editor-line-select'),categorySelect=document.querySelector('#category-select');
+    if(lineSelect)lineSelect.value=state.editorLine;if(categorySelect)categorySelect.value=state.category;
+    return window.ProcessAuthoringV3.changeCanvasView({kind:line===state.editorLine?'filter':'line',key:'editor-selection:'+JSON.stringify([line,nextCategory]),label:line+' / '+nextCategory,run});
+  }
   if(window.ProcessDeliveryNavigation?.guardAction){
     // Native select already changed its visible value. Keep the current source
     // selected until the one guarded intent actually runs; Stay does not redraw.
@@ -38,6 +43,16 @@ function changeEditorSelection(line,category){
   return run();
 }
 function editorSelectionPath(stageCount=0,operationCount=0){
+  // Count the same current projection as the visible V2 cards. A successful
+  // Save may advance projectionBase while the original editor copy stays held.
+  const canvas=globalThis.ProcessCanvasLocal,authoring=globalThis.ProcessAuthoringV3,
+    current=state.editorByCategory?.[editorKey()];
+  if(authoring?.enabled?.()&&globalThis.ProcessEditorV2?.workspace&&typeof canvas?.project==='function'&&current){
+    const allowed=new Set(lineFor(state.editorLine).stages.map(stage=>stage.code)),
+      visible=categoryStageCodes(state.category).filter(code=>allowed.has(code)),
+      workspace=JSON.stringify([state.category,state.editorLine]);
+    operationCount=visible.reduce((total,stage)=>total+canvas.project(workspace,stage,current[stage]||[]).length,0);
+  }
   const allowed=editorLines(),categories=editorCategories(),vi=document.documentElement.lang==='vi',h=escapeHtml;
   return `<div class="editor-path editor-line-first" data-i18n-skip="true"><div class="field"><label for="editor-line-select">1　${vi?'Chọn chuyền sản phẩm':'選擇產品線別'}</label><select id="editor-line-select" ${allowed.length?'':'disabled'}>${allowed.length?allowed.map(line=>`<option value="${h(line.code)}" ${line.code===state.editorLine?'selected':''}>${h(line.code)} · ${h(line.name)}</option>`).join(''):`<option value="">${vi?'Không có chuyền được phép':'沒有可用線別'}</option>`}</select></div><span aria-hidden="true">→</span><div class="field"><label for="category-select">2　${vi?'Chọn nhóm sản phẩm':'選擇產品類型'}</label><select id="category-select" ${categories.length?'':'disabled'}>${categories.length?categories.map(category=>`<option value="${h(category)}" ${category===state.category?'selected':''}>${h(category)}</option>`).join(''):`<option value="">${vi?'Chuyền này chưa có nhóm sản phẩm':'此線別尚無產品類型'}</option>`}</select></div><span aria-hidden="true">→</span><div class="path-result"><small>3　${vi?'Quy trình công đoạn':'工段流程'}</small><b>${stageCount} ${vi?'công đoạn':'個工段'} · ${operationCount} ${vi?'bước':'個流程'}</b></div></div>`;
 }

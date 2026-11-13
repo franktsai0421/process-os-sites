@@ -5,6 +5,7 @@ import path from 'node:path';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import vm from 'node:vm';
+import {policySourceLocation} from './helpers/native-worker-source.mjs';
 import {DatabaseSync} from 'node:sqlite';
 import {webcrypto, randomBytes, createHash} from 'node:crypto';
 
@@ -65,9 +66,9 @@ function productionLoader(env) {
   const context = vm.createContext({Request, Response, Headers, ReadableStream, URL, URLSearchParams, TextEncoder, TextDecoder,
     crypto: webcrypto, Date, atob, btoa, structuredClone, console});
   function load(relative) {
-    const filename = path.resolve(root, relative);
-    if (cache.has(filename)) return cache.get(filename).exports;
-    const mod = {exports: {}}; cache.set(filename, mod);
+    const {filename, moduleKey} = policySourceLocation(path.resolve(root, relative));
+    if (cache.has(moduleKey)) return cache.get(moduleKey).exports;
+    const mod = {exports: {}}; cache.set(moduleKey, mod);
     if (!compiled.has(filename)) compiled.set(filename, ts.transpileModule(readFileSync(filename, 'utf8'), {
       compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true, allowJs: true},
     }).outputText);
@@ -77,7 +78,7 @@ function productionLoader(env) {
       if (id.startsWith('node:')) return require(id);
       const target = id.startsWith('@/') ? path.resolve(root, id.slice(2)) : path.resolve(path.dirname(filename), id);
       if (target.endsWith('.json')) return JSON.parse(readFileSync(target, 'utf8'));
-      return load(/\.(ts|mjs|js)$/.test(target) ? target : target + '.ts');
+      return load(policySourceLocation(target).moduleKey);
     });
     return mod.exports;
   }

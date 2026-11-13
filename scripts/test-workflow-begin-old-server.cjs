@@ -23,8 +23,10 @@ const files=['app/api/ipqc-c/workflow/route.ts','lib/versioned-shared-workflow.t
   assert.throws(()=>withoutDurableBegin(altered,file),/differs from pinned bytes/);
   const reviewedCatalogBytes=file==='lib/versioned-shared-workflow.ts'?require('node:child_process').execFileSync('git',['show','f0ab66fc27b7c9615c42a28fcc40a4864fb3a047:'+file],{cwd:root}):bytes;
   if(file==='lib/versioned-shared-workflow.ts'){
+   const page=require('./account-page-source-contract.cjs'),published=page.projectFile(bytes,file);
    withoutDurableBegin(reviewedCatalogBytes,file);
-   for(const [before,after]of [["['master:AB','master:C','master:PROCESS']","['master:AB','master:C','bom']"],["'master:C','master:PROCESS'].includes(adapter.scope)","'master:C','bom'].includes(adapter.scope)"]]){const unsafe=Buffer.from(bytes.toString().replace(before,after));assert.notDeepEqual(unsafe,bytes);assert.throws(()=>withoutDurableBegin(unsafe,file),/differs from pinned bytes/);}
+   for(const [before,after]of [["['master:AB','master:C','master:PROCESS']","['master:AB','master:C','bom']"],["'master:C','master:PROCESS'].includes(adapter.scope)","'master:C','bom'].includes(adapter.scope)"]]){const unsafe=Buffer.from(published.toString().replace(before,after));assert.notDeepEqual(unsafe,published);assert.throws(()=>withoutDurableBegin(unsafe,file),/differs from pinned bytes/);}
+   const extraScope=Buffer.from(bytes.toString().replace("'master:AB.catalog','master:C.catalog','master:LINES'","'master:AB.catalog','master:C.catalog','master:LINES','other'"));assert.notDeepEqual(extraScope,bytes);assert.throws(()=>withoutDurableBegin(extraScope,file),/differs from pinned bytes/);
   }
   if(file==='lib/versioned-shared-workflow.ts')for(const [before,after]of [
    ["['master:AB','master:C']","['master:AB','master:PROCESS']"],

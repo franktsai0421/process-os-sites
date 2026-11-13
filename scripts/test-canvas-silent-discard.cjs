@@ -28,9 +28,10 @@ const {setup}=require('./test-canvas-unknown-recovery.cjs');
   let held=null,abandoned=false;
   n.context.ProcessDeliveryNavigation={canUnloadWithoutPrompt(){if(abandoned)return true;try{held=n.local.lockForDeparture();n.local.discardUnsentForDeparture(n.context.ProcessAuthoringV3.flow(),held);abandoned=true;return true;}catch{held?.release();held=null;return false;}}};
   let prevented=false;n.emit('beforeunload',{preventDefault(){prevented=true;}});
-  assert.equal(prevented,quota,'native warning is suppressed only after durable cleanup');
-  if(quota){assert.deepEqual([...n.store],beforeNative);assert.equal(n.local.dirty(),true);n.context.localStorage.setItem=originalSet;}
-  else {n.emit('pagehide');if(unknown){assert.deepEqual(n.record(),anchorBefore);assert.deepEqual(n.isolated().payload.entries,n.isolated().sent.entries);assert.equal(n.unknown().unknown,true);}else assert.equal(Object.keys(n.record().payload.entries).length,0);
+  const receiptCleanupBlocked=quota&&unknown;
+  assert.equal(prevented,receiptCleanupBlocked,'only required durable sent-envelope cleanup may block; unsent RAM input never needs storage');
+  if(receiptCleanupBlocked){assert.deepEqual([...n.store],beforeNative);assert.equal(n.local.dirty(),true);n.context.localStorage.setItem=originalSet;}
+  else {n.context.localStorage.setItem=originalSet;n.emit('pagehide');if(unknown){assert.deepEqual(n.record(),anchorBefore);assert.deepEqual(n.isolated().payload.entries,n.isolated().sent.entries);assert.equal(n.unknown().unknown,true);}else{assert.deepEqual(n.record(),{});assert.equal(n.store.size,0,'no unsent recovery envelope');}
    held?.release();n.emit('pageshow',{persisted:true});await n.local.recoveryReady();
    const restored=n.local.project(n.w,'A-CUT',n.model().working.workspaces[0].stages['A-CUT'])[0];assert.equal(restored.name,undefined,'BFCache cannot resurrect abandoned native input');assert.equal(restored.x,unknown?500:100);
   }

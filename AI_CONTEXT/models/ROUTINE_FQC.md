@@ -4,6 +4,10 @@
 
 `scripts/prepare-routine-fqc-page.cjs` 只接受 stdin、輸出候選 JSON，不存取 DB／網路；保留既有 IDs／歷史／收據，拒絕待審資料。本任務未執行正式資料轉換、migration 或部署。生成仍遵守正常入口／明確 Update 與既有權限，無閒置輪詢。需求及驗證界線見[單一整合追蹤](../../docs/acceptance/fqc-iqc-integration-20261112/README.md)與[現行規格](../../docs/specs/current/ROUTINE_FQC.md)。
 
+## 2026-11-10 — Local permission/page composition
+
+整頁候選從已知 #102 head 選取，使用獨立 routine-fqc:page owner、固定 saved/case、核准歷史與原照片結果查詢。版本平台與原頁指同一整頁案件；generic shared-state 不可覆蓋採用頁，原生成時機與其他未建置入口不擴張。 尚未啟用真資料或宣稱原生／實站驗收。[來源與驗證界線](../ACCOUNT_PERMISSION_INTEGRATION_LOCAL.md)。
+
 ## 2026-11-09 — Explicit entry and Update generation
 
 Normal entry and the normal page's 更新 / Cập nhật button perform state GET, eligible generate POST, then state GET. Fresh view/edit permission, enabled state and start date gate generation. No idle, focus or fixed-second scheduler remains. History, review, previews and denied-read recovery are read-only. Dirty document buffers/bases are preserved; an unresolved original write, including receipt 404, never authorizes resend. View/identity/epoch/delivery ownership fences both successful and rejected responses. Backend, persistent model and schema are unchanged. [Current behavior and limits](../../docs/acceptance/routine-fqc-explicit-generation-20261109.md).

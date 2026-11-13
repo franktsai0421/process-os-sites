@@ -8,9 +8,9 @@ import {assertProcessScriptBundles,assertServedProcessScriptBundles,expectedProc
 const read=name=>fs.readFileSync('public/process/'+name,'utf8');
 const html=combineProcessStyles(read('index.html'),read).html,result=combineProcessScripts(html,read);
 const copy=()=>result.assets.map(asset=>({...asset,sources:[...asset.sources]}));
-void test('reviewed main50 plus exactly two named quality modules produces the independently ordered current bundles',()=>{
+void test('reviewed main50 plus seven named quality and PROCESS modules produces the independently ordered current bundles',()=>{
  assert.equal(processBundleBaselineCommit,'9fbba823090f03da8385c8d92f5e59293d19d2f1');
- assert.deepEqual(reviewedProcessBundleAdditions,['routine-page-approved-history.js','routine-fqc-page.js']);
+ assert.deepEqual(reviewedProcessBundleAdditions,['canvas-approved-history.js','page-draft-merge.js','master-page-transfer.js','master-page-approved-history.js','master-page-editor.js','routine-page-approved-history.js','routine-fqc-page.js']);
  assertProcessScriptBundles(result.assets,read);
  const names=[...html.matchAll(/<script data-process-src="([^"]+)"><\/script>/g)].map(match=>match[1].split('?')[0]);
  for(const group of expectedProcessBundleGroups){let last=-1;for(const name of group){assert.equal(names.filter(n=>n===name).length,1);const index=names.indexOf(name);assert(index>last);last=index;}}

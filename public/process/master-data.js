@@ -311,6 +311,13 @@
   dataView = function () {
     return `<section class="page"><div class="tabs master-tabs"><button class="tab master-tab ${state.masterSection !== 'lines' && state.masterScope === 'AB' ? 'active' : ''}" data-master-scope="AB">AB 產線與類別</button><button class="tab master-tab ${state.masterSection !== 'lines' && state.masterScope === 'C' ? 'active' : ''}" data-master-scope="C">C 產線與類別</button><button class="tab master-tab" data-tab="bom">BOM 資料</button><button class="tab master-tab ${state.masterSection === 'lines' ? 'active' : ''}" data-tab="line-admin">線別與工段管理</button><button class="tab master-tab" data-tab="process-master">流程資料</button><button class="tab master-tab" data-tab="users">使用者與權限</button></div><div id="data-content">${projected?'':masterView()}</div></section>`;
   };
+  function approvedLinesOnly(content) {
+    const sync=window.ProcessSync,d=sync?.destination,catalog=sync?.catalog;
+    if(sync?.protected!==true||sync.deliveryProjection!==true||sync.requiresReload||sync.expired||!sync.identity?.id||sync.identity.id!==currentUser?.id||currentUser?.enabled===false||currentUser?.deletedAt||currentUser?.cells?.['lines.view']!==true||d?.view!=='data'||d.dataTab!=='line-admin'||d.module!=='lines'||d.key!=='data:line-admin'||catalog?.format!=='PROCESS_RUNTIME_CATALOG_V1'||!['AB','C'].every(scope=>catalog.loadedScopes?.includes(scope))||!Array.isArray(catalog.routing?.lines))throw Error('LINES_VIEW_RELOAD_REQUIRED');
+    const vi=(document.documentElement.lang||'').toLowerCase().startsWith('vi'),rows=catalog.routing.lines,t=(zh,vn)=>vi?vn:zh;
+    if(rows.some(line=>!line||typeof line.code!=='string'||!Array.isArray(line.stages)||line.stages.some(stage=>!stage||typeof stage.code!=='string')))throw Error('LINES_VIEW_RELOAD_REQUIRED');
+    content.innerHTML=`<section class="panel" data-lines-readonly data-i18n-skip="true"><h3>${t('線別與工段管理','Chuyền và công đoạn')}</h3><p role="status">${t('目前僅查看已核准的線別與工段；此畫面不修改或保存資料。','Chỉ xem chuyền và công đoạn đã duyệt; màn hình này không sửa hoặc lưu dữ liệu.')}</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px">${rows.map(line=>`<article class="panel" style="min-width:0;overflow-wrap:anywhere"><h4>${safe(line.code)} · ${safe(line.name||line.code)}</h4>${line.stages.length?`<ol>${line.stages.map(stage=>`<li>${safe(stage.code)} · ${safe(stage.name||stage.code)}</li>`).join('')}</ol>`:`<p>${t('尚無已核准工段','Chưa có công đoạn đã duyệt')}</p>`}</article>`).join('')||`<p>${t('尚無已核准線別','Chưa có chuyền đã duyệt')}</p>`}</div></section>`;
+  }
   function selectDataTab(tab, push = false) {
     if (!['AB','C','bom','line-admin','process-master','users','web-feedback'].includes(tab)) tab='AB';
     state.dataTab=tab;
@@ -318,10 +325,16 @@
     if (tab==='AB'||tab==='C') {if(state.masterScope!==tab){state.masterCategory='全部';state.masterSearch='';}state.masterScope=tab;}
     const content=document.querySelector('#data-content');
     if (!content) return;
+    if(!['AB','C','line-admin'].includes(tab))window.ProcessMasterPages?.leave();
+    if(['AB','C','line-admin'].includes(tab)&&control.pageDraftLayout==='page-v1'){
+      const url=new URL(location.href);
+      if(push&&url.searchParams.get('dataTab')!==tab){url.searchParams.set('dataTab',tab);history.pushState({...history.state,dataTab:tab},'',url);}
+      content.dataset.activeTab=tab;window.ProcessMasterPages.mount(content,{page:tab==='line-admin'?'LINES':tab});bindTabButtons();return;
+    }
     if(tab==='line-admin'){
       const cells=currentUser?.cells,visible=scope=>!cells||cells[(scope==='C'?'c':'ab')+'.view']===true;
       if(!visible(state.masterScope))state.masterScope=visible('AB')?'AB':'C';
-      if(!visible(state.masterScope)){content.dataset.activeTab=tab;dataError=null;dataReady=Promise.resolve();content.innerHTML=`<section class="panel" data-line-permission-notice role="status"><h3>${document.documentElement.lang==='vi'?'Chuyền và công đoạn':'線別與工段管理'}</h3><p>${document.documentElement.lang==='vi'?'Đây là lối vào bản nháp chung AB/C. Tài khoản cần quyền Xem AB hoặc C; lưu sẽ áp dụng cho toàn bộ mô-đun. Liên hệ quản trị viên để cấp quyền.':'這是 AB／C 共用草稿的管理入口。此帳號尚缺 AB 或 C 查看權限；保存會涵蓋所屬模組整份草稿。請由管理者調整對應權限。'}</p></section>`;bindTabButtons();return;}
+      if(!visible(state.masterScope)){content.dataset.activeTab=tab;dataError=null;dataReady=Promise.resolve();try{approvedLinesOnly(content);}catch(error){dataError=error;content.innerHTML=`<section class="panel" data-line-permission-notice role="alert"><h3>${document.documentElement.lang==='vi'?'Chuyền và công đoạn':'線別與工段管理'}</h3><p>${document.documentElement.lang==='vi'?'Chưa xác minh được dữ liệu đã duyệt; hãy tải lại để kiểm tra.':'尚無法核對已核准資料；請重新載入確認。'}</p></section>`;}bindTabButtons();return;}
     }
     if(tab==='web-feedback'){
       content.dataset.activeTab=tab;
@@ -1132,9 +1145,9 @@
   const closeDepartureDialogs=()=>{for(const dialog of departureDialogs()){dialog.close();dialog.remove();}};
   window.MasterDataWorkflow = {
     control: () => control,
-    canLeave:()=>!shared.busy()&&!window.MasterAdminUI?.departureBusy?.(),
+    canLeave:()=>!shared.busy()&&!window.ProcessMasterPages?.busy()&&!window.MasterAdminUI?.departureBusy?.(),
     navigation:{
-      get departure(){return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({
+      get departure(){if(control.pageDraftLayout==='page-v1'&&['AB','C','line-admin'].includes(state.dataTab))return window.ProcessMasterPages?.departure();return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({
         root:()=>document.querySelector('#data-content'),flow:()=>shared.flow(departureScope()),ownsRuntimeLocal:()=>true,
         sharedOwned:()=>false,
         context:()=>[departureScope(),shared.flow(departureScope())?.generation,deliveryGeneration,shared.permissions(departureScope())?.save,shared.permissions(departureScope())?.edit],
@@ -1160,31 +1173,20 @@
     },
     async loadScope(scope){const generation=deliveryGeneration,owner=window.ProcessSync?.identity,result=await shared.load(scope);if(ownsDelivery(generation)&&owner===window.ProcessSync?.identity)sharedLoaded.add(scope);return result;},
     resetProjection(){
-      deliveryGeneration++;sharedPoll.cancel();shared.resetReads();sharedLoaded.clear();sharedLoading.clear();dataReady=Promise.resolve();dataError=null;
+      window.ProcessMasterPages?.reset();
+      deliveryGeneration++;shared.resetReads();sharedLoaded.clear();sharedLoading.clear();dataReady=Promise.resolve();dataError=null;
       abProducts=[];seed.AB={name:'AB 產線與類別',products:data.products.filter(product=>['A','B'].includes(routeLine(product))).map(product=>({...clone(product),unit:product.unit||'待補',line:routeLine(product),stages:routeStages(product)})),lines:routing.lines.filter(line=>['A','B'].includes(line.code)).map(clone)};
       seed.C={name:'C 產線與類別',products:clone(window.LINE_C_MASTER?.products||[]),lines:[{code:'C',name:'零件加工線',stages:clone(window.LINE_C_MASTER?.stages||[])}]};
       const incoming=readStore(STORAGE,null)||{active:{},versions:[]};
       for(const key of Object.keys(control))delete control[key];Object.assign(control,incoming);
-      state.masterReviewId=null;state.masterValidationErrors=[];applyActive();pollMaster();
+      state.masterReviewId=null;state.masterValidationErrors=[];applyActive();
     },
     persist,
     record,
     applyActive,
     shared,
   };
-  const sharedPoll=window.createForegroundPoll();
-  function pollMaster(){const pollScheduleOwner=sharedPoll.capture();const generation=deliveryGeneration;sharedPoll.schedule(async()=>{
-    if(!ownsDelivery(generation)||!sharedPoll.isCurrent(pollScheduleOwner))return;
-    try{if(document.visibilityState!=='hidden'&&!shared.busy()&&sharedLoaded.size){
-      const editing=document.querySelector('dialog[open],.shared-restore-overlay')||document.activeElement?.matches('input,textarea,select');
-      if(!editing&&(document.querySelector('.master-organized,.process-master-version')||state.view==='approval'&&state.approvalTab==='master')){let changed=false;
-        const scopes=state.view==='approval'?[...sharedLoaded]:[document.querySelector('.process-master-version')?'PROCESS':state.masterScope];
-        for(const scope of scopes){if(!sharedLoaded.has(scope)||!shared.client(scope).canPoll('state'))continue;const result=await shared.load(scope);if(!ownsDelivery(generation)||!sharedPoll.isCurrent(pollScheduleOwner))return;changed ||= !result.unchanged||result.permissionsChanged;}
-        if(changed){applyActive();render();}
-      }
-    }}catch(error){if(!ownsDelivery(generation)||!sharedPoll.isCurrent(pollScheduleOwner))return;const panel=document.querySelector('#master-shared-status');if(panel)panel.textContent=displayDraftError(error);}finally{if(ownsDelivery(generation)&&sharedPoll.isCurrent(pollScheduleOwner))pollMaster();}
-  });}
-  pollMaster();
+  // Read on explicit entry and workflow actions; no timed draft sync.
   applyActive();
   window.addEventListener('process-shared-state-updated', () => {
     platformUsers = readStore('platformUsers', platformUsers);
@@ -1270,5 +1272,5 @@
 
     }
   };
-  window.addEventListener('process-language-change',()=>{if(state.view==='approval'&&!document.querySelector('dialog[open]')){const x=window.scrollX,y=window.scrollY;render();window.scrollTo(x,y);}});
+  window.addEventListener('process-language-change',()=>{if(state.view==='data'&&state.dataTab==='line-admin'&&document.querySelector('[data-lines-readonly]'))selectDataTab('line-admin');if(state.view==='approval'&&!document.querySelector('dialog[open]')){const x=window.scrollX,y=window.scrollY;render();window.scrollTo(x,y);}});
 })();

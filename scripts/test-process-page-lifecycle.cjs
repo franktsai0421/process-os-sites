@@ -1,0 +1,43 @@
+/* oxlint-disable typescript/no-require-imports -- Actual handlers, memory SQLite/Map R2 only. */
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),ts=require('typescript'),{randomUUID}=require('node:crypto');
+const fixture=require('./test-master-page-runtime.cjs');
+const copy=value=>JSON.parse(JSON.stringify(value)),results=[];
+const app=fs.readFileSync('public/process/app.js','utf8'),ast=ts.createSourceFile('app.js',app,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);
+const categorySource=ast.statements.find(node=>ts.isFunctionDeclaration(node)&&node.name?.text==='categoryStageCodes').getText(ast);
+function visible(catalog,line,category,defaults=catalog.categoryGroups){
+ const host={ACTIVE_MASTER_CATEGORIES:defaults},box={window:host,state:{editorLine:line,category},data:{products:catalog.products},routing:{lines:catalog.lines},routeFor:code=>catalog.products.find(row=>row.code===code)};
+ vm.createContext(box);vm.runInContext(fs.readFileSync('public/process/master-admin-ui.js','utf8'),box);vm.runInContext(categorySource,box);return copy(box.categoryStageCodes());
+}
+async function lifecycle(record,{page,line,category,stages}){
+ const f=await fixture(record),mode=(record?'records':'inline')+' '+page+' '+category;
+ try{
+  const initial=copy(f.root),custom={id:'source-custom',catalogKey:'shared-custom',name:'Synthetic custom',editorType:'custom',mode:'machine',people:2,machineIds:['source-machine'],equipment:[{id:'source-equipment'}],mediaItems:[]};
+  initial.active.PROCESS['A-1'].push(custom);initial.versions.find(row=>row.scope==='PROCESS').snapshot=copy(initial.active.PROCESS);
+  const oldStage=line+'-1',shown=stages[0],opposite=page==='AB'?'C':'AB';
+  const wid=JSON.stringify([category,line]),content={workspaces:[{id:wid,category,line,stages:{[oldStage]:[{id:'hidden',stageCode:oldStage,name:'Hidden retained',productCodes:[],nextIds:[],editorType:'manual',x:42,y:18}],[shown]:[{id:'visible',stageCode:shown,name:'Visible original',productCodes:[],nextIds:[],editorType:'manual',x:9,y:12}]}}]};
+  const authoring={schemaVersion:1,activeVersionId:'process-approved',versions:[{id:'process-approved',number:1,status:'approved',snapshot:copy(content),revision:0,history:[]}],workflow:f.load('lib/shared-draft.ts').createSharedDraft('process:platform',content,'process-approved','page-process-generation')};
+  await f.install({...f.values,masterDataControl:JSON.stringify(initial),processAuthoringControl:JSON.stringify(authoring),bomOverrides:JSON.stringify({replaceAll:true,data:{'P-G':[]}})});
+  const originalProcess=copy(initial.active.PROCESS),originalC=copy(initial.active[opposite+'.catalog']);let lines=await f.begin('LINES'),catalog=await f.begin(page);
+  const request=async(body,query='')=>{const api=f.load('app/api/process-authoring/workflow/route.ts'),response=await api[body?'POST':'GET'](new Request(f.base+'/api/process-authoring/workflow?caseMetadata=1'+query,{method:body?'POST':'GET',headers:{cookie:f.cookies.writer,origin:f.base,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})}));return{status:response.status,body:await response.json()};};
+  const send=async(page,command,who)=>{const response=await f.send(page,{command},who);assert.equal(response.status,200,JSON.stringify(response.body));return response.body.control;};
+  const approve=async(page,control)=>{control=await send(page,f.command(control,'submit',{expectedRevision:control.workflow.revision,savedId:control.workflow.saved.id,reason:'Synthetic whole-page review'}));return send(page,f.command(control,'approve',{caseId:control.workflow.pendingId,reason:'Synthetic independent approval'}),'reviewer');};
+  lines=await send('LINES',f.save(lines,[{patches:stages.map(code=>({op:'insert',path:[page,'lines',{id:'line-'+line},'stages'],value:{id:'new-'+code,code,name:'New approved '+code}})),guards:[]}]));
+  const beforeStage=await f.readRoot();assert.equal(beforeStage.active.LINES[page].lines[0].stages.length,1);assert.equal(beforeStage.active.PROCESS[shown],undefined);
+  const p={id:'product-G',code:'P-G',name:'Synthetic product',nameVi:'Sản phẩm',category,line,unit:'ea',specification:'Synthetic',stages:[shown],routeMode:'exception'};
+  const denied=await f.send(page,{command:f.save(catalog,[{patches:[{op:'insert',path:['products'],value:p}],guards:[]}])});assert.equal(denied.status,422);assert.equal(denied.body.error,'PRODUCT_ROUTE_INVALID');assert.deepEqual(await f.readRoot(),beforeStage);
+  results.push({name:mode+' saved but unapproved stage is unavailable to catalog and PROCESS',status:'PASS'});
+  lines=await approve('LINES',lines);const published=await f.readRoot(),types=stages.flatMap(code=>published.active.PROCESS[code]||[]);assert(stages.every(code=>published.active.LINES[page].lines[0].stages.some(stage=>stage.code===code)));assert(stages.every(code=>published.active.PROCESS[code].some(row=>row.catalogKey==='shared-custom')));assert.equal(new Set(types.map(row=>row.id)).size,types.length);assert(types.some(row=>row.editorType==='custom'));assert(types.every(row=>row.id!==custom.id&&!(row.machineIds||[]).length&&!(row.equipment||[]).length));assert.deepEqual(published.active.PROCESS['A-1'],originalProcess['A-1']);assert.deepEqual(published.active[opposite+'.catalog'],originalC);
+  results.push({name:mode+' LINES approval links existing custom types without copying source machines or identities',status:'PASS'});
+  const product={...p,stages:[oldStage]},group={id:'group-G',line,name:category,defaultStages:[...stages]};
+  catalog=await send(page,f.save(catalog,[{patches:[{op:'insert',path:['products'],value:product},{op:'insert',path:['categoryGroups'],value:group}],guards:[{path:['products'],value:[]}]}]));
+  let root=await f.readRoot();assert.equal(root.active[page+'.catalog'].products.length,0);assert.deepEqual(visible(f.load('lib/master-approved-pages.ts').approvedMasterPageCatalog(root,page).content,line,category),[]);
+  catalog=await approve(page,catalog);root=await f.readRoot();const effective=copy(f.load('lib/master-approved-pages.ts').approvedMasterPageCatalog(root,page));
+  assert.equal(effective.sources.catalog.versionId,catalog.activeVersionId);assert.equal(effective.sources.lines.versionId,lines.activeVersionId);assert.deepEqual(effective.content.products[0].stages,[oldStage]);assert.deepEqual(visible(effective.content,line,category),stages);assert.deepEqual(visible(effective.content,line,category,[{...group,defaultStages:[]}]),[]);assert.deepEqual(visible(effective.content,line,category,[{id:group.id,line,name:category}]),[oldStage]);
+  results.push({name:mode+' actual editor uses approved category defaults, explicit empty and legacy fallback rather than one product route',status:'PASS'});
+  const read=await request();assert.equal(read.status,200,JSON.stringify(read.body));const begun=await request({action:'begin-v1',begin:{operationId:randomUUID(),basis:f.load('lib/workflow-begin.ts').beginBasis(read.body.control)}});assert.equal(begun.status,200,JSON.stringify(begun.body));
+  const path=['workspaces',{id:wid},'stages',shown,{id:'visible'},'name'],saved=await request({command:{action:'apply',moduleAction:'save-canvas-v1',operationId:randomUUID(),clientId:'page-lifecycle',sequence:1,generation:begun.body.control.workflow.generation,source:'canvas-v2:'+JSON.stringify([wid,shown]),patches:[{op:'set',path,value:'Visible saved'}],guards:[{path,value:'Visible original'}]}});assert.equal(saved.status,200,JSON.stringify(saved.body));
+  assert.deepEqual(saved.body.control.workflow.saved.content.workspaces[0].stages[oldStage],content.workspaces[0].stages[oldStage]);assert.equal(saved.body.control.workflow.saved.content.workspaces[0].stages[shown][0].name,'Visible saved');assert(saved.body.receipt.savedId);const final=await f.readRoot();assert.deepEqual(final.workflowScopes.LINES,root.workflowScopes.LINES);assert.deepEqual(final.workflowScopes[page+'.catalog'],root.workflowScopes[page+'.catalog']);assert.deepEqual(final.active[opposite+'.catalog'],originalC);
+  results.push({name:mode+' actual current-canvas Save retains hidden stage and independently approved companion owners',status:'PASS'});
+ }finally{f.close();}
+}
+(async()=>{for(const record of [false,true])for(const scenario of [{page:'AB',line:'A',category:'G',stages:['A-2']},{page:'C',line:'C',category:'GIA CONG',stages:['C-2','C-3','C-4','C-5','C-6']}])await lifecycle(record,scenario);console.log(JSON.stringify({status:'PASS',results,scope:'Actual page and authoring handlers; synthetic signed identities, SQLite :memory:/Map R2; no activation or real data'},null,2));})().catch(error=>{console.error(error);process.exitCode=1;});

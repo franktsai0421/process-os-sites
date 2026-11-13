@@ -1,3 +1,52 @@
+# 2026-11-12 — Joint account choices and PROCESS original-page history
+
+The same #108 follow-up adds group comparison with fresh authority/revision checks and a readonly PROCESS approved-source view with fresh return to draft. [Full requirement matrix and acceptance limits](../../docs/acceptance/accounts-process-joint-20261112/requirements.md). Keep old backups; stop new backup/recovery rehearsals; no deletion, live switch, merge or deployment. Earlier verification notes are historical.
+
+# 2026-11-12 — Independent account/process joint verification
+
+Latest isolated #103 fb62c259 + #104 15a5acb4 composition and exact limits: [joint verification](../../docs/acceptance/accounts-process-joint-20261112/README.md). Source heads remain unchanged Draft; no live activation, schema/data/account change, merge or deployment. Older checkpoint statuses below remain historical.
+
+## 2026-11-12 — Shell bundle inventory and completion evidence
+
+The #103 shell has two reviewed groups with 57 sources. Pinned main9fbba823 supplies 50; additions are Canvas history, four master/page helpers, Routine page history and Routine FQC page runtime. VersionDraftUI is an existing source moved ahead of Canvas/page setup, not an eighth addition. The independent test oracle uses these fixed named insertion/move points, never the current builder output as its expected inventory. It independently assembles exact module bytes and the final receipt, checks SHA/cache URL and served status/MIME/bytes, and rejects incomplete or premature completion. Original Routine ordering, private/global boundaries and all compiled-root safety cases remain. Early source tests and original root/retired native cases supplement the unchanged Windows chain; no product, authority, schema or live-data change.
+
+## 2026-11-12 — Pending readiness after Submit
+
+The current Canvas approved-history mount replaces the legacy authoring-version-choice with canvas-approved-version. An empty, uniquely marked usable choice represents current shared content, while approved history is separate and hidden in the current pending view. The lifecycle readiness probe now checks that actual mapping together with the linked pending case/Save/generation, both editor locks, rejected edit capability, no Save/Submit and one usable Withdraw. Four actual-controller/storage/language fixtures retain negative guards, including absent Withdraw and approved-history selection. This fixes a test probe mismatch; POST 200 alone never establishes state verification. The original five-cycle runner, timings/deadlines, POST counts and authoritative checks are unchanged outside the probe. Additional independent compiled CI reuses the #104 Begin/process/FQC runners; original Windows acceptance and combined-PR/live acceptance remain separate.
+
+## 2026-11-12 — Checked silent Canvas handoff
+
+Checked unsent abandonment keeps its existing owner/history fences and defers source recovery repaint until lease release. Successful stage/line/target rendering replaces the source root; cancellation refreshes only the same connected root with unchanged identity object, epoch/delivery, context, generation and view authority. This prevents an internal repaint from invalidating the captured target epoch. Actual controller/Canvas/history/navigation tests cover 36 Chinese/Vietnamese cases across inline and record storage; the existing process-platform CI runs these regressions. Build bundles are content-addressed, so changed authoring bytes produce a new URL independently of unchanged source query tags. Native/latest-head and combined-PR acceptance remain separate. No schema, account, live-data, merge or deployment change; the original UNKNOWN32 request is not replayed.
+
+## 2026-11-11 — Begin receipt ownership and history mount
+
+Durable authoring transports enable the existing access-result guard before their first read. Mounting approved history therefore cannot increment the epoch of an in-flight original Begin receipt. An idle stale authoring transport with no captured evidence cannot acquire a newer owner's Begin marker; captured/invalid evidence and other modules' explicit discovery remain unchanged. Actual history mounting is tested during recovery with identity, epoch, delivery, revocation, newer-denial and malformed-receipt negatives. Recovery remains original-receipt GET-only, with full authorized readback before marker cleanup. Isolated reproduction does not establish the precise module of #103's undiagnosed native timeout; latest native CI remains required.
+
+<!-- Retained #104 source checkpoint; historical, not current joint acceptance. -->
+## 2026-11-11 — Authoring Begin access guard starts before history paint
+
+Durable authoring clients use the existing access-result guard before their first request. Approved-history mount can therefore reuse that guard without changing the epoch of an in-flight original Begin receipt/readback. This fixes the deterministically reproduced late-enable race; it does not bypass superseded identity/delivery, revision ordering, denials, malformed receipts or original marker ownership. Actual history-mount tests require success for a current original receipt and retained UNKNOWN/no-repost under six invalidation variants. Native compiled and combined-PR/staging acceptance remain separate.
+
+## 2026-11-11 — Native Begin inverse checkout boundary
+
+The original browser-source pin is independent of Git history: deterministic embedded baseline bytes retain the same fixed SHA256 and complete reverse byte comparison. Only checkout LF/CRLF equivalence is accepted; semantic mutation, extra suffix and invalid CR negatives remain fail-closed. This test compatibility fix does not change compiled Begin recovery or establish native acceptance. Native step36 remains unresolved until actual CI evidence is available. An additional independent integration-workflow job runs the same compiled Begin scenario after locked install/exact build; the original Windows step remains unchanged. It provides earlier evidence and does not confer broader acceptance.
+
+## 2026-11-11 — Current AB departure test boundary
+
+AB navigation uses the actual RAM-only adapter: sharedDirty/sharedOwned are false, and acknowledged shared writes alone do not prompt. SharedDraftDeparture still tracks exact per-tab ACKs, module Save global cutoffs and owner epochs for callers that need it. Tests execute the current full navigation object, retain those tracker proofs separately, and require local/modal/UNKNOWN state plus zero-request repeated inspection. They do not restore the removed departureOwnShared aggregate. Consolidated synthetic regression checks pass; compiled Begin recovery is still unresolved and native/staging acceptance remains separate.
+
+## 2026-11-11 — Begin receipt ownership after navigation
+
+Only the idle invalidated process-authoring transport stops lazily acquiring a later runtime's Begin marker. Other modules retain their existing explicit stale-delivery marker discovery, including equipment permission renewal. A transport that already captured its original record or invalid evidence keeps its obligation and all owner/receipt checks. This prevents a stale authoring instance from turning successful successor receipt cleanup into a permanent account UNKNOWN. No marker deletion, resend, deadline extension or admission bypass is added. Original receipts still require matching operation and authoritative readback. The reproduced memory case does not establish compiled acceptance: the original Begin browser case still times out, and its concrete module/cause remains unresolved pending bounded failure diagnostics.
+
+## 2026-11-10 — IPQC reference adoption
+
+IPQC source comparison/adoption changes the current form only. Completing the operation enters the current Canvas journal; one explicit Canvas Save persists its reference. Preview/adoption notices in both languages match this flow. Existing unconfirmed operation receipts remain protected.
+
+# 2026-11-10 process integration candidate
+
+#104 now includes scoped Canvas Save, grouped fresh conflicts, silent departure, RAM-only unsent forms, scaffold-aware dirty checks, projected counts and same-page approved history. AB/C catalog and LINES page-owner APIs/UI, approved provenance and separate review policy are included behind existing trusted-data markers; no marker, ACL or real-data cutover was activated. Actual runtime tests cover session/revision/display/UNKNOWN fences. [Complete matrix and remaining blockers](../../docs/acceptance/process-platform-integration-20261110.md). Historical synchronization/recovery requirements below are superseded by current confirmed requirements. No #103 password changes or merge/deployment.
+
 ## 2026-11-04 — 製程畫布原子存取候選（未發布）
 
 `process-authoring-workflow` 識別 `apply/moduleAction: save-canvas-v1`，透過製程專用 `process-canvas-save` 在同一個 workflow 結果及外層 CAS 中完成 guarded Apply + immutable Save。原始 command fingerprint／operation receipt 保留，須同時具 view/edit/save；完整依賴路徑處理新命令，不套用既有 Save／Flow 快路徑。畫布工具列移除 Sync，頂部與全螢幕 Save 共用一次存取入口；欄位合併不削弱刪除整體 guard 或 legacy editor guard。新命令由 canvas durable store 承接，不送進僅能辨識舊 Apply／Save 的 owned inverse ledger；canonical saved readback 更新 ledger，unknown 仍由原 durable reservation 阻擋。
@@ -188,3 +237,52 @@ Save, submission, review and withdrawal wait for verified server persistence. Un
 ## Source audit limits
 
 UI cycle prevention is present; backend direction/cycle completeness and all IPQC advisory cases remain unverified. See PROCESS_WORKFLOW. Older submission validation paragraphs describe issue detection/BOM ownership, not permission to restore content-completeness blockers.
+
+
+## 2026-11-12：#104 靜默導航重用 #103 已完成修正
+
+cb12823 的 Local safety run 43126874931／job130881088426：1–35 通過，第36步實際製程 lifecycle 在第一輪 silent-navigation-stage 等待30秒失敗；Begin、local-layout、local-apply及Save已通過，pageErrors為空。不是已修的 Begin access epoch 競態。來源 controller 在 abandon 租約回傳前 refreshRecovery 重繪 editor，改變 history display epoch，後續既有工段 guard 拒絕目標切換。
+
+選擇性重用 #103 固定 c92c43b46f3a7f35494efdbc5b3147be37f7e9ac 的 process-authoring-v3.js 修正與 canvas-silent-handoff 36案例：先完成 checked handoff／釋放租約，只有取消且來源 owner、identity、epoch、delivery、generation、view 權限及原 DOM root 仍有效才刷新來源；成功切換不重刷已替換的頁。修前4過32失敗，修後36全過，涵蓋中越文、inline/records、取消／換帳號／epoch／delivery／reload／generation／歷史選取，保持零工作流程POST及合成資料列不變。
+
+#104 共用 client 的既有 Begin 修正與21個三種 runtime 收據案例保持原樣。#103 共用 client 的另三處差異為 routine-FQC departure/history 路由，以及只用於 AB/C master Save 的內容等價比較；不屬本次 process-authoring 失敗路徑，留在 #103，沒有整包覆寫。原 UNKNOWN32 未解決、未重送；新差異以已公開 #103 來源與本 PR 固定 predecessor 8eff928e 的26項精確逆向獨立驗證。
+
+製程編輯程式快取標籤更新為20261112-silent-handoff1，兩個既有 fixture 仍逐字要求版本及單次載入。原 Windows lifecycle／30秒／五循環／防額外POST斷言未改，另在較早的獨立原生job執行同一原始 process-draft-lifecycle-browser runner。
+
+集中本機驗證：導航／Begin292、畫布493、後續 lifecycle source184、精確來源127、handoff36案例通過；lint與完整非增量 TypeScript通過。第37／48及45／50 source、51合成檢查通過；16個後段原生入口語法通過但未執行。FQC source17通過；誤用篩選曾令已知原生Worker oracle被額外網路拒絕攔下，原失敗保留，該案例未完成且未重試。tsx四次可選本機IPC也被拒絕，23項 source仍通過，不能稱零嘗試。未在本機重試原生瀏覽器或改executor。依賴為同lockfile既有實體副本，不宣稱fresh npm ci；建置、來源預檢與新HEAD CI各以其獨立回執為準。
+
+維持 Draft；不合併、部署、啟用真資料或變更真人權限。完整20項、#103/#104共同HEAD及實站／實體裝置／效能驗收仍未完成。
+
+
+### 2026-11-12 #104：待審就緒探針對齊當前 Canvas UI（測試修正）
+
+十檔已獲明確公開授權，#104 遠端56e4051／tree f1dc86e 上傳、單一parent及非強制ref回執已確認；原拒絕歷史保留。該head的新獨立原生job130920153852證實Begin及stage／line／top-navigation皆通過（零workflow POST、未存輸入放棄、持久內容不變），但第一輪submit-confirm原30秒等待失敗。POST及GET的200不是完整送審驗收。
+
+查到就緒探針仍要求已被Canvas核准歷史元件移除的authoring-version-choice；既有歷史測試也明確要求此舊selector不存在。四組實際controller、signed handler與隔離SQLite/R2待審畫面重現舊探針false，新UI映射true。只修pendingProcessUIReady，對齊唯一、可見、可用且具有approved-choice標記的canvas-approved-version當前值，並明確要求非歷史模式及歷史展示隱藏。原案件／savedId／generation、pending status、兩種唯讀鎖、禁止修改、零Save/Submit及唯一可用Withdraw全部保留；另加缺少／重複／隱藏／停用／錯誤選擇及真實核准歷史的反例。
+
+相關93項source／合成測試通過，包括四種中越文與inline/records真實controller及原五輪完整伺服器lifecycle。除上述helper外，整份browser runner bytes相同：五循環、90次action、所有等待、POST計數、native advisory、權威資料核對均未改。沒有產品程式、權限或資料模型修改。此候選尚待上傳後原生CI；目前Windows仍跑56e4051，不取消、不重跑、不以新push中斷。先前56批次的「原runner未改」是該批次歷史狀態。完整目標、共同HEAD與實站驗收仍未完成。
+
+
+續作集中CI：既有獨立原生job在原Process runner後，追加原Windows第36步後半完全相同的FQC source／原生lifecycle及多人矩陣runner；重用同一build／瀏覽器，不改原Windows、不刪斷言、不延長25分鐘job上限。已知本機原生Worker限制不重試，完整新增CI結果待遠端新HEAD確認。此增量只有CI與紀錄，產品輸入不變。
+
+
+### 2026-11-12 Windows終態補正：來源inverse反例必須實際變造
+
+56e4051 的 Windows run43138700763／job130920154400 已自然結束：1–30通過，第31步 scripts/entry-performance/source-eol.test.cjs:50 的「Missing expected exception」失敗，32–57未跑；未取消或重跑。導航修正使第六個歷史departure片段不再直接出現在原始HEAD，舊raw.replace成為無效變造，並非產品接受了變造。
+
+已核對並逐blob重用 #103 公開302e7515e8b5f7343352f1b0d5aa6066a4d9409b 的source-eol修正（blob8b4b9c65ef6ee6523eb2e5ce2a9df3fe6c08be72）。只在測試port、真正HEAD admission與既有完整投影之後，變造實際departure inverse輸入；每個反例強制有效，LF/CRLF、六個span的changed/missing/duplicate共36種，必須以原exact-anchor錯誤拒絕，不能由先前HEAD hash拒絕冒充。原歷史inverse JSON、85fa來源與全部完整baseline/hash未改。96項全過；第31步失敗點與後續21個原命令集中預檢全過，全部網路邊界回執零實際嘗試。原helper93項與產品輸入保持不變。
+
+此source-EOL檢查也前置到整合job；原Windows命令與全部原生案例保留。來源修正獨立來自已確認的本輪HEAD與公開302e751，不取用或重送原UNKNOWN32，該狀態仍未解決。後續只在所有舊CI自然結束、核對ref後更新分支；最終新HEAD原生／完整Windows仍須獨立確認，不以前身或本機PASS替代。
+
+
+### 2026-11-12 #104：compiled root bundle來源與回執契約
+
+429d3bf 的 Windows Local safety run43147004029／job130947047036已自然結束：1–38通過，第39步sites-root-entry-native的served script bundles階段actual55／expected50失敗，40–57跳過。前七個root入口／關閉資料API／shell HTML／stylesheet案例已通過；舊數量斷言在抓取JavaScript bundle前就失敗。
+
+固定main9fbba823的兩組bundle合計50個來源；#104只新增page-draft-merge、master-page-transfer、master-page-approved-history、master-page-editor與canvas-approved-history五個IIFE，沒有移除舊來源。master-page-excel原本就在main，未誤算新增。#103固定2d2d79cb的root測試仍為舊50，沒有可直接重用的修正；其其他帳號／例行FQC增量不帶入。原UNKNOWN32／舊62-source候選未取用或重送。
+
+新增test-only獨立oracle：固定main有序50清單加五個具名插入點，與builder輸出的兩組逐項核對，不能從目前輸出反推期望。依已審閱來源清單和各來源原始bytes獨立組合預期內容，核對SHA／cache URL、整份bundle與末端成功回執；compiled root仍驗200、JavaScript MIME、每個served byte與reporter單次／先於shared-client。其他root安全檢查不變，沒有改為單純55常數。
+
+49項本機回歸通過（新oracle、原build及startup source）：遺漏／額外／重複／亂序來源、私有seed與global邊界、錯誤cache／回執identity、改動byte、缺少／提前／false回執、尾端額外程式、served狀態／MIME／內容／EOL漂移都拒絕；LF/CRLF正向與真builder合成55個模組執行通過，兩組各自的途中來源失敗不得產生完成回執或執行後續模組。負向byte比較用等精度Buffer.equals與短錯誤，避免在assert錯誤中展開大型JS內容。
+
+CI提前跑同一原始compiled root與retired-entrypoint runner，重用既有build及瀏覽器；原Windows第39步與25分鐘job上限保留。此批只改測試／CI／紀錄，產品、權限與資料模型不變。guarded build及編譯產物另依本輪精確HEAD回執核對；本機沒有重試受限原生Worker，新HEAD的HTTP／Windows完整結果仍待CI。先前429d3bf的Process90／導航15、FQC160及矩陣60原生合成成功仍是前身證據，不代表本批或測試站／真人／共同HEAD驗收完成。維持Draft，不合併部署。

@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {combineProcessStyles} from '../lib/process-styles-build.mjs';
 import {combineProcessScripts} from '../lib/process-scripts-build.mjs';
-import {assertServedProcessScriptBundles} from './quality-shell-bundle-oracle.mjs';
 import {createRootEntryFixture} from './root-entry-native-fixture.mjs';
+import {assertServedProcessScriptBundles} from './process-shell-bundle-oracle.mjs';
 const origin='https://root-entry.synthetic.invalid',tests=[],report={programCommit:process.env.PROCESS_PROGRAM_COMMIT,realData:false,realCredentials:false,remoteBindings:false,externalNetwork:false};let f,stage='startup',lastRequest;
 async function test(name,run){stage=name;await run();tests.push(name);}
 // These requests intentionally reject before consuming input. Use explicit

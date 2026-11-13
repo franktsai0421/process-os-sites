@@ -50,8 +50,8 @@ function equipment() {
 function routine() {
   const f=fixture();
   f.box.dialog=(_title,body)=>{f.box.confirmations++;f.box.confirmBody=body;return f.pending.promise;};
-  Object.assign(f.box,{historyDisplayEpoch:0,approvedHistoryView:null});
-  f.load(part('routine-fqc.js','  const historyAllowsMutation=','  function retireApprovedHistory(')+part('routine-fqc.js','  async function draft(','  async function save(target = doc()) {'));
+  f.load(part('routine-fqc.js','  let historyDisplayEpoch=','  function retireApprovedHistory('));
+  f.load(part('routine-fqc.js','  async function draft(','  async function save(target = doc()) {'));
   return f;
 }
 for(const [name,make,execute] of [
@@ -72,10 +72,11 @@ for(const [name,make,execute] of [
     assert.equal(cmd.savedId,'saved-original');assert.equal(cmd.expectedRevision,7);assert.equal(cmd.generation,'generation-original');assert.equal(cmd.action,'submit');
     if(name==='routine FQC')assert.equal(f.calls[0].documentId,'document-original');
   });
-  for(const race of ['revision','saved','generation','actor','identity epoch','delivery','revocation'])void test(name+' rejects '+race+' change while confirmation is open',async()=>{
+  for(const race of ['revision','saved','generation','actor','identity epoch','delivery','revocation',...(name==='routine FQC'?['approved history']:[])])void test(name+' rejects '+race+' change while confirmation is open',async()=>{
     const f=make(),running=execute(f),caught=Promise.resolve(running).catch(e=>e);
     assert.equal(f.box.confirmations,1);
     if(race==='revision')f.flow.revision++;
+    if(race==='approved history')f.load('approvedHistoryView={blocked:true};');
     if(race==='saved')f.flow.saved.id='saved-newer';
     if(race==='generation')f.flow.generation='generation-newer';
     if(race==='actor')f.box.window.ProcessSync.identity={id:'other-actor'};
@@ -127,7 +128,7 @@ void test('tooling Submit refuses completed local edits before confirmation, pre
 
 void test('routine FQC approved history cannot dispatch Submit after confirmation',async()=>{
  const f=routine(),running=f.box.confirmSubmission();
- f.box.approvedHistoryView={blocked:true};f.pending.resolve('confirmed');
+ f.load('approvedHistoryView={blocked:true};');f.pending.resolve('confirmed');
  const extra=await running;await assert.rejects(f.box.draft('submit',extra),/APPROVED_HISTORY_READ_ONLY/);
  assert.equal(f.calls.length,0);
 });

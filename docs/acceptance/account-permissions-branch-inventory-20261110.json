@@ -1,0 +1,103 @@
+{
+  "main": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+  "readAt": "2026-11-10",
+  "runtimeSourceComparison": {
+    "cloudTop": "e6abe5d96fb413f884541504e72d71a033514b6f",
+    "mainAncestor": "7f5bb72c4e81995b58b41ac61bcdffe6f62ef08d",
+    "files": 1046,
+    "equal": 1046,
+    "differences": 0
+  },
+  "branches": [
+    {
+      "branch": "cloud/dispatch-write-rights-29102026",
+      "head": "d1b4b0a063adbc70201d35cb978fb5536abcacab",
+      "classification": "Runtime and test source preserved byte-for-byte via cloud layout top -> 7f5bb72c4e81995b58b41ac61bcdffe6f62ef08d -> main; old screenshots/unique historical evidence retained on source branch",
+      "delete": "PENDING_EXACT_BRANCH_CONFIRMATION_AND_VERIFIED_RECOVERY"
+    },
+    {
+      "branch": "cloud/equipment-draft-rights-29102026",
+      "head": "9314dfd6a2f1ea58215382515509a19e83a5d755",
+      "classification": "Runtime and test source preserved byte-for-byte via cloud layout top -> 7f5bb72c4e81995b58b41ac61bcdffe6f62ef08d -> main; old screenshots/unique historical evidence retained on source branch",
+      "delete": "PENDING_EXACT_BRANCH_CONFIRMATION_AND_VERIFIED_RECOVERY"
+    },
+    {
+      "branch": "cloud/fqc-dependencies-29102026",
+      "head": "0e66075a69f848423facc10a8db0caee64f2284c",
+      "classification": "Runtime and test source preserved byte-for-byte via cloud layout top -> 7f5bb72c4e81995b58b41ac61bcdffe6f62ef08d -> main; old screenshots/unique historical evidence retained on source branch",
+      "delete": "PENDING_EXACT_BRANCH_CONFIRMATION_AND_VERIFIED_RECOVERY"
+    },
+    {
+      "branch": "cloud/fqc-draft-rights-29102026",
+      "head": "f81948ecd82d250bb1285e7aa3ed7041c540a660",
+      "classification": "Runtime and test source preserved byte-for-byte via cloud layout top -> 7f5bb72c4e81995b58b41ac61bcdffe6f62ef08d -> main; old screenshots/unique historical evidence retained on source branch",
+      "delete": "PENDING_EXACT_BRANCH_CONFIRMATION_AND_VERIFIED_RECOVERY"
+    },
+    {
+      "branch": "cloud/ipqc-ab-draft-rights-29102026",
+      "head": "385add4bf8bec279c2626b32db01aad1d4666485",
+      "classification": "Runtime and test source preserved byte-for-byte via cloud layout top -> 7f5bb72c4e81995b58b41ac61bcdffe6f62ef08d -> main; old screenshots/unique historical evidence retained on source branch",
+      "delete": "PENDING_EXACT_BRANCH_CONFIRMATION_AND_VERIFIED_RECOVERY"
+    },
+    {
+      "branch": "cloud/ipqc-c-explicit-rights-29102026",
+      "head": "d3c00b526cded5c9d86a7ed23144a591f86e294d",
+      "classification": "Runtime and test source preserved byte-for-byte via cloud layout top -> 7f5bb72c4e81995b58b41ac61bcdffe6f62ef08d -> main; old screenshots/unique historical evidence retained on source branch",
+      "delete": "PENDING_EXACT_BRANCH_CONFIRMATION_AND_VERIFIED_RECOVERY"
+    },
+    {
+      "branch": "cloud/iqc-draft-rights-29102026",
+      "head": "343b2cb9ec513c4e3ad0a94fe81b2c6991b5b999",
+      "classification": "Runtime and test source preserved byte-for-byte via cloud layout top -> 7f5bb72c4e81995b58b41ac61bcdffe6f62ef08d -> main; old screenshots/unique historical evidence retained on source branch",
+      "delete": "PENDING_EXACT_BRANCH_CONFIRMATION_AND_VERIFIED_RECOVERY"
+    },
+    {
+      "branch": "cloud/lines-scope-rights-29102026",
+      "head": "2dddf1028fc67b9cac5e2b1bb8e6717e7584e552",
+      "classification": "Runtime and test source preserved byte-for-byte via cloud layout top -> 7f5bb72c4e81995b58b41ac61bcdffe6f62ef08d -> main; old screenshots/unique historical evidence retained on source branch",
+      "delete": "PENDING_EXACT_BRANCH_CONFIRMATION_AND_VERIFIED_RECOVERY"
+    },
+    {
+      "branch": "cloud/permissions-review-polish-29102026",
+      "head": "4b8c0d2ba5e6642f67eb13725a4c5212f4f5c9e6",
+      "classification": "Runtime and test source preserved byte-for-byte via cloud layout top -> 7f5bb72c4e81995b58b41ac61bcdffe6f62ef08d -> main; old screenshots/unique historical evidence retained on source branch",
+      "delete": "PENDING_EXACT_BRANCH_CONFIRMATION_AND_VERIFIED_RECOVERY"
+    },
+    {
+      "branch": "cloud/permissions-verified-29102026",
+      "head": "384037d21329921ba8f6eb2367a6c39936110e5e",
+      "classification": "Runtime and test source preserved byte-for-byte via cloud layout top -> 7f5bb72c4e81995b58b41ac61bcdffe6f62ef08d -> main; old screenshots/unique historical evidence retained on source branch",
+      "delete": "PENDING_EXACT_BRANCH_CONFIRMATION_AND_VERIFIED_RECOVERY"
+    },
+    {
+      "branch": "cloud/users-permissions-29102026",
+      "head": "ea8d19e55f44162c8468f541ecd82f9acee327b3",
+      "classification": "Runtime and test source preserved byte-for-byte via cloud layout top -> 7f5bb72c4e81995b58b41ac61bcdffe6f62ef08d -> main; old screenshots/unique historical evidence retained on source branch",
+      "delete": "PENDING_EXACT_BRANCH_CONFIRMATION_AND_VERIFIED_RECOVERY"
+    },
+    {
+      "branch": "cloud/users-permissions-layout-29102026",
+      "head": "e6abe5d96fb413f884541504e72d71a033514b6f",
+      "classification": "Runtime and test source preserved byte-for-byte via cloud layout top -> 7f5bb72c4e81995b58b41ac61bcdffe6f62ef08d -> main; old screenshots/unique historical evidence retained on source branch",
+      "delete": "PENDING_EXACT_BRANCH_CONFIRMATION_AND_VERIFIED_RECOVERY"
+    },
+    {
+      "branch": "codex/login-performance-20261101",
+      "head": "f0532fe46b99a0d70af73ed49eb83b0360f97576",
+      "classification": "Unique CSS build-scope/performance work; reviewed and deferred, outside account-correctness scope",
+      "delete": "PENDING_EXACT_BRANCH_CONFIRMATION_AND_VERIFIED_RECOVERY"
+    },
+    {
+      "branch": "fix/role-template-layout-20261106",
+      "head": "200dc033e151bfc7326d1f87180c95f962a9ab89",
+      "classification": "Ancestor of main; already integrated",
+      "delete": "PENDING_EXACT_BRANCH_CONFIRMATION_AND_VERIFIED_RECOVERY"
+    },
+    {
+      "branch": "fix/users-permissions-source-only-20261029",
+      "head": "4c44eca218000d1dd2ea4c83da238108ba40ed34",
+      "classification": "Ancestor of main; already integrated",
+      "delete": "PENDING_EXACT_BRANCH_CONFIRMATION_AND_VERIFIED_RECOVERY"
+    }
+  ]
+}

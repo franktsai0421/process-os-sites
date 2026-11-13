@@ -3,6 +3,9 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'scripts/account-process-joint-source-contract.cjs'
+      - 'scripts/account-process-joint-source-contract.json'
+      - 'tests/account-process-joint-source.test.cjs'
       - 'lib/web-feedback*'
       - 'lib/access-event*.ts'
       - 'lib/feedback-approved-export.ts'
@@ -15,6 +18,13 @@ on:
       - 'scripts/ipqc-c-integration-source-contract.cjs'
       - 'scripts/ipqc-c-integration-source-contract.json'
       - 'scripts/access-event-source-contract.cjs'
+      - 'scripts/account-permission-source-contract.cjs'
+      - 'scripts/account-permission-source-contract.json'
+      - 'scripts/account-page-source-contract.cjs'
+      - 'scripts/account-page-source-contract.json'
+      - 'scripts/account-cache-source-contract.cjs'
+      - 'scripts/account-cache-source-contract.json'
+      - 'public/process/master-data.js'
       - 'scripts/equipment-no-poll-source-contract.cjs'
       - 'scripts/background-check-source-contract.cjs'
       - 'scripts/background-check-source-contracts.json'
@@ -55,6 +65,9 @@ jobs:
       WRANGLER_WRITE_LOGS: 'false'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
@@ -63,7 +76,7 @@ jobs:
       - run: npm run lint -- --format unix
       - run: node node_modules/typescript/bin/tsc --noEmit
       - run: node scripts/sites-source-check.mjs
-      - run: node --test tests/web-feedback-cloud.test.mjs tests/web-feedback-layout.test.mjs tests/web-feedback-access.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/shared-unknown-departure.test.mjs tests/shared-draft-begin-v1.test.mjs tests/access-event-client.test.mjs tests/access-event-bridge.test.mjs tests/access-event-migration.test.mjs tests/access-event-panel.test.mjs tests/access-event-hook.test.mjs tests/access-event-main-integration.test.cjs tests/access-events-api.test.cjs tests/access-event-export-consistency.test.cjs tests/problem-export.test.cjs tests/problem-export-ui.test.mjs
+      - run: node --test tests/web-feedback-screenshot.test.mjs tests/web-feedback-cloud.test.mjs tests/web-feedback-layout.test.mjs tests/web-feedback-access.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/shared-unknown-departure.test.mjs tests/shared-draft-begin-v1.test.mjs tests/access-event-client.test.mjs tests/access-event-bridge.test.mjs tests/access-event-migration.test.mjs tests/access-event-panel.test.mjs tests/access-event-hook.test.mjs tests/access-event-main-integration.test.cjs tests/access-events-api.test.cjs tests/access-event-export-consistency.test.cjs tests/problem-export.test.cjs tests/problem-export-ui.test.mjs
       - run: node scripts/test-local-schema.mjs
       - run: node scripts/test-web-feedback.cjs .sites-runtime/feedback-queues-ci
       - run: npm run build

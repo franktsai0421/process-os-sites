@@ -6,17 +6,24 @@ import {chromium} from 'playwright';
 import {createABCFixture} from './ab-c-native-fixture.mjs';
 const require=createRequire(import.meta.url),{createTransferFixture}=require('../scripts/equipment-transfer-fixture.cjs');
 const keys=['masterDataControl','processMasterData','routineEquipmentControl','qualityMasterControl','iqcMasterControl','ipqcCMasterControl','ipqcABMasterControl'];
-async function setup(width,language){
- const seed=await createTransferFixture();let values,objects;
- try{values=(await seed.core.readState()).values;objects=new Map(seed.objects);}finally{seed.close();}
- const f=await createABCFixture({products:1,async decorate(target,_load,bucket){for(const key of keys)target[key]=values[key];for(const [key,bytes]of objects)await bucket.put(key,bytes);}});
- const browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE}:{})}),context=await browser.newContext({viewport:{width,height:900},serviceWorkers:'block'}),posts=[],errors=[];
+async function setup(width,language,ports={createTransferFixture,createABCFixture,chromium}){
+ const seed=await ports.createTransferFixture();let values,objects;
+ let seedFailed=false,seedFailure;
+ try{values=(await seed.core.readState()).values;objects=new Map(seed.objects);}catch(error){seedFailed=true;seedFailure=error;}
+ try{await Promise.resolve(seed.close());}catch(cleanup){if(seedFailed)throw new AggregateError([seedFailure,cleanup],'Transfer seed read failed and cleanup reported errors',{cause:seedFailure});throw cleanup;}
+ if(seedFailed)throw seedFailure;
+ let f,browser,context,closing;
+ const close=()=>closing??=(async()=>{const failures=[];for(const resource of [context,browser,f])if(resource)try{await resource.close();}catch(error){failures.push(error);}if(failures.length)throw new AggregateError(failures,'Compiled transfer fixture cleanup failed');})();
+ try{
+ f=await ports.createABCFixture({products:1,async decorate(target,_load,bucket){for(const key of keys)target[key]=values[key];for(const [key,bytes]of objects)await bucket.put(key,bytes);}});
+ browser=await ports.chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE}:{})});context=await browser.newContext({viewport:{width,height:900},serviceWorkers:'block'});const posts=[],errors=[];
  await context.route('**/*',route=>new URL(route.request().url()).origin===f.url.origin?route.continue():route.abort());await context.addCookies([{name:'process_demo',value:f.cookie(),url:f.url.origin}]);await context.addInitScript(({language,origin})=>{if(location.origin===origin)localStorage.setItem('processUILanguage',language);},{language,origin:f.url.origin});
  context.on('page',page=>{page.setDefaultTimeout(15000);page.on('pageerror',error=>errors.push(error.message));page.on('dialog',dialog=>void dialog.accept());page.on('request',r=>{if(r.method()==='POST')posts.push({path:new URL(r.url()).pathname,body:r.postDataJSON()});});});
  async function page(tab){const p=await context.newPage();await p.goto(f.url.origin+'/process/?system=quality&view=data&dataTab='+tab);await p.waitForFunction(()=>window.ProcessSync?.identity&&document.documentElement.dataset.processNavigationStatus==='ready');return p;}
  const source=await page('quality-routine-equipment');await source.locator('#routine-search').waitFor();
  async function controls(){const row=await f.db.prepare('SELECT "values" FROM shared_state WHERE id=1').first();const decoded=await f.load('lib/state-records.ts').decodeRecordValues(await f.mf.getR2Bucket('STATE_ARCHIVE'),JSON.parse(row.values));return Object.fromEntries(keys.filter(key=>decoded.values[key]).map(key=>[key,JSON.parse(decoded.values[key])]));}
- return{f,context,page,source,posts,errors,controls,async close(){await context.close();await browser.close();await f.close();}};
+ return{f,context,page,source,posts,errors,controls,close};
+ }catch(error){try{await close();}catch(cleanup){throw new AggregateError([error,cleanup],'Compiled transfer setup failed and cleanup reported errors',{cause:error});}throw error;}
 }
 const flow=(controls,moduleId)=>moduleId==='fqc'?controls.qualityMasterControl.libraries.fqc.workflow:moduleId==='iqc'?controls.iqcMasterControl.workflow:moduleId==='ipqc-c'?controls.ipqcCMasterControl.workflow:controls.ipqcABMasterControl.scopes['A:G-A'].workflow;
 for(const [width,language]of [[1280,'zh'],[390,'vi']])void test(`compiled four-module transfer preserves open local forms; FQC and IQC explicitly save ${width} ${language}`,async t=>{

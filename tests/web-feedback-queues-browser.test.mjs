@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {chromium} from 'playwright';
 import {createFeedbackFixture} from './web-feedback-native-fixture.mjs';
+import {screenshotBoard,screenshotFailureKind} from './web-feedback-screenshot.mjs';
 
 const passed=[],errors=[],requests=[];let fixture,browser,stage='setup';
 const out='.sites-runtime/feedback-queues';fs.mkdirSync(out,{recursive:true});
@@ -23,11 +24,11 @@ try {
   await page.evaluate(values=>{for(const [key,value]of Object.entries(values))sessionStorage.setItem(key,value);},guards);
   const assertGuards=async()=>assert.deepEqual(await page.evaluate(keys=>Object.fromEntries(keys.map(k=>[k,sessionStorage.getItem(k)])),Object.keys(guards)),guards);
   await check('two source tabs, pending default, honest scope and separate disabled access controls',async()=>{
-    assert.equal(await page.locator('[data-queue-tab]').count(),2);assert.equal(await page.locator('[data-filter=status]').inputValue(),'open');await page.locator('.wf-admin').screenshot({path:out+'/helper-1365-zh.png'});
+    assert.equal(await page.locator('[data-queue-tab]').count(),2);assert.equal(await page.locator('[data-filter=status]').inputValue(),'open');await screenshotBoard(page,out+'/helper-1365-zh.png');
     assert.match(await page.locator('.wf-source').textContent(),/不含各裝置/);await page.locator('[data-pick]').first().check();
     await page.locator('[data-queue-tab=access]').click();await page.getByText(/集中事件來源尚未接通/).waitFor();
     assert.equal(await page.locator('[data-issue],[data-pick],[data-note]').count(),0);assert.equal(await page.locator('.wf-access-controls button:disabled').count(),5);
-    await page.locator('.wf-admin').screenshot({path:out+'/access-1365-zh.png'});assert.equal(await page.locator('[data-counts]').count(),0);assert.match(await page.locator('.wf-muted').first().textContent(),/尚無證據/);
+    await screenshotBoard(page,out+'/access-1365-zh.png');assert.equal(await page.locator('[data-counts]').count(),0);assert.match(await page.locator('.wf-muted').first().textContent(),/尚無證據/);
     await page.locator('[data-queue-tab=helper]').click();assert.equal(await page.locator('[data-pick]:checked').count(),1);await assertGuards();
   });
   await check('note ownership, unsaved switch guard, HTML escaping, one double-click write, completion and restore',async()=>{
@@ -78,7 +79,7 @@ try {
     await page.locator('[data-queue-tab=helper]').focus();await page.keyboard.press('ArrowRight');await page.getByText(/集中事件來源尚未接通/).waitFor();await page.keyboard.press('ArrowLeft');await page.locator('.wf-row').first().waitFor();
     await page.setViewportSize({width:390,height:844});await page.locator('.top-actions .language-switch').click();
     assert.match(await page.locator('[data-queue-tab=access]').textContent(),/chờ xác minh/);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-    await page.locator('.wf-admin').screenshot({path:out+'/helper-390-vi.png'});await page.locator('[data-queue-tab=access]').click();await page.getByText(/Nguồn tập trung chưa kết nối/).waitFor();await page.locator('.wf-admin').screenshot({path:out+'/access-390-vi.png'});
+    await screenshotBoard(page,out+'/helper-390-vi.png');await page.locator('[data-queue-tab=access]').click();await page.getByText(/Nguồn tập trung chưa kết nối/).waitFor();await screenshotBoard(page,out+'/access-390-vi.png');
     await page.unroute('**/api/web-feedback?action=list');await assertGuards();
   });
   await check('helper Close/Cancel and browser Back/Forward/reload preserve raw operation guard bytes',async()=>{
@@ -94,6 +95,6 @@ try {
 } catch(error) {
   // Never print Playwright's request log: it can contain even synthetic cookies.
   const site=String(error?.stack||'').match(/web-feedback-queues-browser\.test\.mjs:(\d+):(\d+)/);
-  const failure={status:'FAIL',stage,errorName:['AssertionError','TimeoutError','Error'].includes(error?.name)?error.name:'OTHER',location:site?{line:Number(site[1]),column:Number(site[2])}:null,passed};
+  const failure={status:'FAIL',stage,errorKind:screenshotFailureKind(error),errorName:['AssertionError','TimeoutError','Error'].includes(error?.name)?error.name:'OTHER',location:site?{line:Number(site[1]),column:Number(site[2])}:null,passed};
   fs.writeFileSync(out+'/result.json',JSON.stringify(failure,null,2));console.error(JSON.stringify(failure));process.exitCode=1;
 } finally {await browser?.close();await fixture?.close();}

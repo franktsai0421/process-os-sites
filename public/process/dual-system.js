@@ -110,6 +110,10 @@
 
   const baseCanView = typeof canView === 'function' ? canView : () => true;
   canView = function (view) {
+    // An authorized feedback delivery needs the data shell, not the generic
+    // legacy data permission. Keep API rights and other destinations unchanged.
+    const sync=window.ProcessSync,destination=sync?.destination;
+    if(view==='data'&&sync?.protected===true&&sync.deliveryProjection===true&&!sync.requiresReload&&!sync.expired&&sync.identity?.id===currentUser?.id&&currentUser?.enabled!==false&&!currentUser?.deletedAt&&!['device','viewer'].includes(currentUser?.role)&&currentUser?.cells?.['feedback.view']===true&&sync.features?.webFeedback===true&&destination?.view==='data'&&destination.dataTab==='web-feedback'&&destination.module==='feedback'&&destination.key==='data:web-feedback')return true;
     if(qualityViews[view]&&window.ProcessSync?.deliveryProjection){const permissionModule=window.ProcessDeliveryPurpose?.deliveryViews[view];return !!currentUser&&currentUser.role!=='device'&&!!permissionModule&&window.hasPermission?.(permissionModule+'.view')===true;}
     if (qualityViews[view]) return !!(currentUser && currentUser.role !== 'device');
     return baseCanView(view);

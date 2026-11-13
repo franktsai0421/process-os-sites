@@ -1,3 +1,7 @@
+## 2026-11-12 — #109 quality + merged main continuation
+
+New isolated follow-up retains #105/#106/#107 and merged #108 main without overwriting earlier candidates. [Current scope and verification limits](../docs/acceptance/quality-main-joint-20261112/README.md). Older checkpoint statuses below remain historical. No deployment or production mutation.
+
 ## 2026-11-12 — FQC／IQC＋IPQC C 共同測試候選
 
 合併 #105 d14808c 與 #106 21a1765 的六個衝突，保留共同歷史、C 產品保留、例行頁載入及嚴格來源證明；新增三模組同 DB 隔離回歸。[範圍與待驗](../docs/acceptance/quality-c-joint-20261112/README.md)。未合併 main、部署或修改正式資料。
@@ -24,6 +28,139 @@ Received and verified all 41 source patches, reused main/old-branch changes sele
 ## 2026-11-12 — Isolated IPQC A/B integration candidate
 
 A/B grouped Save conflicts, original-ID retention, approved readonly history, explicit-check performance and completeness parity are integrated on main #100. Latest policy retains unsent RAM/Files/forms across A/B line/group/stage filters; only departure to another module discards unsent input. No merge/deployment/live acceptance. [Sources, seven-scope coverage and test limits](../docs/acceptance/ipqc-ab-integration-20261112/README.md).
+
+# 2026-11-12 — Joint account choices and PROCESS original-page history
+
+The same #108 follow-up adds group comparison with fresh authority/revision checks and a readonly PROCESS approved-source view with fresh return to draft. [Full requirement matrix and acceptance limits](../docs/acceptance/accounts-process-joint-20261112/requirements.md). Keep old backups; stop new backup/recovery rehearsals; no deletion, live switch, merge or deployment. Earlier verification notes are historical.
+
+# 2026-11-12 — Independent account/process joint verification
+
+Latest isolated #103 fb62c259 + #104 15a5acb4 composition and exact limits: [joint verification](../docs/acceptance/accounts-process-joint-20261112/README.md). Source heads remain unchanged Draft; no live activation, schema/data/account change, merge or deployment. Older checkpoint statuses below remain historical.
+
+## 2026-11-12 — Reviewed 57-module shell bundle contract
+
+Replace the stale compiled-root total with a test-only independent ordered inventory: pinned main50, seven #103 additions and the already-reviewed VersionDraftUI move before page/history modules. Verify each module, exact source bytes, hash/cache URL and final completion receipt; preserve native status/MIME/served-byte and root security checks. Missing, duplicate, reordered, wrong-byte/receipt and failed-module negatives remain mandatory. Keep all product and Windows workflow bytes unchanged; add early source coverage and the original root/retired-entrypoint scenarios to the independent CI job. Native/latest Windows acceptance remains separate.
+
+## 2026-11-12 — Current Canvas pending-readiness contract
+
+Reproduce the retired pending selector on #103 in four actual-controller Chinese/Vietnamese inline/record fixtures. Align the test probe with the uniquely visible current Canvas selector, preserving linked pending case, Save, generation, locks, no draft writes and one usable Withdraw; reject approved history and missing/duplicate/hidden/disabled controls. Outside this helper the full native process runner is byte-identical, retaining five cycles, 90 action samples, one-POST and authoritative verification. Run these source guards early and add the existing #104 independent compiled Begin/process/FQC scenarios without changing the Windows chain. No product, authority, schema or data change; native acceptance still requires the new HEAD CI.
+
+## 2026-11-12 — Composed inverse negative-fixture boundary
+
+The source-EOL negative fixture could replace an obsolete raw departure span without changing any bytes after the exact source projection evolved. Mutate each uniquely present span at the actual projected inverse input instead, after unchanged HEAD admission. Changed/missing/duplicate cases now prove an effective mutation and must fail the original exact-anchor check for both LF and CRLF. Keep production code, projection helpers, inverse JSON and all historical/control hashes unchanged. Native step 36 and later validation remain separate.
+
+## 2026-11-12 — Silent Canvas navigation correction
+
+Reproduce CANVAS_REVIEW_CHANGED on #103 stage departure using actual controllers and isolated ports. Redraw a surviving authorized source only after releasing its checked abandonment lease, preserving original target/epoch and UNKNOWN protections. Retain genuine public preimages through exact source inverses and wire the 36 new handoff regressions into existing process-platform CI. Local targeted tests, source proofs, normal lint/TypeScript and guarded build pass; later source/synthetic steps 37, 48 and 51 pass, while 45/50 have source-only coverage. Compiled browser/Worker and Windows acceptance remain unrun locally. No UNKNOWN32 replay, merge, deployment or true-data mutation.
+
+## 2026-11-11 — Authoring Begin recovery fences
+
+Reproduce eight failures against the #103 product using the real transport/history mount, then align authoring's initial guard and idle-owner marker discovery with the independently reviewed #104 candidate. Keep all other account/Routine and readback-comparison changes. Native failure reporting emits only bounded allowlisted state; an exact LF/CRLF inverse retains the original assertions, one-POST/receipt identity and 30-second deadline. Shared source evidence still reverses to both unchanged public predecessors. No account, database, schema, flag, merge or deployment change; native/latest-head acceptance remains separate.
+
+## 2026-11-11 — Consolidated permission CI fixture compatibility
+
+Bind the real account-review preview explicitly in bootstrap/readiness fixtures and retain missing, duplicate, altered and unknown-import rejection. Lifecycle route fixtures share the exact two-policy URL resolver, keeping query module identity, one Error realm and source boundary checks. FQC bootstrap checks distinguish effective feedback visibility from unchanged stored ACLs and denied feedback operations. Snapshot directory validation rejects network roots before host normalization. This is local isolated verification; Windows/native CI and hosted acceptance remain separate. No schema, account, DB/R2, flag, merge or deployment change.
+
+## 2026-11-10 — Joint local permissions/process verification
+
+在獨立分支組合已公開 #103 5f9d34b 與 #104 dd9be45 的產品／測試，保留線別 Edit→Save、Save-only、Routine owner、回報來源與中央最終核准證明，以及 Canvas 私有拒絕能力、原收據、一次 Save 與歷史保護。九個共享來源檔有雙公開前身精確逆向證據；共同 runtime/source、TypeScript/lint/preflight/safe build 通過。未公開較大候選、未合併 PR、未改真資料或旗標。唯一目前紀錄：[共同隔離候選](ACCOUNT_PROCESS_JOINT_LOCAL.md)。
+
+## 2026-11-10 — Local independent-page permission composition
+
+Draft #103 publishes the exact four-file legacy-rights correction at 22567b26. A larger, separately local candidate composes AB/C/LINES owners, Routine FQC whole-page/photo/history, explicit primary final-approval proof, effective dialog previews, platform fixed-case review and dependency-ordered assets. The line Save resolver changes effective rights before adoption but preserves raw ACL and legacy/cross-module denials. New page UNKNOWN recovery is original-receipt GET-only; empty-batch Save is independent while editing still requires Edit. No real data flag, schema, account or deployment change. Final current-source/build/native validation remains separate. [Sources, checks and limits](ACCOUNT_PERMISSION_INTEGRATION_LOCAL.md).
+
+# 2026-11-10 — Legacy Save rights matrix
+
+Test IQC/equipment Edit-derived legacy Save with actual mutation/readback, while retaining view-only/Save-only/create/delete/Submit denials and zero DB/R2 changes. Authorized legacy Submit still rejects missing V3 saved-version proof. Product authorization is unchanged. [Evidence](../docs/acceptance/account-permissions-20261110.md#81791d18-legacy-權限矩陣續修).
+
+# 2026-11-10 — Account reset and fresh CAS authority
+
+Fix the actual individual reset handler's obsolete baseline reference, then recompute inherited effective permissions without persisting derived grants. Preserve native error assertions. Process Save paired tests now distinguish raw Save from remaining Edit-derived authorization at CAS retry; FQC old policy is explicitly pinned to genuine source so old403/new200 remains meaningful. [Evidence and limits](../docs/acceptance/account-permissions-20261110.md#a9b33d83-local-safety-根因與續修).
+
+# 2026-11-10 — Retained reporting source proof for approved lines
+
+Compose the exact approved-line view increment back to genuine main before the unchanged historical reporting pin. Reject complete rollback, altered authority, moved spans and corrupted evidence; align both actual asset tags and include these existing safety gates in Account permissions. Feedback fetches source history for actual preimage validation. Product code and authorization remain at the preceding reviewed tree. [Evidence](../docs/acceptance/account-permissions-20261110.md#72dfacf5-來源契約續修不變更產品授權).
+
+# 2026-11-10 — Lines-only approved view and master Save readback
+
+Render the existing verified approved line/stage catalog for lines.view-only users without opening AB/C workflows or writes. Compare AB/C Save readback JSON content independent of object-key order; retain real mismatches, fresh authorization and UNKNOWN no-resend. Add exact source layers and read-only native failure receipts; original C timeout cause still awaits CI. Final-approval provenance and page-boundary dependencies are explicitly audited. [Evidence](../docs/acceptance/account-permissions-20261110.md#線別獨立查看與-abc-保存讀回續作).
+
+# 2026-11-10 — Editor and Routine Edit includes Save
+
+Extend the requested Edit→Save rule to existing process:platform and routine per-document transactions. Preserve explicit Save-only grants, raw ACLs, scope/pending/CAS/receipts and separate review/create/delete rights. Actual HTTP tests cover inline and records storage, zero-write replay and fresh revocation. Whole-page cutovers and final-approval separation remain separate work. [Scope](../docs/acceptance/account-permissions-20261110.md#editorroutine-save-獨立續作).
+
+# 2026-11-10 — Feedback-only authorized shell admission
+
+Fix the staff feedback native-entry timeout by admitting only the current verified feedback delivery to the data shell. Generic data API/view rights remain absent; source/images/archives/private notes/writes are unchanged. Native latest-head verification remains separate. [Evidence](../docs/acceptance/account-permissions-20261110.md#6f2bf38-原生員工回報入口修正).
+
+# 2026-11-10 — Permission CI baseline composition
+
+Preserve source/image export denials while separating those two fixture conditions. Restore the original 172-row AB matrix digest from configured Save rather than derived Save. Retain PR44 source hashes through an exact two-file account inverse and reject drift. Full affected source CI commands pass locally; native/latest-head outcomes remain separate. [Root causes and boundaries](../docs/acceptance/account-permissions-20261110.md#8c06cb8-ci-相容修正產品授權不放寬).
+
+# 2026-11-10 — Account permissions and feedback source checks
+
+Align effective Edit→Save across ten existing atomic workflows, preserve raw overrides, and admit active accounts to feedback without a generic data grant. Original images and both archive profiles require all current source/envelope permissions, fresh revocation and byte integrity. Role help is bilingual. Page-v1/final approval and lines/editor/routine boundary gaps remain explicit. [Scope and evidence](../docs/acceptance/account-permissions-20261110.md#2026-11-10-擴充需求核對與本批結果). No schema, real-account, merge or deployment change.
+
+# 2026-11-10 — Account feedback and credential diagnostics
+
+Account-priority extraction adds authorized credential-state diagnostics, uniform anonymous login errors, typed password validation and prewrite/readback feedback with persistent bilingual results. Existing CAS/session/unknown guards remain. [Scope, branch preservation and verification limits](../docs/acceptance/account-permissions-20261110.md).
+
+<!-- Retained #104 source checkpoint; historical, not current joint acceptance. -->
+## 2026-11-11 — Preserve current authoring Begin reads when history mounts
+
+Independent native diagnostics identify process-authoring native reopen, not IQC. Actual client/history-constructor response gating reproduces ACCESS_READ_SUPERSEDED: late access-guard activation changes the epoch of an in-flight receipt. Enable the same guard from construction for durable authoring clients only, keeping every identity/revision/denial/receipt/marker fence. Add actual history-mount success plus six negative variants, preserve one original POST and unknown evidence, and advance the exact client cache/source proof. Native30s assertions remain untouched; final compiled/Windows acceptance is pending. No data-model or live-data change.
+
+## 2026-11-11 — Make the pinned Begin inverse reproducible without history
+
+Public735e014 Feedback depth-one checkout exposes a new test-only historical-object dependency. Keep the exact original native-source SHA256 and complete reverse byte assertion using embedded deterministic original bytes; remove the old-tree Git read. Verify Git-unavailable execution and LF/CRLF-only checkout equivalence, with effective deadline/receipt/POST/commit-state/suffix/invalid-CR negatives. Begin90 and the exact full Feedback synthetic command315 pass locally. The same315 command passes in an actual local depth-one checkout with the historical tree absent. Prepare an additional independent compiled Begin CI job in the existing integration workflow, retaining the original Windows scenario and all assertions/deadlines; the new native job is not run locally. No browser runner, timeout, native assertion, product or data-model change; the original public CI completed without cancellation: Local safety passed1–30 then failed31 on the reproduced CRLF inverse, so36 was skipped and remains unresolved.
+
+## 2026-11-11 — Pre-run later regressions and current AB departure contracts
+
+Before publication, execute all inspected socket-free follow-on CI checks and broader shared-draft authority/submission/recovery suites. Fix two stale AB test extractions that referenced removed shared-departure aggregation: execute the actual current RAM-only navigation object and retain tab attribution, saved global cutoff, identity retirement, local/modal/UNKNOWN and no-request checks. Register attribution/prepared regressions alongside the existing Begin CI tests. All17 local command groups pass after this test-only repair; one socket-bound FQC oracle and compiled/native/Windows checks remain unrun locally. Step36 root cause is unresolved; bounded diagnostics remain necessary. No product, data-model or acceptance/deployment claim is added.
+
+## 2026-11-11 — Preserve unresolved compiled Begin evidence
+
+5707352 still fails compiled Begin recovery after original receipt200 as well as the independently reproduced equipment regression. The nine-file equipment repair does not establish a step36 fix. Actual-handler/shared-client memory probes pass for four modules, and the full IQC closure probe passes, so the last IQC write in CI is not proof of the failing module or cause. Add failure-only allowlisted stage/account/marker-count/navigation/error-code output, with privacy negatives. Native assertions,30s deadline, original receipt and no-extra-POST checks remain unchanged. No new runtime fix or native PASS is claimed.
+
+## 2026-11-11 — Limit idle Begin ownership guard to authoring
+
+The shared guard introduced at5707352 was too broad: the unchanged equipment delivery test correctly found that explicit stale-delivery permission renewal could overlook an unresolved Begin marker. Restrict the idle-runtime guard to the exact process-authoring route; preserve all other modules' existing marker discovery and the original equipment rejection assertions. Add five non-authoring explicit-observation regressions alongside the authoring succession negatives. No marker cleanup, new retry, timeout extension, permission broadening or data-model change. Active CI is not cancelled or rerun.
+
+## 2026-11-11 — Preserve Begin receipt ownership across idle runtimes
+
+Fix a reproduced authoring defect where a stale idle transport lazily adopted a newer Begin marker, then reported permanent UNKNOWN after the rightful successor completed exact receipt recovery. Only record-free, error-free invalidated runtimes stop acquiring newer markers; captured original/invalid evidence and other operation barriers remain. Add six module succession cases plus stale owned-record and identity/epoch/pagehide negatives; retain one POST and exact operation/readback requirements. Version the shared-client asset and preserve exact historical source composition. No polling, deadline, schema, real policy/account/data or deployment change.
+
+## 2026-11-11 — Bootstrap inactive-policy DTO regression contract
+
+The pinned historical bootstrap expectation inserts exactly draftReviewPolicyActive:false after cells; the observed actor DTO is retained whole. Explicit inactive metadata and absent reviewPolicy are required, with 81 negative controls per owner/reader covering rights, privacy, metadata shape/order/duplication and unchanged historical fields. Separate actual-handler checks cover active policy provenance/revocation and zero-write private delivery in records, inline, chunks and whole-R2 synthetic storage. Existing read counts, final identity/revision/session checks and legacy loader remain unchanged. Test-only local follow-up; no runtime or data-model changes, marker activation, merge or deployment.
+
+## 2026-11-10 — Access-template policy-state regression contract
+
+The historical role-reuse differential now requires the complete legacy result plus explicit inactive policy metadata. Active page-v1 projection is tested separately for same-call reuse, explicit primary-admin audit provenance, revocation, invalid layout, fresh returned values and zero input mutation. Exact Canvas inverses precede the unchanged PR44/AB/FQC source guards and their negative controls. No runtime grants, policy activation, source pins or production behavior change.
+
+## 2026-11-10 — Compiled transfer fixture acquisition cleanup
+
+Test setup closes every acquired context/browser/Worker if navigation or earlier setup fails, and retains the original error when cleanup also fails. Repeated close calls share one result. Native scenario assertions and deadlines are unchanged; memory-only fault injection checks the actual setup body without starting a browser.
+
+## 2026-11-10 — IPQC source adoption follows single Canvas Save
+
+Comparison and adoption notices now explain that only the current operation form changes; completing the operation stays local until one explicit Save. The notices no longer instruct users to press the removed synchronization control. Source/history/permission/occupancy checks and reference-only persistence are unchanged. The actual source-adoption regression follows that single atomic Save path in both languages.
+
+## 2026-11-10 — Save and Submit revision messaging contracts
+
+Align three independent shared-client fixtures with the existing revision-conflict message used by both Save and Submit. Extend raw409/Save-fence assertions without changing production behavior, error identities, quota, UNKNOWN receipts or actor guards. Keep exact full-panel/source differential checks with separately asserted bilingual Save-time conflict notices. Actual race stack139, three client modes and panel17 pass; record one indirectly native fixture blocked by the existing environment, not retried. [CI failure and validation boundaries](../docs/acceptance/process-platform-integration-20261110.md).
+
+## 2026-11-10 — Retain complete post-Flow safety contracts
+
+Verify all synthetic checks beyond the earlier Flow failure. Preserve final own-approval denial/zero writes while testing own Return as correction (179 paired groups), compose the exact approved-history route back to the original read-scope pins (37 pairs/74 GETs), execute the complete master initializer with no scheduler/background reads, and retain UNKNOWN quota/late-tamper/rollback guards alongside RAM-only silent departure. Fit still checks geometry, layout and journal consistency while requiring removed undo/redo actions to stay inert. The separate legacy poll-wiring suite now explicitly requires the removed master scheduler/callers absent while running all other callback and IQC owner negatives. No production changes, polling restoration or UNKNOWN32 replay.
+
+## 2026-11-10 — Process platform lifecycle and CI continuation
+
+Retain the production single-Save behavior and align two Local safety fixtures without dropping historical DOM equivalence, guarded command preparation or CAS/receipt negatives. Add real memory-backed category/new-stage-to-canvas and page-role lifecycle tests (16 and 14 checks), including C/GIA CONG five-stage defaults, hidden canvas retention and fresh approval revocation. Record the five-file #103 semantic merge boundary and exact remaining UNKNOWN32, full-page and real cutover dependencies in the [matrix](../docs/acceptance/process-platform-integration-20261110.md). No product code, data or trusted markers changed.
+
+## 2026-11-10 — Process platform integration Draft #104
+
+Integrated scoped Canvas Save, grouped fresh conflicts, silent unsent departure, scaffold-aware dirty state, projected counts and same-page approved Canvas history. Added independent AB/C catalog and LINES writer/UI dependencies, immutable approved-source validation and separate review-policy projection behind trusted stored markers. Kept main no-poll behavior and prior branch sources; no #103 password/Feedback policy changes, real migration or publication. [Twenty-item implementation/acceptance matrix](../docs/acceptance/process-platform-integration-20261110.md) records the remaining UNKNOWN32, cross-module, native, staging and performance blockers.
 
 ## 2026-11-09 — Retire periodic web checks
 
@@ -1212,3 +1349,57 @@ See [photo policy](../docs/sites/PHOTO_UPLOAD.md) for limits and test boundaries
 - 使用同一合成 fixture 比較 main 與候選的 AB/C 操作；補驗歷史、未知結果恢復、多人與跨模組切頁。
 - 修正 FQC 切頁 adapter 讀取 `libraries.fqc.workflow`，更新單一資源版本與回歸測試。
 - GitHub、PR 與後續整合由使用者指定 dot 處理；本輪只保留本地程式與證據，未發布。
+
+## 2026-11-10 — Account status/alert and exact cache source composition
+
+Fix pending account reads being announced as errors and prematurely satisfying the role fixture's error wait. Preserve the unchanged role test and UNKNOWN protections. Compose a pinned account cache inverse ahead of the unchanged background proof instead of changing historical hashes. [CI root causes](../docs/acceptance/account-permissions-20261110.md#local-safety-ci-follow-up-status-regions-and-composed-source-evidence).
+
+<!-- Retained #104 source checkpoint; historical, not current joint acceptance. -->
+
+## 2026-11-12：#104 靜默導航重用 #103 已完成修正
+
+cb12823 的 Local safety run 43126874931／job130881088426：1–35 通過，第36步實際製程 lifecycle 在第一輪 silent-navigation-stage 等待30秒失敗；Begin、local-layout、local-apply及Save已通過，pageErrors為空。不是已修的 Begin access epoch 競態。來源 controller 在 abandon 租約回傳前 refreshRecovery 重繪 editor，改變 history display epoch，後續既有工段 guard 拒絕目標切換。
+
+選擇性重用 #103 固定 c92c43b46f3a7f35494efdbc5b3147be37f7e9ac 的 process-authoring-v3.js 修正與 canvas-silent-handoff 36案例：先完成 checked handoff／釋放租約，只有取消且來源 owner、identity、epoch、delivery、generation、view 權限及原 DOM root 仍有效才刷新來源；成功切換不重刷已替換的頁。修前4過32失敗，修後36全過，涵蓋中越文、inline/records、取消／換帳號／epoch／delivery／reload／generation／歷史選取，保持零工作流程POST及合成資料列不變。
+
+#104 共用 client 的既有 Begin 修正與21個三種 runtime 收據案例保持原樣。#103 共用 client 的另三處差異為 routine-FQC departure/history 路由，以及只用於 AB/C master Save 的內容等價比較；不屬本次 process-authoring 失敗路徑，留在 #103，沒有整包覆寫。原 UNKNOWN32 未解決、未重送；新差異以已公開 #103 來源與本 PR 固定 predecessor 8eff928e 的26項精確逆向獨立驗證。
+
+製程編輯程式快取標籤更新為20261112-silent-handoff1，兩個既有 fixture 仍逐字要求版本及單次載入。原 Windows lifecycle／30秒／五循環／防額外POST斷言未改，另在較早的獨立原生job執行同一原始 process-draft-lifecycle-browser runner。
+
+集中本機驗證：導航／Begin292、畫布493、後續 lifecycle source184、精確來源127、handoff36案例通過；lint與完整非增量 TypeScript通過。第37／48及45／50 source、51合成檢查通過；16個後段原生入口語法通過但未執行。FQC source17通過；誤用篩選曾令已知原生Worker oracle被額外網路拒絕攔下，原失敗保留，該案例未完成且未重試。tsx四次可選本機IPC也被拒絕，23項 source仍通過，不能稱零嘗試。未在本機重試原生瀏覽器或改executor。依賴為同lockfile既有實體副本，不宣稱fresh npm ci；建置、來源預檢與新HEAD CI各以其獨立回執為準。
+
+維持 Draft；不合併、部署、啟用真資料或變更真人權限。完整20項、#103/#104共同HEAD及實站／實體裝置／效能驗收仍未完成。
+
+
+### 2026-11-12 #104：待審就緒探針對齊當前 Canvas UI（測試修正）
+
+十檔已獲明確公開授權，#104 遠端56e4051／tree f1dc86e 上傳、單一parent及非強制ref回執已確認；原拒絕歷史保留。該head的新獨立原生job130920153852證實Begin及stage／line／top-navigation皆通過（零workflow POST、未存輸入放棄、持久內容不變），但第一輪submit-confirm原30秒等待失敗。POST及GET的200不是完整送審驗收。
+
+查到就緒探針仍要求已被Canvas核准歷史元件移除的authoring-version-choice；既有歷史測試也明確要求此舊selector不存在。四組實際controller、signed handler與隔離SQLite/R2待審畫面重現舊探針false，新UI映射true。只修pendingProcessUIReady，對齊唯一、可見、可用且具有approved-choice標記的canvas-approved-version當前值，並明確要求非歷史模式及歷史展示隱藏。原案件／savedId／generation、pending status、兩種唯讀鎖、禁止修改、零Save/Submit及唯一可用Withdraw全部保留；另加缺少／重複／隱藏／停用／錯誤選擇及真實核准歷史的反例。
+
+相關93項source／合成測試通過，包括四種中越文與inline/records真實controller及原五輪完整伺服器lifecycle。除上述helper外，整份browser runner bytes相同：五循環、90次action、所有等待、POST計數、native advisory、權威資料核對均未改。沒有產品程式、權限或資料模型修改。此候選尚待上傳後原生CI；目前Windows仍跑56e4051，不取消、不重跑、不以新push中斷。先前56批次的「原runner未改」是該批次歷史狀態。完整目標、共同HEAD與實站驗收仍未完成。
+
+
+續作集中CI：既有獨立原生job在原Process runner後，追加原Windows第36步後半完全相同的FQC source／原生lifecycle及多人矩陣runner；重用同一build／瀏覽器，不改原Windows、不刪斷言、不延長25分鐘job上限。已知本機原生Worker限制不重試，完整新增CI結果待遠端新HEAD確認。此增量只有CI與紀錄，產品輸入不變。
+
+
+### 2026-11-12 Windows終態補正：來源inverse反例必須實際變造
+
+56e4051 的 Windows run43138700763／job130920154400 已自然結束：1–30通過，第31步 scripts/entry-performance/source-eol.test.cjs:50 的「Missing expected exception」失敗，32–57未跑；未取消或重跑。導航修正使第六個歷史departure片段不再直接出現在原始HEAD，舊raw.replace成為無效變造，並非產品接受了變造。
+
+已核對並逐blob重用 #103 公開302e7515e8b5f7343352f1b0d5aa6066a4d9409b 的source-eol修正（blob8b4b9c65ef6ee6523eb2e5ce2a9df3fe6c08be72）。只在測試port、真正HEAD admission與既有完整投影之後，變造實際departure inverse輸入；每個反例強制有效，LF/CRLF、六個span的changed/missing/duplicate共36種，必須以原exact-anchor錯誤拒絕，不能由先前HEAD hash拒絕冒充。原歷史inverse JSON、85fa來源與全部完整baseline/hash未改。96項全過；第31步失敗點與後續21個原命令集中預檢全過，全部網路邊界回執零實際嘗試。原helper93項與產品輸入保持不變。
+
+此source-EOL檢查也前置到整合job；原Windows命令與全部原生案例保留。來源修正獨立來自已確認的本輪HEAD與公開302e751，不取用或重送原UNKNOWN32，該狀態仍未解決。後續只在所有舊CI自然結束、核對ref後更新分支；最終新HEAD原生／完整Windows仍須獨立確認，不以前身或本機PASS替代。
+
+
+### 2026-11-12 #104：compiled root bundle來源與回執契約
+
+429d3bf 的 Windows Local safety run43147004029／job130947047036已自然結束：1–38通過，第39步sites-root-entry-native的served script bundles階段actual55／expected50失敗，40–57跳過。前七個root入口／關閉資料API／shell HTML／stylesheet案例已通過；舊數量斷言在抓取JavaScript bundle前就失敗。
+
+固定main9fbba823的兩組bundle合計50個來源；#104只新增page-draft-merge、master-page-transfer、master-page-approved-history、master-page-editor與canvas-approved-history五個IIFE，沒有移除舊來源。master-page-excel原本就在main，未誤算新增。#103固定2d2d79cb的root測試仍為舊50，沒有可直接重用的修正；其其他帳號／例行FQC增量不帶入。原UNKNOWN32／舊62-source候選未取用或重送。
+
+新增test-only獨立oracle：固定main有序50清單加五個具名插入點，與builder輸出的兩組逐項核對，不能從目前輸出反推期望。依已審閱來源清單和各來源原始bytes獨立組合預期內容，核對SHA／cache URL、整份bundle與末端成功回執；compiled root仍驗200、JavaScript MIME、每個served byte與reporter單次／先於shared-client。其他root安全檢查不變，沒有改為單純55常數。
+
+49項本機回歸通過（新oracle、原build及startup source）：遺漏／額外／重複／亂序來源、私有seed與global邊界、錯誤cache／回執identity、改動byte、缺少／提前／false回執、尾端額外程式、served狀態／MIME／內容／EOL漂移都拒絕；LF/CRLF正向與真builder合成55個模組執行通過，兩組各自的途中來源失敗不得產生完成回執或執行後續模組。負向byte比較用等精度Buffer.equals與短錯誤，避免在assert錯誤中展開大型JS內容。
+
+CI提前跑同一原始compiled root與retired-entrypoint runner，重用既有build及瀏覽器；原Windows第39步與25分鐘job上限保留。此批只改測試／CI／紀錄，產品、權限與資料模型不變。guarded build及編譯產物另依本輪精確HEAD回執核對；本機沒有重試受限原生Worker，新HEAD的HTTP／Windows完整結果仍待CI。先前429d3bf的Process90／導航15、FQC160及矩陣60原生合成成功仍是前身證據，不代表本批或測試站／真人／共同HEAD驗收完成。維持Draft，不合併部署。

@@ -74,7 +74,7 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
  if(name==='ipqc-c'){
   Object.assign(box,{localChanges:[{action:'edit'}],localGeneration:'generation',localPhotos:new Map(),picker:{},viewer:{}});
   // The extracted callback reads the real module's idle choice binding too.
-  vm.runInNewContext(sourceDeclaration(ast,'cancelSaveChoice')+'\n'+sourceDeclaration(ast,'clearLocal'),box);
+  vm.runInNewContext(sourceDeclaration(ast,'cancelSaveChoice')+'\n'+sourceDeclaration(ast,'clearLocal')+'\n'+sourceDeclaration(ast,'productForms')+'\n'+sourceDeclaration(ast,'clearProductForms'),box);
  }
  if(name==='routine-equipment'){
   const markers=new Map();
@@ -87,7 +87,10 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
   vm.runInNewContext(sourceBlock(source,'  function equipmentDeparture(config){','  let navigationError='),box);
  }
  vm.createContext(box);vm.runInContext(helper.replaceAll('host.','window.')+'\nwindow.VersionDraftUI.createDeparture=createDeparture;',box);
- if(name==='routine-fqc'){Object.assign(box,{receiptInvalid:false,receiptRecord:null,historyDocument:null});vm.runInContext(sourceDeclaration(ast,'routineDeparture')+'\n'+sourceDeclaration(ast,'retireApprovedHistory')+'\n'+source.slice(source.indexOf('  const departureSharedOwned='),source.indexOf('  window.RoutineFQCUI =')),box);}
+ if(name==='routine-fqc'){
+  Object.assign(box,{receiptInvalid:false,receiptRecord:null,receiptSuspended:false,receiptLifecycle:0});
+  vm.runInContext(sourceBlock(source,'  let historyDisplayEpoch=','  function retireApprovedHistory(')+sourceDeclaration(ast,'routineDeparture')+source.slice(source.indexOf('  const departureSharedOwned='),source.indexOf('  window.RoutineFQCUI =')),box);
+ }
  const adapter=vm.runInContext((name==='routine-equipment'?'equipmentDeparture':name==='routine-fqc'?'routineDeparture':'window.VersionDraftUI.createDeparture')+'('+config+')',box);
  return {adapter,box,flow:f,get writes(){return writes;},unknown:value=>unknown=value,failed:value=>failed=value,allowed:value=>{allowed=value;box.data.permissions={save:value,edit:value};}};
 }

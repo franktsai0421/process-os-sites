@@ -1,3 +1,4 @@
+import {approvedMasterPageCatalog} from './master-approved-pages';
 import {legacyJsonValueText,type JsonValue} from './legacy-login-json';
 import { env } from 'cloudflare:workers';
 import { effectiveAccess, type PlatformUser } from './user-access';
@@ -136,6 +137,7 @@ export async function decodeValues(raw:string):Promise<Record<string,string>> {
 }
 const normalizeUserId = (value: unknown) => legacyJsonValueText((value || '') as JsonValue).trim().toLowerCase();
 export async function readState(options:RecordRead={}): Promise<State> {
+  if(options.keys?.includes('platformUsers')&&!options.keys.includes('processAccessControl'))options={...options,keys:[...options.keys,'processAccessControl']};
   const deliver=(state:State):State=>options.effectiveOnly?{...state,values:effectiveDeliveryValues(state.values),deliveryOnly:true}:state;
   // Schema is owned by the checked-in Drizzle migrations, never by public reads.
   const row = await env.DB.prepare(
@@ -238,7 +240,7 @@ function permissionEvaluator(request:Request,state:State,user:PermissionActor){
   const role = stored ? effectiveAccess(stored, state.values) : null;
   const workflowModule=moduleForURL(request.url);
   return (key:string)=>{
-    if(stored&&isPrimary(stored))return true;
+    if(stored&&isPrimary(stored)&&!role?.draftReviewPolicyActive)return true;
     // Preview actors retain existing business preview access, never account access.
     if(!stored&&user.id==='admin')return !key.startsWith('users.')&&!key.startsWith('user-');
     const op=operationForLegacy(key);
@@ -316,7 +318,16 @@ export function publicState(state: State,actorId?:string) {
   const quality=parse(values.qualityMasterControl,null);
   if(quality?.libraries?.fqc?.workflow){const library=quality.libraries.fqc;delete library.workflow;library.versions=library.versions.filter((v:{id:string})=>v.id===library.activeVersionId);values.qualityMasterControl=JSON.stringify(quality);}
   const master=parse(values.masterDataControl,null);
-  if(master?.workflowScopes){const adopted=new Set(Object.keys(master.workflowScopes));delete master.workflowScopes;
+  if(master?.pageDraftLayout==='page-v1'){
+    // New page readers use their authenticated owner endpoint. The general
+    // Site payload carries effective compatibility content only, never old
+    // abandoned drafts or a fabricated combined approved version.
+    // Validate both current approval pointers before omitting private owner proof.
+    master.active={AB:approvedMasterPageCatalog(master,'AB').content,C:approvedMasterPageCatalog(master,'C').content,...(master.active?.PROCESS?{PROCESS:master.active.PROCESS}:{})};
+    delete master.workflowScopes;
+    master.versions=(master.versions||[]).filter((v:{scope:string;status:string;snapshot:unknown})=>v.scope==='PROCESS'&&v.status==='approved'&&JSON.stringify(v.snapshot)===JSON.stringify(master.active.PROCESS));
+    values.masterDataControl=JSON.stringify({pageDraftLayout:master.pageDraftLayout,active:master.active,versions:master.versions});
+  }else if(master?.workflowScopes){const adopted=new Set(Object.keys(master.workflowScopes));delete master.workflowScopes;
     master.versions=master.versions.filter((v:{scope:string;status:string;snapshot:unknown})=>!adopted.has(v.scope)||v.status==='approved'&&JSON.stringify(v.snapshot)===JSON.stringify(master.active[v.scope]));
     values.masterDataControl=JSON.stringify(master);}
   values.platformUsers = JSON.stringify(
