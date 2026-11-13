@@ -23,6 +23,11 @@ function applyProjection(f){const text=fs.readFileSync('public/process/master-da
  function loginFunction(text){const source=ts.createSourceFile('data-safety-ui.js',text,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);let found;const visit=node=>{if(ts.isFunctionDeclaration(node)&&node.name?.text==='platformLogin')found=node.getText(source);ts.forEachChild(node,visit);};visit(source);assert(found);return found;}
  function loginFixture({text=loginSource,failedLogin=false,failedRefresh=false,delayed=false,noProjection=false}={}){
   const events=[],active={replaceAll:true,data:{ACTIVE:[{quantity:''},{quantity:'0,014'}],OTHER:[{quantity:0}]}},working={bom:{UNSAVED:[{name:'Synthetic unsaved'}]}},state={editorByCategory:{kept:'cache'},editorVersionId:'kept'},ctx={data:{bom:{STATIC:[{quantity:'1'}]},meta:{}},state,working};let persisted={},release;
+  // Current login requires a checked transition and marker storage port. This
+  // synthetic fixture retains every projection/order/failure assertion below.
+  const token={};let transitionActive=false;
+  ctx.ProcessAccountTransition={begin(kind){assert.equal(kind,'login');assert.equal(transitionActive,false);transitionActive=true;return token;},current(value){return value===token&&transitionActive;},inputBlock:()=>false,confirm(value){assert.equal(value,token);assert(transitionActive);},finish(value){assert.equal(value,token);assert(transitionActive);transitionActive=false;},unconfirmed(){throw Error('Synthetic login outcome unconfirmed');}};
+  ctx.sessionStorage={removeItem(key){assert.equal(key,'process-platform-signed-out');}};
   ctx.window=ctx;ctx.readStore=(key,fallback)=>{assert.equal(key,'bomOverrides');return persisted||fallback;};ctx.document={documentElement:{lang:'zh-Hant'}};ctx.localStorage={setItem(){throw Error('projection must not write storage');}};vm.createContext(ctx);vm.runInContext(bomSource,ctx);
   const project=ctx.BOMExcel.refreshProjection;ctx.BOMExcel.refreshProjection=()=>{events.push('projection');project();};if(noProjection)vm.runInContext('window.BOMExcel=undefined;',ctx);
   ctx.fetch=async(url,options)=>{assert.equal(url,'/api/platform-login');assert.equal(options.method,'POST');events.push('fetch');return{ok:!failedLogin,json:async()=>failedLogin?{error:'Synthetic login rejected'}:{user:{id:'synthetic-normal',role:'admin'}}};};

@@ -1,3 +1,7 @@
+## 2026-11-13 — 線別／工段與流程資料獨立候選
+
+獨立 main f0f425d 分支整合兩個主資料頁；線別不代核准流程、PROCESS 明確補齊缺漏工段、保存整組衝突／照片／晚到意圖、安全重載與有界回應、唯讀歷史和真正核准來源。選擇性回收真 #102 PROCESS helper，保留新 main 權限／history guards；不帶入 AB/C 或例行 FQC；已保留新 main 合併的 #111。資料採用／真人／原生限制見[驗收](../docs/acceptance/lines-flow-integration-20261113/README.md)，保持 Draft，不合併部署。
+
 ## 2026-11-13 — AB/C主資料雲端草稿候選
 
 修正明確Save的慢處理進度、結果重讀、類別篩選／中越文切換，以及page-v1 Save後bootstrap503；原核准來源proof驗證與私有草稿分界保留。只增加固定來源的read-only舊資料歸屬盤點，未切換真資料或部署。[來源、21項與驗證界線](../docs/acceptance/abc-master-integration-20261113/README.md)。

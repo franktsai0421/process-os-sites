@@ -1,0 +1,218 @@
+{
+  "main": "ba315149e7478c288d2f3af45c8668aa60070919",
+  "pr102": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+  "scope": "read-only exact blob inventory; no whole-branch replay",
+  "files": [
+    {
+      "path": "app/api/master/pages/route.ts",
+      "mainBlob": "161747a2987efdb47d2766debd7771d569ad95fb",
+      "pr102Blob": "161747a2987efdb47d2766debd7771d569ad95fb",
+      "comparison": "same"
+    },
+    {
+      "path": "app/api/master/references/route.ts",
+      "mainBlob": "da032bd5dc91e6deec9ecc3375f1b316fe78c52e",
+      "pr102Blob": "da032bd5dc91e6deec9ecc3375f1b316fe78c52e",
+      "comparison": "same"
+    },
+    {
+      "path": "app/api/master/stage-reference/route.ts",
+      "mainBlob": "0d5e0494581813029a4da02c25951c88b68ae426",
+      "pr102Blob": "bb26fc21c26eb271e48e327ce8092907de7d1635",
+      "comparison": "different"
+    },
+    {
+      "path": "app/api/master/workflow/route.ts",
+      "mainBlob": "662f025c6f65245c1f65af33d73f8cf5f9b14fab",
+      "pr102Blob": "662f025c6f65245c1f65af33d73f8cf5f9b14fab",
+      "comparison": "same"
+    },
+    {
+      "path": "lib/master-approved-pages.ts",
+      "mainBlob": "ddbc2c8dda7766700f520a19584ed8cfdbf9a941",
+      "pr102Blob": "ddbc2c8dda7766700f520a19584ed8cfdbf9a941",
+      "comparison": "same"
+    },
+    {
+      "path": "lib/master-catalog.ts",
+      "mainBlob": "3e67ef8dfe9b28ac79b57f0f02c3fe8bb3367137",
+      "pr102Blob": "3e67ef8dfe9b28ac79b57f0f02c3fe8bb3367137",
+      "comparison": "same"
+    },
+    {
+      "path": "lib/master-document-boundary.ts",
+      "mainBlob": "23f3dc7b9f704b66f0453ba41e61ef75f56654d0",
+      "pr102Blob": "23f3dc7b9f704b66f0453ba41e61ef75f56654d0",
+      "comparison": "same"
+    },
+    {
+      "path": "lib/master-line-draft.ts",
+      "mainBlob": "c7ecd9daf29d56d88b92c1cbcec449be1595487d",
+      "pr102Blob": "c7ecd9daf29d56d88b92c1cbcec449be1595487d",
+      "comparison": "same"
+    },
+    {
+      "path": "lib/master-line-page-workflow.ts",
+      "mainBlob": "8cbee346f13c90ebf35fc19e0169b0f7079df174",
+      "pr102Blob": "8cbee346f13c90ebf35fc19e0169b0f7079df174",
+      "comparison": "same"
+    },
+    {
+      "path": "lib/master-page-approved-history.ts",
+      "mainBlob": "fa81ea0436a991b27dd1664f6b1debb474dc2505",
+      "pr102Blob": "fa81ea0436a991b27dd1664f6b1debb474dc2505",
+      "comparison": "same"
+    },
+    {
+      "path": "lib/master-page-boundary.ts",
+      "mainBlob": "74c178d2a6b91b2173fa7d2539289b764f377612",
+      "pr102Blob": "74c178d2a6b91b2173fa7d2539289b764f377612",
+      "comparison": "same"
+    },
+    {
+      "path": "lib/master-page-name-save.ts",
+      "mainBlob": "a9e58062ffe1eee236cee7faa7ad08a880462589",
+      "pr102Blob": "a9e58062ffe1eee236cee7faa7ad08a880462589",
+      "comparison": "same"
+    },
+    {
+      "path": "lib/master-page-workflow.ts",
+      "mainBlob": "03d06080d18fbfe0ba72cc2d8463a63f34cf5000",
+      "pr102Blob": "40b73e2a2b4a6f46157ed6d8b7e9c0981a5317d8",
+      "comparison": "different"
+    },
+    {
+      "path": "lib/master-process-lock.ts",
+      "mainBlob": "e2d2b5a3911c40bf175cd6555e8c1a3188e2013d",
+      "pr102Blob": "e2d2b5a3911c40bf175cd6555e8c1a3188e2013d",
+      "comparison": "same"
+    },
+    {
+      "path": "lib/master-product-references.ts",
+      "mainBlob": "a2b653b2b45dac636224219d3085bddaa2555ab6",
+      "pr102Blob": "a2b653b2b45dac636224219d3085bddaa2555ab6",
+      "comparison": "same"
+    },
+    {
+      "path": "lib/master-stage-link.ts",
+      "mainBlob": "6536d1363579a25208150379c58408cf65a9d149",
+      "pr102Blob": "6536d1363579a25208150379c58408cf65a9d149",
+      "comparison": "same"
+    },
+    {
+      "path": "lib/master-stage-reference-response.ts",
+      "mainBlob": "203759c36808a81e6cdd64d2ccf4be48a618db78",
+      "pr102Blob": "203759c36808a81e6cdd64d2ccf4be48a618db78",
+      "comparison": "same"
+    },
+    {
+      "path": "lib/master-stage-references.ts",
+      "mainBlob": "85b7ded29217a356253d2a80e037f5400cd702ea",
+      "pr102Blob": "85b7ded29217a356253d2a80e037f5400cd702ea",
+      "comparison": "same"
+    },
+    {
+      "path": "lib/master-workflow.ts",
+      "mainBlob": "cf6b2b56ef618ea9328ffd24cad74b974d764b1e",
+      "pr102Blob": "cf6b2b56ef618ea9328ffd24cad74b974d764b1e",
+      "comparison": "same"
+    },
+    {
+      "path": "lib/process-authoring-workflow.ts",
+      "mainBlob": "3747ed9c6a5308dbaeb4ac44f5abab6b1e5ce819",
+      "pr102Blob": "3747ed9c6a5308dbaeb4ac44f5abab6b1e5ce819",
+      "comparison": "same"
+    },
+    {
+      "path": "lib/process-state.ts",
+      "mainBlob": "c9d529b16be0d5de7b2cadca6cfd37a717848969",
+      "pr102Blob": "771ff854299153711451c89a7ac686738b62ffb6",
+      "comparison": "different"
+    },
+    {
+      "path": "public/process/app.js",
+      "mainBlob": "e127874d8d7b9015ae3864afa6bcc4e19668ffb3",
+      "pr102Blob": "92e0c25d7acc9f5381b0a2947b755e121025ba61",
+      "comparison": "different"
+    },
+    {
+      "path": "public/process/master-admin-ui.js",
+      "mainBlob": "a9e584c6b7b275e291ce228bdf6fa168d726283a",
+      "pr102Blob": "4d5e07d2716b5d15d8418cb36d76e182ce180887",
+      "comparison": "different"
+    },
+    {
+      "path": "public/process/master-data.js",
+      "mainBlob": "1c161a9f35a82f51e545597e2862f4db06886dcb",
+      "pr102Blob": "bf753ecebfd49177301e6cccf827fa7ce4d4bdeb",
+      "comparison": "different"
+    },
+    {
+      "path": "public/process/master-page-approved-history.js",
+      "mainBlob": "59abb3c9677144533c77b89a4f135137bbb4af68",
+      "pr102Blob": "4a8ae2216596118c6a1ef9f0dd38b38ae6290d02",
+      "comparison": "different"
+    },
+    {
+      "path": "public/process/master-page-editor.js",
+      "mainBlob": "8288ff197bdccba73004e83beae86c14d62633c9",
+      "pr102Blob": "3685e45ce1ae656caa3ce388672bdce50f6c454f",
+      "comparison": "different"
+    },
+    {
+      "path": "public/process/master-page-excel.js",
+      "mainBlob": "39e3aa7e33e734b7f9e6ebf6a254f30ec707f703",
+      "pr102Blob": "39e3aa7e33e734b7f9e6ebf6a254f30ec707f703",
+      "comparison": "same"
+    },
+    {
+      "path": "public/process/master-page-transfer.js",
+      "mainBlob": "94acdf603a348f23ccd986119d8b26ddb8457a99",
+      "pr102Blob": "94acdf603a348f23ccd986119d8b26ddb8457a99",
+      "comparison": "same"
+    },
+    {
+      "path": "public/process/master-reference-viewer.js",
+      "mainBlob": "83a3cdbad1c48dbdcdf84e6bec0271391ae795d0",
+      "pr102Blob": "83a3cdbad1c48dbdcdf84e6bec0271391ae795d0",
+      "comparison": "same"
+    },
+    {
+      "path": "public/process/master-review.js",
+      "mainBlob": "6bf195d782cfdff721b6e007bcd6f83b3a42dad5",
+      "pr102Blob": "c8dce738e80d2dfe060e1234d0ec677e005ca41c",
+      "comparison": "different"
+    },
+    {
+      "path": "public/process/master-shared-client.js",
+      "mainBlob": "dece8bd2c930286854800d6ef08f320fb5c8516c",
+      "pr102Blob": "28825fd306a378d3c5430199e9ba00ef13d3a60e",
+      "comparison": "different"
+    },
+    {
+      "path": "public/process/page-draft-merge.js",
+      "mainBlob": "0b0472c4d4b06c5afbe831f9072a8bf7d1693269",
+      "pr102Blob": "0b0472c4d4b06c5afbe831f9072a8bf7d1693269",
+      "comparison": "same"
+    },
+    {
+      "path": "public/process/shared-draft-client.js",
+      "mainBlob": "6c09d5be2a1598f62bd7479559ca12397a4d3729",
+      "pr102Blob": "f0da615568185ac9c2e6d063964354e2a7efe084",
+      "comparison": "different"
+    },
+    {
+      "path": "public/process/version-draft-ui.js",
+      "mainBlob": "03f128120d0a54cd27f1d89922d52fcbd8eccc6c",
+      "pr102Blob": "1e3bbba4db7e5c3f6297ec5c84f03ddd5a3d1152",
+      "comparison": "different"
+    },
+    {
+      "path": "tests/master-save-merge.test.mjs",
+      "mainBlob": null,
+      "pr102Blob": "9570ec853d85c52b65c633257766fdf39a302264",
+      "comparison": "only-pr102"
+    }
+  ],
+  "initialMain": "f0f425d90ea883bab479801dd54f5deaed6cce69"
+}

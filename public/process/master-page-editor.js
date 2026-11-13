@@ -8,19 +8,19 @@
   if(!actor?.id)throw Error('LOGIN_REQUIRED');
   const owner=()=>actor===host.ProcessSync?.identity&&epoch===host.ProcessSync?.identityGeneration?.()&&(!delivery||host.ProcessSync?.isCurrentDelivery?.(delivery)!==false);
   const client=host.createSharedDraftClient({endpoint:'/api/master/pages?scope='+page+'&caseMetadata=1',actorId:actor.id,durableBegin:true,allowUnknownDeparture:true,guardAccessResults:true,legacyArchive:true,headers:()=>host.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'}});
-  let container,control,permissions={},base,mine,generation,busy=false,error='',progress='',part='AB',filter='',readSequence=0,choiceDialog,pendingImportFile,importApplied=false,lineFilter='',categoryFilter='';
+  let container,control,permissions={},base,mine,generation,busy=false,error='',progress='',part='AB',filter='',readSequence=0,choiceDialog,choiceCancel,pendingImportFile,importApplied=false,lineFilter='',categoryFilter='',viewEpoch=0,actionEpoch=0;
   const history=host.ProcessMasterPageHistory?.create({page,client,owner,control:()=>control,busy:()=>busy,dirty:()=>dirty(),dialog:()=>choiceDialog,permissions:value=>{permissions={...permissions,...value};},render:()=>render()});
   const displayCurrent=()=>history?.mutable()!==false;
   const flow=()=>control?.workflow,dirty=()=>mine!==undefined&&(!same(mine,base)||!!pendingImportFile);
   const current=()=>flow()?.working||control?.versions.find(version=>version.id===control.activeVersionId)?.snapshot;
-  const assertOwner=()=>{if(!owner())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');};
+  const assertOwner=()=>{if(actionEpoch!==viewEpoch||!owner()||!container?.isConnected||container.dataset.activeTab!==(page==='LINES'?'line-admin':page))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');};
   function adopt(result,reset=false){assertOwner();history?.assertMutable();if(!result.control||result.control.page!==page)throw Error('MASTER_PAGE_OWNER_MISMATCH');history?.retire();control=result.control;permissions=result.permissions||permissions;
    if(reset||mine===undefined){base=copy(current());mine=copy(base);generation=flow()?.generation;pendingImportFile=undefined;importApplied=false;}}
   async function read(reset=false){history?.assertMutable();const ticket=history?.stamp(),sequence=++readSequence,result=await client.read(undefined,{isCurrent:()=>history?history.current(ticket):owner()});assertOwner();if(history&&!history.current(ticket)||sequence!==readSequence)throw Error('MASTER_CATALOG_READ_SUPERSEDED');adopt(result,reset);return result;}
   function canEdit(){return displayCurrent()&&!!flow()&&!flow().pendingId&&permissions.edit===true&&!busy&&!client.hasUnknown();}
-  function button(parent,label,action,enabled=true){const result=node('button',label,parent);result.type='button';result.className='button ghost';result.disabled=!enabled;result.onclick=()=>void act(action,label);return result;}
   function reportProgress(value){progress=value;const status=container?.querySelector('[data-page-progress]');if(status)status.textContent=progress;}
-  async function act(action,label=t('載入資料','Tải dữ liệu')){if(busy)return;busy=true;error='';progress=label+'…';render();try{assertOwner();history?.assertMutable();await action();}catch(failure){if(owner())error=host.sharedDraftErrorMessage?.(failure)||failure.message;}finally{busy=false;progress='';if(owner())render();}}
+  function button(parent,label,action,enabled=true){const result=node('button',label,parent);result.type='button';result.className='button ghost';result.disabled=!enabled;result.onclick=()=>void act(action,label);return result;}
+  async function act(action,label=t('載入資料','Tải dữ liệu')){if(busy)return;actionEpoch=viewEpoch;busy=true;error='';progress=label+'…';render();try{assertOwner();history?.assertMutable();await action();}catch(failure){if(owner()&&actionEpoch===viewEpoch)error=host.sharedDraftErrorMessage?.(failure)||failure.message;}finally{busy=false;progress='';if(owner()){render();if(container&&!control&&actionEpoch!==viewEpoch)void act(()=>read(true));}}}
   function change(row,key,input){input.disabled=!canEdit();input.value=Array.isArray(row[key])?row[key].join(', '):row[key]??'';input.oninput=()=>{if(!canEdit()||!owner())return;row[key]=Array.isArray(row[key])?input.value.split(',').map(value=>value.trim()).filter(Boolean):input.value;showDirty();};}
   function field(parent,label,row,key,type='text'){const cell=node('td',undefined,parent),input=node('input',undefined,cell);input.type=type;input.setAttribute('aria-label',label);change(row,key,input);return input;}
   function showDirty(){const status=container?.querySelector('[data-page-dirty]');if(status)status.textContent=dirty()?t('本機尚未存取','Thay đổi chưa lưu'):t('沒有本機修改','Không có thay đổi cục bộ');}
@@ -94,7 +94,7 @@
   async function choose(conflicts){
    return new Promise(resolve=>{const dialog=node('dialog');choiceDialog=dialog;dialog.setAttribute('data-master-page',page);dialog.className='vd-dialog';dialog.style.maxHeight='85dvh';dialog.style.overflowY='auto';dialog.style.width='min(92vw, 800px)';node('h3',t('選擇本次全部衝突','Chọn cho tất cả xung đột'),dialog);node('p',t('無衝突修改會保留。取消會保留目前輸入。','Giữ thay đổi không xung đột. Hủy để giữ nội dung đang nhập.'),dialog);
     for(const conflict of conflicts){node('h4',conflict.label,dialog);node('p',t('我的：','Của tôi: ')+JSON.stringify(conflict.mine??t('已刪除','Đã xóa')),dialog);node('p',t('對方：','Của người khác: ')+JSON.stringify(conflict.theirs??t('已刪除','Đã xóa')),dialog);}
-    let closed=false;const finish=value=>{if(closed)return;closed=true;choiceDialog=null;dialog.remove();host.removeEventListener('pagehide',cancel);resolve(value);},cancel=()=>finish('cancel');
+    let closed=false;const finish=value=>{if(closed)return;closed=true;choiceDialog=null;choiceCancel=null;dialog.remove();host.removeEventListener('pagehide',cancel);resolve(value);},cancel=()=>finish('cancel');choiceCancel=cancel;
     for(const [value,label]of [['mine',t('用我的','Dùng của tôi')],['theirs',t('用對方的','Dùng của người khác')],['cancel',t('取消','Hủy')]]){const b=node('button',label,dialog);b.type='button';b.onclick=()=>finish(value);}
     dialog.addEventListener('cancel',event=>{event.preventDefault();cancel();});host.addEventListener('pagehide',cancel);document.body.append(dialog);dialog.showModal();});
   }
@@ -107,7 +107,7 @@
     const current=fresh.control?.workflow;if(!current||current.generation!==oldGeneration)throw Error('STALE_GENERATION');
     if(!['view','save'].every(key=>fresh.permissions?.[key]===true)||fresh.permissions.edit!==true&&!same(input,oldBase))throw Error('FORBIDDEN');if(current.pendingId)throw Error('PENDING_LOCKED');
     const comparison=host.ProcessPageDraftMerge.compare(oldBase,input,current.working,page),choice=comparison.conflicts.length?await choose(comparison.conflicts):'mine';assertOwner();if(choice==='cancel')return;
-    const confirmed=await client.read();assertOwner();if(!same(confirmed.control?.workflow,current))continue;
+    const confirmed=comparison.conflicts.length?await client.read():fresh;assertOwner();if(!same(confirmed.control?.workflow,current))continue;
     if(JSON.stringify(mine)!==original)throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');if(!['view','save'].every(key=>confirmed.permissions?.[key]===true)||confirmed.permissions.edit!==true&&!same(input,oldBase))throw Error('FORBIDDEN');
     const batches=comparison.materialize(choice).filter(batch=>batch.patches.length||batch.guards.length);if(batches.length&&confirmed.permissions.edit!==true)throw Error('FORBIDDEN');const command=client.prepare(current.generation,'save',{expectedRevision:current.revision,moduleAction:'save-local-v1',patches:batches.flatMap(batch=>batch.patches),input:{batches}});
     reportProgress(t('正在存取並核對結果，請稍候…','Đang lưu và xác minh kết quả, vui lòng chờ…'));const result=await client.sendPrepared(command);assertOwner();adopt(result,true);return;
@@ -124,13 +124,14 @@
    const check=await client.read();assertOwner();if(!same(check.control?.workflow,current))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
    const self=action==='approve'&&current.cases.find(review=>review.id===pending)?.actor.id===actor.id;
    if(self&&!host.confirm(t('這是您送審的案件，確認自行審核？','Đây là hồ sơ bạn gửi. Xác nhận tự duyệt?')))return;
-   const result=await client.command(current.generation,action,{reason,expectedRevision:current.revision,...(action==='submit'?host.captureSharedDraftSubmission(current):{caseId:pending}),...(self?{selfReviewConfirmed:true}:{})});adopt(result,true);
+   const result=await client.command(current.generation,action,{reason,expectedRevision:current.revision,...(action==='submit'?host.captureSharedDraftSubmission(current):{caseId:pending}),...(self?{selfReviewConfirmed:true}:{})});adopt(result,true);if(action==='approve'){await host.MasterDataWorkflow?.loadScope?.(page==='LINES'?'LINES':page+'.catalog');assertOwner();host.MasterDataWorkflow?.applyActive?.();}
   }
   function render(){
    if(!container||!container.isConnected||!owner()||container.dataset.activeTab!==(page==='LINES'?'line-admin':page))return;if(history?.historical())return;container.replaceChildren();container.dataset.masterPage=page;container.setAttribute('aria-busy',String(busy));
    const panel=node('section',undefined,container);panel.className='panel';panel.dataset.i18nSkip='true';node('h2',page==='LINES'?t('線別與工段管理','Chuyền và công đoạn'):page+t(' 產線與類別',' · Sản phẩm và nhóm'),panel);
    const status=node('p','',panel);status.dataset.pageDirty='';showDirty();const activity=node('p',progress,panel);activity.dataset.pageProgress='';activity.setAttribute('role','status');activity.setAttribute('aria-live','polite');if(error){const message=node('p',error,panel);message.setAttribute('role','alert');}
    const toolbar=node('div',undefined,panel);toolbar.className='actions';
+   button(toolbar,t('重新載入','Tải lại'),async()=>{if(dirty()&&!host.confirm(t('放棄本頁未存輸入並重載已保存草稿？','Bỏ đầu vào chưa lưu và tải lại bản nháp đã lưu?')))return;await read(true);},!busy&&!client.hasUnknown());
    button(toolbar,t('開啟草稿','Mở bản nháp'),async()=>{adopt(await client.begin(),true);},!busy&&!dirty()&&!control?.versions.some(version=>['draft','pending','pending-test'].includes(version.status))&&permissions.edit===true&&!client.hasUnknown());
    button(toolbar,t('存取草稿','Lưu bản nháp'),save,!busy&&!!flow()&&!flow().pendingId&&permissions.save===true&&!client.hasUnknown());
    button(toolbar,t('送審','Gửi duyệt'),()=>lifecycle('submit'),!busy&&!!flow()?.saved&&!flow().pendingId&&permissions.submit===true&&!dirty()&&!client.hasUnknown());
@@ -146,7 +147,7 @@
    local:dirty,localSave:()=>true,canSave:()=>permissions.save===true,canDiscard:()=>permissions.edit===true,save,discard:discardLocal,discardUnknown:discardLocal,
    dialogs:()=>choiceDialog?[choiceDialog]:[],closeClean:()=>{if(choiceDialog&&!busy){choiceDialog.remove();choiceDialog=null;}}});
   if(departure){departure.autoAbandon=true;departure.allowUnload=()=>!busy;}
-  return {owner,departure,relabel(){if(!busy&&!choiceDialog)render();},busy:()=>busy,deactivate(){history?.retire();container=null;if(!client.hasUnknown()&&!busy){control=undefined;base=undefined;mine=undefined;generation=undefined;}},mount(element){container=element;render();if(!control||!dirty()&&!busy)void act(()=>read(true));},dirty,save:()=>act(save),reset(){history?.retire();container=null;},inspect:()=>({base:copy(base),mine:copy(mine),generation,pendingImportFile,importApplied,error,permissions})};
+  return {owner,departure,relabel(){if(!busy&&!choiceDialog)render();},busy:()=>busy,deactivate(){viewEpoch++;choiceCancel?.();history?.retire();container=null;control=undefined;base=undefined;mine=undefined;generation=undefined;pendingImportFile=undefined;importApplied=false;},mount(element){container=element;render();if(!control||!dirty()&&!busy)void act(()=>read(true));},dirty,save:()=>act(save),reset(){viewEpoch++;choiceCancel?.();history?.retire();container=null;},inspect:()=>({base:base===undefined?undefined:copy(base),mine:mine===undefined?undefined:copy(mine),generation,pendingImportFile,importApplied,error,permissions})};
  }
  host.addEventListener('process-language-change',()=>instances.get(activePage)?.relabel());
  host.ProcessMasterPages={departure:()=>instances.get(activePage)?.departure,leave(){if(activePage)instances.get(activePage)?.deactivate();activePage=null;},mount(container,{page}){if(activePage&&activePage!==page)instances.get(activePage)?.deactivate();activePage=page;if(!['AB','C','LINES'].includes(page))throw Error('SCOPE_INVALID');let instance=instances.get(page);if(!instance?.owner()){instance=editor(page);instances.set(page,instance);}instance.mount(container);return instance;},reset(){for(const instance of instances.values())instance.reset();instances.clear();activePage=null;},busy:()=>[...instances.values()].some(instance=>instance.busy())};

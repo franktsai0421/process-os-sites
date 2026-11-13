@@ -14,6 +14,9 @@
       WORKFLOW_V3_REQUIRED:['此舊版流程無法確認已儲存的送審版本，暫停新送審。請保留內容並由管理者核對共用草稿採用狀態。','Quy trình cũ này không xác minh được bản đã lưu để gửi duyệt. Hãy giữ nội dung và nhờ quản trị viên kiểm tra trạng thái bản nháp chung.'],
       DRAFT_REVISION_CHANGED_RECONFIRM:['確認期間共用草稿已更新，本次操作未完成。請重新核對並儲存最新內容。','Bản nháp chung đã thay đổi trong lúc xác nhận; thao tác chưa hoàn tất. Hãy kiểm tra và lưu nội dung mới nhất.'],
       UNAPPLIED_CHANGES_APPLY_REQUIRED:['尚有未套用內容。請先明確套用或放棄這些輸入，再儲存或送審。','Còn nội dung chưa áp dụng. Hãy áp dụng rõ ràng hoặc bỏ các nội dung đó trước khi lưu hay gửi duyệt.'],
+      MASTER_LEGACY_LINK_REQUIRES_WITHDRAWAL:['此舊案件包含跨頁流程連動，請先撤回或退回，再分別送審兩頁。既有內容保留。','Hồ sơ cũ liên kết hai trang; hãy rút hoặc trả lại rồi gửi duyệt từng trang. Giữ nội dung cũ.'],
+      APPROVED_HISTORY_USE_PAGE_SELECTOR:['請使用本頁已核准版本選單查看唯讀歷史。','Dùng danh sách phiên bản đã duyệt trên trang để xem lịch sử chỉ đọc.'],
+      APPROVED_HISTORY_READ_ONLY:['已核准歷史僅供查看，不能還原覆蓋目前資料。','Lịch sử đã duyệt chỉ để xem; không khôi phục đè dữ liệu hiện tại.'],
       PENDING_LOCKED:['此範圍已送審，暫時不能寫入。尚未送出的輸入仍保留。','Phạm vi này đang chờ duyệt nên chưa thể ghi. Nội dung chưa gửi vẫn được giữ.'],
       RESTORE_PERMISSION_REQUIRED:['沒有還原歷史至草稿的權限，資料未變更。','Không có quyền khôi phục lịch sử vào bản nháp; dữ liệu chưa thay đổi.'],
       RESTORE_DELETE_PERMISSION_REQUIRED:['這次還原會刪除草稿資料，需要刪除權限；資料未變更。','Khôi phục này sẽ xóa dữ liệu nháp và cần quyền Xóa; dữ liệu chưa thay đổi.'],
@@ -300,7 +303,7 @@
     // retry. Timeout still means unknown and only the original receipt is read.
     const fqcMutation=externalDurableBounded?.scope==='FQC'&&/^\/api\/fqc\/workflow(?:\?|$)/.test(endpoint);
     const iqcMutation=externalDurableBounded?.scope==='IQC'&&/^\/api\/iqc\/workflow(?:\?|$)/.test(endpoint);
-    const mutationDeadline=fqcMutation||iqcMutation||/^\/api\/process-authoring\/workflow(?:\?|$)/.test(endpoint)?45000:15000;
+    const mutationDeadline=fqcMutation||iqcMutation||/^\/api\/(?:process-authoring\/workflow|master\/(?:workflow|pages))(?:\?|$)/.test(endpoint)?45000:15000;
     // Canvas alone may delegate durable intent to its claimed recovery store.
     // The synchronous proof is rechecked immediately before fetch, after queueing.
     // Never import, rewrite or erase the generic session command in this mode.

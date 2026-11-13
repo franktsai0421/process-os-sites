@@ -25,10 +25,10 @@
       bases.set(scope,copy(c.workflow?.working||draft(scope)?.snapshot||active?.snapshot||{}));generations.set(scope,c.workflow?.generation);
       const local=locals.get(scope),version=draft(scope);if(local&&ownerMatches(local.owner)&&version){if(scope==='PROCESS')local.snapshot=projectLocal(c.workflow.working,local.batches);version.snapshot=copy(local.snapshot);}
     }
-    async function load(scope){const actor=host.ProcessSync?.identity,key=actor?.id+':'+scope,current=flow(scope),owner={};readOwners.set(scope,owner);
+    async function load(scope){const loadOwner=captureOwner(),actor=host.ProcessSync?.identity,key=actor?.id+':'+scope,current=flow(scope),owner={};readOwners.set(scope,owner);
       let result;try{result=await client(scope).read(readTokens.get(key)||(current?current.generation+':'+current.revision:''));}
-      catch(error){if(actor!==host.ProcessSync?.identity||readOwners.get(scope)!==owner)return{unchanged:true,permissionsChanged:false};throw error;}
-      if(actor!==host.ProcessSync?.identity)return{unchanged:true,permissionsChanged:false};
+      catch(error){if(!ownerMatches(loadOwner)||readOwners.get(scope)!==owner)return{unchanged:true,permissionsChanged:false};throw error;}
+      if(!ownerMatches(loadOwner))return{unchanged:true,permissionsChanged:false};
       if(readOwners.get(scope)!==owner)return{unchanged:true,permissionsChanged:false};
       if(result.revision!==undefined)readTokens.set(key,'state:'+result.revision);
       const permissionsChanged=!equal(permissions.get(scope),result.permissions);if(result.permissions)permissions.set(scope,result.permissions);adopt(scope,result);return{...result,permissionsChanged};}
@@ -141,7 +141,7 @@
       const before=previous?.snapshot||current.working;
       for(const g of guards)if(!equal(localValue(before,g.path),g.value))throw Error('DEPENDENCY_CHANGED_RECONFIRM');
       if(!patches.length)return null;const batch=copy({patches,guards}),batches=[...(previous?.batches||[]),batch],snapshot=projectLocal(before,[batch]);
-      locals.set(scope,{owner,generation:current.generation,snapshot,batches});draft(scope).snapshot=copy(snapshot);return {local:true};
+      locals.set(scope,{owner,generation:current.generation,base:previous?.base||copy(current.working),snapshot,batches});draft(scope).snapshot=copy(snapshot);return {local:true};
     }
     const localDirty=scope=>!!locals.get(scope)?.batches.length;
     const unsavedLocal=scope=>localDirty(scope)||scope==='PROCESS'&&processLocalSave&&(host.ProcessMasterVersioning?.departureNames.dirty()||host.ProcessEquipment?.hasUnappliedChanges?.());
@@ -179,7 +179,14 @@
       // A reload has no RAM pin; departure may have abandoned/replaced the local
       // batches. Neither case grants permission to discard or resurrect input.
       if(remaining&&ownerMatches(remaining.owner)&&remaining.generation===pin.generation&&remaining.batches.length>=pin.batches.length&&pin.batches.every((batch,i)=>remaining.batches[i]===batch)){
-        remaining.batches=remaining.batches.slice(pin.batches.length);
+        const suffix=remaining.batches.slice(pin.batches.length);remaining.batches=suffix;
+        if(host.ProcessPageDraftMerge&&pin.intentSnapshot&&pin.acceptedSnapshot){
+          // PR #102: late whole-photo setters retain the original intent basis.
+          // Rebase only conflict-free suffix intent onto the accepted choice.
+          remaining.base=copy(pin.intentSnapshot);
+          if(suffix.length){const intent=projectLocal(pin.intentSnapshot,suffix),comparison=host.ProcessPageDraftMerge.compare(pin.intentSnapshot,intent,pin.acceptedSnapshot,'PROCESS');
+            if(!comparison.conflicts.length){remaining.base=copy(pin.acceptedSnapshot);remaining.batches=comparison.materialize('mine').filter(batch=>batch.patches.length);}}
+        }else remaining.base=copy(result.control.workflow.working);
         if(!remaining.batches.length)discardLocal('PROCESS');
       }
       processSave=null;
@@ -191,8 +198,28 @@
       if(local&&(!ownerMatches(local.owner)||local.generation!==current.generation))throw Error('STALE_GENERATION');
       if(c.permission('save')!==true)throw Error('FORBIDDEN');
       await c.flush();if(!ownerMatches(saveOwner))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
-      const batches=copy(local?.batches||[]),command=c.prepare(current.generation,'save',{...detail,moduleAction:'save-local-v1',patches:batches.flatMap(b=>b.patches),input:{batches}}),owner=captureOwner();
-      if(scope==='PROCESS')processSave={operationId:command.operationId,generation:current.generation,owner,batches:local?.batches.slice()||[]};
+      let batches=copy(local?.batches||[]),observed=current;const intentSnapshot=copy(local?.snapshot||current.working);let acceptedSnapshot=copy(current.working);
+      if(scope==='PROCESS'&&host.ProcessPageDraftMerge){
+        const base=copy(local?.base||current.working),mine=copy(local?.snapshot||current.working),pin=JSON.stringify(local?.batches||[]);
+        let settled=false;
+        for(let attempt=0;attempt<8;attempt++){
+          const fresh=await c.read();if(!ownerMatches(saveOwner))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+          observed=fresh.control?.workflow;if(!observed||observed.generation!==current.generation)throw Error('STALE_GENERATION');
+          if(observed.pendingId)throw Error('PENDING_LOCKED');
+          if(!fresh.permissions?.view||!fresh.permissions.save||local&&fresh.permissions.edit!==true)throw Error('FORBIDDEN');
+          const comparison=host.ProcessPageDraftMerge.compare(base,mine,observed.working,'PROCESS');
+          const choice=comparison.conflicts.length?await host.ProcessPageDraftMerge.choose(comparison.conflicts,{current:()=>ownerMatches(saveOwner)}):'mine';
+          if(choice==='cancel')return null;if(!ownerMatches(saveOwner))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+          if(JSON.stringify(locals.get(scope)?.batches||[])!==pin)throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');
+          const checked=comparison.conflicts.length?await c.read():fresh;if(!ownerMatches(saveOwner))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+          if(!equal(checked.control?.workflow,observed))continue;
+          if(!checked.permissions?.view||!checked.permissions.save||local&&checked.permissions.edit!==true)throw Error('FORBIDDEN');
+          batches=comparison.materialize(choice).filter(batch=>batch.patches.length||batch.guards.length);acceptedSnapshot=projectLocal(observed.working,batches);settled=true;break;
+        }
+        if(!settled)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+      }
+      const command=c.prepare(current.generation,'save',{...detail,...(scope==='PROCESS'?{expectedRevision:observed.revision}:{}),moduleAction:'save-local-v1',patches:batches.flatMap(b=>b.patches),input:{batches}}),owner=captureOwner();
+      if(scope==='PROCESS')processSave={operationId:command.operationId,generation:current.generation,owner,batches:local?.batches.slice()||[],intentSnapshot,acceptedSnapshot};
       let result;processSaving=scope==='PROCESS';try{result=await c.sendPrepared(command);}catch(error){if(scope==='PROCESS'&&!c.hasUnknown()&&processSave?.operationId===command.operationId)processSave=null;throw error;}finally{processSaving=false;}
       if(!ownerMatches(owner))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
       // Transport validates the original receipt and readback before clearing its
@@ -239,7 +266,7 @@
       const answer=await host.VersionDraftUI.confirmReview({action:action==='return'?'reject':action,scope:(scope==='LINES'?t('線別與工段','Chuyền và công đoạn'):pageScopes.get(scope)||scope)+' · '+caseId,selfReview:action==='approve'&&c.actor.id===host.ProcessSync?.identity?.id});if(!answer)return null;
       return execute(scope,action,{caseId,...answer});
     }
-    async function history(scope){await host.openSharedDraftHistory({client:client(scope),masterScope:['AB','C'].includes(scope)?scope:null,editable:()=>!!draft(scope)&&['history','edit','restore'].every(key=>client(scope).permission(key)===true),onApplied:async()=>{await load(scope);onChange?.();}});}
+    async function history(scope){if(scope==='PROCESS')throw Error('APPROVED_HISTORY_USE_PAGE_SELECTOR');await host.openSharedDraftHistory({client:client(scope),masterScope:['AB','C'].includes(scope)?scope:null,editable:()=>!!draft(scope)&&['history','edit','restore'].every(key=>client(scope).permission(key)===true),onApplied:async()=>{await load(scope);onChange?.();}});}
     async function recover(scope){
       if(busy)throw Error('OPERATION_IN_PROGRESS');busy=true;
       const actor=host.ProcessSync?.identity,epoch=host.ProcessSync?.identityGeneration?.();

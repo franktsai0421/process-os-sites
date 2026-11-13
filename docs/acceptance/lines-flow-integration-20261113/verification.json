@@ -1,0 +1,224 @@
+{
+  "environment": "Dot cloud Node 24; actual handlers; isolated SQLite :memory: / Map R2 / signed synthetic accounts",
+  "base": "ba315149e7478c288d2f3af45c8668aa60070919",
+  "runtimeCommit": "b7dd4badc5465fe5c8112ec58e21695236733489",
+  "runtimeAfterEvidence": "Final guarded build and 243 source-lineage/negative controls PASS on b7dd4ba; only acceptance documentation changes follow.",
+  "runs": [
+    {
+      "name": "final bounded-read runtime exact source/inverse/negative controls",
+      "status": "PASS",
+      "tests": 243,
+      "head": "b7dd4badc5465fe5c8112ec58e21695236733489",
+      "log": "/tmp/lines-flow-source-upload.log"
+    },
+    {
+      "name": "both real controllers one comparison GET + one mutation POST; conflicts retain second fresh read; actual PROCESS creation button",
+      "status": "PASS",
+      "tests": 14,
+      "log": "/tmp/lines-flow-single-read.log"
+    },
+    {
+      "name": "final runtime guarded build and auth postbuild",
+      "status": "PASS",
+      "head": "b7dd4badc5465fe5c8112ec58e21695236733489",
+      "log": "/tmp/lines-flow-build-upload.log"
+    },
+    {
+      "name": "exact source/inverse/negative-control lineage",
+      "status": "PASS",
+      "tests": 242,
+      "log": "/tmp/lines-flow-source-final3.log"
+    },
+    {
+      "name": "receipt/history/dialog/navigation focused final",
+      "status": "PASS",
+      "tests": 122,
+      "log": "/tmp/lines-flow-targeted-final.log"
+    },
+    {
+      "name": "final source/cache/receipt pins after native runner update",
+      "status": "PASS",
+      "tests": 71,
+      "log": "/tmp/lines-flow-final-pin-retest.log"
+    },
+    {
+      "name": "PROCESS grouped choices, distinct signed actors, deadline and actual initialization button",
+      "status": "PASS",
+      "tests": 11,
+      "log": "/tmp/lines-flow-process-conflicts-final.log"
+    },
+    {
+      "name": "25 related route/compatibility commands",
+      "status": "PASS_AFTER_TARGETED_FIXES",
+      "commands": [
+        {
+          "command": "node scripts/test-master-page-runtime.cjs",
+          "exit": 0,
+          "seconds": 6.59
+        },
+        {
+          "command": "node scripts/test-master-page-ui.cjs",
+          "exit": 0,
+          "seconds": 1.64
+        },
+        {
+          "command": "node scripts/test-process-page-lifecycle.cjs",
+          "exit": 0,
+          "seconds": 3.71
+        },
+        {
+          "command": "node scripts/test-process-page-roles.cjs",
+          "exit": 0,
+          "seconds": 2.58
+        },
+        {
+          "command": "node scripts/test-lines-flow-boundaries.cjs",
+          "exit": 0,
+          "seconds": 3.8
+        },
+        {
+          "command": "node scripts/test-master-page-review-regressions.cjs",
+          "exit": 0,
+          "seconds": 6.17
+        },
+        {
+          "command": "node scripts/test-master-page-boundary.cjs",
+          "exit": 0,
+          "seconds": 0.8
+        },
+        {
+          "command": "node scripts/test-master-page-name-save.cjs",
+          "exit": 0,
+          "seconds": 0.4
+        },
+        {
+          "command": "node scripts/test-master-public-page-authority.cjs",
+          "exit": 0,
+          "seconds": 4.34
+        },
+        {
+          "command": "node scripts/test-master-page-tools-ui.cjs",
+          "exit": 0,
+          "seconds": 3.8
+        },
+        {
+          "command": "node scripts/test-master-page-transfer.cjs",
+          "exit": 0,
+          "seconds": 0.31
+        },
+        {
+          "command": "node scripts/test-master-page-excel.cjs",
+          "exit": 0,
+          "seconds": 0.19
+        },
+        {
+          "command": "node scripts/test-master-workflow-v3.cjs",
+          "exit": 0,
+          "seconds": 1.19
+        },
+        {
+          "command": "node scripts/test-master-stage-link-v3.cjs",
+          "exit": 0,
+          "seconds": 2.27
+        },
+        {
+          "command": "node scripts/test-master-product-route-mode.cjs",
+          "exit": 0,
+          "seconds": 6.31
+        },
+        {
+          "command": "node scripts/test-master-field-guards.cjs",
+          "exit": 0,
+          "seconds": 5.59
+        },
+        {
+          "command": "node scripts/test-master-legacy-format-retention.cjs",
+          "exit": 0,
+          "seconds": 4.42
+        },
+        {
+          "command": "node scripts/test-lines-cloud-api.cjs",
+          "exit": 0,
+          "seconds": 0.89
+        },
+        {
+          "command": "node scripts/test-lines-legacy-api.cjs",
+          "exit": 0,
+          "seconds": 1.06
+        },
+        {
+          "command": "node scripts/test-process-master-name-guards.cjs",
+          "exit": 1,
+          "seconds": 5.02
+        },
+        {
+          "command": "node scripts/test-master-read-projection.cjs",
+          "exit": 1,
+          "seconds": 0.33
+        },
+        {
+          "command": "node scripts/test-master-prepared-model.cjs",
+          "exit": 0,
+          "seconds": 7.62
+        },
+        {
+          "command": "node scripts/test-master-references-prepared.cjs",
+          "exit": 0,
+          "seconds": 1.02
+        },
+        {
+          "command": "node scripts/test-master-active-catalog.cjs",
+          "exit": 0,
+          "seconds": 3.17
+        },
+        {
+          "command": "node scripts/test-unified-master-review.cjs",
+          "exit": 0,
+          "seconds": 0.13
+        }
+      ],
+      "resolved": [
+        "test-process-master-name-guards.cjs PASS 27 groups after loading actual processMasterText",
+        "test-master-read-projection.cjs PASS with checked transition and session marker ports; no original assertion removed"
+      ]
+    },
+    {
+      "name": "full lint / nonincremental TypeScript",
+      "status": "PASS"
+    },
+    {
+      "name": "guarded build, auth postbuild and source boundary",
+      "status": "PASS",
+      "log": "/tmp/lines-flow-build-final.log"
+    },
+    {
+      "name": "source-only full history and worktree preflight",
+      "status": "PASS",
+      "head": "bc3ada6e0edfe242195be3ead5dda6c3082a4a3b",
+      "commits": 735,
+      "uniqueBlobs": 6640,
+      "workingFiles": 2265,
+      "followup": "final-head preflight follows before push"
+    },
+    {
+      "name": "local native Chromium",
+      "status": "BLOCKED",
+      "reason": "Chromium process_singleton socket() EPERM before page creation; no local retry/flag workaround",
+      "remote": "same module runner plus existing compiled PROCESS runner in GitHub CI"
+    },
+    {
+      "name": "live Site, real data/cutover, physical phone, real IME, cross-machine and deployment",
+      "status": "NOT_RUN"
+    }
+  ],
+  "interpretation": "Suites overlap; counts are not combined into coverage. Original failures/logs retained; scoped fixes and final retests are separate. No live-data or backup operation.",
+  "latestMain": "a85caf5a8f14770b02481f52f96e0ec1364458d3",
+  "latestMergedRuntime": "3ad1f55",
+  "publicationAttempt": {
+    "gitPush": "not executed: no HTTPS credential",
+    "oldTree": "4690514624d345bae43cc295efa4e7f0f63fe198",
+    "createTree": "aborted, exact expected tree and branch subsequently returned 404; not resent",
+    "latestMain": "#112 merged while interrupted; semantically merged before new publication candidate",
+    "smallerObjectPlan": "verified blob SHAs, small SHA-only tree, exact tree readback, one new draft PR"
+  }
+}

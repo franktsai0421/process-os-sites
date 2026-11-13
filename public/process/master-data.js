@@ -332,9 +332,10 @@
       content.dataset.activeTab=tab;window.ProcessMasterPages.mount(content,{page:tab==='line-admin'?'LINES':tab});bindTabButtons();return;
     }
     if(tab==='line-admin'){
-      const cells=currentUser?.cells,visible=scope=>!cells||cells[(scope==='C'?'c':'ab')+'.view']===true;
-      if(!visible(state.masterScope))state.masterScope=visible('AB')?'AB':'C';
-      if(!visible(state.masterScope)){content.dataset.activeTab=tab;dataError=null;dataReady=Promise.resolve();try{approvedLinesOnly(content);}catch(error){dataError=error;content.innerHTML=`<section class="panel" data-line-permission-notice role="alert"><h3>${document.documentElement.lang==='vi'?'Chuyền và công đoạn':'線別與工段管理'}</h3><p>${document.documentElement.lang==='vi'?'Chưa xác minh được dữ liệu đã duyệt; hãy tải lại để kiểm tra.':'尚無法核對已核准資料；請重新載入確認。'}</p></section>`;}bindTabButtons();return;}
+      // The pre-cutover page cannot borrow either catalog's draft or rights.
+      content.dataset.activeTab=tab;dataError=null;dataReady=Promise.resolve();
+      try{approvedLinesOnly(content);const notice=document.createElement('p');notice.setAttribute('role','status');notice.textContent=document.documentElement.lang==='vi'?'Bản nháp độc lập chưa được chuyển đổi; chỉ xem dữ liệu đã duyệt.':'尚未完成獨立草稿資料切換；目前僅查看已核准資料。';content.prepend(notice);}catch(error){dataError=error;content.textContent=displayDraftError(error);}
+      bindTabButtons();return;
     }
     if(tab==='web-feedback'){
       content.dataset.activeTab=tab;

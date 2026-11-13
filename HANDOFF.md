@@ -1,3 +1,7 @@
+## 2026-11-13 — 線別與流程資料獨立草稿 PR 候選
+
+以原 main f0f425d 開始，已快轉至實際新 main ba31514 並保留已合併 #111；使用獨立 Dot worktree。主資料兩頁的需求、真正入口、舊資料啟用／切換與驗收分開記於[本輪對照](docs/acceptance/lines-flow-integration-20261113/README.md)。#102 真遠端已包含 body 稱本機的候選祖先，只擷取 PROCESS helper，不整包重播。未改真資料、marker、schema、ACL、備份、發布或原 PR 分支；不合併。
+
 ## 2026-11-13 — AB/C master catalog cloud candidate
 
 Independent main-f0f425d draft candidate improves explicit catalog I/O, fresh Save verification, progress and new-row visibility. Read-only pinned legacy ownership inventory; no adoption/data/backup/deployment. [Sources,21 requirements and verification limits](docs/acceptance/abc-master-integration-20261113/README.md). LINES and PROCESS remain separately owned work.

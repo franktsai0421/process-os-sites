@@ -1,3 +1,7 @@
+## 2026-11-13 — LINES／PROCESS 獨立整合候選
+
+LINES page-v1 核准不再連動產生 PROCESS 正式版；PROCESS 明確建立缺漏工段流程後自行保存／送審。未採用線別入口唯讀，不能借 AB/C 草稿。PROCESS 保存用整組衝突選擇並重比，照片組及晚到意圖選擇性回收真實 #102 遠端成果；原頁核准歷史與原操作回執保留，新歷史還原命令拒絕。主資料／製程引用驗證各頁真正核准來源。沒有 marker/data/ACL/schema 切換或部署。[需求、入口、資料缺口與驗收](../../docs/acceptance/lines-flow-integration-20261113/README.md)。
+
 2026-11-13續修：新page Save後bootstrap503已在actual route重現。effective-only讀取只為stored master page owners保留原approved active proof到companyState驗證，隨後仍剝離私有workflow；不生成baseline或變更持久schema。完整inline／records生命週期重讀、未知結果與阻擋見同一驗收紀錄。
 
 ## 2026-11-13 — A/B、C catalog cloud candidate
