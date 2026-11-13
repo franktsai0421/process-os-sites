@@ -1,0 +1,254 @@
+{
+  "base": "ba315149e7478c288d2f3af45c8668aa60070919",
+  "contracts": [
+    {
+      "file": "public/process/shared-draft-client.js",
+      "beforeHash": "7b3a7f0d424d698873ee8d84f311681cecd3259cfe7d033a5ffc8923bf65e920",
+      "beforeNormalizedHash": "7b3a7f0d424d698873ee8d84f311681cecd3259cfe7d033a5ffc8923bf65e920",
+      "afterHash": "32886b28ef01e46cf4b04b4b9f0d3b9e02047016226756c18731c0cddb43b70e",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 36543,
+          "before": "",
+          "after": "    // Only the two catalog owners opt out of fixed elapsed-time aborts. Network\n    // failures still retain the original operation and use receipt-only recovery.\n    const catalogPageBegin=pageLocalBegin&&['AB','C'].includes(beginParams.get('scope'));\n    const catalogExplicitIO=catalogPageBegin||masterLocalBegin&&!processLocalSave;\n"
+        },
+        {
+          "offset": 56966,
+          "before": "    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);\n",
+          "after": "    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||catalogPageBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);\n"
+        },
+        {
+          "offset": 117098,
+          "before": "      const controller=new AbortController(),timer=setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);\n",
+          "after": "      const controller=new AbortController(),timer=catalogExplicitIO?null:setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);\n"
+        },
+        {
+          "offset": 129056,
+          "before": "      if(!masterLocalBegin||processLocalSave||command?.action!=='save'||command.moduleAction!=='save-local-v1')return result;\n",
+          "after": "      if(!catalogExplicitIO||command?.action!=='save'||command.moduleAction!=='save-local-v1')return result;\n"
+        },
+        {
+          "offset": 129798,
+          "before": "      if(!beginRuntimeCurrent()||fresh.permissions?.view!==true||!flow||flow.generation!==r.generation||flow.revision<r.revision||flow.revision===r.revision&&(flow.saved?.id!==r.savedId||!equipmentContentEqual(flow.working,flow.saved?.content)))throw Error('SAVE_READBACK_REQUIRED');\n",
+          "after": "      if(!beginRuntimeCurrent()||fresh.permissions?.view!==true||!flow||catalogPageBegin&&flow.scope!=='master:'+beginParams.get('scope')+'.catalog'||flow.generation!==r.generation||flow.revision<r.revision||flow.revision===r.revision&&(flow.saved?.id!==r.savedId||!equipmentContentEqual(flow.working,flow.saved?.content)))throw Error('SAVE_READBACK_REQUIRED');\n"
+        }
+      ]
+    },
+    {
+      "file": "public/process/master-page-editor.js",
+      "beforeHash": "86d18cc053c713a511c5c06ef0d4bb45de88ac37dcd3704e38ecb036d6218983",
+      "beforeNormalizedHash": "86d18cc053c713a511c5c06ef0d4bb45de88ac37dcd3704e38ecb036d6218983",
+      "afterHash": "cb14e38b39d11b75ce733619df68fac5463151a7901b406916d2dff39004bded",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 1078,
+          "before": "  let container,control,permissions={},base,mine,generation,busy=false,error='',part='AB',filter='',readSequence=0,choiceDialog,pendingImportFile,importApplied=false,lineFilter='',categoryFilter='';\n",
+          "after": "  let container,control,permissions={},base,mine,generation,busy=false,error='',progress='',part='AB',filter='',readSequence=0,choiceDialog,pendingImportFile,importApplied=false,lineFilter='',categoryFilter='';\n"
+        },
+        {
+          "offset": 2779,
+          "before": "  function button(parent,label,action,enabled=true){const result=node('button',label,parent);result.type='button';result.className='button ghost';result.disabled=!enabled;result.onclick=()=>void act(action);return result;}\n  async function act(action){if(busy)return;busy=true;error='';render();try{assertOwner();history?.assertMutable();await action();}catch(failure){if(owner())error=host.sharedDraftErrorMessage?.(failure)||failure.message;}finally{busy=false;if(owner())render();}}\n",
+          "after": "  function button(parent,label,action,enabled=true){const result=node('button',label,parent);result.type='button';result.className='button ghost';result.disabled=!enabled;result.onclick=()=>void act(action,label);return result;}\n  function reportProgress(value){progress=value;const status=container?.querySelector('[data-page-progress]');if(status)status.textContent=progress;}\n  async function act(action,label=t('載入資料','Tải dữ liệu')){if(busy)return;busy=true;error='';progress=label+'…';render();try{assertOwner();history?.assertMutable();await action();}catch(failure){if(owner())error=host.sharedDraftErrorMessage?.(failure)||failure.message;}finally{busy=false;progress='';if(owner())render();}}\n"
+        },
+        {
+          "offset": 18474,
+          "before": "   button(parent,t('新增產品','Thêm sản phẩm'),()=>{mine.products.push({id:crypto.randomUUID(),code:'',name:'',category:'',line:refs[0]?.code||'',stages:[],routeMode:'exception'});},canEdit()&&permissions.create===true);\n",
+          "after": "   button(parent,t('新增產品','Thêm sản phẩm'),()=>{filter='';mine.products.push({id:crypto.randomUUID(),code:'',name:'',category:categoryFilter,line:lineFilter||refs[0]?.code||'',stages:[],routeMode:'exception'});},canEdit()&&permissions.create===true);\n"
+        },
+        {
+          "offset": 18991,
+          "before": "   for(const group of mine.categoryGroups){const row=node('tr',undefined,groups);let previous=group.name;const name=field(row,t('類別名稱','Tên nhóm'),group,'name');name.oninput=()=>{if(!canEdit()||!owner())return;const next=name.value;for(const product of mine.products)if(product.line===group.line&&product.category===previous)product.category=next;group.name=next;if(categoryFilter===previous)categoryFilter=next;previous=next;showDirty();};\n",
+          "after": "   for(const group of mine.categoryGroups){const row=node('tr',undefined,groups);let previous=group.name;const name=field(row,t('類別名稱','Tên nhóm'),group,'name');name.oninput=()=>{if(!canEdit()||!owner())return;const next=name.value;for(const product of mine.products)if(product.line===group.line&&product.category===previous)product.category=next;group.name=next;if(categoryFilter&&categoryFilter===previous)categoryFilter=next;previous=next;showDirty();};\n"
+        },
+        {
+          "offset": 24279,
+          "before": "    const fresh=await client.read();assertOwner();if(JSON.stringify(mine)!==original)throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');\n",
+          "after": "    reportProgress(t('正在核對最新草稿…','Đang kiểm tra bản nháp mới nhất…'));const fresh=await client.read();assertOwner();if(JSON.stringify(mine)!==original)throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');\n"
+        },
+        {
+          "offset": 25758,
+          "before": "    const result=await client.sendPrepared(command);assertOwner();adopt(result,true);return;\n",
+          "after": "    reportProgress(t('正在存取並核對結果，請稍候…','Đang lưu và xác minh kết quả, vui lòng chờ…'));const result=await client.sendPrepared(command);assertOwner();adopt(result,true);return;\n"
+        },
+        {
+          "offset": 27370,
+          "before": "   if(!container||!container.isConnected||!owner()||container.dataset.activeTab!==(page==='LINES'?'line-admin':page))return;if(history?.historical())return;container.replaceChildren();container.dataset.masterPage=page;\n   const panel=node('section',undefined,container);panel.className='panel';node('h2',page==='LINES'?t('線別與工段管理','Chuyền và công đoạn'):page+t(' 產線與類別',' · Sản phẩm và nhóm'),panel);\n   const status=node('p','',panel);status.dataset.pageDirty='';showDirty();if(error){const message=node('p',error,panel);message.setAttribute('role','alert');}\n",
+          "after": "   if(!container||!container.isConnected||!owner()||container.dataset.activeTab!==(page==='LINES'?'line-admin':page))return;if(history?.historical())return;container.replaceChildren();container.dataset.masterPage=page;container.setAttribute('aria-busy',String(busy));\n   const panel=node('section',undefined,container);panel.className='panel';panel.dataset.i18nSkip='true';node('h2',page==='LINES'?t('線別與工段管理','Chuyền và công đoạn'):page+t(' 產線與類別',' · Sản phẩm và nhóm'),panel);\n   const status=node('p','',panel);status.dataset.pageDirty='';showDirty();const activity=node('p',progress,panel);activity.dataset.pageProgress='';activity.setAttribute('role','status');activity.setAttribute('aria-live','polite');if(error){const message=node('p',error,panel);message.setAttribute('role','alert');}\n"
+        },
+        {
+          "offset": 29357,
+          "before": "   if(!control){node('p',t('載入中…','Đang tải…'),panel);return;}\n",
+          "after": "   if(!control){if(error)button(panel,t('重試讀取','Thử tải lại'),()=>read(true),!busy);else node('p',t('載入中…','Đang tải…'),panel);return;}\n"
+        },
+        {
+          "offset": 30905,
+          "before": "  return {owner,departure,busy:()=>busy,deactivate(){history?.retire();container=null;if(!client.hasUnknown()&&!busy){control=undefined;base=undefined;mine=undefined;generation=undefined;}},mount(element){container=element;render();if(!control||!dirty()&&!busy)void act(()=>read(true));},dirty,save:()=>act(save),reset(){history?.retire();container=null;},inspect:()=>({base:copy(base),mine:copy(mine),generation,pendingImportFile,importApplied,error,permissions})};\n",
+          "after": "  return {owner,departure,relabel(){if(!busy&&!choiceDialog)render();},busy:()=>busy,deactivate(){history?.retire();container=null;if(!client.hasUnknown()&&!busy){control=undefined;base=undefined;mine=undefined;generation=undefined;}},mount(element){container=element;render();if(!control||!dirty()&&!busy)void act(()=>read(true));},dirty,save:()=>act(save),reset(){history?.retire();container=null;},inspect:()=>({base:copy(base),mine:copy(mine),generation,pendingImportFile,importApplied,error,permissions})};\n"
+        },
+        {
+          "offset": 31420,
+          "before": "",
+          "after": " host.addEventListener('process-language-change',()=>instances.get(activePage)?.relabel());\n"
+        }
+      ]
+    },
+    {
+      "file": "public/process/index.html",
+      "beforeHash": "eca85f506d3043eb7f3c376260766990a1a9a5903d09f3f1f4b9eb6c47347d67",
+      "beforeNormalizedHash": "eca85f506d3043eb7f3c376260766990a1a9a5903d09f3f1f4b9eb6c47347d67",
+      "afterHash": "d4a924bcbd5cc94ed3b0c351e53e5b26a98940e79b2e8418d7ecd10baa28ce75",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 6898,
+          "before": "    <script data-process-src=\"shared-draft-client.js?v=20261113-equipment-submit1\"></script>\n",
+          "after": "    <script data-process-src=\"shared-draft-client.js?v=20261113-abc-master1\"></script>\n"
+        },
+        {
+          "offset": 7721,
+          "before": "    <script data-process-src=\"master-page-editor.js?v=20261110-account-pages1\"></script>\n",
+          "after": "    <script data-process-src=\"master-page-editor.js?v=20261113-abc-master2\"></script>\n"
+        }
+      ]
+    },
+    {
+      "file": "tests/account-page-entry.test.cjs",
+      "beforeHash": "f04a81650d1b3d12365939f6a88340aaaa920243db99b037874fe21e8e5acd9b",
+      "beforeNormalizedHash": "f04a81650d1b3d12365939f6a88340aaaa920243db99b037874fe21e8e5acd9b",
+      "afterHash": "3e49068bb7b725fd8c1db348c0dd20f7aa187e9a924d1b145bd3db9f60ee6058",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 454,
+          "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-equipment-submit1','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
+          "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-abc-master1','master-page-editor.js':'20261113-abc-master2','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+        }
+      ]
+    },
+    {
+      "file": "tests/navigation-adapters.test.mjs",
+      "beforeHash": "a8dc36ab460d6f449d208ee027268eefcd4fcd99c0d4f1f52f3867b3519bd98b",
+      "beforeNormalizedHash": "a8dc36ab460d6f449d208ee027268eefcd4fcd99c0d4f1f52f3867b3519bd98b",
+      "afterHash": "0652812d5f9e967868acc7cd7721bc144151cc7a1903997d7b721353a89d879c",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 17441,
+          "before": "  'shared-draft-client.js':'20261113-equipment-submit1',\n",
+          "after": "  'shared-draft-client.js':'20261113-abc-master1',\n"
+        }
+      ]
+    },
+    {
+      "file": "tests/shared-draft-receipt-recovery.test.mjs",
+      "beforeHash": "3c6efeb0c9e8f01d1f665e3fcd686ab94613eb580b8ae9b29f1d1348a21db860",
+      "beforeNormalizedHash": "3c6efeb0c9e8f01d1f665e3fcd686ab94613eb580b8ae9b29f1d1348a21db860",
+      "afterHash": "beb565f8f28a6cb3374272bdd60c88742afc6f01abec44a10f4b1054ead6b521",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 14735,
+          "before": "  'master-page-editor.js':'20261110-account-pages1',\n",
+          "after": "  'master-page-editor.js':'20261113-abc-master2',\n"
+        },
+        {
+          "offset": 14841,
+          "before": "  'shared-draft-client.js':'20261113-equipment-submit1',\n",
+          "after": "  'shared-draft-client.js':'20261113-abc-master1',\n"
+        }
+      ]
+    },
+    {
+      "file": "tests/master-page-approved-history-ui-fixture.mjs",
+      "beforeHash": "f1c7d5c1bc4bc241efa3842314d1c055fa26cdd2cd88e287396b5374f9efcabf",
+      "beforeNormalizedHash": "f1c7d5c1bc4bc241efa3842314d1c055fa26cdd2cd88e287396b5374f9efcabf",
+      "afterHash": "437e5c48c52b40a7f522efaf49aa15b9e47a605e02547af7fec43a0716fdfa50",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 628,
+          "before": "export async function setup(t,page,{lang='zh',intercept}={}){\n",
+          "after": "export async function setup(t,page,{lang='zh',intercept,configure}={}){\n"
+        },
+        {
+          "offset": 3360,
+          "before": " vm.createContext(c);for(const file of ['shared-draft-client','version-draft-ui','canvas-approved-history','page-draft-merge','master-page-approved-history','master-page-editor'])vm.runInContext(fs.readFileSync('public/process/'+file+'.js','utf8'),c,{filename:file+'.js'});\n",
+          "after": " configure?.(c);vm.createContext(c);for(const file of ['shared-draft-client','version-draft-ui','canvas-approved-history','page-draft-merge','master-admin-ui','master-page-transfer','master-page-approved-history','master-page-editor'])vm.runInContext(fs.readFileSync('public/process/'+file+'.js','utf8'),c,{filename:file+'.js'});\n"
+        }
+      ]
+    },
+    {
+      "file": "lib/effective-delivery.mjs",
+      "beforeHash": "cb4169a3f0eff51e415decc1c50c13177026a853234e46475f84cbca977e202d",
+      "beforeNormalizedHash": "cb4169a3f0eff51e415decc1c50c13177026a853234e46475f84cbca977e202d",
+      "afterHash": "799302cfe632602d2b681667ab30c84b66873578509909b8941a2d02d52c2ee3",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 404,
+          "before": "export function effectiveDeliveryValue(value){\n",
+          "after": "export function effectiveDeliveryValue(value,ownerKey){\n"
+        },
+        {
+          "offset": 1227,
+          "before": "      if(key==='workflowScopes'){next.workflowScopes=object(child)?Object.fromEntries(Object.keys(child).map(scope=>[scope,{}])):{};continue;}\n",
+          "after": "      if(key==='workflowScopes'){\n        // Only this trusted stored master layout needs the original approved\n        // owner proof until companyState validates it. Retain no working body,\n        // saves, cases or receipts; never synthesize proof from active mirrors.\n        const pageOwners=ownerKey==='masterDataControl'&&current===value&&current.pageDraftLayout==='page-v1';\n        next.workflowScopes=object(child)?Object.fromEntries(Object.entries(child).map(([scope,flow])=>[scope,\n          pageOwners&&['AB.catalog','C.catalog','LINES'].includes(scope)&&object(flow)&&object(flow.active)\n            ?{active:Object.fromEntries(['id','content'].filter(key=>Object.hasOwn(flow.active,key)).map(key=>[key,visit(flow.active[key])]))}:{}])):{};\n        continue;\n      }\n"
+        },
+        {
+          "offset": 2230,
+          "before": "  return Object.fromEntries(Object.entries(values).map(([key,raw])=>[key,JSON.stringify(effectiveDeliveryValue(JSON.parse(raw)))]));\n",
+          "after": "  return Object.fromEntries(Object.entries(values).map(([key,raw])=>[key,JSON.stringify(effectiveDeliveryValue(JSON.parse(raw),key))]));\n"
+        }
+      ]
+    },
+    {
+      "file": "lib/state-records.ts",
+      "beforeHash": "0d111073ed0b4d512ec8d0e91e86552fc5b6ee8d6a03141a54a0eb8ac2fb0e9f",
+      "beforeNormalizedHash": "0d111073ed0b4d512ec8d0e91e86552fc5b6ee8d6a03141a54a0eb8ac2fb0e9f",
+      "afterHash": "9021ff077ea60b58382d93380f8080f7ea59fbf7e3d9d464b4069b5d672a55a7",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 22408,
+          "before": "  else values[key]=options.effectiveOnly?JSON.stringify(await visit(effectiveDeliveryValue(JSON.parse(raw)))):raw.includes('\"__immutableBody\"')?JSON.stringify(await visit(JSON.parse(raw))):raw;\n",
+          "after": "  else values[key]=options.effectiveOnly?JSON.stringify(await visit(effectiveDeliveryValue(JSON.parse(raw),key))):raw.includes('\"__immutableBody\"')?JSON.stringify(await visit(JSON.parse(raw))):raw;\n"
+        }
+      ]
+    },
+    {
+      "file": "AI_CONTEXT/CHANGELOG.md",
+      "beforeHash": "f95ea02ac13c95629bb4faeea7d0e3bcb31628530ef87102fe5d5e9a06716d53",
+      "beforeNormalizedHash": "f95ea02ac13c95629bb4faeea7d0e3bcb31628530ef87102fe5d5e9a06716d53",
+      "afterHash": "941c59afbd600184af08b8b4a399cc8d79d73995d90dc755aa33275cef46e607",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-13 — AB/C主資料雲端草稿候選\n\n修正明確Save的慢處理進度、結果重讀、類別篩選／中越文切換，以及page-v1 Save後bootstrap503；原核准來源proof驗證與私有草稿分界保留。只增加固定來源的read-only舊資料歸屬盤點，未切換真資料或部署。[來源、21項與驗證界線](../docs/acceptance/abc-master-integration-20261113/README.md)。\n\n"
+        }
+      ]
+    },
+    {
+      "file": "scripts/entry-performance/identity-prefetch.test.cjs",
+      "beforeHash": "316e217a31f35ee70f33bdbf8396f6d25d7a878fdf79fe123699ce2ecfc97655",
+      "beforeNormalizedHash": "316e217a31f35ee70f33bdbf8396f6d25d7a878fdf79fe123699ce2ecfc97655",
+      "afterHash": "1e2743f90a7d2cd209e1bfed715080ef0bcc102d8d8c5f20b279589ec915c3f9",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 200,
+          "before": "const {createHash,webcrypto}=require('node:crypto'),{createRequire}=require('node:module');\n",
+          "after": "const {createHash,webcrypto}=require('node:crypto'),{createRequire}=require('node:module'),{Buffer}=require('node:buffer');\n"
+        },
+        {
+          "offset": 1425,
+          "before": "let identitySource=candidateSource;\n",
+          "after": "// Project only this exact approved catalog successor for historical comparison.\n// Execute the complete current candidate below; retain every original pin.\nlet identitySource=require('../abc-master-source-contract.cjs').projectKnown(Buffer.from(candidateSource),'lib/state-records.ts').toString().replace(/\\r\\n/g,'\\n');\n"
+        }
+      ]
+    }
+  ]
+}
