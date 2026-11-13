@@ -239,5 +239,30 @@
     "cacheTag": "20261113-lines-flow4",
     "finalRemoteHeadAndCI": "See PR #115 final evidence; earlier head PASS is not final-head acceptance",
     "formatFollowup": "Only one mixed CRLF continuation normalized; complete LF-normalized runtime bytes unchanged."
+  },
+  "masterDeadlineTestFollowup": {
+    "status": "PASS_LOCAL_PENDING_FINAL_CI",
+    "runtimeUnchangedFrom": "20ca6c2e3c2ad64c4a27e7fed0f474f564c133cd",
+    "file": "tests/fqc-apply-reliability.test.mjs",
+    "passed": 47,
+    "log": "/tmp/lines-flow-fqc-deadline-fix.log",
+    "changes": [
+      "bounded PROCESS expected deadline 15000 -> required 45000",
+      "add default PROCESS and independent LINES exact 45000 cases"
+    ],
+    "preserved": [
+      "generic FQC and similar path remain 15000",
+      "FQC and IQC remain bounded 45000",
+      "no receipt before exact deadline",
+      "one original POST and one receipt GET",
+      "RESULT_UNKNOWN and original unknown marker retained"
+    ],
+    "previousWideCI": {
+      "run": 43491157259,
+      "passed": 1136,
+      "failed": 1,
+      "reason": "outdated PROCESS 15s expectation"
+    },
+    "finalCI": "See final PR #115 evidence"
   }
 }

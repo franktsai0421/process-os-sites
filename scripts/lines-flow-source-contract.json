@@ -796,6 +796,21 @@
         }
       ]
     },
+    "tests/fqc-apply-reliability.test.mjs": {
+      "afterHash": "6b20af2bfdaff291200cd920f2da5b4646ba03dd582026117ee69cdb28cced16",
+      "afterLength": 27572,
+      "beforeHash": "98bf8b51338a5bceea7f0a20bcaa05fc3a8edc53a12f53fe11c0c24324c3ed27",
+      "beforeNormalizedHash": "98bf8b51338a5bceea7f0a20bcaa05fc3a8edc53a12f53fe11c0c24324c3ed27",
+      "beforeBlob": "a66541d2325a6ff5d3706f62d30da81e2d319028",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 23939,
+          "before": " ['bounded PROCESS','/api/master/workflow?scope=PROCESS&caseMetadata=1','PROCESS',15000],\n",
+          "after": " ['bounded PROCESS','/api/master/workflow?scope=PROCESS&caseMetadata=1','PROCESS',45000],\n ['generic PROCESS','/api/master/workflow?scope=PROCESS&caseMetadata=1',null,45000],\n ['independent LINES','/api/master/pages?scope=LINES',null,45000],\n"
+        }
+      ]
+    },
     "tests/navigation-adapters.test.mjs": {
       "afterHash": "d7e5f6cfb6f2cd2bd3e29fff071b9cb9d4abd1a3dd90bb39e9ae1e9dfa9d0b9c",
       "afterLength": 21611,

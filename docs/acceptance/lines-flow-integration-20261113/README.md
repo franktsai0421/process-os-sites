@@ -94,3 +94,5 @@ Git HTTPS push 因雲端沒有登入憑證而未執行。其後單筆大型 GitH
 目前資產版本進一步更新為 `20261113-lines-flow4`，對應上述 approved refresh 修正。另以實際 LINES 按鈕 → signed API → 真 `createMasterSharedBridge.load('LINES')` → production `applyActive` 整合測試，確認已核准畫布 routing 更新，產品從已授權 runtime 保留，不生 PROCESS、不多送操作；四項 controller 驗收通過。
 
 共同候選風險：#113／#114／#115 同改 `abc-master-source-contract.cjs` 的 `restore`／`projectKnown`、index 和導航／cache 斷言；#114／#115 同改 `shared-draft-client.js`。本 PR 未搬入兩個未合併候選。各自全綠不能證明三者相容，共同候選須保留三套 source proof 和負例、核對組合順序與完整真實前身，再跑實際合樹回歸；不能覆蓋任一組或降低 hash 門檻。
+
+最終 runtime `20ca6c2` 的 FQC/IQC 廣域回歸 1,137 項中 1,136 通過，唯一失敗是舊測試仍要求 PROCESS 15 秒；本輪 master transport 已依需求採用有界 45 秒。精確期望修正為 45 秒，另測 generic PROCESS 與獨立 LINES 預設路徑；15 秒 generic FQC／similar path、45 秒 FQC／IQC、deadline 前零讀回、截止後只查一個原收據、單次 POST 和 UNKNOWN 斷言全部保留。此後修正僅測試與證據，不改 runtime。
