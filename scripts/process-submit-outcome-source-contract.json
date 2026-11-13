@@ -1,0 +1,154 @@
+{
+  "base": "2434507ca8ef460b0c727d6d0c2b23345b86310b",
+  "baseTree": "388efda8de6c4f34daac4b24c35aec038f72cfee",
+  "files": {
+    "public/process/shared-draft-client.js": {
+      "beforeBlob": "377aa8448b1b10128b7c7b74f24738ef69cc0086",
+      "beforeHash": "d9e7d8ec3eac218b804dd60440c496f52b795243759293f74750c4b4cf21f750",
+      "afterHash": "7ebdadae59952ccea5aa55693b154c604d3e4039fd1664c49c951c63b30e51e4",
+      "beforeLength": 197771,
+      "afterLength": 198253,
+      "rules": [
+        {
+          "offset": 566,
+          "before": "",
+          "after": "      NO_SUBSTANTIVE_CHANGE:['本次未送審：已儲存內容相對正式版沒有實質變更。草稿仍保留；請修改並存取草稿後再送審。撤回或發回的原快照可依規則再次送審。','Chưa gửi duyệt: nội dung đã lưu không có thay đổi thực chất so với bản có hiệu lực. Bản nháp vẫn được giữ; hãy sửa và lưu rồi gửi duyệt. Có thể gửi lại bản chụp đã rút hoặc trả về theo quy tắc.'],\n"
+        }
+      ]
+    },
+    "public/process/process-authoring-v3.js": {
+      "beforeBlob": "d321ad44af341a6d46f93a77d7a0f1b3f4cdc2b5",
+      "beforeHash": "7937b3668e0266a98aa2ce7378ea4270f407afbc9ff2a1abfd9b91e993dd50c9",
+      "afterHash": "4ffbeea3c0b39b6760aa778b09a0439ff913f3dda2f56bd825195a2f0e9dac08",
+      "beforeLength": 95293,
+      "afterLength": 95737,
+      "rules": [
+        {
+          "offset": 11796,
+          "before": " function error(e){loadError=e.message||'SYNC_FAILED';loadIssues=Array.isArray(e.details?.issues)?e.details.issues:[];validationSavedId=loadIssues.length?flow()?.saved?.id:null;lastError={requestId:e.requestId,operationId:e.operationId};toast(displayDraftError(loadError));panel();}\n",
+          "after": " function error(e){loadError=e.message||'SYNC_FAILED';loadIssues=Array.isArray(e.details?.issues)?e.details.issues:[];validationSavedId=loadIssues.length?flow()?.saved?.id:null;lastError={requestId:e.requestId,operationId:e.operationId,status:e.status};toast(displayDraftError(loadError));panel();}\n"
+        },
+        {
+          "offset": 14155,
+          "before": " function recoveryKind(){if(client().hasUnknownBegin?.())return t('查操作收據（唯讀）','Kiểm tra biên nhận (chỉ đọc)');if(ownedLedger?.hasRevertRecovery?.())return t('核對放棄結果（唯讀）','Kiểm tra kết quả bỏ thay đổi (chỉ đọc)');if(submitStateUnconfirmed&&!client().hasUnknown())return '';if(client().hasUnknown()&&!admittedCommandPending())return t('查操作收據／確認重試','Kiểm tra biên nhận / xác nhận thử lại');if(localFailure)return t('重新套用未同步內容','Áp dụng lại nội dung chưa đồng bộ');if(beginRecovery)return t('重新確認操作權限','Kiểm tra lại quyền thao tác');if(inspectionFailed())return t('重試內容檢查','Thử kiểm tra nội dung lại');if(loadError)return t('重新讀取狀態','Đọc lại trạng thái');return '';}\n",
+          "after": " function recoveryKind(){if(client().hasUnknownBegin?.())return t('查操作收據（唯讀）','Kiểm tra biên nhận (chỉ đọc)');if(ownedLedger?.hasRevertRecovery?.())return t('核對放棄結果（唯讀）','Kiểm tra kết quả bỏ thay đổi (chỉ đọc)');if(submitStateUnconfirmed&&!client().hasUnknown())return '';if(client().hasUnknown()&&!admittedCommandPending())return t('查原操作收據（唯讀）','Kiểm tra biên nhận gốc (chỉ đọc)');if(localFailure)return t('重新套用未同步內容','Áp dụng lại nội dung chưa đồng bộ');if(beginRecovery)return t('重新確認操作權限','Kiểm tra lại quyền thao tác');if(inspectionFailed())return t('重試內容檢查','Thử kiểm tra nội dung lại');if(loadError)return t('重新讀取狀態','Đọc lại trạng thái');return '';}\n"
+        },
+        {
+          "offset": 72479,
+          "before": "    if(name==='retry'){if(ownedLedger?.hasRevertRecovery?.()){await recoverDiscardResult();return;}if(client().hasUnknown()){const c=client(),recoveringBegin=c.hasUnknownBegin?.()===true,owner=identityStamp();let recovered;try{recovered=await trackedRecovery(c,'resolveUnknown');}catch(e){if(recoveringBegin||e.status!==404)throw e;if(!confirm(t('以同一操作編號重試？','Thử lại với cùng mã thao tác?')))return;await trackedRecovery(client(),'retryUnknown');}if(recoveringBegin){if(c!==transport||!sameStamp(owner,identityStamp()))throw Error('DELIVERY_SUPERSEDED');if(recovered.receipt.generation!==recovered.control?.workflow?.generation)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');adopt(recovered,false,true);loadedStamp=owner;loadError='';panel();return;}localFailure=client().hasSyncFailures();loadError=localFailure?'SYNC_FAILED_RETRY_REQUIRED':'';await load();panel();}else if(localFailure)await sync();else if(beginRecovery)await retryBeginAuthority();else if(inspectionFailed()){inspectLater(true);panel();}else await load();return;}\n",
+          "after": "    if(name==='retry'){if(ownedLedger?.hasRevertRecovery?.()){await recoverDiscardResult();return;}if(client().hasUnknown()){const c=client(),recoveringBegin=c.hasUnknownBegin?.()===true,owner=identityStamp();const recovered=await trackedRecovery(c,'resolveUnknown');if(recoveringBegin){if(c!==transport||!sameStamp(owner,identityStamp()))throw Error('DELIVERY_SUPERSEDED');if(recovered.receipt.generation!==recovered.control?.workflow?.generation)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');adopt(recovered,false,true);loadedStamp=owner;loadError='';panel();return;}localFailure=client().hasSyncFailures();loadError=localFailure?'SYNC_FAILED_RETRY_REQUIRED':'';await load();panel();}else if(localFailure)await sync();else if(beginRecovery)await retryBeginAuthority();else if(inspectionFailed()){inspectLater(true);panel();}else await load();return;}\n"
+        },
+        {
+          "offset": 74562,
+          "before": "",
+          "after": "  // A settled rejection/read failure is an operation notice, not an unknown write.\n  // The transport alone owns unknown/failed state and its original receipt lock.\n  const syncFailed=localFailure||client().hasSyncFailures()||client().hasUnknown()&&!admittedCommandPending()||!!submitStateUnconfirmed||['RESULT_UNKNOWN_CHECK_BEFORE_RETRY','PREVIOUS_OPERATION_UNKNOWN','RECOVERY_RECORD_INVALID'].includes(loadError);\n  const syncNotice=!busy&&!syncFailed&&loadError?(lastError?.status>=400&&lastError.status<500?t('本次操作遭拒；草稿仍保留','Thao tác bị từ chối; bản nháp vẫn được giữ'):t('操作／讀取未完成；請核對提示','Thao tác / đọc chưa hoàn tất; hãy kiểm tra thông báo')):'';\n"
+        },
+        {
+          "offset": 75667,
+          "before": "   host.VersionDraftUI.mount(target,{header:'.av3-header',historyClient,mountApprovedHistory:mountCanvasHistory,module:t('製程編輯台','Trình chỉnh sửa quy trình'),scope:t('整個製程平台','Toàn bộ nền tảng quy trình'),version:selected,versions:control?.versions,active:effective,flow:f,busy,localUnsaved:localUnsaved,failed:!!loadError||localFailure||client().hasUnknown()&&!admittedCommandPending(),actions:{begin:'[data-av3=\"begin\"]',save:'[data-av3=\"save\"]',submit:'[data-av3=\"submit\"]',withdraw:'[data-av3=\"withdraw\"]'},review:()=>{if(host.ProcessDeliveryNavigation?.approval){void host.ProcessDeliveryNavigation.approval('process');return;}state.approvalTab='process';navigate('approval');const url=new URL(location.href);url.searchParams.set('view','approval');url.searchParams.set('approvalTab','process');url.searchParams.delete('dataTab');history.replaceState(history.state,'',url);void load();},errors:'[data-authoring-issue-kind=\"error\"]',missing:'[data-authoring-issue-kind=\"missing\"]',history:['[data-av3=\"history\"]'],status:['#authoring-live-status']});\n",
+          "after": "   host.VersionDraftUI.mount(target,{header:'.av3-header',historyClient,mountApprovedHistory:mountCanvasHistory,module:t('製程編輯台','Trình chỉnh sửa quy trình'),scope:t('整個製程平台','Toàn bộ nền tảng quy trình'),version:selected,versions:control?.versions,active:effective,flow:f,busy,localUnsaved:localUnsaved,failed:syncFailed,syncNotice,actions:{begin:'[data-av3=\"begin\"]',save:'[data-av3=\"save\"]',submit:'[data-av3=\"submit\"]',withdraw:'[data-av3=\"withdraw\"]'},review:()=>{if(host.ProcessDeliveryNavigation?.approval){void host.ProcessDeliveryNavigation.approval('process');return;}state.approvalTab='process';navigate('approval');const url=new URL(location.href);url.searchParams.set('view','approval');url.searchParams.set('approvalTab','process');url.searchParams.delete('dataTab');history.replaceState(history.state,'',url);void load();},errors:'[data-authoring-issue-kind=\"error\"]',missing:'[data-authoring-issue-kind=\"missing\"]',history:['[data-av3=\"history\"]'],status:['#authoring-live-status']});\n"
+        },
+        {
+          "offset": 77179,
+          "before": "  host.VersionDraftUI.updateSync(target,busy,!!loadError||localFailure||client().hasUnknown()&&!admittedCommandPending());\n",
+          "after": "  host.VersionDraftUI.updateSync(target,busy,syncFailed,localUnsaved,syncNotice);\n"
+        }
+      ]
+    },
+    "public/process/version-draft-ui.js": {
+      "beforeBlob": "b806d0df3295ecf131a2654749ce0c8fba053a55",
+      "beforeHash": "6b68f1ce246d8bf031467501bfb8fa5d301372ac82a8eb4705ab8ec1e4e1b0be",
+      "afterHash": "7202a92286949203ad74ac2170e53bfba0d937b1de08486a38b4928415f9b757",
+      "beforeLength": 68676,
+      "afterLength": 68742,
+      "rules": [
+        {
+          "offset": 29977,
+          "before": "    const meta=create('div','vd-meta');meta.innerHTML=`<span>${t('active')}：${number(model.active)}</span><span data-vd-saver>${t('savedBy')}：${h(savedStamp(saver===t('unknown')?null:saver,at))}</span><span data-vd-sync>${t('sync')}：${model.failed?t(model.rejected?'rejected':'failed'):model.busy?t('syncing'):model.localUnsaved?t('localOnly'):flow?t(model.masterScope?'draftSynced':'synced'):t('unknown')}</span><span data-vd-saved>${t('saveState')}：${flow&&v?.status==='draft'?(!model.localUnsaved&&JSON.stringify(saved?.content??flow.active?.content)===JSON.stringify(flow.working)?t(saved?'saved':'unchanged'):t(model.masterScope?'draftUnsaved':'unsaved')):saved||saveEvent?t('saved'):t('unknown')}</span>`;\n",
+          "after": "    const meta=create('div','vd-meta');meta.innerHTML=`<span>${t('active')}：${number(model.active)}</span><span data-vd-saver>${t('savedBy')}：${h(savedStamp(saver===t('unknown')?null:saver,at))}</span><span data-vd-sync>${t('sync')}：${model.failed?t(model.rejected?'rejected':'failed'):model.busy?t('syncing'):model.syncNotice?h(model.syncNotice):model.localUnsaved?t('localOnly'):flow?t(model.masterScope?'draftSynced':'synced'):t('unknown')}</span><span data-vd-saved>${t('saveState')}：${flow&&v?.status==='draft'?(!model.localUnsaved&&JSON.stringify(saved?.content??flow.active?.content)===JSON.stringify(flow.working)?t(saved?'saved':'unchanged'):t(model.masterScope?'draftUnsaved':'unsaved')):saved||saveEvent?t('saved'):t('unknown')}</span>`;\n"
+        },
+        {
+          "offset": 46223,
+          "before": "  const updateSync=(root,busy,failed,localUnsaved=false)=>{const node=root?.querySelector('[data-vd-sync]');if(node)node.textContent=t('sync')+'：'+(failed?t('failed'):busy?t('syncing'):localUnsaved?t('localOnly'):t(node.closest('[data-vd-master-scope]')?'draftSynced':'synced'));};\n",
+          "after": "  const updateSync=(root,busy,failed,localUnsaved=false,syncNotice='')=>{const node=root?.querySelector('[data-vd-sync]');if(node)node.textContent=t('sync')+'：'+(failed?t('failed'):busy?t('syncing'):syncNotice|| (localUnsaved?t('localOnly'):t(node.closest('[data-vd-master-scope]')?'draftSynced':'synced')));};\n"
+        }
+      ]
+    },
+    "public/process/index.html": {
+      "beforeBlob": "7a264c33e2c313d8c603236336ba67634650c1c0",
+      "beforeHash": "b5e57f0977ac29935f027c85330d3ebf531bcfed13cccb841a6ee4e2b00947a6",
+      "afterHash": "b3f582656652354cd2fb7f1d742cc431b0323f23423f5ec1899f796632ad0f3b",
+      "beforeLength": 11529,
+      "afterLength": 11516,
+      "rules": [
+        {
+          "offset": 6898,
+          "before": "    <script data-process-src=\"shared-draft-client.js?v=20261112-quality-main-joint1\"></script>\n",
+          "after": "    <script data-process-src=\"shared-draft-client.js?v=20261113-submit-outcome1\"></script>\n"
+        },
+        {
+          "offset": 7266,
+          "before": "    <script data-process-src=\"version-draft-ui.js?v=20261112-quality-main-joint1\"></script>\n",
+          "after": "    <script data-process-src=\"version-draft-ui.js?v=20261113-submit-outcome1\"></script>\n"
+        },
+        {
+          "offset": 9012,
+          "before": "    <script data-process-src=\"process-authoring-v3.js?v=20261110-process-integration4\"></script>\n",
+          "after": "    <script data-process-src=\"process-authoring-v3.js?v=20261113-submit-outcome1\"></script>\n"
+        }
+      ]
+    },
+    "tests/canvas-approved-history-fixture.mjs": {
+      "beforeBlob": "16cf3d3977ed4e6eec5cb55f1a42f52bed302503",
+      "beforeHash": "3e7b59bdcb24a441cbf60769ff6a96d8699f71a3125c64c0db6f470b834bedf3",
+      "afterHash": "e1815427e2304be3b2065a6b2e0ba604d86a5d6b6bd32a75346fd190143eb1a8",
+      "beforeLength": 7527,
+      "afterLength": 7534,
+      "rules": [
+        {
+          "offset": 6989,
+          "before": " return{f,box,doc,root,calls,local,session,api,canvas:box.ProcessCanvasLocal,select:()=>doc.querySelector('#canvas-approved-version'),display:()=>doc.querySelector('[data-vd-approved-view]'),async open(){await this.select().onfocus();},async choose(id){const select=this.select();select.value=id;await select.onchange();},rotate:()=>epoch++,delivery:()=>delivery++,async get(extra){return route.GET(new Request('https://fixture.invalid/api/process-authoring/workflow?approvedOnly=1&'+extra,{headers:f.headers}));},close:()=>f.close()};\n",
+          "after": " return{f,box,doc,root,calls,local,session,api,timers,canvas:box.ProcessCanvasLocal,select:()=>doc.querySelector('#canvas-approved-version'),display:()=>doc.querySelector('[data-vd-approved-view]'),async open(){await this.select().onfocus();},async choose(id){const select=this.select();select.value=id;await select.onchange();},rotate:()=>epoch++,delivery:()=>delivery++,async get(extra){return route.GET(new Request('https://fixture.invalid/api/process-authoring/workflow?approvedOnly=1&'+extra,{headers:f.headers}));},close:()=>f.close()};\n"
+        }
+      ]
+    },
+    "tests/navigation-adapters.test.mjs": {
+      "beforeBlob": "e660711d2da187019c64d2294e80821de66bb5da",
+      "beforeHash": "b7caa79acbde452042792d5ad7bd6500565f15ad728a9f8c3a8e3986df7becb1",
+      "afterHash": "9862aa6d8d9f3869561880d5952c2f63b5971baedb4beaa1222ad1a18fc2297f",
+      "beforeLength": 21539,
+      "afterLength": 21526,
+      "rules": [
+        {
+          "offset": 17148,
+          "before": "  'process-authoring-v3.js':'20261110-process-integration4',\n",
+          "after": "  'process-authoring-v3.js':'20261113-submit-outcome1',\n"
+        },
+        {
+          "offset": 17437,
+          "before": "  'shared-draft-client.js':'20261112-quality-main-joint1',\n",
+          "after": "  'shared-draft-client.js':'20261113-submit-outcome1',\n"
+        },
+        {
+          "offset": 18094,
+          "before": "  'version-draft-ui.js':'20261112-quality-main-joint1',\n",
+          "after": "  'version-draft-ui.js':'20261113-submit-outcome1',\n"
+        }
+      ]
+    },
+    "tests/account-page-entry.test.cjs": {
+      "beforeBlob": "409503be1643a060e8e02ae757dbcdd8d26ef0b1",
+      "beforeHash": "4d9012abc04cd9e1e2897a95d4abcf402e21b07aecc3e98f7a1db8f9d6fadddd",
+      "afterHash": "52bd291a8a1de07baddb6c91b73acc506a3dc8549ea92e92a4cda9762deff112",
+      "beforeLength": 2948,
+      "afterLength": 2940,
+      "rules": [
+        {
+          "offset": 454,
+          "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261112-quality-main-joint1','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261112-quality-main-joint1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
+          "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-submit-outcome1','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+        }
+      ]
+    }
+  }
+}

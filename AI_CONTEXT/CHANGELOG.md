@@ -1,3 +1,11 @@
+## 2026-11-13 — Equipment and Submit integration
+
+Merged #110 main into existing #111 with a combined shared-client cache tag and both exact source projection chains. No backend/schema or policy change; [risk and validation](../docs/acceptance/process-submit-outcome-20261113.md).
+
+## 2026-11-13 — Process Submit refusal feedback
+
+Confirmed NO_SUBSTANTIVE_CHANGE now retains actionable draft feedback without a false UNKNOWN badge; genuine unknown writes keep their original receipt inquiry. Bilingual UI/transport/actual-route isolation and exact source evidence: [record](../docs/acceptance/process-submit-outcome-20261113.md). No backend/schema or publication change.
+
 ## 2026-11-13 — Tooling/equipment cloud integration draft
 
 Integrated selected old-branch conflict, photo staging, page retention and

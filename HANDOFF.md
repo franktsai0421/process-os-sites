@@ -1,3 +1,11 @@
+## 2026-11-13 — #111 integrates merged #110
+
+Existing #111 now merges main f0f425d and preserves both equipment/media/history and process Submit outcome behavior. Exact two-origin source proof, risk matrix and merge-gate limits: [record](docs/acceptance/process-submit-outcome-20261113.md). No deployment or real-data changes; historical checkpoints below retain their original scope.
+
+## 2026-11-13 — Process Submit outcome candidate
+
+Independent main-based draft-only repair separates confirmed refusal from UNKNOWN, preserves no-change/resubmission policy and receipt-only recovery. [Scope, reproduction and verification limits](docs/acceptance/process-submit-outcome-20261113.md). No merge/deployment/live-data/account change; equipment #110 remains independent.
+
 ## 2026-11-13 — Tooling/equipment cloud draft candidate
 
 Fresh main2434507 integration; [scope, provenance, safety and pending checks](docs/acceptance/equipment-integration-20261113/README.md). Preserve FQC/IQC transfer saves and IPQC manual Save boundary. No merge/deployment/live-data action.

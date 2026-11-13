@@ -1,0 +1,224 @@
+{
+  "parents": {
+    "equipment": {
+      "commit": "f0f425d90ea883bab479801dd54f5deaed6cce69",
+      "tree": "35f5eb3b47c2a0b75085699220fa3c790c535840"
+    },
+    "submit": {
+      "commit": "663280247312513aad66fd22b75f8c02ebb654c7",
+      "tree": "e2cbcb67048c072c9bc4dde483cf2afaa373788a"
+    }
+  },
+  "files": {
+    "public/process/index.html": {
+      "afterHash": "eca85f506d3043eb7f3c376260766990a1a9a5903d09f3f1f4b9eb6c47347d67",
+      "afterNormalizedHash": "eca85f506d3043eb7f3c376260766990a1a9a5903d09f3f1f4b9eb6c47347d67",
+      "afterCRLF": [],
+      "parents": {
+        "equipment": {
+          "blob": "7198806df4809330b108bf5064ed6e7afa2a8861",
+          "hash": "8d3c28a235c376ad74d0686a02514c7483154a7bb06ba1057c4b45ec87f56bf9",
+          "length": 11539,
+          "rules": [
+            {
+              "offset": 6898,
+              "before": "    <script data-process-src=\"shared-draft-client.js?v=20261113-equipment-integration1\"></script>\n",
+              "after": "    <script data-process-src=\"shared-draft-client.js?v=20261113-equipment-submit1\"></script>\n"
+            },
+            {
+              "offset": 7268,
+              "before": "    <script data-process-src=\"version-draft-ui.js?v=20261112-quality-main-joint1\"></script>\n",
+              "after": "    <script data-process-src=\"version-draft-ui.js?v=20261113-submit-outcome1\"></script>\n"
+            },
+            {
+              "offset": 9014,
+              "before": "    <script data-process-src=\"process-authoring-v3.js?v=20261110-process-integration4\"></script>\n",
+              "after": "    <script data-process-src=\"process-authoring-v3.js?v=20261113-submit-outcome1\"></script>\n"
+            }
+          ]
+        },
+        "submit": {
+          "blob": "dce2f1aef9c532c38d7fe18482b5ba903b7447c7",
+          "hash": "b3f582656652354cd2fb7f1d742cc431b0323f23423f5ec1899f796632ad0f3b",
+          "length": 11516,
+          "rules": [
+            {
+              "offset": 6898,
+              "before": "    <script data-process-src=\"shared-draft-client.js?v=20261113-submit-outcome1\"></script>\n",
+              "after": "    <script data-process-src=\"shared-draft-client.js?v=20261113-equipment-submit1\"></script>\n"
+            },
+            {
+              "offset": 9461,
+              "before": "    <script data-process-src=\"routine-equipment.js?v=20261112-quality-abc-joint1\"></script>\n",
+              "after": "    <script data-process-src=\"routine-equipment.js?v=20261113-equipment-integration2\"></script>\n"
+            },
+            {
+              "offset": 9617,
+              "before": "    <script data-process-src=\"tooling.js?v=20261105-tooling-local-save1\"></script>\n",
+              "after": "    <script data-process-src=\"tooling.js?v=20261113-equipment-integration2\"></script>\n"
+            }
+          ]
+        }
+      }
+    },
+    "public/process/shared-draft-client.js": {
+      "afterHash": "7b3a7f0d424d698873ee8d84f311681cecd3259cfe7d033a5ffc8923bf65e920",
+      "afterNormalizedHash": "7b3a7f0d424d698873ee8d84f311681cecd3259cfe7d033a5ffc8923bf65e920",
+      "afterCRLF": [],
+      "parents": {
+        "equipment": {
+          "blob": "a34e03b4303dd70ec52b387130584cb0441072f9",
+          "hash": "3692acee722dbe565f41e32f4fd0aa45f003f900dcf0ec377f29d83a4bc3691b",
+          "length": 197829,
+          "rules": [
+            {
+              "offset": 566,
+              "before": "",
+              "after": "      NO_SUBSTANTIVE_CHANGE:['本次未送審：已儲存內容相對正式版沒有實質變更。草稿仍保留；請修改並存取草稿後再送審。撤回或發回的原快照可依規則再次送審。','Chưa gửi duyệt: nội dung đã lưu không có thay đổi thực chất so với bản có hiệu lực. Bản nháp vẫn được giữ; hãy sửa và lưu rồi gửi duyệt. Có thể gửi lại bản chụp đã rút hoặc trả về theo quy tắc.'],\n"
+            }
+          ]
+        },
+        "submit": {
+          "blob": "e3d6a1384e7d29b65cc21b1a99f3440a80454d04",
+          "hash": "7ebdadae59952ccea5aa55693b154c604d3e4039fd1664c49c951c63b30e51e4",
+          "length": 198253,
+          "rules": [
+            {
+              "offset": 39640,
+              "before": "    const approvedAccessListeners=new Set(),approvedHistoryRoute=['/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-ab/workflow','/api/process-authoring/workflow','/api/master/pages','/api/routine-fqc/page'].includes(beginPath)||processLocalSave&&masterLocalBegin&&beginParams.get('scope')==='PROCESS';\n",
+              "after": "    const approvedAccessListeners=new Set(),approvedHistoryRoute=['/api/tooling/workflow','/api/routine-equipment/workflow','/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-ab/workflow','/api/process-authoring/workflow','/api/master/pages','/api/routine-fqc/page'].includes(beginPath)||processLocalSave&&masterLocalBegin&&beginParams.get('scope')==='PROCESS';\n"
+            }
+          ]
+        }
+      }
+    },
+    "tests/account-page-entry.test.cjs": {
+      "afterHash": "f04a81650d1b3d12365939f6a88340aaaa920243db99b037874fe21e8e5acd9b",
+      "afterNormalizedHash": "f04a81650d1b3d12365939f6a88340aaaa920243db99b037874fe21e8e5acd9b",
+      "afterCRLF": [],
+      "parents": {
+        "equipment": {
+          "blob": "625b3736090dcec2c3e89c4e00dfa8f2891c9cbf",
+          "hash": "d9059e1932b8f73e9ec2dbcad3f07d01366a8c9d02c8f1f0c8494fb5718ac9ec",
+          "length": 2951,
+          "rules": [
+            {
+              "offset": 454,
+              "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-equipment-integration1','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261112-quality-main-joint1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
+              "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-equipment-submit1','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+            }
+          ]
+        },
+        "submit": {
+          "blob": "230fc7f290d9e9aaaf09e68c03fe8ef1aa496481",
+          "hash": "52bd291a8a1de07baddb6c91b73acc506a3dc8549ea92e92a4cda9762deff112",
+          "length": 2940,
+          "rules": [
+            {
+              "offset": 454,
+              "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-submit-outcome1','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
+              "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-equipment-submit1','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+            }
+          ]
+        }
+      }
+    },
+    "tests/navigation-adapters.test.mjs": {
+      "afterHash": "a8dc36ab460d6f449d208ee027268eefcd4fcd99c0d4f1f52f3867b3519bd98b",
+      "afterNormalizedHash": "a8dc36ab460d6f449d208ee027268eefcd4fcd99c0d4f1f52f3867b3519bd98b",
+      "afterCRLF": [],
+      "parents": {
+        "equipment": {
+          "blob": "379a70d9be68c6e7b4d3a78522b58d5895b11c47",
+          "hash": "5a324047c25df5d0fc125bfad59e97ebc1dd8085eb5c6889f5b72ab65cf2c917",
+          "length": 21549,
+          "rules": [
+            {
+              "offset": 17148,
+              "before": "  'process-authoring-v3.js':'20261110-process-integration4',\n",
+              "after": "  'process-authoring-v3.js':'20261113-submit-outcome1',\n"
+            },
+            {
+              "offset": 17441,
+              "before": "  'shared-draft-client.js':'20261113-equipment-integration1',\n",
+              "after": "  'shared-draft-client.js':'20261113-equipment-submit1',\n"
+            },
+            {
+              "offset": 18103,
+              "before": "  'version-draft-ui.js':'20261112-quality-main-joint1',\n",
+              "after": "  'version-draft-ui.js':'20261113-submit-outcome1',\n"
+            }
+          ]
+        },
+        "submit": {
+          "blob": "734e24baaa9af059ebaa059de82f6b64f40a6f77",
+          "hash": "9862aa6d8d9f3869561880d5952c2f63b5971baedb4beaa1222ad1a18fc2297f",
+          "length": 21526,
+          "rules": [
+            {
+              "offset": 17273,
+              "before": "  'routine-equipment.js':'20261112-quality-abc-joint1',\n",
+              "after": "  'routine-equipment.js':'20261113-equipment-integration2',\n"
+            },
+            {
+              "offset": 17441,
+              "before": "  'shared-draft-client.js':'20261113-submit-outcome1',\n",
+              "after": "  'shared-draft-client.js':'20261113-equipment-submit1',\n"
+            },
+            {
+              "offset": 17546,
+              "before": "  'tooling.js':'20261105-tooling-local-save1',\n",
+              "after": "  'tooling.js':'20261113-equipment-integration2',\n"
+            }
+          ]
+        }
+      }
+    },
+    "tests/shared-draft-receipt-recovery.test.mjs": {
+      "afterHash": "3c6efeb0c9e8f01d1f665e3fcd686ab94613eb580b8ae9b29f1d1348a21db860",
+      "afterNormalizedHash": "3c6efeb0c9e8f01d1f665e3fcd686ab94613eb580b8ae9b29f1d1348a21db860",
+      "afterCRLF": [],
+      "parents": {
+        "equipment": {
+          "blob": "04dc865bd5d47f7bd6edb15bfad0538224212f57",
+          "hash": "287d12c69530586c5b5819cfded998df8f489fefd74c700edbca969eb576a8ed",
+          "length": 16641,
+          "rules": [
+            {
+              "offset": 14398,
+              "before": "  'version-draft-ui.js':'20261112-quality-main-joint1',\n",
+              "after": "  'version-draft-ui.js':'20261113-submit-outcome1',\n"
+            },
+            {
+              "offset": 14844,
+              "before": "  'shared-draft-client.js':'20261113-equipment-integration1',\n  'process-authoring-v3.js':'20261110-process-integration4',\n",
+              "after": "  'shared-draft-client.js':'20261113-equipment-submit1',\n  'process-authoring-v3.js':'20261113-submit-outcome1',\n"
+            }
+          ]
+        },
+        "submit": {
+          "blob": "e3e53ccf8cfed1b6a944dcabbe3dfbc236d0bd6c",
+          "hash": "e70b2aa05c8e11e504fdfa5520ab3c83511264490e9fcc145e1ed203250aeccf",
+          "length": 16618,
+          "rules": [
+            {
+              "offset": 14844,
+              "before": "  'shared-draft-client.js':'20261113-submit-outcome1',\n",
+              "after": "  'shared-draft-client.js':'20261113-equipment-submit1',\n"
+            },
+            {
+              "offset": 15170,
+              "before": "  'tooling.js':'20261105-tooling-local-save1',\n",
+              "after": "  'tooling.js':'20261113-equipment-integration2',\n"
+            },
+            {
+              "offset": 15294,
+              "before": "  'routine-equipment.js':'20261112-quality-abc-joint1',\n",
+              "after": "  'routine-equipment.js':'20261113-equipment-integration2',\n"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

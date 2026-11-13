@@ -59,7 +59,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
  const references=[...html.matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
  const versions={
   'process-editor.js':'20261110-process-integration2',
-  'version-draft-ui.js':'20261112-quality-main-joint1',
+  'version-draft-ui.js':'20261113-submit-outcome1',
   'version-draft-ui.css':'20261112-quality-integration1',
   'canvas-approved-history.js':'20261110-account-pages1',
   'page-draft-merge.js':'20261110-account-pages1',
@@ -67,8 +67,8 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
   'master-page-approved-history.js':'20261110-account-pages1',
   'master-page-editor.js':'20261110-account-pages1',
   'local-draft-recovery.js':'20261103-fqc-generation1',
-  'shared-draft-client.js':'20261113-equipment-integration1',
-  'process-authoring-v3.js':'20261110-process-integration4',
+  'shared-draft-client.js':'20261113-equipment-submit1',
+  'process-authoring-v3.js':'20261113-submit-outcome1',
   'process-ipqc.js':'20261110-ipqc-source-single-save1',
   'effective-version-notice.js':'20261109-explicit-checks1',
   'fqc-master.js':'20261112-quality-integration1',
