@@ -260,8 +260,8 @@
       ]
     },
     "public/process/app.js": {
-      "afterHash": "b6e0f67d470909ce93af0848818242328e646d1ab0fff88d65ebe1d53decbb9d",
-      "afterLength": 221141,
+      "afterHash": "29d490d86c5cd48604e9418c6c7bd5bc16e7f8b9e4bcdb0c17f1915b7d10b4c8",
+      "afterLength": 221258,
       "beforeHash": "9fe4580853245d9b41c7e89449760d8f2a72cc418b6fe166a7f4dcc3ea37bebd",
       "beforeNormalizedHash": "2f2dd602418b3a11317546b0904fb511734f8ef51cec8a8178c66989ffbd646e",
       "beforeBlob": "e127874d8d7b9015ae3864afa6bcc4e19668ffb3",
@@ -317,27 +317,37 @@
       ],
       "rules": [
         {
-          "offset": 118731,
+          "offset": 93644,
+          "before": "    bar.querySelector('[data-name-action=\"review\"]').hidden=!failure||!!pendingCommand;\n",
+          "after": "    const reviewButton=bar.querySelector('[data-name-action=\"review\"]');if(reviewButton)reviewButton.hidden=!failure||!!pendingCommand;\n"
+        },
+        {
+          "offset": 95470,
+          "before": "",
+          "after": "    if(shared.localProcess){recovery=null;recoveryNotice='';return;}\n"
+        },
+        {
+          "offset": 118848,
           "before": "      for(const [action,zh,vi,callback] of [['apply','記入本機修改','Ghi thay đổi cục bộ',apply],['discard','放棄未套用名稱','Bỏ tên chưa áp dụng',discard],['review','核對最新內容','Đối chiếu bản mới',review],['recovery','查看本機恢復','Xem khôi phục cục bộ',showRecovery]]){const button=document.createElement('button');button.type='button';button.className='button '+(action==='apply'?'signal':'ghost');button.dataset.nameAction=action;button.textContent=t(zh,vi);button.onclick=()=>Promise.resolve().then(callback).catch(error=>{if(ownerCurrent())toast(message(error));});bar.append(button);}label.after(bar);status();}\n",
           "after": "      for(const [action,zh,vi,callback] of (shared.localProcess?[['apply','記入本機修改','Ghi thay đổi cục bộ',apply],['discard','放棄未套用名稱','Bỏ tên chưa áp dụng',discard]]:[['apply','記入本機修改','Ghi thay đổi cục bộ',apply],['discard','放棄未套用名稱','Bỏ tên chưa áp dụng',discard],['review','核對最新內容','Đối chiếu bản mới',review],['recovery','查看本機恢復','Xem khôi phục cục bộ',showRecovery]])){const button=document.createElement('button');button.type='button';button.className='button '+(action==='apply'?'signal':'ghost');button.dataset.nameAction=action;button.textContent=t(zh,vi);button.onclick=()=>Promise.resolve().then(callback).catch(error=>{if(ownerCurrent())toast(message(error));});bar.append(button);}label.after(bar);status();}\n"
         },
         {
-          "offset": 125941,
+          "offset": 126058,
           "before": "    try{await flushProcessMasterNames();await window.MasterDataWorkflow.shared.execute('PROCESS','save');\n",
           "after": "    try{await flushProcessMasterNames();const result=await window.MasterDataWorkflow.shared.execute('PROCESS','save');if(!result)return;\n"
         },
         {
-          "offset": 141719,
+          "offset": 141836,
           "before": "    const response=await fetch('/api/master/references?scope=PROCESS&kind='+encodeURIComponent(kind)+'&id='+encodeURIComponent(id),{headers:window.ProcessSync?.platformHeaders?.(),signal:AbortSignal.timeout(15000)});\n",
           "after": "    const response=await fetch('/api/master/references?scope=PROCESS&kind='+encodeURIComponent(kind)+'&id='+encodeURIComponent(id),{headers:window.ProcessSync?.platformHeaders?.(),signal:AbortSignal.timeout(45000)});\n"
         },
         {
-          "offset": 145215,
+          "offset": 145332,
           "before": "  return `${processMasterVersionBar()}<div class=\"master-toolbar process-photo-master\"><div><p class=\"eyebrow\">OPERATION MASTER</p><h2>製程編輯台可用流程</h2><p>流程核准後可供製程編輯台使用。</p></div><div class=\"process-master-toolbar\"><div class=\"process-master-actions\">${editable && window.hasPermission?.('templates.create') ? '<button class=\"button signal\" type=\"button\" id=\"add-master-template\">＋ 新增流程</button>' : ''}</div></div></div><div class=\"master-template-grid flow-photo-presets\">${templates\n",
           "after": "  return `${processMasterVersionBar()}<div class=\"master-toolbar process-photo-master\"><div><p class=\"eyebrow\">OPERATION MASTER</p><h2>製程編輯台可用流程</h2><p>流程核准後可供製程編輯台使用。</p></div><div class=\"process-master-toolbar\"><div class=\"process-master-actions\"><button class=\"button ghost\" type=\"button\" id=\"process-master-reload\">${processMasterText('重新載入','Tải lại')}</button>${editable && window.hasPermission?.('templates.create') ? '<button class=\"button signal\" type=\"button\" id=\"add-master-template\">＋ 新增流程</button>' : ''}</div></div></div><div class=\"master-template-grid flow-photo-presets\">${templates\n"
         },
         {
-          "offset": 195523,
+          "offset": 195640,
           "before": "",
           "after": "    const reload=document.querySelector('#process-master-reload');if(reload)reload.onclick=async()=>{\n      const shared=window.MasterDataWorkflow.shared;if(shared.busy()||reload.disabled)return;\n      if((shared.localDirty('PROCESS')||window.ProcessMasterVersioning.departureNames.dirty()||window.ProcessEquipment?.hasUnappliedChanges?.())&&!confirm(processMasterText('放棄本頁未存輸入並重載已保存草稿？','Bỏ đầu vào chưa lưu và tải lại bản nháp đã lưu?')))return;\n      const owner=window.ProcessSync?.identity,delivery=window.ProcessSync?.captureDelivery?.(),root=document.querySelector('#data-content');reload.disabled=true;root.inert=true;\n      try{await window.MasterDataWorkflow.loadScope('PROCESS');if(owner!==window.ProcessSync?.identity||delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===false||state.view!=='data'||state.dataTab!=='process-master'||root!==document.querySelector('#data-content'))return;\n        window.ProcessMasterVersioning.departureNames.discard();shared.discardLocal('PROCESS');window.ProcessEquipment?.abandon?.();repaintProcessMasterPage();\n      }catch(error){toast(window.sharedDraftErrorMessage?.(error)||error.message);}finally{root.inert=false;reload.disabled=false;}\n    };\n    const missingStages=routing.lines.flatMap(line=>line.stages).filter(stage=>!Object.hasOwn(currentProcessMasterData(),stage.code));\n    if(missingStages.length&&editableProcessMasterData()&&window.hasPermission?.('templates.create')){\n      const button=document.createElement('button');button.type='button';button.className='button ghost';button.textContent=processMasterText('建立缺漏工段流程','Tạo mẫu cho công đoạn còn thiếu');\n      button.onclick=async()=>{if(button.disabled)return;button.disabled=true;const before=editableProcessMasterData();if(!before)return;\n        try{const next=JSON.parse(JSON.stringify(before)),source=processMasterCatalogTemplates(before);\n          for(const stage of missingStages){if(Object.hasOwn(next,stage.code))continue;next[stage.code]=mergeRequiredProcessPresets(stage,source,true).map(template=>({...template,id:crypto.randomUUID(),machineIds:[],...('equipment' in template?{equipment:[]}:{})}));}\n          const batches=missingStages.map(stage=>({patches:[{op:'set',path:[stage.code],value:next[stage.code]}],guards:[{path:[],value:before}]}));\n          // One local patch retains absence guards; only explicit Save shares it.\n          const patch={patches:batches.flatMap(batch=>batch.patches),guards:[{path:[],value:before}]};await window.MasterDataWorkflow.shared.patch('PROCESS',patch.patches,patch.guards);repaintProcessMasterPage();\n        }catch(error){toast(window.sharedDraftErrorMessage?.(error)||error.message);}finally{button.disabled=false;}\n      };document.querySelector('.process-master-actions')?.append(button);\n    }\n"
         }
@@ -683,6 +693,36 @@
           "offset": 4560,
           "before": "  lines=await approve('LINES',lines);const published=await f.readRoot(),types=stages.flatMap(code=>published.active.PROCESS[code]||[]);assert(stages.every(code=>published.active.LINES[page].lines[0].stages.some(stage=>stage.code===code)));assert(stages.every(code=>published.active.PROCESS[code].some(row=>row.catalogKey==='shared-custom')));assert.equal(new Set(types.map(row=>row.id)).size,types.length);assert(types.some(row=>row.editorType==='custom'));assert(types.every(row=>row.id!==custom.id&&!(row.machineIds||[]).length&&!(row.equipment||[]).length));assert.deepEqual(published.active.PROCESS['A-1'],originalProcess['A-1']);assert.deepEqual(published.active[opposite+'.catalog'],originalC);\n  results.push({name:mode+' LINES approval links existing custom types without copying source machines or identities',status:'PASS'});\n",
           "after": "  lines=await approve('LINES',lines);const published=await f.readRoot();assert(stages.every(code=>published.active.LINES[page].lines[0].stages.some(stage=>stage.code===code)));assert.deepEqual(published.active.PROCESS,originalProcess);assert.deepEqual(published.active[opposite+'.catalog'],originalC);\n  results.push({name:mode+' LINES approval leaves PROCESS and its independently approved source unchanged',status:'PASS'});\n  // A separate PROCESS owner explicitly creates missing templates and completes\n  // Save -> reload -> Submit -> Withdraw -> resubmit -> independent approval.\n  const processRequest=async(body)=>{const api=f.load('app/api/master/workflow/route.ts');const response=await api[body?'POST':'GET'](new Request(f.base+'/api/master/workflow?scope=PROCESS&caseMetadata=1',{method:body?'POST':'GET',headers:{cookie:f.cookies.writer,origin:f.base,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})}));return{status:response.status,body:await response.json()};};\n  let processControl=(await processRequest()).body.control;\n  let response=await processRequest({action:'begin-v1',begin:{operationId:randomUUID(),basis:f.load('lib/workflow-begin.ts').beginBasis(processControl)}});assert.equal(response.status,200,JSON.stringify(response.body));processControl=response.body.control;\n  const additions=Object.fromEntries(stages.map(code=>[code,copy(f.load('lib/master-stage-link.ts').stageCatalogTemplates(code,originalProcess))]));\n  const patches=Object.entries(additions).map(([code,value])=>({op:'set',path:[code],value})),batches=[{patches,guards:[{path:[],value:processControl.workflow.working}]}];\n  response=await processRequest({command:f.save(processControl,batches)});assert.equal(response.status,200,JSON.stringify(response.body));processControl=(await processRequest()).body.control;assert.deepEqual(processControl.workflow.saved.content,{...originalProcess,...additions});assert.deepEqual((await f.readRoot()).active.PROCESS,originalProcess);\n  const lifecycle=async action=>{const command=f.command(processControl,action,{reason:'Synthetic independent PROCESS '+action,expectedRevision:processControl.workflow.revision,...(action==='submit'?{savedId:processControl.workflow.saved.id}:{caseId:processControl.workflow.pendingId}),...(action==='approve'?{selfReviewConfirmed:true}:{})});const result=await processRequest({command});assert.equal(result.status,200,JSON.stringify(result.body));processControl=result.body.control;};\n  await lifecycle('submit');await lifecycle('withdraw');await lifecycle('submit');await lifecycle('approve');const processApproved=await f.readRoot();assert.deepEqual(processApproved.active.PROCESS,{...originalProcess,...additions});assert.deepEqual(processApproved.active.LINES,published.active.LINES);assert.deepEqual(processApproved.workflowScopes.LINES,published.workflowScopes.LINES);\n  const types=stages.flatMap(code=>processApproved.active.PROCESS[code]);assert.equal(new Set(types.map(row=>row.id)).size,types.length);assert(types.some(row=>row.editorType==='custom'));assert(types.every(row=>row.id!==custom.id&&!(row.machineIds||[]).length&&!(row.equipment||[]).length));\n  results.push({name:mode+' explicit PROCESS creation/save/reload/submit/withdraw/resubmit/approve preserves approved LINES and existing IDs',status:'PASS'});\n"
+        }
+      ]
+    },
+    "tests/abc-local-save-browser.mjs": {
+      "afterHash": "d1a16f9278cb2f456c625a5ef56350951a57cc3d677b19474dc4feb3385c80c7",
+      "afterLength": 19213,
+      "beforeHash": "db9585cde9d013914cbf5118d78165fcdaaac59a232ea7c045498a29817d15f4",
+      "beforeNormalizedHash": "db9585cde9d013914cbf5118d78165fcdaaac59a232ea7c045498a29817d15f4",
+      "beforeBlob": "e42672498603c6d1400b5044bfb9d6442329edb2",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 11696,
+          "before": "  stage=scope+' line stage';await open(page,scope,'line-admin');await page.locator('[data-stage-add=\"'+line+'\"]').click();await page.locator('#master-edit-dialog [name=code]').fill(line+'-NEW');await page.locator('#master-edit-dialog [name=name]').fill('隔離工段 Công đoạn mới');const n3=posts('frank').length;await page.locator('#master-edit-dialog [type=submit]').click();await page.locator('#master-edit-dialog').waitFor({state:'detached'});assert.equal(posts('frank').length,n3);assert(!(await root()).workflowScopes[scope].working.lines[0].stages.some(s=>s.code===line+'-NEW'));await save(page,scope);\n  stage=scope+' fixed review lifecycle';await submit(page);assert(!(await root()).active[scope].lines[0].stages.some(s=>s.code===line+'-NEW'));await review(reviewer,scope,'return');await open(page,scope,'line-admin');await submit(page);await page.locator('#master-withdraw').click();await confirm(page);await page.locator('#master-submit').waitFor();await submit(page);await review(reviewer,scope,'approve');assert((await root()).active.PROCESS[line+'-NEW']);assert((await root()).active[scope].lines[0].stages.some(s=>s.code===line+'-NEW'));\n  report.checks.push(scope+': products, exception→group, inherited route, lines/stages, polling, filters, two actors same/different fields, silent SPA departure, return/withdraw/resubmit/approve, pinned stageProcessLink');\n",
+          "after": "  // Legacy data has no independent page owner. The current LINES entry must be\n  // readonly, never recreate AB/C topology drafts or auto-publish PROCESS.\n  // Full create/remove/independent approval stays in lines-flow-browser.mjs.\n  stage=scope+' legacy line boundary';const beforeLines=await root(),linePosts=posts('frank').length;await page.goto(origin+'/process/?system=process&view=data&dataTab=line-admin');await page.waitForFunction(()=>typeof state!=='undefined'&&state.dataTab==='line-admin'&&document.documentElement.dataset.processNavigationStatus==='ready'&&!MasterDataWorkflow.shared.busy()&&!document.querySelector('#process-boot'));await page.locator('[data-lines-readonly]').waitFor();assert.equal(await page.locator('#master-lines-scope,[data-stage-add],#master-save-draft').count(),0);assert.equal(posts('frank').length,linePosts);assert.deepEqual(await root(),beforeLines);\n  stage=scope+' fixed review lifecycle';await open(page,scope);await submit(page);assert.deepEqual((await root()).active[scope],beforeLines.active[scope]);await review(reviewer,scope,'return');await open(page,scope);await submit(page);await page.locator('#master-withdraw').click();await confirm(page);await page.locator('#master-submit').waitFor();await submit(page);await review(reviewer,scope,'approve');const approved=await root();assert.equal(approved.active[scope].products.find(p=>p.code===code).name,'Peer same field');assert.deepEqual(approved.active[scope].lines,beforeLines.active[scope].lines);assert.deepEqual(approved.active.PROCESS,beforeLines.active.PROCESS);\n  report.checks.push(scope+': products, exception→group, inherited route, filters, two actors same/different fields, silent SPA departure, readonly unadopted LINES with zero writes, catalog return/withdraw/resubmit/approve; independent LINES creation/approval in dedicated native runner');\n"
+        }
+      ]
+    },
+    "tests/access-event-main-integration.test.cjs": {
+      "afterHash": "001aba4e6654bd62659457f66598a69cea409898c63d6564dc44871f217d58ff",
+      "afterLength": 26280,
+      "beforeHash": "8fdfc7f423e0d3ee848a4b4627365a1fe9edcdb6962455a358db5d25bfd127b6",
+      "beforeNormalizedHash": "8fdfc7f423e0d3ee848a4b4627365a1fe9edcdb6962455a358db5d25bfd127b6",
+      "beforeBlob": "8130254e2ce4437793cf7c0853a6c7ef11b80c50",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 21287,
+          "before": " const bytes=readSource(lineFile),prior=execFileSync('git',['show',accountSource.contract.base+':'+lineFile]),copy=Buffer.from(bytes),c=accountSource.contract.files[lineFile];\n",
+          "after": " // Preserve every original historical negative control against the exact real-main predecessor.\n // Independent LINES runtime authority is separately mutated in lines-flow-source.test.cjs.\n const bytes=require('../scripts/lines-flow-source-contract.cjs').projectKnown(readSource(lineFile),lineFile),prior=execFileSync('git',['show',accountSource.contract.base+':'+lineFile]),copy=Buffer.from(bytes),c=accountSource.contract.files[lineFile];\n"
         }
       ]
     },

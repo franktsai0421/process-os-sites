@@ -184,7 +184,9 @@ void test('equipment CI repair rejects semantic equality and explicit owner rech
 });
 
 void test('approved-line view exact inverse retains the unchanged historical source and cannot conceal rollback or changed authority',()=>{
- const bytes=readSource(lineFile),prior=execFileSync('git',['show',accountSource.contract.base+':'+lineFile]),copy=Buffer.from(bytes),c=accountSource.contract.files[lineFile];
+ // Preserve every original historical negative control against the exact real-main predecessor.
+ // Independent LINES runtime authority is separately mutated in lines-flow-source.test.cjs.
+ const bytes=require('../scripts/lines-flow-source-contract.cjs').projectKnown(readSource(lineFile),lineFile),prior=execFileSync('git',['show',accountSource.contract.base+':'+lineFile]),copy=Buffer.from(bytes),c=accountSource.contract.files[lineFile];
  assert.equal(hash(prior),main[lineFile]);assert.equal(c.beforeHash,main[lineFile]);assert.deepEqual(accountSource.projectFile(bytes,lineFile),prior);assert.deepEqual(project(bytes,lineFile),prior);assert.deepEqual(bytes,copy);
  assert.throws(()=>project(prior,lineFile),/successor differs/,'complete rollback is not a pinned successor');
  assert.throws(()=>accountSource.projectFile(prior,lineFile),/successor differs/,'cannot apply inverse twice');

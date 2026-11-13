@@ -73,3 +73,15 @@ void test('PROCESS actual missing-stage button stages defaults and stable new ID
 void test('PROCESS no-conflict Save reads one comparison before its single CAS; dialog choices retain a fresh second read',async t=>{
  const x=await setup(t);await x.stage('One explicit Save');const start=x.calls.length;await x.bridge.execute('PROCESS','save');const calls=x.calls.slice(start),post=calls.findIndex(row=>row.body);assert.equal(calls.slice(0,post).filter(row=>!row.body).length,1);assert.equal(calls.filter(row=>row.body).length,1);assert(Number.isSafeInteger(calls[post].body.command.expectedRevision));
 });
+
+void test('PROCESS actual name binder renders local-only actions and updates status without removed review button',async t=>{
+ const x=await setup(t),box=x.box,doc=box.document;
+ const create=doc.createElement.bind(doc);doc.createElement=tag=>{const node=create(tag);node.dataset=new Proxy(node.dataset,{set(target,key,value){target[key]=String(value);node.attrs['data-'+String(key).replace(/[A-Z]/g,c=>'-'+c.toLowerCase())]=String(value);return true;}});return node;};
+ const app=fs.readFileSync('public/process/app.js','utf8'),ast=ts.createSourceFile('app.js',app,ts.ScriptTarget.ES2022,true,ts.ScriptKind.JS);
+ const names=['processMasterText','processMasterTemplateKey','processMasterCatalogMatches','bindProcessMasterName'];
+ const functions=names.map(name=>{const node=ast.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text===name);assert(node,name);return node.getText(ast);}).join('\n');
+ Object.assign(box,{MasterDataWorkflow:{shared:x.bridge},editableProcessMasterData:()=>x.draft(),updateProcessSharedStatus(){},LocalDraftRecoverySession:{create(){throw Error('LOCAL_RECOVERY_FORBIDDEN');}},processMasterNameBindings:new Set()});
+ vm.runInContext(functions,box);const parent=doc.createElement('section');parent.className='master-template';parent.dataset.templateKey=box.processMasterTemplateKey(x.draft()['A-CUT'][1]);const label=doc.createElement('label');label.className='template-name-field';const input=doc.createElement('input');input.value=x.draft()['A-CUT'][1].name;label.append(input);parent.append(label);doc.body.append(parent);box.bindProcessMasterName(input);
+ const bar=doc.querySelector('.process-name-apply-bar');assert(bar);assert.equal(bar.querySelector('[data-name-action="review"]'),null);assert.equal(bar.querySelector('[data-name-action="recovery"]'),null);assert(bar.querySelector('[data-name-action="apply"]'));
+ input.value='Local actual binder';input.oninput({isComposing:false});assert.match(bar.textContent,/名稱修改留在本機/);assert.doesNotMatch(bar.textContent,/恢復/);assert.equal(x.posts().length,0);
+});

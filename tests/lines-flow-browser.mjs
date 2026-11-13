@@ -10,6 +10,7 @@ const styles=['styles','master-data','master-data-extra','master-admin-ui','vers
 const report={checks:[],pageErrors:[],scope:'Native browser module harness, actual production routes, SQLite :memory:/Map R2; no compiled SPA, live Site, real IME or physical device'};
 let browser;
 try{
+ fs.mkdirSync('.sites-runtime/lines-flow',{recursive:true});
  browser=await chromium.launch({headless:true,...(fs.existsSync('/usr/bin/chromium')?{executablePath:'/usr/bin/chromium',args:['--no-sandbox','--disable-dev-shm-usage']}: {})});
  for(const [width,lang]of [[1280,'zh-TW'],[390,'vi']]){
   const f=await fixture(true),context=await browser.newContext({viewport:{width,height:844}}),page=await context.newPage(),calls=[];
@@ -36,7 +37,7 @@ try{
    await page.getByLabel(label('線別名稱','Tên chuyền'),{exact:true}).fill('Cancel local input');await click('取消本機修改','Hủy thay đổi cục bộ');assert.equal(await page.getByLabel(label('線別名稱','Tên chuyền'),{exact:true}).inputValue(),'Native local A');await page.getByLabel(label('線別名稱','Tên chuyền'),{exact:true}).fill('Unsent abandoned');const count=calls.filter(row=>row.method==='POST').length;await page.evaluate(()=>{ProcessMasterPages.leave();document.querySelector('main').dataset.activeTab='users';});await page.evaluate(()=>{document.querySelector('main').dataset.activeTab='line-admin';window.api=ProcessMasterPages.mount(document.querySelector('main'),{page:'LINES'});});await idle();assert.equal(await page.getByLabel(label('線別名稱','Tên chuyền'),{exact:true}).inputValue(),'Native local A');assert.equal(calls.filter(row=>row.method==='POST').length,count);
    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);assert.equal(overflow,false,'page uses inner table horizontal scroll');const bounds=await button('存取草稿','Lưu bản nháp').boundingBox();assert(bounds.width>40&&bounds.height>=38);
    const dir='.sites-runtime/lines-flow';fs.mkdirSync(dir,{recursive:true});await page.screenshot({path:dir+'/lines-'+width+'-'+lang+'.png',fullPage:true});report.checks.push({width,lang,status:'PASS',checks:'same-page AB/C retained; double click one Save; reload; create/edit/delete stage and empty line; submit/withdraw/resubmit/return/approve; PROCESS unchanged; departure abandons RAM only; viewport overflow/touch target',posts:count});
-  }finally{await context.close();f.close();}
+  }catch(error){report.failedState={width,lang,text:await page.locator('body').innerText(),buttons:await page.getByRole('button',{includeHidden:true}).allTextContents(),calls};await page.screenshot({path:'.sites-runtime/lines-flow/failure-'+width+'.png',fullPage:true}).catch(()=>{});throw error;}finally{await context.close();f.close();}
  }
  assert.deepEqual(report.pageErrors,[]);report.status='PASS';
 }catch(error){report.status='FAIL';report.error=error.stack;process.exitCode=1;}

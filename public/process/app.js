@@ -1690,7 +1690,7 @@ function bindProcessMasterName(input) {
     const state=active?t('正在套用這批名稱；後續輸入留待下次套用。','Đang áp dụng tên; nội dung nhập thêm giữ cho lần sau.'):recoveryBusy?t('正在核對本機恢復；尚未套用。','Đang kiểm tra khôi phục; chưa áp dụng.'):rejectionCleanup?t('原操作已確認拒絕；請在本機恢復完成清理，輸入保留且不會重送。','Thao tác đã bị từ chối; hoàn tất dọn trong khôi phục cục bộ, giữ nội dung và không gửi lại.'):pendingCommand?t('原操作結果待確認；只能查詢原收據，不會重新送出。','Chưa rõ kết quả; chỉ kiểm tra biên nhận cũ, không gửi lại.'):failure?message(failure):dirty()?t('名稱修改留在本機；按存取草稿後同事才看得到。','Tên đang ở máy này; đồng nghiệp thấy sau khi lưu bản nháp.'):t('名稱已記入本機修改；按存取草稿保存全部變更。','Tên đã ghi cục bộ; lưu bản nháp để lưu mọi thay đổi.');
     const notice=bar.querySelector('[data-name-state]'),text=state+(recoveryNotice?' '+recoveryNotice:'');if(notice.textContent!==text)notice.textContent=text;
     for(const button of bar.querySelectorAll('button'))button.disabled=active||recoveryBusy||composing||!ownerCurrent()||(button.dataset.nameAction==='apply'&&(!owned()||!dirty()||!!failure||!!pendingCommand))||(button.dataset.nameAction==='discard'&&(!dirty()&&!failure||!!pendingCommand||shared.client('PROCESS').hasUnknown()));
-    bar.querySelector('[data-name-action="review"]').hidden=!failure||!!pendingCommand;
+    const reviewButton=bar.querySelector('[data-name-action="review"]');if(reviewButton)reviewButton.hidden=!failure||!!pendingCommand;
     if(input.dataset&&input.dataset.unapplied!==String(dirty()))input.dataset.unapplied=String(dirty());
     if(shared.localProcess)updateProcessSharedStatus();
   };
@@ -1708,6 +1708,7 @@ function bindProcessMasterName(input) {
   };
   const startRecovery=()=>{
     recovery?.close();recoveryVerified=false;
+    if(shared.localProcess){recovery=null;recoveryNotice='';return;}
     if(!window.LocalDraftRecoverySession){recovery=null;recoveryNotice=t('本機恢復工具未載入；不會自動恢復或送出。','Chưa tải công cụ khôi phục; không tự khôi phục hay gửi.');return;}
     try{const session=window.LocalDraftRecoverySession.create({getContext:context,onStatus:result=>{
       if(recovery!==session||!ownerCurrent())return;
