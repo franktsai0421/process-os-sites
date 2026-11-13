@@ -1,0 +1,790 @@
+{
+  "main": "f0f425d90ea883bab479801dd54f5deaed6cce69",
+  "method": "Exact Git commit/tree/blob reads; five previously local-described commit objects were available remotely on 2026-11-13 and fetched by full SHA. Availability does not certify all claims or execute historical UNKNOWN operations.",
+  "sources": [
+    {
+      "label": "pr102-head",
+      "commit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "tree": "7f3efd3f049c97c57f3f56cf321f6da325a17b13",
+      "files": [
+        {
+          "path": "lib/master-page-workflow.ts",
+          "sourceBlob": "40b73e2a2b4a6f46157ed6d8b7e9c0981a5317d8",
+          "mainBlob": "03d06080d18fbfe0ba72cc2d8463a63f34cf5000",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "lib/master-page-boundary.ts",
+          "sourceBlob": "74c178d2a6b91b2173fa7d2539289b764f377612",
+          "mainBlob": "74c178d2a6b91b2173fa7d2539289b764f377612",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "lib/master-approved-pages.ts",
+          "sourceBlob": "ddbc2c8dda7766700f520a19584ed8cfdbf9a941",
+          "mainBlob": "ddbc2c8dda7766700f520a19584ed8cfdbf9a941",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "lib/master-page-approved-history.ts",
+          "sourceBlob": "fa81ea0436a991b27dd1664f6b1debb474dc2505",
+          "mainBlob": "fa81ea0436a991b27dd1664f6b1debb474dc2505",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "lib/draft-page-boundaries.ts",
+          "sourceBlob": "4a1c0806b1d33e1761dff2f26e5d1cff88d5b470",
+          "mainBlob": "4a1c0806b1d33e1761dff2f26e5d1cff88d5b470",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "app/api/master/pages/route.ts",
+          "sourceBlob": "161747a2987efdb47d2766debd7771d569ad95fb",
+          "mainBlob": "161747a2987efdb47d2766debd7771d569ad95fb",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "app/api/master/stage-reference/route.ts",
+          "sourceBlob": "bb26fc21c26eb271e48e327ce8092907de7d1635",
+          "mainBlob": "0d5e0494581813029a4da02c25951c88b68ae426",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-page-editor.js",
+          "sourceBlob": "3685e45ce1ae656caa3ce388672bdce50f6c454f",
+          "mainBlob": "8288ff197bdccba73004e83beae86c14d62633c9",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-page-approved-history.js",
+          "sourceBlob": "4a8ae2216596118c6a1ef9f0dd38b38ae6290d02",
+          "mainBlob": "59abb3c9677144533c77b89a4f135137bbb4af68",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/page-draft-merge.js",
+          "sourceBlob": "0b0472c4d4b06c5afbe831f9072a8bf7d1693269",
+          "mainBlob": "0b0472c4d4b06c5afbe831f9072a8bf7d1693269",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "public/process/master-data.js",
+          "sourceBlob": "bf753ecebfd49177301e6cccf827fa7ce4d4bdeb",
+          "mainBlob": "1c161a9f35a82f51e545597e2862f4db06886dcb",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-admin-ui.js",
+          "sourceBlob": "4d5e07d2716b5d15d8418cb36d76e182ce180887",
+          "mainBlob": "a9e584c6b7b275e291ce228bdf6fa168d726283a",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-shared-client.js",
+          "sourceBlob": "28825fd306a378d3c5430199e9ba00ef13d3a60e",
+          "mainBlob": "dece8bd2c930286854800d6ef08f320fb5c8516c",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-review.js",
+          "sourceBlob": "c8dce738e80d2dfe060e1234d0ec677e005ca41c",
+          "mainBlob": "6bf195d782cfdff721b6e007bcd6f83b3a42dad5",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/app.js",
+          "sourceBlob": "92e0c25d7acc9f5381b0a2947b755e121025ba61",
+          "mainBlob": "e127874d8d7b9015ae3864afa6bcc4e19668ffb3",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        }
+      ]
+    },
+    {
+      "label": "pr102-latest-local-described",
+      "commit": "2a1d41503141a151419173c94f31acf8aa8407d8",
+      "tree": "a50783edeaa8b515c159b1082ba419e8da245894",
+      "files": [
+        {
+          "path": "lib/master-page-workflow.ts",
+          "sourceBlob": "40b73e2a2b4a6f46157ed6d8b7e9c0981a5317d8",
+          "mainBlob": "03d06080d18fbfe0ba72cc2d8463a63f34cf5000",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "lib/master-page-boundary.ts",
+          "sourceBlob": "74c178d2a6b91b2173fa7d2539289b764f377612",
+          "mainBlob": "74c178d2a6b91b2173fa7d2539289b764f377612",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "lib/master-approved-pages.ts",
+          "sourceBlob": "ddbc2c8dda7766700f520a19584ed8cfdbf9a941",
+          "mainBlob": "ddbc2c8dda7766700f520a19584ed8cfdbf9a941",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "lib/master-page-approved-history.ts",
+          "sourceBlob": "fa81ea0436a991b27dd1664f6b1debb474dc2505",
+          "mainBlob": "fa81ea0436a991b27dd1664f6b1debb474dc2505",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "lib/draft-page-boundaries.ts",
+          "sourceBlob": "4a1c0806b1d33e1761dff2f26e5d1cff88d5b470",
+          "mainBlob": "4a1c0806b1d33e1761dff2f26e5d1cff88d5b470",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "app/api/master/pages/route.ts",
+          "sourceBlob": "161747a2987efdb47d2766debd7771d569ad95fb",
+          "mainBlob": "161747a2987efdb47d2766debd7771d569ad95fb",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "app/api/master/stage-reference/route.ts",
+          "sourceBlob": "bb26fc21c26eb271e48e327ce8092907de7d1635",
+          "mainBlob": "0d5e0494581813029a4da02c25951c88b68ae426",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-page-editor.js",
+          "sourceBlob": "3685e45ce1ae656caa3ce388672bdce50f6c454f",
+          "mainBlob": "8288ff197bdccba73004e83beae86c14d62633c9",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-page-approved-history.js",
+          "sourceBlob": "4a8ae2216596118c6a1ef9f0dd38b38ae6290d02",
+          "mainBlob": "59abb3c9677144533c77b89a4f135137bbb4af68",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/page-draft-merge.js",
+          "sourceBlob": "0b0472c4d4b06c5afbe831f9072a8bf7d1693269",
+          "mainBlob": "0b0472c4d4b06c5afbe831f9072a8bf7d1693269",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "public/process/master-data.js",
+          "sourceBlob": "bf753ecebfd49177301e6cccf827fa7ce4d4bdeb",
+          "mainBlob": "1c161a9f35a82f51e545597e2862f4db06886dcb",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-admin-ui.js",
+          "sourceBlob": "4d5e07d2716b5d15d8418cb36d76e182ce180887",
+          "mainBlob": "a9e584c6b7b275e291ce228bdf6fa168d726283a",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-shared-client.js",
+          "sourceBlob": "28825fd306a378d3c5430199e9ba00ef13d3a60e",
+          "mainBlob": "dece8bd2c930286854800d6ef08f320fb5c8516c",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-review.js",
+          "sourceBlob": "c8dce738e80d2dfe060e1234d0ec677e005ca41c",
+          "mainBlob": "6bf195d782cfdff721b6e007bcd6f83b3a42dad5",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/app.js",
+          "sourceBlob": "92e0c25d7acc9f5381b0a2947b755e121025ba61",
+          "mainBlob": "e127874d8d7b9015ae3864afa6bcc4e19668ffb3",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        }
+      ]
+    },
+    {
+      "label": "pr102-handoff",
+      "commit": "ae8c20808ccc4270a1ae2e59249f0120695fe00a",
+      "tree": "4a1b58d71938e95bffa6f867b11babdc65f53d7a",
+      "files": [
+        {
+          "path": "lib/master-page-workflow.ts",
+          "sourceBlob": "40b73e2a2b4a6f46157ed6d8b7e9c0981a5317d8",
+          "mainBlob": "03d06080d18fbfe0ba72cc2d8463a63f34cf5000",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "lib/master-page-boundary.ts",
+          "sourceBlob": "74c178d2a6b91b2173fa7d2539289b764f377612",
+          "mainBlob": "74c178d2a6b91b2173fa7d2539289b764f377612",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "lib/master-approved-pages.ts",
+          "sourceBlob": "ddbc2c8dda7766700f520a19584ed8cfdbf9a941",
+          "mainBlob": "ddbc2c8dda7766700f520a19584ed8cfdbf9a941",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "lib/master-page-approved-history.ts",
+          "sourceBlob": "fa81ea0436a991b27dd1664f6b1debb474dc2505",
+          "mainBlob": "fa81ea0436a991b27dd1664f6b1debb474dc2505",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "lib/draft-page-boundaries.ts",
+          "sourceBlob": "4a1c0806b1d33e1761dff2f26e5d1cff88d5b470",
+          "mainBlob": "4a1c0806b1d33e1761dff2f26e5d1cff88d5b470",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "app/api/master/pages/route.ts",
+          "sourceBlob": "161747a2987efdb47d2766debd7771d569ad95fb",
+          "mainBlob": "161747a2987efdb47d2766debd7771d569ad95fb",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "app/api/master/stage-reference/route.ts",
+          "sourceBlob": "bb26fc21c26eb271e48e327ce8092907de7d1635",
+          "mainBlob": "0d5e0494581813029a4da02c25951c88b68ae426",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-page-editor.js",
+          "sourceBlob": "3685e45ce1ae656caa3ce388672bdce50f6c454f",
+          "mainBlob": "8288ff197bdccba73004e83beae86c14d62633c9",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-page-approved-history.js",
+          "sourceBlob": "4a8ae2216596118c6a1ef9f0dd38b38ae6290d02",
+          "mainBlob": "59abb3c9677144533c77b89a4f135137bbb4af68",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/page-draft-merge.js",
+          "sourceBlob": "0b0472c4d4b06c5afbe831f9072a8bf7d1693269",
+          "mainBlob": "0b0472c4d4b06c5afbe831f9072a8bf7d1693269",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "public/process/master-data.js",
+          "sourceBlob": "bf753ecebfd49177301e6cccf827fa7ce4d4bdeb",
+          "mainBlob": "1c161a9f35a82f51e545597e2862f4db06886dcb",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-admin-ui.js",
+          "sourceBlob": "4d5e07d2716b5d15d8418cb36d76e182ce180887",
+          "mainBlob": "a9e584c6b7b275e291ce228bdf6fa168d726283a",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-shared-client.js",
+          "sourceBlob": "28825fd306a378d3c5430199e9ba00ef13d3a60e",
+          "mainBlob": "dece8bd2c930286854800d6ef08f320fb5c8516c",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-review.js",
+          "sourceBlob": "c8dce738e80d2dfe060e1234d0ec677e005ca41c",
+          "mainBlob": "6bf195d782cfdff721b6e007bcd6f83b3a42dad5",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/app.js",
+          "sourceBlob": "92e0c25d7acc9f5381b0a2947b755e121025ba61",
+          "mainBlob": "e127874d8d7b9015ae3864afa6bcc4e19668ffb3",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        }
+      ]
+    },
+    {
+      "label": "pr102-product",
+      "commit": "e14f268188a5573812afd340e089043be826ead3",
+      "tree": "845a3f65e1d49459f57aba0267a674f60ae919ce",
+      "files": [
+        {
+          "path": "lib/master-page-workflow.ts",
+          "sourceBlob": "40b73e2a2b4a6f46157ed6d8b7e9c0981a5317d8",
+          "mainBlob": "03d06080d18fbfe0ba72cc2d8463a63f34cf5000",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "lib/master-page-boundary.ts",
+          "sourceBlob": "74c178d2a6b91b2173fa7d2539289b764f377612",
+          "mainBlob": "74c178d2a6b91b2173fa7d2539289b764f377612",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "lib/master-approved-pages.ts",
+          "sourceBlob": "ddbc2c8dda7766700f520a19584ed8cfdbf9a941",
+          "mainBlob": "ddbc2c8dda7766700f520a19584ed8cfdbf9a941",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "lib/master-page-approved-history.ts",
+          "sourceBlob": "fa81ea0436a991b27dd1664f6b1debb474dc2505",
+          "mainBlob": "fa81ea0436a991b27dd1664f6b1debb474dc2505",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "lib/draft-page-boundaries.ts",
+          "sourceBlob": "4a1c0806b1d33e1761dff2f26e5d1cff88d5b470",
+          "mainBlob": "4a1c0806b1d33e1761dff2f26e5d1cff88d5b470",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "app/api/master/pages/route.ts",
+          "sourceBlob": "161747a2987efdb47d2766debd7771d569ad95fb",
+          "mainBlob": "161747a2987efdb47d2766debd7771d569ad95fb",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "app/api/master/stage-reference/route.ts",
+          "sourceBlob": "bb26fc21c26eb271e48e327ce8092907de7d1635",
+          "mainBlob": "0d5e0494581813029a4da02c25951c88b68ae426",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-page-editor.js",
+          "sourceBlob": "3685e45ce1ae656caa3ce388672bdce50f6c454f",
+          "mainBlob": "8288ff197bdccba73004e83beae86c14d62633c9",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-page-approved-history.js",
+          "sourceBlob": "4a8ae2216596118c6a1ef9f0dd38b38ae6290d02",
+          "mainBlob": "59abb3c9677144533c77b89a4f135137bbb4af68",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/page-draft-merge.js",
+          "sourceBlob": "0b0472c4d4b06c5afbe831f9072a8bf7d1693269",
+          "mainBlob": "0b0472c4d4b06c5afbe831f9072a8bf7d1693269",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "public/process/master-data.js",
+          "sourceBlob": "bf753ecebfd49177301e6cccf827fa7ce4d4bdeb",
+          "mainBlob": "1c161a9f35a82f51e545597e2862f4db06886dcb",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-admin-ui.js",
+          "sourceBlob": "4d5e07d2716b5d15d8418cb36d76e182ce180887",
+          "mainBlob": "a9e584c6b7b275e291ce228bdf6fa168d726283a",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-shared-client.js",
+          "sourceBlob": "28825fd306a378d3c5430199e9ba00ef13d3a60e",
+          "mainBlob": "dece8bd2c930286854800d6ef08f320fb5c8516c",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-review.js",
+          "sourceBlob": "c8dce738e80d2dfe060e1234d0ec677e005ca41c",
+          "mainBlob": "6bf195d782cfdff721b6e007bcd6f83b3a42dad5",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/app.js",
+          "sourceBlob": "92e0c25d7acc9f5381b0a2947b755e121025ba61",
+          "mainBlob": "e127874d8d7b9015ae3864afa6bcc4e19668ffb3",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        }
+      ]
+    },
+    {
+      "label": "pr101-head",
+      "commit": "8f1f24321764d7aaa51941bce8c48b2b6634ac6d",
+      "tree": "eebd26dd03952f08575e6be43e8c3a8e69f165fc",
+      "files": [
+        {
+          "path": "lib/master-page-workflow.ts",
+          "sourceBlob": null,
+          "mainBlob": "03d06080d18fbfe0ba72cc2d8463a63f34cf5000",
+          "sameBytes": false,
+          "selection": "absent-in-source"
+        },
+        {
+          "path": "lib/master-page-boundary.ts",
+          "sourceBlob": null,
+          "mainBlob": "74c178d2a6b91b2173fa7d2539289b764f377612",
+          "sameBytes": false,
+          "selection": "absent-in-source"
+        },
+        {
+          "path": "lib/master-approved-pages.ts",
+          "sourceBlob": null,
+          "mainBlob": "ddbc2c8dda7766700f520a19584ed8cfdbf9a941",
+          "sameBytes": false,
+          "selection": "absent-in-source"
+        },
+        {
+          "path": "lib/master-page-approved-history.ts",
+          "sourceBlob": null,
+          "mainBlob": "fa81ea0436a991b27dd1664f6b1debb474dc2505",
+          "sameBytes": false,
+          "selection": "absent-in-source"
+        },
+        {
+          "path": "lib/draft-page-boundaries.ts",
+          "sourceBlob": null,
+          "mainBlob": "4a1c0806b1d33e1761dff2f26e5d1cff88d5b470",
+          "sameBytes": false,
+          "selection": "absent-in-source"
+        },
+        {
+          "path": "app/api/master/pages/route.ts",
+          "sourceBlob": null,
+          "mainBlob": "161747a2987efdb47d2766debd7771d569ad95fb",
+          "sameBytes": false,
+          "selection": "absent-in-source"
+        },
+        {
+          "path": "app/api/master/stage-reference/route.ts",
+          "sourceBlob": "0d5e0494581813029a4da02c25951c88b68ae426",
+          "mainBlob": "0d5e0494581813029a4da02c25951c88b68ae426",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "public/process/master-page-editor.js",
+          "sourceBlob": null,
+          "mainBlob": "8288ff197bdccba73004e83beae86c14d62633c9",
+          "sameBytes": false,
+          "selection": "absent-in-source"
+        },
+        {
+          "path": "public/process/master-page-approved-history.js",
+          "sourceBlob": null,
+          "mainBlob": "59abb3c9677144533c77b89a4f135137bbb4af68",
+          "sameBytes": false,
+          "selection": "absent-in-source"
+        },
+        {
+          "path": "public/process/page-draft-merge.js",
+          "sourceBlob": null,
+          "mainBlob": "0b0472c4d4b06c5afbe831f9072a8bf7d1693269",
+          "sameBytes": false,
+          "selection": "absent-in-source"
+        },
+        {
+          "path": "public/process/master-data.js",
+          "sourceBlob": "74303200ca1140e15f2fe3023728e3ec42664e04",
+          "mainBlob": "1c161a9f35a82f51e545597e2862f4db06886dcb",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-admin-ui.js",
+          "sourceBlob": "a9e584c6b7b275e291ce228bdf6fa168d726283a",
+          "mainBlob": "a9e584c6b7b275e291ce228bdf6fa168d726283a",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "public/process/master-shared-client.js",
+          "sourceBlob": "05dd10585396637789587f4043c012a4e2c8871d",
+          "mainBlob": "dece8bd2c930286854800d6ef08f320fb5c8516c",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-review.js",
+          "sourceBlob": "c8dce738e80d2dfe060e1234d0ec677e005ca41c",
+          "mainBlob": "6bf195d782cfdff721b6e007bcd6f83b3a42dad5",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/app.js",
+          "sourceBlob": "e127874d8d7b9015ae3864afa6bcc4e19668ffb3",
+          "mainBlob": "e127874d8d7b9015ae3864afa6bcc4e19668ffb3",
+          "sameBytes": true,
+          "selection": "retain-main"
+        }
+      ]
+    },
+    {
+      "label": "pr101-handoff",
+      "commit": "25305c17080c7778cc778688c769f3cea5c7b298",
+      "tree": "2ef7aaca0b6a511bef0b14f1f2368c859388f99c",
+      "files": [
+        {
+          "path": "lib/master-page-workflow.ts",
+          "sourceBlob": "e94d1aa0a61f14cb0440361cdd95fd57dd29ecb4",
+          "mainBlob": "03d06080d18fbfe0ba72cc2d8463a63f34cf5000",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "lib/master-page-boundary.ts",
+          "sourceBlob": "74c178d2a6b91b2173fa7d2539289b764f377612",
+          "mainBlob": "74c178d2a6b91b2173fa7d2539289b764f377612",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "lib/master-approved-pages.ts",
+          "sourceBlob": "ddbc2c8dda7766700f520a19584ed8cfdbf9a941",
+          "mainBlob": "ddbc2c8dda7766700f520a19584ed8cfdbf9a941",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "lib/master-page-approved-history.ts",
+          "sourceBlob": "fa81ea0436a991b27dd1664f6b1debb474dc2505",
+          "mainBlob": "fa81ea0436a991b27dd1664f6b1debb474dc2505",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "lib/draft-page-boundaries.ts",
+          "sourceBlob": "fbb655f6ff2644d31a4206270fdba10f49214ae4",
+          "mainBlob": "4a1c0806b1d33e1761dff2f26e5d1cff88d5b470",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "app/api/master/pages/route.ts",
+          "sourceBlob": "161747a2987efdb47d2766debd7771d569ad95fb",
+          "mainBlob": "161747a2987efdb47d2766debd7771d569ad95fb",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "app/api/master/stage-reference/route.ts",
+          "sourceBlob": "bb26fc21c26eb271e48e327ce8092907de7d1635",
+          "mainBlob": "0d5e0494581813029a4da02c25951c88b68ae426",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-page-editor.js",
+          "sourceBlob": "44565af477ffccfa59ac533c92334beed7407ce4",
+          "mainBlob": "8288ff197bdccba73004e83beae86c14d62633c9",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-page-approved-history.js",
+          "sourceBlob": "96f2822fa4b72eae8fc5ef6ac7d1bedc4cac28ff",
+          "mainBlob": "59abb3c9677144533c77b89a4f135137bbb4af68",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/page-draft-merge.js",
+          "sourceBlob": "5d38783cd10a2e5c8fdaf27cad0c016b276e94c2",
+          "mainBlob": "0b0472c4d4b06c5afbe831f9072a8bf7d1693269",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-data.js",
+          "sourceBlob": "bf753ecebfd49177301e6cccf827fa7ce4d4bdeb",
+          "mainBlob": "1c161a9f35a82f51e545597e2862f4db06886dcb",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-admin-ui.js",
+          "sourceBlob": "b1c1bb8255f73e9a894cad80c438f158f233cd78",
+          "mainBlob": "a9e584c6b7b275e291ce228bdf6fa168d726283a",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-shared-client.js",
+          "sourceBlob": "28825fd306a378d3c5430199e9ba00ef13d3a60e",
+          "mainBlob": "dece8bd2c930286854800d6ef08f320fb5c8516c",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-review.js",
+          "sourceBlob": "c8dce738e80d2dfe060e1234d0ec677e005ca41c",
+          "mainBlob": "6bf195d782cfdff721b6e007bcd6f83b3a42dad5",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/app.js",
+          "sourceBlob": "92e0c25d7acc9f5381b0a2947b755e121025ba61",
+          "mainBlob": "e127874d8d7b9015ae3864afa6bcc4e19668ffb3",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        }
+      ]
+    },
+    {
+      "label": "pr101-product",
+      "commit": "a2c5f551d0b897f19bceb4205fcf934daf759467",
+      "tree": "cb17482250ecabed17a5626c3c9f4d61370b568a",
+      "files": [
+        {
+          "path": "lib/master-page-workflow.ts",
+          "sourceBlob": "e94d1aa0a61f14cb0440361cdd95fd57dd29ecb4",
+          "mainBlob": "03d06080d18fbfe0ba72cc2d8463a63f34cf5000",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "lib/master-page-boundary.ts",
+          "sourceBlob": "74c178d2a6b91b2173fa7d2539289b764f377612",
+          "mainBlob": "74c178d2a6b91b2173fa7d2539289b764f377612",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "lib/master-approved-pages.ts",
+          "sourceBlob": "ddbc2c8dda7766700f520a19584ed8cfdbf9a941",
+          "mainBlob": "ddbc2c8dda7766700f520a19584ed8cfdbf9a941",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "lib/master-page-approved-history.ts",
+          "sourceBlob": "fa81ea0436a991b27dd1664f6b1debb474dc2505",
+          "mainBlob": "fa81ea0436a991b27dd1664f6b1debb474dc2505",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "lib/draft-page-boundaries.ts",
+          "sourceBlob": "fbb655f6ff2644d31a4206270fdba10f49214ae4",
+          "mainBlob": "4a1c0806b1d33e1761dff2f26e5d1cff88d5b470",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "app/api/master/pages/route.ts",
+          "sourceBlob": "161747a2987efdb47d2766debd7771d569ad95fb",
+          "mainBlob": "161747a2987efdb47d2766debd7771d569ad95fb",
+          "sameBytes": true,
+          "selection": "retain-main"
+        },
+        {
+          "path": "app/api/master/stage-reference/route.ts",
+          "sourceBlob": "bb26fc21c26eb271e48e327ce8092907de7d1635",
+          "mainBlob": "0d5e0494581813029a4da02c25951c88b68ae426",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-page-editor.js",
+          "sourceBlob": "44565af477ffccfa59ac533c92334beed7407ce4",
+          "mainBlob": "8288ff197bdccba73004e83beae86c14d62633c9",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-page-approved-history.js",
+          "sourceBlob": "96f2822fa4b72eae8fc5ef6ac7d1bedc4cac28ff",
+          "mainBlob": "59abb3c9677144533c77b89a4f135137bbb4af68",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/page-draft-merge.js",
+          "sourceBlob": "5d38783cd10a2e5c8fdaf27cad0c016b276e94c2",
+          "mainBlob": "0b0472c4d4b06c5afbe831f9072a8bf7d1693269",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-data.js",
+          "sourceBlob": "bf753ecebfd49177301e6cccf827fa7ce4d4bdeb",
+          "mainBlob": "1c161a9f35a82f51e545597e2862f4db06886dcb",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-admin-ui.js",
+          "sourceBlob": "b1c1bb8255f73e9a894cad80c438f158f233cd78",
+          "mainBlob": "a9e584c6b7b275e291ce228bdf6fa168d726283a",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-shared-client.js",
+          "sourceBlob": "28825fd306a378d3c5430199e9ba00ef13d3a60e",
+          "mainBlob": "dece8bd2c930286854800d6ef08f320fb5c8516c",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/master-review.js",
+          "sourceBlob": "c8dce738e80d2dfe060e1234d0ec677e005ca41c",
+          "mainBlob": "6bf195d782cfdff721b6e007bcd6f83b3a42dad5",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        },
+        {
+          "path": "public/process/app.js",
+          "sourceBlob": "92e0c25d7acc9f5381b0a2947b755e121025ba61",
+          "mainBlob": "e127874d8d7b9015ae3864afa6bcc4e19668ffb3",
+          "sameBytes": false,
+          "selection": "retain-main-newer-owner-and-permission-boundaries; no wholesale legacy replacement"
+        }
+      ]
+    }
+  ]
+}

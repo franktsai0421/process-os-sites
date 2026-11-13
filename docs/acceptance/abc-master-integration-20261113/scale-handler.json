@@ -1,0 +1,128 @@
+{
+  "status": "PASS",
+  "commit": "2bf70906a16ff5ee61b5f1a2a9f7f5df3c0c7793",
+  "environment": "Node24 actual signed handlers, fresh in-memory SQLite/Map R2 records-v1, 3 independent fixtures per page/size",
+  "limits": "No browser/IME/real network/real data, no before-after speed claim, no acceptance threshold invented",
+  "samples": [
+    {
+      "page": "AB",
+      "count": 100,
+      "run": 0,
+      "beginMs": 226.59399900000017,
+      "saveMs": 27.22764899999993,
+      "reloadMs": 20.102493000000095,
+      "writeCalls": 1,
+      "syntheticOnly": true
+    },
+    {
+      "page": "AB",
+      "count": 100,
+      "run": 1,
+      "beginMs": 124.09459500000003,
+      "saveMs": 24.409808000000112,
+      "reloadMs": 19.09296600000016,
+      "writeCalls": 1,
+      "syntheticOnly": true
+    },
+    {
+      "page": "AB",
+      "count": 100,
+      "run": 2,
+      "beginMs": 91.94161800000029,
+      "saveMs": 19.944038999999975,
+      "reloadMs": 17.429218999999648,
+      "writeCalls": 1,
+      "syntheticOnly": true
+    },
+    {
+      "page": "AB",
+      "count": 1000,
+      "run": 0,
+      "beginMs": 168.34860799999979,
+      "saveMs": 109.11794799999961,
+      "reloadMs": 35.623883000000205,
+      "writeCalls": 1,
+      "syntheticOnly": true
+    },
+    {
+      "page": "AB",
+      "count": 1000,
+      "run": 1,
+      "beginMs": 168.3296620000001,
+      "saveMs": 123.52444999999989,
+      "reloadMs": 32.01646299999993,
+      "writeCalls": 1,
+      "syntheticOnly": true
+    },
+    {
+      "page": "AB",
+      "count": 1000,
+      "run": 2,
+      "beginMs": 159.61630100000002,
+      "saveMs": 99.37642899999992,
+      "reloadMs": 36.232834999999795,
+      "writeCalls": 1,
+      "syntheticOnly": true
+    },
+    {
+      "page": "C",
+      "count": 100,
+      "run": 0,
+      "beginMs": 88.40364399999999,
+      "saveMs": 24.777455000000373,
+      "reloadMs": 15.903973999999835,
+      "writeCalls": 1,
+      "syntheticOnly": true
+    },
+    {
+      "page": "C",
+      "count": 100,
+      "run": 1,
+      "beginMs": 75.606898,
+      "saveMs": 17.790617999999995,
+      "reloadMs": 17.090657000000647,
+      "writeCalls": 1,
+      "syntheticOnly": true
+    },
+    {
+      "page": "C",
+      "count": 100,
+      "run": 2,
+      "beginMs": 74.04359999999997,
+      "saveMs": 18.08959700000014,
+      "reloadMs": 17.14179200000035,
+      "writeCalls": 1,
+      "syntheticOnly": true
+    },
+    {
+      "page": "C",
+      "count": 1000,
+      "run": 0,
+      "beginMs": 158.46689499999957,
+      "saveMs": 100.77513999999974,
+      "reloadMs": 35.40549199999987,
+      "writeCalls": 1,
+      "syntheticOnly": true
+    },
+    {
+      "page": "C",
+      "count": 1000,
+      "run": 1,
+      "beginMs": 148.86196399999972,
+      "saveMs": 98.68935799999963,
+      "reloadMs": 31.77762199999961,
+      "writeCalls": 1,
+      "syntheticOnly": true
+    },
+    {
+      "page": "C",
+      "count": 1000,
+      "run": 2,
+      "beginMs": 140.69968100000006,
+      "saveMs": 86.10618299999987,
+      "reloadMs": 30.945741999999882,
+      "writeCalls": 1,
+      "syntheticOnly": true
+    }
+  ]
+}

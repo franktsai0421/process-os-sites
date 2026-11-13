@@ -104,8 +104,8 @@ void test('AB actual RAM-only navigation ignores shared ACKs across groups, whil
  const nav=installABNavigation(f,control),other=fixture('/api/ipqc-ab/workflow?scope=B%3Aother'),peer=installABNavigation(other,control);
  other.create('/api/ipqc-ab/workflow?scope=A%3AG'); // Register the shared scope without establishing a write.
  assert.equal(groupOwns(f,g,m),true);assert.equal(groupOwns(other,g,m),false);
- assert.equal(nav.departure.inspect().state,'clean');assert.equal(peer.departure.inspect().state,'clean');assert.equal(nav.departure.autoAbandon,true);assert.equal(nav.requiresSave(),false);
- const before=f.calls.length;f.box.localInput=true;assert.equal(nav.departure.inspect().state,'dirty');f.box.localInput=false;
+ assert.equal(nav.departure.inspect().state,'clean');assert.equal(peer.departure.inspect().state,'clean');assert.equal(nav.departure.autoAbandon,false);assert.equal(nav.requiresSave(),false);
+ const before=f.calls.length;f.box.localInput=true;assert.equal(nav.departure.inspect().state,'dirty');assert.throws(()=>nav.departure.closeClean());assert.equal(f.box.localInput,true);f.box.localInput=false;
  f.box.modal={readonly:false};assert.equal(nav.departure.inspect().state,'dirty');f.box.modal.readonly=true;assert.equal(nav.departure.inspect().state,'clean');assert.equal(f.calls.length,before);
  f.reply(()=>{throw Error('synthetic lost ACK');});await assert.rejects(apply(f),/RESULT_UNKNOWN/);
  const marker=[...f.memory];assert(marker.length);assert.equal(nav.departure.inspect().state,'unknown');assert.deepEqual([...f.memory],marker);

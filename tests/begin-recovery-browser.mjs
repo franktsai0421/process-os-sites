@@ -100,7 +100,15 @@ export async function runBeginRecoveryBrowser({isolatedDesktop=false}={}){
    assert(committed);assert.equal(posts,1);const afterCommit=await fixture.readRecordValues(),beforeControl=control(seed.values,spec),afterControl=control(afterCommit,spec);
    assert.deepEqual(afterControl.workflow.saved,beforeControl.workflow.saved);assert.deepEqual(afterControl.workflow.saves,beforeControl.workflow.saves);assert.deepEqual(afterControl.workflow.cases,beforeControl.workflow.cases);assert.equal(afterControl.workflow.pendingId,beforeControl.workflow.pendingId);
    const markers=await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-begin-v1:'))));assert(Object.keys(markers).length,'Original Begin identity must survive in session storage');
-   stage=spec.module+':leave';const destination=spec.module==='process-authoring'?'dashboard':'quality-dashboard';await page.locator('.nav-item[data-view="'+destination+'"]').click();await page.waitForFunction(view=>window.ProcessSync?.destination?.view===view&&document.documentElement.dataset.processNavigationStatus==='ready',destination);
+   stage=spec.module+':leave';const destination=spec.module==='process-authoring'?'dashboard':'quality-dashboard';await page.locator('.nav-item[data-view="'+destination+'"]').click();
+   if(spec.module==='ipqc-c'){
+    const decision=page.locator('#process-navigation-departure');await decision.waitFor();assert.equal(posts,1);
+    await decision.locator('[data-departure-choice="stay"]').click();await decision.waitFor({state:'detached'});
+    assert.equal(await page.evaluate(()=>window.ProcessSync.destination.dataTab),spec.tab);assert.deepEqual(await fixture.readRecordValues(),afterCommit);
+    assert.deepEqual(await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-begin-v1:')))),markers);
+    await page.locator('.nav-item[data-view="'+destination+'"]').click();await decision.waitFor();await decision.locator('[data-departure-choice="abandon"]').click();
+   }
+   await page.waitForFunction(view=>window.ProcessSync?.destination?.view===view&&document.documentElement.dataset.processNavigationStatus==='ready',destination);
    assert.equal(posts,1);assert.deepEqual(await fixture.readRecordValues(),afterCommit);
    stage=spec.module+':'+reopen+':reopen';if(reopen==='native')await page.goto(target);else{await page.locator('.nav-item[data-view="'+(spec.view||'data')+'"]').click();
    if(spec.tab){await page.locator('[data-quality-tab="'+spec.tab+'"]').click();}}

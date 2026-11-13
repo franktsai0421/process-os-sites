@@ -261,7 +261,7 @@ async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:Re
   known.add(ref.sha256);const raw=options.projectValue?await options.projectValue(key,original):original;
   if(raw===undefined)continue;
   if(key===options.modelKey&&!options.effectiveOnly&&!options.projectValue){models.set(key,await visit(JSON.parse(raw)));values[key]=raw;}
-  else values[key]=options.effectiveOnly?JSON.stringify(await visit(effectiveDeliveryValue(JSON.parse(raw)))):raw.includes('"__immutableBody"')?JSON.stringify(await visit(JSON.parse(raw))):raw;
+  else values[key]=options.effectiveOnly?JSON.stringify(await visit(effectiveDeliveryValue(JSON.parse(raw),key))):raw.includes('"__immutableBody"')?JSON.stringify(await visit(JSON.parse(raw))):raw;
   // Private FQC authority validation must run before an inline maintenance
   // overlay can replace the hydrated aggregate. Other readers are unchanged.
   validateHydrated?.(values[key]);

@@ -1,3 +1,7 @@
+## 2026-11-13 — AB/C主資料雲端草稿候選
+
+修正明確Save的慢處理進度、結果重讀、類別篩選／中越文切換，以及page-v1 Save後bootstrap503；原核准來源proof驗證與私有草稿分界保留。只增加固定來源的read-only舊資料歸屬盤點，未切換真資料或部署。[來源、21項與驗證界線](../docs/acceptance/abc-master-integration-20261113/README.md)。
+
 ## 2026-11-13 — Equipment and Submit integration
 
 Merged #110 main into existing #111 with a combined shared-client cache tag and both exact source projection chains. No backend/schema or policy change; [risk and validation](../docs/acceptance/process-submit-outcome-20261113.md).

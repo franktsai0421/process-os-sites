@@ -461,6 +461,9 @@ void test(
     await page.evaluate(() => {
       void ProcessDeliveryNavigation.navigate('dashboard');
     });
+    const decision=page.locator('#process-navigation-departure');await decision.waitFor();assert.equal(posts.length,1);
+    await decision.locator('[data-departure-choice="stay"]').click();await decision.waitFor({state:'detached'});assert.deepEqual(await markers(page),keys);assert(await page.evaluate(()=>sharedDraftAccountState().unknown));
+    await page.evaluate(()=>{void ProcessDeliveryNavigation.navigate('dashboard');});await decision.waitFor();await decision.locator('[data-departure-choice="abandon"]').click();
     await page.waitForFunction(() => state.view === 'dashboard');
     assert.equal(
       await page.locator('#process-navigation-departure').count(),

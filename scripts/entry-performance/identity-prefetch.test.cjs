@@ -1,6 +1,6 @@
 /* Isolated actual-decoder virtual-R2 fixture. Run by the designated manager only. */
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-const {createHash,webcrypto}=require('node:crypto'),{createRequire}=require('node:module');
+const {createHash,webcrypto}=require('node:crypto'),{createRequire}=require('node:module'),{Buffer}=require('node:buffer');
 const root=path.resolve(__dirname,'../..'),requireRepo=createRequire(path.join(root,'package.json')),ts=requireRepo('typescript');
 const hash=raw=>createHash('sha256').update(raw).digest('hex'),ref=raw=>({key:'state-records/v1/'+hash(raw)+'.json',sha256:hash(raw)});
 function load(source){const mod={exports:{}};const output=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;vm.runInNewContext(output,{module:mod,exports:mod.exports,require:id=>requireRepo(path.resolve(root,'lib',id)),crypto:webcrypto,TextEncoder,TextDecoder,console,structuredClone});return mod.exports;}
@@ -9,7 +9,9 @@ const inverse=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/identity-
 // Reconstruct the original identity comparison from exact reviewed inverse
 // spans. Do not update its historical tail/prefix/baseline pins to hide drift.
 // The candidate executed below remains complete, including authority hydration.
-let identitySource=candidateSource;
+// Project only this exact approved catalog successor for historical comparison.
+// Execute the complete current candidate below; retain every original pin.
+let identitySource=require('../abc-master-source-contract.cjs').projectKnown(Buffer.from(candidateSource),'lib/state-records.ts').toString().replace(/\r\n/g,'\n');
 // Only the historical comparison excludes the new create capability. Its exact
 // bytes and location are guarded; never repin the original identity/FQC hashes.
 const createInverse=inverse.ipqcCCreateMutationInverse;
