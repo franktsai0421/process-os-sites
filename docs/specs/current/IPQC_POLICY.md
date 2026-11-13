@@ -19,3 +19,11 @@ C 版本確認平台提供撤回入口，只依既有查看／撤回權限，不
 IPQC 分配頁以綠色「本流程已選」、藍色「其他流程使用中」、琥珀色「尚未分配」搭配文字／圖示呈現。分組收折時顯示已分配數量，勾選即時更新；標準明細預設收折。UI 標籤跟隨所選語言，來源標準原文保留。
 
 實作見 [QUALITY](../../../AI_CONTEXT/modules/QUALITY.md)，資料欄位見 [V3 模型](../../../AI_CONTEXT/models/V3.md)，本次證據見 [review3](../../ipqc-reference/20261006-review3.md)。
+
+## 2026-11-12 — C 產品切換目前有效規則
+
+Frank最新原文：「在同一個模組下切換產品可以保留 如果切換分頁就不保留 例如都在ipqc c下面 就保留 但是切換頁面到FQC就不保留」。這取代「對要放棄未存修改」與10:14舊捨棄結論，不能保留舊規則為最終。
+
+同IPQC C模組的產品選單切換保留未儲存修改與尚未上傳照片，不提示、不偷做Save，已存C scope不拆分。離開C到FQC等其他模組頁才沿原departure/reset靜默放棄未送內容／照片；返回不還原未送表單。已存草稿／待審／正式／歷史不變，核准歷史維持唯讀、不還原覆寫。已送UNKNOWN／在途操作另保留原operation／receipt與去重，不能重送或以離頁當取消。
+
+純搜尋維持既有規則。這個產品例子**沒有重新確認工段、coverage、待補／驗證定位或其他選擇器**；本次不擴改它們，也不宣稱它們全部獲新核定。編輯modal限制未另改。完整入口範圍與來源時間順序見[有效決策](../../acceptance/ipqc-c-cloud-integration-20261112/product-switch-decision.zh-TW.md)，程式／測試證據見[24項台帳](../../acceptance/ipqc-c-cloud-integration-20261112/requirements-audit.zh-TW.md)。

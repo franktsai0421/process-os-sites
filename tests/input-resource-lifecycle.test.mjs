@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
 const source=name=>fs.readFileSync(new URL('../public/process/'+name,import.meta.url),'utf8');
-function fn(file,name){const text=source(file),ast=ts.createSourceFile(file,text,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);let value;function visit(n){if(ts.isFunctionDeclaration(n)&&n.name?.text===name){assert(!value);value=n.getText(ast);}ts.forEachChild(n,visit);}visit(ast);assert(value,name);return value;}
+function fn(file,name){const text=source(file),ast=ts.createSourceFile(file,text,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);let value;function visit(n){if(ts.isFunctionDeclaration(n)&&n.name?.text===name){assert(!value);value=n.getText(ast);}if(ts.isVariableDeclaration(n)&&ts.isIdentifier(n.name)&&n.name.text===name){assert(!value);value='const '+n.getText(ast)+';';}ts.forEachChild(n,visit);}visit(ast);assert(value,name);return value;}
 function box(context,file,names){vm.createContext(context);for(const name of names)vm.runInContext(fn(file,name),context);return context;}
 function equipment(){
  const frames=[],events={};let renders=0,focus=0,scroll=0,summaries=0,generation=1,activeArea;
@@ -78,10 +78,14 @@ void test('PROCESS current repaint retains legacy dialog focus and refuses focus
  const f=equipment();f.b.repaint(true,false,'name');f.frames.shift()();assert.equal(f.dialog().open,true);assert.equal(f.stats().focus,1);
  f.b.repaint(false,true);f.host.ProcessNavigationForms={composing:()=>true};f.frames.shift()();assert.equal(f.stats().focus,1);assert.equal(f.stats().scroll,1);
 });
-function iqc(){let refreshes=0;const handlers={},input={value:'',isConnected:true,addEventListener:(name,cb)=>handlers[name]=cb};const root={querySelectorAll:selector=>selector==='#iqc-search'?[input]:[]};const b=box({root,ui:{search:''},refreshPartRows(){refreshes++;},bindPartRows(){},render(){},importPreview(){}},'iqc-master.js',['bind']);b.bind();return{handlers,input,b,refreshes:()=>refreshes};}
+function iqc(){let refreshes=0;const handlers={},input={value:'',isConnected:true,addEventListener:(name,cb)=>handlers[name]=cb};const root={querySelectorAll:selector=>selector==='#iqc-search'?[input]:[]};const b=box({root,historyDisplayEpoch:0,approvedHistoryView:null,ui:{search:''},refreshPartRows(){refreshes++;},bindPartRows(){},render(){},importPreview(){}},'iqc-master.js',['historyAllowsMutation','guardWorking','bind']);b.bind();return{handlers,input,b,refreshes:()=>refreshes};}
 void test('IQC final composition value renders once; typing/clear still update and accents stay exact',()=>{
  const f=iqc();for(const value of ['中','中文','Kiể']){f.input.value=value;f.handlers.input({target:f.input,isComposing:true});}assert.equal(f.refreshes(),0);
  f.input.value='Kiểm tra';f.handlers.compositionend({target:f.input});f.handlers.input({target:f.input,isComposing:false});assert.equal(f.refreshes(),1);assert.equal(f.b.ui.search,'Kiểm tra');
  f.input.value='Kiểm tra'.normalize('NFD');f.handlers.input({target:f.input,isComposing:false});assert.equal(f.refreshes(),2);assert.equal(f.b.ui.search,f.input.value);
  f.input.value='';f.handlers.input({target:f.input,isComposing:false});assert.equal(f.refreshes(),3);f.handlers.compositionend({target:f.input});assert.equal(f.refreshes(),3);
+});
+
+void test('IQC input callback cannot mutate after approved-history selection or display replacement',()=>{
+ for(const stale of ['history','epoch','root']){const f=iqc();if(stale==='history')f.b.approvedHistoryView={blocked:true};if(stale==='epoch')f.b.historyDisplayEpoch++;if(stale==='root')f.b.root={};f.input.value='retained';f.handlers.input({target:f.input,isComposing:false});assert.equal(f.refreshes(),0);assert.equal(f.b.ui.search,'');}
 });

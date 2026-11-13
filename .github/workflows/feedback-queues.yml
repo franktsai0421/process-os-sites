@@ -3,6 +3,9 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'tests/access-event-main-integration.test.cjs'
+      - 'scripts/quality-main-source-contracts.json'
+      - 'scripts/quality-main-source-contract.cjs'
       - 'scripts/account-process-joint-source-contract.cjs'
       - 'scripts/account-process-joint-source-contract.json'
       - 'tests/account-process-joint-source.test.cjs'
@@ -15,6 +18,8 @@ on:
       - 'app/api/master/workflow/route.ts'
       - 'scripts/master-route-successor-source-contract.cjs'
       - 'scripts/ipqc-c-read-io-source-contract.cjs'
+      - 'scripts/ipqc-c-integration-source-contract.cjs'
+      - 'scripts/ipqc-c-integration-source-contract.json'
       - 'scripts/access-event-source-contract.cjs'
       - 'scripts/account-permission-source-contract.cjs'
       - 'scripts/account-permission-source-contract.json'

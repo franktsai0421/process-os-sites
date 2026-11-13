@@ -1,9 +1,10 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {execFileSync} from 'node:child_process';import fs from 'node:fs';import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),{withoutWorkflowReadAhead,beforeHash,afterHash,before,after}=require('../scripts/ipqc-c-read-io-source-contract.cjs'),{createHash}=require('node:crypto');
+const head=file=>{const bytes=execFileSync('git',['show','HEAD:'+file]);assert.equal(fs.readFileSync(file,'utf8').replaceAll('\r\n','\n'),bytes.toString().replaceAll('\r\n','\n'));return require('../scripts/ipqc-c-integration-source-contract.cjs').projectKnown(bytes,file);};
 const file='app/api/ipqc-c/workflow/route.ts',hash=b=>createHash('sha256').update(b).digest('hex');
 void test('exact GET opt-in reverses to frozen source; missing/duplicate/unexpected drift fail closed',()=>{
- const current=execFileSync('git',['show','HEAD:'+file]),prior=execFileSync('git',['show','429e178:'+file]);
- const lf=b=>b.toString().replaceAll('\r\n','\n');assert.equal(lf(fs.readFileSync(file)),lf(current));
+ const current=head(file),prior=execFileSync('git',['show','429e178:'+file]);
+ const lf=b=>b.toString().replaceAll('\r\n','\n');assert.equal(lf(require('../scripts/ipqc-c-integration-source-contract.cjs').projectKnown(execFileSync('git',['show','HEAD:'+file]),file)),lf(current));
  assert.equal(hash(current),afterHash);assert.equal(hash(prior),beforeHash);assert.deepEqual(withoutWorkflowReadAhead(current),prior);
  const at=current.indexOf(after);assert(at>=0);assert.equal(current.indexOf(after,at+after.length),-1);
  const prefix=current.subarray(0,at),suffix=current.subarray(at+after.length);
@@ -11,7 +12,7 @@ void test('exact GET opt-in reverses to frozen source; missing/duplicate/unexpec
 });
 void test('direct Begin and Local Save chains reconstruct complete canonical history exactly once',()=>{
  const io=require('../scripts/ipqc-c-read-io-source-contract.cjs'),{withoutDurableBegin}=require('../scripts/workflow-begin-source-contract.cjs'),{withoutLocalAtomicSave}=require('../scripts/ipqc-c-local-save-source-contract.cjs');
- const current=execFileSync('git',['show','HEAD:'+file]),canonical=execFileSync('git',['show','429e178:'+file]),preBegin=execFileSync('git',['show','cfb542926fa004392a3180b16aa887291fa74d4f:'+file]);
+ const current=head(file),canonical=execFileSync('git',['show','429e178:'+file]),preBegin=execFileSync('git',['show','cfb542926fa004392a3180b16aa887291fa74d4f:'+file]);
  const invert=io.withoutWorkflowReadAhead;let calls=0;io.withoutWorkflowReadAhead=bytes=>{calls++;return invert(bytes);};
  try{
   assert.deepEqual(withoutDurableBegin(current,file),preBegin);assert.equal(calls,1);
@@ -22,7 +23,7 @@ void test('direct Begin and Local Save chains reconstruct complete canonical his
  }finally{io.withoutWorkflowReadAhead=invert;}
 });
 void test('Begin composition still rejects unknown hashes, partial opt-in removal, actor/CAS and wrong-route drift',()=>{
- const {withoutDurableBegin}=require('../scripts/workflow-begin-source-contract.cjs'),current=execFileSync('git',['show','HEAD:'+file]),at=current.indexOf(after),prefix=current.subarray(0,at),suffix=current.subarray(at+after.length);
+ const {withoutDurableBegin}=require('../scripts/workflow-begin-source-contract.cjs'),current=head(file),at=current.indexOf(after),prefix=current.subarray(0,at),suffix=current.subarray(at+after.length);
  for(const changed of [Buffer.concat([prefix,suffix]),Buffer.concat([prefix,after,after,suffix]),Buffer.concat([current,Buffer.from('\n// unknown source')]),...[["query.get('compact')==='1'","query.get('compact')!=='1'"],['receipt.actorId!==actor.id','false'],['if(changed.meta.changes!==1)continue;','if(false)continue;'],["    const workflowReadAhead=",'    const removedReadAhead=']].map(([from,to])=>{const altered=Buffer.from(current.toString().replace(from,to));assert.notDeepEqual(altered,current);return altered;})])assert.throws(()=>withoutDurableBegin(changed,file),/differs from pinned bytes/);
  assert.throws(()=>withoutDurableBegin(current,'lib/versioned-shared-workflow.ts'),/differs from pinned bytes/);
  for(const input of [current.toString(),new Uint8Array(current)])assert.throws(()=>withoutDurableBegin(input,file),/requires raw source bytes/);

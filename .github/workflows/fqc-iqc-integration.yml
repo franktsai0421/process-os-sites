@@ -1,0 +1,72 @@
+name: FQC IQC integration
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'app/api/**'
+      - 'public/process/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - '.github/workflows/fqc-iqc-integration.yml'
+permissions:
+  contents: read
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PROCESS_PROGRAM_COMMIT: ${{ github.sha }}
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+    steps:
+      # Preflight requires the actual GitHub event commit; test the PR merge
+      # commit consistently rather than relabeling a checked-out head as it.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npx tsc --noEmit --incremental false
+      - run: node scripts/sites-ci-preflight.mjs
+      - run: node tests/sites-ci-negative-review.test.mjs
+      - run: node --test tests/quality-integration-source-proof.test.cjs tests/access-event-main-integration.test.cjs tests/routine-fqc-source-contract.test.cjs
+      - run: node --test tests/navigation-adapters.test.mjs tests/shared-draft-receipt-recovery.test.mjs
+      - run: node --test tests/process-scripts-build.test.mjs tests/quality-shell-bundle-oracle.test.mjs tests/quality-submission-fences.test.mjs
+      - run: node --test tests/snapshot-directory-paths.test.mjs tests/quality-isolated-diagnostics.test.mjs
+      - run: node --experimental-vm-modules tests/snapshot-adapters.test.mjs
+      - run: node scripts/test-fqc-record-mutation.cjs
+      - run: node scripts/test-fqc-lifecycle8-record-mutation.cjs
+      - run: node scripts/test-fqc-catalog-read.mjs
+      - run: node scripts/test-iqc-editing-projection-ui.cjs
+      - run: node scripts/test-iqc-poll-ownership.cjs
+      - run: node scripts/entry-performance/poll-wiring.test.mjs
+      - run: node --experimental-vm-modules tests/photo-standard-entries.test.mjs
+      - run: node scripts/test-scoped-read-pause.cjs
+      - run: node --test tests/input-resource-lifecycle.test.mjs tests/module-begin-recovery.test.mjs tests/shared-draft-begin-v1.test.mjs
+      - run: node scripts/test-routine-equipment-edit-open-race.mjs
+      - run: node scripts/test-routine-equipment-session-recovery.mjs
+      - run: node scripts/test-routine-equipment-transfer-intent.cjs
+      - run: node scripts/test-routine-equipment-four-module-transfer.cjs
+      - run: node scripts/test-fqc-matrix-layout.mjs
+      - run: node scripts/test-quality-integration.mjs
+      - run: node --test tests/spinner-contract.test.mjs tests/routine-fqc-unload-contract.test.mjs tests/quality-module-command-isolation.test.mjs tests/sites-delivery-url-observer.test.mjs
+      - run: node --test --test-timeout=30000 tests/routine-fqc-explicit-refresh.test.mjs tests/routine-fqc-manual-generation.test.mjs tests/routine-fqc-durable-route.test.mjs tests/routine-fqc-durable-receipt.test.mjs tests/routine-fqc-receipt-only.test.mjs tests/routine-fqc-departure-attribution.test.mjs tests/multiuser-module-departure-routine-save.test.mjs
+      - run: npm run build
+      - run: node tests/sites-root-entry-native.test.mjs
+      - run: node --test tests/iqc-save-choice-compiled-http.test.mjs
+      - run: node node_modules/playwright/cli.js install --with-deps chromium
+      - run: node --test --test-concurrency=1 tests/equipment-transfer-compiled.test.mjs tests/fqc-single-save-browser.test.mjs tests/fqc-unknown-recovery-browser.test.mjs tests/iqc-unknown-browser.test.mjs tests/fqc-matrix-conflict-discard-browser.test.mjs
+      - run: node tests/sites-delivery-browser.test.mjs
+      - run: node tests/begin-recovery-browser.mjs
+      - run: node --test tests/fqc-draft-lifecycle-browser-contract.test.mjs tests/quality-review-readiness.test.mjs
+      - run: node scripts/test-iqc-content-issues.cjs
+      - run: node scripts/test-quality-begin-generation-browser.cjs
+      - run: node tests/fqc-draft-lifecycle-browser.mjs
+      - run: node tests/fqc-matrix-multiuser-browser.mjs

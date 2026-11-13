@@ -58,7 +58,7 @@ async function fixture(projection = {}, { includeIPQCC = false } = {}) {
     role: id === 'admin' ? 'admin' : 'staff', enabled: true, inheritRole: false, authEpoch: 1,
     password, lines: ['A', 'B', 'C'], views: ['data', 'approval'],
     permissions: ['no-edit', 'no-view'].includes(id) ? ['approval.submit'] : [],
-    accessOverrides: Object.fromEntries(accessKeys.map(key => [key, keys.includes(key) || includeIPQCC && ['editor', 'reviewer'].includes(id) && (key === 'approval.view' || (id === 'editor' ? ops : ['view', 'approve', 'return']).some(operation => key === 'ipqc-c.' + operation))])),
+    accessOverrides: Object.fromEntries(accessKeys.map(key => [key, keys.includes(key) || includeIPQCC && ['editor', 'reviewer'].includes(id) && (key === 'approval.view' || id === 'reviewer' && ['approval.approve', 'approval.return'].includes(key) || (id === 'editor' ? ops : ['view', 'approve', 'return']).some(operation => key === 'ipqc-c.' + operation))])),
   }));
   const values = { ...projection, platformUsers: JSON.stringify(users) };
   db.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').run(
@@ -69,7 +69,7 @@ async function fixture(projection = {}, { includeIPQCC = false } = {}) {
       body: JSON.stringify({ id: user.id, password }),
     }));
     assert.equal(response.status, 200, response.status === 200 ? '' : await response.text());
-    sessions[user.id.slice(8)] = { Cookie: response.headers.get('set-cookie').split(';')[0], Origin: 'http://fixture', 'Content-Type': 'application/json' };
+    sessions[user.id.slice(8)] = { 'X-Process-Expected-Actor':user.id, Cookie: response.headers.get('set-cookie').split(';')[0], Origin: 'http://fixture', 'Content-Type': 'application/json' };
     trace.push({ endpoint: 'platform-login', method: 'POST', actor: user.id, status: response.status });
   }
   const flow = body => body.control?.workflow || body.workflow;

@@ -63,7 +63,8 @@ void test('peer edit in an unsent field remains an original guard and conflictin
   await s.peer('methodText', 'Peer method');
   const server = s.f.snapshot();
   await s.apiSave();
-  assert.equal(writes(s).at(-1).status, 409);
+  assert.equal(writes(s).length, 0, 'whole-set preflight compares before dispatch');
+  assert.equal(await s.page.locator('[data-ab-conflict]').count(), 1);
   assert.deepEqual(s.f.snapshot(), server);
   assert.deepEqual((await s.entry()).base, original.base);
   assert.equal((await s.entry()).snapshot.items[0].methodText, 'Own method');
@@ -71,7 +72,7 @@ void test('peer edit in an unsent field remains an original guard and conflictin
     (await s.group()).control.workflow.working.items[0].methodText,
     'Peer method',
   );
-  const scopes = writes(s)[0].body.command.input.scopes;
+  const scopes = await s.local(); // Original guard is retained before any dispatch.
   assert(
     scopes[0].changes.some((c) =>
       c.guards?.some(
@@ -154,7 +155,7 @@ for (const change of [
     const before = await s.state(),
       stored = s.f.snapshot();
     await s.owner(change);
-    assert.equal(await s.apiSave(), null);
+    await assert.rejects(s.apiSave(),/APPROVED_HISTORY_READ_ONLY/);
     assert.equal(writes(s).length, 0);
     assert.equal(viewContent(await s.state()), viewContent(before));
     assert.deepEqual(s.f.snapshot(), stored);
@@ -211,8 +212,8 @@ void test('a new modal opened during Save is never closed or captured by its old
   assert.equal((await s.state()).modal?.name, 'Different local form');
   assert.equal(writes(s).length, 1);
 });
-void test('selection changes retain local A and B edits; one module Save covers both original scopes', async (t) => {
-  const s = await fixture(t);
+void test('A/B filter roundtrip retains both scopes without writes then saves one module draft', async (t) => {
+  const s = await fixture(t), stored=s.f.snapshot();
   await s.edit('standard', 'A private');
   await s.page.locator('#ipqcab-line').selectOption('B');
   await s.page.locator('#ipqcab-begin').click();
@@ -220,17 +221,9 @@ void test('selection changes retain local A and B edits; one module Save covers 
   await s.page.locator('#ab-error-name').fill('B private');
   await s.page.locator('#ab-apply').click();
   await s.page.locator('#ipqcab-line').selectOption('A');
-  assert.equal((await s.entry()).snapshot.items[0].standard, 'A private');
-  assert.equal(writes(s).length, 0);
-  await s.apiSave();
-  assert.equal(writes(s).length, 1);
-  assert.equal(writes(s)[0].body.command.input.scopes.length, 2);
-  assert.equal(
-    (await s.group()).control.workflow.working.items[0].standard,
-    'A private',
-  );
-  const b = await s.f.read('ipqc-ab', 'editor', '&scope=B%3AG');
-  assert.equal(b.control.workflow.working.errors[0].name, 'B private');
+  assert.equal((await s.state()).localScopes.length,2);assert.equal(writes(s).length,0);assert.deepEqual(s.f.snapshot(),stored);
+  await s.apiSave();assert.equal(writes(s).length,1);assert.equal(writes(s)[0].status,200);
+  assert.equal((await s.group()).control.workflow.working.items[0].standard,'A private');const root=await s.root();assert.equal(root.moduleDraft.workflow.saved.content.scopes['B:G'].errors.at(-1).name,'B private');
   s.cleanErrors();
 });
 void test('a GET already in flight cannot replace local edits started while it waited', async (t) => {
@@ -260,17 +253,16 @@ void test('normal Save does not recapture stale DOM over untouched peer fields',
   s.cleanErrors();
 });
 for (const boundary of ['actor', 'same-id actor', 'epoch'])
-  void test(`load after ${boundary} quarantines the original private DOM without joining another owner's model`, async (t) => {
+  void test(`load after ${boundary} blocks the original private DOM without joining another owner's model`, async (t) => {
     const s = await fixture(t);
     await s.edit('standard', 'SECRET synthetic private text');
     const before = await s.state();
     await s.owner(boundary);
     const reads = s.requests.length;
-    assert.equal(await s.page.evaluate(() => __ABTest.load()), false);
+    await assert.rejects(s.page.evaluate(() => __ABTest.load()),/APPROVED_HISTORY_READ_ONLY/);
     assert.equal(s.requests.length, reads);
     const now = await s.state();
-    assert(now.accessBlocked);
-    assert(now.privateQuarantine);
+    assert.equal(await s.page.locator('[data-ab-edit-item]').count(),0,'history identity fence closes editing controls');
     assert.equal(viewContent(now), viewContent(before));
     assert(
       !(await s.page

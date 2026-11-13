@@ -12,7 +12,7 @@ async function editError(s,name){
 }
 async function save(s){
  await s.page.locator('#fqc-save').click();
- await s.page.waitForFunction(()=>!window.sharedDraftAccountState().queued);
+ await s.settled();
 }
 for(const [width,lang] of [[390,'zh'],[1280,'vi']])void test(`FQC local form and filtered matrix save once ${width}px ${lang}`,async t=>{
  const s=await setup(width,lang);try{
@@ -129,8 +129,8 @@ void test('completed local edits and matrix leave silently without writing or re
  }finally{await s.close();}
 });
 
-void test('true field conflict requires confirmation and a separate Save preserves unrelated edits',async()=>{
- const s=await setup();try{
+void test('historical main field conflict retains its original separate-Save confirmation contract',async()=>{
+ const s=await setup(1280,'zh',{uiSourceRef:'9fbba823090f03da8385c8d92f5e59293d19d2f1'});try{
   s.page.setDefaultTimeout(10000);await editError(s,'My desired name');
   const other=s.f.realm('other');await other.client.read();const generation=(await s.f.state()).workflow.generation;
   await other.client.command(generation,'apply',{patches:[{op:'set',path:['errors',{id:'error'},'name'],value:'Other name'},{op:'set',path:['items',{id:'item'},'description'],value:'Other description'}],guards:[{path:['errors',{id:'error'},'name'],value:'Synthetic error'},{path:['items',{id:'item'},'description'],value:'Synthetic description'}]});
@@ -176,4 +176,12 @@ void test('refresh started before local form completion cannot replace the compl
   assert.equal(await s.page.evaluate(()=>window.FQCMasterUI.control.libraries.fqc.versions.find(row=>row.status==='draft').snapshot.errors[0].name),'Local wins over old refresh');
   await save(s);assert.equal((await s.f.state()).workflow.saved.content.errors[0].name,'Local wins over old refresh');assert.deepEqual(s.errors,[]);
  }finally{release?.();await s.close();}
+});
+
+void test('current global conflict choice cancels without POST and saves mine with independent peer edits once',async()=>{
+ const s=await setup();try{s.page.setDefaultTimeout(10000);await editError(s,'My desired name');const other=s.f.realm('other');await other.client.read();const generation=(await s.f.state()).workflow.generation;
+ await other.client.command(generation,'apply',{patches:[{op:'set',path:['errors',{id:'error'},'name'],value:'Other name'},{op:'set',path:['items',{id:'item'},'description'],value:'Other description'}],guards:[{path:['errors',{id:'error'},'name'],value:'Synthetic error'},{path:['items',{id:'item'},'description'],value:'Synthetic description'}]});
+ const before=posts(s.f).length;await s.page.locator('#fqc-save').click();await s.page.locator('[data-fqc-save-choice="cancel"]').click();await s.settled();assert.equal(posts(s.f).length,before);assert.equal((await s.f.state()).workflow.working.errors[0].name,'Other name');
+ await s.page.locator('#fqc-save').click();await s.page.locator('[data-fqc-save-choice="mine"]').click();await s.settled();const flow=(await s.f.state()).workflow;assert.equal(flow.saved.content.errors[0].name,'My desired name');assert.equal(flow.saved.content.items[0].description,'Other description');assert.equal(posts(s.f).length,before+1);assert.deepEqual(s.errors,[]);
+ }finally{await s.close();}
 });

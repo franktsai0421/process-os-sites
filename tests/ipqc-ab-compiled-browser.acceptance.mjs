@@ -202,15 +202,11 @@ for (const [width, lang] of [
             await page.locator('[data-ab-matrix-item]').last().check();
             scopes.push(line + ':' + group);
             mark('local forms and matrix ' + line + ':' + group);
+            assert.equal(requests.filter(r=>r.url.startsWith('/api/ipqc-ab')).length,0,'all four filtered scopes remain RAM-only before Save');
           }
-        assert.equal(
-          requests.filter((r) => r.url.startsWith('/api/ipqc-ab')).length,
-          0,
-        );
-        assert.equal(Object.keys((await read()).scopes || {}).length, 0);
-        mark('all four groups and photo remain local before Save');
-        await page.locator('#ipqcab-save').click();
-        await waitIdle();
+        await page.locator('#ipqcab-line').selectOption('A');await page.locator('#ipqcab-group').selectOption('GROUP-1');
+        await page.locator('[data-ab-edit-item]').first().click();assert.equal(await page.locator('.ipqcab-photo-row').count(),1,'original staged photo survives four-scope filter roundtrip');await page.locator('#ab-apply').click();
+        await page.locator('#ipqcab-save').click();await waitIdle();mark('one explicit whole-module Save after all A/B filter edits');
         const mutations = requests.filter((r) =>
           r.url.startsWith('/api/ipqc-ab'),
         );
@@ -236,7 +232,7 @@ for (const [width, lang] of [
           /^[a-f0-9]{64}$/,
         );
         mark(
-          'one click saves four groups atomically with real photo PUT and matrix',
+          'each Save retains the whole module including previously saved groups, photo and matrix',
         );
         await page.reload();
         await page.locator('#ipqcab-line').waitFor({ timeout: 30000 });

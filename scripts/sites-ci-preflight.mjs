@@ -19,7 +19,10 @@ const fqcRecoveryFixtureReview=Object.freeze({commit:'6fb5e5b25e01603b1e34c1db4b
 // Independently reviewed Begin fixture update: the only classified bytes remain
 // the same synthetic storage key. Current source constructs that key in parts.
 const iqcBeginFixtureReview=Object.freeze({commit:'7767ba5480cdc9f194fb72f4838ce6463a2cb2c0',entries:Object.freeze([Object.freeze({path:'scripts/test-iqc-editing-projection-races.cjs',blob:'9c17679c4a2f5380e667facded10178c4e9dcc53',categories:Object.freeze(['WORKSTATION_PATH'])})])});
-const negativeFixtureReviews=Object.freeze([negativeFixtureReview,fqcRecoveryFixtureReview,iqcBeginFixtureReview]);
+// Exact reviewed UI fixture delta: only Element.isConnected=true. The sole
+// classified bytes remain the predecessor's synthetic actor/endpoint storage key.
+const iqcDisplayFixtureReview=Object.freeze({commit:'e550da35585d8669b8f589b4f906c19a37e88b9b',entries:Object.freeze([Object.freeze({path:'scripts/test-iqc-editing-projection-ui.cjs',blob:'349553800bb7b67c7f0a3684efe224da7e9b547a',categories:Object.freeze(['WORKSTATION_PATH'])})])});
+const negativeFixtureReviews=Object.freeze([negativeFixtureReview,fqcRecoveryFixtureReview,iqcBeginFixtureReview,iqcDisplayFixtureReview]);
 const negativeFixtureProofs=new WeakMap();
 const historicalSignerReview=Object.freeze({commit:'ae2ff91eca847faac12337e17cdcbfdfee78d789',entries:Object.freeze([Object.freeze({path:'tests/master-ab-auth-phase-fixture.mjs',blob:'e83221cf75f18c9cdcda72baa69476a78b298077',categories:Object.freeze(['ASSIGNED_SECRET'])})])});
 const historicalSignerProofs=new WeakSet();
@@ -34,7 +37,7 @@ const supplementalReviews=[{commit:'f5992734796c93d384759af4656ec878fb9614ce',en
 // future browser discovery no longer embeds an installation path.
 {commit:'705e92bf53b7cd4ed9667444bcd5289679a86234',entries:[
  {path:'tests/sites-delivery-browser.test.mjs',blob:'f7992a769f1e739ce60ec6887137348824a429e6',categories:['WORKSTATION_PATH']},
-]},negativeFixtureReview,historicalSignerReview,fqcRecoveryFixtureReview,iqcBeginFixtureReview];
+]},negativeFixtureReview,historicalSignerReview,fqcRecoveryFixtureReview,iqcBeginFixtureReview,iqcDisplayFixtureReview];
 const patterns=[
  ['PRIVATE_KEY',/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
  ['GITHUB_TOKEN',/\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{50,})\b/],

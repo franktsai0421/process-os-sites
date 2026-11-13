@@ -9,7 +9,7 @@ const read=name=>fs.readFileSync(new URL('../public/process/'+name,import.meta.u
 const styles=['styles.css','master-data.css','master-data-extra.css','master-data-validation.css','fqc-master.css','version-draft-ui.css'].map(read).join('\n');
 const scripts=['local-draft-recovery.js','local-draft-recovery-session.js','shared-draft-client.js','version-draft-ui.js','fqc-master.js'];
 const posts=f=>f.requests.filter(r=>r.method==='POST'&&JSON.parse(r.body).command);
-for(const width of [390,1280])for(const lang of ['zh','vi'])void test(`native field conflict with matrix / local Discard / Save ${width}px ${lang}`,async()=>{
+for(const width of [390,1280])for(const lang of ['zh','vi'])void test(`native grouped field conflict with matrix / Cancel / local Discard / Save ${width}px ${lang}`,async()=>{
   assert.equal(process.env.CI,'true','Native acceptance requires supported CI; no restricted local launch');
   const {chromium}=await import('playwright'),f=await fixture();let browser;const errors=[],contexts=[];
   try{
@@ -39,18 +39,20 @@ for(const width of [390,1280])for(const lang of ['zh','vi'])void test(`native fi
     assert.equal(f.requests.filter(r=>r.method==='POST'&&JSON.parse(r.body).action==='begin-v1').length,1,'Only Begin writes while both editors stage locally');
     await b.locator('#fqc-save').click();await b.waitForFunction(()=>!window.FQCMasterUI.navigation.hasLocalChanges()&&!window.sharedDraftAccountState().queued);
     const peer=(await f.state()).workflow;
-    await a.locator('#fqc-save').click();await a.waitForFunction(()=>{const s=window.sharedDraftAccountState();return s.failed&&!s.unknown&&s.queued===0;});
-    const failed=posts(f).at(-1);assert.equal(failed.actor,'editor');assert.equal(failed.status,409);assert.equal(failed.result.error,'DEPENDENCY_CHANGED_RECONFIRM');assert.match(failed.result.requestId,/^[0-9a-f-]{36}$/i);assert.deepEqual((await f.state()).workflow,peer,'rejected combined save must be atomic');
-    await a.locator('#fqc-resolve-conflict').waitFor();
-    const operationId=JSON.parse(failed.body).command.operationId,before=posts(f).length;
+    const before=posts(f).length;
+    await a.locator('#fqc-save').click();await a.locator('[data-fqc-save-choice="cancel"]').click();
+    await a.waitForFunction(()=>{const s=window.sharedDraftAccountState();return !document.querySelector('[data-fqc-save-choice]')&&!document.querySelector('#fqc-save')?.disabled&&s.queued===0&&!s.failed&&!s.unknown;});
+    assert.equal(posts(f).length,before,'Cancel must precede every owner content POST');assert.deepEqual((await f.state()).workflow,peer,'cancelled grouped Save cannot alter peer data');
+    assert.equal(await a.locator(cell).getAttribute('aria-pressed'),'true','Cancel retains the local matrix intent');
     assert.equal(await a.evaluate(()=>Object.values(localStorage).some(value=>value.includes('completeMatrix'))),false,'new selections remain in page memory');
     // Checked local discard only: this must never roll back the peer's saved state.
     await a.evaluate(async()=>{const lease=await window.FQCMasterUI.navigation.departure.discard();lease.release();});
     await a.waitForFunction(()=>{const s=window.sharedDraftAccountState();return !window.FQCMasterUI.navigation.hasLocalChanges()&&!s.failed&&!s.unknown&&s.queued===0;});
     assert.equal(posts(f).length,before);assert.deepEqual((await f.state()).workflow,peer);
-    await a.locator('#fqc-save').click();await a.waitForFunction(()=>!window.sharedDraftAccountState().queued&&!document.querySelector('#fqc-save')?.disabled);
+    const savedResponse=a.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/api/fqc/workflow'&&r.request().postDataJSON().command?.action==='save');
+    await a.locator('#fqc-save').click();assert.equal((await savedResponse).status(),200);await a.waitForFunction(()=>!window.sharedDraftAccountState().queued&&!document.querySelector('#fqc-save')?.disabled);
     assert.equal(posts(f).length,before+1);assert.equal(JSON.parse(posts(f).at(-1).body).command.action,'save');assert.equal(JSON.parse(posts(f).at(-1).body).command.moduleAction,'save-local-v1');
-    assert.equal(posts(f).filter(row=>JSON.parse(row.body).command.operationId===operationId).length,1,'Original rejected Save must never replay');
+    assert.equal(new Set(posts(f).map(row=>JSON.parse(row.body).command.operationId)).size,posts(f).length,'Every accepted explicit Save has one unique operation; cancellation cannot create a replay');
     assert.deepEqual((await f.state()).workflow.saved.content,peer.working);assert.deepEqual(errors,[]);
   }finally{for(const context of contexts)await context.close();await browser?.close();f.close();}
 });

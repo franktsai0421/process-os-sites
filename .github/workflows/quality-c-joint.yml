@@ -1,0 +1,30 @@
+name: Quality C joint integration
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'app/api/**'
+      - 'public/process/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/quality-c-joint.yml'
+permissions:
+  contents: read
+jobs:
+  joint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/quality-main-source-proof.test.cjs tests/quality-triple-source-proof.test.cjs tests/ipqc-ab-integration-source-proof.test.cjs tests/quality-c-joint-source-proof.test.cjs tests/quality-integration-source-proof.test.cjs tests/ipqc-c-integration-source-contract.test.cjs tests/background-check-source-proof.test.cjs
+      - run: node --test tests/quality-triple-joint-isolation.test.mjs tests/quality-c-joint-isolation.test.mjs tests/quality-module-command-isolation.test.mjs tests/quality-submission-fences.test.mjs
+      - run: node --test tests/navigation-adapters.test.mjs tests/process-scripts-build.test.mjs tests/quality-shell-bundle-oracle.test.mjs tests/multiuser-module-departure-bindings.test.mjs

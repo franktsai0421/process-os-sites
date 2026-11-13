@@ -333,6 +333,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --experimental-vm-modules tests/snapshot-formats-integration.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/snapshot-directory-paths.test.mjs tests/quality-isolated-diagnostics.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --experimental-vm-modules tests/snapshot-adapters.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --experimental-vm-modules tests/snapshot-chunked.test.mjs

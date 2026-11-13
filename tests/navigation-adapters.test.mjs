@@ -44,11 +44,11 @@ assert(iqcAdmission.includes('function validateIqcPayload(')&&iqcSelected.includ
 // the full shared transport is exercised by the dedicated IQC race suites.
 function iqcLoadFixture(){
  let epoch=1;const response=deferred(),events=[],actor={id:'synthetic'},options=[];
- const box={control:null,revision:null,loadSequence:0,readDenied:null,navigationError:null,activeDeferredId:'',ui:{versionId:''},identity:()=>actor,
+ const box={control:null,revision:null,loadSequence:0,readDenied:null,navigationError:null,activeDeferredId:'',historyDisplayEpoch:0,approvedHistoryView:null,ui:{versionId:''},identity:()=>actor,
   window:{ProcessSync:{captureDelivery:()=>epoch,isCurrentDelivery:owner=>owner===epoch}},
   transport:()=>({read:(token,opt)=>{assert.equal(token,undefined);assert.equal(opt.requireAcceptedAccess,true);assert.equal(opt.isCurrent(),true);events.push('combined');options.push(opt);return response.promise;}}),
   denyRead:error=>{box.readDenied=error;}};
- vm.createContext(box);vm.runInContext(iqcSelected+iqcAdmission+iqcLoad,box);return{box,response,events,options,invalidate:()=>{epoch++;}};
+ vm.createContext(box);vm.runInContext(part(iqcSource,'  const historyAllowsMutation=','  const guardWorking=')+iqcSelected+iqcAdmission+iqcLoad,box);return{box,response,events,options,invalidate:()=>{epoch++;}};
 }
 const iqcFull=()=>({revision:9,permissions:Object.fromEntries(['view','edit','save','submit','withdraw','approve','return','history','delete'].map(key=>[key,true])),control:{schemaVersion:1,versions:[],issues:[],reservedErrorCodes:[],reservedCheckNos:[]}});
 for(const kind of ['delivery','entry-owner'])void test('actual IQC load rejects old '+kind+' without installing model',async()=>{
@@ -65,6 +65,12 @@ void test('actual IQC waits for one complete combined response before adoption',
 for(const missing of ['control','permissions'])void test('actual IQC combined response missing '+missing+' cannot install model',async()=>{
  const f=iqcLoadFixture(),promise=f.box.load(),rejected=assert.rejects(promise,/IQC/),full=iqcFull();delete full[missing];f.response.resolve(full);
  await rejected;assert.equal(f.box.control,null);assert.equal(f.box.revision,null);assert(f.box.readDenied);assert.deepEqual(f.events,['combined']);
+});
+for(const change of ['history-display','history-permission'])void test('actual IQC in-flight load cannot adopt after '+change,async()=>{
+ const f=iqcLoadFixture(),promise=f.box.load(),rejected=assert.rejects(promise,/DELIVERY_SUPERSEDED/);
+ assert.deepEqual(f.events,['combined']);if(change==='history-display')f.box.historyDisplayEpoch++;else f.box.approvedHistoryView={blocked:true};
+ assert.equal(f.options[0].isCurrent(),false);f.response.resolve(iqcFull());await rejected;
+ assert.equal(f.box.control,null);assert.equal(f.box.revision,null);
 });
 const accountSource=source('user-access.js');
 const accountRequest=part(accountSource,' async function requestValue(options={},fresh=false){','\n function expireSession()');
@@ -127,19 +133,19 @@ void test('changed persistent-navigation executable references have coherent new
   'delivery-navigation.js':'20261104-canvas-integration1',
   'dual-system.js':'20261110-feedback-shell1',
   'effective-version-notice.js':'20261109-explicit-checks1',
-  'fqc-master.js':'20261104-begin-generation2',
-  'ipqc-ab.js':'20261105-ab-scope-input1',
-  'ipqc-c.js':'20261106-c-local-gauge-preview1',
-  'iqc-master.js':'20261106-number-hint1',
+  'fqc-master.js':'20261112-quality-integration1',
+  'ipqc-ab.js':'20261112-ipqc-ab-filters2',
+  'ipqc-c.js':'20261112-c-product4',
+  'iqc-master.js':'20261112-quality-integration1',
   'master-data.js':'20261110-account-pages1',
   'master-shared-client.js':'20261112-process-history1',
   'permission-controls.js':'20261029-dispatch-rights1',
   'process-authoring-v3.js':'20261110-process-integration4',
   'quality-review-overview.js':'20261101-quality-review-admission1',
-  'routine-equipment.js':'20261108-equipment-ci-recovery1',
-  'routine-fqc.js':'20261110-account-pages1',
+  'routine-equipment.js':'20261112-quality-abc-joint1',
+  'routine-fqc.js':'20261112-quality-main-joint1',
   'access-event-reporter.js':'20261106-access-offline3',
-  'shared-draft-client.js':'20261112-joint-process-history1',
+  'shared-draft-client.js':'20261112-quality-main-joint1',
   'shared-state.js':'20261106-access-offline1',
   'tooling.js':'20261105-tooling-local-save1',
   'user-access.js':'20261112-joint-conflict1',
@@ -152,6 +158,7 @@ void test('changed persistent-navigation executable references have coherent new
   'process-ipqc.css':'20261031-bom-ab-recovery1',
   'process-equipment.css':'20261029-flow1',
   'photo-viewer.css':'20261029-photo2',
+  'version-draft-ui.js':'20261112-quality-main-joint1',
   'version-workflow.js':'20261030-access-fusion1',
   'i18n.js':'20261029-photo1',
   'user-access.css':'20261110-account-progress2',

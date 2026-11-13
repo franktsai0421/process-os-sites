@@ -15,7 +15,7 @@ export function publicIpqcWorkflow(control: IpqcWorkflowControl, history: boolea
     },
   };
 }
-export type IpqcWorkflowCommand = DraftCommand & { moduleAction?:'create-error'|'create-item'|'delete-error'|'delete-item';
+export type IpqcWorkflowCommand = DraftCommand & { moduleAction?:'create-error'|'create-item'|'delete-error'|'delete-item'|'revive-error'|'revive-item';
   localChanges?: Array<{moduleAction?:IpqcWorkflowCommand['moduleAction'];input?:IpqcWorkflowCommand['input'];patches?:DraftPatch[];guards?:DraftCommand['guards'];localId?:string}>;
   input?: {productCode?:string;stageCode?:string;name?:string;note?:string;errorId?:string;id?:string;cascade?:boolean;item?:Partial<IpqcItem>} };
 export function beginIpqcWorkflow(control: IpqcWorkflowControl, context: DraftContext<IpqcSnapshot>) {
@@ -61,6 +61,16 @@ export function applyIpqcWorkflow(control: IpqcWorkflowControl, command: IpqcWor
     if(command.action!=='save'||command.moduleAction||command.patches||!Array.isArray(command.localChanges)||command.localChanges.length>256)
       throw new DraftConflict('INVALID_LOCAL_SAVE',422);
     if(!context.allowed('view')||!context.allowed('edit'))throw new DraftConflict('FORBIDDEN',403);
+    // Explicit comparison consent belongs to this exact pre-allocation revision.
+    // Existing unpinned callers retain their original per-field guards.
+    const revives=command.localChanges.some(change=>change?.moduleAction==='revive-error'||change?.moduleAction==='revive-item');
+    if(revives&&command.restoreSaveId!==undefined)throw new DraftConflict('INVALID_LOCAL_SAVE',422);
+    if(revives&&command.expectedRevision===undefined)throw new DraftConflict('DRAFT_REVISION_REQUIRED');
+    if(command.expectedRevision!==undefined){
+      if(!Number.isSafeInteger(command.expectedRevision)||command.expectedRevision<0)throw new DraftConflict('DRAFT_REVISION_REQUIRED');
+      if(command.generation!==control.workflow.generation)throw new DraftConflict('STALE_GENERATION');
+      if(command.expectedRevision!==control.workflow.revision)throw new DraftConflict('DRAFT_REVISION_CHANGED_RECONFIRM');
+    }
     // Build on a private aggregate. Nothing (including allocations or receipts)
     // escapes if any later edit, structural check or final Save fails.
     const candidate={...control,reservedErrorCodes:[...control.reservedErrorCodes],reservedItemCodes:[...control.reservedItemCodes],workflow:control.workflow};
@@ -71,6 +81,20 @@ export function applyIpqcWorkflow(control: IpqcWorkflowControl, command: IpqcWor
         // normalized. All user fields and existing rows remain exact guards.
         key==='code'&&typeof (value as {id?:unknown}).id==='string'&&codes.has((value as {id:string}).id)?codes.get((value as {id:string}).id):
         ['id','errorId'].includes(key)&&typeof v==='string'&&ids.has(v)?ids.get(v):remap(v)])):value;
+    const equipmentOrigins=new Map<string,{original:IpqcItem;current:IpqcItem}>();
+    const snapshotProof=(row:IpqcItem)=>stableDraftJSON([Object.hasOwn(row,'equipmentSnapshot'),row.equipmentSnapshot]);
+    const adaptDeletedRow=(value:unknown):unknown=>{
+      if(!value||typeof value!=='object'||Array.isArray(value)||command.expectedRevision===undefined)return value;
+      const row=value as IpqcItem,origin=equipmentOrigins.get(row.id);
+      const matches=candidate.workflow!.working.items.filter(item=>item.id===row.id);
+      if(!origin||matches.length!==1||matches[0].equipmentId!==origin.current.equipmentId||
+          snapshotProof(row)!==snapshotProof(origin.original))return value;
+      const adapted={...row};
+      if(Object.hasOwn(origin.current,'equipmentSnapshot'))adapted.equipmentSnapshot=origin.current.equipmentSnapshot;
+      else delete adapted.equipmentSnapshot;
+      // No other value/property (including identity and sourceRow) is normalized.
+      return stableDraftJSON(adapted)===stableDraftJSON(matches[0])?adapted:value;
+    };
     const internalIds:string[]=[];
     const clientId='local-'+command.operationId.slice(0,80);
     for(const [index,raw] of command.localChanges.entries()) {
@@ -79,15 +103,71 @@ export function applyIpqcWorkflow(control: IpqcWorkflowControl, command: IpqcWor
       if(change.moduleAction?.startsWith('create')) {
         if(!raw.localId||!/^local-[a-zA-Z0-9_-]{8,80}$/.test(raw.localId)||ids.has(raw.localId))throw new DraftConflict('INVALID_LOCAL_ID',422);
       } else if(raw.localId)throw new DraftConflict('INVALID_LOCAL_ID',422);
+      const priorWorking=candidate.workflow!.working;
+      if(change.moduleAction==='delete-item'||change.moduleAction==='delete-error') {
+        change.guards=change.guards?.map(guard=>{
+          if(change.moduleAction==='delete-item'&&stableDraftJSON(guard.path)===stableDraftJSON(['items',{id:change.input?.id}]))
+            return {...guard,value:adaptDeletedRow(guard.value)};
+          if(change.moduleAction==='delete-error'&&stableDraftJSON(guard.path)===stableDraftJSON(['items'])&&Array.isArray(guard.value))
+            return {...guard,value:guard.value.map(adaptDeletedRow)};
+          return guard;
+        });
+      }
       if(change.moduleAction?.startsWith('delete')) {
         const kind=change.moduleAction==='delete-error'?'errors':'items';
         if(!change.guards?.some(g=>stableDraftJSON(g.path)===stableDraftJSON([kind,{id:change.input?.id}])))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
         // A cascade must also guard the child set, so newly added children survive.
         if(kind==='errors'&&!change.guards?.some(g=>stableDraftJSON(g.path)===stableDraftJSON(['items'])))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
       }
-      applyIpqcWorkflow(candidate,{action:'apply',generation:command.generation,clientId,sequence:index+1,operationId,
+      if(change.moduleAction==='revive-error'||change.moduleAction==='revive-item') {
+        // Revival is deliberately local-Save-only: no public Apply exception and
+        // no historical body or client replacement row can enter this path.
+        if(raw.localId!==undefined||change.patches!==undefined||!change.input||
+            Object.keys(change.input).some(key=>key!=='id')||typeof change.input.id!=='string'||!change.input.id)
+          throw new DraftConflict('INVALID_LOCAL_SAVE',422);
+        const working=candidate.workflow!.working,kind=change.moduleAction==='revive-error'?'errors':'items';
+        for(const rows of [working.errors,working.items]) {
+          if(rows.some(row=>!row||['id','code','productCode','stageCode'].some(key=>typeof row[key as keyof typeof row]!=='string'||!row[key as keyof typeof row]))||
+              new Set(rows.map(row=>row.id)).size!==rows.length||new Set(rows.map(row=>row.code)).size!==rows.length)
+            throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS');
+        }
+        const originals=control.workflow.working[kind].filter(row=>row.id===raw.input?.id);
+        const row=working[kind].find(row=>row.id===change.input!.id);
+        if(raw.input?.id!==change.input.id||raw.input.id.startsWith('local-')||originals.length!==1||originals[0].deleted!==true||
+            !row||row.deleted!==true||['id','code','productCode','stageCode','errorId','sourceRow'].some(key=>
+              stableDraftJSON([Object.hasOwn(row,key),row[key as keyof typeof row]])!==
+              stableDraftJSON([Object.hasOwn(originals[0],key),originals[0][key as keyof typeof row]])))
+          throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS');
+        const guarded=(path:DraftPatch['path'])=>change.guards?.some(guard=>stableDraftJSON(guard.path)===stableDraftJSON(path));
+        if(!guarded([kind,{id:row.id}]))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
+        if(kind==='errors') {
+          if(!guarded(['items']))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
+        } else {
+          const item=row as IpqcItem,parent=working.errors.find(error=>error.id===item.errorId);
+          if(!parent||parent.deleted!==false||parent.productCode!==item.productCode||parent.stageCode!==item.stageCode)
+            throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS');
+          if(!guarded(['errors',{id:parent.id}]))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
+        }
+        candidate.workflow=applyDraftCommand(candidate.workflow!,{action:'apply',generation:command.generation,clientId,
+          sequence:index+1,operationId,guards:change.guards,
+          patches:[{op:'set',path:[kind,{id:row.id},'deleted'],value:false}]},
+          {...context,commandFingerprint:undefined,structure(content,previous){
+            // Existing validation may normalize legacy equipment metadata. Revival
+            // cannot silently repair retained content or predict server snapshots.
+            const retained=stableDraftJSON(content);
+            context.structure(content,previous);
+            if(stableDraftJSON(content)!==retained)throw new DraftConflict('INVALID_STRUCTURE',422);
+          }}).state;
+      } else applyIpqcWorkflow(candidate,{action:'apply',generation:command.generation,clientId,sequence:index+1,operationId,
         ...(change.moduleAction?{moduleAction:change.moduleAction,input:change.input}: {patches:change.patches}),guards:change.guards},
         {...context,commandFingerprint:undefined});
+      if(!change.moduleAction)for(const patch of change.patches||[]) {
+        const [kind,entity,field]=patch.path;
+        if(kind==='items'&&entity&&typeof entity==='object'&&field==='equipmentId') {
+          const before=priorWorking.items.filter(row=>row.id===entity.id),after=candidate.workflow!.working.items.filter(row=>row.id===entity.id);
+          if(before.length===1&&after.length===1)equipmentOrigins.set(entity.id,{original:equipmentOrigins.get(entity.id)?.original||copyIpqc(before[0]),current:copyIpqc(after[0])});
+        }
+      }
       internalIds.push(operationId);
       if(raw.localId){
         const kind=change.moduleAction==='create-error'?'errors':'items',id=(kind==='errors'?'error-':'item-')+operationId;
@@ -145,8 +225,14 @@ export function applyIpqcWorkflow(control: IpqcWorkflowControl, command: IpqcWor
         !entity || typeof entity === 'string' || typeof field!=='string' || !fields.includes(field)) throw new DraftConflict('UNSUPPORTED_ITEM_PATCH',422);
     const rows=collection==='errors'?control.workflow.working.errors:control.workflow.working.items;
     if(!rows.some(row=>row.id===entity.id&&!row.deleted))throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS');
-    if (!(command.guards || []).some(guard=>JSON.stringify(guard.path)===JSON.stringify(patch.path)))
-      throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
+    const fieldGuard=(command.guards || []).some(guard=>JSON.stringify(guard.path)===JSON.stringify(patch.path));
+    // Optional legacy properties need an exact absence proof, not null/defaults.
+    // The unchanged kernel compares this complete row before applying any patch.
+    const absentRowGuard=collection==='items'&&['rule','notApplicable','notApplicableReason','equipmentGroupId','equipmentId'].includes(field)&&
+      (command.guards || []).some(guard=>JSON.stringify(guard.path)===JSON.stringify([collection,entity])&&
+        !!guard.value&&typeof guard.value==='object'&&!Array.isArray(guard.value)&&
+        (guard.value as {id?:unknown}).id===entity.id&&!Object.hasOwn(guard.value,field));
+    if(!fieldGuard&&!absentRowGuard)throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
   }
   const result = applyDraftCommand(control.workflow,command,context);
   control.workflow = result.state;

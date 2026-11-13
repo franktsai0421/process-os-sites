@@ -27,7 +27,7 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
  const ack=async()=>{writes++;box.revision++;f.saved={id:'confirmed',content:structuredClone(f.working)};return{receipt:{status:'confirmed'}};};
  const window={ProcessSync:{identity,epoch:1,delivery:1,identityGeneration(){return this.epoch;},captureDelivery(){return this.delivery;},isCurrentDelivery(value){return value===this.delivery;}},sharedDraftNeedsSave:x=>!!x&&!x.pendingId&&JSON.stringify(x.working)!==JSON.stringify(x.saved?.content),VersionDraftUI:{},ProcessNavigationForms:{composing:()=>false},ProcessMasterVersioning:{departureNames:{dirty:()=>false}},dispatchEvent(){}};
  const document={documentElement:{lang:'zh'},querySelector:q=>q==='#data-content'?root:null,querySelectorAll:()=>[]};
- const box={window,document,JSON,Set,Map,URL,revision:2,departureSharedCache:null,root,hostElement:root,host:root,client,sharedClient:client,moduleClient:client,
+ const box={historyAllowsMutation:()=>!box.approvedHistoryView?.blocked,comparisonCancellable:()=>false,cancelSaveComparison(){},activeSaveComparison:null,approvedHistoryView:null,historyDisplayEpoch:0,pageDraftMode:false,localPhotos:new Map(),clearLocalPhotos(){},window,document,JSON,Set,Map,URL,revision:2,departureSharedCache:null,root,hostElement:root,host:root,client,sharedClient:client,moduleClient:client,
   control:{workflow:f,libraries:{fqc:{workflow:f}},moduleDraft:{workflow:f}},flow:()=>f,library:()=>({workflow:f}),scope:()=>({workflow:f}),
   shared:{flow:()=>f,permissions:()=>({save:allowed,edit:allowed}),busy:()=>false,client:()=>client,execute:ack},departureScope:()=>name==='master-data'?'AB':'PROCESS',departureDialogs:()=>[],closeDepartureDialogs(){},deliveryGeneration:1,
   actor:'user',sharedActor:'user',controlActor:'user',identity:()=>window.ProcessSync.identity,currentReadOwner:()=>()=>true,sharedStateCurrent:()=>true,
@@ -66,22 +66,24 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
  // Save remains the existing acknowledgement stub: these are binding tests, not transport/route acceptance.
  if(name==='ipqc-ab'){
   Object.assign(box,{actor:()=>window.ProcessSync.identity,sharedIdentity:'user:A:G',reviewHost:null,mutationLifetime:0,localBatch:null,inputBasisOwner:null,modalBase:null,modalGeneration:null,viewer:null,
-   API:'/api/ipqc-ab',sessionStorage:{length:0,key:()=>null},localScopes:new Map(),localPhotos:new Map(),legacyClients:new Map(),localModuleGeneration:null,localBeginReceipt:null,localSent:null,localConflict:null,moduleTransport:()=>client});
-  const closures=['legacyABClients','localPending','clearLocalEditing','abandonLocalEditing'];if(!omitInputClosures)closures.push('localDirty');
+   API:'/api/ipqc-ab',sessionStorage:{length:0,key:()=>null},localScopes:new Map(),localFilterViews:new Map(),localScopeSelections:new Map(),localPhotos:new Map(),legacyClients:new Map(),localModuleGeneration:null,localBeginReceipt:null,localBeginExpectation:null,localBusinessBase:null,localSent:null,localConflict:null,localSaveIntent:null,conflictEscapeCleanup:null,approvedHistoryView:null,moduleTransport:()=>client});
+  const closures=['legacyABClients','photoOperationPrefix','photoOperations','localPending','clearConflictEscape','clearLocalEditing','abandonLocalEditing','historyAllowsMutation','photoDeparturePins','photoDepartureCoverage','photoDepartureTransport'];if(!omitInputClosures)closures.push('localDirty','hasLocalFilterForm');
   vm.runInNewContext(closures.map(n=>sourceDeclaration(ast,n)).join('\n'),box);
   if(!omitInputClosures)vm.runInNewContext(sourceBlock(source,'  const sameInput=','  function mutationCurrent(')+sourceBlock(source,'  function hasPrivateInput(){','  function retainInputBase('),box);
  }
  if(name==='ipqc-c'){
   Object.assign(box,{localChanges:[{action:'edit'}],localGeneration:'generation',localPhotos:new Map(),picker:{},viewer:{}});
-  vm.runInNewContext(sourceBlock(source,'  function clearLocal(){','\n'),box);
+  // The extracted callback reads the real module's idle choice binding too.
+  vm.runInNewContext(sourceDeclaration(ast,'cancelSaveChoice')+'\n'+sourceDeclaration(ast,'clearLocal')+'\n'+sourceDeclaration(ast,'productForms')+'\n'+sourceDeclaration(ast,'clearProductForms'),box);
  }
  if(name==='routine-equipment'){
   const markers=new Map();
-  Object.assign(box,{fqcTransferClient:null,inputOwner:null,equipmentEditRequest:0,sessionStorage:{getItem:key=>markers.get(key)??null,setItem:(key,value)=>markers.set(key,value),removeItem:key=>markers.delete(key)},localBeginReceipt:null,pendingSaveBatch:null,formPendingPhoto:null,newEquipmentForm:null,newEquipmentOwner:null,syncBase:null,syncGeneration:f.generation,snapshotOf:v=>structuredClone(v.snapshot)});
+  Object.assign(box,{iqcTransferClient:null,fqcTransferClient:null,inputOwner:null,equipmentEditRequest:0,sessionStorage:{getItem:key=>markers.get(key)??null,setItem:(key,value)=>markers.set(key,value),removeItem:key=>markers.delete(key)},localBeginReceipt:null,pendingSaveBatch:null,formPendingPhoto:null,newEquipmentForm:null,newEquipmentOwner:null,syncBase:null,syncGeneration:f.generation,snapshotOf:v=>structuredClone(v.snapshot)});
   if(!omitInputClosures)vm.runInNewContext(sourceBlock(source,'  function inputPrincipalCurrent(){','  function sharedTransport(')+'\nrememberInputOwner();',box);
   vm.runInNewContext(sourceBlock(source,'  const isDirty =','\n'),box);
   vm.runInNewContext(sourceBlock(source,'  const beginRecoveryKey =','  function readBeginRecovery('),box);
   vm.runInNewContext(sourceBlock(source,'  const fqcTransferKey =','  const fqcTransferUnknown'),box);
+  vm.runInNewContext(sourceBlock(source,'  const iqcTransferKey =','  const iqcTransferUnknown'),box);
   vm.runInNewContext(sourceBlock(source,'  function equipmentDeparture(config){','  let navigationError='),box);
  }
  vm.createContext(box);vm.runInContext(helper.replaceAll('host.','window.')+'\nwindow.VersionDraftUI.createDeparture=createDeparture;',box);

@@ -1,3 +1,30 @@
+## 2026-11-12 — #109 quality + merged main continuation
+
+New isolated follow-up retains #105/#106/#107 and merged #108 main without overwriting earlier candidates. [Current scope and verification limits](docs/acceptance/quality-main-joint-20261112/README.md). Older checkpoint statuses below remain historical. No deployment or production mutation.
+
+# 2026-11-12 — #105＋#106 共同測試候選
+
+隔離整合固定 d14808c 與 21a1765，保留各來源和草稿邊界，供 Frank 決定合併及實測；未納入 #107／#108。以[共同證據與界線](docs/acceptance/quality-c-joint-20261112/README.md)為準。下方是各來源分支的歷史交接，不是本候選已通過的新證據。
+
+# 2026-11-12 — FQC／IQC 集中整合：Draft #105
+
+本工作續用 `codex/fqc-iqc-cloud-integration-20261112` 與 [Draft #105](https://github.com/franktsai0421/process-os-sites/pull/105)，不得重建或重複搬 main 成果。52/52 私人 patch 已驗 bytes/SHA256；manifest／傳輸包留 repo 外。main／#102／#103／#104 的固定來源與選擇、17 項需求、資料切換及真人／實站待驗界線，以[整合追蹤](docs/acceptance/fqc-iqc-integration-20261112/README.md)為準；目前實作入口見 [QUALITY](AI_CONTEXT/modules/QUALITY.md)及[例行模型](AI_CONTEXT/models/ROUTINE_FQC.md)。
+
+本輪續修 Linux UNC 正規化漏判，保留完整原 adapter 負例；新增實際 FQC／IQC 注入故障、只查原收據／零重送、隔離延遲與 IQC 合成缺漏診斷，以及例行舊核准資料轉換在 inline／records 兩種 route 的隔離演練。正式 500／缺漏數字／延遲、真人／手機／IME 與正式切換仍待證據；見同一[整合追蹤](docs/acceptance/fqc-iqc-integration-20261112/README.md#本輪未完成項續修跨平台路徑與隔離演練)。
+
+最新候選增補 IQC identified Begin／原收據恢復與原子替換；歷史來源 witness 來自真實 Git 物件。來源預檢曾因單一 DOM fixture 新 blob 拒絕，已保留失敗並完成精確 tuple 複審與正反例；不得擴充為通用豁免。遠端 SHA／最新 CI 以同一 PR 為準，歷史 PASS 不當作最新提交 PASS。共用自審規則沿用 main，未改 #103／#104 refs，未合併／部署／操作正式資料。
+
+# 2026-11-12 — IPQC C Cloud integration candidate
+
+New independent C branch from main9fbba823; reuses the verified Dot source and selected C boundary fixes, with whole-group choices and automatic re-comparison. #103/#104 are unchanged comparison sources. [Provenance, scope and validation](docs/acceptance/ipqc-c-cloud-integration-20261112/README.md). Draft only; no merge/deployment/real-data change or human acceptance.
+## 2026-11-12 — Equipment-to-A/B transfer compatibility
+
+The A/B transfer client now pins its expected actor to the original equipment dialog owner, preserving current authorization, intent and CAS fences. Compiled transfer 7/7 and ownership/save 27/27 pass; see the [A/B evidence ledger](docs/acceptance/ipqc-ab-integration-20261112/README.md). Draft only; no deployment or real-data changes.
+
+## 2026-11-12 — Isolated IPQC A/B integration candidate
+
+A/B grouped Save conflicts, original-ID retention, approved readonly history, explicit-check performance and completeness parity are integrated as a candidate based on main #100. All 41 text patches were verified. Latest policy retains unsent RAM/Files/forms across A/B line/group/stage filters; only departure to another module discards unsent input; original photo/Save receipts remain queryable after departure. Cloud follow-ups handle post-upload version races and same-value resolved conflicts without another Save click. No merge/deployment/live acceptance. [Sources, seven-scope coverage and test limits](docs/acceptance/ipqc-ab-integration-20261112/README.md).
+
 # 2026-11-12 — Joint account choices and PROCESS original-page history
 
 The same #108 follow-up adds group comparison with fresh authority/revision checks and a readonly PROCESS approved-source view with fresh return to draft. [Full requirement matrix and acceptance limits](docs/acceptance/accounts-process-joint-20261112/requirements.md). Keep old backups; stop new backup/recovery rehearsals; no deletion, live switch, merge or deployment. Earlier verification notes are historical.

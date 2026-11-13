@@ -18,7 +18,8 @@ try{
  const equipmentBox={Error,AbortSignal,mountSequence:0,window:{ProcessSync:{identity:{id:'TEST-ACTOR'},identityGeneration:()=>0}},console:{error(){}},isVi:()=>false,fetch:null,localStorage:{getItem:noStorage,setItem:noStorage,removeItem:noStorage},sessionStorage:{getItem:noStorage,setItem:noStorage,removeItem:noStorage}};
  equipmentBox.identity=()=>equipmentBox.window.ProcessSync.identity;
  vm.createContext(equipmentBox);
- const ownerSource=slice(source,'  function currentReadOwner(','  async function loadEquipmentCatalog(');
+ const displayGuard=source.split('\n').filter(line=>line.includes('const historyAllowsMutation=')).join('\n');check(displayGuard.split('historyAllowsMutation=').length===2);equipmentBox.historyDisplayEpoch=0;equipmentBox.approvedHistoryView=null;
+ const ownerSource=displayGuard+'\n'+slice(source,'  function currentReadOwner(','  async function loadEquipmentCatalog(');
  const loader=slice(source,'  async function loadEquipmentCatalog(','  function getCachedEquipment(');
  vm.runInContext('let equipmentCache=null,equipmentLoadError=null,equipmentSequence=0,equipmentCacheCurrent=()=>false;'+ownerSource+loader+';this.load=loadEquipmentCatalog;this.reset=()=>{equipmentCache=null;equipmentLoadError=null;equipmentSequence=0;equipmentCacheCurrent=()=>false;};this.state=()=>({equipmentCache,equipmentLoadError});',equipmentBox);
  const empty={control:{schemaVersion:1,activeVersionId:null,versions:[],issues:[],reservedMarks:{}}};
@@ -43,7 +44,7 @@ try{
  let dependencyCells={'ab.view':true,'equipment.view':true};
  box.host=box.window;box.window.hasPermission=key=>dependencyCells[key]===true;
  box.identity=()=>box.window.ProcessSync.identity;
- vm.createContext(box);
+ box.historyDisplayEpoch=0;box.approvedHistoryView=null;vm.createContext(box);
  const abSource=slice(source,'  let masterCatalogCache =','  function snapshotFromCanonical(');
  vm.runInContext(ownerSource+abSource+';this.load=loadMasterCatalog;this.catalogRead=catalog;this.reset=()=>{masterCatalogCache=null;masterCatalogActor="";masterCatalogSequence=0;};this.state=()=>({cache:masterCatalogCache,actor:masterCatalogActor});',box);
  const ab={permissions:{view:true},control:{activeVersionId:'AB-APPROVED-V3',versions:[{id:'AB-APPROVED-V3',status:'approved',snapshot:{products:[{code:'TEST-P',name:'TEST PRODUCT',category:'TEST-CATEGORY',line:'QA-R20'}],lines:[{code:'QA-R20',stages:[]}],categoryGroups:[{name:'TEST-CATEGORY',line:'QA-R20'}]}},{id:'AB-DRAFT-V4',status:'draft',snapshot:{products:[{code:'NEVER-DRAFT'}],lines:[],categoryGroups:[]}}]}};

@@ -8,7 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {validatePolicy,authorizeSupplementalReviews,inspectSourceBytes,gitBlobId,runPreflight} from '../scripts/sites-ci-preflight.mjs';
 const root=fileURLToPath(new URL('..',import.meta.url)),policy=JSON.parse(fs.readFileSync(new URL('../config/sites-source-reviewed-blobs.json',import.meta.url))),review=policy.supplementalReviews.find(r=>r.commit==='f58d847d86e318f75631540656a4ae013103461a');
 const checks=[],test=(name,run)=>{run();checks.push(name);};
-const fqcReview=policy.supplementalReviews.find(r=>r.commit==='6fb5e5b25e01603b1e34c1db4b99ed16a2ce8e0c'),iqcBeginReview=policy.supplementalReviews.find(r=>r.commit==='7767ba5480cdc9f194fb72f4838ce6463a2cb2c0'),negativeEntries=[...review.entries,...fqcReview.entries,...iqcBeginReview.entries];
+const fqcReview=policy.supplementalReviews.find(r=>r.commit==='6fb5e5b25e01603b1e34c1db4b99ed16a2ce8e0c'),iqcBeginReview=policy.supplementalReviews.find(r=>r.commit==='7767ba5480cdc9f194fb72f4838ce6463a2cb2c0'),iqcDisplayReview=policy.supplementalReviews.find(r=>r.commit==='e550da35585d8669b8f589b4f906c19a37e88b9b'),negativeEntries=[...review.entries,...fqcReview.entries,...iqcBeginReview.entries,...iqcDisplayReview.entries];
 const proof=()=>({commits:new Set(policy.supplementalReviews.map(r=>r.commit)),pairs:new Map(policy.supplementalReviews.map(r=>[r.commit,new Set(r.entries.map(e=>e.path+'\0'+e.blob))]))});
 const git=(args,cwd=root)=>execFileSync('git',args,{cwd,encoding:'utf8',stdio:['pipe','pipe','pipe']});
 test('five exact public history tuples and bodies exist without altering historical bytes',()=>{
@@ -19,7 +19,7 @@ test('general policy entries never accept either sensitive category',()=>{
  for(const category of ['PRIVATE_KEY','BEARER_LITERAL'])assert.throws(()=>validatePolicy({...policy,entries:[{path:'tests/example.mjs',blob:'a'.repeat(40),categories:[category]}]}),/SOURCE_REVIEW_POLICY_INVALID/);
 });
 test('supplement cannot change commit path blob category or widen any tuple',()=>{
- for(const reviewedCommit of ['f58d847d86e318f75631540656a4ae013103461a','ae2ff91eca847faac12337e17cdcbfdfee78d789','6fb5e5b25e01603b1e34c1db4b99ed16a2ce8e0c',iqcBeginReview.commit])for(const change of [r=>r.commit='a'.repeat(40),r=>r.entries[0].path='tests/other.mjs',r=>r.entries[0].blob='b'.repeat(40),r=>r.entries[0].categories=['INLINE_MEDIA'],r=>r.entries[0].categories.push('INLINE_MEDIA'),r=>r.entries.push({...r.entries[0],path:'tests/*'})]){const p=structuredClone(policy);change(p.supplementalReviews.find(r=>r.commit===reviewedCommit));assert.throws(()=>validatePolicy(p),/SOURCE_SUPPLEMENT_REVIEW_INVALID/);}
+ for(const reviewedCommit of ['f58d847d86e318f75631540656a4ae013103461a','ae2ff91eca847faac12337e17cdcbfdfee78d789','6fb5e5b25e01603b1e34c1db4b99ed16a2ce8e0c',iqcBeginReview.commit,iqcDisplayReview.commit])for(const change of [r=>r.commit='a'.repeat(40),r=>r.entries[0].path='tests/other.mjs',r=>r.entries[0].blob='b'.repeat(40),r=>r.entries[0].categories=['INLINE_MEDIA'],r=>r.entries[0].categories.push('INLINE_MEDIA'),r=>r.entries.push({...r.entries[0],path:'tests/*'})]){const p=structuredClone(policy);change(p.supplementalReviews.find(r=>r.commit===reviewedCommit));assert.throws(()=>validatePolicy(p),/SOURCE_SUPPLEMENT_REVIEW_INVALID/);}
 });
 test('missing ancestor and incorrect tree membership refuse even the exported structural helper',()=>{
  const p=proof();p.commits.delete(review.commit);assert.throws(()=>authorizeSupplementalReviews(policy,p.commits,p.pairs),/SOURCE_SUPPLEMENT_NOT_ANCESTOR/);
@@ -128,4 +128,16 @@ test('actual Git IQC Begin proof permits only exact historical bytes and rejects
   }finally{if(prior===undefined)delete process.env.GITHUB_ACTIONS;else process.env.GITHUB_ACTIONS=prior;}
  }finally{fs.rmSync(temp,{recursive:true,force:true});}
 });
+
+test('IQC display fixture review admits only its single DOM port insertion and unchanged synthetic key',()=>{
+ assert.equal(iqcDisplayReview.entries.length,1);const entry=iqcDisplayReview.entries[0];
+ assert.equal(entry.path,'scripts/test-iqc-editing-projection-ui.cjs');assert.deepEqual(entry.categories,['WORKSTATION_PATH']);assert.equal(entry.blob,'349553800bb7b67c7f0a3684efe224da7e9b547a');
+ assert.equal(git(['rev-parse',iqcDisplayReview.commit+':'+entry.path]).trim(),entry.blob);
+ const before=execFileSync('git',['cat-file','blob','f4c1d47bb90371b329c2f53f0b55a3023c09de3e'],{cwd:root}),after=execFileSync('git',['cat-file','blob',entry.blob],{cwd:root});
+ const anchor='class Element{constructor(id){this.id=id;';assert.equal(before.toString().split(anchor).length,2);assert.deepEqual(Buffer.from(before.toString().replace(anchor,anchor+'this.isConnected=true;')),after);
+ const pattern=new RegExp('\\b[A-Za-z]:[\\\\/]','g');assert.deepEqual(after.toString().match(pattern),before.toString().match(pattern));assert.equal(after.toString().match(pattern).length,1);
+ const missing=proof();missing.commits.delete(iqcDisplayReview.commit);assert.throws(()=>authorizeSupplementalReviews(policy,missing.commits,missing.pairs),/SOURCE_SUPPLEMENT_NOT_ANCESTOR/);
+ const wrong=proof();wrong.pairs.set(iqcDisplayReview.commit,new Set());assert.throws(()=>authorizeSupplementalReviews(policy,wrong.commits,wrong.pairs),/SOURCE_SUPPLEMENT_BLOB_MISMATCH/);
+});
+
 console.log(JSON.stringify({status:'PASS_EXACT_NEGATIVE_FIXTURE_PROOF_BOUNDARIES',checks,realData:false,network:false}));

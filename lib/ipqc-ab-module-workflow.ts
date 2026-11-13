@@ -1,3 +1,5 @@
+import {abApprovedMetadata,legacyAbVersion} from './ipqc-ab-approved-history';
+import {approvedVersion} from './approved-history';
 import {abLocalScopes,applyAbLocalScopes} from './ipqc-ab-local-save';
 import {parseAbControl,activeAb,openAb,copyAb,type AbControl,type AbSnapshot,type AbVersion} from './ipqc-ab';
 import {abWorkflowAdapter,type AbSharedScope} from './ipqc-ab-workflow';
@@ -12,6 +14,15 @@ export type AbModuleRoot=AbControl&{moduleDraft?:AbModuleControl};
 export function abModulePending(root:AbControl){return (root as AbModuleRoot).moduleDraft?.workflow?.pendingId;}
 export function abModuleWorkflowAdapter():WorkflowAdapter<AbModuleSnapshot,AbModuleControl>{
  let root:AbModuleRoot,requestState:Parameters<WorkflowAdapter<AbModuleSnapshot,AbModuleControl>['context']>[1];
+ const localSaveBasis=(control:AbModuleControl,command:Parameters<typeof abLocalScopes>[0],state:typeof requestState)=>{
+  abLocalScopes(command);
+  if(!Number.isSafeInteger(command.input?.stateRevision)||Number(command.input?.stateRevision)<1)throw new DraftConflict('INVALID_AB_LOCAL_SAVE',422);
+  if(!Number.isSafeInteger(command.expectedRevision)||Number(command.expectedRevision)<0)throw new DraftConflict('DRAFT_REVISION_REQUIRED');
+  if(command.expectedRevision!==control.workflow?.revision)throw new DraftConflict('DRAFT_REVISION_CHANGED_RECONFIRM');
+  // Legacy group/replacement writers advance the shared-state CAS revision,
+  // not module revision. Pin both to the authority read for this Save.
+  if(command.input?.stateRevision!==state.revision)throw new DraftConflict('MODULE_CHANGED_RECONFIRM');
+ };
  const snapshot=(working:boolean,copy=true):AbModuleSnapshot=>({
   scopes:Object.fromEntries(Object.entries(root.scopes).map(([key,s])=>{const content=working?(s as AbSharedScope).workflow?.working||openAb(s)?.snapshot||activeAb(s)?.snapshot||{errors:[],items:[]}:activeAb(s)?.snapshot||{errors:[],items:[]};return[key,copy?cloneDraft(content):content];})),
   bases:Object.fromEntries(Object.entries(root.scopes).map(([key,s])=>[key,s.activeVersionId]))
@@ -41,14 +52,16 @@ export function abModuleWorkflowAdapter():WorkflowAdapter<AbModuleSnapshot,AbMod
   return root;
  }
   return{key:'ipqcABMasterControl',scope:'ipqc-ab:module',preparedModel:true,permissionOnlyRead:true,
+  approvedHistory:{metadata:()=>abApprovedMetadata(root,true),version:id=>id.startsWith('legacy-ab:')?legacyAbVersion(root,id,true):root.moduleDraft?approvedVersion(root.moduleDraft,id,true):null},
   needsFullHistory:command=>command?.moduleAction==='save-local-v1',
-  requiresCreate:(_control,command)=>command.moduleAction==='save-local-v1'&&abLocalScopes(command as Parameters<typeof abLocalScopes>[0]).some(s=>s.changes.some(c=>c.moduleAction?.startsWith('create'))),
+  requiresCreate:(_control,command)=>command.moduleAction==='save-local-v1'&&abLocalScopes(command as Parameters<typeof abLocalScopes>[0]).some(s=>s.changes.some(c=>c.moduleAction?.startsWith('create')||c.moduleAction==='restore-item-local-v1')),
   requiresDelete:(_control,command)=>command.moduleAction==='save-local-v1'&&abLocalScopes(command as Parameters<typeof abLocalScopes>[0]).some(s=>s.changes.some(c=>c.moduleAction?.startsWith('delete'))),
+  requiresRestore:(_control,command)=>command.moduleAction==='save-local-v1'&&abLocalScopes(command as Parameters<typeof abLocalScopes>[0]).some(s=>s.changes.some(c=>c.moduleAction==='restore-item-local-v1')),
   empty:()=>snapshot(false),photoPrefix:'ipqc-ab/photos/',photoIds:c=>Object.values(c.scopes).flatMap(s=>s.items.flatMap(i=>[...i.standardPhotos,...i.methodPhotos].map(p=>p.id))),
   parse(raw,prepared){root=parseAbControl(raw,prepared) as AbModuleRoot;return root.moduleDraft||{activeVersionId:null,versions:[]};},
   serializeModel:project,serialize:c=>JSON.stringify(project(c)),beforeBegin:()=>conflict(),
   beforeCommand(control,command,state){if(control.workflow?.receipts[command.operationId])return;
-   conflict();if(command.moduleAction==='save-local-v1'){abLocalScopes(command);return;}if(['save','submit'].includes(command.action)&&command.input?.stateRevision!==state.revision)throw new DraftConflict('MODULE_CHANGED_RECONFIRM');
+   conflict();if(command.moduleAction==='save-local-v1'){localSaveBasis(control,command,state);return;}if(['save','submit'].includes(command.action)&&command.input?.stateRevision!==state.revision)throw new DraftConflict('MODULE_CHANGED_RECONFIRM');
    if(['apply','restore'].includes(command.action)||command.moduleAction)throw new DraftConflict('MODULE_ACTION_NOT_SUPPORTED',422);
    const content=command.action==='approve'?control.workflow?.cases.find(c=>c.id===command.caseId)?.content:null;
    if(content&&(stableDraftJSON(Object.keys(content.scopes).sort())!==stableDraftJSON(Object.keys(root.scopes).sort())||Object.entries(content.bases).some(([key,id])=>root.scopes[key]?.activeVersionId!==id)))throw new DraftConflict('MODULE_BASE_CHANGED_RECONFIRM');
@@ -61,12 +74,15 @@ export function abModuleWorkflowAdapter():WorkflowAdapter<AbModuleSnapshot,AbMod
   },
   apply(control,command,context){let flow=control.workflow!;
    if(command.moduleAction==='save-local-v1'&&!flow.receipts[command.operationId]){
+    localSaveBasis(control,command,requestState);
     if(!context.allowed('view')||!context.allowed('edit'))throw new DraftConflict('FORBIDDEN',403);
     const prior=root;
     const {restoreContent:_restore,structure:_structure,validate:_validate,semantic:_semantic,...base}=context;
-    const candidate=applyAbLocalScopes(root,command,requestState,base);
+    // currentPermissions supplies explicit .restore; the kernel's narrower
+    // DraftPermission union does not include this existing route capability.
+    const candidate=applyAbLocalScopes(root,command,requestState,base,(context.allowed as (permission:string)=>boolean)('restore')===true&&(context.allowed as (permission:string)=>boolean)('create')===true);
     try{root=candidate;const next=snapshot(true);context.structure(next,next);
-     const result=applyDraftCommand({...flow,working:next},{...command,expectedRevision:undefined},{...context,allowed:p=>p==='save'?context.allowed('edit'):context.allowed(p)});
+     const result=applyDraftCommand({...flow,working:next},command,{...context,allowed:p=>p==='save'?context.allowed('edit'):context.allowed(p)});
      return result;
     }catch(error){root=prior;throw error;}
    }

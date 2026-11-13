@@ -2474,11 +2474,112 @@
     }
   }
 
+  // IQC alone has explicit authority to save the entire target working draft.
+  // The source journal binds its exact intent/command; existing transport markers
+  // and receipts remain authoritative and are never inferred from current content.
+  let iqcTransferClient = null;
+  const iqcTransferEndpoint = '/api/iqc/workflow?caseMetadata=1';
+  const iqcTransferKey = actorId => 'routine-equipment-iqc-transfer-v1:' + actorId;
+  const iqcTransferUnknown = () => t('IQC 移轉／存取結果待確認；僅查詢原操作收據，不會重新送出。', 'Chưa xác nhận chuyển/lưu IQC; chỉ kiểm tra biên nhận gốc, không gửi lại.');
+  function hasIqcTransfer(){try{return sessionStorage.getItem(iqcTransferKey(identity()?.id))!==null;}catch{return true;}}
+  function targetIqcClient(){
+    if(!iqcTransferClient||!iqcTransferClient.isRuntimeCurrent()||!iqcTransferClient.isBeginRuntimeCurrent())
+      iqcTransferClient=window.createSharedDraftClient({endpoint:iqcTransferEndpoint,actorId:identity()?.id,durableBegin:true,externalDurableBounded:{scope:'IQC'},headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});
+    return iqcTransferClient;
+  }
+  function readIqcTransfer(){
+    let value;try{const raw=sessionStorage.getItem(iqcTransferKey(identity()?.id));if(raw===null)return null;value=JSON.parse(raw);}catch{throw Error(iqcTransferUnknown());}
+    if(value?.version!==1||value.actorId!==identity()?.id||value.endpoint!==iqcTransferEndpoint||!['begin','save'].includes(value.phase)||typeof value.intent!=='string'||!value.basis||value.phase==='save'&&(!value.command||value.command.action!=='save'||value.command.moduleAction!=='save-local-v1'||typeof value.command.operationId!=='string'||typeof value.command.generation!=='string'))throw Error(iqcTransferUnknown());
+    return value;
+  }
+  function writeIqcTransfer(record,previous=null){
+    const key=iqcTransferKey(record.actorId),raw=JSON.stringify(record);
+    if(sessionStorage.getItem(key)!==(previous===null?null:JSON.stringify(previous)))throw Error(iqcTransferUnknown());
+    sessionStorage.setItem(key,raw);if(sessionStorage.getItem(key)!==raw)throw Error(iqcTransferUnknown());return record;
+  }
+  function clearIqcTransfer(record){
+    const key=iqcTransferKey(record.actorId);if(sessionStorage.getItem(key)!==JSON.stringify(record))throw Error(iqcTransferUnknown());
+    sessionStorage.removeItem(key);if(sessionStorage.getItem(key)!==null)throw Error(iqcTransferUnknown());
+  }
+  function iqcTransferBasis(data){const c=data.control,open=c?.versions?.find(v=>['draft','pending','pending-test'].includes(v.status));return {generation:c?.workflow?.generation??null,activeVersionId:c?.activeVersionId??null,openVersionId:open?.id??null,openVersionStatus:open?.status??null,openVersionRevision:open?.revision??null};}
+  function assertIqcTransferRead(data){
+    const c=data?.control,f=c?.workflow;
+    if(data?.permissions?.view!==true||data.permissions.edit!==true||!Number.isSafeInteger(data.revision)||!Array.isArray(c?.versions)||f&&f.scope!=='iqc'||f?.pendingId||c.versions.some(v=>['pending','pending-test'].includes(v.status)))throw Error('IQC_TARGET_NOT_EDITABLE');
+    return f;
+  }
+  function finishIqcTransfer(client,record,result,fresh=null){
+    const r=result?.receipt;
+    const verified=client.isVerifiedReadback(result),f=fresh?.control?.workflow;
+    if(!verified&&(!fresh||fresh.permissions?.view!==true||f?.scope!=='iqc'||!Number.isSafeInteger(f.revision)||f.revision<r?.revision)||r?.operationId!==record.command.operationId||r.generation!==record.command.generation||typeof r.savedId!=='string'||!r.savedId)throw Error(iqcTransferUnknown());
+    // No local IQC form is owned here. A historical receipt confirms only the
+    // original Save; it never replays selection into the successor generation.
+    const superseded=client.isSupersededRecovery(result),historical=superseded||!!fresh&&f.generation!==r.generation;
+    if(superseded)client.acknowledgeSupersededRecovery(result);
+    clearIqcTransfer(record);
+    return {savedId:r.savedId,historical,results:JSON.parse(record.intent).ids.map(itemId=>({itemId,status:'applied'}))};
+  }
+  async function recoverIqcTransfer(dialog){
+    const owner=dialog.owner;dialog.moduleStatus.iqc='saving';render();
+    try{
+      const record=readIqcTransfer(),client=targetIqcClient();if(!record)throw Error(iqcTransferUnknown());
+      if(record.phase==='begin'){
+        const result=client.hasUnknownBegin()?await client.resolveUnknown():record.operationId?await client.receipt(record.operationId):null;
+        if(!result?.receipt||result.operationKind!=='begin-v1'||!transferOwnerCurrent(owner)||transferDialog!==dialog)throw Error(iqcTransferUnknown());
+        if(record.operationId&&record.operationId!==result.receipt.operationId)throw Error(iqcTransferUnknown());
+        clearIqcTransfer(record);dialog.moduleStatus.iqc='idle';await loadTransferPreview();dialog.moduleMessages.iqc=t('已核對原開始修改收據；尚未移轉或存取，請重新核對選取後明確確認。','Đã kiểm tra biên nhận bắt đầu gốc; chưa chuyển/lưu. Kiểm tra lựa chọn rồi xác nhận lại.');
+      }else{
+        const outstanding=client.hasUnknown(),result=await client.receipt(record.command.operationId,record.command.generation);
+        // The transport may have settled before the source page lost ownership.
+        // Original receipt plus a new authorized read can finish its source journal.
+        const fresh=!outstanding&&!client.isVerifiedReadback(result)?await client.read():null;
+        if(!transferOwnerCurrent(owner)||transferDialog!==dialog)throw Error(iqcTransferUnknown());
+        const done=finishIqcTransfer(client,record,result,fresh);dialog.moduleStatus.iqc='success';dialog.moduleMessages.iqc=t('原 IQC 移轉並存取已確認','Đã xác nhận chuyển và lưu IQC gốc')+' · '+done.savedId+(done.historical?' · '+t('目前已有後續草稿；本次未套用其他修改','Hiện có bản nháp mới; lần này không áp dụng thay đổi khác'):'');
+      }
+    }catch(error){dialog.moduleStatus.iqc='error';dialog.moduleMessages.iqc=iqcTransferUnknown()+' '+error.message;}
+    if(transferDialog===dialog&&transferOwnerCurrent(owner))render();
+  }
+  async function saveIqcTransfer(dialog,target,entry,rows,intent,owns){
+    const assertOwned=()=>{if(!owns())throw Error('IQC_TRANSFER_CONTEXT_CHANGED');};
+    // Preserve all old unidentified target Begin evidence without attribution.
+    if(sessionStorage.getItem('routine-equipment-target-begin:'+identity()?.id+':'+iqcTransferEndpoint)!==null)throw Error(iqcTransferUnknown());
+    const legacy=window.createSharedDraftClient({endpoint:iqcTransferEndpoint,actorId:dialog.owner.actorId,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});
+    if(legacy.hasUnknown())throw Error(iqcTransferUnknown());await legacy.flush();assertOwned();
+    const client=targetIqcClient();if(client.hasUnknown()||hasIqcTransfer())throw Error(iqcTransferUnknown());await client.flush();assertOwned();
+    let authority=await client.read();assertOwned();assertIqcTransferRead(authority);
+    const basis=iqcTransferBasis(authority);
+    if(basis.generation!==(entry.workflow?.generation??null)||basis.activeVersionId!==(entry.activeVersion?.id??null)||basis.openVersionId!==(entry.openVersion?.id??null))throw Error('IQC_TARGET_CHANGED_RECONFIRM');
+    let record=null;
+    if(!entry.workflow?.editable){
+      record=writeIqcTransfer({version:1,actorId:dialog.owner.actorId,endpoint:iqcTransferEndpoint,intent,basis,phase:'begin',operationId:crypto.randomUUID()});
+      let begun;
+      try{begun=await client.beginWithIdentity({operationId:record.operationId,basis});}catch(error){
+        // Private proof covers only this exact attempt before POST handoff.
+        // Receipt 404s and public Error flags never establish that it was unsent.
+        if(owns()&&(client.isBeginNotSent(error,{operationId:record.operationId,basis})||!client.hasUnknownBegin()&&['BEGIN_BASIS_CHANGED','INVALID_BEGIN_IDENTITY'].includes(error.message)))clearIqcTransfer(record);
+        throw error;
+      }
+      assertOwned();
+      if(begun.receipt?.operationId!==record.operationId||begun.operationKind!=='begin-v1'||JSON.stringify(begun.beginBasis)!==JSON.stringify(basis)||begun.receipt?.generation!==begun.control?.workflow?.generation)throw Error('IQC_BEGIN_GENERATION_CHANGED');
+      authority=begun;
+    }
+    const flow=assertIqcTransferRead(authority);if(!flow?.generation)throw Error('BEGIN_REQUIRED');
+    const patches=[],guards=[];
+    for(const row of rows)for(const field of ['equipmentId','inspectionMode']){const path=['items',{id:row.itemId},field];patches.push({op:'set',path,value:field==='equipmentId'?target.id:'equipment'});guards.push({path,value:row.openStatus==='draft'?(field==='equipmentId'?row.draftEquipmentId:row.draftInspectionMode):(field==='equipmentId'?row.activeEquipmentId:row.activeInspectionMode)});}
+    const command=client.prepare(flow.generation,'save',{moduleAction:'save-local-v1',patches,guards,input:{}});
+    const next={version:1,actorId:dialog.owner.actorId,endpoint:iqcTransferEndpoint,intent,basis,phase:'save',command};record=writeIqcTransfer(next,record);assertOwned();
+    try{const result=await client.sendPrepared(command);assertOwned();return finishIqcTransfer(client,record,result);}
+    catch(error){
+      if(owns()&&client.isConfirmedRejection(error,command)&&client.discardRejectedLocalSave(command))clearIqcTransfer(record);
+      throw error;
+    }
+  }
+
   async function executeTransfer(uiKey) {
     const dialog = transferDialog;
     if (!dialog || transferBusy(dialog) || !transferOwnerCurrent(dialog.owner)) return;
     // Original receipt recovery does not depend on the new preview finishing.
     if(uiKey==='fqc'&&hasFqcTransfer()){await recoverFqcTransfer(dialog);return;}
+    if(uiKey==='iqc'&&hasIqcTransfer()){await recoverIqcTransfer(dialog);return;}
     if (!dialog.preview) return;
     const targetEqId = dialog.targetEqId;
     const target = control?.versions.find(version => version.id === control.activeVersionId && version.status === 'approved')?.equipment.find(item => item.id === targetEqId && item.enabled !== false);
@@ -2492,7 +2593,7 @@
     const selected=dialog.preview.modules.find(row=>row.moduleId===moduleId)?.items.filter(row=>ids.includes(row.id)) || [];
     const overrides=selected.filter(row=>row.openStatus==='draft' && row.draftEquipmentId && row.draftEquipmentId!==dialog.sourceId && row.draftEquipmentId!==targetEqId).map(row=>row.id);
     if (selected.some(row=>row.selectable===false)) {dialog.moduleMessages[uiKey]=t('包含不可編輯項目，請重新選取','Có hạng mục không thể sửa; hãy chọn lại');render();return;}
-    if (!confirm(moduleId==='fqc'?t(`確認移轉 ${ids.length} 筆並存取整份 FQC 草稿？共享草稿中其他已套用的修改會一起保存；其他分頁未送出的本機輸入不包含在內。僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆已改選其他檢具，將以這次選擇取代。`:''}不送審。`,`Chuyển ${ids.length} mục và lưu toàn bộ bản nháp FQC? Các thay đổi chung đã áp dụng cũng được lưu; không gồm đầu vào cục bộ chưa gửi ở trang khác. Giữ ảnh và thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị.`:''} Không gửi duyệt.`):t(`確認移轉 ${ids.length} 筆 ${moduleId.toUpperCase()} 標準至草稿？僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆草稿已改選其他檢具，將以這次選擇取代。`:''}同草稿全部成功才套用；待審項目不可移轉，也不會延後自動套用。`, `Chuyển ${ids.length} tiêu chuẩn ${moduleId.toUpperCase()} sang bản nháp? Chỉ thay thiết bị; giữ ảnh và các thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị trong bản nháp.`:''} Mỗi bản nháp được xử lý toàn bộ hoặc không thay đổi. Không chuyển hồ sơ chờ duyệt và không tự áp dụng sau.`))) return;
+    if (!confirm(['fqc','iqc'].includes(moduleId)?t(`確認移轉 ${ids.length} 筆並存取整份 ${moduleId.toUpperCase()} 草稿？共享草稿中其他已套用的修改會一起保存；其他分頁未送出的本機輸入不包含在內。僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆已改選其他檢具，將以這次選擇取代。`:''}不送審。`,`Chuyển ${ids.length} mục và lưu toàn bộ bản nháp ${moduleId.toUpperCase()}? Các thay đổi chung đã áp dụng cũng được lưu; không gồm đầu vào cục bộ chưa gửi ở trang khác. Giữ ảnh và thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị.`:''} Không gửi duyệt.`):t(`確認移轉 ${ids.length} 筆 ${moduleId.toUpperCase()} 標準至草稿？僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆草稿已改選其他檢具，將以這次選擇取代。`:''}同草稿全部成功才套用；待審項目不可移轉，也不會延後自動套用。`, `Chuyển ${ids.length} tiêu chuẩn ${moduleId.toUpperCase()} sang bản nháp? Chỉ thay thiết bị; giữ ảnh và các thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị trong bản nháp.`:''} Mỗi bản nháp được xử lý toàn bộ hoặc không thay đổi. Không chuyển hồ sơ chờ duyệt và không tự áp dụng sau.`))) return;
     assertIntent();
     dialog.moduleStatus[uiKey] = 'saving'; render();
     try {
@@ -2527,10 +2628,12 @@
       let data;
       if(moduleId==='fqc'){
         data=await saveFqcTransfer(dialog,target,targetEntry,latest.filter(row=>ids.includes(row.id)),transferIntent,owns);
+      }else if(moduleId==='iqc'){
+        data=await saveIqcTransfer(dialog,target,targetEntry,latest.filter(row=>ids.includes(row.id)),transferIntent,owns);
       }else if(moduleId==='ipqc-ab'){
         const rows=latest.filter(row=>ids.includes(row.id));data={results:[]};
         for(const scopeKey of new Set(rows.map(row=>row.scopeKey))){const group=rows.filter(row=>row.scopeKey===scopeKey);let scopeClient;
-          try{assertIntent();const endpoint='/api/ipqc-ab/workflow?scope='+encodeURIComponent(scopeKey)+'&caseMetadata=1',client=window.createSharedDraftClient({endpoint,actorId:dialog.owner.actorId,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});
+          try{assertIntent();const endpoint='/api/ipqc-ab/workflow?scope='+encodeURIComponent(scopeKey)+'&caseMetadata=1',client=window.createSharedDraftClient({endpoint,actorId:dialog.owner.actorId,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json','X-Process-Expected-Actor':dialog.owner.actorId})});
             scopeClient=client;await client.flush();assertIntent();if(client.hasUnknown())throw Error('PREVIOUS_OPERATION_UNKNOWN');
             const changed=group.filter(needsTransfer);
             if(!changed.length)await beginTransferDraft(client,endpoint,transferScopeEntry(targetEntry,scopeKey),'ipqc-ab:'+scopeKey,transferIntent,owns,false);
@@ -2579,16 +2682,16 @@
       dialog.moduleStatus[uiKey] = counts.conflict ? 'error' : counts.waiting ? 'pending' : 'success';
       dialog.moduleMessages[uiKey] = `${t('已套用', 'Đã áp dụng')} ${counts.applied} · ${t('已相同', 'Không đổi')} ${counts.unchanged} · ${t('待處理', 'Chờ xử lý')} ${counts.waiting} · ${t('衝突', 'Xung đột')} ${counts.conflict}` +
         (data.results || []).filter(row => row.reason && row.status === 'conflict').map(row => `\n${row.scopeKey?row.scopeKey+' / ':''}${row.itemId}: ${row.reason}`).join('');
-      if(moduleId==='fqc')dialog.moduleMessages[uiKey]+=' · '+t('已移轉並存取 FQC 草稿','Đã chuyển và lưu bản nháp FQC')+' · '+data.savedId+(data.historical?' · '+t('原操作已確認；目前已有後續草稿，本次未套用其他修改','Đã xác nhận thao tác gốc; hiện có bản nháp mới, không áp dụng thay đổi khác'):'');
-      if(moduleId!=='fqc'&&(flow||moduleId==='ipqc-ab') && (!counts.conflict||counts.applied))dialog.moduleMessages[uiKey]+=' · '+t(`成功項目已同步，尚未手動儲存；請到 ${moduleId.toUpperCase()} 儲存草稿`,`Các hạng mục thành công đã đồng bộ, chưa lưu thủ công; hãy lưu bản nháp tại ${moduleId.toUpperCase()}`);
-      if(moduleId!=='fqc')await window.ProcessSync?.refresh?.();
+      if(['fqc','iqc'].includes(moduleId))dialog.moduleMessages[uiKey]+=' · '+moduleId.toUpperCase()+' · '+t('已移轉並存取草稿','Đã chuyển và lưu bản nháp')+' · '+data.savedId+(data.historical?' · '+t('原操作已確認；目前已有後續草稿，本次未套用其他修改','Đã xác nhận thao tác gốc; hiện có bản nháp mới, không áp dụng thay đổi khác'):'');
+      if(!['fqc','iqc'].includes(moduleId)&&(flow||moduleId==='ipqc-ab') && (!counts.conflict||counts.applied))dialog.moduleMessages[uiKey]+=' · '+t(`成功項目已同步，尚未手動儲存；請到 ${moduleId.toUpperCase()} 儲存草稿`,`Các hạng mục thành công đã đồng bộ, chưa lưu thủ công; hãy lưu bản nháp tại ${moduleId.toUpperCase()}`);
+      if(!['fqc','iqc'].includes(moduleId))await window.ProcessSync?.refresh?.();
       if (!owns()) return;
       invalidateEquipmentReferences([dialog.sourceId, targetEqId]);
       await loadEquipmentReferences(dialog.sourceId, { renderAfter: false });
       await loadTransferPreview();
     } catch (error) {
       dialog.moduleStatus[uiKey] = 'error';
-      dialog.moduleMessages[uiKey] = (moduleId==='fqc'&&hasFqcTransfer()?fqcTransferUnknown()+' ':'')+(error.message || t('替換失敗', 'Thay thế thất bại'));
+      dialog.moduleMessages[uiKey] = (moduleId==='fqc'&&hasFqcTransfer()?fqcTransferUnknown()+' ':moduleId==='iqc'&&hasIqcTransfer()?iqcTransferUnknown()+' ':'')+(error.message || t('替換失敗', 'Thay thế thất bại'));
     }
     if (transferDialog === dialog && transferOwnerCurrent(dialog.owner)) render();
   }
@@ -2608,7 +2711,7 @@
 
     const previewItems = moduleId => transferDialog.preview?.modules?.find(row => row.moduleId === moduleId)?.items || [];
     const fqcItems = previewItems('fqc'),fqcRecovery=hasFqcTransfer();
-    const iqcItems = previewItems('iqc');
+    const iqcItems = previewItems('iqc'),iqcRecovery=hasIqcTransfer();
     const ipqcCItems = previewItems('ipqc-c');
     const ipqcABItems = previewItems('ipqc-ab');
     const replacementRow = (it, key) => `
@@ -2749,8 +2852,8 @@
                     ${transferDialog.moduleStatus.iqc === 'success' ? `
                       <span class="routine-transfer-success-tag">✓ ${t('已成功移轉至草稿', 'Đã chuyển thành công')}</span>
                     ` : `
-                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-iqc" ${!targetEq || !iqcItems.length || inFlight ? 'disabled' : ''}>
-                        ${transferDialog.moduleStatus.iqc === 'saving' ? t('儲存中…', 'Đang lưu...') : t('確認移轉至 IQC 草稿', 'Xác nhận chuyển sang IQC')}
+                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-iqc" ${inFlight||!iqcRecovery&&(!targetEq||!iqcItems.length)?'disabled':''}>
+                        ${transferDialog.moduleStatus.iqc === 'saving' ? t('儲存中…', 'Đang lưu...') : iqcRecovery?t('查詢原移轉／存取收據','Kiểm tra biên nhận chuyển/lưu gốc'):t('確認移轉並存取 IQC 草稿', 'Xác nhận chuyển và lưu IQC')}
                       </button>
                     `}
                   </div>
@@ -3565,6 +3668,7 @@
   }
   async function mount(element) {
     if(identity()?.id&&hasFqcTransfer())targetFqcClient();
+    if(identity()?.id&&hasIqcTransfer())targetIqcClient();
     equipmentEditRequest++;navigationError=null;
     const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>host===element&&element.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
     const preserve = controlActor===identity()?.id&&(isDirty() || pendingPhotos.size > 0 || addingEquipment && newEquipmentForm);
@@ -3693,7 +3797,7 @@
   // Navigation may discard local input while retaining the exact legacy barrier.
   function equipmentDeparture(config){
     const base=window.VersionDraftUI.createDeparture(config);let held=null;
-    const legacy=()=>{try{const markers=[beginRecoveryKey(identity()?.id),fqcTransferKey(identity()?.id)].map(key=>[key,sessionStorage.getItem(key)]).filter(([,raw])=>raw!==null);return markers.length&&![sharedClient,fqcTransferClient].some(client=>client?.hasUnknown()||client?.hasSyncFailures())&&inputOwnerCurrent()&&!busy&&!transferBusy()?JSON.stringify(markers):null;}catch{return null;}};
+    const legacy=()=>{try{const markers=[beginRecoveryKey(identity()?.id),fqcTransferKey(identity()?.id),iqcTransferKey(identity()?.id)].map(key=>[key,sessionStorage.getItem(key)]).filter(([,raw])=>raw!==null);return markers.length&&![sharedClient,fqcTransferClient,iqcTransferClient].some(client=>client?.hasUnknown()||client?.hasSyncFailures())&&inputOwnerCurrent()&&!busy&&!transferBusy()?JSON.stringify(markers):null;}catch{return null;}};
     const valid=record=>record&&record.raw===legacy()&&record.actor===identity()&&record.epoch===window.ProcessSync?.identityGeneration?.();
     return {...base,autoAbandon:true,allowUnload:()=>!busy&&!transferBusy(),
       inspect(){const status=base.inspect(),raw=legacy();if(raw===null)return status;return {state:valid(held)?'departing':'unknown',departureId:held?.id,canAbandon:!held,canSave:false,canDiscard:false,reason:beginRecoveryMessage()};},
@@ -3709,8 +3813,8 @@
     root:()=>host,flow:()=>control?.workflow,sharedOwned:()=>false,sharedDirty:()=>false,
     context:()=>[controlActor,selectedVersionId,control?.workflow?.generation,sharedClient?.permission('save'),sharedClient?.permission('edit')],
     current:()=>controlActor===identity()?.id&&inputOwnerCurrent(),busy:()=>busy||transferBusy()||!!equipmentReadAttempt,
-    unknown:()=>sharedClient?.hasUnknown()||fqcTransferClient?.hasUnknown()||hasBeginRecovery(),failed:()=>sharedClient?.hasSyncFailures()||fqcTransferClient?.hasSyncFailures(),
-    unknownTransports:()=>[sharedClient,fqcTransferClient],unknownReady:()=>{try{return !readBeginRecovery();}catch{return false;}},discardUnknown(){this.discard();},
+    unknown:()=>sharedClient?.hasUnknown()||fqcTransferClient?.hasUnknown()||iqcTransferClient?.hasUnknown()||hasBeginRecovery(),failed:()=>sharedClient?.hasSyncFailures()||fqcTransferClient?.hasSyncFailures()||iqcTransferClient?.hasSyncFailures(),
+    unknownTransports:()=>[sharedClient,fqcTransferClient,iqcTransferClient],unknownReady:()=>{try{return !readBeginRecovery();}catch{return false;}},discardUnknown(){this.discard();},
     local:()=>!!editingEquipmentId||isDirty()||isFormDirty()||!!pendingPhotos.size||!!nodeDialog||!!transferDialog||addingEquipment,
     canSave:()=>!!canDraftAction('save'),canDiscard:()=>editable()&&sharedClient?.permission('edit')===true,
     save:owner=>saveDraft('save',owner),dialogs:()=>[...host?.querySelectorAll('.routine-modal-backdrop,.routine-dialog-backdrop')||[]],

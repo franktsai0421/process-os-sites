@@ -1,3 +1,9 @@
+## 2026-11-12 — 整頁單一草稿候選；正式資料未切換
+
+`routineFqcControl` 在明確採用 `pageDraftLayout:'page-v1'` 的資料副本中，使用 `page.baseline`、單一 `page.workflow`、`page.documentState` 與 `page.caseDependencies`，整頁內容由 `RoutineWholePage` 管理；Save／Submit／Withdraw／Return／Approve 經獨立 page API、原收據與 CAS，歷史讀取不改寫舊 document ID／內容。整頁 controller 保留 File／晚回應 owner 與同頁唯讀核准歷史。既有 document layout 保留 main Apply → read → Save → read，相容舊資料及收據；不由 GET 自動切換。
+
+`scripts/prepare-routine-fqc-page.cjs` 只接受 stdin、輸出候選 JSON，不存取 DB／網路；保留既有 IDs／歷史／收據，拒絕待審資料。本任務未執行正式資料轉換、migration 或部署。生成仍遵守正常入口／明確 Update 與既有權限，無閒置輪詢。需求及驗證界線見[單一整合追蹤](../../docs/acceptance/fqc-iqc-integration-20261112/README.md)與[現行規格](../../docs/specs/current/ROUTINE_FQC.md)。
+
 ## 2026-11-10 — Local permission/page composition
 
 整頁候選從已知 #102 head 選取，使用獨立 routine-fqc:page owner、固定 saved/case、核准歷史與原照片結果查詢。版本平台與原頁指同一整頁案件；generic shared-state 不可覆蓋採用頁，原生成時機與其他未建置入口不擴張。 尚未啟用真資料或宣稱原生／實站驗收。[來源與驗證界線](../ACCOUNT_PERMISSION_INTEGRATION_LOCAL.md)。

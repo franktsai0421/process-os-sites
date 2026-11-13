@@ -3,6 +3,8 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'scripts/quality-main-source-contracts.json'
+      - 'scripts/quality-main-source-contract.cjs'
       - 'scripts/account-process-joint-source-contract.cjs'
       - 'scripts/account-process-joint-source-contract.json'
       - 'tests/account-process-joint-source.test.cjs'

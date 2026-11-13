@@ -23,6 +23,8 @@ const allowed = {
   reviewer: modules.flatMap(name => ['view', 'approve', 'return'].map(operation => name + '.' + operation)),
   'module-reviewer': c('view','approve','return'),
   viewer: ['equipment.view', ...c('view')],
+  'edit-create': ['equipment.view', ...c('view', 'edit', 'create')],
+  'create-only': ['equipment.view', ...c('view', 'create')],
   'edit-only': ['equipment.view', ...c('view', 'edit', 'withdraw')],
   'save-only': ['equipment.view', ...c('view', 'save')],
   'submit-only': ['equipment.view', ...c('view', 'submit')],

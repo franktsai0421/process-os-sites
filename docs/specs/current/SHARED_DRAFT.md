@@ -23,6 +23,12 @@ This AB/C candidate covers master products, categories, group defaults/product e
 
 檢具主檔採本機表單／照片預覽、一次明確原子 Save 與無提示放棄未送輸入。修改權可存取，送審獨立並在確認前後檢查本機修改；未知 Begin／Save 保留原世代、原 guards、operation 與收據，離頁不清除 barrier、不重送。既有無識別標記不轉成已確認。這不包含設備替換的跨品質 scope 交易，也不改其他候選預設。 [檢具候選與限制](../../acceptance/equipment-local-atomic-save-20261105/README.md)。
 
+## 2026-11-12 IPQC A/B：模組內切換保留，離開模組才放棄
+
+最新明確確認取代 A/B 候選中「線別／群組／工段切換直接丟棄」的舊政策。同一 A/B 模組內的線別、群組、工段只是篩選：保留所有未儲存欄位、矩陣、未完成表單、原比較基準與尚未上傳 File；切換來回不另建草稿、不寫入。全模組仍只有一份共用草稿，一次手動 Save 保存各篩選下已完成的修改。隱藏的未完成表單須返回完成或取消，不能因切換而隱式保存。
+
+離開 A/B 模組至其他功能頁，才放棄未送的 RAM／File／表單；已成功 Save 的資料不撤銷。已送 UNKNOWN 保留原 actor、operation／generation／收據，只明確查原結果，404 不代表未寫入，不重送。晚到權限／載入／照片／Save 回應不得跨切換、owner 或 lifetime 清掉新內容。已核准歷史仍唯讀，不恢復覆寫草稿。[需求、證據與待驗台帳](../../acceptance/ipqc-ab-integration-20261112/README.md)。
+
 ## 2026-11-05 IPQC A/B：本機編輯與一次存取
 
 A/B 錯誤碼、檢查項目及矩陣入口沿用全模組草稿加速要求：完成表單不逐筆寫入共享 working；按一次存取才依原欄位／格子基準合併並保存全模組。修改權包含存取，新增、刪除及送審仍各自驗證。未送出輸入離頁可直接放棄；未知操作保留原識別，不重送、不以 404 當成未寫入。
@@ -96,3 +102,9 @@ AB/C 送審明示本次已儲存快照的時間／儲存者，分頁列出未包
 ## 2026-10-30 離頁放棄的確認邊界
 
 使用者確認：離頁「放棄」僅撤銷本次可確認屬於自己的未儲存修改；不得整份還原而取消他人的共享工作。逐欄位核對前值與版本，同欄已被他人修改、身分/權限/世代變更或寫入結果未知時留在原頁，保留輸入並說明原因。已成功 Save 的快照、送審案件、正式版本與歷史不得刪除或重寫。儲存並離頁仍依既有規則儲存整個模組共用內容，需確認最新輸入已套用且後端保存成功。此為已確認需求，並非宣告所有模組已實作。
+
+## 2026-11-12 IPQC C confirmed behavior
+
+C Save performs a fresh three-way comparison of the whole independent C draft. One whole-group mine/theirs/cancel choice applies to all actual clashes, retaining nonconflicting changes from both editors; no per-field selection. Cancel sends no business write. If the server changes during a choice, photo upload or final CAS, automatically compare again in the same Save; only a proven original non-writing rejection permits a new command. Unknown outcomes retain original receipt inquiry and write guards.
+
+Unsent C forms are silently abandoned on scope/page departure, without restore or periodic polling. Approved versions are readonly in the same page, without draft/history restoration. Submission/withdrawal remain separate from final platform approval. This supersedes older C prompted-departure/restoration descriptions; existing sent operations and business history are retained. Candidate evidence: [Cloud C integration](../../acceptance/ipqc-c-cloud-integration-20261112/README.md).

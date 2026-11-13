@@ -55,11 +55,13 @@ function projectedSource(file,original){
  return {contract,before,after};
 }
 function withoutApprovedExplicitRights(file,bytes,original=execFileSync('git',['show',explicitRightsBase+':'+file])){
+ bytes=require('./ipqc-c-integration-source-contract.cjs').projectKnown(bytes,file);
  const {contract,before,after}=projectedSource(file,original),text=bytes.toString('utf8'),start=protectedStart(text,contract.marker);
  assert.deepEqual(bytes.subarray(Buffer.byteLength(text.slice(0,start))),Buffer.from(after),'Explicit-rights protected bytes differ from exact named-span contract: '+file);
  return Buffer.concat([bytes.subarray(0,Buffer.byteLength(text.slice(0,start))),Buffer.from(before)]);
 }
 function assertExplicitRightsContract(file,bytes,original=execFileSync('git',['show',explicitRightsBase+':'+file])){
+ bytes=require('./ipqc-c-integration-source-contract.cjs').projectKnown(bytes,file);
  const {contract,before,after}=projectedSource(file,original),text=bytes.toString('utf8'),prefix=text.slice(0,protectedStart(text,contract.marker));
  assert.deepEqual(withoutApprovedExplicitRights(file,bytes,original),Buffer.from(prefix+before));
  let negatives=0;

@@ -1,3 +1,4 @@
+import {ipqcCFinalReviewAllowed} from '@/lib/ipqc-c-access';
 import {restoreEffects} from '@/lib/draft-restore-access';
 import { env } from 'cloudflare:workers';
 import { readState, identity, can, sameOrigin, encodeValues, parse, maintenanceCredential, responseHeaders as headers } from '@/lib/process-state';
@@ -126,7 +127,7 @@ export async function POST(request: Request) {
         return reply({ error: '沒有刪除權限' }, 403);
     } else if (review) {
       if (!(await can(request, state, 'ipqc-c.view')) ||
-          !(await can(request, state, action === 'approve' ? 'approval.approve' : 'approval.reject')))
+          !(await ipqcCFinalReviewAllowed(request, state, action === 'approve' ? 'approve' : 'return')))
         return reply({ error: '沒有審核權限' }, 403);
     } else return reply({ error: '不支援的操作' }, 400);
 

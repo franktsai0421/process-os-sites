@@ -1,3 +1,4 @@
+const qualityAtomic=moduleId=>['fqc','iqc'].includes(moduleId);
 // Full actual equipment transfer UI -> actual routes, normal synthetic approvals.
 // No browser, HTTP server or live records. IPQC-C test rights are fixture-local.
 const assert = require('node:assert/strict');
@@ -22,7 +23,7 @@ async function check(name, task) { const start = performance.now(); await task()
       f.test.dialog.targetEqId = target;
       await f.test.executeTransfer(moduleId === 'ipqc-c' ? 'ipqcC' : moduleId === 'ipqc-ab' ? 'ipqcAB' : moduleId);
       const key = moduleId === 'ipqc-c' ? 'ipqcC' : moduleId === 'ipqc-ab' ? 'ipqcAB' : moduleId;
-      assert.equal(f.test.dialog.moduleStatus[key], expected === 'success' ? 'success' : 'error', f.test.dialog.moduleMessages[key]); assert.match(f.test.dialog.moduleMessages[key], expected === 'unknown' ? /尚未確認/ : expected === 'rechecked' ? /尚未移轉/ : moduleId==='fqc'?/已移轉並存取/:/尚未手動儲存/);
+      assert.equal(f.test.dialog.moduleStatus[key], expected === 'success' ? 'success' : 'error', f.test.dialog.moduleMessages[key]); assert.match(f.test.dialog.moduleMessages[key], expected === 'unknown' ? /尚未確認/ : expected === 'rechecked' ? /尚未移轉/ : qualityAtomic(moduleId)?/已移轉並存取/:/尚未手動儲存/);
       f.close();
     }
     const saveQuery = moduleId => moduleId === 'ipqc-ab' ? '&module=1' : '';
@@ -42,7 +43,7 @@ async function check(name, task) { const start = performance.now(); await task()
       operationTimings.push({ moduleId, operation: 'explicit destination Save plus fixture verification reads', includes: moduleId === 'ipqc-ab' ? 'whole-module Begin, pre-save reads, Save, fresh verification read' : 'pre-save reads, Save, fresh verification read', isolatedHandlerMs: +(performance.now() - start).toFixed(2) });
       return saved;
     }
-    for (const moduleId of ['fqc', 'iqc', 'ipqc-c', 'ipqc-ab']) await check(moduleId + (moduleId==='fqc'?' identified Begin receipt recovery never continues Save; explicit replacement saves atomically':' lost Begin ACK preserves unidentified marker; transfer remains working-only')+'; original formal/history remains immutable', async () => {
+    for (const moduleId of ['fqc', 'iqc', 'ipqc-c', 'ipqc-ab']) await check(moduleId + (qualityAtomic(moduleId)?' identified Begin receipt recovery never continues Save; explicit replacement saves atomically':' lost Begin ACK preserves unidentified marker; transfer remains working-only')+'; original formal/history remains immutable', async () => {
       const q = stateQ(moduleId), before = json(h.flow(await fullRead(moduleId, q))), original = before.active.content.items[0];
       assert(!(await fullRead(moduleId, q)).control.versions.some(version => version.status === 'draft'));
       // Unknown outcomes run in a separate private fixture; its marker is never
@@ -51,26 +52,26 @@ async function check(name, task) { const start = performance.now(); await task()
       for(const [key,bytes]of h.objects)lostH.objects.set(key,Buffer.from(bytes));
       try {
         const lostUI=await connect(lostH),rawFetch=lostUI.c.fetch;let lost=false;
-        lostUI.c.fetch=async(url,options={})=>{const body=options.body&&JSON.parse(options.body),response=await rawFetch(url,options);if(!lost&&String(url).startsWith('/api/'+moduleId+'/workflow')&&body?.action===(moduleId==='fqc'?'begin-v1':'begin')){lost=true;assert.equal(response.status,200);throw Object.assign(Error('signal is aborted without reason'),{name:'AbortError'});}return response;};
+        lostUI.c.fetch=async(url,options={})=>{const body=options.body&&JSON.parse(options.body),response=await rawFetch(url,options);if(!lost&&String(url).startsWith('/api/'+moduleId+'/workflow')&&body?.action===(qualityAtomic(moduleId)?'begin-v1':'begin')){lost=true;assert.equal(response.status,200);throw Object.assign(Error('signal is aborted without reason'),{name:'AbortError'});}return response;};
         const key=moduleId==='ipqc-c'?'ipqcC':moduleId==='ipqc-ab'?'ipqcAB':moduleId;
-        let attempts=0;const attempt=async()=>{attempts++;lostUI.test.openTransferModal('source');for(let i=0;!lostUI.test.dialog?.preview&&i<1000;i++)await tick();assert(lostUI.test.dialog?.preview);lostUI.test.dialog.targetEqId='target';await lostUI.test.executeTransfer(key);assert.match(lostUI.test.dialog.moduleMessages[key],moduleId==='fqc'?(attempts===1?/待確認/:/尚未移轉或存取/):/尚未確認/);lostUI.close();};
-        await attempt();const marker=[...lostUI.storage];assert.equal(marker.length,moduleId==='fqc'?2:1);assert.equal(lostUI.posts().length,1);
-        await attempt();assert.equal(lostUI.posts().length,1);if(moduleId==='fqc')assert.equal(lostUI.storage.size,0,'identified Begin only settles through its original receipt');else assert.deepEqual([...lostUI.storage],marker,'matching draft is not an original receipt');
+        let attempts=0;const attempt=async()=>{attempts++;lostUI.test.openTransferModal('source');for(let i=0;!lostUI.test.dialog?.preview&&i<1000;i++)await tick();assert(lostUI.test.dialog?.preview);lostUI.test.dialog.targetEqId='target';await lostUI.test.executeTransfer(key);assert.match(lostUI.test.dialog.moduleMessages[key],qualityAtomic(moduleId)?(attempts===1?/待確認/:/尚未移轉或存取/):/尚未確認/);lostUI.close();};
+        await attempt();const marker=[...lostUI.storage];assert.equal(marker.length,qualityAtomic(moduleId)?2:1);assert.equal(lostUI.posts().length,1);
+        await attempt();assert.equal(lostUI.posts().length,1);if(qualityAtomic(moduleId))assert.equal(lostUI.storage.size,0,'identified Begin only settles through its original receipt');else assert.deepEqual([...lostUI.storage],marker,'matching draft is not an original receipt');
         const afterLost=lostH.flow(moduleId==='ipqc-c'?{control:JSON.parse((await lostH.core.readState()).values.ipqcCMasterControl)}:await lostH.read(moduleId,'editor',q));assert.equal(afterLost.working.items[0].equipmentId,'source');assert.deepEqual(afterLost.saved,before.saved);assert.deepEqual(afterLost.active,before.active);assert.deepEqual(afterLost.cases,before.cases);
       } finally {lostH.close();}
       await runTransfer(moduleId, 'target'); let after = h.flow(await fullRead(moduleId, q)); assert.equal(after.working.items[0].equipmentId, 'target');
-      assert.deepEqual(after.active, before.active);if(moduleId==='fqc'){assert.notEqual(after.saved.id,before.saved?.id);assert.equal(after.saved.content.items[0].equipmentId,'target');}else assert.deepEqual(after.saved,before.saved);assert.deepEqual(after.cases,before.cases);
+      assert.deepEqual(after.active, before.active);if(qualityAtomic(moduleId)){assert.notEqual(after.saved.id,before.saved?.id);assert.equal(after.saved.content.items[0].equipmentId,'target');}else assert.deepEqual(after.saved,before.saved);assert.deepEqual(after.cases,before.cases);
       const unrelated = row => Object.fromEntries(Object.entries(row).filter(([key]) => !['equipmentId', 'equipmentSnapshot', 'inspectionMode', 'tool'].includes(key)));
       assert.deepEqual(unrelated(after.working.items[0]), unrelated(original));
       const firstSaved = await manualSave(moduleId, 'target'), savedObjects = new Map(h.objects);
       const savesBeforeTransfer = f.requests.filter(row => row.method==='POST'&&row.action === 'save').length;
       const beginsBeforeTransfer = f.requests.filter(row => row.path === '/api/' + moduleId + '/workflow' && row.action === 'begin').length;
       await runTransfer(moduleId, 'source'); after = h.flow(await fullRead(moduleId, q)); assert.equal(after.working.items[0].equipmentId, 'source');
-      assert.equal(f.requests.filter(row => row.method==='POST'&&row.action === 'save').length, savesBeforeTransfer+(moduleId==='fqc'?1:0), 'only FQC explicitly transfers and saves; other adapters remain Apply only');
+      assert.equal(f.requests.filter(row => row.method==='POST'&&row.action === 'save').length, savesBeforeTransfer+(qualityAtomic(moduleId)?1:0), 'FQC and IQC explicitly transfer and save; IPQC adapters remain Apply only');
       assert.equal(f.requests.filter(row => row.path === '/api/' + moduleId + '/workflow' && row.action === 'begin').length, beginsBeforeTransfer, 'existing editable draft transfer must not add Begin');
       assert.deepEqual(after.active, before.active); assert.deepEqual(after.cases, before.cases);
       const stillSaved = h.flow(await fullRead(moduleId, saveQuery(moduleId))).saved;
-      if(moduleId==='fqc'){assert.notEqual(stillSaved.id,firstSaved.id);assert.equal(stillSaved.content.items[0].equipmentId,'source');assert.equal(firstSaved.content.items[0].equipmentId,'target');}else assert.deepEqual(stillSaved,firstSaved,'later working change cannot rewrite the previous successful Save');
+      if(qualityAtomic(moduleId)){assert.notEqual(stillSaved.id,firstSaved.id);assert.equal(stillSaved.content.items[0].equipmentId,'source');assert.equal(firstSaved.content.items[0].equipmentId,'target');}else assert.deepEqual(stillSaved,firstSaved,'later working change cannot rewrite the previous successful Save');
       const secondSaved = await manualSave(moduleId, 'source'); assert.notEqual(secondSaved.id, firstSaved.id);
       for (const [key, bytes] of savedObjects) assert(h.objects.get(key)?.equals(bytes), 'later save keeps all previously stored object bytes');
     });
@@ -86,7 +87,7 @@ async function check(name, task) { const start = performance.now(); await task()
       for (const unavailable of [false, true]) {
         const expectedEquipmentId = unavailable ? 'source' : 'target';
         await runTransfer(moduleId, expectedEquipmentId);
-        if(moduleId==='fqc'){const flow=h.flow(await fullRead(moduleId,q)),row=flow.working.items[0];await h.command('fqc','apply',{patches:[{op:'set',path:['items',{id:row.id},'description'],value:'Explicit destination correction '+unavailable}],guards:[{path:['items',{id:row.id},'description'],value:row.description}]});}
+        if(qualityAtomic(moduleId)){const flow=h.flow(await fullRead(moduleId,q)),row=flow.working.items[0],field=moduleId==='fqc'?'description':'nameVi';await h.command(moduleId,'apply',{patches:[{op:'set',path:['items',{id:row.id},field],value:'Explicit destination correction '+unavailable}],guards:[{path:['items',{id:row.id},field],value:row[field]}]});}
         const oldSaveHistory = json((await storedWorkflow(moduleId)).saves), oldSaveObjects = new Map(h.objects);
         const before = await h.read(moduleId, 'editor', q), flow = h.flow(before), previous = json(h.flow(await fullRead(moduleId, q)));
         const rawFetch = f.c.fetch; let posts = 0, receiptReads = 0, loseAck = true, blockReceipt = unavailable;
@@ -235,6 +236,6 @@ async function check(name, task) { const start = performance.now(); await task()
       const entry = (await previewFor('new-two')).modules.find(row => row.moduleId === 'fqc'); assert.equal(entry.items.length,1); assert(entry.items.every(row => !row.selectable)); assert.equal(h.flow(await h.read('fqc')).pendingId, submitted.receipt.caseId);
     });
     for (const [key, bytes] of oldObjects) assert(h.objects.get(key)?.equals(bytes));
-    console.log(JSON.stringify({ status: 'PASS_FOUR_MODULE_ACTUAL_TRANSFER', groups: results.length, results, operationTimings, uiRequests: f.requests, sourceHandlerInvocations: h.trace.length, limits: ['Actual UI/controller/shared client and actual routes with normal-approved synthetic producers in private SQLite/R2; no browser or live system', 'FQC transfer explicitly saves once; other adapters keep working-only transfer. No transfer rewrites source equipment, active standards or history. Explicit separate fixture creation/approval adds two tools; saved snapshots remain immutable. Approved targets cannot be deleted even after references are moved', 'Destination Save uses actual authorized routes, not destination page UI controls; AB uses whole-module Save. C public GET confirms saved id/revision; full saved content is independently verified through core.readState', 'Fixtures exercise one standard per module and one AB scope; multi-scope partial error is separately covered in synthetic UI tests', 'Timings are local isolated handler plus synthetic DOM durations, not native page-load/render or hosted latency'] }));
+    console.log(JSON.stringify({ status: 'PASS_FOUR_MODULE_ACTUAL_TRANSFER', groups: results.length, results, operationTimings, uiRequests: f.requests, sourceHandlerInvocations: h.trace.length, limits: ['Actual UI/controller/shared client and actual routes with normal-approved synthetic producers in private SQLite/R2; no browser or live system', 'FQC and IQC transfers explicitly save once; IPQC adapters keep working-only transfer. No transfer rewrites source equipment, active standards or history. Explicit separate fixture creation/approval adds two tools; saved snapshots remain immutable. Approved targets cannot be deleted even after references are moved', 'Destination Save uses actual authorized routes, not destination page UI controls; AB uses whole-module Save. C public GET confirms saved id/revision; full saved content is independently verified through core.readState', 'Fixtures exercise one standard per module and one AB scope; multi-scope partial error is separately covered in synthetic UI tests', 'Timings are local isolated handler plus synthetic DOM durations, not native page-load/render or hosted latency'] }));
   } finally { h.close(); }
 })().catch(error => { console.error(error.stack); process.exitCode = 1; });

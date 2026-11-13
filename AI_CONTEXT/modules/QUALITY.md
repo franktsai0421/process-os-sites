@@ -1,3 +1,16 @@
+## 2026-11-12 — FQC／IQC 單一整合候選（Draft #105）
+
+FQC／IQC Save 以一次全域 Mine／Theirs／Cancel 決定目前整頁本機批次，最小同 ID／上層復活保留 peer 其他欄位；取消不寫入。未送表單與 IQC File 只留 RAM，首次照片 PUT 僅在明確 Save；UNKNOWN 保留原操作／照片收據，不盲重送，晚回應不得清除後來輸入。當前核准歷史同頁唯讀，顯示 owner、角色、revision、session 及換頁失效均隔離。設備頁替換 FQC／IQC 各自原子保存其整份共享 working，不含其他頁未送表單、不 Submit；IQC identified Begin 僅接受既有 bounded IQC client，失去 ACK 後只查原收據、不自動繼續 Save。其餘 IPQC 移轉維持既有協議。例行整頁資料關係見 [模型](../models/ROUTINE_FQC.md)。
+
+main 已有 #70 缺漏統計及 #90 數值提示，不重複搬入或把歷史數字當現況。共用自審規則仍與 main 一致。來源、17 項對照、驗證與尚待真人／實站事項見[整合追蹤](../../docs/acceptance/fqc-iqc-integration-20261112/README.md)。本段取代下方候選中的「identified Begin 僅 FQC／IQC 仍 Apply 後手動 Save」敘述；舊紀錄保留。未合併、部署或修改正式資料。
+## 2026-11-12 — Equipment-to-A/B transfer compatibility
+
+The A/B transfer client now pins its expected actor to the original equipment dialog owner, preserving current authorization, intent and CAS fences. Compiled transfer 7/7 and ownership/save 27/27 pass; see the [A/B evidence ledger](../../docs/acceptance/ipqc-ab-integration-20261112/README.md). Draft only; no deployment or real-data changes.
+
+## 2026-11-12 — Isolated IPQC A/B integration candidate
+
+A/B grouped Save conflicts, original-ID retention, approved readonly history, explicit-check performance and completeness parity are integrated as a candidate based on main #100. Latest policy retains unsent RAM/Files/forms across A/B line/group/stage filters; only departure to another module discards unsent input. Photo ACK loss retains owner-scoped operation metadata, supports GET-only recovery and permits silent departure without restoring private forms. Whole-set mine retains multiple selected original identities with unchanged restore gates. No merge/deployment/live acceptance. [Sources, seven-scope coverage and test limits](../../docs/acceptance/ipqc-ab-integration-20261112/README.md).
+
 ## 2026-11-10 — Process IPQC source comparison notices
 
 The process operation source comparator keeps changes in the current form, then the Canvas single Save persists the reference. It does not change the IPQC library, standards or photos. Both preview and adoption status describe this flow without a separate synchronization step; existing exact-history, fresh-permission, peer-occupancy and late-owner guards remain.
@@ -391,3 +404,12 @@ see [policy and verification boundary](../../docs/sites/PHOTO_UPLOAD.md).
 - 不減 R2/SQL/fresh permission/CAS 次數，不改窄寫入依賴閉包，尚非實站 I/O 延遲或原生 UI 驗收。
 
 2026-10-30 AB/C 草稿切頁補驗：FQC navigation.requiresSave 使用 `control.libraries.fqc.workflow`，與 FQC 現行儲存 API 同一草稿來源；不讀外層不存在的 workflow。參見 `tests/ab-c-cross-module-browser.mjs` 與 AB/C acceptance 報告。
+
+## 2026-11-12 — IPQC C Cloud candidate
+
+C retains whole-group mine/theirs/cancel comparison, nonconflicts, necessary original IDs/relations/matrix, group-scoped duplicate photos, gauge/delete protections, readonly approved history and platform-review separation; no new restore.
+
+Frank's latest statement confirms retaining unsaved changes and pending photos across explicit product switches inside C, while actual module departure to FQC/other pages silently discards unsent RAM without Save. It supersedes the previous discard answer and10:14 conclusion. The product selector retains the same C draft and operation owner; stored versions and exact sent UNKNOWN receipts/dedup remain. Other selectors (stage/coverage/correction locators) are not newly confirmed or expanded by this example. Search and modal restrictions are unchanged. No schema/data change, merge or deployment is implied. [Effective decision and full requirement evidence](../../docs/acceptance/ipqc-c-cloud-integration-20261112/product-switch-decision.zh-TW.md).
+
+### 2026-11-12 C product-local unapplied forms
+IPQC C product filtering now retains an unapplied editor in RAM under its original product and stage, including pending photo objects. Returning to that product restores it only in the same version/generation and current actor/edit context. Product browsing never applies, uploads or saves it. Leaving the module (or the existing scope-discard action) clears retained forms and unapplied object URLs; no durable recovery is added. This is local implementation, not hosted or physical-device acceptance.

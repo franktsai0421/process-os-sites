@@ -13,5 +13,5 @@ function restorePredecessor(bytes,file){
  }
  assert.equal(hash(result),contract.beforeHash);return result;
 }
-function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Background proof requires raw source bytes');bytes=require('./account-permission-source-contract.cjs').projectKnown(bytes,file);bytes=require('./account-cache-source-contract.cjs').projectKnown(bytes,file);return contracts.some(c=>c.file===file&&hash(bytes)===c.afterHash)?restorePredecessor(bytes,file):bytes;}
+function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Background proof requires raw source bytes');bytes=require('./quality-main-source-contract.cjs').projectKnown(bytes,file,'main');bytes=require('./account-permission-source-contract.cjs').projectKnown(bytes,file);bytes=require('./account-cache-source-contract.cjs').projectKnown(bytes,file);return contracts.some(c=>c.file===file&&hash(bytes)===c.afterHash)?restorePredecessor(bytes,file):bytes;}
 module.exports={contracts,restorePredecessor,projectKnown};

@@ -150,6 +150,7 @@ function historicalBeginSource(bytes,file){
 function withoutDurableBegin(bytes,file){
  assert(Buffer.isBuffer(bytes),'Begin-v1 projection requires raw source bytes');
  bytes=require('./account-page-source-contract.cjs').projectKnown(bytes,file);
+ bytes=require('./ipqc-c-integration-source-contract.cjs').projectKnown(bytes,file);
  // Only the exact reviewed C GET successor is normalized here, so direct
  // Begin callers and the Local Save chain share one inverse entry.
  if(file==='app/api/ipqc-c/workflow/route.ts'){

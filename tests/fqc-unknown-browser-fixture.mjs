@@ -9,7 +9,9 @@ export const read=name=>process.env.FQC_UI_REF?execFileSync('git',['show',proces
 const styles=['styles.css','master-data.css','master-data-extra.css','master-data-validation.css','fqc-master.css','version-draft-ui.css'].map(read).join('\n');
 export const scripts=['local-draft-recovery.js','local-draft-recovery-session.js','shared-draft-client.js','version-draft-ui.js','fqc-master.js'];
 export const posts=f=>f.requests.filter(r=>r.method==='POST'&&JSON.parse(r.body).command);
-export async function setup(width=1280,lang='zh'){
+export async function setup(width=1280,lang='zh',{uiSourceRef}={}){
+ if(uiSourceRef!==undefined&&uiSourceRef!=='9fbba823090f03da8385c8d92f5e59293d19d2f1')throw Error('UNREGISTERED_NATIVE_PREDECESSOR');
+ const scriptRead=name=>uiSourceRef?execFileSync('git',['show',uiSourceRef+':public/process/'+name],{encoding:'utf8'}):read(name);
  const f=await fixture(),browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE}:{})});
  const context=await browser.newContext({viewport:{width,height:850}}),page=await context.newPage(),errors=[];
  let lose=false,receiptDown=false,readDown=false,noCommit=false,delayCommit=false,lateCommit=null;
@@ -31,11 +33,11 @@ export async function setup(width=1280,lang='zh'){
  await addAuthorityAudit(f);
  await page.goto('https://synthetic.invalid/process/');await boot();
  async function boot(target=page){await target.evaluate(lang=>{window.ProcessSync={identity:{id:'editor',name:'Synthetic editor',role:'staff'},identityGeneration:()=>1,captureDelivery:()=>1,isCurrentDelivery:e=>e===1,platformHeaders:()=>({}),requiresReload:false};window.state={view:'data',dataTab:'quality-fqc'};window.hasPermission=()=>true;window.bindDataInner=()=>{};window.toast=()=>{};localStorage.setItem('processUILanguage',lang);},lang);
- for(const file of scripts)await target.addScriptTag({content:read(file)});
+ for(const file of scripts){const raw=scriptRead(file),content=file==='fqc-master.js'?raw.replace('})(window);','window.__fqcBrowser={busy:()=>ui.saving,comparing:()=>!!activeSaveComparison};})(window);'):raw;await target.addScriptTag({content});}
  await target.evaluate(()=>window.FQCMasterUI.bind(document.querySelector('#data-content')));
  }
  await page.locator('#fqc-begin').click();await page.locator('#fqc-save').waitFor();
- const settled=()=>page.waitForFunction(()=>!window.sharedDraftAccountState().queued&&!document.querySelector('.fqc-modal-overlay[aria-busy]'));
+ const settled=()=>page.waitForFunction(()=>!window.__fqcBrowser.busy()&&!window.sharedDraftAccountState().queued&&!document.querySelector('.fqc-modal-overlay[aria-busy]'));
  async function recover(){await page.waitForFunction(()=>{const button=document.querySelector('[data-fqc-check-result]')||document.querySelector('#fqc-check-result');return button&&!button.disabled&&!window.sharedDraftAccountState().queued;});const button=page.locator('[data-fqc-check-result]');if(await button.count())await button.click();else await page.evaluate(()=>document.querySelector('#fqc-check-result').click());await page.waitForFunction(()=>!window.sharedDraftAccountState().unknown);await page.waitForFunction(()=>!document.querySelector('#fqc-check-result'));}
  return{f,page,errors,settled,recover,boot,lateCommit:()=>lateCommit,lose({commit=true,delayed=false}={}){lose=true;receiptDown=true;noCommit=!commit;delayCommit=delayed;},receiptsUp(){receiptDown=false;},setReadDown(value){readDown=value;},async close(){await context.close();await browser.close();f.close();}};
 }

@@ -125,3 +125,10 @@ void test('tooling Submit refuses completed local edits before confirmation, pre
  assert.equal(f.box.localSnapshot,local);assert.equal(f.box.localBase,basis);assert.equal(f.box.localGeneration,f.flow.generation);
  assert.equal(JSON.stringify(f.flow),before);
 });
+
+void test('routine FQC approved history cannot dispatch Submit after confirmation',async()=>{
+ const f=routine(),running=f.box.confirmSubmission();
+ f.load('approvedHistoryView={blocked:true};');f.pending.resolve('confirmed');
+ const extra=await running;await assert.rejects(f.box.draft('submit',extra),/APPROVED_HISTORY_READ_ONLY/);
+ assert.equal(f.calls.length,0);
+});

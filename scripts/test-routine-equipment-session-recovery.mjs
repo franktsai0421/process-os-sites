@@ -59,7 +59,7 @@ function fixture(source,clientSource,language='zh',storedUnknown=false){
  if(source.includes('function inputOwnerCurrent('))for(const name of ['hasLocalDraftInput','inputPrincipalCurrent','inputTargetCurrent','inputOwnerCurrent','rememberInputOwner'])vm.runInContext(get(name),sandbox,{timeout:1000});
  for(const name of ['identity','permitted','selected','editable','headers'])vm.runInContext(get(name),sandbox,{timeout:1000});
  for(const name of (source.includes('const beginRecoveryKey =')?['beginRecoveryKey','beginRecoveryMessage','readBeginRecovery']:[]))vm.runInContext(get(name),sandbox,{timeout:1000});
- if(source.includes('function hasFqcTransfer('))for(const name of ['fqcTransferKey','hasFqcTransfer'])vm.runInContext(get(name),sandbox,{timeout:1000});
+ for(const kind of ['Fqc','Iqc'])if(source.includes('function has'+kind+'Transfer('))for(const name of [kind.toLowerCase()+'TransferKey','has'+kind+'Transfer'])vm.runInContext(get(name),sandbox,{timeout:1000});
  if(source.includes('function captureRetainedAddEquipmentInput('))vm.runInContext(get('captureRetainedAddEquipmentInput'),sandbox,{timeout:1000});
  for(const name of ['routineTabIsActive','captureAddEquipmentInput','bindAddEquipmentInput','showEquipmentReadRecovery','recoverAddEquipmentRead','addEquipmentDrawerHTML','openAddEquipmentDialog','snapshotChanges','mount'])vm.runInContext(get(name),sandbox,{timeout:1000});
  context.isDirty=()=>false;context.read=async()=>{calls.unexpectedRead=(calls.unexpectedRead||0)+1;context.working=clone(content);context.syncBase=clone(content);};

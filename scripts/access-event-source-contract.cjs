@@ -82,8 +82,9 @@ const contracts=[
     ]
   }
 ];
-function withoutAccessEventMetadata(bytes,file){
+function withoutAccessEventMetadata(bytes,file){bytes=require('./ipqc-ab-integration-source-contract.cjs').projectKnown(bytes,file);
  assert(Buffer.isBuffer(bytes),'Access-event projection requires raw source bytes');
+ bytes=require('./quality-integration-source-contract.cjs').projectKnown(bytes,file);
  const contract=contracts.find(c=>c.file===file&&c.afterHash===hash(bytes));if(!contract)return bytes;
  let result=Buffer.from(bytes);
  for(const {offset,before,after}of [...contract.rules].reverse()){

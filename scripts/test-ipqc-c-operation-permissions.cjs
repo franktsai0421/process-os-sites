@@ -67,6 +67,7 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
       assert.equal(result.permissions.view, true); assert.equal(result.permissions.withdraw, who === 'edit-only');
       assert.equal(result.permissions.history, true);
     }
+    assert.equal(permissionMatrix['module-reviewer'].return,true);assert.equal(permissionMatrix['module-reviewer'].approve,false);
     assert.equal(permissionMatrix.reviewer.approve, true); assert.equal(permissionMatrix.reviewer.return, true);
     assert.equal(permissionMatrix.viewer.approve, false); assert.equal(permissionMatrix.viewer.return, false);
     const deletionOnly = (await h.read('ipqc-c', 'delete-only', '&permissions=1')).permissions;
@@ -98,8 +99,8 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
     assert.equal(saved.content.items[0].equipmentId, 'target');
     await unchanged(h, () => h.call('ipqc-c/workflow', 'GET', undefined, 'save-only', 403, '?restoreSaveId=' + saved.id));
     await unchanged(h,()=>h.call('ipqc-c/workflow','GET',undefined,'edit-only',403,'?restoreSaveId='+saved.id));
-    const restorePreview = await h.call('ipqc-c/workflow', 'GET', undefined, 'editor', 200, '?restoreSaveId=' + saved.id);
-    assert.equal(restorePreview.after.items[0].equipmentId, 'target');
+    await unchanged(h,async()=>{const denied=await h.call('ipqc-c/workflow','GET',undefined,'editor',422,'?restoreSaveId='+saved.id);assert.equal(denied.error,'DRAFT_RESTORE_NOT_SUPPORTED');});
+    await unchanged(h,async()=>{const denied=await h.command('ipqc-c','restore',{restoreSaveId:saved.id},'editor',422);assert.equal(denied.error,'DRAFT_RESTORE_NOT_SUPPORTED');});
     const submitted = await h.command('ipqc-c', 'submit', { savedId: saved.id, reason: 'Synthetic separate submit' }, 'submit-only');
     const fixed = await caseRead(h, submitted.receipt.caseId); assert.deepEqual(fixed.reviewCase.content, saved.content);
     assert((await cPreview('editor')).items.every(row => !row.selectable));
@@ -112,10 +113,22 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
     await h.command('ipqc-c','withdraw',{caseId:submitted.receipt.caseId,reason:'Explicitly authorized withdrawal'},'edit-only');
     assert.equal((await caseRead(h, submitted.receipt.caseId)).reviewCase.status, 'withdrawn');
     const resubmitted = await h.command('ipqc-c', 'submit', { savedId: saved.id, reason: 'Synthetic reviewer return' }, 'submit-only');
-    await h.command('ipqc-c', 'return', { caseId: resubmitted.receipt.caseId, reason: 'Synthetic retained return' }, 'module-reviewer');
+    await h.command('ipqc-c', 'return', { caseId: resubmitted.receipt.caseId, reason: 'Synthetic module-authorized return' }, 'module-reviewer');
+    assert.equal((await caseRead(h,resubmitted.receipt.caseId)).reviewCase.status,'returned');
+    const reviewerSubmit=await h.command('ipqc-c','submit',{savedId:saved.id,reason:'Synthetic reviewer return'},'submit-only');
+    await h.command('ipqc-c', 'return', { caseId: reviewerSubmit.receipt.caseId, reason: 'Synthetic retained return' }, 'reviewer');
     const finalSubmit = await h.command('ipqc-c', 'submit', { savedId: saved.id, reason: 'Synthetic independent adoption' }, 'submit-only');
-    await h.command('ipqc-c', 'approve', { caseId: finalSubmit.receipt.caseId }, 'module-reviewer');
+    await unchanged(h,()=>h.command('ipqc-c', 'approve', { caseId: finalSubmit.receipt.caseId }, 'module-reviewer',403));
+    await h.command('ipqc-c', 'approve', { caseId: finalSubmit.receipt.caseId }, 'reviewer');
     current = await full(h); assert.equal(current.workflow.active.content.items[0].equipmentId, 'target');
+    const historyBefore=h.snapshot();
+    const approvedList=await h.call('ipqc-c/workflow','GET',undefined,'editor',200,'?approvedOnly=1&uiHistory=1');
+    assert(approvedList.versions.rows.some(row=>row.id===finalSubmit.receipt.caseId));
+    assert(!approvedList.versions.rows.some(row=>row.id.startsWith('shared-')));
+    const approvedBody=await h.call('ipqc-c/workflow','GET',undefined,'editor',200,'?approvedOnly=1&versionId='+finalSubmit.receipt.caseId);
+    assert.deepEqual(approvedBody.version.snapshot,current.workflow.active.content);
+    await h.call('ipqc-c/workflow','GET',undefined,'editor',404,'?approvedOnly=1&versionId='+submitted.receipt.caseId);
+    assert.deepEqual(h.snapshot(),historyBefore,'history metadata and immutable body are read-only');
     assert.deepEqual(current.workflow.active.content.items[0].mediaItems, original.workflow.active.content.items[0].mediaItems);
     assert.deepEqual(await caseRead(h, originalCaseId), originalCase);
     for (const [key, bytes] of originalObjects) assert(h.objects.get(key)?.equals(bytes), 'preexisting R2 bytes retained');

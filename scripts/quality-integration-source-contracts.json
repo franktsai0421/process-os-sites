@@ -1,0 +1,513 @@
+[
+  {
+    "file": "public/process/shared-draft-client.js",
+    "base": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+    "beforeBlob": "d5dc7f97a0f4a5ad73cbe3e2320f9628f8fb553a",
+    "beforeHash": "b80c2e904a5a6ef7e384fb10229a35421eba684e60928958aa420e55d4c695f5",
+    "afterHash": "9746fb531ca8c4b5424655cac4e83009f7b039369aa8959bb787223322fe780d",
+    "beforeLength": 174896,
+    "afterLength": 192237,
+    "rules": [
+      {
+        "offset": 12978,
+        "before": "",
+        "after": "    if(path==='/api/routine-fqc/page'&&!query)return 'routine-fqc:page';\n"
+      },
+      {
+        "offset": 31107,
+        "before": "  window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections,allowUnknownDeparture=false,durableBegin=false,equipmentLocalSave=false,processLocalSave=false}) => {\n",
+        "after": "  window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections,allowUnknownDeparture=false,durableBegin=false,equipmentLocalSave=false,processLocalSave=false,fqcComparedSave=false,iqcComparedSave=false}) => {\n"
+      },
+      {
+        "offset": 33364,
+        "before": "",
+        "after": "    if(fqcComparedSave!==false&&(fqcComparedSave!==true||!durableBegin||!guardAccessResults||boundedScope!=='fqc'||endpoint!=='/api/fqc/workflow?caseMetadata=1'))throw Error('FQC_COMPARISON_SCOPE_REQUIRED');\n    if(iqcComparedSave!==false&&(iqcComparedSave!==true||!durableBegin||!guardAccessResults||boundedScope!=='iqc'||endpoint!=='/api/iqc/workflow?caseMetadata=1'))throw Error('IQC_COMPARISON_SCOPE_REQUIRED');\n"
+      },
+      {
+        "offset": 37496,
+        "before": "    const transportKey=actorId+':'+endpoint+(durableBegin?':begin-v1':'')+(equipmentLocalSave?':equipment-local-save-v1':'')+(externalCanvas?':external-canvas:'+crypto.randomUUID():externalBounded?':external-bounded':abCreate?':ab-create':''),sessionScope=departureScope(endpoint);\n",
+        "after": "    const transportKey=actorId+':'+endpoint+(fqcComparedSave?':fqc-compared-save-v1':iqcComparedSave?':iqc-compared-save-v1':'')+(durableBegin?':begin-v1':'')+(equipmentLocalSave?':equipment-local-save-v1':'')+(externalCanvas?':external-canvas:'+crypto.randomUUID():externalBounded?':external-bounded':abCreate?':ab-create':''),sessionScope=departureScope(endpoint);\n"
+      },
+      {
+        "offset": 38651,
+        "before": "",
+        "after": "    const approvedAccessListeners=new Set();\n    const approvedHistoryRoute=['/api/fqc/workflow','/api/iqc/workflow','/api/routine-fqc/page'].includes(beginPath);\n"
+      },
+      {
+        "offset": 41432,
+        "before": "",
+        "after": "      if(approvedHistoryRoute)for(const listener of approvedAccessListeners)try{listener();}catch{/* Presentation cannot change request or receipt authority. */}\n"
+      },
+      {
+        "offset": 49862,
+        "before": "    async function beginV1(identity,attempt){\n",
+        "after": "    async function beginV1(identity,attempt,comparison){\n"
+      },
+      {
+        "offset": 50755,
+        "before": "",
+        "after": "      // A compared quality read may retire only its own unsent reservation, once.\n      const reservation={task:null,released:false,retired:false,phase:'authority-read'};\n      const release=()=>{if(reservation.released)return;reservation.released=true;if(beginPending===reservation.task)beginPending=null;queued--;feedback();};\n      let retireRead;const retiredRead=new Promise(resolve=>{retireRead=resolve;});\n      const retire=()=>{\n        if(reservation.retired)return true;\n        if(!comparison||comparison.dispatched||reservation.phase!=='authority-read'||reservation.released||beginPending!==reservation.task||queued!==1||beginRecord||beginRaw||beginInvalid||unknown||recoveryInvalid||retryPending||beginRead)return false;\n        try{if(sessionStorage.getItem(beginKey)!==null||sessionStorage.getItem(key)!==null)return false;}catch{return false;}\n        reservation.retired=true;release();retireRead(null);return true;\n      };\n      if(comparison)comparison.retireBegin=retire;\n"
+      },
+      {
+        "offset": 51779,
+        "before": "        const fresh=await request(endpoint,undefined,{requireAcceptedAccess:true});assertOwner();if(window.ProcessSync?.requiresReload||clientPagehideGeneration!==transportPagehideGeneration)throw Error('BEGIN_OWNER_CHANGED');\n",
+        "after": "        if(comparison)(iqcComparedSave?iqcCurrent:fqcCurrent)(comparison,true);const comparisonObservation=(iqcComparedSave?iqcObservation:fqcObservation)+1;\n        const read=request(endpoint,undefined,{requireAcceptedAccess:true,...(comparison?{isCurrent:()=>!reservation.retired&&comparison.current()===true}:{})});\n        const fresh=await(comparison?Promise.race([read,retiredRead]):read);if(reservation.retired)throw Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED');reservation.phase='reserving';assertOwner();\n        if(comparison){if(comparisonObservation!==(iqcComparedSave?iqcObservation:fqcObservation)||comparison.current()!==true||JSON.stringify(fresh.control)!==JSON.stringify(comparison.result.control)||fresh.revision!==comparison.result.revision||JSON.stringify(fresh.permissions)!==JSON.stringify(comparison.result.permissions)||access?.view!==true||access?.edit!==true)throw Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED');comparison.observation=(iqcComparedSave?iqcObservation:fqcObservation);comparison.accessEpoch=accessEpoch;comparison.accessFence=accessFence;comparison.accessObserved=accessObserved;(iqcComparedSave?iqcCurrent:fqcCurrent)(comparison,true);}\n        if(window.ProcessSync?.requiresReload||clientPagehideGeneration!==transportPagehideGeneration)throw Error('BEGIN_OWNER_CHANGED');\n"
+      },
+      {
+        "offset": 54290,
+        "before": "        catch(error){const proof=beginResponses.get(error);if(proof?.record===record&&proof.raw===beginRaw&&beginUUID(error.requestId)&&((error.status===422&&error.message==='INVALID_BEGIN_IDENTITY')||(error.status===409&&error.message==='BEGIN_BASIS_CHANGED'))){clearBegin(record);}if(beginRecord===record)reportAccessEvent({action:'begin-v1',operationId:record.operationId});throw error;}\n      })();beginPending=task;try{return await task;}finally{if(beginPending===task)beginPending=null;queued--;feedback();}\n",
+        "after": "        catch(error){if(comparison&&!comparison.dispatched&&externalUnsent.has(error)&&beginRecord===record)clearBegin(record);const proof=beginResponses.get(error);if(proof?.record===record&&proof.raw===beginRaw&&beginUUID(error.requestId)&&((error.status===422&&error.message==='INVALID_BEGIN_IDENTITY')||(error.status===409&&error.message==='BEGIN_BASIS_CHANGED'))){clearBegin(record);}if(beginRecord===record)reportAccessEvent({action:'begin-v1',operationId:record.operationId});throw error;}\n      })();reservation.task=task;beginPending=task;try{return await task;}finally{release();if(comparison?.retireBegin===retire)delete comparison.retireBegin;}\n"
+      },
+      {
+        "offset": 79375,
+        "before": "      const iqcLocalSave=boundedScope==='iqc'&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.patches);\n",
+        "after": "      const iqcLocalSave=boundedScope==='iqc'&&action==='save'&&['save-local-v1','save-local-revive-v1'].includes(command.moduleAction)&&Array.isArray(command.patches);\n"
+      },
+      {
+        "offset": 87309,
+        "before": "",
+        "after": "          if(moduleAction==='save-local-revive-v1'&&error.status===422&&['INVALID_IQC_LOCAL_REVIVAL','EQUIPMENT_UNAVAILABLE'].includes(code))return true;\n"
+      },
+      {
+        "offset": 92165,
+        "before": "",
+        "after": "      if(boundedScope==='iqc'&&action==='save'&&command.moduleAction==='save-local-revive-v1'&&Array.isArray(command.input?.reviveRows)&&error.status===409&&code==='IQC_REVIVE_CHANGED_RECONFIRM')return true;\n"
+      },
+      {
+        "offset": 92536,
+        "before": "",
+        "after": "      if(boundedScope==='fqc'&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.input?.reviveRows)&&error.status===409&&code==='FQC_REVIVE_CHANGED_RECONFIRM')return true;\n"
+      },
+      {
+        "offset": 97513,
+        "before": "",
+        "after": "    // FQC's explicit Save owns a one-use comparison, not a reusable permission.\n    // The WeakMap token is issued only by a fresh accepted state GET. Any other\n    // request retires it, including a denial followed by a later grant.\n    let fqcObservation=0;\n    const fqcComparisons=new WeakMap(),fqcCommands=new Map(),fqcBegins=new Map();\n    const fqcJSON=value=>JSON.stringify(value);\n    const fqcFreeze=value=>{if(value&&typeof value==='object'){Object.values(value).forEach(fqcFreeze);Object.freeze(value);}return value;};\n    function fqcEnabled(){if(!fqcComparedSave)throw Error('FQC_COMPARISON_SCOPE_REQUIRED');}\n    function fqcCurrent(entry,allowConsumed=false){\n      fqcEnabled();\n      const assertPin=()=>{assertOwner();if(!entry||entry.reentered||entry.consumed&&!allowConsumed||entry.observation!==fqcObservation||entry.accessEpoch!==accessEpoch||entry.accessFence!==accessFence||entry.accessObserved!==accessObserved)throw Error('FQC_SAVE_COMPARISON_RETIRED');if(access?.view!==true||access?.edit!==true)throw Error('FORBIDDEN');};\n      assertPin();if(entry.checking){entry.reentered=true;throw Error('FQC_SAVE_COMPARISON_RETIRED');}\n      let current;entry.checking=true;try{current=entry.current()===true;}finally{entry.checking=false;}\n      // A caller predicate may synchronously change identity or start another\n      // read. Recheck every private lease field after that callback returns.\n      assertPin();if(!current)throw Error('FQC_SAVE_COMPARISON_RETIRED');return true;\n    }\n    function fqcEntry(token){const entry=fqcComparisons.get(token);fqcCurrent(entry);return entry;}\n    function fqcAdmission(command){\n      if(!fqcComparedSave||command?.action!=='save'||command.moduleAction!=='save-local-v1')return null;\n      const entry=fqcCommands.get(command.operationId);\n      if(!entry||entry.raw!==fqcJSON(command))throw Error('FQC_SAVE_COMPARISON_REQUIRED');\n      fqcCurrent(entry,true);return entry;\n    }\n    function fqcBeforeRequest(body){\n      if(!fqcComparedSave)return;\n      const entry=body?.command?fqcAdmission(body.command):body?.action==='begin-v1'?fqcBegins.get(body.begin?.operationId):null;\n      if(entry)fqcCurrent(entry,true);\n      fqcObservation++;\n      if(entry)entry.observation=fqcObservation;\n    }\n    function fqcBeforeFetch(body){\n      const entry=body?.command?fqcAdmission(body.command):body?.action==='begin-v1'?fqcBegins.get(body.begin?.operationId):null;\n      if(entry){fqcCurrent(entry,true);entry.dispatched=true;}\n    }\n    async function fqcCompare({isCurrent}={}){\n      fqcEnabled();if(typeof isCurrent!=='function'||isCurrent()!==true)throw Error('FQC_SAVE_COMPARISON_RETIRED');\n      assertMutationAdmission();if(unknown||queued)throw Error('OPERATION_IN_PROGRESS');\n      fqcCommands.clear();\n      const observation=fqcObservation+1,result=await request(endpoint,undefined,{isCurrent,requireAcceptedAccess:true});\n      if(observation!==fqcObservation||queued)throw Error('FQC_SAVE_COMPARISON_RETIRED');\n      if(result.permissions?.view===false||result.permissions?.edit===false||access?.view===false||access?.edit===false)throw Error('FORBIDDEN');\n      if(isCurrent()!==true||result.permissions?.view!==true||result.permissions?.edit!==true||access?.view!==true||access?.edit!==true||!Number.isSafeInteger(result.revision)||!Array.isArray(result.control?.versions)||!['view','edit','save','submit','withdraw','approve','return','history','delete'].every(key=>typeof result.permissions[key]==='boolean')||result.unchanged)throw Error('FQC_SAVE_AUTHORITY_REQUIRED');\n      const flow=result.control.workflow;\n      if(flow&&(flow.scope!=='fqc'||typeof flow.generation!=='string'||!Number.isSafeInteger(flow.revision)||flow.revision<0||flow.pendingId!==null))throw Error(flow?.pendingId?'PENDING_LOCKED':'FQC_SAVE_AUTHORITY_REQUIRED');\n      const token=fqcFreeze({result:JSON.parse(fqcJSON(result))});\n      const entry={result:token.result,current:isCurrent,observation:fqcObservation,accessEpoch,accessFence,accessObserved,consumed:false,dispatched:false};\n      fqcComparisons.set(token,entry);fqcCurrent(entry);return token;\n    }\n    function fqcDispatched(token){fqcEnabled();const entry=fqcComparisons.get(token);if(!entry)throw Error('FQC_SAVE_COMPARISON_REQUIRED');return entry.dispatched===true;}\n    function fqcRetireBegin(token){fqcEnabled();const entry=fqcComparisons.get(token);if(!entry)throw Error('FQC_SAVE_COMPARISON_REQUIRED');return entry.retireBegin?.()===true;}\n    function fqcPrepare(token,details,{isCurrent}={}){\n      const entry=fqcEntry(token),flow=entry.result.control.workflow;\n      if(!flow||typeof isCurrent!=='function'||isCurrent()!==true||details?.moduleAction!=='save-local-v1'||details.generation!==undefined||details.expectedRevision!==undefined)throw Error('FQC_SAVE_COMPARISON_REQUIRED');\n      const original=entry.current;entry.current=()=>original()===true&&isCurrent()===true;\n      const command=client.prepare(flow.generation,'save',{...JSON.parse(fqcJSON(details)),expectedRevision:flow.revision});\n      entry.consumed=true;entry.raw=fqcJSON(command);fqcCommands.set(command.operationId,entry);return command;\n    }\n    async function fqcBegin(token,{isCurrent}={}){\n      const entry=fqcEntry(token);if(entry.result.control.workflow||typeof isCurrent!=='function'||isCurrent()!==true)throw Error('FQC_BEGIN_COMPARISON_REQUIRED');\n      const original=entry.current;entry.current=()=>original()===true&&isCurrent()===true;entry.consumed=true;\n      const identity={operationId:crypto.randomUUID(),basis:captureBeginBasis(entry.result)};\n      fqcBegins.set(identity.operationId,entry);\n      try{return await beginV1(identity,null,entry);}finally{fqcBegins.delete(identity.operationId);}\n    }\n    // IQC's explicit Save owns a one-use comparison, not a reusable permission.\n    // The WeakMap token is issued only by a fresh accepted state GET. Any other\n    // request retires it, including a denial followed by a later grant.\n    let iqcObservation=0;\n    const iqcComparisons=new WeakMap(),iqcCommands=new Map(),iqcBegins=new Map();\n    const iqcJSON=value=>JSON.stringify(value);\n    const iqcFreeze=value=>{if(value&&typeof value==='object'){Object.values(value).forEach(iqcFreeze);Object.freeze(value);}return value;};\n    function iqcEnabled(){if(!iqcComparedSave)throw Error('IQC_COMPARISON_SCOPE_REQUIRED');}\n    function iqcCurrent(entry,allowConsumed=false){\n      iqcEnabled();\n      const assertPin=()=>{assertOwner();if(!entry||entry.reentered||entry.consumed&&!allowConsumed||entry.observation!==iqcObservation||entry.accessEpoch!==accessEpoch||entry.accessFence!==accessFence||entry.accessObserved!==accessObserved)throw Error('IQC_SAVE_COMPARISON_RETIRED');if(access?.view!==true||access?.edit!==true)throw Error('FORBIDDEN');};\n      assertPin();if(entry.checking){entry.reentered=true;throw Error('IQC_SAVE_COMPARISON_RETIRED');}\n      let current;entry.checking=true;try{current=entry.current()===true;}finally{entry.checking=false;}\n      // A caller predicate may synchronously change identity or start another\n      // read. Recheck every private lease field after that callback returns.\n      assertPin();if(!current)throw Error('IQC_SAVE_COMPARISON_RETIRED');return true;\n    }\n    function iqcEntry(token){const entry=iqcComparisons.get(token);iqcCurrent(entry);return entry;}\n    function iqcAdmission(command){\n      if(!iqcComparedSave||command?.action!=='save'||!['save-local-v1','save-local-revive-v1'].includes(command.moduleAction))return null;\n      const entry=iqcCommands.get(command.operationId);\n      if(!entry||entry.raw!==iqcJSON(command))throw Error('IQC_SAVE_COMPARISON_REQUIRED');\n      iqcCurrent(entry,true);return entry;\n    }\n    function iqcBeforeRequest(body){\n      if(!iqcComparedSave)return;\n      const entry=body?.command?iqcAdmission(body.command):body?.action==='begin-v1'?iqcBegins.get(body.begin?.operationId):null;\n      if(entry)iqcCurrent(entry,true);\n      iqcObservation++;\n      if(entry)entry.observation=iqcObservation;\n    }\n    function iqcBeforeFetch(body){\n      const entry=body?.command?iqcAdmission(body.command):body?.action==='begin-v1'?iqcBegins.get(body.begin?.operationId):null;\n      if(entry){iqcCurrent(entry,true);entry.dispatched=true;}\n    }\n    async function iqcCompare({isCurrent}={}){\n      iqcEnabled();if(typeof isCurrent!=='function'||isCurrent()!==true)throw Error('IQC_SAVE_COMPARISON_RETIRED');\n      assertMutationAdmission();if(unknown||queued)throw Error('OPERATION_IN_PROGRESS');\n      iqcCommands.clear();\n      const observation=iqcObservation+1,result=await request(endpoint,undefined,{isCurrent,requireAcceptedAccess:true});\n      if(observation!==iqcObservation||queued)throw Error('IQC_SAVE_COMPARISON_RETIRED');\n      if(result.permissions?.view===false||result.permissions?.edit===false||access?.view===false||access?.edit===false)throw Error('FORBIDDEN');\n      if(isCurrent()!==true||result.permissions?.view!==true||result.permissions?.edit!==true||access?.view!==true||access?.edit!==true||!Number.isSafeInteger(result.revision)||!Array.isArray(result.control?.versions)||!['view','edit','save','submit','withdraw','approve','return','history','delete'].every(key=>typeof result.permissions[key]==='boolean')||result.unchanged)throw Error('IQC_SAVE_AUTHORITY_REQUIRED');\n      const flow=result.control.workflow;\n      if(flow&&(flow.scope!=='iqc'||typeof flow.generation!=='string'||!Number.isSafeInteger(flow.revision)||flow.revision<0||flow.pendingId!==null))throw Error(flow?.pendingId?'PENDING_LOCKED':'IQC_SAVE_AUTHORITY_REQUIRED');\n      const token=iqcFreeze({result:JSON.parse(iqcJSON(result))});\n      const entry={result:token.result,current:isCurrent,observation:iqcObservation,accessEpoch,accessFence,accessObserved,consumed:false,dispatched:false};\n      iqcComparisons.set(token,entry);iqcCurrent(entry);return token;\n    }\n    function iqcDispatched(token){iqcEnabled();const entry=iqcComparisons.get(token);if(!entry)throw Error('IQC_SAVE_COMPARISON_REQUIRED');return entry.dispatched===true;}\n    function iqcRetireBegin(token){iqcEnabled();const entry=iqcComparisons.get(token);if(!entry)throw Error('IQC_SAVE_COMPARISON_REQUIRED');return entry.retireBegin?.()===true;}\n    function iqcPrepare(token,details,{isCurrent}={}){\n      const entry=iqcEntry(token),flow=entry.result.control.workflow;\n      if(!flow||typeof isCurrent!=='function'||isCurrent()!==true||!['save-local-v1','save-local-revive-v1'].includes(details?.moduleAction)||details.generation!==undefined||details.expectedRevision!==undefined)throw Error('IQC_SAVE_COMPARISON_REQUIRED');\n      if(details.moduleAction==='save-local-revive-v1'&&entry.result.permissions?.create!==true)throw Error('IQC_REVIVE_CREATE_REQUIRED');\n      const original=entry.current;entry.current=()=>original()===true&&isCurrent()===true;\n      const command=client.prepare(flow.generation,'save',{...JSON.parse(iqcJSON(details)),expectedRevision:flow.revision});\n      entry.consumed=true;entry.raw=iqcJSON(command);iqcCommands.set(command.operationId,entry);return command;\n    }\n    async function iqcBegin(token,{isCurrent}={}){\n      const entry=iqcEntry(token);if(entry.result.control.workflow||typeof isCurrent!=='function'||isCurrent()!==true)throw Error('IQC_BEGIN_COMPARISON_REQUIRED');\n      const original=entry.current;entry.current=()=>original()===true&&isCurrent()===true;entry.consumed=true;\n      const identity={operationId:crypto.randomUUID(),basis:captureBeginBasis(entry.result)};\n      iqcBegins.set(identity.operationId,entry);\n      try{return await beginV1(identity,null,entry);}finally{iqcBegins.delete(identity.operationId);}\n    }\n"
+      },
+      {
+        "offset": 110682,
+        "before": "",
+        "after": "      try{fqcBeforeRequest(body);iqcBeforeRequest(body);}catch(cause){if(!body)throw cause;const error=Object.assign(Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED'),{notSent:true,cause});externalUnsent.add(error);throw error;}\n"
+      },
+      {
+        "offset": 114366,
+        "before": "        let response;try{response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(fqcMutation&&body?.command?.action==='apply'?'&projection=fqc-apply-ack-v1':responseProjection==='iqc-edit-v1'?'&projection=iqc-edit-v1':''),requestOptions);}\n",
+        "after": "        if((fqcComparedSave||iqcComparedSave)&&body)try{fqcBeforeFetch(body);iqcBeforeFetch(body);}catch(cause){const error=Object.assign(Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED'),{notSent:true,cause});externalUnsent.add(error);throw error;}\n        let response;try{response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(fqcMutation&&body?.command?.action==='apply'?'&projection=fqc-apply-ack-v1':responseProjection==='iqc-edit-v1'&&!new URLSearchParams(url.split('?')[1]||'').has('approvedOnly')?'&projection=iqc-edit-v1':''),requestOptions);}\n"
+      },
+      {
+        "offset": 129362,
+        "before": "",
+        "after": "      fqcAdmission(command);iqcAdmission(command);\n"
+      },
+      {
+        "offset": 136335,
+        "before": "",
+        "after": "      compareForSave:iqcComparedSave?iqcCompare:fqcCompare,prepareComparedSave:iqcComparedSave?iqcPrepare:fqcPrepare,beginCompared:iqcComparedSave?iqcBegin:fqcBegin,comparisonDispatched:iqcComparedSave?iqcDispatched:fqcDispatched,retireComparedBegin:iqcComparedSave?iqcRetireBegin:fqcRetireBegin,\n"
+      },
+      {
+        "offset": 140717,
+        "before": "",
+        "after": "      ...(approvedHistoryRoute?{approvedHistory:(options,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true});},approvedVersion:(id,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true});},watchApprovedAccess(listener){approvedAccessListeners.add(listener);return ()=>approvedAccessListeners.delete(listener);}}:{}),\n"
+      },
+      {
+        "offset": 142165,
+        "before": "        if(!durableBegin||beginPath!=='/api/fqc/workflow'||!identity)throw Error('INVALID_BEGIN_IDENTITY');\n",
+        "after": "        if(!durableBegin||!(beginPath==='/api/fqc/workflow'||iqcMutation&&beginPath==='/api/iqc/workflow')||!identity)throw Error('INVALID_BEGIN_IDENTITY');\n"
+      },
+      {
+        "offset": 148126,
+        "before": "        if(!externalBounded||!(boundedScope==='fqc'||abModule)||unknown||boundedRecord||queued||beginPending||retryPending||preparedFlights.size||recoveryInvalid||command?.action!=='save'||command.moduleAction!=='save-local-v1'||!(abModule?Array.isArray(command.input?.scopes):Array.isArray(command.patches)&&Array.isArray(command.guards)&&Array.isArray(command.input?.matrixCells))||!failure||JSON.stringify(failure.command)!==JSON.stringify(command)||!boundedRejected.has(error)||!proof||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||proof.code!==error.message||proof.status!==error.status)return false;\n",
+        "after": "        if(!externalBounded||!(['fqc','iqc'].includes(boundedScope)||abModule)||unknown||boundedRecord||queued||beginPending||retryPending||preparedFlights.size||recoveryInvalid||command?.action!=='save'||command.moduleAction!=='save-local-v1'||!(abModule?Array.isArray(command.input?.scopes):Array.isArray(command.patches)&&Array.isArray(command.guards)&&(boundedScope==='iqc'||Array.isArray(command.input?.matrixCells)))||!failure||JSON.stringify(failure.command)!==JSON.stringify(command)||!boundedRejected.has(error)||!proof||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||proof.code!==error.message||proof.status!==error.status)return false;\n"
+      },
+      {
+        "offset": 154122,
+        "before": "",
+        "after": "        fqcAdmission(command);iqcAdmission(command);\n"
+      },
+      {
+        "offset": 156086,
+        "before": "        const result=tail.then(async()=>{assertMutationAdmission();if(action==='save'&&syncFailures.size)throw syncFailures.values().next().value.error;\n",
+        "after": "        const result=tail.then(async()=>{fqcAdmission(command);iqcAdmission(command);assertMutationAdmission();if(action==='save'&&syncFailures.size)throw syncFailures.values().next().value.error;\n"
+      },
+      {
+        "offset": 156806,
+        "before": "          return post(command,retry,owner);}).finally(()=>{queued--;if(externalBounded)boundedProofs.delete(command.operationId);});\n",
+        "after": "          return post(command,retry,owner);}).finally(()=>{queued--;if(externalBounded)boundedProofs.delete(command.operationId);if(fqcComparedSave)fqcCommands.delete(command.operationId);});\n"
+      }
+    ]
+  },
+  {
+    "file": "lib/fqc-workflow.ts",
+    "base": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+    "beforeBlob": "70051a2cfd8616d51e3fa24e82629a4210ce960e",
+    "beforeHash": "846bbeb66ef41f77033f227328634d010e5ca56d9801fb97c9f009e869757133",
+    "afterHash": "e19be8650142e6745246c9a821b00d72f9342488b3e86b56ff5c193a0d613451",
+    "beforeLength": 16595,
+    "afterLength": 21043,
+    "rules": [
+      {
+        "offset": 1944,
+        "before": "",
+        "after": "   requiresCreate:(_control,command)=>command.action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.input?.reviveRows)&&command.input.reviveRows.length>0,\n   requiresDelete:(_control,command)=>command.action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.input?.retainDeletedRows)&&command.input.retainDeletedRows.length>0,\n"
+      },
+      {
+        "offset": 10013,
+        "before": "  apply:function applyFqc(control:FqcLibrary,command:ModuleDraftCommand,context:DraftContext<FqcSnapshot>):ReturnType<typeof applyDraftCommand<FqcSnapshot>>{const flow=control.workflow!;if(flow.receipts[command.operationId])return applyDraftCommand(flow,command,context);\n",
+        "after": "  apply:function applyFqc(control:FqcLibrary,command:ModuleDraftCommand,context:DraftContext<FqcSnapshot>,retainedTargets?:ReadonlySet<string>):ReturnType<typeof applyDraftCommand<FqcSnapshot>>{const flow=control.workflow!;if(flow.receipts[command.operationId])return applyDraftCommand(flow,command,context);\n"
+      },
+      {
+        "offset": 10434,
+        "before": "    if(!Array.isArray(command.patches)||!Array.isArray(command.guards)||!command.input||Object.keys(command.input).some(k=>!['matrixCells','expectedAB'].includes(k))||!Array.isArray(command.input.matrixCells))throw new DraftConflict('INVALID_FQC_LOCAL_SAVE',422);\n",
+        "after": "    if(!Array.isArray(command.patches)||!Array.isArray(command.guards)||!command.input||Object.keys(command.input).some(k=>!['matrixCells','expectedAB','reviveRows','retainDeletedRows','draftVersionId'].includes(k))||!Array.isArray(command.input.matrixCells))throw new DraftConflict('INVALID_FQC_LOCAL_SAVE',422);\n"
+      },
+      {
+        "offset": 11703,
+        "before": "    let next=applyFqc(control,{...command,guards,action:'apply',moduleAction:undefined,input:command.input.expectedAB?{expectedAB:command.input.expectedAB}:undefined},internalContext).state;\n",
+        "after": "    // Reactivate only exact current-draft tombstones. The route's existing\n    // requiresCreate hook checks fqc.create; edit/view and all normal guards\n    // remain mandatory. No historical body or client replacement row is used.\n    // Only this invocation may edit an exact current tombstone while keeping it\n    // deleted. Never activate/copy a historical row or publish an intermediate state.\n    const retained=new Set<string>();\n    const parentValid=(row:Row,working:FqcSnapshot)=>{const parents=working.errors.filter(parent=>parent.id===row.errorId);return parents.length===1&&parents[0].category===row.category&&parents[0].line===row.line;};\n    if(Array.isArray(command.input.retainDeletedRows)){\n     if(command.expectedRevision!==flow.revision||command.generation!==flow.generation||flow.pendingId||control.versions.filter(v=>v.status==='draft').length!==1||control.versions.filter(v=>v.id===command.input!.draftVersionId&&v.status==='draft').length!==1)throw new DraftConflict('DRAFT_REVISION_CHANGED_RECONFIRM');\n     for(const value of command.input.retainDeletedRows){const keep=value as {collection:'errors'|'items';id:string;tombstone:Row},rows=flow.working[keep.collection].filter(row=>row.id===keep.id),row=rows[0];\n      if(rows.length!==1||row.isDeleted!==true||keep.collection==='items'&&!parentValid(row,flow.working))throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS');\n      if(stableDraftJSON(row)!==stableDraftJSON(keep.tombstone))throw new DraftConflict('DEPENDENCY_CHANGED_RECONFIRM',409,{path:[keep.collection,{id:keep.id}]});\n      retained.add(JSON.stringify([keep.collection,keep.id]));\n     }\n    }\n    let source=control;\n    if(Array.isArray(command.input.reviveRows)){\n     if(command.expectedRevision!==flow.revision||command.generation!==flow.generation||flow.pendingId||control.versions.filter(v=>v.id===command.input!.draftVersionId&&v.status==='draft').length!==1)throw new DraftConflict('DRAFT_REVISION_CHANGED_RECONFIRM');\n     const working=cloneDraft(flow.working);\n     for(const value of command.input.reviveRows){\n      const revive=value as {collection:'errors'|'items';id:string;tombstone:Row},rows=working[revive.collection].filter(row=>row.id===revive.id),row=rows[0];\n      if(rows.length!==1||row.isDeleted!==true||stableDraftJSON(row)!==stableDraftJSON(revive.tombstone))throw new DraftConflict('FQC_REVIVE_CHANGED_RECONFIRM');\n      row.isDeleted=false;\n     }\n     source={...control,workflow:{...flow,working}};\n    }\n    let next=applyFqc(source,{...command,guards,action:'apply',moduleAction:undefined,input:command.input.expectedAB?{expectedAB:command.input.expectedAB}:undefined},internalContext,retained).state;\n"
+      },
+      {
+        "offset": 15117,
+        "before": "",
+        "after": "    if(Array.isArray(command.input.reviveRows)){\n     for(const value of command.input.reviveRows){const revive=value as {collection:'errors'|'items';id:string;tombstone:Row},row=result.state.working[revive.collection].find(row=>row.id===revive.id);if(!row||row.isDeleted!==false||row.category!==revive.tombstone.category||row.line!==revive.tombstone.line||(revive.collection==='errors'?row.code!==revive.tombstone.code:row.checkNo!==revive.tombstone.checkNo))throw new DraftConflict('FQC_REVIVE_CHANGED_RECONFIRM');}\n     for(const value of command.input.matrixCells){const cell=value as {itemId:string;productCode:string;value:boolean},row=result.state.working.items.find(row=>row.id===cell.itemId&&!row.isDeleted);if(!row||row.productCodes.includes(cell.productCode)!==cell.value)throw new DraftConflict('FQC_REVIVE_CHANGED_RECONFIRM');}\n    }\n    if(Array.isArray(command.input.retainDeletedRows))for(const value of command.input.retainDeletedRows){const keep=value as {collection:'errors'|'items';id:string;tombstone:Row},row=result.state.working[keep.collection].find(row=>row.id===keep.id);\n     if(!row||row.isDeleted!==true||row.category!==keep.tombstone.category||row.line!==keep.tombstone.line||(keep.collection==='errors'?row.code!==keep.tombstone.code:row.checkNo!==keep.tombstone.checkNo)||keep.collection==='items'&&!parentValid(row,result.state.working))throw new DraftConflict('INVALID_FQC_LOCAL_SAVE',422);\n    }\n"
+      },
+      {
+        "offset": 20149,
+        "before": "     if(!flow.working[collection].some(r=>r.id===entity.id&&!r.isDeleted))throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS');\r\n",
+        "after": "     if(!flow.working[collection].some(r=>r.id===entity.id&&(!r.isDeleted||retainedTargets?.has(JSON.stringify([collection,entity.id])))))throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS');\n"
+      }
+    ]
+  },
+  {
+    "file": "lib/versioned-shared-workflow.ts",
+    "base": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+    "beforeBlob": "4962a236003e70ebedad44b9031f8cbd29d11482",
+    "beforeHash": "b220a014deff38f2a0e47ba3cb01ec36084ff34f49cb46f1bf51ce6ccfafbb7e",
+    "afterHash": "d50a300ed6802eb02eb4c86bfd935f1ecd806b455af4d470ba3fa66b53b17327",
+    "beforeLength": 39510,
+    "afterLength": 43544,
+    "rules": [
+      {
+        "offset": 0,
+        "before": "",
+        "after": "import {approvedHistoryQuery} from './approved-history-query';\nimport {approvedVersion,approvedVersions,approvedVersionEvidence} from './approved-history';\n"
+      },
+      {
+        "offset": 5390,
+        "before": "",
+        "after": "  // Explicit read-only union for existing legacy scopes; no stored aliases.\n  approvedHistory?:{\n    metadata:()=>{id:string;number:number;status:string;creatorName:string;createdAt:string;approvalEvidence:ReturnType<typeof approvedVersionEvidence>;sourceScope?:string;sourceVersionId?:string}[];\n    version:(id:string)=>(NumericVersion<T>&{approvalEvidence:NonNullable<ReturnType<typeof approvedVersionEvidence>>;sourceScope?:string;sourceVersionId?:string})|null|Promise<(NumericVersion<T>&{approvalEvidence:NonNullable<ReturnType<typeof approvedVersionEvidence>>;sourceScope?:string;sourceVersionId?:string})|null>;\n  };\n"
+      },
+      {
+        "offset": 17562,
+        "before": "",
+        "after": "      const approvedOnlyRead=approvedHistoryQuery(request,adapter.key,adapter.scope);\n"
+      },
+      {
+        "offset": 20584,
+        "before": "",
+        "after": "      // Explicit approved-only reads share the same immutable-body and authority fences.\n      // Refresh authorization after all selected reads/hydration, including\n      // metadata aggregate I/O. No stale permission snapshot authorizes output.\n      const approvedReadCurrent=async()=>{\n        const fresh=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}),freshActor=await identity(request,fresh),freshPermissions=await currentPermissions(request,fresh);\n        if(!freshActor||freshActor.id!==actor.id||freshActor.sessionType!==actor.sessionType||!freshPermissions.view||!freshPermissions.history)return reply({error:'FORBIDDEN'},403);\n        if(fresh.revision!==state.revision||!await stateRevisionIsCurrent(fresh))return reply({error:'APPROVED_HISTORY_SUPERSEDED'},409);\n        // Session revocation is separate from the shared-state revision fence.\n        const finalActor=await identity(request,fresh);\n        return !finalActor||finalActor.id!==actor.id||finalActor.sessionType!==actor.sessionType?reply({error:'FORBIDDEN'},403):null;\n      };\n      if(approvedOnlyRead&&query.has('uiHistory')){\n        if(!permissions.history)return reply({error:'FORBIDDEN'},403);\n        const rows=adapter.approvedHistory?.metadata()||approvedVersions(control,true).filter(v=>approvedVersionEvidence(control,v,true)?.kind!=='formal-baseline').slice().reverse().map(v=>({id:v.id,number:v.number,status:v.id===control.activeVersionId?'approved':'superseded',creatorName:v.creatorName,createdAt:v.createdAt,approvalEvidence:approvedVersionEvidence(control,v,true)})),before=query.get('versionBefore'),start=before?rows.findIndex(v=>v.id===before)+1:0;\n        if(before&&!start)return reply({error:'HISTORY_CURSOR_INVALID'},409);\n        const body={approvedOnly:true,revision:state.revision,permissions,activeVersionId:control.activeVersionId,versions:{rows:rows.slice(start,start+20),next:rows.length>start+20?rows[start+19].id:null,total:rows.length}};\n        return await approvedReadCurrent()||reply(body);\n      }\n"
+      },
+      {
+        "offset": 23761,
+        "before": "",
+        "after": "      }\n      if(approvedOnlyRead&&query.has('versionId')){\n        if(!permissions.history)return reply({error:'FORBIDDEN'},403);\n        const version=adapter.approvedHistory?await adapter.approvedHistory.version(query.get('versionId')!):approvedVersion(control,query.get('versionId')!,true);\n        if(!version||version.approvalEvidence.kind==='formal-baseline')return reply({error:'VERSION_NOT_FOUND'},404);\n        const body={approvedOnly:true,version,revision:state.revision,permissions,activeVersionId:control.activeVersionId};\n        // One selected snapshot only. Compatibility history streams can start\n        // delivering before R2 hydration completes; this opt-in must not expose\n        // even a prefix until its final authorization check has passed.\n        const rendered=state.recordStorage?recordJSONResponse(body,env.STATE_ARCHIVE,responseHeaders):reply(body),json=await rendered.text();\n        return await approvedReadCurrent()||new Response(json,{headers:responseHeaders});\n"
+      },
+      {
+        "offset": 41907,
+        "before": "        if((begin||adapter.key==='bomMasterControl'&&adapter.scope==='bom'&&body.command?.action==='save'&&body.command.moduleAction==='save-local-v1'||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment')&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);\n",
+        "after": "        if((begin||(['fqc','iqc'].includes(adapter.scope)&&!!body.command)||adapter.key==='bomMasterControl'&&adapter.scope==='bom'&&body.command?.action==='save'&&body.command.moduleAction==='save-local-v1'||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment')&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);\n"
+      }
+    ]
+  },
+  {
+    "file": "public/process/routine-equipment.js",
+    "base": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+    "beforeBlob": "e2452eaa98e02c21824eed6d77fd9fcf4d75cd07",
+    "beforeHash": "6f57fc37463575cb1ee59790bad2869f44c7583a8005cbde1e805494f816597f",
+    "afterHash": "1327eb70d5f4f0c596c390bb19db4364513851c4f69d3ce92aaa4379f7ebde98",
+    "beforeLength": 283915,
+    "afterLength": 294327,
+    "rules": [
+      {
+        "offset": 182303,
+        "before": "",
+        "after": "  // IQC alone has explicit authority to save the entire target working draft.\n  // The source journal binds its exact intent/command; existing transport markers\n  // and receipts remain authoritative and are never inferred from current content.\n  let iqcTransferClient = null;\n  const iqcTransferEndpoint = '/api/iqc/workflow?caseMetadata=1';\n  const iqcTransferKey = actorId => 'routine-equipment-iqc-transfer-v1:' + actorId;\n  const iqcTransferUnknown = () => t('IQC 移轉／存取結果待確認；僅查詢原操作收據，不會重新送出。', 'Chưa xác nhận chuyển/lưu IQC; chỉ kiểm tra biên nhận gốc, không gửi lại.');\n  function hasIqcTransfer(){try{return sessionStorage.getItem(iqcTransferKey(identity()?.id))!==null;}catch{return true;}}\n  function targetIqcClient(){\n    if(!iqcTransferClient||!iqcTransferClient.isRuntimeCurrent()||!iqcTransferClient.isBeginRuntimeCurrent())\n      iqcTransferClient=window.createSharedDraftClient({endpoint:iqcTransferEndpoint,actorId:identity()?.id,durableBegin:true,externalDurableBounded:{scope:'IQC'},headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});\n    return iqcTransferClient;\n  }\n  function readIqcTransfer(){\n    let value;try{const raw=sessionStorage.getItem(iqcTransferKey(identity()?.id));if(raw===null)return null;value=JSON.parse(raw);}catch{throw Error(iqcTransferUnknown());}\n    if(value?.version!==1||value.actorId!==identity()?.id||value.endpoint!==iqcTransferEndpoint||!['begin','save'].includes(value.phase)||typeof value.intent!=='string'||!value.basis||value.phase==='save'&&(!value.command||value.command.action!=='save'||value.command.moduleAction!=='save-local-v1'||typeof value.command.operationId!=='string'||typeof value.command.generation!=='string'))throw Error(iqcTransferUnknown());\n    return value;\n  }\n  function writeIqcTransfer(record,previous=null){\n    const key=iqcTransferKey(record.actorId),raw=JSON.stringify(record);\n    if(sessionStorage.getItem(key)!==(previous===null?null:JSON.stringify(previous)))throw Error(iqcTransferUnknown());\n    sessionStorage.setItem(key,raw);if(sessionStorage.getItem(key)!==raw)throw Error(iqcTransferUnknown());return record;\n  }\n  function clearIqcTransfer(record){\n    const key=iqcTransferKey(record.actorId);if(sessionStorage.getItem(key)!==JSON.stringify(record))throw Error(iqcTransferUnknown());\n    sessionStorage.removeItem(key);if(sessionStorage.getItem(key)!==null)throw Error(iqcTransferUnknown());\n  }\n  function iqcTransferBasis(data){const c=data.control,open=c?.versions?.find(v=>['draft','pending','pending-test'].includes(v.status));return {generation:c?.workflow?.generation??null,activeVersionId:c?.activeVersionId??null,openVersionId:open?.id??null,openVersionStatus:open?.status??null,openVersionRevision:open?.revision??null};}\n  function assertIqcTransferRead(data){\n    const c=data?.control,f=c?.workflow;\n    if(data?.permissions?.view!==true||data.permissions.edit!==true||!Number.isSafeInteger(data.revision)||!Array.isArray(c?.versions)||f&&f.scope!=='iqc'||f?.pendingId||c.versions.some(v=>['pending','pending-test'].includes(v.status)))throw Error('IQC_TARGET_NOT_EDITABLE');\n    return f;\n  }\n  function finishIqcTransfer(client,record,result,fresh=null){\n    const r=result?.receipt;\n    const verified=client.isVerifiedReadback(result),f=fresh?.control?.workflow;\n    if(!verified&&(!fresh||fresh.permissions?.view!==true||f?.scope!=='iqc'||!Number.isSafeInteger(f.revision)||f.revision<r?.revision)||r?.operationId!==record.command.operationId||r.generation!==record.command.generation||typeof r.savedId!=='string'||!r.savedId)throw Error(iqcTransferUnknown());\n    // No local IQC form is owned here. A historical receipt confirms only the\n    // original Save; it never replays selection into the successor generation.\n    const superseded=client.isSupersededRecovery(result),historical=superseded||!!fresh&&f.generation!==r.generation;\n    if(superseded)client.acknowledgeSupersededRecovery(result);\n    clearIqcTransfer(record);\n    return {savedId:r.savedId,historical,results:JSON.parse(record.intent).ids.map(itemId=>({itemId,status:'applied'}))};\n  }\n  async function recoverIqcTransfer(dialog){\n    const owner=dialog.owner;dialog.moduleStatus.iqc='saving';render();\n    try{\n      const record=readIqcTransfer(),client=targetIqcClient();if(!record)throw Error(iqcTransferUnknown());\n      if(record.phase==='begin'){\n        const result=client.hasUnknownBegin()?await client.resolveUnknown():record.operationId?await client.receipt(record.operationId):null;\n        if(!result?.receipt||result.operationKind!=='begin-v1'||!transferOwnerCurrent(owner)||transferDialog!==dialog)throw Error(iqcTransferUnknown());\n        if(record.operationId&&record.operationId!==result.receipt.operationId)throw Error(iqcTransferUnknown());\n        clearIqcTransfer(record);dialog.moduleStatus.iqc='idle';await loadTransferPreview();dialog.moduleMessages.iqc=t('已核對原開始修改收據；尚未移轉或存取，請重新核對選取後明確確認。','Đã kiểm tra biên nhận bắt đầu gốc; chưa chuyển/lưu. Kiểm tra lựa chọn rồi xác nhận lại.');\n      }else{\n        const outstanding=client.hasUnknown(),result=await client.receipt(record.command.operationId,record.command.generation);\n        // The transport may have settled before the source page lost ownership.\n        // Original receipt plus a new authorized read can finish its source journal.\n        const fresh=!outstanding&&!client.isVerifiedReadback(result)?await client.read():null;\n        if(!transferOwnerCurrent(owner)||transferDialog!==dialog)throw Error(iqcTransferUnknown());\n        const done=finishIqcTransfer(client,record,result,fresh);dialog.moduleStatus.iqc='success';dialog.moduleMessages.iqc=t('原 IQC 移轉並存取已確認','Đã xác nhận chuyển và lưu IQC gốc')+' · '+done.savedId+(done.historical?' · '+t('目前已有後續草稿；本次未套用其他修改','Hiện có bản nháp mới; lần này không áp dụng thay đổi khác'):'');\n      }\n    }catch(error){dialog.moduleStatus.iqc='error';dialog.moduleMessages.iqc=iqcTransferUnknown()+' '+error.message;}\n    if(transferDialog===dialog&&transferOwnerCurrent(owner))render();\n  }\n  async function saveIqcTransfer(dialog,target,entry,rows,intent,owns){\n    const assertOwned=()=>{if(!owns())throw Error('IQC_TRANSFER_CONTEXT_CHANGED');};\n    // Preserve all old unidentified target Begin evidence without attribution.\n    if(sessionStorage.getItem('routine-equipment-target-begin:'+identity()?.id+':'+iqcTransferEndpoint)!==null)throw Error(iqcTransferUnknown());\n    const legacy=window.createSharedDraftClient({endpoint:iqcTransferEndpoint,actorId:dialog.owner.actorId,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});\n    if(legacy.hasUnknown())throw Error(iqcTransferUnknown());await legacy.flush();assertOwned();\n    const client=targetIqcClient();if(client.hasUnknown()||hasIqcTransfer())throw Error(iqcTransferUnknown());await client.flush();assertOwned();\n    let authority=await client.read();assertOwned();assertIqcTransferRead(authority);\n    const basis=iqcTransferBasis(authority);\n    if(basis.generation!==(entry.workflow?.generation??null)||basis.activeVersionId!==(entry.activeVersion?.id??null)||basis.openVersionId!==(entry.openVersion?.id??null))throw Error('IQC_TARGET_CHANGED_RECONFIRM');\n    let record=null;\n    if(!entry.workflow?.editable){\n      record=writeIqcTransfer({version:1,actorId:dialog.owner.actorId,endpoint:iqcTransferEndpoint,intent,basis,phase:'begin',operationId:crypto.randomUUID()});\n      let begun;\n      try{begun=await client.beginWithIdentity({operationId:record.operationId,basis});}catch(error){\n        // Private proof covers only this exact attempt before POST handoff.\n        // Receipt 404s and public Error flags never establish that it was unsent.\n        if(owns()&&(client.isBeginNotSent(error,{operationId:record.operationId,basis})||!client.hasUnknownBegin()&&['BEGIN_BASIS_CHANGED','INVALID_BEGIN_IDENTITY'].includes(error.message)))clearIqcTransfer(record);\n        throw error;\n      }\n      assertOwned();\n      if(begun.receipt?.operationId!==record.operationId||begun.operationKind!=='begin-v1'||JSON.stringify(begun.beginBasis)!==JSON.stringify(basis)||begun.receipt?.generation!==begun.control?.workflow?.generation)throw Error('IQC_BEGIN_GENERATION_CHANGED');\n      authority=begun;\n    }\n    const flow=assertIqcTransferRead(authority);if(!flow?.generation)throw Error('BEGIN_REQUIRED');\n    const patches=[],guards=[];\n    for(const row of rows)for(const field of ['equipmentId','inspectionMode']){const path=['items',{id:row.itemId},field];patches.push({op:'set',path,value:field==='equipmentId'?target.id:'equipment'});guards.push({path,value:row.openStatus==='draft'?(field==='equipmentId'?row.draftEquipmentId:row.draftInspectionMode):(field==='equipmentId'?row.activeEquipmentId:row.activeInspectionMode)});}\n    const command=client.prepare(flow.generation,'save',{moduleAction:'save-local-v1',patches,guards,input:{}});\n    const next={version:1,actorId:dialog.owner.actorId,endpoint:iqcTransferEndpoint,intent,basis,phase:'save',command};record=writeIqcTransfer(next,record);assertOwned();\n    try{const result=await client.sendPrepared(command);assertOwned();return finishIqcTransfer(client,record,result);}\n    catch(error){\n      if(owns()&&client.isConfirmedRejection(error,command)&&client.discardRejectedLocalSave(command))clearIqcTransfer(record);\n      throw error;\n    }\n  }\n\n"
+      },
+      {
+        "offset": 192276,
+        "before": "",
+        "after": "    if(uiKey==='iqc'&&hasIqcTransfer()){await recoverIqcTransfer(dialog);return;}\n"
+      },
+      {
+        "offset": 194167,
+        "before": "    if (!confirm(moduleId==='fqc'?t(`確認移轉 ${ids.length} 筆並存取整份 FQC 草稿？共享草稿中其他已套用的修改會一起保存；其他分頁未送出的本機輸入不包含在內。僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆已改選其他檢具，將以這次選擇取代。`:''}不送審。`,`Chuyển ${ids.length} mục và lưu toàn bộ bản nháp FQC? Các thay đổi chung đã áp dụng cũng được lưu; không gồm đầu vào cục bộ chưa gửi ở trang khác. Giữ ảnh và thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị.`:''} Không gửi duyệt.`):t(`確認移轉 ${ids.length} 筆 ${moduleId.toUpperCase()} 標準至草稿？僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆草稿已改選其他檢具，將以這次選擇取代。`:''}同草稿全部成功才套用；待審項目不可移轉，也不會延後自動套用。`, `Chuyển ${ids.length} tiêu chuẩn ${moduleId.toUpperCase()} sang bản nháp? Chỉ thay thiết bị; giữ ảnh và các thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị trong bản nháp.`:''} Mỗi bản nháp được xử lý toàn bộ hoặc không thay đổi. Không chuyển hồ sơ chờ duyệt và không tự áp dụng sau.`))) return;\n",
+        "after": "    if (!confirm(['fqc','iqc'].includes(moduleId)?t(`確認移轉 ${ids.length} 筆並存取整份 ${moduleId.toUpperCase()} 草稿？共享草稿中其他已套用的修改會一起保存；其他分頁未送出的本機輸入不包含在內。僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆已改選其他檢具，將以這次選擇取代。`:''}不送審。`,`Chuyển ${ids.length} mục và lưu toàn bộ bản nháp ${moduleId.toUpperCase()}? Các thay đổi chung đã áp dụng cũng được lưu; không gồm đầu vào cục bộ chưa gửi ở trang khác. Giữ ảnh và thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị.`:''} Không gửi duyệt.`):t(`確認移轉 ${ids.length} 筆 ${moduleId.toUpperCase()} 標準至草稿？僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆草稿已改選其他檢具，將以這次選擇取代。`:''}同草稿全部成功才套用；待審項目不可移轉，也不會延後自動套用。`, `Chuyển ${ids.length} tiêu chuẩn ${moduleId.toUpperCase()} sang bản nháp? Chỉ thay thiết bị; giữ ảnh và các thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị trong bản nháp.`:''} Mỗi bản nháp được xử lý toàn bộ hoặc không thay đổi. Không chuyển hồ sơ chờ duyệt và không tự áp dụng sau.`))) return;\n"
+      },
+      {
+        "offset": 198718,
+        "before": "",
+        "after": "      }else if(moduleId==='iqc'){\n        data=await saveIqcTransfer(dialog,target,targetEntry,latest.filter(row=>ids.includes(row.id)),transferIntent,owns);\n"
+      },
+      {
+        "offset": 205135,
+        "before": "      if(moduleId==='fqc')dialog.moduleMessages[uiKey]+=' · '+t('已移轉並存取 FQC 草稿','Đã chuyển và lưu bản nháp FQC')+' · '+data.savedId+(data.historical?' · '+t('原操作已確認；目前已有後續草稿，本次未套用其他修改','Đã xác nhận thao tác gốc; hiện có bản nháp mới, không áp dụng thay đổi khác'):'');\n      if(moduleId!=='fqc'&&(flow||moduleId==='ipqc-ab') && (!counts.conflict||counts.applied))dialog.moduleMessages[uiKey]+=' · '+t(`成功項目已同步，尚未手動儲存；請到 ${moduleId.toUpperCase()} 儲存草稿`,`Các hạng mục thành công đã đồng bộ, chưa lưu thủ công; hãy lưu bản nháp tại ${moduleId.toUpperCase()}`);\n      if(moduleId!=='fqc')await window.ProcessSync?.refresh?.();\n",
+        "after": "      if(['fqc','iqc'].includes(moduleId))dialog.moduleMessages[uiKey]+=' · '+moduleId.toUpperCase()+' · '+t('已移轉並存取草稿','Đã chuyển và lưu bản nháp')+' · '+data.savedId+(data.historical?' · '+t('原操作已確認；目前已有後續草稿，本次未套用其他修改','Đã xác nhận thao tác gốc; hiện có bản nháp mới, không áp dụng thay đổi khác'):'');\n      if(!['fqc','iqc'].includes(moduleId)&&(flow||moduleId==='ipqc-ab') && (!counts.conflict||counts.applied))dialog.moduleMessages[uiKey]+=' · '+t(`成功項目已同步，尚未手動儲存；請到 ${moduleId.toUpperCase()} 儲存草稿`,`Các hạng mục thành công đã đồng bộ, chưa lưu thủ công; hãy lưu bản nháp tại ${moduleId.toUpperCase()}`);\n      if(!['fqc','iqc'].includes(moduleId))await window.ProcessSync?.refresh?.();\n"
+      },
+      {
+        "offset": 206278,
+        "before": "      dialog.moduleMessages[uiKey] = (moduleId==='fqc'&&hasFqcTransfer()?fqcTransferUnknown()+' ':'')+(error.message || t('替換失敗', 'Thay thế thất bại'));\n",
+        "after": "      dialog.moduleMessages[uiKey] = (moduleId==='fqc'&&hasFqcTransfer()?fqcTransferUnknown()+' ':moduleId==='iqc'&&hasIqcTransfer()?iqcTransferUnknown()+' ':'')+(error.message || t('替換失敗', 'Thay thế thất bại'));\n"
+      },
+      {
+        "offset": 207639,
+        "before": "    const iqcItems = previewItems('iqc');\r\n",
+        "after": "    const iqcItems = previewItems('iqc'),iqcRecovery=hasIqcTransfer();\n"
+      },
+      {
+        "offset": 217992,
+        "before": "                      <button type=\"button\" class=\"button signal master-small\" id=\"routine-confirm-transfer-iqc\" ${!targetEq || !iqcItems.length || inFlight ? 'disabled' : ''}>\n                        ${transferDialog.moduleStatus.iqc === 'saving' ? t('儲存中…', 'Đang lưu...') : t('確認移轉至 IQC 草稿', 'Xác nhận chuyển sang IQC')}\r\n",
+        "after": "                      <button type=\"button\" class=\"button signal master-small\" id=\"routine-confirm-transfer-iqc\" ${inFlight||!iqcRecovery&&(!targetEq||!iqcItems.length)?'disabled':''}>\n                        ${transferDialog.moduleStatus.iqc === 'saving' ? t('儲存中…', 'Đang lưu...') : iqcRecovery?t('查詢原移轉／存取收據','Kiểm tra biên nhận chuyển/lưu gốc'):t('確認移轉並存取 IQC 草稿', 'Xác nhận chuyển và lưu IQC')}\n"
+      },
+      {
+        "offset": 276991,
+        "before": "",
+        "after": "    if(identity()?.id&&hasIqcTransfer())targetIqcClient();\n"
+      },
+      {
+        "offset": 289341,
+        "before": "    const legacy=()=>{try{const markers=[beginRecoveryKey(identity()?.id),fqcTransferKey(identity()?.id)].map(key=>[key,sessionStorage.getItem(key)]).filter(([,raw])=>raw!==null);return markers.length&&![sharedClient,fqcTransferClient].some(client=>client?.hasUnknown()||client?.hasSyncFailures())&&inputOwnerCurrent()&&!busy&&!transferBusy()?JSON.stringify(markers):null;}catch{return null;}};\n",
+        "after": "    const legacy=()=>{try{const markers=[beginRecoveryKey(identity()?.id),fqcTransferKey(identity()?.id),iqcTransferKey(identity()?.id)].map(key=>[key,sessionStorage.getItem(key)]).filter(([,raw])=>raw!==null);return markers.length&&![sharedClient,fqcTransferClient,iqcTransferClient].some(client=>client?.hasUnknown()||client?.hasSyncFailures())&&inputOwnerCurrent()&&!busy&&!transferBusy()?JSON.stringify(markers):null;}catch{return null;}};\n"
+      },
+      {
+        "offset": 291360,
+        "before": "    unknown:()=>sharedClient?.hasUnknown()||fqcTransferClient?.hasUnknown()||hasBeginRecovery(),failed:()=>sharedClient?.hasSyncFailures()||fqcTransferClient?.hasSyncFailures(),\n    unknownTransports:()=>[sharedClient,fqcTransferClient],unknownReady:()=>{try{return !readBeginRecovery();}catch{return false;}},discardUnknown(){this.discard();},\n",
+        "after": "    unknown:()=>sharedClient?.hasUnknown()||fqcTransferClient?.hasUnknown()||iqcTransferClient?.hasUnknown()||hasBeginRecovery(),failed:()=>sharedClient?.hasSyncFailures()||fqcTransferClient?.hasSyncFailures()||iqcTransferClient?.hasSyncFailures(),\n    unknownTransports:()=>[sharedClient,fqcTransferClient,iqcTransferClient],unknownReady:()=>{try{return !readBeginRecovery();}catch{return false;}},discardUnknown(){this.discard();},\n"
+      }
+    ]
+  },
+  {
+    "file": "public/process/routine-fqc.js",
+    "base": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+    "beforeBlob": "7e7686c14e32090dd40aa111afc04e6091698820",
+    "beforeHash": "5738d095b99bdf3d43240dd425327e92083a730d83484ff6f2c73333fe314d15",
+    "afterHash": "0b6d47db0144e741b5a7b01549eb5a35f5516e172dbccd2b21661eba2c280807",
+    "beforeLength": 153724,
+    "afterLength": 162601,
+    "rules": [
+      {
+        "offset": 3353,
+        "before": "",
+        "after": "    bufferGenerations: new Map(),\n"
+      },
+      {
+        "offset": 3788,
+        "before": "",
+        "after": "  let historyDisplayEpoch=0,approvedHistoryView=null,historyDocument=null;\n  const historyClients=new Map();\n  const historyAllowsMutation=()=>!approvedHistoryView?.blocked;\n  const assertCurrentDisplay=()=>{if(!historyAllowsMutation())throw Error('APPROVED_HISTORY_READ_ONLY');};\n  const captureHistoryDisplay=()=>{const epoch=historyDisplayEpoch,page=root;return()=>epoch===historyDisplayEpoch&&page===root&&historyAllowsMutation();};\n  function retireApprovedHistory(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;historyDocument=null;}\n  function guardWorking(node,callback){const current=captureHistoryDisplay();return function(...args){if(!node?.isConnected||!current())return;const result=callback.apply(this,args);if(result&&typeof result.finally==='function')return result.finally(()=>approvedHistoryView?.refreshControls());approvedHistoryView?.refreshControls();return result;};}\n  function guardDocumentCallbacks(){for(const node of root?.querySelector('.rf-document')?.querySelectorAll('input,select,textarea,button')||[])for(const property of ['onclick','oninput','onchange','onkeydown','oncompositionstart','oncompositionend'])if(typeof node[property]==='function')node[property]=guardWorking(node,node[property]);}\n  function approvedClient(documentId){\n    const prior=historyClients.get(documentId);if(prior?.isRuntimeCurrent())return prior;\n    const sync=window.ProcessSync,actor=sync?.identity,epoch=sync?.identityGeneration?.(),delivery=sync?.captureDelivery?.(),watchers=new Set();let permissions={...data.permissions,delete:false};\n    const current=()=>actor===window.ProcessSync?.identity&&actor?.id===data?.identity?.id&&epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&window.ProcessSync?.isCurrentDelivery?.(delivery)===true;\n    async function get(query,options={}){const owns=()=>current()&&options.isCurrent?.()!==false;if(!owns())throw Error('APPROVED_HISTORY_SUPERSEDED');const params=new URLSearchParams({approvedOnly:'1',documentId,...query});let response,value;\n      try{response=await fetch(endpoint+'?'+params,{cache:'no-store',headers:{...window.ProcessSync?.platformHeaders?.(),'X-Process-Expected-Actor':actor.id}});value=await response.json();if(!owns())throw Error('APPROVED_HISTORY_SUPERSEDED');if(!response.ok){if([401,403].includes(response.status)){permissions=Object.fromEntries(Object.keys(permissions).map(key=>[key,false]));for(const watch of watchers)watch();}throw Object.assign(Error(value.error||'FQC_READ_FAILED'),{status:response.status});}if(value.documentId!==documentId||value.actorId!==actor.id)throw Error('APPROVED_HISTORY_AUTHORITY_REQUIRED');permissions={...value.permissions};for(const watch of watchers)watch();return value;}\n      catch(error){if(!owns())throw Error('APPROVED_HISTORY_SUPERSEDED');throw error;}\n    }\n    const client={isRuntimeCurrent:current,permission:key=>permissions[key],watchApprovedAccess(callback){watchers.add(callback);return()=>watchers.delete(callback);},permissions:options=>get({permissions:'1'},options),approvedHistory:(query,options)=>get({uiHistory:'1',...(query?.versionBefore?{versionBefore:query.versionBefore}:{})},options),approvedVersion:(id,options)=>get({versionId:id},options),mediaURL:photo=>{const id=typeof photo==='string'?photo:photo?.id;return /^[a-f0-9]{64}$/.test(id||'')?endpoint+'/photo?id='+id:'';}};\n    historyClients.set(documentId,client);return client;\n  }\n  function mountApprovedHistory(shell,log,empty){\n    const d=doc(),page=root,documentRoot=root.querySelector('.rf-document'),client=approvedClient(d.id);historyDocument=d.id;\n    approvedHistoryView=window.VersionDraftUI.createApprovedHistory({root:documentRoot,shell,client,empty,selectId:'routine-fqc-approved-version',cacheKey:d.flow.active.id||null,\n      isCurrent:()=>root===page&&doc()?.id===d.id&&!s.reviewPlatform&&root.querySelector('.rf-document')===documentRoot,\n      canChoose:()=>!s.busy&&!s.dialogOpen&&!inFlightMutation&&!generationRefresh?.current()&&!document.querySelector('.rf-modal[open]'),\n      onBoundary(){historyDisplayEpoch++;},renderCurrent(){approvedHistoryView=null;historyDocument=null;paint();},\n      validateSnapshot:value=>value&&typeof value.title==='string'&&typeof value.date==='string'&&Array.isArray(value.lines)&&value.lines.every(row=>row&&typeof row==='object'&&Array.isArray(row.results))&&Array.isArray(value.evidence),\n      renderSnapshot(target,value,current){const {lines,...document}=value;window.VersionDraftUI.renderApprovedCollections(target,{document:[document],lines},{collections:['document','lines'],fields:{document:['核准文件','Hồ sơ đã duyệt'],title:['文件名稱','Tên hồ sơ'],date:['實際日期','Ngày thực tế'],notes:['備註','Ghi chú'],lines:['原核准項目與結果','Hạng mục và kết quả đã duyệt'],source:['原固定來源','Nguồn cố định'],results:['檢查結果','Kết quả'],evidence:['處置證據','Bằng chứng xử lý'],photos:['歷史照片','Ảnh lịch sử']},mediaFields:['evidence'],mediaURL:photo=>client.mediaURL(photo)},current);}\n    });\n  }\n"
+      },
+      {
+        "offset": 22963,
+        "before": "      if(cmd.action==='apply'&&(has(422,'PATCH_NOT_ALLOWED,DEPENDENCY_GUARD_REQUIRED,INVALID_PATCHES,INVALID_PATH,INVALID_ENTITY_PATH,INVALID_FIELD,INVALID_VALUE')||has(409,'ENTITY_REMOVED_OR_AMBIGUOUS')))return true;\n      if(cmd.action==='apply'&&has(409,'DEPENDENCY_CHANGED_RECONFIRM'))return Array.isArray(value.details?.path)&&cmd.guards?.some(g=>JSON.stringify(g.path)===JSON.stringify(value.details.path))===true;\n      if(['apply','restore'].includes(cmd.action)&&has(422,'CONTENT_INVALID,TEXT_INVALID,PHOTO_ID_INVALID,DOCUMENT_ITEMS_IMMUTABLE,SOURCE_SNAPSHOT_IMMUTABLE,RETEST_REQUIREMENT_IMMUTABLE,DUPLICATE_LINE,RESULTS_INVALID,RESULT_ID_INVALID,RESULT_INVALID,SAMPLE_OUTSIDE_COVERAGE_OR_DUPLICATE,SINGLE_SAMPLE_REQUIRED,RETEST_SAMPLE_FIXED,UNABLE_MUST_NOT_HAVE_SAMPLES'))return true;\n",
+        "after": "      const guarded=cmd.action==='apply'||cmd.action==='save'&&cmd.moduleAction==='save-local-v1';\n      if(guarded&&(has(422,'PATCH_NOT_ALLOWED,DEPENDENCY_GUARD_REQUIRED,INVALID_PATCHES,INVALID_PATH,INVALID_ENTITY_PATH,INVALID_FIELD,INVALID_VALUE')||has(409,'ENTITY_REMOVED_OR_AMBIGUOUS')))return true;\n      if(guarded&&has(409,'DEPENDENCY_CHANGED_RECONFIRM'))return Array.isArray(value.details?.path)&&cmd.guards?.some(g=>JSON.stringify(g.path)===JSON.stringify(value.details.path))===true;\n      if((guarded||cmd.action==='restore')&&has(422,'CONTENT_INVALID,TEXT_INVALID,PHOTO_ID_INVALID,DOCUMENT_ITEMS_IMMUTABLE,SOURCE_SNAPSHOT_IMMUTABLE,RETEST_REQUIREMENT_IMMUTABLE,DUPLICATE_LINE,RESULTS_INVALID,RESULT_ID_INVALID,RESULT_INVALID,SAMPLE_OUTSIDE_COVERAGE_OR_DUPLICATE,SINGLE_SAMPLE_REQUIRED,RETEST_SAMPLE_FIXED,UNABLE_MUST_NOT_HAVE_SAMPLES'))return true;\n"
+      },
+      {
+        "offset": 23994,
+        "before": "",
+        "after": "      if(cmd.action==='save'&&cmd.moduleAction==='save-local-v1'&&has(409,'DRAFT_REVISION_REQUIRED'))return true;\n"
+      },
+      {
+        "offset": 26971,
+        "before": "",
+        "after": "    assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();\n"
+      },
+      {
+        "offset": 27260,
+        "before": "      if (!accepts() || (delivery && window.ProcessSync.isCurrentDelivery(delivery) === false))\n",
+        "after": "      if (!displayCurrent() || !accepts() || (delivery && window.ProcessSync.isCurrentDelivery(delivery) === false))\n"
+      },
+      {
+        "offset": 34305,
+        "before": "",
+        "after": "    assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();\n"
+      },
+      {
+        "offset": 35317,
+        "before": "    const record=receiptCreate(body,pin),current=()=>receiptOwnedPin(pin)&&receiptRecord===record;\n",
+        "after": "    const record=receiptCreate(body,pin),current=()=>displayCurrent()&&receiptOwnedPin(pin)&&receiptRecord===record;\n"
+      },
+      {
+        "offset": 39372,
+        "before": "        s.buffers.clear(); s.bases.clear(); s.selected = null;\n",
+        "after": "        s.buffers.clear();s.bufferGenerations.clear(); s.bases.clear(); s.selected = null;\n"
+      },
+      {
+        "offset": 41207,
+        "before": "",
+        "after": "  let pageDraftMode = false;\n"
+      },
+      {
+        "offset": 41293,
+        "before": "",
+        "after": "    retireApprovedHistory();\n"
+      },
+      {
+        "offset": 42237,
+        "before": "",
+        "after": "      if(a.pageDraftLayout==='page-v1'){\n        if(s.busy||s.retry||s.dialogOpen||inFlightMutation||docs().some(dirty))throw Error('ROUTINE_PAGE_CUTOVER_RELOAD_REQUIRED');\n        pageDraftMode=true;await window.RoutineFqcPage.mount(root,{review:false});return;\n      }\n"
+      },
+      {
+        "offset": 42745,
+        "before": "        if (owns() && available && data) paint();\n",
+        "after": "        if (owns() && available && data && !pageDraftMode) paint();\n"
+      },
+      {
+        "offset": 45049,
+        "before": "",
+        "after": "      s.bufferGenerations.set(d.id,d.flow.generation);\n"
+      },
+      {
+        "offset": 57422,
+        "before": "",
+        "after": "    if(pageDraftMode){window.RoutineFqcPage.repaint();return;}\n    if(approvedHistoryView?.historical&&historyDocument===doc()?.id&&!s.reviewPlatform){approvedHistoryView.relabel();return;}approvedHistoryView?.retire();approvedHistoryView=null;historyDocument=null;\n"
+      },
+      {
+        "offset": 62973,
+        "before": "    bind();\n",
+        "after": "    bind();guardDocumentCallbacks();\n"
+      },
+      {
+        "offset": 63853,
+        "before": "",
+        "after": "        ...(!s.reviewPlatform?{mountApprovedHistory}:{}),\n"
+      },
+      {
+        "offset": 99774,
+        "before": "",
+        "after": "    retireApprovedHistory();\n"
+      },
+      {
+        "offset": 101127,
+        "before": "",
+        "after": "          retireApprovedHistory();\n"
+      },
+      {
+        "offset": 109138,
+        "before": "",
+        "after": "    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 111484,
+        "before": "",
+        "after": "    assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();\n"
+      },
+      {
+        "offset": 111880,
+        "before": "    const current=()=>root===page&&data?.identity?.id===identity&&(!window.ProcessSync?.identity||window.ProcessSync.identity.id===identity)&&epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false)&&docs().find(row=>row.id===d.id)?.flow.generation===generation;\n",
+        "after": "    const current=()=>displayCurrent()&&root===page&&data?.identity?.id===identity&&(!window.ProcessSync?.identity||window.ProcessSync.identity.id===identity)&&epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false)&&docs().find(row=>row.id===d.id)?.flow.generation===generation;\n"
+      },
+      {
+        "offset": 113257,
+        "before": "      const fresh = await read();\n",
+        "after": "      const fresh = await read('',current);\n"
+      },
+      {
+        "offset": 113775,
+        "before": "    const fresh=await read();if(!current())throw Error('DELIVERY_SUPERSEDED');\n",
+        "after": "    const fresh=await read('',current);if(!current())throw Error('DELIVERY_SUPERSEDED');\n"
+      },
+      {
+        "offset": 115697,
+        "before": "      onready?.(el);\n",
+        "after": "      onready?.(el,close);\n"
+      },
+      {
+        "offset": 116015,
+        "before": "",
+        "after": "    assertCurrentDisplay();\n"
+      },
+      {
+        "offset": 125126,
+        "before": "      await refresh();\n",
+        "after": "      if(action!=='save')await refresh();\n"
+      },
+      {
+        "offset": 155582,
+        "before": "    root = area; s.reviewPlatform = true; s.tab = 'documents';\n",
+        "after": "    retireApprovedHistory();root = area; s.reviewPlatform = true; s.tab = 'documents';\n"
+      },
+      {
+        "offset": 155874,
+        "before": "    try { const next = await read(); if (!data || next.identity.id !== data.identity.id || next.control.revision >= data.control.revision) data = next; if(s.retry)s.error=receiptInvalid?receiptStorageNotice():receiptNotice(); paint(); updatePendingBadge(); } catch (e) {if(e.message!=='DELIVERY_SUPERSEDED'){navigationError=e;fault(e);}}\n",
+        "after": "    try { const next = await read(); if(next.pageDraftLayout==='page-v1'){pageDraftMode=true;await window.RoutineFqcPage.mount(area,{review:true});updatePendingBadge();return;} if (!data || next.identity.id !== data.identity.id || next.control.revision >= data.control.revision) data = next; if(s.retry)s.error=receiptInvalid?receiptStorageNotice():receiptNotice(); paint(); updatePendingBadge(); } catch (e) {if(e.message!=='DELIVERY_SUPERSEDED'){navigationError=e;fault(e);}}\n"
+      },
+      {
+        "offset": 156390,
+        "before": "    const count = liveDocs().filter((d) => status(d) === 'pending').length;\n",
+        "after": "    const count = pageDraftMode?window.RoutineFqcPage.pendingCount():liveDocs().filter((d) => status(d) === 'pending').length;\n"
+      },
+      {
+        "offset": 156646,
+        "before": "  async function refreshPending() { if (s.reviewPlatform || s.busy) return; try { const next = await read(); const badge = document.querySelector('#approval-tab-routine .approval-tab-count'); if (badge) badge.textContent = next.control.documents.filter((d) => !d.cancelled && d.flow.pendingId).length; } catch {} }\n",
+        "after": "  async function refreshPending() { if (!historyAllowsMutation()||s.reviewPlatform || s.busy) return; try { const next = await read(); if(next.pageDraftLayout==='page-v1'){pageDraftMode=true;await window.RoutineFqcPage.refreshMetadata();updatePendingBadge();return;} const badge = document.querySelector('#approval-tab-routine .approval-tab-count'); if (badge) badge.textContent = next.control.documents.filter((d) => !d.cancelled && d.flow.pendingId).length; } catch {} }\n"
+      },
+      {
+        "offset": 157120,
+        "before": "",
+        "after": "  // Navigation consumes only unsent RAM. Exact unknown-operation metadata\n  // remains in storage and continues to fence every Routine FQC write.\n  function routineDeparture(config) {\n    const base=window.VersionDraftUI.createDeparture(config);let held=null,completed=null;\n    const anchor=()=>{\n      if(receiptInvalid||!receiptRecord||s.busy||inFlightMutation||s.dialogOpen)return null;\n      const pin=receiptPin();if(!receiptOwnedPin(pin))return null;\n      try{return receiptStore().getItem(receiptRecord.key)===receiptRecord.raw?{record:receiptRecord,raw:receiptRecord.raw,pin}:null;}catch{return null;}\n    };\n    const valid=record=>{const live=anchor();return !!live&&live.record===record.anchor.record&&live.raw===record.anchor.raw&&receiptOwnedPin(record.anchor.pin);};\n    return {...base,autoAbandon:true,allowUnload:()=>!s.busy&&!inFlightMutation,\n      inspect(){if(held&&valid(held))return {state:'departing',departureId:held.id,canSave:false,canDiscard:false,reason:receiptNotice()};const state=base.inspect();return state.state==='unknown'&&anchor()?{...state,canAbandon:true}:state;},\n      async abandon(){\n        if(base.inspect().state!=='unknown')return base.abandon();\n        const captured=anchor();if(held||!captured)throw Error('DEPARTURE_CONTEXT_CHANGED');\n        const record={id:{},anchor:captured};config.discard();if(!valid(record))throw Error('DEPARTURE_CONTEXT_CHANGED');held=record;\n        return {departureId:record.id,release(){if(held===record)held=null;}};\n      },\n      covered:()=>!!completed||base.covered(),\n      otherDraftsPending:()=>window.sharedDraftDepartureBlocked?.()??false,\n      closeClean(){if(!held)return base.closeClean();if(!valid(held))throw Error('DEPARTURE_CONTEXT_CHANGED');completed=held;},\n    };\n  }\n"
+      },
+      {
+        "offset": 159611,
+        "before": "    navigation:{get departure(){return moduleDeparture ||= window.VersionDraftUI.createDeparture({\n",
+        "after": "    navigation:{get departure(){if(pageDraftMode)return window.RoutineFqcPage.departure();return moduleDeparture ||= routineDeparture({\n"
+      },
+      {
+        "offset": 160858,
+        "before": "      canSave:()=>data?.permissions.save===true&&(!docs().some(dirty)||data?.permissions.edit===true),canDiscard:()=>data?.permissions.edit===true&&!s.dialogOpen,\n",
+        "after": "      canSave:()=>historyAllowsMutation()&&data?.permissions.save===true&&(!docs().some(dirty)||data?.permissions.edit===true),canDiscard:()=>data?.permissions.edit===true&&!s.dialogOpen,\n"
+      },
+      {
+        "offset": 161396,
+        "before": "    });},canLeave:()=>!s.busy&&!s.retry&&!inFlightMutation&&!s.dialogOpen&&!docs().some(dirty),error:()=>navigationError,reset(){loading=false;root=null;data=null;s.selected=null;s.buffers.clear();s.bases.clear();s.checked.clear();s.sampleOpen.clear();s.resultOpen.clear();s.reviewPlatform=false;s.issues=[];s.error='';navigationError=null;historySearch=null;historyLanguage=null;}},\n",
+        "after": "    });},canLeave:()=>pageDraftMode?window.RoutineFqcPage.canLeave():!s.busy&&!s.retry&&!inFlightMutation&&!s.dialogOpen&&!docs().some(dirty),error:()=>navigationError,reset(){window.RoutineFqcPage?.reset();pageDraftMode=false;retireApprovedHistory();historyClients.clear();loading=false;root=null;data=null;s.selected=null;s.buffers.clear();s.bufferGenerations.clear();s.bases.clear();s.checked.clear();s.sampleOpen.clear();s.resultOpen.clear();s.reviewPlatform=false;s.issues=[];s.error='';navigationError=null;historySearch=null;historyLanguage=null;}},\n"
+      },
+      {
+        "offset": 162026,
+        "before": "    pendingCount: () => docs().filter((d) => status(d) === 'pending').length,\n",
+        "after": "    pendingCount: () => pageDraftMode?window.RoutineFqcPage.pendingCount():docs().filter((d) => status(d) === 'pending').length,\n"
+      },
+      {
+        "offset": 162595,
+        "before": "  window.addEventListener('beforeunload', (e) => {\n    if (docs().some((d) => dirty(d))) {\n      e.preventDefault();\n    }\n  });\n",
+        "after": ""
+      }
+    ]
+  },
+  {
+    "file": "public/process/index.html",
+    "base": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+    "beforeBlob": "e4bd6ca9f8f4cee667df26f288621913da78a58f",
+    "beforeHash": "41474215c11933274c47c35fc09e86f4fc930fd791322013da861c256b766fae",
+    "afterHash": "b4087f395d077a0bbf5fc2aa85d02f8768cf683d2e9f949086ea2eafb11c6b3c",
+    "beforeLength": 10838,
+    "afterLength": 11050,
+    "rules": [
+      {
+        "offset": 6899,
+        "before": "    <script data-process-src=\"shared-draft-client.js?v=20261109-explicit-checks3\"></script>\n",
+        "after": "    <script data-process-src=\"shared-draft-client.js?v=20261112-quality-integration1\"></script>\n"
+      },
+      {
+        "offset": 8372,
+        "before": "    <link rel=\"stylesheet\" href=\"version-draft-ui.css?v=20261030-manual-sharing-integrated1\">\n    <script data-process-src=\"version-draft-ui.js?v=20261103-unknown-departure1\"></script>\n",
+        "after": "    <link rel=\"stylesheet\" href=\"version-draft-ui.css?v=20261112-quality-integration1\">\n    <script data-process-src=\"version-draft-ui.js?v=20261112-quality-integration1\"></script>\n"
+      },
+      {
+        "offset": 8827,
+        "before": "    <script data-process-src=\"fqc-master.js?v=20261104-begin-generation2\"></script>\n    <script data-process-src=\"iqc-master.js?v=20261106-number-hint1\"></script>\n    <script data-process-src=\"routine-equipment.js?v=20261108-equipment-ci-recovery1\"></script>\n",
+        "after": "    <script data-process-src=\"fqc-master.js?v=20261112-quality-integration1\"></script>\n    <script data-process-src=\"iqc-master.js?v=20261112-quality-integration1\"></script>\n    <script data-process-src=\"routine-equipment.js?v=20261112-quality-integration1\"></script>\n"
+      },
+      {
+        "offset": 9746,
+        "before": "    <script data-process-src=\"routine-fqc.js?v=20261108-manual-generate2\"></script>\n",
+        "after": "    <script data-process-src=\"routine-page-approved-history.js?v=20261112-quality-integration1\"></script>\n    <script data-process-src=\"routine-fqc-page.js?v=20261112-quality-integration1\"></script>\n    <script data-process-src=\"routine-fqc.js?v=20261112-quality-integration1\"></script>\n"
+      }
+    ]
+  }
+]

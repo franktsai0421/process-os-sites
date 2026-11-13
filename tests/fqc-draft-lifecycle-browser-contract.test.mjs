@@ -12,10 +12,11 @@ const node = (attrs = {}) => ({disabled: false, hidden: false, isConnected: true
 function probes() {
   const actor = 'fqc-editor', reviewer = 'fqc-reviewer', generation = 'fqc-generation', savedId = 'save', pendingId = 'case';
   const flow = {scope: 'fqc', generation, revision: 5, saved: {id: savedId}, pendingId, cases: [{id: pendingId, status: 'pending', savedId}]};
-  const c = {workflow: flow, versions: [{id: pendingId, status: 'pending'}, {id: 'draft', status: 'draft'}]};
-  const select = node({value: pendingId}), withdraw = node(), tab = node({'aria-selected': 'true'}), review = node();
+  const c = {workflow: flow, versions: [{id: pendingId, number:2, status: 'pending'}, {id: 'draft', number:3, status: 'draft'}]};
+  const select = node({value: '',dataset:{vdApprovedChoice:'true'}}), withdraw = node(), tab = node({'aria-selected': 'true'}), review = node();
+  const title=node({textContent:'V2 · Pending'});
   let writes = [], error = null;
-  const host = node({dataset: {activeTab: 'quality-fqc'}, querySelector: selector => selector === '#fqc-version' ? select : selector === '#fqc-page' ? node() : null,
+  const host = node({dataset: {activeTab: 'quality-fqc'}, querySelector: selector => selector === '#fqc-approved-version' ? select : selector === '.vd-top h3' ? title : selector === '#fqc-page' ? node() : null,
     querySelectorAll: selector => selector === '#fqc-withdraw' ? [withdraw] : writes});
   const wrapper = node({open: true, contains: value => value === review, querySelector: selector => selector === '[data-quality-review-state="ready"]' ? node() : null});
   let wrappers = [wrapper];
@@ -24,7 +25,7 @@ function probes() {
   const context = {window: {ProcessSync: {identity: {id: actor}, destination: {view: 'data'}}, FQCMasterUI: {control: {libraries: {fqc: c}}, navigation: {error: () => error}}},
     document: {documentElement: {dataset: {processNavigationStatus: 'ready'}}, querySelector: selector => ({'#data-content': host, '#approval-panel-quality': panel})[selector] || null,
       querySelectorAll: selector => selector === '[data-review-tab="quality"]' ? [tab] : []}, location: {pathname: '/process/index.html'}};
-  return {context, actor, reviewer, generation, savedId, pendingId, flow, c, select, withdraw, tab, review, host, panel,
+  return {context, actor, reviewer, generation, savedId, pendingId, flow, c, select, title, withdraw, tab, review, host, panel,
     wrapper, wrappers(value) { wrappers = value; },
     writes(value) { writes = value; }, error(value) { error = value; }, run(fn, args) { return vm.runInNewContext('(' + fn.toString() + ')(args)', {...context, args}); }};
 }
@@ -61,6 +62,10 @@ void test('editor admission retains shell error, actor, host, version and scope 
   f.error(Error('SYNTHETIC_DENIED')); assert.equal(f.run(fqcEditorReady, args), false); f.error(null);
   f.context.document.documentElement.dataset.processNavigationStatus = 'error'; assert.equal(f.run(fqcEditorReady, args), false);
   f.context.document.documentElement.dataset.processNavigationStatus = 'ready'; f.host.isConnected = false; assert.equal(f.run(fqcEditorReady, args), false);
+});
+void test('current FQC readiness rejects historical selection, unmarked selector and wrong rendered version',()=>{
+ const f=probes(),args={actor:f.actor,status:'pending',pendingId:f.pendingId,savedId:f.savedId};
+ for(const [obj,key,value]of [[f.select,'value','approved-history'],[f.select.dataset,'vdApprovedChoice','false'],[f.title,'textContent','V999 · Pending']]){const old=obj[key];obj[key]=value;assert.equal(f.run(fqcEditorReady,args),false);assert.equal(f.run(fqcPendingReady,{actor:f.actor,savedId:f.savedId,generation:f.generation}),false);obj[key]=old;}
 });
 void test('review readiness requires actual quality tab, visible pending case, same scope/generation/save linkage', () => {
   const f = probes(); f.context.window.ProcessSync.identity.id = f.reviewer; f.context.window.ProcessSync.destination.view = 'approval';

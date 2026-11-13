@@ -1,0 +1,274 @@
+{
+  "base": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+  "restoredCandidate": "b049d269ff553fab20439731e4fdaee1f128ec19",
+  "newFiles": [
+    {
+      "path": "app/api/routine-fqc/page/photo/route.ts",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "sourceBlob": "59861cb2653045e0497e37ce3bd58d1a6bdd30a2",
+      "sha256": "c45d94dffe16f9358bc10bc0a10ee535a6613a23079b094b7ee0fdd9348d202a",
+      "mode": "new-file"
+    },
+    {
+      "path": "app/api/routine-fqc/page/route.ts",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "sourceBlob": "bf4a0ff53b68c6dd4425bdeb419e21bef0b0af2d",
+      "sha256": "ff76bcb4bf444401c8c559d6258ae683a2ef737dc9799348c99ca1219e3eaecb",
+      "mode": "new-file"
+    },
+    {
+      "path": "lib/routine-fqc-page.ts",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "sourceBlob": "503dd19e6baffe5291efc449fb0bd5144b5db249",
+      "sha256": "553abcbf4112702167426cfaea453807af8ede60e4593b2ed151cd9c87146404",
+      "mode": "new-file"
+    },
+    {
+      "path": "lib/routine-fqc-page-save.ts",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "sourceBlob": "cc24ec46d3d6f2a8f250eee09219593eae111cff",
+      "sha256": "563f390aafe0d7ebe696abce6cfdc2869c0b4ed227737e9d7151619fa9e8f687",
+      "mode": "new-file"
+    },
+    {
+      "path": "lib/routine-fqc-approved-history.ts",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "sourceBlob": "430a7d63a961dc4f8300c2aed76db6c683d8cc6b",
+      "sha256": "fd88fea5833926ca21b8435ff2480ffe3d7bdac49cde83e69cbcda88edc1dc91",
+      "mode": "new-file"
+    },
+    {
+      "path": "lib/routine-page-approved-history.ts",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "sourceBlob": "60d837ef8589d6bd1a4fef1d758a141cfb8d1946",
+      "sha256": "6414578242d99dd4587a3a2e966e28132fd98f2f55d5244984634e519afdb6d2",
+      "mode": "new-file"
+    },
+    {
+      "path": "lib/approved-history-query.ts",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "sourceBlob": "6e483cea7f8e9f6579fe93c25699cdfdaec0fcfd",
+      "sha256": "60abaded552ee4e9883bff3d676267610e9356264ae13355babb92d32f980933",
+      "mode": "new-file"
+    },
+    {
+      "path": "public/process/routine-fqc-page.js",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "sourceBlob": "e2b814dc258700e9b836da395ef819df24902c02",
+      "sha256": "eac1e2969ab19b476a3a448e7bcd3577658f34ba083b04a6f23ac5b11743e483",
+      "mode": "new-file"
+    },
+    {
+      "path": "public/process/routine-page-approved-history.js",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "sourceBlob": "619990dd9549f622afe024f20e558f936401dca6",
+      "sha256": "08dc59c48e0bdc77a865b96a44392d4c1bf6bee14e4398d6ebd475d261daa74e",
+      "mode": "new-file"
+    },
+    {
+      "path": "scripts/test-routine-whole-page.cjs",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "sourceBlob": "5265f343dfe66af77052573178a3b982ecd6eb53",
+      "sha256": "d044611a77d94172e2506c6d055b7a9b7a5610765d3e332b3fcf0dcf145f7155",
+      "mode": "new-file"
+    },
+    {
+      "path": "scripts/test-routine-whole-page-route.cjs",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "sourceBlob": "1b1a4c027b3e97d7479ea66519bffccae17c89e8",
+      "sha256": "9f28918a071a10771fd2050ecb087cffe8725c1fa668926187194b096f65e30c",
+      "mode": "new-file"
+    },
+    {
+      "path": "scripts/test-routine-whole-page-ui.cjs",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "sourceBlob": "64c37775a17648b57801c4d0705fe0d972044540",
+      "sha256": "288176c35fea242277b92b97d2ee39970396c0f86c6c6eb52da943e4e383525a",
+      "mode": "new-file"
+    },
+    {
+      "path": "lib/master-approved-pages.ts",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "sourceBlob": "ddbc2c8dda7766700f520a19584ed8cfdbf9a941",
+      "sha256": "cbdc67ac707a98f85030bfc6034110f4c1af340e5e88417b96ceedc65db92863",
+      "mode": "new-file",
+      "reason": "Routine source catalog reads require independently validated formal master pointers; no owner activation or migration"
+    },
+    {
+      "path": "lib/master-page-boundary.ts",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "sourceBlob": "74c178d2a6b91b2173fa7d2539289b764f377612",
+      "sha256": "6cb494ebe2d382680c7519e034dde99be6997d2933c62a8f551b371ccb1d9d10",
+      "mode": "new-file",
+      "reason": "Routine source catalog reads require independently validated formal master pointers; no owner activation or migration"
+    },
+    {
+      "path": "lib/draft-page-boundaries.ts",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "sourceBlob": "4a1c0806b1d33e1761dff2f26e5d1cff88d5b470",
+      "sha256": "c7e2a312cdb2d8a04246ca56e5418ba590927d4cd72b9a1a685dede9a888aad7",
+      "mode": "new-file",
+      "reason": "Routine source catalog reads require independently validated formal master pointers; no owner activation or migration"
+    }
+  ],
+  "incrementalPatches": [
+    {
+      "sourceCommit": "39dc18a5222d055012ab26cf3a1fad2054b8bcc5",
+      "paths": [
+        "public/process/fqc-master.js"
+      ],
+      "reason": "FQC same-page read-only display guards; apply check passed over restored candidate"
+    },
+    {
+      "sourceCommit": "e5c3c780fac8413ede01809d5fc871ad0477a225",
+      "paths": [
+        "lib/routine-fqc.ts",
+        "app/api/routine-fqc/route.ts"
+      ],
+      "reason": "Routine business kernel and whole-page delegation only; no changes to account policy or other master owners"
+    },
+    {
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "paths": [
+        "public/process/routine-fqc.js"
+      ],
+      "reason": "Routine page mount/departure/history delegation; preserve #98 explicit generation"
+    }
+  ],
+  "semanticSharedChanges": [
+    {
+      "path": "lib/versioned-shared-workflow.ts",
+      "sourceCommit": "2d2d79cb23c4456e28adc4cdfc60624ec4f5e24b",
+      "reason": "Only #103 approved-only GET type/evidence/buffered final authority checks; no IPQC read-ahead or new master mutation/permission scope",
+      "beforeSha256": "5a67fbbcdbaada4b4fed035b5f026aef052ebcc5fd192b128930b7c319ebc5aa",
+      "afterSha256": "27c060526794210d881d594ef4d4fe07d9a7b8fad2b843b0facf19fe339c985f"
+    },
+    {
+      "path": "lib/approved-history.ts",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "reason": "Optional strict approval evidence checks; legacy default behavior retained",
+      "beforeSha256": "78688a82850a72f300c059fc8bdb2c90697f2440d346fc4dc9768c16f8e387dc",
+      "afterSha256": "f6b90908eaceda77f363998b7f8fc57986ad15bae0e0ce15d393a22f8d773e5b"
+    },
+    {
+      "path": "public/process/shared-draft-client.js",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "reason": "Only FQC/IQC/routine approved GET ports, access listeners, routine departure identity and historical IQC projection; preserve all restored compare/callback and other module branches",
+      "beforeSha256": "2966e5a9402111f7e3821666b696203faca11fbee807bff76f7fc20c8861781b",
+      "afterSha256": "dc57c5cdbd12529209daae2021cc3d9e857ddcdcea7e34fa410b68fa162ed0f1"
+    },
+    {
+      "path": "public/process/version-draft-ui.js",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "reason": "Shared read-only controller and renderer only, adapter opt-in; retain existing BOM/PROCESS adapters and departure/Save implementations",
+      "beforeSha256": "a18a17a4e9bf0ad141f11c176a2c73b4fc8f87cdbe3cae404882de2d7c415d95",
+      "afterSha256": "5d555eaa4b38aed7915a57d26df6fecedf7d3f3e7a7398cc2700ce675859ebad"
+    },
+    {
+      "path": "public/process/version-draft-ui.css",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+      "reason": "Styles required for inline history, touch targets and narrow screens",
+      "beforeSha256": "838560009d3d219162f1930c6a6f729c1fb78505703262b9b57d003f7c6f46a9",
+      "afterSha256": "3252116c750c30d3020a8342926759317fcacaea5b49ce806daad43a6cb53696"
+    }
+  ],
+  "backendHistorySelection": {
+    "source": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+    "hunks": 5,
+    "excluded": "Master page create/Begin/session scope changes are not imported; only explicit approved-only GET support and strict evidence"
+  },
+  "historyConflictResolution": {
+    "path": "public/process/iqc-master.js",
+    "sourceCommit": "2245941e658d67ba6d091e81fa9088b03be3a29b",
+    "resolution": "Keep existing staged File/local form save code; add history display epoch to upload/photo viewer and retire history on reset. Other 19 matching hunks applied normally."
+  },
+  "reviewKernelDelta": {
+    "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+    "path": "lib/shared-draft.ts",
+    "selection": "Only approval needs self-review confirmation; return/withdraw remain correction with original permission/reason checks"
+  },
+  "addedTestSources": [
+    {
+      "path": "scripts/test-master-page-runtime.cjs",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b"
+    },
+    {
+      "path": "tests/routine-page-approved-history-fixture.mjs",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b"
+    },
+    {
+      "path": "tests/routine-page-approved-history.test.mjs",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b"
+    },
+    {
+      "path": "tests/routine-page-approved-history-ui.test.mjs",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b"
+    },
+    {
+      "path": "tests/routine-fqc-approved-history-fixture.mjs",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b"
+    },
+    {
+      "path": "tests/routine-fqc-approved-history.test.mjs",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b"
+    },
+    {
+      "path": "tests/iqc-approved-history.test.mjs",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b"
+    },
+    {
+      "path": "tests/tooling-approved-history-fixture.mjs",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b"
+    },
+    {
+      "path": "tests/tooling-fqc-approved-history.test.mjs",
+      "sourceCommit": "55d4672cb8004d0b01715714cbc91fbce6b22d2b"
+    }
+  ],
+  "verifiedSourceRefs": {
+    "main": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+    "102": "55d4672cb8004d0b01715714cbc91fbce6b22d2b",
+    "103": "2d2d79cb23c4456e28adc4cdfc60624ec4f5e24b",
+    "104": "429d3bfad9a5b4e1f937b9546201619ca5f65131"
+  },
+  "scopeDecisions": [
+    "52/52 conversation patches verified; candidate HEAD is a declared source identity, not reconstructed Git ancestry.",
+    "102: routine whole-page core, read-only history, display-owner and test ports selected by exact patches or checked spans.",
+    "103: approved-history GET final body/authority/revision/session fences selected; no account/security policy file overwritten.",
+    "104: no additional FQC/IQC/routine commits absent main in the inspected paths; PROCESS changes remain in their branch.",
+    "Current fixes: IQC post-upload fresh comparison in same Save; independent target IQC equipment atomic Save/original receipts; final quality session fence after immutable encoding.",
+    "Fixture-only changes preserve original source pins through an exact 9fb inverse and retain mutation/path/type rejection tests.",
+    "Legacy routine root is not silently activated: offline stdin/stdout cutover preparation preserves archive/receipts and rejects pending review. No live data modified.",
+    "Final recovery fix requires the existing private superseded-recovery proof. Shared review policy is byte-identical to main; routine UI and tests honor main self-review confirmation for own return and approval.",
+    "Legacy document-layout Save retains the main Apply/read/Save/read protocol plus display ownership. Whole-page atomic Save remains exclusively in the new page controller; no legacy live-data migration was performed.",
+    "Final actual-route regression repairs IQC identified Begin admission only for the reviewed bounded IQC client; IQC atomic transfer completion no longer advertises unsaved state or refreshes another page. Other endpoint/flag combinations still fail before requests."
+  ],
+  "candidateRuntimeHashes": {
+    "app/api/routine-fqc/page/photo/route.ts": "c45d94dffe16f9358bc10bc0a10ee535a6613a23079b094b7ee0fdd9348d202a",
+    "app/api/routine-fqc/page/route.ts": "ff76bcb4bf444401c8c559d6258ae683a2ef737dc9799348c99ca1219e3eaecb",
+    "app/api/routine-fqc/route.ts": "4b4c50522bdb5e43c60475f42c8e8eb661aa9f45868d95726e140c6bf89e3cd7",
+    "app/api/shared-state/route.ts": "162dc666ac6b2b6b375d8414c8c6126ca80d4d3ed5280db5c9fd6bff40f27dcc",
+    "lib/approved-history-query.ts": "60abaded552ee4e9883bff3d676267610e9356264ae13355babb92d32f980933",
+    "lib/approved-history.ts": "f6b90908eaceda77f363998b7f8fc57986ad15bae0e0ce15d393a22f8d773e5b",
+    "lib/draft-page-boundaries.ts": "c7e2a312cdb2d8a04246ca56e5418ba590927d4cd72b9a1a685dede9a888aad7",
+    "lib/master-approved-pages.ts": "cbdc67ac707a98f85030bfc6034110f4c1af340e5e88417b96ceedc65db92863",
+    "lib/master-page-boundary.ts": "6cb494ebe2d382680c7519e034dde99be6997d2933c62a8f551b371ccb1d9d10",
+    "lib/routine-fqc-approved-history.ts": "fd88fea5833926ca21b8435ff2480ffe3d7bdac49cde83e69cbcda88edc1dc91",
+    "lib/routine-fqc-page-save.ts": "563f390aafe0d7ebe696abce6cfdc2869c0b4ed227737e9d7151619fa9e8f687",
+    "lib/routine-fqc-page.ts": "553abcbf4112702167426cfaea453807af8ede60e4593b2ed151cd9c87146404",
+    "lib/routine-fqc.ts": "b6061a8c755c450a04ca5e7ecf2bb3df8edea395f8ff9141dd7f93ea2e8ceaa5",
+    "lib/routine-page-approved-history.ts": "6414578242d99dd4587a3a2e966e28132fd98f2f55d5244984634e519afdb6d2",
+    "lib/shared-draft.ts": "2671a3f9677f253956f5a8d8e4687724bcd3689f9131b07b4488c1e2579bb1db",
+    "lib/versioned-shared-workflow.ts": "d50a300ed6802eb02eb4c86bfd935f1ecd806b455af4d470ba3fa66b53b17327",
+    "public/process/fqc-master.js": "f0532b181cbf878b6eeec857c3dbcd409ba907d84b49185853318e73ca89a40a",
+    "public/process/index.html": "b4087f395d077a0bbf5fc2aa85d02f8768cf683d2e9f949086ea2eafb11c6b3c",
+    "public/process/iqc-master.js": "a4736bb08dcda78db2263165b50158643062bbe5033099d6a397661bd3ed88bd",
+    "public/process/routine-equipment.js": "1327eb70d5f4f0c596c390bb19db4364513851c4f69d3ce92aaa4379f7ebde98",
+    "public/process/routine-fqc-page.js": "b9cd2a6607c3862b6e3803af4f0aafb01e7f70c22ee509320a02b34d5791c661",
+    "public/process/routine-fqc.js": "0b6d47db0144e741b5a7b01549eb5a35f5516e172dbccd2b21661eba2c280807",
+    "public/process/routine-page-approved-history.js": "08dc59c48e0bdc77a865b96a44392d4c1bf6bee14e4398d6ebd475d261daa74e",
+    "public/process/shared-draft-client.js": "9746fb531ca8c4b5424655cac4e83009f7b039369aa8959bb787223322fe780d",
+    "public/process/version-draft-ui.css": "83530d7ce7f45dea9a71f67a45b8155dcc20f39ca807967a352d43951b1513fd",
+    "public/process/version-draft-ui.js": "778dd3b91adc3674e2deb0566114d8a503bb5428f1554ed15b80a0c81f9f2f3b"
+  }
+}
