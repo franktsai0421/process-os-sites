@@ -354,7 +354,7 @@
       ]
     },
     "public/process/index.html": {
-      "afterHash": "bdcd35fff818e5ecf151a04fa0a06092d77191840998f6d1745ccc5b797b0343",
+      "afterHash": "a5b90a892b9a73ad6bac6421d6ec075daf183c4ced745d68767824dafc8fcb4f",
       "afterLength": 11497,
       "beforeHash": "d4a924bcbd5cc94ed3b0c351e53e5b26a98940e79b2e8418d7ecd10baa28ce75",
       "beforeNormalizedHash": "d4a924bcbd5cc94ed3b0c351e53e5b26a98940e79b2e8418d7ecd10baa28ce75",
@@ -364,28 +364,28 @@
         {
           "offset": 6319,
           "before": "    <script data-process-src=\"app.js?v=20261105-process-local-save1\"></script>\n",
-          "after": "    <script data-process-src=\"app.js?v=20261113-lines-flow3\"></script>\n"
+          "after": "    <script data-process-src=\"app.js?v=20261113-lines-flow4\"></script>\n"
         },
         {
           "offset": 6890,
           "before": "    <script data-process-src=\"shared-draft-client.js?v=20261113-abc-master1\"></script>\n    <script data-process-src=\"master-shared-client.js?v=20261112-process-history1\"></script>\n",
-          "after": "    <script data-process-src=\"shared-draft-client.js?v=20261113-lines-flow3\"></script>\n    <script data-process-src=\"master-shared-client.js?v=20261113-lines-flow3\"></script>\n"
+          "after": "    <script data-process-src=\"shared-draft-client.js?v=20261113-lines-flow4\"></script>\n    <script data-process-src=\"master-shared-client.js?v=20261113-lines-flow4\"></script>\n"
         },
         {
           "offset": 7431,
           "before": "    <script data-process-src=\"page-draft-merge.js?v=20261110-account-pages1\"></script>\n",
-          "after": "    <script data-process-src=\"page-draft-merge.js?v=20261113-lines-flow3\"></script>\n"
+          "after": "    <script data-process-src=\"page-draft-merge.js?v=20261113-lines-flow4\"></script>\n"
         },
         {
           "offset": 7705,
           "before": "    <script data-process-src=\"master-page-editor.js?v=20261113-abc-master2\"></script>\n    <script data-process-src=\"master-data.js?v=20261110-account-pages1\"></script>\n",
-          "after": "    <script data-process-src=\"master-page-editor.js?v=20261113-lines-flow3\"></script>\n    <script data-process-src=\"master-data.js?v=20261113-lines-flow3\"></script>\n"
+          "after": "    <script data-process-src=\"master-page-editor.js?v=20261113-lines-flow4\"></script>\n    <script data-process-src=\"master-data.js?v=20261113-lines-flow4\"></script>\n"
         }
       ]
     },
     "public/process/master-data.js": {
-      "afterHash": "aba7f08be4324bad1964f479b79ae0e5cd499a809a546113170ae41320f5ea16",
-      "afterLength": 64812,
+      "afterHash": "8fc948a49aa62ff8b1bb652a08268840d93b86a89e8bb757e4e0ee00b536482f",
+      "afterLength": 64977,
       "beforeHash": "6ef5e2502ad4803815c7ca4a926a21ce87d05f3b101bcb583f408964a22d46a8",
       "beforeNormalizedHash": "b132d8b1b08d0dbe82b9a9fa71fbb5c50e3cf480c61a53944f5ee86a191fb933",
       "beforeBlob": "1c161a9f35a82f51e545597e2862f4db06886dcb",
@@ -493,6 +493,11 @@
           "offset": 19518,
           "before": "      const cells=currentUser?.cells,visible=scope=>!cells||cells[(scope==='C'?'c':'ab')+'.view']===true;\n      if(!visible(state.masterScope))state.masterScope=visible('AB')?'AB':'C';\n      if(!visible(state.masterScope)){content.dataset.activeTab=tab;dataError=null;dataReady=Promise.resolve();try{approvedLinesOnly(content);}catch(error){dataError=error;content.innerHTML=`<section class=\"panel\" data-line-permission-notice role=\"alert\"><h3>${document.documentElement.lang==='vi'?'Chuyền và công đoạn':'線別與工段管理'}</h3><p>${document.documentElement.lang==='vi'?'Chưa xác minh được dữ liệu đã duyệt; hãy tải lại để kiểm tra.':'尚無法核對已核准資料；請重新載入確認。'}</p></section>`;}bindTabButtons();return;}\n",
           "after": "      // The pre-cutover page cannot borrow either catalog's draft or rights.\n      content.dataset.activeTab=tab;dataError=null;dataReady=Promise.resolve();\n      try{approvedLinesOnly(content);}catch(error){dataError=error;content.innerHTML=`<section class=\"panel\" data-line-permission-notice role=\"alert\"><h3>${document.documentElement.lang==='vi'?'Chuyền và công đoạn':'線別與工段管理'}</h3><p>${document.documentElement.lang==='vi'?'Chưa xác minh được dữ liệu đã duyệt; hãy tải lại để kiểm tra.':'尚無法核對已核准資料；請重新載入確認。'}</p></section>`;}\n      bindTabButtons();return;\n"
+        },
+        {
+          "offset": 45223,
+          "before": "    const ab = control.active.AB || fallback('AB'),\n      c = control.active.C || fallback('C'),\n",
+          "after": "    // Independent page reads may contain topology or catalog only. Complete\n    // missing fields from the admitted approved runtime, never a draft/seed.\n    const ab = {...fallback('AB'),...control.active.AB},\n      c = {...fallback('C'),...control.active.C},\n"
         }
       ]
     },
@@ -667,15 +672,30 @@
       ]
     },
     "scripts/test-master-read-projection.cjs": {
-      "afterHash": "ed9e026cdbbb09e5c808d2b51f3085ccf8af1ae633e82f84ab90a957f1661ba4",
-      "afterLength": 10945,
+      "afterHash": "b49a33aee996e39b78da15413619212cbcbd89610f84503bbdf3cec40f26f177",
+      "afterLength": 13143,
       "beforeHash": "2bef964c486c9cf84f6dc86d748c3cd49472afdedc006b15855ab1297153a583",
       "beforeNormalizedHash": "2bef964c486c9cf84f6dc86d748c3cd49472afdedc006b15855ab1297153a583",
       "beforeBlob": "edb93f3eaf4dfb0e32a9f6152f1f09f2d6a2ff4b",
       "beforeCRLF": [],
       "rules": [
         {
-          "offset": 6268,
+          "offset": 1627,
+          "before": "function applyProjection(f){const text=fs.readFileSync('public/process/master-data.js','utf8'),source=ts.createSourceFile('master-data.js',text,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);let fn;const find=node=>{if(ts.isFunctionDeclaration(node)&&node.name?.text==='applyActive')fn=node.getText(source);ts.forEachChild(node,find);};find(source);assert(fn);\n",
+          "after": "function applyProjection(f,overrides={},text=fs.readFileSync('public/process/master-data.js','utf8')){const source=ts.createSourceFile('master-data.js',text,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);let fn;const find=node=>{if(ts.isFunctionDeclaration(node)&&node.name?.text==='applyActive')fn=node.getText(source);ts.forEachChild(node,find);};find(source);assert(fn);\n"
+        },
+        {
+          "offset": 2565,
+          "before": " vm.runInNewContext(fn+';applyActive();',context);return{context,approved};\n",
+          "after": " Object.assign(context,overrides);vm.runInNewContext(fn+';applyActive();',context);return{context,approved};\n"
+        },
+        {
+          "offset": 3196,
+          "before": "",
+          "after": " const runtime={routing:{lines:[{id:'approved-line-A',code:'A',name:'Approved line',stages:[{id:'approved-stage-A',code:'A-1',name:'Approved stage'}]}],productRoutes:{P:{id:'approved-product',code:'P',name:'Approved product',line:'A',category:'Group',stages:['A-1'],unit:'pcs'}}},categoryGroups:[{line:'A',name:'Group'}]},runtimeBefore=JSON.stringify(runtime),newLines=[{...runtime.routing.lines[0],name:'New approved LINES',stages:[...runtime.routing.lines[0].stages,{id:'new-approved-stage',code:'A-NEW',name:'Approved new stage'}]}];\n const partial=()=>({window:{ProcessSync:{catalog:runtime}},control:{active:{LINES:{AB:{lines:newLines},C:{lines:[]}},AB:{lines:newLines},C:{lines:[]}},versions:[],workflowScopes:{LINES:{}}}});\n const refreshed=applyProjection(f,partial()).context;assert.equal(refreshed.data.products[0].name,'Approved product');assert.equal(refreshed.routing.lines[0].name,'New approved LINES');assert.equal(refreshed.routing.lines[0].stages.at(-1).code,'A-NEW');assert.equal(refreshed.control.active.PROCESS,undefined);assert.equal(JSON.stringify(runtime),runtimeBefore);assert.equal(f.posts(),0);\n const predecessor=require('node:child_process').execFileSync('git',['show','a85caf5a8f14770b02481f52f96e0ec1364458d3:public/process/master-data.js']).toString();assert.throws(()=>applyProjection(f,partial(),predecessor),/undefined|JSON/,'genuine prior refresh crashes on independently loaded topology');\n const catalog=applyProjection(f,{window:{ProcessSync:{catalog:runtime}},control:{active:{AB:{products:[{...runtime.routing.productRoutes.P,name:'Approved catalog only'}]}},versions:[],workflowScopes:{'AB.catalog':{}}}}).context;assert.equal(catalog.data.products[0].name,'Approved catalog only');assert.equal(catalog.routing.lines[0].stages[0].id,'approved-stage-A');assert.equal(catalog.control.active.PROCESS,undefined);assert.equal(JSON.stringify(runtime),runtimeBefore);assert.equal(f.posts(),0);checks.push('independently approved LINES refresh preserves admitted products and updates canvas routing without PROCESS creation or writes; genuine main counterexample crashes; catalog-only read retains approved topology');\n"
+        },
+        {
+          "offset": 8466,
           "before": "",
           "after": "  // Current login requires a checked transition and marker storage port. This\n  // synthetic fixture retains every projection/order/failure assertion below.\n  const token={};let transitionActive=false;\n  ctx.ProcessAccountTransition={begin(kind){assert.equal(kind,'login');assert.equal(transitionActive,false);transitionActive=true;return token;},current(value){return value===token&&transitionActive;},inputBlock:()=>false,confirm(value){assert.equal(value,token);assert(transitionActive);},finish(value){assert.equal(value,token);assert(transitionActive);transitionActive=false;},unconfirmed(){throw Error('Synthetic login outcome unconfirmed');}};\n  ctx.sessionStorage={removeItem(key){assert.equal(key,'process-platform-signed-out');}};\n"
         }
@@ -747,7 +767,7 @@
       ]
     },
     "tests/account-page-entry.test.cjs": {
-      "afterHash": "1dd3c0c500eca2c006b45fb3acad1e6403ff91cd7e837b90305295208c15bb10",
+      "afterHash": "0db3eb6bf3cd9f62931624155e3b30f2b98f773227dfd7ef330385ea944ceb25",
       "afterLength": 3063,
       "beforeHash": "3e49068bb7b725fd8c1db348c0dd20f7aa187e9a924d1b145bd3db9f60ee6058",
       "beforeNormalizedHash": "3e49068bb7b725fd8c1db348c0dd20f7aa187e9a924d1b145bd3db9f60ee6058",
@@ -757,12 +777,12 @@
         {
           "offset": 454,
           "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-abc-master1','master-page-editor.js':'20261113-abc-master2','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
-          "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-lines-flow3','master-page-editor.js':'20261113-lines-flow3','master-shared-client.js':'20261113-lines-flow3','page-draft-merge.js':'20261113-lines-flow3','master-data.js':'20261113-lines-flow3','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+          "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-lines-flow4','master-page-editor.js':'20261113-lines-flow4','master-shared-client.js':'20261113-lines-flow4','page-draft-merge.js':'20261113-lines-flow4','master-data.js':'20261113-lines-flow4','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
         }
       ]
     },
     "tests/equipment-submit-source.test.cjs": {
-      "afterHash": "3187a4d64b1a59b3db54e63c86fc7df6636e3b366478d32bfe4799cf5e3f7394",
+      "afterHash": "74dc35c023853730e61ace5ad97339f01d2698fb87ba221fd11345dba9afa2fe",
       "afterLength": 3496,
       "beforeHash": "b4bd8f0a774e18363f4b64fd013ee96e73c551229d28ae94c1350798d1c565c0",
       "beforeNormalizedHash": "b4bd8f0a774e18363f4b64fd013ee96e73c551229d28ae94c1350798d1c565c0",
@@ -772,12 +792,12 @@
         {
           "offset": 3147,
           "before": " assert.equal(index.split('shared-draft-client.js?v=20261113-abc-master1').length,2);\n",
-          "after": " assert.equal(index.split('shared-draft-client.js?v=20261113-lines-flow3').length,2);\n"
+          "after": " assert.equal(index.split('shared-draft-client.js?v=20261113-lines-flow4').length,2);\n"
         }
       ]
     },
     "tests/navigation-adapters.test.mjs": {
-      "afterHash": "97f2ac99566bdaa9c13b36ba209ff039084565472875fb22f6c818d4b71647d3",
+      "afterHash": "d7e5f6cfb6f2cd2bd3e29fff071b9cb9d4abd1a3dd90bb39e9ae1e9dfa9d0b9c",
       "afterLength": 21611,
       "beforeHash": "0652812d5f9e967868acc7cd7721bc144151cc7a1903997d7b721353a89d879c",
       "beforeNormalizedHash": "0652812d5f9e967868acc7cd7721bc144151cc7a1903997d7b721353a89d879c",
@@ -787,22 +807,22 @@
         {
           "offset": 16223,
           "before": "",
-          "after": "  'page-draft-merge.js':'20261113-lines-flow3',\n  'master-page-editor.js':'20261113-lines-flow3',\n"
+          "after": "  'page-draft-merge.js':'20261113-lines-flow4',\n  'master-page-editor.js':'20261113-lines-flow4',\n"
         },
         {
           "offset": 16445,
           "before": "  'app.js':'20261105-process-local-save1',\n",
-          "after": "  'app.js':'20261113-lines-flow3',\n"
+          "after": "  'app.js':'20261113-lines-flow4',\n"
         },
         {
           "offset": 17079,
           "before": "  'master-data.js':'20261110-account-pages1',\n  'master-shared-client.js':'20261112-process-history1',\n",
-          "after": "  'master-data.js':'20261113-lines-flow3',\n  'master-shared-client.js':'20261113-lines-flow3',\n"
+          "after": "  'master-data.js':'20261113-lines-flow4',\n  'master-shared-client.js':'20261113-lines-flow4',\n"
         },
         {
           "offset": 17523,
           "before": "  'shared-draft-client.js':'20261113-abc-master1',\n",
-          "after": "  'shared-draft-client.js':'20261113-lines-flow3',\n"
+          "after": "  'shared-draft-client.js':'20261113-lines-flow4',\n"
         }
       ]
     },
@@ -822,7 +842,7 @@
       ]
     },
     "tests/shared-draft-receipt-recovery.test.mjs": {
-      "afterHash": "c9665da8528b2b3f56235f77e77b50815f016b0a80d3c2284f7cf98433af2a51",
+      "afterHash": "264e9c67d90ff04f75a49df1413fee84474af4884b196545071ab64ba752cbd3",
       "afterLength": 16599,
       "beforeHash": "beb565f8f28a6cb3374272bdd60c88742afc6f01abec44a10f4b1054ead6b521",
       "beforeNormalizedHash": "beb565f8f28a6cb3374272bdd60c88742afc6f01abec44a10f4b1054ead6b521",
@@ -832,27 +852,27 @@
         {
           "offset": 14566,
           "before": "  'page-draft-merge.js':'20261110-account-pages1',\n",
-          "after": "  'page-draft-merge.js':'20261113-lines-flow3',\n"
+          "after": "  'page-draft-merge.js':'20261113-lines-flow4',\n"
         },
         {
           "offset": 14732,
           "before": "  'master-page-editor.js':'20261113-abc-master2',\n",
-          "after": "  'master-page-editor.js':'20261113-lines-flow3',\n"
+          "after": "  'master-page-editor.js':'20261113-lines-flow4',\n"
         },
         {
           "offset": 14838,
           "before": "  'shared-draft-client.js':'20261113-abc-master1',\n",
-          "after": "  'shared-draft-client.js':'20261113-lines-flow3',\n"
+          "after": "  'shared-draft-client.js':'20261113-lines-flow4',\n"
         },
         {
           "offset": 15399,
           "before": "  'app.js':'20261105-process-local-save1',\n",
-          "after": "  'app.js':'20261113-lines-flow3',\n"
+          "after": "  'app.js':'20261113-lines-flow4',\n"
         },
         {
           "offset": 15530,
           "before": "  'master-shared-client.js':'20261112-process-history1',\n  'master-data.js':'20261110-account-pages1',\n",
-          "after": "  'master-shared-client.js':'20261113-lines-flow3',\n  'master-data.js':'20261113-lines-flow3',\n"
+          "after": "  'master-shared-client.js':'20261113-lines-flow4',\n  'master-data.js':'20261113-lines-flow4',\n"
         }
       ]
     }

@@ -220,5 +220,23 @@
     "createTree": "aborted, exact expected tree and branch subsequently returned 404; not resent",
     "latestMain": "#112 merged while interrupted; semantically merged before new publication candidate",
     "smallerObjectPlan": "verified blob SHAs, small SHA-only tree, exact tree readback, one new draft PR"
+  },
+  "approvalRefreshFollowup": {
+    "status": "PASS_LOCAL_PENDING_FINAL_CI",
+    "masterDataBlob": "1b13a5ff1fa6d406c70ed63d75b920e7b033d031",
+    "checks": [
+      "production applyActive with LINES-only owner preserves approved runtime products and refreshes canvas routing",
+      "genuine a85caf5 applyActive counterexample crashes on missing product array",
+      "catalog-only owner retains admitted approved topology",
+      "actual LINES approve button + signed route + real shared bridge + production applyActive; four original operations, zero extra POST, no PROCESS publication"
+    ],
+    "controllerCases": 4,
+    "productionProjectionChecks": 9,
+    "logs": [
+      "/tmp/lines-flow-approve-refresh-controller.log",
+      "/tmp/lines-flow-approved-refresh-fix.log"
+    ],
+    "cacheTag": "20261113-lines-flow4",
+    "finalRemoteHeadAndCI": "See PR #115 final evidence; earlier head PASS is not final-head acceptance"
   }
 }

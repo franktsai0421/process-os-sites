@@ -956,8 +956,10 @@
     // permission scopes never become seeded master data or storage updates.
     const runtime=window.ProcessSync?.catalog;
     const fallback=scope=>runtime?{products:runtime.routing.lines.filter(line=>scope==='C'?line.code==='C':['A','B'].includes(line.code)).flatMap(line=>Object.values(runtime.routing.productRoutes).filter(row=>row.line===line.code)),lines:runtime.routing.lines.filter(line=>scope==='C'?line.code==='C':['A','B'].includes(line.code)),categoryGroups:(runtime.categoryGroups||[]).filter(group=>scope==='C'?group.line==='C':['A','B'].includes(group.line))}:empty;
-    const ab = control.active.AB || fallback('AB'),
-      c = control.active.C || fallback('C'),
+    // Independent page reads may contain topology or catalog only. Complete
+    // missing fields from the admitted approved runtime, never a draft/seed.
+    const ab = {...fallback('AB'),...control.active.AB},
+      c = {...fallback('C'),...control.active.C},
       all = [...clone(ab.products), ...clone(c.products)],
       groupMap = new Map();
     [

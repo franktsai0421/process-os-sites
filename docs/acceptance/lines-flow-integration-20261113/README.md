@@ -88,3 +88,9 @@ Git HTTPS push 因雲端沒有登入憑證而未執行。其後單筆大型 GitH
 `04e2c46` 對應本地 99/99；`c026e45` 前的來源／權限／導航修正 100/100。中途套件結果只作診斷；最終遠端 head、原生結果及 CI 以 PR 最後更新為準，不把前一輪 PASS 當新 HEAD 全部驗收。
 
 第三輪 `c026e45` 的 compiled PROCESS 原生 runner 已完整 PASS（同一 job 後續 AB/C 比對 fixture IDs 失敗，不能稱該工作流程已全綠）。LINES 原生已完成增刪、保存、重載、送審／撤回／退回／再送／核准，最後發現新輸入沒有即時啟用「取消本機修改」；已修正 discard／submit 可用狀態並加入實際 controller 零寫入回歸。完整原生重新驗收仍以最後 head CI 為準。
+
+補查實際核准後 `loadScope('LINES')` → `applyActive()` 發現部分 owner 只含 lines，舊函式直接讀 `ab.products` 會失敗。現在以已授權的 approved runtime 補齊缺少欄位，再套用已核准 owner；不讀 draft、不補 seed、不生 PROCESS。production `applyActive` 測試涵蓋 LINES-only／catalog-only，保留原 approved catalog、更新 canvas routing、零 POST；另執行真正 main `a85caf5` 的舊函式確認反例會崩潰。此檢查已加入本 PR CI；全 SPA 及真站仍不冒稱完成。
+
+目前資產版本進一步更新為 `20261113-lines-flow4`，對應上述 approved refresh 修正。另以實際 LINES 按鈕 → signed API → 真 `createMasterSharedBridge.load('LINES')` → production `applyActive` 整合測試，確認已核准畫布 routing 更新，產品從已授權 runtime 保留，不生 PROCESS、不多送操作；四項 controller 驗收通過。
+
+共同候選風險：#113／#114／#115 同改 `abc-master-source-contract.cjs` 的 `restore`／`projectKnown`、index 和導航／cache 斷言；#114／#115 同改 `shared-draft-client.js`。本 PR 未搬入兩個未合併候選。各自全綠不能證明三者相容，共同候選須保留三套 source proof 和負例、核對組合順序與完整真實前身，再跑實際合樹回歸；不能覆蓋任一組或降低 hash 門檻。

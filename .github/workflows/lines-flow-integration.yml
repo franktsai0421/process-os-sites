@@ -45,6 +45,7 @@ jobs:
           node scripts/test-process-page-lifecycle.cjs
           node scripts/test-process-page-roles.cjs
           node scripts/test-lines-flow-boundaries.cjs
+          node scripts/test-master-read-projection.cjs
           node --test tests/lines-flow-navigation.test.mjs tests/lines-flow-media-merge.test.mjs tests/lines-flow-process-conflicts.test.mjs tests/process-local-bridge.test.mjs tests/process-local-save.test.mjs
           node --test --test-concurrency=1 tests/master-page-approved-history.test.mjs tests/master-page-approved-history-ui.test.mjs tests/process-master-history-ui.test.mjs
       - run: npx playwright install --with-deps chromium
