@@ -43,9 +43,13 @@ jobs:
         run: node scripts/test-master-line-draft.cjs
       - name: Approved history read contracts
         run: node scripts/test-approved-history-evidence.cjs
+      - name: Catalog page lifecycle, slow operations, handoff and original source proof
+        run: node --test tests/abc-master-ui.test.mjs tests/abc-master-transport.test.mjs tests/abc-master-handoff.test.mjs tests/abc-master-source.test.cjs tests/master-page-approved-history.test.mjs tests/master-page-approved-history-ui.test.mjs
       - run: npm run sites:source-check
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: node tests/abc-local-save-browser.mjs
+      - name: Compiled independent AB C catalog pages, desktop and narrow bilingual
+        run: node tests/abc-master-browser.mjs
       - name: Existing cold-start and cross-module departure contracts
         run: node --test --test-concurrency=1 tests/native-ab-startup.test.mjs tests/draft-abandon-native.test.mjs tests/shared-unknown-departure-native.test.mjs

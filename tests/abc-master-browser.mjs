@@ -1,0 +1,33 @@
+// Compiled application, real Chromium, isolated synthetic D1/R2. page-v1 is
+// constructed only inside this fixture; no hosted state or migration is used.
+import fs from 'node:fs';import assert from 'node:assert/strict';import {chromium} from 'playwright';import {createABCFixture} from './ab-c-native-fixture.mjs';
+const report={programCommit:process.env.PROCESS_PROGRAM_COMMIT,checks:[],timings:[],pageErrors:[],notRun:['human acceptance','physical phone','real IME','production-size data','live activation']};
+let f,browser,step='startup';
+try{
+ f=await createABCFixture({products:8,decorate(values){const root=JSON.parse(values.masterDataControl),copy=structuredClone,topology={};
+  for(const part of ['AB','C']){const full=root.active[part];for(const [collection,rows]of Object.entries({products:full.products,categoryGroups:full.categoryGroups,lines:full.lines}))for(const [i,row]of rows.entries()){row.id=part+'-'+collection+'-'+i;for(const [n,stage]of (row.stages||[]).entries())if(typeof stage==='object')stage.id=part+'-stage-'+n;}
+   root.versions.find(v=>v.scope===part).snapshot=copy(full);const scope=part+'.catalog',body={products:copy(full.products),categoryGroups:copy(full.categoryGroups)};root.active[scope]=body;topology[part]={lines:copy(full.lines)};root.versions.push({id:'approved-'+scope,scope,number:1,status:'approved',snapshot:copy(body),revision:0,creatorId:'fixture',creatorName:'Synthetic fixture',createdAt:'fixture',updatedAt:'fixture',history:[]});
+  }
+  root.active.LINES=topology;root.versions.push({id:'approved-LINES',scope:'LINES',number:1,status:'approved',snapshot:copy(topology),revision:0,creatorId:'fixture',creatorName:'Synthetic fixture',createdAt:'fixture',updatedAt:'fixture',history:[]});root.pageDraftLayout='page-v1';root.workflowScopes={};values.masterDataControl=JSON.stringify(root);
+ }});
+ browser=await chromium.launch({...(fs.existsSync('/usr/bin/chromium')?{executablePath:'/usr/bin/chromium'}:{}),headless:true,args:['--no-sandbox']});const origin=f.url.origin;
+ const root=async()=>{const row=await f.db.prepare('SELECT "values" FROM shared_state WHERE id=1').first();return JSON.parse((await f.load('lib/process-state.ts').decodeValues(row.values)).masterDataControl);};
+ for(const width of [1280,390])for(const lang of ['zh','vi']){
+  const context=await browser.newContext({viewport:{width,height:844}});await context.addCookies([{name:'process_demo',value:f.cookie('frank'),url:origin}]);await context.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());const p=await context.newPage();const posts=[];p.on('pageerror',e=>report.pageErrors.push(e.message));p.on('request',r=>{if(r.method()==='POST'&&r.url().includes('/api/master/pages'))posts.push(r.postDataJSON());});p.on('dialog',d=>{assert.notEqual(d.type(),'beforeunload');return d.accept(d.type()==='prompt'?'Synthetic catalog acceptance':undefined);});
+  const text=(zh,vi)=>lang==='vi'?vi:zh,button=(zh,vi)=>p.getByRole('button',{name:text(zh,vi),exact:true}),field=(zh,vi)=>p.getByLabel(text(zh,vi),{exact:true});
+  const idle=async()=>{await p.waitForFunction(()=>!!document.querySelector('[data-master-page]')&&document.querySelector('[data-master-page]').getAttribute('aria-busy')==='false'&&!document.querySelector('#process-boot'));};
+  const click=async(zh,vi)=>{await button(zh,vi).click();await idle();assert.equal(await p.locator('#data-content [role=alert]').count(),0);};
+  for(const page of ['AB','C']){
+   step=page+' '+width+' '+lang;const started=performance.now();await p.goto(origin+'/process/?system=process&view=data&dataTab='+page);await idle();if(((await p.locator('html').getAttribute('lang'))?.startsWith('vi')?'vi':'zh')!==lang){await p.locator('.top-actions .language-switch').click();await idle();}report.timings.push({page,width,lang,operation:'entry',elapsedMs:performance.now()-started,syntheticProducts:8});
+   if(await button('開啟草稿','Mở bản nháp').isEnabled())await click('開啟草稿','Mở bản nháp');const before=posts.length,other=page==='AB'?'C.catalog':'AB.catalog',otherBefore=JSON.stringify((await root()).workflowScopes[other]);const value='Changed '+step;
+   await field('產品名稱','Tên sản phẩm').first().fill(value);await field('規格','Quy cách').first().fill('Spec '+step);assert.equal(posts.length,before);await click('存取草稿','Lưu bản nháp');assert.equal(posts.length,before+1);let state=await root();assert.equal(state.workflowScopes[page+'.catalog'].saved.content.products[0].name,value);assert.equal(JSON.stringify(state.workflowScopes[other]),otherBefore);
+   await p.reload();await idle();assert.equal(await field('產品名稱','Tên sản phẩm').first().inputValue(),value);
+   for(const [zh,vi]of [['送審','Gửi duyệt'],['撤回','Rút lại'],['送審','Gửi duyệt'],['核准','Duyệt']])await click(zh,vi);state=await root();assert.equal(state.active[page+'.catalog'].products[0].name,value);assert.equal(JSON.stringify(state.workflowScopes[other]),otherBefore);
+   await click('開啟草稿','Mở bản nháp');const n=posts.length;await field('產品名稱','Tên sản phẩm').first().fill('UNSENT');await p.reload();await idle();assert.equal(posts.length,n);assert.equal(await field('產品名稱','Tên sản phẩm').first().inputValue(),value);
+   assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));assert.equal(await p.locator('#data-content [aria-live=polite]').count()>0,true);report.checks.push(step+': edit/local-only/Save/reload/submit/withdraw/resubmit/approve/isolation/silent reload/overflow');
+  }
+  await context.close();
+ }
+ assert.deepEqual(report.pageErrors,[]);report.status='PASS';report.buildEntrySha256=f.buildEntrySha256;
+}catch(error){report.status='FAIL';report.step=step;report.error=error.message;process.exitCode=1;}
+finally{await browser?.close();await f?.close();fs.mkdirSync('.sites-runtime',{recursive:true});fs.writeFileSync('.sites-runtime/abc-master-browser.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));}

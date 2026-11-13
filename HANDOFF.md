@@ -1,3 +1,7 @@
+## 2026-11-13 — AB/C master catalog cloud candidate
+
+Independent main-f0f425d draft candidate improves explicit catalog I/O, fresh Save verification, progress and new-row visibility. Read-only pinned legacy ownership inventory; no adoption/data/backup/deployment. [Sources,21 requirements and verification limits](docs/acceptance/abc-master-integration-20261113/README.md). LINES and PROCESS remain separately owned work.
+
 ## 2026-11-13 — #111 integrates merged #110
 
 Existing #111 now merges main f0f425d and preserves both equipment/media/history and process Submit outcome behavior. Exact two-origin source proof, risk matrix and merge-gate limits: [record](docs/acceptance/process-submit-outcome-20261113.md). No deployment or real-data changes; historical checkpoints below retain their original scope.

@@ -8,7 +8,7 @@
   if(!actor?.id)throw Error('LOGIN_REQUIRED');
   const owner=()=>actor===host.ProcessSync?.identity&&epoch===host.ProcessSync?.identityGeneration?.()&&(!delivery||host.ProcessSync?.isCurrentDelivery?.(delivery)!==false);
   const client=host.createSharedDraftClient({endpoint:'/api/master/pages?scope='+page+'&caseMetadata=1',actorId:actor.id,durableBegin:true,allowUnknownDeparture:true,guardAccessResults:true,legacyArchive:true,headers:()=>host.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'}});
-  let container,control,permissions={},base,mine,generation,busy=false,error='',part='AB',filter='',readSequence=0,choiceDialog,pendingImportFile,importApplied=false,lineFilter='',categoryFilter='';
+  let container,control,permissions={},base,mine,generation,busy=false,error='',progress='',part='AB',filter='',readSequence=0,choiceDialog,pendingImportFile,importApplied=false,lineFilter='',categoryFilter='';
   const history=host.ProcessMasterPageHistory?.create({page,client,owner,control:()=>control,busy:()=>busy,dirty:()=>dirty(),dialog:()=>choiceDialog,permissions:value=>{permissions={...permissions,...value};},render:()=>render()});
   const displayCurrent=()=>history?.mutable()!==false;
   const flow=()=>control?.workflow,dirty=()=>mine!==undefined&&(!same(mine,base)||!!pendingImportFile);
@@ -18,8 +18,9 @@
    if(reset||mine===undefined){base=copy(current());mine=copy(base);generation=flow()?.generation;pendingImportFile=undefined;importApplied=false;}}
   async function read(reset=false){history?.assertMutable();const ticket=history?.stamp(),sequence=++readSequence,result=await client.read(undefined,{isCurrent:()=>history?history.current(ticket):owner()});assertOwner();if(history&&!history.current(ticket)||sequence!==readSequence)throw Error('MASTER_CATALOG_READ_SUPERSEDED');adopt(result,reset);return result;}
   function canEdit(){return displayCurrent()&&!!flow()&&!flow().pendingId&&permissions.edit===true&&!busy&&!client.hasUnknown();}
-  function button(parent,label,action,enabled=true){const result=node('button',label,parent);result.type='button';result.className='button ghost';result.disabled=!enabled;result.onclick=()=>void act(action);return result;}
-  async function act(action){if(busy)return;busy=true;error='';render();try{assertOwner();history?.assertMutable();await action();}catch(failure){if(owner())error=host.sharedDraftErrorMessage?.(failure)||failure.message;}finally{busy=false;if(owner())render();}}
+  function button(parent,label,action,enabled=true){const result=node('button',label,parent);result.type='button';result.className='button ghost';result.disabled=!enabled;result.onclick=()=>void act(action,label);return result;}
+  function reportProgress(value){progress=value;const status=container?.querySelector('[data-page-progress]');if(status)status.textContent=progress;}
+  async function act(action,label=t('載入資料','Tải dữ liệu')){if(busy)return;busy=true;error='';progress=label+'…';render();try{assertOwner();history?.assertMutable();await action();}catch(failure){if(owner())error=host.sharedDraftErrorMessage?.(failure)||failure.message;}finally{busy=false;progress='';if(owner())render();}}
   function change(row,key,input){input.disabled=!canEdit();input.value=Array.isArray(row[key])?row[key].join(', '):row[key]??'';input.oninput=()=>{if(!canEdit()||!owner())return;row[key]=Array.isArray(row[key])?input.value.split(',').map(value=>value.trim()).filter(Boolean):input.value;showDirty();};}
   function field(parent,label,row,key,type='text'){const cell=node('td',undefined,parent),input=node('input',undefined,cell);input.type=type;input.setAttribute('aria-label',label);change(row,key,input);return input;}
   function showDirty(){const status=container?.querySelector('[data-page-dirty]');if(status)status.textContent=dirty()?t('本機尚未存取','Thay đổi chưa lưu'):t('沒有本機修改','Không có thay đổi cục bộ');}
@@ -78,10 +79,10 @@
     const routeRow=node('tr',undefined,body),cell=node('td',undefined,routeRow);cell.colSpan=10;routePicker(cell,product.stages,refs.find(row=>row.code===product.line)?.stages||[],route=>{product.stages=route;product.routeMode='exception';},t('產品路線','Tuyến sản phẩm')+' · '+product.code);
 
    }
-   button(parent,t('新增產品','Thêm sản phẩm'),()=>{mine.products.push({id:crypto.randomUUID(),code:'',name:'',category:'',line:refs[0]?.code||'',stages:[],routeMode:'exception'});},canEdit()&&permissions.create===true);
+   button(parent,t('新增產品','Thêm sản phẩm'),()=>{filter='';mine.products.push({id:crypto.randomUUID(),code:'',name:'',category:categoryFilter,line:lineFilter||refs[0]?.code||'',stages:[],routeMode:'exception'});},canEdit()&&permissions.create===true);
    node('h3',t('類別與預設路線','Nhóm và lộ trình mặc định'),parent);
    const groups=table(parent,[t('類別','Nhóm'),t('線別','Chuyền'),t('預設工段（逗號分隔）','Công đoạn mặc định'),t('操作','Thao tác')]);
-   for(const group of mine.categoryGroups){const row=node('tr',undefined,groups);let previous=group.name;const name=field(row,t('類別名稱','Tên nhóm'),group,'name');name.oninput=()=>{if(!canEdit()||!owner())return;const next=name.value;for(const product of mine.products)if(product.line===group.line&&product.category===previous)product.category=next;group.name=next;if(categoryFilter===previous)categoryFilter=next;previous=next;showDirty();};
+   for(const group of mine.categoryGroups){const row=node('tr',undefined,groups);let previous=group.name;const name=field(row,t('類別名稱','Tên nhóm'),group,'name');name.oninput=()=>{if(!canEdit()||!owner())return;const next=name.value;for(const product of mine.products)if(product.line===group.line&&product.category===previous)product.category=next;group.name=next;if(categoryFilter&&categoryFilter===previous)categoryFilter=next;previous=next;showDirty();};
     const line=node('select',undefined,node('td',undefined,row));line.setAttribute('aria-label',t('類別線別','Chuyền nhóm'));for(const ref of refs){const option=node('option',ref.code,line);option.value=ref.code;}line.value=group.line;line.disabled=!canEdit();line.onchange=()=>{if(!canEdit()||!owner())return;if(mine.products.some(product=>product.line===group.line&&product.category===group.name)){error=t('此類別已有產品，請先調整產品線別再移動類別。','Nhóm có sản phẩm; đổi chuyền sản phẩm trước khi chuyển nhóm.');render();return;}group.line=line.value;group.defaultStages=null;render();};
     const route=field(row,t('預設工段','Công đoạn mặc định'),group,'defaultStages');route.onchange=()=>{if(!canEdit()||!owner())return;void act(()=>groupRoute(group,route.value.split(',').map(value=>value.trim()).filter(Boolean)));};route.oninput=()=>{};
     const actions=node('td',undefined,row);button(actions,t('刪除類別','Xóa nhóm'),()=>{if(mine.products.some(product=>product.line===group.line&&product.category===group.name)||group.defaultStages?.length)throw Error(t('類別仍有產品或預設路線，請先移轉或移除設定。','Nhóm còn sản phẩm hoặc tuyến; chuyển hoặc gỡ trước.'));if(confirmRemoval(t('刪除空類別？核准後才套用。','Xóa nhóm trống? Chỉ áp dụng sau duyệt.')))mine.categoryGroups.splice(mine.categoryGroups.indexOf(group),1);},canEdit()&&permissions.delete===true);reorder(actions,mine.categoryGroups,group,group.name);
@@ -102,14 +103,14 @@
    if(pendingImportFile&&!importApplied)throw Error(t('請先套用匯入檔，或取消本機修改後再存取。','Áp dụng tệp nhập hoặc hủy thay đổi cục bộ trước khi lưu.'));if(client.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
    const input=copy(mine),original=JSON.stringify(mine),oldBase=copy(base),oldGeneration=generation;
    for(let attempt=0;attempt<8;attempt++){
-    const fresh=await client.read();assertOwner();if(JSON.stringify(mine)!==original)throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');
+    reportProgress(t('正在核對最新草稿…','Đang kiểm tra bản nháp mới nhất…'));const fresh=await client.read();assertOwner();if(JSON.stringify(mine)!==original)throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');
     const current=fresh.control?.workflow;if(!current||current.generation!==oldGeneration)throw Error('STALE_GENERATION');
     if(!['view','save'].every(key=>fresh.permissions?.[key]===true)||fresh.permissions.edit!==true&&!same(input,oldBase))throw Error('FORBIDDEN');if(current.pendingId)throw Error('PENDING_LOCKED');
     const comparison=host.ProcessPageDraftMerge.compare(oldBase,input,current.working,page),choice=comparison.conflicts.length?await choose(comparison.conflicts):'mine';assertOwner();if(choice==='cancel')return;
     const confirmed=await client.read();assertOwner();if(!same(confirmed.control?.workflow,current))continue;
     if(JSON.stringify(mine)!==original)throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');if(!['view','save'].every(key=>confirmed.permissions?.[key]===true)||confirmed.permissions.edit!==true&&!same(input,oldBase))throw Error('FORBIDDEN');
     const batches=comparison.materialize(choice).filter(batch=>batch.patches.length||batch.guards.length);if(batches.length&&confirmed.permissions.edit!==true)throw Error('FORBIDDEN');const command=client.prepare(current.generation,'save',{expectedRevision:current.revision,moduleAction:'save-local-v1',patches:batches.flatMap(batch=>batch.patches),input:{batches}});
-    const result=await client.sendPrepared(command);assertOwner();adopt(result,true);return;
+    reportProgress(t('正在存取並核對結果，請稍候…','Đang lưu và xác minh kết quả, vui lòng chờ…'));const result=await client.sendPrepared(command);assertOwner();adopt(result,true);return;
    }
    throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
   }
@@ -126,16 +127,16 @@
    const result=await client.command(current.generation,action,{reason,expectedRevision:current.revision,...(action==='submit'?host.captureSharedDraftSubmission(current):{caseId:pending}),...(self?{selfReviewConfirmed:true}:{})});adopt(result,true);
   }
   function render(){
-   if(!container||!container.isConnected||!owner()||container.dataset.activeTab!==(page==='LINES'?'line-admin':page))return;if(history?.historical())return;container.replaceChildren();container.dataset.masterPage=page;
+   if(!container||!container.isConnected||!owner()||container.dataset.activeTab!==(page==='LINES'?'line-admin':page))return;if(history?.historical())return;container.replaceChildren();container.dataset.masterPage=page;container.setAttribute('aria-busy',String(busy));
    const panel=node('section',undefined,container);panel.className='panel';node('h2',page==='LINES'?t('線別與工段管理','Chuyền và công đoạn'):page+t(' 產線與類別',' · Sản phẩm và nhóm'),panel);
-   const status=node('p','',panel);status.dataset.pageDirty='';showDirty();if(error){const message=node('p',error,panel);message.setAttribute('role','alert');}
+   const status=node('p','',panel);status.dataset.pageDirty='';showDirty();const activity=node('p',progress,panel);activity.dataset.pageProgress='';activity.setAttribute('role','status');activity.setAttribute('aria-live','polite');if(error){const message=node('p',error,panel);message.setAttribute('role','alert');}
    const toolbar=node('div',undefined,panel);toolbar.className='actions';
    button(toolbar,t('開啟草稿','Mở bản nháp'),async()=>{adopt(await client.begin(),true);},!busy&&!dirty()&&!control?.versions.some(version=>['draft','pending','pending-test'].includes(version.status))&&permissions.edit===true&&!client.hasUnknown());
    button(toolbar,t('存取草稿','Lưu bản nháp'),save,!busy&&!!flow()&&!flow().pendingId&&permissions.save===true&&!client.hasUnknown());
    button(toolbar,t('送審','Gửi duyệt'),()=>lifecycle('submit'),!busy&&!!flow()?.saved&&!flow().pendingId&&permissions.submit===true&&!dirty()&&!client.hasUnknown());
    for(const [action,label]of [['withdraw',t('撤回','Rút lại')],['approve',t('核准','Duyệt')],['return',t('退回','Trả lại')]])button(toolbar,label,()=>lifecycle(action),!busy&&!!flow()?.pendingId&&permissions[action]===true&&!client.hasUnknown());
    if(client.hasUnknown())button(toolbar,t('查詢原操作結果','Tra cứu kết quả thao tác'),async()=>{const result=await client.resolveUnknown();assertOwner();if(result?.control)adopt(result,true);else await read(true);},!busy);
-   if(!control){node('p',t('載入中…','Đang tải…'),panel);return;}
+   if(!control){if(error)button(panel,t('重試讀取','Thử tải lại'),()=>read(true),!busy);else node('p',t('載入中…','Đang tải…'),panel);return;}
    if(flow()?.pendingId)node('p',t('本頁整份草稿待審，無法修改。','Toàn bộ bản nháp của trang đang chờ duyệt, không thể sửa.'),panel);
    transferToolbar(panel);button(toolbar,t('取消本機修改','Hủy thay đổi cục bộ'),()=>{if(host.confirm(t('放棄本頁尚未存取的修改？','Bỏ thay đổi chưa lưu của trang?'))){discardLocal();pendingImportFile=undefined;importApplied=false;}},canEdit()&&dirty());if(page==='LINES')lines(panel);else catalogs(panel);history?.mount(container);history?.guardDOM(container);
   }

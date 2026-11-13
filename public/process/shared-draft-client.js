@@ -320,6 +320,10 @@
     if(processLocalSave!==false&&(processLocalSave!==true||!durableBegin||boundedScope!=='master:PROCESS'))throw Error('PROCESS_LOCAL_SCOPE_REQUIRED');
     const masterLocalBegin=durableBegin&&beginPath==='/api/master/workflow'&&(processLocalSave?['PROCESS']:['AB','C']).includes(beginParams.get('scope'))&&endpoint===`/api/master/workflow?scope=${beginParams.get('scope')}&caseMetadata=1`;
     const pageLocalBegin=durableBegin&&beginPath==='/api/master/pages'&&['AB','C','LINES'].includes(beginParams.get('scope'))&&endpoint===`/api/master/pages?scope=${beginParams.get('scope')}&caseMetadata=1`;
+    // Only the two catalog owners opt out of fixed elapsed-time aborts. Network
+    // failures still retain the original operation and use receipt-only recovery.
+    const catalogPageBegin=pageLocalBegin&&['AB','C'].includes(beginParams.get('scope'));
+    const catalogExplicitIO=catalogPageBegin||masterLocalBegin&&!processLocalSave;
     const beginScopePath=(masterLocalBegin||pageLocalBegin)?beginPath+'?scope='+beginParams.get('scope'):beginPath;
     if(durableBegin&&!masterLocalBegin&&!pageLocalBegin&&!abModule&&(!['/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-c/workflow','/api/tooling/workflow','/api/bom/workflow','/api/process-authoring/workflow','/api/routine-equipment/workflow'].includes(beginPath)||externalCanvas||[...beginParams].some(([key,value])=>key!=='caseMetadata'||value!=='1')||beginParams.getAll('caseMetadata').length>1))throw Error('BEGIN_DURABLE_SCOPE_REQUIRED');
     const beginRuntimeOwner=durableBegin?{...departureOwner(),delivery:window.ProcessSync?.captureDelivery?.()}:null;
@@ -454,7 +458,7 @@
       })();reservation.task=task;beginPending=task;try{return await task;}finally{release();if(comparison?.retireBegin===retire)delete comparison.retireBegin;}
     }
     if(durableBegin)beginOutstanding();
-    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);
+    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||catalogPageBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);
     function reportAccessEvent(command,phase='unknown') {
       try {
         const sources={'/api/fqc/workflow':'fqc','/api/iqc/workflow':'iqc','/api/ipqc-c/workflow':'ipqc-c','/api/bom/workflow':'bom','/api/tooling/workflow':'tooling','/api/routine-equipment/workflow':'equipment','/api/process-authoring/workflow':'editor'};
@@ -950,7 +954,7 @@
       const cCreate=body?.command?.action==='apply'&&body.command.moduleAction==='create-item'&&/^\/api\/ipqc-c\/workflow(?:\?|$)/.test(endpoint);
       const requestDeadline=['begin','begin-v1'].includes(body?.action)||cCreate?45000:body?mutationDeadline:45000;
       let deadlineExpired=false,phase='headers';
-      const controller=new AbortController(),timer=setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);
+      const controller=new AbortController(),timer=catalogExplicitIO?null:setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);
       try {
         const requestOptions={method:body?'POST':'GET',headers:headers(),cache:'no-store',signal:controller.signal,...(body?{body:JSON.stringify(body.command?{...body,command:packCommand(body.command)}:body)}:{})};
         if(externalCanvas&&body){
@@ -1032,7 +1036,7 @@
       return result;
     }
     async function masterSaveReadback(result,command){
-      if(!masterLocalBegin||processLocalSave||command?.action!=='save'||command.moduleAction!=='save-local-v1')return result;
+      if(!catalogExplicitIO||command?.action!=='save'||command.moduleAction!=='save-local-v1')return result;
       confirmedReceipt(result,command.operationId,command.generation,'save');
       // A Save ACK's control is not a fresh permission read. Read directly rather
       // than treating the successful ACK as unknown just to obtain permissions.
@@ -1043,7 +1047,7 @@
         throw Error('SAVE_READBACK_REQUIRED',{cause});
       }
       const flow=fresh.control?.workflow,r=result.receipt;
-      if(!beginRuntimeCurrent()||fresh.permissions?.view!==true||!flow||flow.generation!==r.generation||flow.revision<r.revision||flow.revision===r.revision&&(flow.saved?.id!==r.savedId||!equipmentContentEqual(flow.working,flow.saved?.content)))throw Error('SAVE_READBACK_REQUIRED');
+      if(!beginRuntimeCurrent()||fresh.permissions?.view!==true||!flow||catalogPageBegin&&flow.scope!=='master:'+beginParams.get('scope')+'.catalog'||flow.generation!==r.generation||flow.revision<r.revision||flow.revision===r.revision&&(flow.saved?.id!==r.savedId||!equipmentContentEqual(flow.working,flow.saved?.content)))throw Error('SAVE_READBACK_REQUIRED');
       return {...fresh,receipt:r};
     }
     // JSON object key order is not content; array positions, keys and values are.

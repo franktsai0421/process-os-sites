@@ -1,3 +1,7 @@
+## 2026-11-13 — A/B、C catalog cloud candidate
+
+Exact durable AB/C catalog routes no longer abort solely at15/45秒；新page Save原收據＋權威重讀，失敗保持UNKNOWN及原marker；其他模組期限不變。editor慢處理進度、防連點、新增空類別不誤切篩選。`previewMasterCatalogHandoff`提供固定來源的舊workflow/save/case/version/receipt原歸屬digest清單，不遷移或啟用page-v1。[來源、21項覆蓋與驗證界線](../../docs/acceptance/abc-master-integration-20261113/README.md)。
+
 ## 2026-11-10 — Local permission/page composition
 
 獨立 AB.catalog／C.catalog／LINES 頁候選與版本平台使用同一 owner API／固定案件；線別 AB/C 為同頁篩選，舊 writer 在採用後退休，未採用不能由 query 開啟。有效 line Edit→Save 在 adoption 前也會改格，原 raw ACL 不覆寫；舊入口與跨模組仍拒絕。只有空編輯批次可獨立 Save，帶 batch 仍檢查 Edit。 尚未啟用真資料或宣稱原生／實站驗收。[來源與驗證界線](../ACCOUNT_PERMISSION_INTEGRATION_LOCAL.md)。

@@ -1,0 +1,159 @@
+{
+  "base": "ba315149e7478c288d2f3af45c8668aa60070919",
+  "contracts": [
+    {
+      "file": "public/process/shared-draft-client.js",
+      "beforeHash": "7b3a7f0d424d698873ee8d84f311681cecd3259cfe7d033a5ffc8923bf65e920",
+      "beforeNormalizedHash": "7b3a7f0d424d698873ee8d84f311681cecd3259cfe7d033a5ffc8923bf65e920",
+      "afterHash": "32886b28ef01e46cf4b04b4b9f0d3b9e02047016226756c18731c0cddb43b70e",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 36543,
+          "before": "",
+          "after": "    // Only the two catalog owners opt out of fixed elapsed-time aborts. Network\n    // failures still retain the original operation and use receipt-only recovery.\n    const catalogPageBegin=pageLocalBegin&&['AB','C'].includes(beginParams.get('scope'));\n    const catalogExplicitIO=catalogPageBegin||masterLocalBegin&&!processLocalSave;\n"
+        },
+        {
+          "offset": 56966,
+          "before": "    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);\n",
+          "after": "    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||catalogPageBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);\n"
+        },
+        {
+          "offset": 117098,
+          "before": "      const controller=new AbortController(),timer=setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);\n",
+          "after": "      const controller=new AbortController(),timer=catalogExplicitIO?null:setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);\n"
+        },
+        {
+          "offset": 129056,
+          "before": "      if(!masterLocalBegin||processLocalSave||command?.action!=='save'||command.moduleAction!=='save-local-v1')return result;\n",
+          "after": "      if(!catalogExplicitIO||command?.action!=='save'||command.moduleAction!=='save-local-v1')return result;\n"
+        },
+        {
+          "offset": 129798,
+          "before": "      if(!beginRuntimeCurrent()||fresh.permissions?.view!==true||!flow||flow.generation!==r.generation||flow.revision<r.revision||flow.revision===r.revision&&(flow.saved?.id!==r.savedId||!equipmentContentEqual(flow.working,flow.saved?.content)))throw Error('SAVE_READBACK_REQUIRED');\n",
+          "after": "      if(!beginRuntimeCurrent()||fresh.permissions?.view!==true||!flow||catalogPageBegin&&flow.scope!=='master:'+beginParams.get('scope')+'.catalog'||flow.generation!==r.generation||flow.revision<r.revision||flow.revision===r.revision&&(flow.saved?.id!==r.savedId||!equipmentContentEqual(flow.working,flow.saved?.content)))throw Error('SAVE_READBACK_REQUIRED');\n"
+        }
+      ]
+    },
+    {
+      "file": "public/process/master-page-editor.js",
+      "beforeHash": "86d18cc053c713a511c5c06ef0d4bb45de88ac37dcd3704e38ecb036d6218983",
+      "beforeNormalizedHash": "86d18cc053c713a511c5c06ef0d4bb45de88ac37dcd3704e38ecb036d6218983",
+      "afterHash": "a5141252568363a091ed6b51442adb0e9707732c61ab6606c036c442f275edfb",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 1078,
+          "before": "  let container,control,permissions={},base,mine,generation,busy=false,error='',part='AB',filter='',readSequence=0,choiceDialog,pendingImportFile,importApplied=false,lineFilter='',categoryFilter='';\n",
+          "after": "  let container,control,permissions={},base,mine,generation,busy=false,error='',progress='',part='AB',filter='',readSequence=0,choiceDialog,pendingImportFile,importApplied=false,lineFilter='',categoryFilter='';\n"
+        },
+        {
+          "offset": 2779,
+          "before": "  function button(parent,label,action,enabled=true){const result=node('button',label,parent);result.type='button';result.className='button ghost';result.disabled=!enabled;result.onclick=()=>void act(action);return result;}\n  async function act(action){if(busy)return;busy=true;error='';render();try{assertOwner();history?.assertMutable();await action();}catch(failure){if(owner())error=host.sharedDraftErrorMessage?.(failure)||failure.message;}finally{busy=false;if(owner())render();}}\n",
+          "after": "  function button(parent,label,action,enabled=true){const result=node('button',label,parent);result.type='button';result.className='button ghost';result.disabled=!enabled;result.onclick=()=>void act(action,label);return result;}\n  function reportProgress(value){progress=value;const status=container?.querySelector('[data-page-progress]');if(status)status.textContent=progress;}\n  async function act(action,label=t('載入資料','Tải dữ liệu')){if(busy)return;busy=true;error='';progress=label+'…';render();try{assertOwner();history?.assertMutable();await action();}catch(failure){if(owner())error=host.sharedDraftErrorMessage?.(failure)||failure.message;}finally{busy=false;progress='';if(owner())render();}}\n"
+        },
+        {
+          "offset": 18474,
+          "before": "   button(parent,t('新增產品','Thêm sản phẩm'),()=>{mine.products.push({id:crypto.randomUUID(),code:'',name:'',category:'',line:refs[0]?.code||'',stages:[],routeMode:'exception'});},canEdit()&&permissions.create===true);\n",
+          "after": "   button(parent,t('新增產品','Thêm sản phẩm'),()=>{filter='';mine.products.push({id:crypto.randomUUID(),code:'',name:'',category:categoryFilter,line:lineFilter||refs[0]?.code||'',stages:[],routeMode:'exception'});},canEdit()&&permissions.create===true);\n"
+        },
+        {
+          "offset": 18991,
+          "before": "   for(const group of mine.categoryGroups){const row=node('tr',undefined,groups);let previous=group.name;const name=field(row,t('類別名稱','Tên nhóm'),group,'name');name.oninput=()=>{if(!canEdit()||!owner())return;const next=name.value;for(const product of mine.products)if(product.line===group.line&&product.category===previous)product.category=next;group.name=next;if(categoryFilter===previous)categoryFilter=next;previous=next;showDirty();};\n",
+          "after": "   for(const group of mine.categoryGroups){const row=node('tr',undefined,groups);let previous=group.name;const name=field(row,t('類別名稱','Tên nhóm'),group,'name');name.oninput=()=>{if(!canEdit()||!owner())return;const next=name.value;for(const product of mine.products)if(product.line===group.line&&product.category===previous)product.category=next;group.name=next;if(categoryFilter&&categoryFilter===previous)categoryFilter=next;previous=next;showDirty();};\n"
+        },
+        {
+          "offset": 24279,
+          "before": "    const fresh=await client.read();assertOwner();if(JSON.stringify(mine)!==original)throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');\n",
+          "after": "    reportProgress(t('正在核對最新草稿…','Đang kiểm tra bản nháp mới nhất…'));const fresh=await client.read();assertOwner();if(JSON.stringify(mine)!==original)throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');\n"
+        },
+        {
+          "offset": 25758,
+          "before": "    const result=await client.sendPrepared(command);assertOwner();adopt(result,true);return;\n",
+          "after": "    reportProgress(t('正在存取並核對結果，請稍候…','Đang lưu và xác minh kết quả, vui lòng chờ…'));const result=await client.sendPrepared(command);assertOwner();adopt(result,true);return;\n"
+        },
+        {
+          "offset": 27370,
+          "before": "   if(!container||!container.isConnected||!owner()||container.dataset.activeTab!==(page==='LINES'?'line-admin':page))return;if(history?.historical())return;container.replaceChildren();container.dataset.masterPage=page;\n",
+          "after": "   if(!container||!container.isConnected||!owner()||container.dataset.activeTab!==(page==='LINES'?'line-admin':page))return;if(history?.historical())return;container.replaceChildren();container.dataset.masterPage=page;container.setAttribute('aria-busy',String(busy));\n"
+        },
+        {
+          "offset": 27858,
+          "before": "   const status=node('p','',panel);status.dataset.pageDirty='';showDirty();if(error){const message=node('p',error,panel);message.setAttribute('role','alert');}\n",
+          "after": "   const status=node('p','',panel);status.dataset.pageDirty='';showDirty();const activity=node('p',progress,panel);activity.dataset.pageProgress='';activity.setAttribute('role','status');activity.setAttribute('aria-live','polite');if(error){const message=node('p',error,panel);message.setAttribute('role','alert');}\n"
+        },
+        {
+          "offset": 29327,
+          "before": "   if(!control){node('p',t('載入中…','Đang tải…'),panel);return;}\n",
+          "after": "   if(!control){if(error)button(panel,t('重試讀取','Thử tải lại'),()=>read(true),!busy);else node('p',t('載入中…','Đang tải…'),panel);return;}\n"
+        }
+      ]
+    },
+    {
+      "file": "public/process/index.html",
+      "beforeHash": "eca85f506d3043eb7f3c376260766990a1a9a5903d09f3f1f4b9eb6c47347d67",
+      "beforeNormalizedHash": "eca85f506d3043eb7f3c376260766990a1a9a5903d09f3f1f4b9eb6c47347d67",
+      "afterHash": "073a0df5b9d3b75a6953d2d3bcc10eee99c0c0e34ecc775ab79e279b587247e3",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 6898,
+          "before": "    <script data-process-src=\"shared-draft-client.js?v=20261113-equipment-submit1\"></script>\n",
+          "after": "    <script data-process-src=\"shared-draft-client.js?v=20261113-abc-master1\"></script>\n"
+        },
+        {
+          "offset": 7721,
+          "before": "    <script data-process-src=\"master-page-editor.js?v=20261110-account-pages1\"></script>\n",
+          "after": "    <script data-process-src=\"master-page-editor.js?v=20261113-abc-master1\"></script>\n"
+        }
+      ]
+    },
+    {
+      "file": "tests/account-page-entry.test.cjs",
+      "beforeHash": "f04a81650d1b3d12365939f6a88340aaaa920243db99b037874fe21e8e5acd9b",
+      "beforeNormalizedHash": "f04a81650d1b3d12365939f6a88340aaaa920243db99b037874fe21e8e5acd9b",
+      "afterHash": "d6874fc98c2f6420384aafbb43c2fcd7e751b8f0b8b4c8d036d73ec8768cc68c",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 454,
+          "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-equipment-submit1','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
+          "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-abc-master1','master-page-editor.js':'20261113-abc-master1','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+        }
+      ]
+    },
+    {
+      "file": "tests/navigation-adapters.test.mjs",
+      "beforeHash": "a8dc36ab460d6f449d208ee027268eefcd4fcd99c0d4f1f52f3867b3519bd98b",
+      "beforeNormalizedHash": "a8dc36ab460d6f449d208ee027268eefcd4fcd99c0d4f1f52f3867b3519bd98b",
+      "afterHash": "0652812d5f9e967868acc7cd7721bc144151cc7a1903997d7b721353a89d879c",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 17441,
+          "before": "  'shared-draft-client.js':'20261113-equipment-submit1',\n",
+          "after": "  'shared-draft-client.js':'20261113-abc-master1',\n"
+        }
+      ]
+    },
+    {
+      "file": "tests/shared-draft-receipt-recovery.test.mjs",
+      "beforeHash": "3c6efeb0c9e8f01d1f665e3fcd686ab94613eb580b8ae9b29f1d1348a21db860",
+      "beforeNormalizedHash": "3c6efeb0c9e8f01d1f665e3fcd686ab94613eb580b8ae9b29f1d1348a21db860",
+      "afterHash": "f15c646165de8e25c7d452a09bed8e4d18306f1c18998dec84e7d5209f29f7ba",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 14735,
+          "before": "  'master-page-editor.js':'20261110-account-pages1',\n",
+          "after": "  'master-page-editor.js':'20261113-abc-master1',\n"
+        },
+        {
+          "offset": 14841,
+          "before": "  'shared-draft-client.js':'20261113-equipment-submit1',\n",
+          "after": "  'shared-draft-client.js':'20261113-abc-master1',\n"
+        }
+      ]
+    }
+  ]
+}
