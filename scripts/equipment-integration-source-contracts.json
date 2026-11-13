@@ -1369,5 +1369,48 @@
     ],
     "beforeNormalizedHash": "30bff4107a82c4187c4267dd2b48c0769991b9ab5aac20ee98b370472a6a7f65",
     "beforeCRLF": []
+  },
+  {
+    "file": "scripts/entry-performance/poll-wiring.test.mjs",
+    "beforeHash": "8ed1339c9dd47657e5a2afaa20831ff1b0a03e527ec211c7638808cf338787db",
+    "afterHash": "d97289066ad463699f0e9f8d1dbc3ecd4299c7754bfdb852e180cc3fd7d95c97",
+    "rules": [
+      {
+        "offset": 0,
+        "before": "",
+        "after": "import {assertDraftInitializerIdle} from './draft-no-poll-fixture.mjs';\nimport equipmentProof from '../equipment-integration-source-contract.cjs';\n"
+      },
+      {
+        "offset": 2610,
+        "before": "",
+        "after": "// Current complete Tooling initialization must stay idle; legacy callback tests use only the exact proven main predecessor.\nawait assertDraftInitializerIdle(process.cwd(),'tooling.js');\n"
+      },
+      {
+        "offset": 2826,
+        "before": "for(const [file,start,end,name]of cases){const path='public/process/'+file;assert.ok(fs.existsSync(path),file+' required shipped module');const raw=fs.readFileSync(path),source=file==='ipqc-ab.js'?proof.checkoutPredecessor(raw,execFileSync('git',['show','HEAD:'+path]),path).toString('utf8'):qualitySource(raw.toString('utf8'),file),a=source.indexOf(start),b=source.indexOf(end,a);if(file==='master-data.js'&&a<0){assert.doesNotMatch(source,/function\\s+pollMaster\\b|\\bpollMaster\\s*\\(|\\bsharedPoll\\b/,'removed master scheduler and every startup/reset call stay absent; full initializer/events run in test-scoped-read-pause.cjs');removedMaster++;console.log('PASS master-data.js scheduler and all callers fully removed');continue;}assert.ok(a>=0&&b>a,file);let fragment=source.slice(a,b);if(file==='tooling.js')fragment+='\\nasync function pollTick(){try{await poll();}finally{foregroundPoll.schedule(pollTick);}}';\n",
+        "after": "for(const [file,start,end,name]of cases){const path='public/process/'+file;assert.ok(fs.existsSync(path),file+' required shipped module');const raw=fs.readFileSync(path),source=file==='tooling.js'?equipmentProof.restore(raw,path).toString('utf8'):file==='ipqc-ab.js'?proof.checkoutPredecessor(raw,execFileSync('git',['show','HEAD:'+path]),path).toString('utf8'):qualitySource(raw.toString('utf8'),file),a=source.indexOf(start),b=source.indexOf(end,a);if(file==='master-data.js'&&a<0){assert.doesNotMatch(source,/function\\s+pollMaster\\b|\\bpollMaster\\s*\\(|\\bsharedPoll\\b/,'removed master scheduler and every startup/reset call stay absent; full initializer/events run in test-scoped-read-pause.cjs');removedMaster++;console.log('PASS master-data.js scheduler and all callers fully removed');continue;}assert.ok(a>=0&&b>a,file);let fragment=source.slice(a,b);if(file==='tooling.js')fragment+='\\nasync function pollTick(){try{await poll();}finally{foregroundPoll.schedule(pollTick);}}';\n"
+      }
+    ],
+    "beforeNormalizedHash": "8ed1339c9dd47657e5a2afaa20831ff1b0a03e527ec211c7638808cf338787db",
+    "beforeCRLF": []
+  },
+  {
+    "file": "scripts/test-scoped-read-pause.cjs",
+    "beforeHash": "60bd2b660943438733c8dba96c9032884706eacb868ce226ef9bd9a08d40e507",
+    "afterHash": "23de22f0de8053f3cdf86f252021c12d5511239119dc599acf1be0fc57e25bbf",
+    "rules": [
+      {
+        "offset": 1834,
+        "before": "const file=n=>{if(n==='ipqc-ab.js'){const raw=fs.readFileSync(path.join(source,'public/process',n));const committed=require('node:child_process').execFileSync('git',['show','HEAD:public/process/'+n],{cwd:root});return require('./ipqc-ab-integration-source-contract.cjs').checkoutPredecessor(raw,committed,'public/process/'+n).toString('utf8');}return retiredQuality.get(n)??readCurrent(n);};\n",
+        "after": "const file=n=>{if(n==='tooling.js')return require('./equipment-integration-source-contract.cjs').restore(Buffer.from(readCurrent(n)),'public/process/'+n).toString('utf8');if(n==='ipqc-ab.js'){const raw=fs.readFileSync(path.join(source,'public/process',n));const committed=require('node:child_process').execFileSync('git',['show','HEAD:public/process/'+n],{cwd:root});return require('./ipqc-ab-integration-source-contract.cjs').checkoutPredecessor(raw,committed,'public/process/'+n).toString('utf8');}return retiredQuality.get(n)??readCurrent(n);};\n"
+      },
+      {
+        "offset": 20523,
+        "before": "",
+        "after": " await check('Current Tooling complete initializer and focus remain idle',async()=>{const {assertDraftInitializerIdle}=await import('./entry-performance/draft-no-poll-fixture.mjs');await assertDraftInitializerIdle(source,'tooling.js');});\n"
+      }
+    ],
+    "beforeNormalizedHash": "60bd2b660943438733c8dba96c9032884706eacb868ce226ef9bd9a08d40e507",
+    "beforeCRLF": []
   }
 ]
