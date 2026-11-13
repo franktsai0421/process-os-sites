@@ -230,6 +230,25 @@
           "after": "## 2026-11-13 — AB/C主資料雲端草稿候選\n\n修正明確Save的慢處理進度、結果重讀、類別篩選／中越文切換，以及page-v1 Save後bootstrap503；原核准來源proof驗證與私有草稿分界保留。只增加固定來源的read-only舊資料歸屬盤點，未切換真資料或部署。[來源、21項與驗證界線](../docs/acceptance/abc-master-integration-20261113/README.md)。\n\n"
         }
       ]
+    },
+    {
+      "file": "scripts/entry-performance/identity-prefetch.test.cjs",
+      "beforeHash": "316e217a31f35ee70f33bdbf8396f6d25d7a878fdf79fe123699ce2ecfc97655",
+      "beforeNormalizedHash": "316e217a31f35ee70f33bdbf8396f6d25d7a878fdf79fe123699ce2ecfc97655",
+      "afterHash": "1e2743f90a7d2cd209e1bfed715080ef0bcc102d8d8c5f20b279589ec915c3f9",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 200,
+          "before": "const {createHash,webcrypto}=require('node:crypto'),{createRequire}=require('node:module');\n",
+          "after": "const {createHash,webcrypto}=require('node:crypto'),{createRequire}=require('node:module'),{Buffer}=require('node:buffer');\n"
+        },
+        {
+          "offset": 1425,
+          "before": "let identitySource=candidateSource;\n",
+          "after": "// Project only this exact approved catalog successor for historical comparison.\n// Execute the complete current candidate below; retain every original pin.\nlet identitySource=require('../abc-master-source-contract.cjs').projectKnown(Buffer.from(candidateSource),'lib/state-records.ts').toString().replace(/\\r\\n/g,'\\n');\n"
+        }
+      ]
     }
   ]
 }

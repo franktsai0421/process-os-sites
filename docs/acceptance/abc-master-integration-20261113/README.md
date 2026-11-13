@@ -89,3 +89,7 @@ Process-platform首輪runtime清單失敗是新增純唯讀audit檔案尚未列�
 修復只對受信任stored masterDataControl＋page-v1，暫保留AB.catalog／C.catalog／LINES的原active id/content供後續核准來源驗證，不從active mirror重建，也不保留working、saved、cases、receipts。companyState驗證後仍去除所有workflowScopes及非核准版本。其他key、舊layout、其他scope不借用此特例，錯指標／缺內容／錯內容仍503。GET不寫入、不轉換或啟用資料。
 
 新增8項actual bootstrap／page route／records decoder測試：AB、C×inline／records各完整Begin→Save→Submit→Withdraw→再送→Approve後每次bootstrap200，核對public不含私人草稿、沒有hydration私人immutable body且零DB／R2寫入；3種偽造／缺失proof拒絕與generic／legacy隔離均通過。這修復才是重載失敗的server根因；較早語言控制問題另有獨立unit重現與修復，未用測試等待掩蓋產品失敗。
+
+## 0530遠端原生已通過與歷史效能proof續修
+
+0530f796的AB C CI成功：新page-v1 Chromium 1280/390×zh/vi八組完整生命週期、原legacy AB/C Chromium、cold-start／跨模組離頁全通過；舊Save後reload失敗已解除。其Process-platform原生獨立job也成功；一般job在identity-prefetch完整歷史prefix hash拒絕新增decoder的ownerKey參數。續修只將exact catalog successor反向到原main來建歷史baseline，仍執行完整current candidate，保留原prefix／tail／完整baseline SHA與LF/CRLF／改動／缺失／重複／位移負例；不更換或重算原baseline pins。
