@@ -1331,5 +1331,19 @@
     ],
     "beforeNormalizedHash": "b5e57f0977ac29935f027c85330d3ebf531bcfed13cccb841a6ee4e2b00947a6",
     "beforeCRLF": []
+  },
+  {
+    "file": "AI_CONTEXT/modules/QUALITY.md",
+    "beforeHash": "a78b681d6984c421b97addcddcc2df219e36048c957cfc6cce92246129e62576",
+    "beforeNormalizedHash": "a78b681d6984c421b97addcddcc2df219e36048c957cfc6cce92246129e62576",
+    "afterHash": "eeee0b2553142a28e682fd2d375086cf9237adde125fe3a48b4dfbe23a189b97",
+    "rules": [
+      {
+        "offset": 0,
+        "before": "",
+        "after": "## 2026-11-13 — Equipment integration candidate\n\nInspection equipment retains per-page RAM across filters, offers one grouped\nconflict decision and audited same-page readonly history. Photo header/body\nwaits are bounded; uncertain PUT uses only original-hash byte verification.\nFQC/IQC atomic replacement Save and original receipt journals remain; IPQC\nreplacement does not gain automatic Save. No schema or persisted data changes.\n[Evidence and limitations](../../docs/acceptance/equipment-integration-20261113/README.md).\n\n"
+      }
+    ],
+    "beforeCRLF": []
   }
 ]
