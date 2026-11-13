@@ -178,6 +178,58 @@
           "after": " configure?.(c);vm.createContext(c);for(const file of ['shared-draft-client','version-draft-ui','canvas-approved-history','page-draft-merge','master-admin-ui','master-page-transfer','master-page-approved-history','master-page-editor'])vm.runInContext(fs.readFileSync('public/process/'+file+'.js','utf8'),c,{filename:file+'.js'});\n"
         }
       ]
+    },
+    {
+      "file": "lib/effective-delivery.mjs",
+      "beforeHash": "cb4169a3f0eff51e415decc1c50c13177026a853234e46475f84cbca977e202d",
+      "beforeNormalizedHash": "cb4169a3f0eff51e415decc1c50c13177026a853234e46475f84cbca977e202d",
+      "afterHash": "799302cfe632602d2b681667ab30c84b66873578509909b8941a2d02d52c2ee3",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 404,
+          "before": "export function effectiveDeliveryValue(value){\n",
+          "after": "export function effectiveDeliveryValue(value,ownerKey){\n"
+        },
+        {
+          "offset": 1227,
+          "before": "      if(key==='workflowScopes'){next.workflowScopes=object(child)?Object.fromEntries(Object.keys(child).map(scope=>[scope,{}])):{};continue;}\n",
+          "after": "      if(key==='workflowScopes'){\n        // Only this trusted stored master layout needs the original approved\n        // owner proof until companyState validates it. Retain no working body,\n        // saves, cases or receipts; never synthesize proof from active mirrors.\n        const pageOwners=ownerKey==='masterDataControl'&&current===value&&current.pageDraftLayout==='page-v1';\n        next.workflowScopes=object(child)?Object.fromEntries(Object.entries(child).map(([scope,flow])=>[scope,\n          pageOwners&&['AB.catalog','C.catalog','LINES'].includes(scope)&&object(flow)&&object(flow.active)\n            ?{active:Object.fromEntries(['id','content'].filter(key=>Object.hasOwn(flow.active,key)).map(key=>[key,visit(flow.active[key])]))}:{}])):{};\n        continue;\n      }\n"
+        },
+        {
+          "offset": 2230,
+          "before": "  return Object.fromEntries(Object.entries(values).map(([key,raw])=>[key,JSON.stringify(effectiveDeliveryValue(JSON.parse(raw)))]));\n",
+          "after": "  return Object.fromEntries(Object.entries(values).map(([key,raw])=>[key,JSON.stringify(effectiveDeliveryValue(JSON.parse(raw),key))]));\n"
+        }
+      ]
+    },
+    {
+      "file": "lib/state-records.ts",
+      "beforeHash": "0d111073ed0b4d512ec8d0e91e86552fc5b6ee8d6a03141a54a0eb8ac2fb0e9f",
+      "beforeNormalizedHash": "0d111073ed0b4d512ec8d0e91e86552fc5b6ee8d6a03141a54a0eb8ac2fb0e9f",
+      "afterHash": "9021ff077ea60b58382d93380f8080f7ea59fbf7e3d9d464b4069b5d672a55a7",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 22408,
+          "before": "  else values[key]=options.effectiveOnly?JSON.stringify(await visit(effectiveDeliveryValue(JSON.parse(raw)))):raw.includes('\"__immutableBody\"')?JSON.stringify(await visit(JSON.parse(raw))):raw;\n",
+          "after": "  else values[key]=options.effectiveOnly?JSON.stringify(await visit(effectiveDeliveryValue(JSON.parse(raw),key))):raw.includes('\"__immutableBody\"')?JSON.stringify(await visit(JSON.parse(raw))):raw;\n"
+        }
+      ]
+    },
+    {
+      "file": "AI_CONTEXT/CHANGELOG.md",
+      "beforeHash": "f95ea02ac13c95629bb4faeea7d0e3bcb31628530ef87102fe5d5e9a06716d53",
+      "beforeNormalizedHash": "f95ea02ac13c95629bb4faeea7d0e3bcb31628530ef87102fe5d5e9a06716d53",
+      "afterHash": "941c59afbd600184af08b8b4a399cc8d79d73995d90dc755aa33275cef46e607",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-13 — AB/C主資料雲端草稿候選\n\n修正明確Save的慢處理進度、結果重讀、類別篩選／中越文切換，以及page-v1 Save後bootstrap503；原核准來源proof驗證與私有草稿分界保留。只增加固定來源的read-only舊資料歸屬盤點，未切換真資料或部署。[來源、21項與驗證界線](../docs/acceptance/abc-master-integration-20261113/README.md)。\n\n"
+        }
+      ]
     }
   ]
 }

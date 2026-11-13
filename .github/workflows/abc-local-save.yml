@@ -44,7 +44,7 @@ jobs:
       - name: Approved history read contracts
         run: node scripts/test-approved-history-evidence.cjs
       - name: Catalog page lifecycle, slow operations, handoff and original source proof
-        run: node --test tests/abc-master-ui.test.mjs tests/abc-master-transport.test.mjs tests/abc-master-handoff.test.mjs tests/abc-master-source.test.cjs tests/master-page-approved-history.test.mjs tests/master-page-approved-history-ui.test.mjs
+        run: node --test tests/abc-master-ui.test.mjs tests/abc-master-bootstrap.test.mjs tests/abc-master-transport.test.mjs tests/abc-master-handoff.test.mjs tests/abc-master-source.test.cjs tests/master-page-approved-history.test.mjs tests/master-page-approved-history-ui.test.mjs
       - run: npm run sites:source-check
       - run: npm run build
       - run: npx playwright install --with-deps chromium

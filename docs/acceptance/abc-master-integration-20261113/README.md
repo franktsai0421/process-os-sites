@@ -81,3 +81,11 @@ Process-platform首輪runtime清單失敗是新增純唯讀audit檔案尚未列�
 第二輪Equipment CI為246/247，失敗是`equipment-bounded-media`在真WebCrypto SHA-256完成前只讓出30次setImmediate，尚未走到fake timer便斷言必須有timer。未改設備或照片產品程式；fixture改等待實際timer註冊／PUT開始的promise，再執行原45000ms定時器及全部hash、404、防重PUT斷言。新增15秒測試程序上限以避免preflight永遠不抵達；不延長產品期限、不重跑CI冒充修復、不改skip規則。
 
 第二輪新page-v1 native runner仍失敗，資料根節點已離開，但缺少精確操作階段。fixture補上與既有runner一致的navigation-status＋state.view/dataTab＋page-owner就緒條件，避免只見暫態DOM便提前操作；失敗固定輸出合成body／URL／phase與runtime狀態，維持原30秒上限和全部生命週期／POST／隔離斷言。這個失敗尚未當PASS，待下一個exact head原生證明。
+
+## 已重現的Save後bootstrap 503與修復
+
+第三輪native診斷固定在`reload after Save`，URL仍為AB頁但只顯示「載入失敗」。同一實際bootstrap handler在隔離records-v1中，initial200→page Begin／Save200→bootstrap503可確定重現。根因是`effectiveDeliveryValue`在驗證新頁核准來源前把workflowScopes全部改成空物件，丟失scope原active id/content證明。
+
+修復只對受信任stored masterDataControl＋page-v1，暫保留AB.catalog／C.catalog／LINES的原active id/content供後續核准來源驗證，不從active mirror重建，也不保留working、saved、cases、receipts。companyState驗證後仍去除所有workflowScopes及非核准版本。其他key、舊layout、其他scope不借用此特例，錯指標／缺內容／錯內容仍503。GET不寫入、不轉換或啟用資料。
+
+新增8項actual bootstrap／page route／records decoder測試：AB、C×inline／records各完整Begin→Save→Submit→Withdraw→再送→Approve後每次bootstrap200，核對public不含私人草稿、沒有hydration私人immutable body且零DB／R2寫入；3種偽造／缺失proof拒絕與generic／legacy隔離均通過。這修復才是重載失敗的server根因；較早語言控制問題另有獨立unit重現與修復，未用測試等待掩蓋產品失敗。
