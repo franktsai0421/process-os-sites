@@ -40,6 +40,8 @@ jobs:
       - run: npm run lint
       - run: npx tsc --noEmit
       - run: node --test --test-concurrency=1 tests/ipqc-ab-completeness.test.mjs tests/ipqc-ab-conflict-ui.test.mjs tests/ipqc-ab-save-revision-fence.test.mjs tests/ipqc-ab-approved-history.test.mjs tests/ipqc-ab-local-save.test.mjs tests/ipqc-ab-integration-source-proof.test.cjs
+      - name: IPQC slow Save and original receipt recovery
+        run: node --test --test-concurrency=1 tests/ipqc-save-recovery.test.mjs tests/ipqc-save-recovery-source.test.cjs tests/ipqc-request-progress.test.mjs
       - run: npx playwright install --with-deps chromium
       - run: node --test --test-concurrency=1 tests/ipqc-ab-local-browser.test.mjs tests/ipqc-ab-scope-permission-races.test.mjs tests/ab-sent-batch.test.mjs tests/ab-create-next-batch.test.mjs tests/ab-create-rejection-caller.test.mjs tests/ab-create-unknown-map.test.mjs
       - run: node tests/ipqc-ab-speed-measure.mjs

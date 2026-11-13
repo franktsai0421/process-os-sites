@@ -294,6 +294,22 @@
     verify:(client,result,command,token,model)=>canvasAuthorityClients.get(client)?.verify?.(result,command,token,model)||null,
     accept:(primary,client,result,command,token,model)=>canvasAuthorityClients.get(primary)?.accept?.(client,result,command,token,model)||null
   });
+  const progressMounts=new WeakMap();
+  window.mountSharedDraftRequestProgress=(root,clients,language)=>{
+    if(!root?.isConnected)return;
+    progressMounts.get(root)?.();
+    root.querySelector('[data-ipqc-request-progress]')?.remove();
+    const node=document.createElement('p');node.dataset.ipqcRequestProgress='true';node.setAttribute('role','status');node.setAttribute('aria-live','polite');node.hidden=true;root.prepend(node);
+    const targets=[...new Set(clients.filter(Boolean))],paint=()=>{
+      if(!node.isConnected)return;
+      const pending=targets.flatMap(client=>client.requestProgress?.()||[]),seconds=Math.floor(Math.max(0,...pending.map(value=>value.elapsedMs))/1000);
+      node.hidden=!pending.length;
+      node.textContent=!pending.length?'':language==='vi'
+        ?`Đang chờ máy chủ (ít nhất ${seconds}s). Chưa xác nhận lưu. Không bấm lưu lại; tối đa 3 phút cho mỗi yêu cầu. Nếu mất phản hồi, chỉ kiểm tra biên nhận gốc.`
+        :`正在等候伺服器（至少 ${seconds} 秒），尚未確認儲存。請勿再次存取；每個請求最多等候 3 分鐘。若回應中斷，只查證原操作回執。`;
+    };
+    const stops=targets.map(client=>client.watchRequestProgress?.(paint)).filter(Boolean);progressMounts.set(root,()=>stops.forEach(stop=>stop()));paint();
+  };
   window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections,allowUnknownDeparture=false,durableBegin=false,equipmentLocalSave=false,processLocalSave=false,fqcComparedSave=false,iqcComparedSave=false}) => {
     // Hosted FQC Apply can legitimately finish after the old 15s cutoff. The
     // exact bounded FQC and IQC routes share authoring's 45s budget, not an unbounded
@@ -322,6 +338,11 @@
     const pageLocalBegin=durableBegin&&beginPath==='/api/master/pages'&&['AB','C','LINES'].includes(beginParams.get('scope'))&&endpoint===`/api/master/pages?scope=${beginParams.get('scope')}&caseMetadata=1`;
     const beginScopePath=(masterLocalBegin||pageLocalBegin)?beginPath+'?scope='+beginParams.get('scope'):beginPath;
     if(durableBegin&&!masterLocalBegin&&!pageLocalBegin&&!abModule&&(!['/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-c/workflow','/api/tooling/workflow','/api/bom/workflow','/api/process-authoring/workflow','/api/routine-equipment/workflow'].includes(beginPath)||externalCanvas||[...beginParams].some(([key,value])=>key!=='caseMetadata'||value!=='1')||beginParams.getAll('caseMetadata').length>1))throw Error('BEGIN_DURABLE_SCOPE_REQUIRED');
+    // Only the installed durable IPQC transports get the slow immutable-I/O budget.
+    // Similar URLs and old group clients retain their existing contracts.
+    const ipqcSlowIO=durableBegin&&(boundedScope==='ipqc-ab:module'&&endpoint==='/api/ipqc-ab/workflow?module=1&caseMetadata=1'||boundedScope==='ipqc-c'&&endpoint==='/api/ipqc-c/workflow?caseMetadata=1');
+    const requestProgressListeners=new Set(),requestProgress=new Map();
+    const publishRequestProgress=()=>{for(const listener of requestProgressListeners)try{listener();}catch{/* Status must never alter operation settlement. */}};
     const beginRuntimeOwner=durableBegin?{...departureOwner(),delivery:window.ProcessSync?.captureDelivery?.()}:null;
     const beginRuntimeCurrent=()=>!durableBegin||departureOwnerCurrent(beginRuntimeOwner)&&beginRuntimeOwner.identity===window.ProcessSync?.identity&&Number.isSafeInteger(beginRuntimeOwner.epoch)&&beginRuntimeOwner.epoch>=0&&beginRuntimeOwner.epoch===window.ProcessSync?.identityGeneration?.()&&clientPagehideGeneration===transportPagehideGeneration&&(!beginRuntimeOwner.delivery||window.ProcessSync?.isCurrentDelivery?.(beginRuntimeOwner.delivery)!==false);
     const clientPagehideGeneration=transportPagehideGeneration;
@@ -948,9 +969,12 @@
       // IPQC-C create-item needs bounded time for immutable-state I/O. This
       // avoids a premature unknown; it is not a latency optimization or retry.
       const cCreate=body?.command?.action==='apply'&&body.command.moduleAction==='create-item'&&/^\/api\/ipqc-c\/workflow(?:\?|$)/.test(endpoint);
-      const requestDeadline=['begin','begin-v1'].includes(body?.action)||cCreate?45000:body?mutationDeadline:45000;
+      const requestDeadline=ipqcSlowIO?180000:['begin','begin-v1'].includes(body?.action)||cCreate?45000:body?mutationDeadline:45000;
       let deadlineExpired=false,phase='headers';
       const controller=new AbortController(),timer=setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);
+      // One-shot UI notices only: no polling, read or resend. The finite deadline
+      // retains UNKNOWN and the original identity if no qualified ACK arrives.
+      const progressToken={},progressTimers=ipqcSlowIO?[10000,45000,120000].map(elapsedMs=>setTimeout(()=>{requestProgress.set(progressToken,{kind:body?'write':kind,phase,elapsedMs});publishRequestProgress();},elapsedMs)):[];
       try {
         const requestOptions={method:body?'POST':'GET',headers:headers(),cache:'no-store',signal:controller.signal,...(body?{body:JSON.stringify(body.command?{...body,command:packCommand(body.command)}:body)}:{})};
         if(externalCanvas&&body){
@@ -1008,7 +1032,7 @@
           const timeout=Object.assign(Error(code,{cause:error}),{name:error?.name||'AbortError',code,phase,deadlineMs:requestDeadline,outcome:body?'unknown':'unavailable'});const abFailure=abFetchFailures.get(error);if(abFailure)abFetchFailures.set(timeout,abFailure);throw timeout;
         }
         throw error;
-      } finally {clearTimeout(timer);if(canvasObserving){canvasRequests--;if(body?.command)canvasArms.delete(body.command.operationId);}}
+      } finally {clearTimeout(timer);for(const timer of progressTimers)clearTimeout(timer);if(requestProgress.delete(progressToken))publishRequestProgress();if(canvasObserving){canvasRequests--;if(body?.command)canvasArms.delete(body.command.operationId);}}
     }
     function retain(command,owner) {
       const entry=abSelected.get(command?.operationId);
@@ -1153,6 +1177,8 @@
       // Internal one-way cached-client upgrade; no downgrade or queue replacement.
       useAccessResultGuard(){if(!accessGuard){accessGuard=true;accessEpoch++;}return client;},
       useStateRevision(){conditionalState=true;return client;},
+      requestProgress:()=>[...requestProgress.values()].map(value=>({...value})),
+      watchRequestProgress(listener){if(typeof listener!=='function')throw Error('PROGRESS_LISTENER_REQUIRED');requestProgressListeners.add(listener);return()=>requestProgressListeners.delete(listener);},
       read: (token,options)=>request(token?query(`since=${encodeURIComponent(conditionalState&&conditionalRead?.flowToken===token?'state:'+conditionalRead.revision:token)}`):endpoint,undefined,options),
       permissions:options=>request(query('permissions=1'),undefined,options),
       async recheckEquipmentDelivery(generation,isCurrent,accept){

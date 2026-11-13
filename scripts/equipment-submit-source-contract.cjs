@@ -4,7 +4,7 @@ const contract=require('./equipment-submit-source-contract.json');
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const normalized=b=>Buffer.from(b.toString('utf8').replaceAll('\r\n','\n'));
 function restore(bytes,file,target){
- assert(Buffer.isBuffer(bytes),'Joint equipment/Submit proof requires raw Buffer');
+ assert(Buffer.isBuffer(bytes),'Joint equipment/Submit proof requires raw Buffer');bytes=require('./ipqc-save-recovery-source-contract.cjs').projectKnown(bytes,file);
  const c=Object.hasOwn(contract.files,file)?contract.files[file]:null,parent=c&&Object.hasOwn(c.parents,target)?c.parents[target]:null;assert(parent,'Joint equipment/Submit wrong file or target');
  const canonical=normalized(bytes);assert.equal(hash(canonical),c.afterNormalizedHash,'Joint equipment/Submit pinned source');
  const lines=canonical.toString().split('\n');for(const i of c.afterCRLF)lines[i]+='\r';let out=Buffer.from(lines.join('\n'));
@@ -15,5 +15,5 @@ function restore(bytes,file,target){
  }
  assert.equal(out.length,parent.length);assert.equal(hash(out),parent.hash,'Joint equipment/Submit parent bytes');return out;
 }
-function projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'Joint equipment/Submit proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&Object.hasOwn(c.parents,target)&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file,target):bytes;}
+function projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'Joint equipment/Submit proof requires raw Buffer');if(!Object.hasOwn(contract.parents,target))return bytes;bytes=require('./ipqc-save-recovery-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&Object.hasOwn(c.parents,target)&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file,target):bytes;}
 module.exports=Object.freeze({contract,hash,restore,projectKnown});
