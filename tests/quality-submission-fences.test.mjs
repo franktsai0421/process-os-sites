@@ -36,6 +36,8 @@ function fixture() {
 function tooling() {
   const f=fixture();
   Object.assign(f.box,{localBase:null,localSnapshot:null,localGeneration:null,pendingLocalSave:false});
+  f.load(part('tooling.js',' function toolingErrorText(',' const title=')+part('tooling.js',' let historyDisplayEpoch=',' let control='));
+  f.load(part('tooling.js',' function localChanges(',' function stageChanges('));
   f.load(part('tooling.js',' const draftActionAllowed=',' const option=')+part('tooling.js',' async function command(',' function currentLocation('));
   f.load('this.draftActionAllowed=draftActionAllowed;');
   return f;
@@ -43,6 +45,7 @@ function tooling() {
 function equipment() {
   const f=fixture();
   Object.assign(f.box,{localBeginReceipt:null,pendingSaveBatch:null,formPendingPhoto:null});
+  f.load(part('routine-equipment.js','  let historyDisplayEpoch=','  let selectedVersionId =')+part('routine-equipment.js','  let equipmentSaveChoice =','  async function writeShared('));
   f.load(part('routine-equipment.js','  function hasLocalDraftInput(','  function sharedTransport()')+part('routine-equipment.js','  function snapshotChanges(','  const beginRecoveryKey')+part('routine-equipment.js','  function captureTransferOwner()','  function transferBusy(')+part('routine-equipment.js','  async function writeShared(','  // Preserve this unapplied drawer'));
   f.box.rememberInputOwner();assert.equal(f.box.inputOwnerCurrent(),true);
   return f;
@@ -72,7 +75,7 @@ for(const [name,make,execute] of [
     assert.equal(cmd.savedId,'saved-original');assert.equal(cmd.expectedRevision,7);assert.equal(cmd.generation,'generation-original');assert.equal(cmd.action,'submit');
     if(name==='routine FQC')assert.equal(f.calls[0].documentId,'document-original');
   });
-  for(const race of ['revision','saved','generation','actor','identity epoch','delivery','revocation',...(name==='routine FQC'?['approved history']:[])])void test(name+' rejects '+race+' change while confirmation is open',async()=>{
+  for(const race of ['revision','saved','generation','actor','identity epoch','delivery','revocation','approved history'])void test(name+' rejects '+race+' change while confirmation is open',async()=>{
     const f=make(),running=execute(f),caught=Promise.resolve(running).catch(e=>e);
     assert.equal(f.box.confirmations,1);
     if(race==='revision')f.flow.revision++;

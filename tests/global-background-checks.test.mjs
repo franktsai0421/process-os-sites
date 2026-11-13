@@ -22,7 +22,7 @@ for(const [file,fn,variable] of [['fqc-master.js','pollShared','sharedPoll'],['i
  poll.dispose();assert.deepEqual(f.state(),{requests:0,timers:0,listeners:0});
 });
 void test('master-data removes the retired scheduler and has no startup/reset scheduler call',()=>{const source=read('master-data.js');assert.doesNotMatch(source,/function\s+pollMaster\b|\bpollMaster\s*\(|\bsharedPoll\b/);});
-for(const file of ['bom-workspace.js','tooling.js'])void test(file+' actual startup scheduler statement is inert',()=>{
+for(const file of ['bom-workspace.js'])void test(file+' actual startup scheduler statement is inert',()=>{
  const f=fixture(),source=read(file),start=source.indexOf(' const foregroundPoll=window.createForegroundPoll();'),end=source.indexOf(' foregroundPoll.schedule(pollTick);',start);assert(start>=0&&end>start);
  vm.runInContext(source.slice(start,end+' foregroundPoll.schedule(pollTick);'.length),f.c);assert.deepEqual(f.state(),{requests:0,timers:0,listeners:0});
 });
@@ -48,4 +48,4 @@ void test('inventory follows client imports and aliases without including server
  sources.set('lib/client.mjs',"import './missing.mjs';");assert.throws(()=>browserTimerInventory(sources),/UNRESOLVED_BROWSER_IMPORT/);
 });
 
-for(const file of ['fqc-master.js','iqc-master.js'])void test(file+' shipped initializer has no recurring draft reader',()=>assertNoDraftPoll(process.cwd(),file));
+for(const file of ['fqc-master.js','iqc-master.js','tooling.js'])void test(file+' shipped initializer has no recurring draft reader',()=>assertNoDraftPoll(process.cwd(),file));

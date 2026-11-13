@@ -37,6 +37,10 @@
   };
 
   let host = null, control = null, revision = null, working = null, readUnavailable = false, controlActor = '';
+  let historyDisplayEpoch=0,approvedHistoryView=null,historyUploads=0;
+  const historyAllowsMutation=()=>!approvedHistoryView?.blocked;
+  const assertCurrentDisplay=()=>{if(!historyAllowsMutation())throw Error('APPROVED_HISTORY_READ_ONLY');};
+  const guardWorking=(node,callback)=>{const epoch=historyDisplayEpoch,page=host;return function(...args){if(epoch!==historyDisplayEpoch||!historyAllowsMutation()||page!==host||(!node?.isConnected&&args[0]?.type!=='close'))return;const result=callback.apply(this,args);if(result&&typeof result.finally==='function')return result.finally(()=>approvedHistoryView?.refreshControls?.());approvedHistoryView?.refreshControls?.();return result;};};
   let selectedVersionId = '', selectedCategory = '', selectedSubcategory = '', selectedGroup = '';
   let selectedEquipmentId = '', editingEquipmentId = '', search = '', busy = false, message = '', reviewHost = null;
   let equipmentPage = 1, submitProblems = [], openErrors = false, composing = false;
@@ -89,6 +93,7 @@
     } catch { throw Error(beginRecoveryMessage()); }
   }
   async function beginSharedDraft(client, writeOwner) {
+    assertCurrentDisplay();
     if(readBeginRecovery())throw Error(beginRecoveryMessage()); // Never relabel legacy unidentified outcomes.
     const result=await client.begin();
     if(writeOwner&&!writeOwner())throw Error('ACCOUNT_OR_VIEW_CHANGED_REOPEN_REQUIRED');
@@ -121,8 +126,9 @@
           if(!row||!actual)throw Error('SYNC_CONFIRMATION_REQUIRED');
           for(const field of key==='categories'?['code']:key==='equipment'?['assetCode','pieceMark']:[]){row[field]=actual[field];if(current&&current[field]===before[field])current[field]=actual[field];}
         }
+        if(batch.comparedSave)settleEquipmentBatch(batch,canonical);
         for(const [id,pin]of batch.sentPhotos){const current=pendingPhotos.get(id),find=data=>['equipment','categories','subcategories','groups'].flatMap(k=>data?.[k]||[]).find(row=>row.id===id);acknowledgeFormPhoto(id,pin.entry,find(batch.sentInput),find(canonical));if(current!==pin.entry)URL.revokeObjectURL(pin.url);if(current===pin.entry&&current.file===pin.file&&current.url===pin.url){for(const key of ['equipment','groups','categories','subcategories']){const row=working?.[key].find(r=>r.id===id),sent=canonical[key].find(r=>r.id===id);if(row&&sent)row.photoId=sent.photoId;}URL.revokeObjectURL(pin.url);pendingPhotos.delete(id);}}
-        syncBase=canonical;pendingSaveBatch=null;localBeginReceipt=null;
+        if(!batch.comparedSave)syncBase=canonical;pendingSaveBatch=null;localBeginReceipt=null;
       }
       else if(!local&&open()?.status==='draft'){working=snapshotOf(open());syncBase=clone(working);syncGeneration=control.workflow.generation;}
       selectedVersionId=open()?.id||selectedVersionId;readUnavailable=false;rememberInputOwner();
@@ -170,11 +176,145 @@
     }else return false;
     return same(actual,expected);
   }catch{return false;}} // Malformed ACK validation must latch readUnavailable, never invite another POST.
+  // Save compares only this captured RAM batch. Structural/source guards never
+  // become ordinary Mine/Theirs choices, and the original base stays untouched.
+  let equipmentSaveChoice = null, equipmentSaveComparison = null;
+  function retireEquipmentSaveComparison(){
+    const comparison=equipmentSaveComparison;
+    if(!comparison||!comparison.current())return;
+    // The comparison has not uploaded or dispatched. Invalidate only its private
+    // attempt before departure inspects busy again; late GETs cannot adopt/send.
+    equipmentSaveComparison=null;writeShared.attempt=null;busy=false;equipmentSaveChoice?.();
+  }
+  const equipmentSaveCollections = ['equipment','groups','categories','subcategories','issues'];
+  function compareEquipmentSave(base,mine,latest,photos){
+    for(const data of [base,mine,latest])for(const key of equipmentSaveCollections){
+      const rows=data?.[key];if(!Array.isArray(rows)||rows.some(row=>!row||typeof row!=='object'||Array.isArray(row)||typeof row.id!=='string'||!row.id)||new Set(rows.map(row=>row.id)).size!==rows.length)throw Error('INVALID_EQUIPMENT_SNAPSHOT');
+    }
+    for(const [id]of photos){
+      const count=data=>equipmentSaveCollections.filter(key=>key!=='issues').reduce((sum,key)=>sum+data[key].filter(row=>row.id===id).length,0);
+      if(count(mine)!==1||count(base)>1||count(latest)>1)throw Error(t('照片目標不明：不同類型有相同識別；本次未上傳或存取，輸入仍保留。','Không xác định được đích ảnh: các loại khác nhau có cùng mã. Chưa tải ảnh hay lưu; dữ liệu nhập được giữ lại.'));
+    }
+    const original=snapshotChanges(base,mine),units=[],conflicts=[],photoRows=new Set();
+    const photoKeys=key=>key==='equipment'?['photoId','photoHidden']:['photoId'];
+    const labels={name:['名稱','Tên'],nameZh:['中文名稱','Tên tiếng Trung'],nameVi:['越南文名稱','Tên tiếng Việt'],unit:['單位','Đơn vị'],spec:['規格','Quy cách'],owner:['保管人','Người giữ'],enabled:['啟用','Kích hoạt'],calibrationMethod:['校正方式','Cách hiệu chuẩn'],calibrationCycle:['校正週期','Chu kỳ hiệu chuẩn'],customCycle:['自訂週期','Chu kỳ tùy chỉnh'],calibratedAt:['校正日期','Ngày hiệu chuẩn'],expiresAt:['到期日期','Ngày hết hạn'],notes:['備註','Ghi chú'],intakeDate:['入庫日期','Ngày nhập kho'],confirmed:['來源確認','Xác nhận nguồn'],status:['狀態','Trạng thái'],resolution:['處理結果','Kết quả xử lý']};
+    const values=(row,fields)=>fields.map(field=>row?.[field]??(field==='photoHidden'?false:''));
+    const add=(key,id,fields,pending)=>{
+      const before=base[key].find(row=>row.id===id),local=mine[key].find(row=>row.id===id),peer=latest[key].find(row=>row.id===id);
+      if(!before||!local||!peer)throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');
+      const old=values(before,fields),next=values(local,fields),remote=values(peer,fields);
+      const conflict=!equipmentContentEqual(old,remote)&&(!!pending||!equipmentContentEqual(next,remote));
+      const unit={key,id,fields,pending,conflict};units.push(unit);
+      const preview=(row,entry)=>({hidden:row.photoHidden===true,url:row.photoHidden?'':entry?.url||(row.photoId?api+'/photo?id='+encodeURIComponent(row.photoId):row.photoSource?.webPath||'')});
+      if(conflict)conflicts.push({photo:fields.includes('photoId')?{mine:preview(local,pending),theirs:preview(peer)}:null,label:local.name||local.nameVi||local.assetCode||id,fields:fields.includes('photoId')?t('照片','Ảnh'):fields.map(field=>labels[field]?t(...labels[field]):field).join(' / '),mine:pending?t('新照片','Ảnh mới')+' · '+(pending.file.name||t('本機圖片','Ảnh cục bộ')):next,theirs:remote});
+    };
+    for(const patch of original.patches){
+      if(patch.op!=='set'||['groupId','categoryId','subcategoryId'].includes(patch.path[2]))continue;
+      const [key,entity,field]=patch.path;
+      if(['photoId','photoHidden'].includes(field)){const token=key+':'+entity.id;if(photoRows.has(token))continue;photoRows.add(token);add(key,entity.id,photoKeys(key),photos.get(entity.id));}
+      else add(key,entity.id,[field]);
+    }
+    for(const [id,pending]of photos){
+      const key=equipmentSaveCollections.find(kind=>kind!=='issues'&&mine[kind].some(row=>row.id===id));if(!key)throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');
+      if(!base[key].some(row=>row.id===id))continue; // Insert still uses original parent/source guards.
+      const token=key+':'+id;if(!photoRows.has(token)){photoRows.add(token);add(key,id,photoKeys(key),pending);}
+    }
+    return {conflicts,materialize(choice){
+      if(!['mine','theirs'].includes(choice))throw Error('INVALID_EQUIPMENT_SAVE_CHOICE');
+      const desired=clone(latest),patches=[],guards=[],chosenPhotos=new Map(photos),ordinary=new Set(units.flatMap(unit=>unit.fields.map(field=>JSON.stringify([unit.key,{id:unit.id},field]))));
+      // Keep original structural commands AND whole-parent/row guards verbatim.
+      for(const patch of original.patches)if(!ordinary.has(JSON.stringify(patch.path))){
+        patches.push(clone(patch));const [key,entity,field]=patch.path;
+        if(patch.op==='insert'){if(desired[key].some(row=>row.id===patch.value.id))throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');desired[key].push(clone(patch.value));}
+        else {const index=desired[key].findIndex(row=>row.id===entity.id);if(index<0)throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');if(patch.op==='remove')desired[key].splice(index,1);else desired[key][index][field]=clone(patch.value);}
+      }
+      for(const guard of original.guards)if(!ordinary.has(JSON.stringify(guard.path)))guards.push(clone(guard));
+      for(const unit of units){
+        if(unit.conflict&&choice==='theirs'){if(unit.pending)chosenPhotos.delete(unit.id);continue;}
+        const local=mine[unit.key].find(row=>row.id===unit.id),peer=latest[unit.key].find(row=>row.id===unit.id),row=desired[unit.key].find(row=>row.id===unit.id);
+        for(const field of unit.fields){const value=local[field]??(field==='photoHidden'?false:''),path=[unit.key,{id:unit.id},field];row[field]=clone(value);
+          if(!equipmentContentEqual(value,peer[field])||unit.pending){patches.push({op:'set',path,value:clone(value)});guards.push({path,value:peer[field]});}
+        }
+      }
+      const order=path=>{const index=original.patches.findIndex(patch=>equipmentContentEqual(patch.path,path));return index<0?original.patches.length:index;};
+      patches.sort((a,b)=>order(a.path)-order(b.path));
+      return {local:desired,patches,guards,chosenPhotos};
+    }};
+  }
+  function chooseEquipmentSave(conflicts,current){
+    return new Promise(resolve=>{
+      const overlay=document.createElement('div'),prior=document.activeElement;
+      overlay.className='routine-modal-backdrop';overlay.setAttribute('data-equipment-save-conflicts','');
+      const valueHTML=(item,side)=>{const image=item.photo?.[side];return image?image.hidden?h(t('已移除','Đã xóa')):image.url?'<img src="'+h(image.url)+'" alt="'+h(t('衝突照片預覽','Xem trước ảnh xung đột'))+'" style="display:block;max-width:180px;max-height:150px;object-fit:contain">':h(t('無照片','Không có ảnh')):h(JSON.stringify(item[side]));};
+      overlay.innerHTML=`<section class="routine-modal" role="dialog" aria-modal="true" aria-labelledby="equipment-save-choice-title" style="width:min(680px,calc(100vw - 24px));max-height:calc(100dvh - 32px);overflow:auto;overflow-wrap:anywhere"><h2 id="equipment-save-choice-title">${t('選擇衝突處理方式','Chọn cách xử lý xung đột')}</h2><p>${t('一次處理所有衝突，沒有衝突的雙方修改都會保留。','Áp dụng một lựa chọn cho tất cả xung đột; giữ các thay đổi không xung đột.')}</p><ul>${conflicts.map(item=>`<li><strong>${h(item.label)} · ${h(item.fields)}</strong><p>${t('我的','Của tôi')}: ${valueHTML(item,'mine')}</p><p>${t('對方的','Của người khác')}: ${valueHTML(item,'theirs')}</p></li>`).join('')}</ul><div style="display:flex;flex-wrap:wrap;gap:8px"><button type="button" class="button" data-equipment-save-choice="mine">${t('用我的','Dùng của tôi')}</button><button type="button" class="button" data-equipment-save-choice="theirs">${t('用對方的','Dùng của người khác')}</button><button type="button" class="button ghost" data-equipment-save-choice="cancel">${t('取消','Hủy')}</button></div></section>`;
+      let done=false;const close=value=>{if(done)return;done=true;overlay.remove();document.removeEventListener('keydown',keydown);window.removeEventListener('pagehide',cancel);if(equipmentSaveChoice===cancel)equipmentSaveChoice=null;if(current()&&prior?.isConnected)prior.focus?.({preventScroll:true});resolve(value);};
+      const cancel=()=>close('cancel'),keydown=event=>{if(event.key==='Escape'){event.preventDefault();cancel();}else if(event.key==='Tab'){const buttons=[...overlay.querySelectorAll('button')],first=buttons[0],last=buttons.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}};
+      equipmentSaveChoice=cancel;for(const button of overlay.querySelectorAll('[data-equipment-save-choice]'))button.onclick=()=>close(current()?button.dataset.equipmentSaveChoice:'cancel');
+      overlay.onclick=event=>{if(event.target===overlay)cancel();};document.addEventListener('keydown',keydown);window.addEventListener('pagehide',cancel);document.body.append(overlay);overlay.querySelector('[data-equipment-save-choice="cancel"]').focus();
+    });
+  }
+  // Reconcile only after durable confirmation. Later input is kept, and fields
+  // changed after dispatch keep the basis they actually saw if peers changed it.
+  function settleEquipmentBatch(batch,canonical){
+    const next=clone(canonical),basis=clone(canonical),before=batch.sentInput;
+    for(const key of equipmentSaveCollections){
+      for(const prior of before[key]){
+        const current=working?.[key].find(row=>row.id===prior.id),index=next[key].findIndex(row=>row.id===prior.id),baseIndex=basis[key].findIndex(row=>row.id===prior.id);
+        if(!current){if(index>=0)next[key].splice(index,1);continue;}
+        const pending=pendingPhotos.get(prior.id),captured=batch.sentPhotos?.get(prior.id),sameCaptured=captured&&pending===captured.entry&&pending?.file===captured.file&&pending?.url===captured.url;
+        const photoFields=key==='equipment'?['photoId','photoHidden']:['photoId'],laterPhoto=key!=='issues'&&!sameCaptured&&!!(pending||captured||photoFields.some(field=>!equipmentContentEqual(current[field],prior[field])));
+        if(equipmentContentEqual(current,prior)&&!laterPhoto)continue;
+        if(index<0){next[key].push(clone(current));if(baseIndex<0)basis[key].push(clone(prior));continue;}
+        for(const field of new Set([...Object.keys(prior),...Object.keys(current)]))if(!equipmentContentEqual(current[field],prior[field])){
+          if(Object.hasOwn(current,field))next[key][index][field]=clone(current[field]);else delete next[key][index][field];
+          if(!['photoId','photoHidden'].includes(field)&&!equipmentContentEqual(canonical[key].find(row=>row.id===prior.id)?.[field],prior[field])){
+            if(Object.hasOwn(prior,field))basis[key][baseIndex][field]=clone(prior[field]);else delete basis[key][baseIndex][field];
+          }
+        }
+        if(laterPhoto){
+          const ownPhoto=captured&&batch.chosenPhotos?.has(prior.id);
+          for(const field of key==='equipment'?['photoId','photoHidden']:['photoId']){
+            // A new File is an intent even when its JSON fields equal the old
+            // batch. Theirs never hides it or silently changes its seen basis.
+            const value=ownPhoto&&pending&&field==='photoId'&&equipmentContentEqual(current[field],prior[field])?canonical[key].find(row=>row.id===prior.id)?.[field]:current[field];
+            if(value===undefined)delete next[key][index][field];else next[key][index][field]=clone(value);
+            if(!ownPhoto){if(Object.hasOwn(prior,field))basis[key][baseIndex][field]=clone(prior[field]);else delete basis[key][baseIndex][field];}
+          }
+        }
+      }
+      for(const row of working?.[key]||[])if(!before[key].some(prior=>prior.id===row.id)&&!next[key].some(actual=>actual.id===row.id))next[key].push(clone(row));
+      // Open handlers and nodeDialog.prior own row references, not just IDs.
+      // Update their existing objects rather than detaching the next form.
+      if(working)working[key]=next[key].map(row=>{
+        const current=working[key].find(value=>value.id===row.id);if(!current)return row;
+        if(nodeDialog?.prior===current){
+          const oldName=current.name||current.nameVi||current.nameZh||'';
+          const keepSeen=field=>{const seen=nodeDialog.comparisonBasis ||= {key,id:row.id,generation:syncGeneration,fields:{}};if(!Object.hasOwn(seen.fields,field))seen.fields[field]={present:Object.hasOwn(current,field),value:Object.hasOwn(current,field)?clone(current[field]):null};};
+          // Uncompleted node input is private too. Preserve the basis it saw,
+          // without applying its name/spec/photo or completing the dialog.
+          if(nodeDialog.name===oldName)nodeDialog.name=row.name||row.nameVi||row.nameZh||'';else keepSeen('name');
+          if(nodeDialog.spec===(current.spec||''))nodeDialog.spec=row.spec||'';else keepSeen('spec');
+          const pin=batch.sentPhotos?.get(row.id),photo=nodeDialog.pendingPhoto,nodePhotoChanged=nodeDialog.photoRemoved||photo&&(!pin||photo!==pin.entry||photo.file!==pin.file||photo.url!==pin.url);
+          if(nodePhotoChanged&&!batch.chosenPhotos?.has(row.id))keepSeen('photoId');
+          if(!nodeDialog.photoRemoved&&!photo&&nodeDialog.photoId===(current.photoId||''))nodeDialog.photoId=row.photoId||'';
+        }
+        for(const field of Object.keys(current))if(!Object.hasOwn(row,field))delete current[field];Object.assign(current,row);return current;
+      });
+      if(key==='equipment'&&formSnapshot){
+        const prior=before[key].find(row=>row.id===formSnapshot.id),sent=canonical[key].find(row=>row.id===formSnapshot.id);
+        if(prior&&sent)for(const field of new Set([...Object.keys(prior),...Object.keys(sent)]))if(equipmentContentEqual(formSnapshot[field],prior[field])){
+          if(Object.hasOwn(sent,field))formSnapshot[field]=clone(sent[field]);else delete formSnapshot[field];
+        }
+      }
+    }
+    syncBase=basis;
+  }
   async function writeShared(action,more={},departureOwner){
+    assertCurrentDisplay();
     departureOwner?.assert();
     if(!inputOwnerCurrent()){readUnavailable=true;message=t('帳號或登入世代已變更；原輸入保留但不會載入或送到新帳號，請先重新核對。','Tài khoản hoặc phiên đăng nhập đã đổi; giữ dữ liệu cũ nhưng không hiển thị hay gửi bằng tài khoản mới. Hãy đối chiếu lại.');render();return null;}
     if(readUnavailable||controlActor!==identity()?.id){message=t('資料讀取失敗；保留目前內容，請先重新載入核對。','Không tải được dữ liệu; giữ nội dung hiện tại, hãy tải lại và đối chiếu trước.');render();return null;}
-    if(busy)return null;
+    if(busy||equipmentSaveChoice)return null;
     if(action==='apply'){
       if(!editable())return null;
       message=t('已完成表單，修改僅保留於本機；請存取草稿。','Đã hoàn tất biểu mẫu; thay đổi chỉ ở máy này. Hãy lưu bản nháp.');
@@ -192,11 +332,11 @@
       !window.ProcessSync?.requiresReload&&(!!delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===true)&&
       host===page&&page?.dataset?.activeTab===tab&&page?.isConnected===connected&&reviewHost===reviewPage&&(action==='save'||equipmentEditRequest===lifecycle)&&selectedVersionId===versionId&&revision===modelRevision&&control?.workflow?.revision===flowRevision&&
       control?.workflow?.generation===generation&&control?.activeVersionId===activeId&&(!client||sharedClient===client)&&(!departureOwner||departureOwner.current());
-    const assertOwned=()=>{departureOwner?.assert();if(!owns())throw Error('DELIVERY_SUPERSEDED');};
+    const assertOwned=()=>{assertCurrentDisplay();departureOwner?.assert();if(!owns())throw Error('DELIVERY_SUPERSEDED');};
     const advance=()=>{versionId=selectedVersionId;generation=control?.workflow?.generation;activeId=control?.activeVersionId;modelRevision=revision;flowRevision=control?.workflow?.revision;rememberInputOwner(delivery);};
     const sentNodeDialog=nodeDialog,sentAddForm=newEquipmentForm,inputStamp=()=>JSON.stringify([nodeDialog,newEquipmentForm,editingEquipmentId]);
-    const local=working&&clone(working),sentInput=local&&clone(local),base=clone(syncBase||open()&&snapshotOf(open())||null),sentPhotos=new Map([...pendingPhotos].map(([id,entry])=>[id,{entry,file:entry.file,url:entry.url}])),stamp=inputStamp();
-    const uploadedPhotos=new Map(),samePhoto=(id,pin)=>{const entry=pendingPhotos.get(id);return entry===pin.entry&&entry.file===pin.file&&entry.url===pin.url;};
+    let local=working&&clone(working);const sentInput=local&&clone(local),base=clone(syncBase||open()&&snapshotOf(open())||null),sentPhotos=new Map([...pendingPhotos].map(([id,entry])=>[id,{entry,file:entry.file,url:entry.url}])),stamp=inputStamp();
+    const uploadedPhotos=new Map();let chosenPhotos=sentPhotos,comparedSave=false,comparisonAttempt=null;const samePhoto=(id,pin)=>{const entry=pendingPhotos.get(id);return entry===pin.entry&&entry.file===pin.file&&entry.url===pin.url;};
     writeShared.attempt=attempt;busy=true;readIntent++;
     const priorFocusedId=host?.contains(document.activeElement)?document.activeElement.id:'';
     host?.querySelectorAll('#routine-save,#routine-submit').forEach(button=>{button.disabled=true;});
@@ -223,9 +363,31 @@
       if(action==='save'){
         if(localBeginReceipt&&flow.generation!==localBeginReceipt.generation)throw Error('STALE_GENERATION');
         if(syncGeneration&&flow.generation!==syncGeneration)throw Error('STALE_GENERATION');
-        // Only the captured photo entries belong to this dispatch. A later preview is a next batch.
-        for(const [id,pending]of sentPhotos){const row=['equipment','categories','subcategories','groups'].flatMap(k=>local[k]||[]).find(r=>r.id===id);if(row){assertOwned();const photoId=await uploadImage(pending.file);assertOwned();row.photoId=photoId;uploadedPhotos.set(id,pending);}}
-        detail={moduleAction:'save-local-v1',...snapshotChanges(base||flow.working,local||flow.working)};
+        comparisonAttempt={current:owns};equipmentSaveComparison=comparisonAttempt;
+        const inspectFresh=fresh=>{const latest=fresh.control?.workflow;
+          if(fresh.permissions?.view!==true||fresh.permissions?.edit!==true)throw Error('FORBIDDEN');
+          if(!Number.isSafeInteger(fresh.revision)||fresh.revision<revision||latest?.scope!=='routine-equipment'||latest.generation!==flow.generation||latest.pendingId||!Number.isSafeInteger(latest.revision)||latest.revision<flow.revision||fresh.control.activeVersionId!==control.activeVersionId||!fresh.control.versions?.some(version=>version.id===open()?.id&&version.status==='draft'))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+          return latest;
+        };
+        let fresh=await client.read(undefined,{isCurrent:owns,requireAcceptedAccess:true});assertOwned();
+        // Nothing is uploaded/dispatched in this loop. Every new peer revision
+        // is compared against the same captured base/input/File entries.
+        for(;;){const latest=inspectFresh(fresh),comparison=compareEquipmentSave(base||flow.working,sentInput||flow.working,latest.working,sentPhotos);
+          const choice=comparison.conflicts.length?await chooseEquipmentSave(comparison.conflicts,owns):'mine';assertOwned();if(choice==='cancel')return null;
+          if(comparison.conflicts.length){
+            const confirmed=await client.read(undefined,{isCurrent:owns,requireAcceptedAccess:true});assertOwned();const next=inspectFresh(confirmed);
+            if(confirmed.revision<fresh.revision||next.revision<latest.revision)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+            if(confirmed.revision!==fresh.revision||next.revision!==latest.revision||!equipmentContentEqual(next.working,latest.working)){fresh=confirmed;continue;}
+          }
+          const plan=comparison.materialize(choice);local=plan.local;chosenPhotos=plan.chosenPhotos;comparedSave=true;
+          detail={moduleAction:'save-local-v1',expectedRevision:latest.revision,patches:plan.patches,guards:plan.guards};break;
+        }
+        equipmentSaveComparison=null;
+        // Only captured, chosen photos upload. Later previews remain a next batch.
+        for(const [id,pending]of chosenPhotos){const row=['equipment','categories','subcategories','groups'].flatMap(k=>local[k]||[]).find(r=>r.id===id);if(row){assertOwned();const photoId=await uploadImage(pending.file);assertOwned();row.photoId=photoId;uploadedPhotos.set(id,pending);
+          const key=equipmentSaveCollections.find(kind=>local[kind].includes(row)),insert=detail.patches.find(patch=>patch.op==='insert'&&patch.path[0]===key&&patch.value.id===id),path=[key,{id},'photoId'];
+          if(insert)insert.value.photoId=photoId;else {const patch=detail.patches.find(patch=>equipmentContentEqual(patch.path,path));if(!patch)throw Error('DEPENDENCY_GUARD_REQUIRED');patch.value=photoId;}
+        }}
       }else if(action==='submit'){
         const snapshot=window.captureSharedDraftSubmission(flow);submissionGeneration=flow.generation;
         assertOwned();const reason=await window.VersionDraftUI.confirmSubmit(window.VersionDraftUI.reasonFor(selected(),flow),t('檢具全庫','Toàn bộ thiết bị'),{savedVersion:{id:snapshot.savedId,revision:snapshot.expectedRevision,at:flow.saved.at,actor:flow.saved.actor?.name}});assertOwned();if(reason===null)return null;
@@ -237,7 +399,7 @@
         assertOwned();const answer=await window.VersionDraftUI.confirmReview({action,scope:t('檢具全庫','Toàn bộ thiết bị')+' · '+caseId,reason:more.comment||'',selfReview:action!=='withdraw'&&c?.actor.id===actorId});assertOwned();if(!answer)return null;detail={caseId,...answer};
       }
       const commandGeneration=action==='save'?syncGeneration||flow.generation:submissionGeneration||flow.generation;
-      if(action==='save')pendingSaveBatch={local,sentInput,sentPhotos};
+      if(action==='save')pendingSaveBatch={local,sentInput,sentPhotos,chosenPhotos,comparedSave};
       assertOwned();const result=await client.command(commandGeneration,commandAction,detail);assertOwned();
       // A fallback read is metadata only; it must not reset RAM before settlement.
       let confirmed=result;if(!confirmed.control){assertOwned();try{confirmed=await client.read();}catch(error){if(owns())readUnavailable=true;throw error;}assertOwned();if(confirmed.permissions?.view!==true){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}}
@@ -250,7 +412,7 @@
         }catch(error){if(hasInsert){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}throw error;}
       }
       if(action==='save'&&(!result.receipt?.savedId||confirmed.control.workflow.saved?.id!==result.receipt.savedId||!equipmentContentEqual(confirmed.control.workflow.saved.content,confirmed.control.workflow.working))){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}
-      const nextInput=JSON.stringify(working)!==JSON.stringify(sentInput)||nodeDialog!==sentNodeDialog||newEquipmentForm!==sentAddForm||stamp!==inputStamp()||action==='save'&&sentPhotos.size!==uploadedPhotos.size||pendingPhotos.size!==sentPhotos.size||[...sentPhotos].some(([id,entry])=>!samePhoto(id,entry));
+      const nextInput=JSON.stringify(working)!==JSON.stringify(sentInput)||nodeDialog!==sentNodeDialog||newEquipmentForm!==sentAddForm||stamp!==inputStamp()||action==='save'&&chosenPhotos.size!==uploadedPhotos.size||pendingPhotos.size!==sentPhotos.size||[...sentPhotos].some(([id,entry])=>!samePhoto(id,entry));
       control=confirmed.control;revision=confirmed.revision;selectedVersionId=open()?.id||active()?.id||'';advance();
       if(action!=='save'){submitProblems=[];problemSnapshot=null;openErrors=false;}
       if(nextInput){
@@ -258,13 +420,13 @@
         if(action==='save'){
           // Adopt only this batch's canonical insert allocation/defaults, never peer fields.
           for(const patch of detail.patches.filter(p=>p.op==='insert')){const key=patch.path[0],before=sentInput[key].find(r=>r.id===patch.value.id),current=working[key].find(r=>r.id===patch.value.id),actual=confirmed.control.workflow.working[key].find(r=>r.id===patch.value.id);if(current&&actual){for(const [field,value]of Object.entries(actual))if(JSON.stringify(current[field])===JSON.stringify(before[field]))current[field]=clone(value);Object.assign(local[key].find(r=>r.id===actual.id),clone(actual));}}
-          for(const [id,entry]of sentPhotos){const find=data=>['equipment','categories','subcategories','groups'].flatMap(k=>data?.[k]||[]).find(row=>row.id===id),current=find(working),before=find(sentInput),sent=find(local);
+          if(!comparedSave)for(const [id,entry]of sentPhotos){const find=data=>['equipment','categories','subcategories','groups'].flatMap(k=>data?.[k]||[]).find(row=>row.id===id),current=find(working),before=find(sentInput),sent=find(local);
             if(current&&before&&sent&&samePhoto(id,entry)&&current.photoId===before.photoId&&current.photoHidden===before.photoHidden)current.photoId=sent.photoId;
           }
-          syncBase=clone(local);
+          if(comparedSave)settleEquipmentBatch({sentInput,sentPhotos,chosenPhotos},local);else syncBase=clone(local);
         }
       }else{working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow.generation;}
-      if(action==='save')for(const [id,entry]of uploadedPhotos){
+      if(action==='save')for(const [id,entry]of sentPhotos){
         const find=data=>['equipment','categories','subcategories','groups'].flatMap(k=>data?.[k]||[]).find(row=>row.id===id);
         acknowledgeFormPhoto(id,entry.entry,find(sentInput),find(local));
         if(!samePhoto(id,entry)){URL.revokeObjectURL(entry.url);continue;}
@@ -289,7 +451,7 @@
         message=t('已儲存的送審內容未通過驗證，請查看報錯與待補。修正後須手動儲存再送審。','Nội dung đã lưu để gửi duyệt chưa đạt kiểm tra. Xem lỗi và mục cần bổ sung; sửa rồi lưu thủ công trước khi gửi lại.');
       }
       return null;
-    }finally{const updateUI=owns();if(writeShared.attempt===attempt){writeShared.attempt=null;busy=false;}if(updateUI){if(action==='apply'&&document.activeElement?.matches('[data-issue-result]')){const status=host?.querySelector('#routine-shared-status');if(status)status.textContent=displayDraftError(message);}else{
+    }finally{if(equipmentSaveComparison===comparisonAttempt)equipmentSaveComparison=null;const updateUI=owns();if(writeShared.attempt===attempt){writeShared.attempt=null;busy=false;}if(updateUI){if(action==='apply'&&document.activeElement?.matches('[data-issue-result]')){const status=host?.querySelector('#routine-shared-status');if(status)status.textContent=displayDraftError(message);}else{
       const focusedId=host?.contains(document.activeElement)?document.activeElement.id:priorFocusedId,scrollX=window.scrollX,scrollY=window.scrollY;
       render();if(focusedId){document.getElementById(focusedId)?.focus({preventScroll:true});window.scrollTo(scrollX,scrollY);}
     }}}
@@ -326,8 +488,8 @@
       captureAddEquipmentInput();
     };
     drawer.dataset.routineInputBound = 'true';
-    drawer.addEventListener('input', capture);
-    drawer.addEventListener('change', capture);
+    drawer.addEventListener('input', guardWorking(drawer,capture));
+    drawer.addEventListener('change', guardWorking(drawer,capture));
   }
   function showEquipmentReadRecovery(error) {
     readUnavailable = true;
@@ -506,7 +668,7 @@
   const active = () => control?.versions.find(version => version.id === control.activeVersionId);
   const selected = () => control?.versions.find(version => version.id === selectedVersionId) || open() || active() || control?.versions[0];
   const visible = () => selected()?.id === open()?.id && working ? working : selected();
-  const editable = () => !readUnavailable && inputOwnerCurrent() && selected()?.status === 'draft' && !!working && permitted('approval.submit');
+  const editable = () => historyAllowsMutation() && !readUnavailable && inputOwnerCurrent() && selected()?.status === 'draft' && !!working && permitted('approval.submit');
   const status = value => ({
     draft: t('待確認草稿', 'Bản nháp chờ xác nhận'),
     pending: t('主管審核中', 'Quản lý đang duyệt'),
@@ -533,7 +695,8 @@
   const headers = () => window.ProcessSync?.platformHeaders?.() || { 'Content-Type': 'application/json' };
 
   async function read(preserveInput=false,explicitDelivery=false) {
-    const actor=identity()?.id,actorObject=identity(),epoch=window.ProcessSync?.identityGeneration?.(),intent=++readIntent,delivery=window.ProcessSync?.captureDelivery?.(),page=host,tab=page?.dataset?.activeTab,connected=page?.isConnected,reviewPage=reviewHost,lifecycle=equipmentEditRequest,versionId=selectedVersionId,owns=()=>intent===readIntent&&actor===identity()?.id&&actorObject===identity()&&(Number.isSafeInteger(epoch)&&epoch>=0&&epoch===window.ProcessSync?.identityGeneration?.())&&(!!delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===true)&&!window.ProcessSync?.requiresReload&&host===page&&page?.dataset?.activeTab===tab&&page?.isConnected===connected&&reviewHost===reviewPage&&equipmentEditRequest===lifecycle&&selectedVersionId===versionId;
+    assertCurrentDisplay();const displayEpoch=historyDisplayEpoch;
+    const actor=identity()?.id,actorObject=identity(),epoch=window.ProcessSync?.identityGeneration?.(),intent=++readIntent,delivery=window.ProcessSync?.captureDelivery?.(),page=host,tab=page?.dataset?.activeTab,connected=page?.isConnected,reviewPage=reviewHost,lifecycle=equipmentEditRequest,versionId=selectedVersionId,owns=()=>historyAllowsMutation()&&displayEpoch===historyDisplayEpoch&&intent===readIntent&&actor===identity()?.id&&actorObject===identity()&&(Number.isSafeInteger(epoch)&&epoch>=0&&epoch===window.ProcessSync?.identityGeneration?.())&&(!!delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===true)&&!window.ProcessSync?.requiresReload&&host===page&&page?.dataset?.activeTab===tab&&page?.isConnected===connected&&reviewHost===reviewPage&&equipmentEditRequest===lifecycle&&selectedVersionId===versionId;
     const retainedWorking=working,retainedBase=syncBase,retainedNode=nodeDialog,retainedForm=newEquipmentForm,retainedOwner=inputOwner,deliveryRecheck=explicitDelivery&&hasLocalDraftInput()&&inputPrincipalCurrent()&&inputTargetCurrent()&&inputOwner.generation===syncGeneration&&!inputOwnerCurrent(),readClient=sharedClient;
     try {
     if(inputOwner&&!inputOwnerCurrent())render();
@@ -572,6 +735,7 @@
   }
 
   async function write(action, more = {}, preserve = false) {
+    assertCurrentDisplay();
     if(readUnavailable){message=t('請先重新載入資料核對後操作。','Hãy tải lại dữ liệu và đối chiếu trước khi thao tác.');render();return null;}
     if(control?.workflow||open()?.status!=='pending')return writeShared(action==='save'?'apply':action,more);
     if (busy) return null;
@@ -601,17 +765,38 @@
     finally { busy = false; render(); }
   }
 
+  // Keep outcomes by bytes and actor epoch, including abandoned/reselected Files.
+  // A timed-out PUT can still commit: only GET the original hash thereafter.
+  const photoUploadOutcomes=new Map();
+  async function photoRequest(url,options={},kind='json'){
+    const controller=new AbortController();let timer;
+    try{return await Promise.race([(async()=>{const response=await fetch(url,{...options,signal:controller.signal});const body=await response[kind]();return {response,body};})(),new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(Error('PHOTO_UPLOAD_RESULT_UNKNOWN'));},45000);})]);}
+    finally{clearTimeout(timer);}
+  }
   async function uploadImage(file) {
-    if (!file || file.size > 5_000_000) throw Error(t('照片限 5 MB', 'Ảnh giới hạn 5 MB'));
-    const response = await fetch(`${api}/photo${query}`, {
-      method: 'PUT', headers: { ...headers(), 'Content-Type': file.type || 'image/jpeg' }, body: file,
-    });
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok || !/^[a-f0-9]{64}$/.test(body.id || '')) throw Error(body.error || t('照片未上傳成功', 'Tải ảnh không thành công'));
-    return body.id;
+    assertCurrentDisplay();const displayEpoch=historyDisplayEpoch,owner=identity(),ownerEpoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.();historyUploads++;
+    const check=()=>{if(displayEpoch!==historyDisplayEpoch||identity()!==owner||window.ProcessSync?.identityGeneration?.()!==ownerEpoch||!delivery||window.ProcessSync?.isCurrentDelivery?.(delivery)!==true)throw Error('PHOTO_UPLOAD_CONTEXT_CHANGED');assertCurrentDisplay();};
+    const digest=async bytes=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),byte=>byte.toString(16).padStart(2,'0')).join('');
+    try{
+      if (!file || file.size > 5_000_000) throw Error(t('照片限 5 MB', 'Ảnh giới hạn 5 MB'));
+      const hash=await digest(await file.arrayBuffer());check();
+      const key=JSON.stringify([owner.id,ownerEpoch,hash]);let outcome=photoUploadOutcomes.get(key);
+      if(!outcome){outcome={dispatched:false,confirmed:false};photoUploadOutcomes.set(key,outcome);}
+      if(outcome.confirmed)return hash;
+      if(outcome.dispatched){
+        const {response,body}=await photoRequest(`${api}/photo?id=${hash}`,{cache:'no-store',headers:headers()},'arrayBuffer');check();
+        if(!response.ok||await digest(body)!==hash)throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');check();outcome.confirmed=true;return hash;
+      }
+      outcome.dispatched=true;
+      const {response,body}=await photoRequest(`${api}/photo${query}`,{method:'PUT',headers:{...headers(),'Content-Type':file.type||'image/jpeg'},body:file});
+      if(response.ok&&body.id===hash)outcome.confirmed=true;
+      check();if(!outcome.confirmed)throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');return hash;
+    }catch(error){if(error.message==='PHOTO_UPLOAD_CONTEXT_CHANGED')throw error;throw Error(t('圖片上傳結果尚未確認。再次按存取只查證原圖片，不會重傳。','Chưa xác nhận tải ảnh. Bấm Lưu lần nữa chỉ kiểm tra ảnh gốc, không tải lại.')+' '+error.message);}
+    finally{historyUploads--;}
   }
 
   async function importSource() {
+    assertCurrentDisplay();
     if (busy) return;
     busy = true; message = t('讀取來源 Excel 對照及照片…', 'Đang đọc đối chiếu và ảnh Excel nguồn…'); render();
     try {
@@ -967,8 +1152,9 @@
     sharedClient?.gatePermissions?.();
   }
 
-  const canDraftAction=op=>!readUnavailable&&selected()?.status==='draft'&&sharedClient?.permission(op)===true&&(control?.workflow||editable());
+  const canDraftAction=op=>historyAllowsMutation()&&!readUnavailable&&selected()?.status==='draft'&&sharedClient?.permission(op)===true&&(control?.workflow||editable());
   async function saveDraft(action,departureOwner) {
+    assertCurrentDisplay();
     if (!canDraftAction(action) || busy) return null;
     if(control?.workflow||open()?.status!=='pending')return writeShared(action,{},departureOwner);
     try {
@@ -1139,11 +1325,10 @@
     if (!addingEquipment || !newEquipmentForm || newEquipmentOwner?.actor !== identity()?.id ||
         newEquipmentOwner?.epoch !== window.ProcessSync?.identityGeneration?.()) return '';
     const tree = structure(visible());
-    const group = tree.groups.find(g => g.id === selectedGroup);
-    const cat = tree.categories.find(c => c.id === (group?.categoryId || selectedCategory));
-    const sub = tree.subcategories.find(s => s.id === (group?.subcategoryId || selectedSubcategory));
-
     const form = newEquipmentForm;
+    const group = tree.groups.find(g => g.id === form.groupId);
+    const cat = tree.categories.find(c => c.id === group?.categoryId);
+    const sub = tree.subcategories.find(s => s.id === group?.subcategoryId);
     const computedMark = computeNextPieceMark(form.assetCode);
 
     return `<div class="routine-modal-backdrop" id="routine-add-backdrop"><section class="routine-card routine-modal routine-editor" id="routine-add-modal" role="dialog" aria-modal="true" aria-label="${t('新增檢具', 'Thêm thiết bị')}">
@@ -1183,7 +1368,7 @@
           <label class="wide">
             ${t('所屬規格群組（必填）', 'Nhóm quy cách (Bắt buộc)')}
             <select id="routine-add-group-select">
-              ${tree.groups.filter(g => g.subcategoryId === selectedSubcategory).map(g => `<option value="${h(g.id)}" ${g.id === (form.groupId || selectedGroup) ? 'selected' : ''}>${h(g.id)} · ${h(g.name || g.nameVi || g.nameZh || '')}</option>`).join('')}
+              ${tree.groups.filter(g => g.subcategoryId === group?.subcategoryId).map(g => `<option value="${h(g.id)}" ${g.id === (form.groupId || selectedGroup) ? 'selected' : ''}>${h(g.id)} · ${h(g.name || g.nameVi || g.nameZh || '')}</option>`).join('')}
             </select>
           </label>
 
@@ -1292,6 +1477,8 @@
       kind,
       id,
       prior,
+      parentCategoryId: parentCat?.id || '',
+      parentSubcategoryId: parentSub?.id || '',
       parentCategory: parentCat ? `${parentCat.code} · ${parentCat.name}` : '',
       parentSubcategory: parentSub?.name || '',
       parentGroup: parentGrp ? `${parentGrp.id} · ${parentGrp.name || parentGrp.nameVi || parentGrp.nameZh || ''}` : '',
@@ -1331,6 +1518,12 @@
     }
 
     const collection = kind === 'category' ? working.categories : kind === 'subcategory' ? working.subcategories : working.groups;
+    if(prior&&!collection.includes(prior)){
+      nodeDialog.error=t('此項目已變更或移除；輸入仍保留，請重新核對，不會自動新增。','Mục này đã đổi hoặc bị xóa; giữ dữ liệu nhập để đối chiếu, không tự tạo lại.');render();return;
+    }
+    if(!prior&&kind!=='category'&&(!working.categories.some(row=>row.id===dialog.parentCategoryId)||kind==='group'&&!working.subcategories.some(row=>row.id===dialog.parentSubcategoryId&&row.categoryId===dialog.parentCategoryId))){
+      dialog.error=t('原上層分類已變更或移除；輸入仍保留，請重新核對。','Nhóm cha gốc đã đổi hoặc bị xóa; giữ dữ liệu nhập để đối chiếu.');render();return;
+    }
     if (prior) {
       prior.name = name;
       if (kind === 'group') prior.spec = spec;
@@ -1352,20 +1545,26 @@
       selectedCategory = newId; selectedSubcategory = ''; selectedGroup = '';
     } else if (kind === 'subcategory') {
       const newId = crypto.randomUUID();
-      const rec = { id: newId, categoryId: selectedCategory, name, photoId: '' };
+      const rec = { id: newId, categoryId: dialog.parentCategoryId, name, photoId: '' };
       if (nodeDialog.pendingPhoto) pendingPhotos.set(newId, nodeDialog.pendingPhoto);
       collection.push(rec);
       dialog.prior=rec;dialog.id=newId; // RAM identity only; delivery may still be unknown.
-      selectedSubcategory = newId; selectedGroup = '';
+      selectedCategory = rec.categoryId; selectedSubcategory = newId; selectedGroup = '';
     } else {
       const newId = crypto.randomUUID();
-      const rec = { id: newId, categoryId: selectedCategory, subcategoryId: selectedSubcategory, name, spec, notes: '', photoId: '' };
+      const rec = { id: newId, categoryId: dialog.parentCategoryId, subcategoryId: dialog.parentSubcategoryId, name, spec, notes: '', photoId: '' };
       if (nodeDialog.pendingPhoto) pendingPhotos.set(newId, nodeDialog.pendingPhoto);
       collection.push(rec);
       dialog.prior=rec;dialog.id=newId; // RAM identity only; delivery may still be unknown.
-      selectedGroup = newId;
+      selectedCategory = rec.categoryId; selectedSubcategory = rec.subcategoryId; selectedGroup = newId;
     }
 
+    if(dialog.comparisonBasis){
+      const seen=dialog.comparisonBasis,before=seen.generation===syncGeneration&&syncBase?.[seen.key]?.find(row=>row.id===seen.id);
+      if(!before)throw Error('STALE_GENERATION');
+      for(const [field,value]of Object.entries(seen.fields)){if(value.present)before[field]=clone(value.value);else delete before[field];}
+      delete dialog.comparisonBasis;
+    }
     syncHierarchy();
     dialog.name=name;dialog.spec=spec;
     const sentDialog=JSON.stringify(dialog);
@@ -1609,8 +1808,8 @@
     busy = true;
     try {
       const tree = structure(visible());
-      const chosenGroup = root.querySelector('#routine-add-group-select')?.value || selectedGroup;
-      const group = tree.groups.find(g => g.id === chosenGroup) || tree.groups.find(g => g.id === selectedGroup);
+      const chosenGroup = root.querySelector('#routine-add-group-select')?.value || form.groupId;
+      const group = tree.groups.find(g => g.id === chosenGroup);
       if (!group) throw new Error(t('所選規格群組無效', 'Nhóm quy cách không hợp lệ'));
       selectedGroup = group.id;
 
@@ -1854,18 +2053,18 @@
   }
   function bindViewReferences(root,session=viewDialog?.references){
     if(!root||!session)return;
-    root.querySelectorAll('[data-view-ref-kind]').forEach(details=>details.addEventListener('toggle',()=>{
+    root.querySelectorAll('[data-view-ref-kind]').forEach(details=>details.addEventListener('toggle',guardWorking(details,()=>{
       if(!session.current())return;const kind=details.dataset.viewRefKind;session.states[kind].open=details.open;
       if(details.open)void readViewReferences(session,kind);
-    }));
-    root.querySelectorAll('[data-view-ref-retry]').forEach(button=>button.onclick=()=>readViewReferences(session,button.dataset.viewRefRetry,true));
-    root.querySelectorAll('[data-view-ab-detail]').forEach(button=>button.onclick=()=>{
+    })));
+    root.querySelectorAll('[data-view-ref-retry]').forEach(button=>button.onclick=guardWorking(button,()=>readViewReferences(session,button.dataset.viewRefRetry,true)));
+    root.querySelectorAll('[data-view-ab-detail]').forEach(button=>button.onclick=guardWorking(button,()=>{
       if(!session.current())return;
       const row=session.states.ipqcAB,versionId=button.dataset.viewAbVersion,itemId=button.dataset.viewAbDetail,scope=button.dataset.viewAbScope;
       if(row.status!=='loaded'||!Object.values(row.result).some(rows=>rows.some(item=>item.versionId===versionId&&item.itemId===itemId&&item.scope===scope)))return;
       openStandardItemView('ipqc-ab',versionId,itemId,scope);
-    });
-    root.querySelectorAll('[data-view-ref-detail]').forEach(button=>button.onclick=()=>{
+    }));
+    root.querySelectorAll('[data-view-ref-detail]').forEach(button=>button.onclick=guardWorking(button,()=>{
       if(!session.current())return;
       const row=session.states.fqc,control=row.control,version=control?.versions.find(v=>v.id===button.dataset.viewRefVersion);
       try{
@@ -1874,7 +2073,7 @@
         session.closeDetail?.();
         session.closeDetail=window.FQCQualityAPI.openAuthorizedItemView(version,item.id,()=>session.current()&&row.control===control&&row.status==='loaded');
       }catch(error){row.detailError=error?.message||'FQC_REFERENCE_VIEW_UNAVAILABLE';paintViewReferences(session);}
-    });
+    }));
   }
   function paintViewReferences(session){
     if(!session.current())return;
@@ -2237,23 +2436,23 @@
 
   function bindReferenceActions(root) {
     if (!root) return;
-    root.querySelectorAll('[data-transfer-module]').forEach(button => button.onclick = event => {
+    root.querySelectorAll('[data-transfer-module]').forEach(button => button.onclick = guardWorking(button,event => {
       event.stopPropagation();
       openTransferModal(button.dataset.sourceEq, button.dataset.transferModule);
-    });
-    root.querySelectorAll('[data-std-module]').forEach(link => link.onclick = event => {
+    }));
+    root.querySelectorAll('[data-std-module]').forEach(link => link.onclick = guardWorking(link,event => {
       event.stopPropagation();
       openStandardItemView(link.dataset.stdModule, link.dataset.stdVid, link.dataset.stdIid, link.dataset.stdScope);
-    });
+    }));
   }
 
   function captureTransferOwner() {
     return { actor: identity(), actorId: identity()?.id, epoch: window.ProcessSync?.identityGeneration?.(),
-      delivery: window.ProcessSync?.captureDelivery?.(), page: host, versionId: selectedVersionId,
+      delivery: window.ProcessSync?.captureDelivery?.(), page: host, versionId: selectedVersionId,displayEpoch:historyDisplayEpoch,
       generation: control?.workflow?.generation, activeVersionId: control?.activeVersionId };
   }
   function transferOwnerCurrent(owner) {
-    return !!owner?.actorId && owner.actorId === identity()?.id && controlActor === owner.actorId &&
+    return historyAllowsMutation()&&owner?.displayEpoch===historyDisplayEpoch&&!!owner?.actorId && owner.actorId === identity()?.id && controlActor === owner.actorId &&
       (typeof owner.epoch === 'number' ? owner.epoch === window.ProcessSync?.identityGeneration?.() : owner.actor === identity()) &&
       !window.ProcessSync?.requiresReload && (!owner.delivery || window.ProcessSync?.isCurrentDelivery?.(owner.delivery) !== false) &&
       host === owner.page && routineTabIsActive() && selectedVersionId === owner.versionId &&
@@ -3060,12 +3259,12 @@
   }
 
   function bindList() {
-    host.querySelectorAll('[data-equipment-page]').forEach(button => button.onclick = () => { equipmentPage += button.dataset.equipmentPage === 'next' ? 1 : -1; renderEquipmentResults(); });
-    host.querySelectorAll('[data-equipment-select]').forEach(button => button.onclick = () => {
+    host.querySelectorAll('[data-equipment-page]').forEach(button => button.onclick = guardWorking(button,() => { equipmentPage += button.dataset.equipmentPage === 'next' ? 1 : -1; renderEquipmentResults(); }));
+    host.querySelectorAll('[data-equipment-select]').forEach(button => button.onclick = guardWorking(button,() => {
       selectedEquipmentId = button.dataset.equipmentSelect;
       render();
-    });
-    host.querySelectorAll('[data-equipment-view]').forEach(button => button.onclick = async event => {
+    }));
+    host.querySelectorAll('[data-equipment-view]').forEach(button => button.onclick = guardWorking(button,async event => {
       event.stopPropagation();
       const id = button.dataset.equipmentView;
       const item = (visible()?.equipment || []).find(e => e.id === id);
@@ -3077,20 +3276,20 @@
         viewDialog.references=newViewReferences(id);
         render();
       }
-    });
-    host.querySelectorAll('[data-equipment-edit]').forEach(button => button.onclick = async event => {
+    }));
+    host.querySelectorAll('[data-equipment-edit]').forEach(button => button.onclick = guardWorking(button,async event => {
       event.stopPropagation();
       await openEditEquipment(button.dataset.equipmentEdit);
-    });
-    host.querySelectorAll('[data-equipment-delete]').forEach(button => button.onclick = event => {
+    }));
+    host.querySelectorAll('[data-equipment-delete]').forEach(button => button.onclick = guardWorking(button,event => {
       event.stopPropagation();
       deleteEquipment(button.dataset.equipmentDelete).catch(failed);
-    });
-    host.querySelectorAll('[data-equipment-transfer]').forEach(button => button.onclick = event => {
+    }));
+    host.querySelectorAll('[data-equipment-transfer]').forEach(button => button.onclick = guardWorking(button,event => {
       event.stopPropagation();
       openTransferModal(button.dataset.equipmentTransfer);
-    });
-    host.querySelector('#routine-add')?.addEventListener('click', openAddEquipmentDialog);
+    }));
+    host.querySelector('#routine-add')?.addEventListener('click', guardWorking(host.querySelector('#routine-add'),openAddEquipmentDialog));
   }
 
   function routineTabIsActive() {
@@ -3098,7 +3297,21 @@
     return host === content && content?.isConnected && content.dataset.activeTab === 'quality-routine-equipment';
   }
 
+  const historyFields={equipment:['檢具與設備','Dụng cụ và thiết bị'],groups:['規格群組','Nhóm quy cách'],categories:['類別','Loại'],subcategories:['子類別','Phân loại'],issues:['問題紀錄','Bản ghi vấn đề'],id:['識別碼','Mã'],name:['名稱','Tên'],nameVi:['越文名稱','Tên tiếng Việt'],nameZh:['中文名稱','Tên tiếng Hoa'],code:['編號','Mã'],assetCode:['資產編號','Mã tài sản'],pieceMark:['件號','Số chi tiết'],unit:['單位','Đơn vị'],spec:['規格','Quy cách'],owner:['保管者','Người giữ'],enabled:['使用中','Đang dùng'],calibrationMethod:['校正方式','Phương pháp hiệu chuẩn'],calibrationCycle:['校正週期','Chu kỳ hiệu chuẩn'],customCycle:['自訂週期','Chu kỳ riêng'],calibratedAt:['校正日期','Ngày hiệu chuẩn'],expiresAt:['有效期限','Ngày hết hạn'],notes:['備註','Ghi chú'],intakeDate:['入庫日期','Ngày nhập'],confirmed:['已確認','Đã xác nhận'],photoId:['照片識別碼','Mã ảnh'],photoHidden:['隱藏照片','Ẩn ảnh'],photos:['照片','Ảnh'],photoSource:['照片來源','Nguồn ảnh'],groupId:['規格群組','Nhóm quy cách'],categoryId:['類別','Loại'],subcategoryId:['子類別','Phân loại'],status:['狀態','Trạng thái'],resolution:['處理結果','Kết quả xử lý'],type:['問題類型','Loại vấn đề'],createdAt:['建立日期','Ngày tạo'],updatedAt:['更新日期','Ngày cập nhật']};
+  function mountApprovedHistory(shell,log,empty){
+    const client=sharedTransport(),page=host;approvedHistoryView?.retire();
+    approvedHistoryView=window.VersionDraftUI.createApprovedHistory({root:host.querySelector('.routine-page'),shell,client,empty,selectId:'equipment-approved-version',cacheKey:control?.activeVersionId||null,
+      isCurrent:()=>host===page&&sharedClient===client&&routineTabIsActive(),
+      canChoose:()=>!busy&&!equipmentSaveChoice&&!equipmentSaveComparison&&!equipmentReadAttempt&&!historyUploads&&!editingEquipmentId&&!nodeDialog&&!addingEquipment&&!viewDialog&&!transferDialog&&!pendingPhotos.size&&!transferBusy(),
+      onBoundary(){historyDisplayEpoch++;readIntent++;},
+      onDenied(){retireEquipmentSaveComparison();},
+      renderCurrent(){approvedHistoryView=null;render();},
+      validateSnapshot:snapshot=>snapshot&&['equipment','groups','categories','subcategories','issues'].every(key=>Array.isArray(snapshot[key])&&snapshot[key].every(row=>row&&typeof row==='object'&&!Array.isArray(row))),
+      renderSnapshot(target,snapshot,current){for(const key of ['equipment','groups','categories','subcategories'])for(const row of snapshot[key]){if(row.photoHidden)continue;if(row.photoId)row.photos=[{id:row.photoId}];else if(row.photoSource?.webPath)row.photos=[{src:row.photoSource.webPath}];}window.VersionDraftUI.renderApprovedCollections(target,snapshot,{collections:['equipment','groups','categories','subcategories','issues'],fields:historyFields,mediaURL:photo=>/^[a-f0-9]{64}$/.test(photo?.id||'')?api+'/photo?id='+encodeURIComponent(photo.id):typeof photo?.src==='string'&&/^(?:\/process\/assets\/|assets\/)[^?#]*\.(?:webp|png|jpg|jpeg|gif)$/i.test(photo.src)?photo.src.startsWith('assets/')?'/process/'+photo.src:photo.src:null},current);}
+    });
+  }
   function render() {
+    if(approvedHistoryView?.blocked){approvedHistoryView.relabel();return;}approvedHistoryView?.retire();approvedHistoryView=null;
     if (!routineTabIsActive()) return;
     const ownerBlocked=inputOwner&&!inputOwnerCurrent();
     if(ownerBlocked||bindAddEquipmentInput.forms?.get(newEquipmentForm)?.drawer?.isConnected===false)captureRetainedAddEquipmentInput();
@@ -3111,12 +3324,12 @@
           ${loadError ? `<button type="button" class="button signal" id="routine-load-retry">${t('重新載入', 'Tải lại')}</button>` : ''}
         </div>
       </section>`;
-      host.querySelector('#routine-begin-recheck')?.addEventListener('click', enterExistingDraft);
-    host.querySelector('#routine-load-retry')?.addEventListener('click', async () => {
+      host.querySelector('#routine-begin-recheck')?.addEventListener('click', guardWorking(host.querySelector('#routine-begin-recheck'),enterExistingDraft));
+    host.querySelector('#routine-load-retry')?.addEventListener('click', guardWorking(host.querySelector('#routine-load-retry'),async () => {
         message = '';
         render();
         try { await read(false,true); render(); } catch (error) { message = error.message; render(); }
-      });
+      }));
       return;
     }
     captureAddEquipmentInput();
@@ -3209,27 +3422,26 @@
       ${transferDialogHTML()}
       `}</section>`;
     bind();
-    host.querySelector('#routine-begin-recheck')?.addEventListener('click', enterExistingDraft);
-    host.querySelector('#routine-load-retry')?.addEventListener('click',async()=>{if(addingEquipment&&newEquipmentForm&&inputOwnerCurrent()){await recoverAddEquipmentRead();return;}const preserveInput=isDirty()||pendingPhotos.size>0;try{await read(preserveInput,true);message=preserveInput?t('已載入最新版，未套用輸入仍保留；套用時重新核對來源。','Đã tải bản mới; giữ đầu vào chưa áp dụng, kiểm tra nguồn khi áp dụng.'):'';render();}catch(error){message=error.message;render();}});
+    host.querySelector('#routine-begin-recheck')?.addEventListener('click', guardWorking(host.querySelector('#routine-begin-recheck'),enterExistingDraft));
+    host.querySelector('#routine-load-retry')?.addEventListener('click',guardWorking(host.querySelector('#routine-load-retry'),async()=>{if(addingEquipment&&newEquipmentForm&&inputOwnerCurrent()){await recoverAddEquipmentRead();return;}const preserveInput=isDirty()||pendingPhotos.size>0;try{await read(preserveInput,true);message=preserveInput?t('已載入最新版，未套用輸入仍保留；套用時重新核對來源。','Đã tải bản mới; giữ đầu vào chưa áp dụng, kiểm tra nguồn khi áp dụng.'):'';render();}catch(error){message=error.message;render();}}));
     if(readUnavailable)host.querySelectorAll('#routine-save,#routine-submit,#routine-begin').forEach(button=>{button.disabled=true;});
     if(control.workflow){const flow=control.workflow,panel=document.createElement('section');panel.className='routine-card';panel.id='routine-shared-status';panel.setAttribute('role','status');panel.innerHTML=`<b>${t('共用範圍：檢具全庫','Phạm vi chung: toàn bộ thiết bị')}</b><p>${flow.pendingId?t('待審鎖定','Khóa chờ duyệt'):!flow.saved||JSON.stringify(flow.saved.content)!==JSON.stringify(flow.working)?t('已同步 · 尚未手動儲存','Đã đồng bộ · chưa lưu thủ công'):t('已儲存','Đã lưu')}</p>${flow.saved?`<p>${t('儲存者','Người lưu')}: ${h(flow.saved.actor.name)} · ${h(flow.saved.at)}</p>`:''}`;host.querySelector('#routine-page')?.prepend(panel);
-      if(permitted('approval.compare')){const b=document.createElement('button');b.id='routine-case-history';b.className='button ghost';b.textContent=t('送審案件','Hồ sơ gửi duyệt');b.onclick=()=>window.openSharedDraftHistory({client:sharedTransport(),editable:()=>open()?.status==='draft'&&permitted('approval.submit'),onApplied:async()=>{await read();render();}}).catch(failed);panel.append(b);}
-      if(sharedClient?.hasUnknown())for(const [label,method]of [[t('查詢上次操作','Kiểm tra thao tác trước'),'resolveUnknown'],[t('重試同一操作','Thử lại cùng thao tác'),'retryUnknown']]){const b=document.createElement('button');b.textContent=label;b.onclick=async()=>{try{await sharedTransport()[method]();await read();render();}catch(e){failed(e);}};panel.append(b);}
+      if(sharedClient?.hasUnknown())for(const [label,method]of [[t('查詢上次操作','Kiểm tra thao tác trước'),'resolveUnknown'],[t('重試同一操作','Thử lại cùng thao tác'),'retryUnknown']]){const b=document.createElement('button');b.textContent=label;b.onclick=guardWorking(b,async()=>{try{await sharedTransport()[method]();await read();render();}catch(e){failed(e);}});panel.append(b);}
     }
     sharedClient?.gatePermissions?.();
     if(readUnavailable)showEquipmentReadRecovery(message);
-    window.VersionDraftUI?.mount(host,{header:'.routine-version',historyClient:sharedTransport,module:t('檢具與測試設備','Dưỡng kiểm và thiết bị đo'),scope:t('檢具全庫','Toàn bộ thiết bị'),version,versions:control.versions,active:active(),flow:control.workflow,busy,failed:readUnavailable||sharedClient?.hasUnknown(),actions:{begin:'#routine-begin',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-routine-issue-kind="error"]',missing:'.routine-issues-card,[data-routine-issue-kind="missing"]',history:['.routine-history-card','#routine-case-history','[data-routine-issue-kind="warning"]'],status:['#routine-shared-status'],remove:['.routine-top']});
+    window.VersionDraftUI?.mount(host,{header:'.routine-version',historyClient:sharedTransport,mountApprovedHistory,module:t('檢具與測試設備','Dưỡng kiểm và thiết bị đo'),scope:t('檢具全庫','Toàn bộ thiết bị'),version,versions:control.versions,active:active(),flow:control.workflow,busy,failed:readUnavailable||sharedClient?.hasUnknown(),actions:{begin:'#routine-begin',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-routine-issue-kind="error"]',missing:'.routine-issues-card,[data-routine-issue-kind="missing"]',history:['.routine-history-card','[data-routine-issue-kind="warning"]'],status:['#routine-shared-status'],remove:['.routine-top','#routine-case-history']});
   }
 
   function bind() {
     const root = host;
-    root.querySelector('#routine-import')?.addEventListener('click', importSource);
-    root.querySelector('#routine-begin')?.addEventListener('click', () => write('begin'));
-    root.querySelector('#routine-save')?.addEventListener('click', () => saveDraft('save'));
-    root.querySelector('#routine-submit')?.addEventListener('click', () => { void saveDraft('submit'); });
-    root.querySelector('#routine-withdraw')?.addEventListener('click', () => write('withdraw'));
+    root.querySelector('#routine-import')?.addEventListener('click', guardWorking(root.querySelector('#routine-import'),importSource));
+    root.querySelector('#routine-begin')?.addEventListener('click', guardWorking(root.querySelector('#routine-begin'),() => write('begin')));
+    root.querySelector('#routine-save')?.addEventListener('click', guardWorking(root.querySelector('#routine-save'),() => saveDraft('save')));
+    root.querySelector('#routine-submit')?.addEventListener('click', guardWorking(root.querySelector('#routine-submit'),() => { void saveDraft('submit'); }));
+    root.querySelector('#routine-withdraw')?.addEventListener('click', guardWorking(root.querySelector('#routine-withdraw'),() => write('withdraw')));
 
-    root.querySelector('#routine-version-select')?.addEventListener('change', event => {
+    root.querySelector('#routine-version-select')?.addEventListener('change', guardWorking(root.querySelector('#routine-version-select'),event => {
       if (editable() && isDirty() &&
           !confirm(t('尚有未儲存的草稿修改；確定切換版本？', 'Còn thay đổi chưa lưu; bạn có chắc muốn chuyển phiên bản?'))) { event.target.value = selected().id; return; }
       equipmentEditRequest++;
@@ -3243,15 +3455,15 @@
       problemSnapshot = null;
       openErrors = false;
       render();
-    });
+    }));
 
     const searchInput = root.querySelector('#routine-search');
-    searchInput?.addEventListener('compositionstart', () => { composing = true; });
-    searchInput?.addEventListener('compositionend', event => { composing = false; search = event.target.value; equipmentPage = 1; renderEquipmentResults(); });
-    searchInput?.addEventListener('input', event => { search = event.target.value; if (!composing) { equipmentPage = 1; renderEquipmentResults(); } });
+    searchInput?.addEventListener('compositionstart', guardWorking(searchInput,() => { composing = true; }));
+    searchInput?.addEventListener('compositionend', guardWorking(searchInput,event => { composing = false; search = event.target.value; equipmentPage = 1; renderEquipmentResults(); }));
+    searchInput?.addEventListener('input', guardWorking(searchInput,event => { search = event.target.value; if (!composing) { equipmentPage = 1; renderEquipmentResults(); } }));
     bindList();
 
-    root.querySelectorAll('[data-node-select]').forEach(button => button.onclick = () => {
+    root.querySelectorAll('[data-node-select]').forEach(button => button.onclick = guardWorking(button,() => {
       equipmentEditRequest++;
       const id = button.dataset.id;
       if (button.dataset.nodeSelect === 'category') { selectedCategory = id; selectedSubcategory = ''; selectedGroup = ''; }
@@ -3261,14 +3473,12 @@
         selectedGroup = groupsUnderSub.length === 1 ? groupsUnderSub[0].id : '';
       }
       if (button.dataset.nodeSelect === 'group') selectedGroup = id;
-      editingEquipmentId = '';
+      // Hierarchy selections filter this same page. Keep open RAM editors,
+      // their original parent/basis and exact File entries until completion/cancel.
       selectedEquipmentId = '';
-      addingEquipment = false;
-      newEquipmentForm = null;
-      formSnapshot = null;
       equipmentPage = 1; render();
-    });
-    root.querySelectorAll('[data-node-view]').forEach(button => button.onclick = event => {
+    }));
+    root.querySelectorAll('[data-node-view]').forEach(button => button.onclick = guardWorking(button,event => {
       event.stopPropagation();
       const kind = button.dataset.nodeView;
       const id = button.dataset.id;
@@ -3281,21 +3491,21 @@
         viewDialog = { kind, data: item };
         render();
       }
-    });
-    root.querySelectorAll('[data-node-add]').forEach(button => button.onclick = () => openNodeDialog(button.dataset.nodeAdd));
-    root.querySelectorAll('[data-node-edit]').forEach(button => button.onclick = event => { event.stopPropagation(); openNodeDialog(button.dataset.nodeEdit, button.dataset.id); });
-    root.querySelectorAll('[data-node-delete]').forEach(button => button.onclick = event => { event.stopPropagation(); deleteNode(button.dataset.nodeDelete, button.dataset.id).catch(failed); });
+    }));
+    root.querySelectorAll('[data-node-add]').forEach(button => button.onclick = guardWorking(button,() => openNodeDialog(button.dataset.nodeAdd)));
+    root.querySelectorAll('[data-node-edit]').forEach(button => button.onclick = guardWorking(button,event => { event.stopPropagation(); openNodeDialog(button.dataset.nodeEdit, button.dataset.id); }));
+    root.querySelectorAll('[data-node-delete]').forEach(button => button.onclick = guardWorking(button,event => { event.stopPropagation(); deleteNode(button.dataset.nodeDelete, button.dataset.id).catch(failed); }));
 
     // Node dialog bindings
     const boundNodeDialog=nodeDialog;
-    for(const field of ['name','spec'])root.querySelector('#routine-dialog-'+field)?.addEventListener('input',event=>{if(nodeDialog===boundNodeDialog)nodeDialog[field]=event.target.value;});
-    root.querySelector('#routine-dialog-close')?.addEventListener('click', cancelNodeDialog);
-    root.querySelector('#routine-dialog-cancel')?.addEventListener('click', cancelNodeDialog);
-    root.querySelector('#routine-dialog-confirm')?.addEventListener('click', confirmNodeDialog);
-    root.querySelector('#routine-node-dialog-backdrop')?.addEventListener('click', event => {
+    for(const field of ['name','spec'])root.querySelector('#routine-dialog-'+field)?.addEventListener('input',guardWorking(root.querySelector('#routine-dialog-'+field),event=>{if(nodeDialog===boundNodeDialog)nodeDialog[field]=event.target.value;}));
+    root.querySelector('#routine-dialog-close')?.addEventListener('click', guardWorking(root.querySelector('#routine-dialog-close'),cancelNodeDialog));
+    root.querySelector('#routine-dialog-cancel')?.addEventListener('click', guardWorking(root.querySelector('#routine-dialog-cancel'),cancelNodeDialog));
+    root.querySelector('#routine-dialog-confirm')?.addEventListener('click', guardWorking(root.querySelector('#routine-dialog-confirm'),confirmNodeDialog));
+    root.querySelector('#routine-node-dialog-backdrop')?.addEventListener('click', guardWorking(root.querySelector('#routine-node-dialog-backdrop'),event => {
       if (event.target?.id === 'routine-node-dialog-backdrop') cancelNodeDialog();
-    });
-    root.querySelector('#routine-dialog-photo-input')?.addEventListener('change', event => {
+    }));
+    root.querySelector('#routine-dialog-photo-input')?.addEventListener('change', guardWorking(root.querySelector('#routine-dialog-photo-input'),event => {
       const file = event.target.files?.[0];
       if (!file) return;
       if (file.size > 5_000_000) { alert(t('照片限 5 MB', 'Ảnh giới hạn 5 MB')); return; }
@@ -3305,8 +3515,8 @@
       nodeDialog.pendingPhoto = { file, url: URL.createObjectURL(file) };
       nodeDialog.photoRemoved = false;
       render();
-    });
-    root.querySelector('#routine-dialog-photo-remove')?.addEventListener('click', () => {
+    }));
+    root.querySelector('#routine-dialog-photo-remove')?.addEventListener('click', guardWorking(root.querySelector('#routine-dialog-photo-remove'),() => {
       nodeDialog.name = root.querySelector('#routine-dialog-name')?.value || '';
       if (nodeDialog.kind === 'group') nodeDialog.spec = root.querySelector('#routine-dialog-spec')?.value || '';
       if (nodeDialog.pendingPhoto) URL.revokeObjectURL(nodeDialog.pendingPhoto.url);
@@ -3314,54 +3524,54 @@
       nodeDialog.photoId = '';
       nodeDialog.photoRemoved = true;
       render();
-    });
+    }));
 
     // View dialog bindings
-    root.querySelector('#routine-view-close')?.addEventListener('click', () => { viewDialog?.references?.closeDetail?.();viewDialog = null; render(); });
-    root.querySelector('#routine-view-dismiss')?.addEventListener('click', () => { viewDialog?.references?.closeDetail?.();viewDialog = null; render(); });
-    root.querySelector('#routine-view-modal-backdrop')?.addEventListener('click', event => {
+    root.querySelector('#routine-view-close')?.addEventListener('click', guardWorking(root.querySelector('#routine-view-close'),() => { viewDialog?.references?.closeDetail?.();viewDialog = null; render(); }));
+    root.querySelector('#routine-view-dismiss')?.addEventListener('click', guardWorking(root.querySelector('#routine-view-dismiss'),() => { viewDialog?.references?.closeDetail?.();viewDialog = null; render(); }));
+    root.querySelector('#routine-view-modal-backdrop')?.addEventListener('click', guardWorking(root.querySelector('#routine-view-modal-backdrop'),event => {
       if (event.target?.id === 'routine-view-modal-backdrop') { viewDialog?.references?.closeDetail?.();viewDialog = null; render(); }
-    });
+    }));
 
     // Transfer dialog bindings
-    root.querySelector('#routine-transfer-close')?.addEventListener('click', () => { transferDialog = null; render(); });
-    root.querySelector('#routine-transfer-dismiss')?.addEventListener('click', () => { transferDialog = null; render(); });
-    root.querySelector('#routine-transfer-backdrop')?.addEventListener('click', event => {
+    root.querySelector('#routine-transfer-close')?.addEventListener('click', guardWorking(root.querySelector('#routine-transfer-close'),() => { transferDialog = null; render(); }));
+    root.querySelector('#routine-transfer-dismiss')?.addEventListener('click', guardWorking(root.querySelector('#routine-transfer-dismiss'),() => { transferDialog = null; render(); }));
+    root.querySelector('#routine-transfer-backdrop')?.addEventListener('click', guardWorking(root.querySelector('#routine-transfer-backdrop'),event => {
       if (event.target?.id === 'routine-transfer-backdrop') { transferDialog = null; render(); }
-    });
+    }));
 
-    root.querySelector('#routine-target-cat')?.addEventListener('change', event => {
+    root.querySelector('#routine-target-cat')?.addEventListener('change', guardWorking(root.querySelector('#routine-target-cat'),event => {
       if (!transferDialog || transferBusy()) return;
       transferDialog.targetCat = event.target.value;
       transferDialog.targetEqId = '';
       render();
-    });
+    }));
 
-    root.querySelector('#routine-target-eq-select')?.addEventListener('change', event => {
+    root.querySelector('#routine-target-eq-select')?.addEventListener('change', guardWorking(root.querySelector('#routine-target-eq-select'),event => {
       if (!transferDialog || transferBusy()) return;
       transferDialog.targetEqId = event.target.value;
       render();
-    });
+    }));
 
     root.querySelectorAll('[data-transfer-check]').forEach(chk => {
-      chk.onchange = () => {
+      chk.onchange = guardWorking(chk,() => {
         if (!transferDialog || transferBusy()) return;
         const mod = chk.dataset.transferCheck;
         const id = chk.value;
         if (chk.checked) transferDialog.selection[mod]?.add(id);
         else transferDialog.selection[mod]?.delete(id);
-      };
+      });
     });
 
-    root.querySelector('#routine-confirm-transfer-fqc')?.addEventListener('click', () => executeTransfer('fqc'));
-    root.querySelector('#routine-confirm-transfer-iqc')?.addEventListener('click', () => executeTransfer('iqc'));
-    root.querySelector('#routine-confirm-transfer-ipqc-c')?.addEventListener('click', () => executeTransfer('ipqcC'));
-    root.querySelector('#routine-confirm-transfer-ipqc-ab')?.addEventListener('click', () => executeTransfer('ipqcAB'));
+    root.querySelector('#routine-confirm-transfer-fqc')?.addEventListener('click', guardWorking(root.querySelector('#routine-confirm-transfer-fqc'),() => executeTransfer('fqc')));
+    root.querySelector('#routine-confirm-transfer-iqc')?.addEventListener('click', guardWorking(root.querySelector('#routine-confirm-transfer-iqc'),() => executeTransfer('iqc')));
+    root.querySelector('#routine-confirm-transfer-ipqc-c')?.addEventListener('click', guardWorking(root.querySelector('#routine-confirm-transfer-ipqc-c'),() => executeTransfer('ipqcC')));
+    root.querySelector('#routine-confirm-transfer-ipqc-ab')?.addEventListener('click', guardWorking(root.querySelector('#routine-confirm-transfer-ipqc-ab'),() => executeTransfer('ipqcAB')));
 
     bindReferenceActions(root);
     bindViewReferences(root);
 
-    root.querySelectorAll('[data-jump-asset]').forEach(btn => btn.onclick = () => {
+    root.querySelectorAll('[data-jump-asset]').forEach(btn => btn.onclick = guardWorking(btn,() => {
       const asset = btn.dataset.jumpAsset, mark = btn.dataset.jumpMark;
       const target = (visible().equipment || []).find(e => e.assetCode === asset && e.pieceMark === mark) ||
                      (visible().equipment || []).find(e => e.assetCode === asset);
@@ -3370,23 +3580,23 @@
       } else {
         alert(t(`未找到對應設備 ${asset}／${mark}`, `Không tìm thấy thiết bị ${asset}／${mark}`));
       }
-    });
-    root.querySelectorAll('[data-fix-equipment]').forEach(button => button.onclick = () => locateEquipment(button.dataset.fixEquipment, button.dataset.fixField));
-    root.querySelectorAll('[data-retry-action]').forEach(button => button.onclick = () => {
+    }));
+    root.querySelectorAll('[data-fix-equipment]').forEach(button => button.onclick = guardWorking(button,() => locateEquipment(button.dataset.fixEquipment, button.dataset.fixField)));
+    root.querySelectorAll('[data-retry-action]').forEach(button => button.onclick = guardWorking(button,() => {
       const act = button.dataset.retryAction;
       if (act === 'submit' || act === 'save') {
         saveDraft(act).catch(failed);
       }
-    });
-    root.querySelectorAll('[data-issue-result]').forEach(input => input.oninput = () => { if (working?.issues?.[Number(input.dataset.issueResult)]) working.issues[Number(input.dataset.issueResult)].resolution = input.value; });
-    root.querySelectorAll('[data-issue-result]').forEach(input=>input.onchange=async()=>{await writeShared('apply');});
-    root.querySelectorAll('[data-issue-resolve]').forEach(button => button.onclick = async () => {
+    }));
+    root.querySelectorAll('[data-issue-result]').forEach(input => input.oninput = guardWorking(input,() => { if (working?.issues?.[Number(input.dataset.issueResult)]) working.issues[Number(input.dataset.issueResult)].resolution = input.value; }));
+    root.querySelectorAll('[data-issue-result]').forEach(input=>input.onchange=guardWorking(input,async()=>{await writeShared('apply');}));
+    root.querySelectorAll('[data-issue-resolve]').forEach(button => button.onclick = guardWorking(button,async () => {
       const issue = working?.issues?.[Number(button.dataset.issueResolve)];
       if (!issue) return;
       if (issue.status !== 'resolved' && !String(issue.resolution || '').trim()) { alert(t('請先填寫處理結果與依據', 'Hãy nhập kết quả và căn cứ trước')); return; }
       issue.status = issue.status === 'resolved' ? 'pending' : 'resolved';
       if(await writeShared('apply'))render();
-    });
+    }));
 
     // Form handlers
     const item = working?.equipment.find(record => record.id === editingEquipmentId);
@@ -3400,12 +3610,12 @@
       closeForm();
     };
 
-    root.querySelector('#routine-close')?.addEventListener('click', tryCloseForm);
-    root.querySelector('#routine-form-cancel')?.addEventListener('click', tryCloseForm);
-    root.querySelector('#routine-backdrop')?.addEventListener('click', event => {
+    root.querySelector('#routine-close')?.addEventListener('click', guardWorking(root.querySelector('#routine-close'),tryCloseForm));
+    root.querySelector('#routine-form-cancel')?.addEventListener('click', guardWorking(root.querySelector('#routine-form-cancel'),tryCloseForm));
+    root.querySelector('#routine-backdrop')?.addEventListener('click', guardWorking(root.querySelector('#routine-backdrop'),event => {
       if (event.target?.id === 'routine-backdrop') tryCloseForm();
-    });
-    root.querySelector('#routine-language-toggle')?.addEventListener('click', () => document.querySelector('.top-actions .language-switch')?.click());
+    }));
+    root.querySelector('#routine-language-toggle')?.addEventListener('click', guardWorking(root.querySelector('#routine-language-toggle'),() => document.querySelector('.top-actions .language-switch')?.click()));
 
     if (item) {
       const bindCalibrationInputs = () => {
@@ -3413,26 +3623,26 @@
         if (!calContainer) return;
         const cycleSelect = calContainer.querySelector('[data-select="calibrationCycle"]');
         if (cycleSelect) {
-          cycleSelect.onchange = () => {
+          cycleSelect.onchange = guardWorking(cycleSelect,() => {
             item.calibrationCycle = cycleSelect.value;
             calContainer.innerHTML = renderEditCalibrationFields(item, editable());
             bindCalibrationInputs();
-          };
+          });
         }
         calContainer.querySelectorAll('[data-field]').forEach(input => {
-          input.oninput = () => { item[input.dataset.field] = input.value; };
+          input.oninput = guardWorking(input,() => { item[input.dataset.field] = input.value; });
         });
       };
       bindCalibrationInputs();
 
       root.querySelectorAll('#routine-editor [data-field]').forEach(input => {
-        input.oninput = () => {
+        input.oninput = guardWorking(input,() => {
           item[input.dataset.field] = input.type === 'number' ? Number(input.value) : input.value;
-        };
+        });
       });
 
       root.querySelectorAll('#routine-editor [data-select]').forEach(select => {
-        select.onchange = () => {
+        select.onchange = guardWorking(select,() => {
           if (select.dataset.select === 'calibrationMethod') {
             item.calibrationMethod = select.value;
             const calContainer = root.querySelector('#routine-edit-calibration-container');
@@ -3443,47 +3653,47 @@
           } else {
             item[select.dataset.select] = ['enabled','confirmed'].includes(select.dataset.select) ? select.value === 'true' : select.value;
           }
-        };
+        });
       });
 
-      root.querySelector('#routine-edit-category')?.addEventListener('change', event => {
+      root.querySelector('#routine-edit-category')?.addEventListener('change', guardWorking(root.querySelector('#routine-edit-category'),event => {
         item.categoryId = event.target.value;
         const cat = working.categories.find(value => value.id === item.categoryId);
         item.categoryCode = cat?.code || ''; item.category = cat?.name || '';
         if (!working.groups.some(g => g.categoryId === item.categoryId && g.id === item.groupId)) { item.groupId = ''; item.subcategoryId = ''; item.subcategory = ''; }
         render();
-      });
+      }));
 
-      root.querySelector('#routine-edit-subcategory')?.addEventListener('change', event => {
+      root.querySelector('#routine-edit-subcategory')?.addEventListener('change', guardWorking(root.querySelector('#routine-edit-subcategory'),event => {
         item.subcategoryId = event.target.value;
         item.subcategory = working.subcategories.find(value => value.id === item.subcategoryId)?.name || '';
         if (!working.groups.some(g => g.subcategoryId === item.subcategoryId && g.id === item.groupId)) item.groupId = '';
         render();
-      });
+      }));
 
-      root.querySelector('#routine-edit-group')?.addEventListener('change', event => {
+      root.querySelector('#routine-edit-group')?.addEventListener('change', guardWorking(root.querySelector('#routine-edit-group'),event => {
         const group = working.groups.find(value => value.id === event.target.value);
         if (group) { item.groupId = group.id; item.categoryId = group.categoryId; item.subcategoryId = group.subcategoryId;
           item.categoryCode = group.categoryCode; item.category = group.category; item.subcategory = group.subcategory; }
         render();
-      });
+      }));
 
-      root.querySelector('#routine-photo-input')?.addEventListener('change', event => {
+      root.querySelector('#routine-photo-input')?.addEventListener('change', guardWorking(root.querySelector('#routine-photo-input'),event => {
         const file = event.target.files?.[0]; if (!file) return;
         if (file.size > 5_000_000) { alert(t('照片限 5 MB', 'Ảnh giới hạn 5 MB')); return; }
         const prior = pendingPhotos.get(item.id); if (prior&&prior!==formPendingPhoto) URL.revokeObjectURL(prior.url);
         pendingPhotos.set(item.id, { file, url: URL.createObjectURL(file) });
         item.photoHidden = false;
         message = t('照片僅在本頁預覽；完成表單後，按存取草稿才上傳並保存照片參照。', 'Ảnh chỉ ở trang này; hoàn tất biểu mẫu rồi lưu bản nháp để tải ảnh và lưu tham chiếu.'); render();
-      });
-      root.querySelector('#routine-photo-remove')?.addEventListener('click', () => {
+      }));
+      root.querySelector('#routine-photo-remove')?.addEventListener('click', guardWorking(root.querySelector('#routine-photo-remove'),() => {
         if (!confirm(t('確定從目前草稿移除照片？舊版本照片不會刪除。', 'Xóa ảnh khỏi bản nháp hiện tại? Ảnh phiên bản cũ vẫn được giữ.'))) return;
         const pending = pendingPhotos.get(item.id); if (pending&&pending!==formPendingPhoto) URL.revokeObjectURL(pending.url);
         pendingPhotos.delete(item.id); item.photoId = ''; item.photoHidden = true;
         message = t('照片已從本頁草稿移除，尚未保存。', 'Ảnh đã xóa khỏi bản nháp trên trang, chưa lưu.'); render();
-      });
+      }));
 
-      root.querySelector('#routine-form-apply')?.addEventListener('click', async () => {
+      root.querySelector('#routine-form-apply')?.addEventListener('click', guardWorking(root.querySelector('#routine-form-apply'),async () => {
         const nameInput = root.querySelector('#routine-editor [data-field="name"]');
         if (nameInput) item.name = nameInput.value.trim();
         const groupSelect = root.querySelector('#routine-edit-group');
@@ -3537,11 +3747,11 @@
         if(!await writeShared('apply'))return;
         if(editingEquipmentId!==item.id||formSnapshot!==sentFormSnapshot||JSON.stringify(item)!==sentForm||pendingPhotos.get(item.id)&&(pendingPhotos.get(item.id)!==sentPhoto||sentPhoto?.file!==sentPhotoFile||sentPhoto?.url!==sentPhotoURL))return;
         closeForm();
-      });
+      }));
 
-      root.querySelector('#routine-delete')?.addEventListener('click', () => {
+      root.querySelector('#routine-delete')?.addEventListener('click', guardWorking(root.querySelector('#routine-delete'),() => {
         if (item) deleteEquipment(item.id).catch(failed);
-      });
+      }));
     }
 
     if (addingEquipment && newEquipmentForm) {
@@ -3583,18 +3793,18 @@
         if (!calContainer) return;
         const cycleSelect = calContainer.querySelector('#routine-add-calibration-cycle');
         if (cycleSelect) {
-          cycleSelect.onchange = () => {
+          cycleSelect.onchange = guardWorking(cycleSelect,() => {
             newEquipmentForm.calibrationCycle = cycleSelect.value;
             calContainer.innerHTML = renderAddCalibrationFields(newEquipmentForm);
             bindAddCalibrationInputs();
-          };
+          });
         }
         calContainer.querySelectorAll('input').forEach(input => {
-          input.oninput = () => {
+          input.oninput = guardWorking(input,() => {
             if (input.id === 'routine-add-custom-cycle') newEquipmentForm.customCycle = input.value;
             if (input.id === 'routine-add-calibrated-at') newEquipmentForm.calibratedAt = input.value;
             if (input.id === 'routine-add-expires-at') newEquipmentForm.expiresAt = input.value;
-          };
+          });
         });
       };
       bindAddCalibrationInputs();
@@ -3602,17 +3812,17 @@
       const assetCodeInput = root.querySelector('#routine-add-asset-code');
       const pieceMarkInput = root.querySelector('#routine-add-piece-mark-input');
 
-      assetCodeInput?.addEventListener('input', () => {
+      assetCodeInput?.addEventListener('input', guardWorking(assetCodeInput,() => {
         const val = assetCodeInput.value.trim().toUpperCase();
         newEquipmentForm.assetCode = val;
         if (pieceMarkInput) pieceMarkInput.value = computeNextPieceMark(val);
-      });
+      }));
 
-      root.querySelector('#routine-add-name')?.addEventListener('input', e => {
+      root.querySelector('#routine-add-name')?.addEventListener('input', guardWorking(root.querySelector('#routine-add-name'),e => {
         newEquipmentForm.name = e.target.value;
-      });
+      }));
 
-      root.querySelector('#routine-add-photo-input')?.addEventListener('change', event => {
+      root.querySelector('#routine-add-photo-input')?.addEventListener('change', guardWorking(root.querySelector('#routine-add-photo-input'),event => {
         const file = event.target.files?.[0];
         if (!file) return;
         if (file.size > 5_000_000) { alert(t('照片限 5 MB', 'Ảnh giới hạn 5 MB')); return; }
@@ -3620,16 +3830,16 @@
         if (newEquipmentForm.pendingPhoto) URL.revokeObjectURL(newEquipmentForm.pendingPhoto.url);
         newEquipmentForm.pendingPhoto = { file, url: URL.createObjectURL(file) };
         render();
-      });
+      }));
 
-      root.querySelector('#routine-add-photo-remove')?.addEventListener('click', () => {
+      root.querySelector('#routine-add-photo-remove')?.addEventListener('click', guardWorking(root.querySelector('#routine-add-photo-remove'),() => {
         syncAddFormFromDOM();
         if (newEquipmentForm.pendingPhoto) URL.revokeObjectURL(newEquipmentForm.pendingPhoto.url);
         newEquipmentForm.pendingPhoto = null;
         render();
-      });
+      }));
 
-      root.querySelector('#routine-add-calibration-method')?.addEventListener('change', event => {
+      root.querySelector('#routine-add-calibration-method')?.addEventListener('change', guardWorking(root.querySelector('#routine-add-calibration-method'),event => {
         syncAddFormFromDOM();
         newEquipmentForm.calibrationMethod = event.target.value;
         const calContainer = root.querySelector('#routine-add-calibration-container');
@@ -3637,7 +3847,7 @@
           calContainer.innerHTML = renderAddCalibrationFields(newEquipmentForm);
           bindAddCalibrationInputs();
         }
-      });
+      }));
 
       const cancelAdd = () => {
         syncAddFormFromDOM();
@@ -3650,13 +3860,13 @@
         render();
       };
 
-      root.querySelector('#routine-add-close')?.addEventListener('click', cancelAdd);
-      root.querySelector('#routine-add-cancel')?.addEventListener('click', cancelAdd);
-      root.querySelector('#routine-add-backdrop')?.addEventListener('click', event => {
+      root.querySelector('#routine-add-close')?.addEventListener('click', guardWorking(root.querySelector('#routine-add-close'),cancelAdd));
+      root.querySelector('#routine-add-cancel')?.addEventListener('click', guardWorking(root.querySelector('#routine-add-cancel'),cancelAdd));
+      root.querySelector('#routine-add-backdrop')?.addEventListener('click', guardWorking(root.querySelector('#routine-add-backdrop'),event => {
         if (event.target?.id === 'routine-add-backdrop') cancelAdd();
-      });
+      }));
 
-      root.querySelector('#routine-add-submit')?.addEventListener('click', confirmAddEquipment);
+      root.querySelector('#routine-add-submit')?.addEventListener('click', guardWorking(root.querySelector('#routine-add-submit'),confirmAddEquipment));
     }
   }
 
@@ -3667,6 +3877,7 @@
     invalidateEquipmentReferences();
   }
   async function mount(element) {
+    historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;
     if(identity()?.id&&hasFqcTransfer())targetFqcClient();
     if(identity()?.id&&hasIqcTransfer())targetIqcClient();
     equipmentEditRequest++;navigationError=null;
@@ -3799,7 +4010,7 @@
     const base=window.VersionDraftUI.createDeparture(config);let held=null;
     const legacy=()=>{try{const markers=[beginRecoveryKey(identity()?.id),fqcTransferKey(identity()?.id),iqcTransferKey(identity()?.id)].map(key=>[key,sessionStorage.getItem(key)]).filter(([,raw])=>raw!==null);return markers.length&&![sharedClient,fqcTransferClient,iqcTransferClient].some(client=>client?.hasUnknown()||client?.hasSyncFailures())&&inputOwnerCurrent()&&!busy&&!transferBusy()?JSON.stringify(markers):null;}catch{return null;}};
     const valid=record=>record&&record.raw===legacy()&&record.actor===identity()&&record.epoch===window.ProcessSync?.identityGeneration?.();
-    return {...base,autoAbandon:true,allowUnload:()=>!busy&&!transferBusy(),
+    return {...base,autoAbandon:true,allowUnload:()=>!(busy&&!equipmentSaveComparison)&&!transferBusy(),
       inspect(){const status=base.inspect(),raw=legacy();if(raw===null)return status;return {state:valid(held)?'departing':'unknown',departureId:held?.id,canAbandon:!held,canSave:false,canDiscard:false,reason:beginRecoveryMessage()};},
       async abandon(){const raw=legacy();if(raw===null)return base.abandon();const record={raw,actor:identity(),epoch:window.ProcessSync?.identityGeneration?.(),id:{}};config.discard();if(!valid(record))throw Error('DEPARTURE_CONTEXT_CHANGED');held=record;return {departureId:record.id,release(){if(held===record)held=null;}};},
       closeClean(){if(held){if(!valid(held))throw Error('DEPARTURE_CONTEXT_CHANGED');return;}return base.closeClean();},
@@ -3812,14 +4023,14 @@
     navigation:{get departure(){return moduleDeparture ||= equipmentDeparture({
     root:()=>host,flow:()=>control?.workflow,sharedOwned:()=>false,sharedDirty:()=>false,
     context:()=>[controlActor,selectedVersionId,control?.workflow?.generation,sharedClient?.permission('save'),sharedClient?.permission('edit')],
-    current:()=>controlActor===identity()?.id&&inputOwnerCurrent(),busy:()=>busy||transferBusy()||!!equipmentReadAttempt,
+    current:()=>controlActor===identity()?.id&&inputOwnerCurrent(),busy:()=>busy&&!equipmentSaveComparison||transferBusy()||!!equipmentReadAttempt,
     unknown:()=>sharedClient?.hasUnknown()||fqcTransferClient?.hasUnknown()||iqcTransferClient?.hasUnknown()||hasBeginRecovery(),failed:()=>sharedClient?.hasSyncFailures()||fqcTransferClient?.hasSyncFailures()||iqcTransferClient?.hasSyncFailures(),
     unknownTransports:()=>[sharedClient,fqcTransferClient,iqcTransferClient],unknownReady:()=>{try{return !readBeginRecovery();}catch{return false;}},discardUnknown(){this.discard();},
     local:()=>!!editingEquipmentId||isDirty()||isFormDirty()||!!pendingPhotos.size||!!nodeDialog||!!transferDialog||addingEquipment,
     canSave:()=>!!canDraftAction('save'),canDiscard:()=>editable()&&sharedClient?.permission('edit')===true,
     save:owner=>saveDraft('save',owner),dialogs:()=>[...host?.querySelectorAll('.routine-modal-backdrop,.routine-dialog-backdrop')||[]],
-    discard(){equipmentEditRequest++;const urls=new Set([...pendingPhotos.values()].map(pending=>pending.url));for(const photo of [newEquipmentForm?.pendingPhoto,nodeDialog?.pendingPhoto])if(photo?.url)urls.add(photo.url);for(const url of urls)URL.revokeObjectURL(url);pendingPhotos.clear();localBeginReceipt=null;pendingSaveBatch=null;formPendingPhoto=null;editingEquipmentId='';formSnapshot=null;nodeDialog=null;transferDialog=null;addingEquipment=false;newEquipmentForm=null;newEquipmentOwner=null;working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow?.generation;render();},
-  });},requiresSave:()=>false,saveForDeparture:()=>saveDraft('save'),canLeave:()=>!busy&&!transferBusy(),error:()=>navigationError,reset(){viewDialog?.references?.closeDetail?.();equipmentEditRequest++;writeShared.attempt=null;busy=false;equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;localBeginReceipt=null;pendingSaveBatch=null;inputOwner=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},
+    discard(){retireEquipmentSaveComparison();equipmentEditRequest++;const urls=new Set([...pendingPhotos.values()].map(pending=>pending.url));for(const photo of [newEquipmentForm?.pendingPhoto,nodeDialog?.pendingPhoto])if(photo?.url)urls.add(photo.url);for(const url of urls)URL.revokeObjectURL(url);pendingPhotos.clear();localBeginReceipt=null;pendingSaveBatch=null;formPendingPhoto=null;editingEquipmentId='';formSnapshot=null;nodeDialog=null;transferDialog=null;addingEquipment=false;newEquipmentForm=null;newEquipmentOwner=null;working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow?.generation;render();},
+  });},requiresSave:()=>false,saveForDeparture:()=>saveDraft('save'),canLeave:()=>!(busy&&!equipmentSaveComparison)&&!transferBusy(),error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;retireEquipmentSaveComparison();equipmentSaveChoice?.();viewDialog?.references?.closeDetail?.();equipmentEditRequest++;writeShared.attempt=null;busy=false;equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;localBeginReceipt=null;pendingSaveBatch=null;inputOwner=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},
     html,
     mount,
     reviewHTML,

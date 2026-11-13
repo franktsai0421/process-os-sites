@@ -41,7 +41,7 @@ async function fixture(){
  };
  const field=(id,value)=>{const node=f.host.querySelector('#routine-add-'+id)||f.host.querySelector('#routine-editor [data-field="'+id+'"]');assert(node,id);node.value=value;if(node.oninput)node.oninput();else node.dispatchEvent({type:node.tagName==='SELECT'?'change':'input',target:node});};
  const open=()=>{const button=f.host.querySelector('#routine-add');assert(button&&!button.disabled);button.click();field('asset-code','SYN-UI-1');field('name','Actual UI new equipment');field('unit','支');field('enabled','true');field('confirmed','true');field('group-select','group');field('calibration-method','none');};
- const submit=async()=>{const before=responses,button=f.host.querySelector('#routine-add-submit')||f.host.querySelector('#routine-form-apply');assert(button&&!button.disabled,'actual enabled local completion button');button.click();await settle();assert.equal(responses,before,'Add completion is local, not POST');const save=f.host.querySelector('#routine-save');assert(save&&!save.disabled,'actual enabled Save button');save.click();for(let i=0;i<2000&&responses===before;i++)await new Promise(resolve=>setTimeout(resolve,2));assert.equal(responses,before+1,'actual route reply completed');await settle();for(let i=0;i<2000&&inflight;i++){await new Promise(resolve=>setTimeout(resolve,2));await settle();}assert.equal(inflight,0,'fallback/receipt reads completed');await settle();};
+ const submit=async(choice)=>{const before=responses,button=f.host.querySelector('#routine-add-submit')||f.host.querySelector('#routine-form-apply');assert(button&&!button.disabled,'actual enabled local completion button');button.click();await settle();assert.equal(responses,before,'Add completion is local, not POST');const save=f.host.querySelector('#routine-save');assert(save&&!save.disabled,'actual enabled Save button');save.click();if(choice){for(let i=0;i<2000&&!f.c.document.querySelector('[data-equipment-save-choice="'+choice+'"]');i++)await new Promise(resolve=>setTimeout(resolve,2));const decision=f.c.document.querySelector('[data-equipment-save-choice="'+choice+'"]');assert(decision,'actual grouped choice');decision.click();}for(let i=0;i<2000&&responses===before;i++)await new Promise(resolve=>setTimeout(resolve,2));assert.equal(responses,before+1,'actual route reply completed');await settle();for(let i=0;i<2000&&inflight;i++){await new Promise(resolve=>setTimeout(resolve,2));await settle();}assert.equal(inflight,0,'fallback/receipt reads completed');await settle();};
  return{h,f,commands,receiptReads,field,open,submit,setReply(fn){reply=fn;},pause(){let release;hold=new Promise(resolve=>release=resolve);const reached=new Promise(resolve=>posted=resolve);return{reached,release};},async editCreated(){await f.test.openEditEquipment(commands[0].patches.find(p=>p.op==='insert'&&p.path[0]==='equipment').value.id);},close:()=>h.close()};
 }
 const row=data=>data.control.workflow.working.equipment[0];
@@ -57,7 +57,7 @@ void test('actual bound Add + default client + real equipment adapter confirms c
   assert.equal(Object.hasOwn(actual,'sourceRow'),false);assert.equal(actual.photoHidden,false);assert.equal(actual.id,sent.id);
   assert.equal(x.f.host.querySelector('#routine-add-submit'),null,'confirmed original drawer closes');
   assert.equal(x.f.requests.slice(before).filter(r=>r.method==='POST').length,1);
-  assert.equal(x.f.requests.slice(before).filter(r=>r.method==='GET').length,0,'canonical ACK adds no confirmation GET');
+  assert.equal(x.f.requests.slice(before).filter(r=>r.method==='GET').length,1,'comparison GET only; canonical ACK adds no confirmation GET');
  }finally{x.close();}
 });
 
@@ -159,7 +159,7 @@ void test('receipt-only insertion ACK uses its original receipt and one existing
  const x=await fixture();try{
   const before=x.f.requests.length;x.setReply(data=>{delete data.control;});x.open();await x.submit();
   assert.equal(x.commands.length,1);assert.equal(x.f.test.readUnavailable,false,x.f.test.message);assert.equal(x.f.test.working.equipment.length,1);
-  assert.equal(x.f.requests.slice(before).filter(r=>r.method==='GET').length,1);assert.equal(x.receiptReads.length,0);
+  assert.equal(x.f.requests.slice(before).filter(r=>r.method==='GET').length,2);assert.equal(x.receiptReads.length,0);
  }finally{x.close();}
 });
 
@@ -169,9 +169,9 @@ void test('next input after a real inserted row keeps sent guard and conflicts w
   const id=x.commands[0].patches[0].value.id,path=['equipment',{id},'name'];
   await x.h.command('routine-equipment','apply',{patches:[{op:'set',path,value:'Peer name'}],guards:[{path,value:'Actual UI new equipment'}]});
   pause.release();await action;assert.equal(x.f.test.readUnavailable,false);assert.equal(x.commands.length,1);
-  await x.submit();assert.equal(x.commands.length,2);assert.equal(x.commands[1].guards.find(g=>g.path.at(-1)==='name').value,'Actual UI new equipment');
-  assert.equal(x.f.test.working.equipment.find(r=>r.id===id).name,'My next name');assert.equal(x.h.flow(await x.h.read('routine-equipment')).working.equipment.find(r=>r.id===id).name,'Peer name');
-  assert.equal(x.f.requests.filter(r=>r.action==='save').at(-1).status,409);
+  await x.submit('mine');assert.equal(x.commands.length,2);assert.equal(x.commands[1].guards.find(g=>g.path.at(-1)==='name').value,'Peer name');
+  assert.equal(x.f.test.working.equipment.find(r=>r.id===id).name,'My next name');assert.equal(x.h.flow(await x.h.read('routine-equipment')).working.equipment.find(r=>r.id===id).name,'My next name');
+  assert.equal(x.f.requests.filter(r=>r.action==='save').at(-1).status,200);
  }finally{x.close();}
 });
 
@@ -247,17 +247,17 @@ for(const [name,mutate]of[
  }finally{x.close();}
 });
 
-void test('structural snapshot ACK settles reordered keys even when all subsequent GETs are unavailable',async()=>{
+void test('structural snapshot ACK settles reordered keys even when all post-dispatch GETs are unavailable',async()=>{
  const x=await fixture();try{
   const reorder=value=>Array.isArray(value)?value.map(reorder):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).reverse().map(([k,v])=>[k,reorder(v)])):value;
   x.open();const before=x.f.requests.length,fetch=x.f.c.fetch;let deniedGets=0;
-  // Fail every subsequent GET, including receipt recovery, while retaining the
+  // Permit the new comparison GET; fail every post-dispatch GET, including receipt recovery, retaining the
   // actual POST, default transport, caller and real adapter confirmation chain.
-  x.f.c.fetch=async(url,options={})=>{if((options.method||'GET')==='GET'){deniedGets++;return Response.json({error:'SYNTHETIC_READBACK_UNAVAILABLE'},{status:503});}return fetch(url,options);};
+  x.f.c.fetch=async(url,options={})=>{if((options.method||'GET')==='GET'&&x.commands.length){deniedGets++;return Response.json({error:'SYNTHETIC_READBACK_UNAVAILABLE'},{status:503});}return fetch(url,options);};
   x.setReply(data=>{data.control.workflow.working=reorder(projection(data));});await x.submit();
   assert.equal(deniedGets,0,'original structurally equal POST ACK must not try fallback or receipt GET');
   assert.equal(x.f.test.readUnavailable,false,x.f.test.message);assert.equal(x.commands.length,1);assert.equal(x.receiptReads.length,0);
-  assert.equal(x.f.requests.slice(before).filter(r=>r.method==='GET').length,0);
+  assert.equal(x.f.requests.slice(before).filter(r=>r.method==='GET').length,1);
  }finally{x.close();}
 });
 
