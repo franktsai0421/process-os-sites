@@ -17,6 +17,6 @@ for(const [file,c]of Object.entries(proof.contract.files))for(const [target,pare
 void test('both real feature changes coexist in installed transport and cache',()=>{
  const client=fs.readFileSync('public/process/shared-draft-client.js','utf8'),index=fs.readFileSync('public/process/index.html','utf8');
  assert(client.includes("['/api/tooling/workflow','/api/routine-equipment/workflow','/api/fqc/workflow'"));assert(client.includes('NO_SUBSTANTIVE_CHANGE:['));
- assert.equal(index.split('shared-draft-client.js?v=20261113-abc-master1').length,2);
+ assert.equal(index.split('shared-draft-client.js?v=20261114-process-review1').length,2);
  for(const route of ['equipment-integration-source-contract.cjs','process-submit-outcome-source-contract.cjs'])assert.equal(fs.readFileSync('scripts/quality-main-source-contract.cjs','utf8').split("require('./"+route+"').projectKnown(bytes,file)").length,3);
 });

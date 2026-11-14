@@ -67,8 +67,8 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
   'master-page-approved-history.js':'20261110-account-pages1',
   'master-page-editor.js':'20261113-abc-master2',
   'local-draft-recovery.js':'20261103-fqc-generation1',
-  'shared-draft-client.js':'20261113-abc-master1',
-  'process-authoring-v3.js':'20261113-submit-outcome1',
+  'shared-draft-client.js':'20261114-process-review1',
+  'process-authoring-v3.js':'20261114-process-review1',
   'process-ipqc.js':'20261110-ipqc-source-single-save1',
   'effective-version-notice.js':'20261109-explicit-checks1',
   'fqc-master.js':'20261112-quality-integration1',
@@ -88,4 +88,13 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
 });
 for(const action of ['save','begin'])void test('authoring '+action+' retains its original response contract during30s tolerance',async()=>{
  const f=deadlineFixture('/api/process-authoring/workflow?caseMetadata=1'),result=observe(action==='begin'?f.client.begin():f.client.command('g','save'));await tick();const body=JSON.parse(f.calls[0].options.body);await f.advance(30000);assert.equal(f.calls[0].aborted,false);assert.equal(result.settled,false);f.calls[0].respond(action==='begin'?{control:{workflow:{generation:'new'}}}:ack(body.command,{savedId:'saved'}));await result.done;assert.equal(result.error,undefined);assert.equal(action==='begin'?result.value.control.workflow.generation:result.value.receipt.savedId,action==='begin'?'new':'saved');assert.equal(f.calls.length,1);assert.equal(f.memory.size,0);
+});
+for(const action of ['submit','withdraw','approve','return'])void test('authoring '+action+' waits beyond45s and aborts only at180s without replay',async()=>{
+ const f=deadlineFixture('/api/process-authoring/workflow?caseMetadata=1'),result=observe(f.client.command('g',action,{caseId:'case',savedId:'saved',expectedRevision:1}));await tick();
+ if(action==='submit'){f.calls[0].respond({permissions:{submit:true},otherReviewerAvailable:true});await tick();}
+ const call=f.calls.find(c=>c.options.method==='POST'),command=JSON.parse(call.options.body).command,stored=[...f.memory];
+ await f.advance(179999);assert.equal(call.aborted,false);assert.equal(result.settled,false);assert.deepEqual([...f.memory],stored);
+ await f.advance(1);assert.equal(call.aborted,true);const lookup=f.calls.at(-1);assert.equal(lookup.options.method,'GET');assert(lookup.url.includes('operationId='+command.operationId));assert(lookup.url.includes('accessEvent=1'));
+ lookup.respond({error:'OPERATION_NOT_FOUND'},404);await result.done;assert.match(result.error.message,/RESULT_UNKNOWN/);assert.equal(f.client.operationInfo().operationId,command.operationId);assert.deepEqual([...f.memory],stored);
+ const inquiry=observe(f.client.retryUnknown());await tick();f.calls.at(-1).respond({...ack(command,{generation:'rotated'}),operationAction:action});await inquiry.done;assert.equal(inquiry.error,undefined);assert(!f.client.hasUnknown());assert.equal(f.calls.filter(c=>c.options.method==='POST').length,1);
 });

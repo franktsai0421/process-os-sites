@@ -1,0 +1,264 @@
+{
+  "base": "b41b993d3d80580214de7cf1af122deb1c0745bf",
+  "baseTree": "c18b888d47a0d57ef9483d24a57ad085df00526b",
+  "files": {
+    "public/process/process-authoring-v3.js": {
+      "beforeHash": "4ffbeea3c0b39b6760aa778b09a0439ff913f3dda2f56bd825195a2f0e9dac08",
+      "beforeNormalizedHash": "4ffbeea3c0b39b6760aa778b09a0439ff913f3dda2f56bd825195a2f0e9dac08",
+      "afterHash": "038a861fc895d88394fc027335e555d2d438fdda9cd657616bef2d7053278891",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 980,
+          "before": "",
+          "after": " let reviewPreparation=null,reviewFlight=null,commandRun=null;\n"
+        },
+        {
+          "offset": 12884,
+          "before": "  const issues=loadError?loadIssues:[],ids=loadError?[lastError?.requestId,lastError?.operationId].filter(v=>typeof v==='string').map(v=>v.slice(0,200)):[];\n",
+          "after": "  const issues=loadError?loadIssues:[],ids=[lastError?.requestId,lastError?.operationId,client().operationInfo?.()?.operationId].filter(v=>typeof v==='string').map(v=>v.slice(0,200)).filter((v,i,a)=>a.indexOf(v)===i);\n"
+        },
+        {
+          "offset": 16609,
+          "before": " const admittedCommandPending=()=>saveCommandPending()||submitCommandPending();\n",
+          "after": " const admittedCommandPending=()=>saveCommandPending()||submitCommandPending()||!!commandRun?.admitted;\n"
+        },
+        {
+          "offset": 36499,
+          "before": "  busy=true;panel();let currentBegin=()=>true,intent=null;try{const c=client();if(['save','submit'].includes(name)){const owner=identityStamp(),view=state.view,category=state.category,line=state.editorLine,contextEpoch=localContextEpoch;intent={client:c,owner,contextEpoch,generation:flow()?.generation,scope:flow()?.scope,revision:flow()?.revision,caseIds:(flow()?.cases||[]).map(row=>row.id)};activeIntent=intent;currentBegin=()=>activeIntent===intent&&contextEpoch===localContextEpoch&&beginOwner(c,owner,view,category,line);}if(name==='begin'){const owner=identityStamp(),view=state.view,category=state.category,line=state.editorLine;currentBegin=()=>beginOwner(c,owner,view,category,line);}if(detail.canvasGeneration&&detail.canvasGeneration!==flow()?.generation)throw Error('CANVAS_GENERATION_CHANGED');delete detail.canvasGeneration;if(name==='begin'){if(!await beginDraft())return;}else{\n",
+          "after": "  const run={client:client(),owner:identityStamp(),contextEpoch:localContextEpoch,view:state.view,category:state.category,line:state.editorLine,tab:state.approvalTab};commandRun=run;\n  busy=true;panel();let currentBegin=()=>run.client===transport&&sameStamp(run.owner,identityStamp())&&!host.ProcessSync?.requiresReload&&run.contextEpoch===localContextEpoch&&state.view===run.view&&state.category===run.category&&state.editorLine===run.line&&state.approvalTab===run.tab,intent=null;try{const c=client();if(['save','submit'].includes(name)){const owner=identityStamp(),view=state.view,category=state.category,line=state.editorLine,contextEpoch=localContextEpoch;intent={client:c,owner,contextEpoch,generation:flow()?.generation,scope:flow()?.scope,revision:flow()?.revision,caseIds:(flow()?.cases||[]).map(row=>row.id)};activeIntent=intent;currentBegin=()=>activeIntent===intent&&contextEpoch===localContextEpoch&&beginOwner(c,owner,view,category,line);}if(name==='begin'){const owner=identityStamp(),view=state.view,category=state.category,line=state.editorLine;currentBegin=()=>beginOwner(c,owner,view,category,line);}if(detail.canvasGeneration&&detail.canvasGeneration!==flow()?.generation)throw Error('CANVAS_GENERATION_CHANGED');delete detail.canvasGeneration;if(name==='begin'){if(!await beginDraft())return;}else{\n"
+        },
+        {
+          "offset": 39118,
+          "before": "    }else result=await trackedCommand(c,flow().generation,name,detail);\n",
+          "after": "    }else{run.admitted=!c.hasUnknown()&&!c.hasSyncFailures();try{result=await trackedCommand(c,flow().generation,name,detail);}finally{run.admitted=false;}}\n"
+        },
+        {
+          "offset": 40780,
+          "before": "  }catch(e){if(currentBegin())error(e);}finally{const owns=currentBegin();if(activeIntent===intent)activeIntent=null;if(owns){busy=false;panel();}}}\n",
+          "after": "  }catch(e){if(currentBegin())error(e);}finally{const owns=currentBegin();if(activeIntent===intent)activeIntent=null;if(commandRun===run){commandRun=null;busy=false;if(owns)panel();}}}\n"
+        },
+        {
+          "offset": 61980,
+          "before": "",
+          "after": " // One confirmation owns the actor, page and exact case until dispatch. A\n // cancelled/stale dialog sends nothing; only the transport admits the write.\n"
+        },
+        {
+          "offset": 62179,
+          "before": "  const pending=flow()?.cases.find(c=>c.id===caseId&&c.id===flow()?.pendingId&&c.status==='pending');\n  if(!pending||!['approve','return'].includes(name)||!permissions[name])throw Error('CASE_NOT_PENDING');\n  const answer=await host.VersionDraftUI.confirmReview({action:name==='return'?'reject':name,scope:t('製程送審','Duyệt quy trình'),selfReview:pending.actor.id===actorId});if(!answer)return false;\n  const detail={caseId,...answer};if(name==='approve'){await inspect();const issues=inspection?.review?.issues||[];if(issues.length){if(!confirm(t('仍有 '+issues.length+' 項待補，確認帶待補核准？','Còn '+issues.length+' mục cần bổ sung. Xác nhận duyệt?')))return false;detail.acknowledgedContentIssues=issues;}}\n  const owner=actorId;await action(name,detail);if(owner!==host.ProcessSync?.identity?.id)throw Error('LOGIN_REQUIRED');\n  if(flow()?.pendingId===caseId)throw Error(loadError||'REVIEW_NOT_COMPLETED');return true;\n",
+          "after": "  if(reviewFlight||busy)return false;\n  const c=client(),f=flow(),pending=f?.cases.find(row=>row.id===caseId&&row.id===f.pendingId&&row.status==='pending');\n  if(!pending||!['withdraw','approve','return'].includes(name)||permissions[name]!==true)throw Error('CASE_NOT_PENDING');\n  const r={client:c,owner:identityStamp(),contextEpoch:localContextEpoch,view:state.view,category:state.category,line:state.editorLine,tab:state.approvalTab,generation:f.generation,revision:f.revision,caseId};\n  const current=()=>reviewPreparation===r&&c===transport&&sameStamp(r.owner,identityStamp())&&!host.ProcessSync?.requiresReload&&r.contextEpoch===localContextEpoch&&state.view===r.view&&state.category===r.category&&state.editorLine===r.line&&state.approvalTab===r.tab&&flow()?.generation===r.generation&&flow()?.revision===r.revision&&flow()?.pendingId===caseId;\n  const check=()=>{if(!current())throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');if(c.hasUnknown())throw Error('PREVIOUS_OPERATION_UNKNOWN');if(c.hasSyncFailures()||localFailure)throw Error('SYNC_FAILED_RETRY_REQUIRED');if(permissions[name]!==true||c.permission(name)===false)throw Error('FORBIDDEN');};\n  reviewPreparation=r;busy=true;panel();\n  const task=(async()=>{try{\n   check();const answer=await host.VersionDraftUI.confirmReview({action:name==='return'?'reject':name,scope:t('製程送審','Duyệt quy trình'),selfReview:name==='approve'&&pending.actor.id===actorId});if(!answer)return false;\n   check();const detail={caseId,expectedRevision:r.revision,...answer};\n   if(name==='approve'){await inspect();check();if(!inspectionReady()||inspection.review?.checked!==true||inspection.review.id!==caseId)throw Error('CONTENT_ISSUES_SNAPSHOT_MISMATCH');const issues=inspection.review.issues;if(issues.length){if(!confirm(t('仍有 '+issues.length+' 項待補，確認帶待補核准？','Còn '+issues.length+' mục cần bổ sung. Xác nhận duyệt?')))return false;check();detail.acknowledgedContentIssues=issues;}}\n   check();reviewPreparation=null;busy=false;const completed=await action(name,detail);if(!completed)return false;\n   if(flow()?.pendingId===caseId)throw Error(loadError||'REVIEW_NOT_COMPLETED');return true;\n  }catch(e){if(current())error(e);throw e;}finally{if(reviewPreparation===r){reviewPreparation=null;busy=false;if(c===transport&&sameStamp(r.owner,identityStamp())&&r.contextEpoch===localContextEpoch)panel();}}})();\n  reviewFlight=task;try{return await task;}finally{if(reviewFlight===task)reviewFlight=null;}\n }\n async function retryOperation(){\n  if(busy||reviewFlight)return;const c=client(),owner=identityStamp(),contextEpoch=localContextEpoch,view=state.view,tab=state.approvalTab;\n  const current=()=>c===transport&&sameStamp(owner,identityStamp())&&!host.ProcessSync?.requiresReload&&contextEpoch===localContextEpoch&&state.view===view&&state.approvalTab===tab;\n  if(!c.hasUnknown()){await reloadReview();return;}\n  busy=true;panel();try{await trackedRecovery(c,'retryUnknown');if(!current())return;localFailure=c.hasSyncFailures();loadError=localFailure?'SYNC_FAILED_RETRY_REQUIRED':'';lastError=null;}\n  catch(e){if(current())error(e);return;}finally{busy=false;if(current())panel();}\n  if(current()){await load();if(current())panel();}\n"
+        },
+        {
+          "offset": 66452,
+          "before": "  const markup=`<h2>${t('製程送審案件','Hồ sơ duyệt quy trình')}</h2><p>${t('目前正式版本','Phiên bản có hiệu lực')} · ${effective?'V'+effective.number:'—'}</p><p role=\"status\">${escapeHtml(loadError ? displayDraftError(loadError) : (!f?t('正在讀取案件…','Đang tải hồ sơ…'):pending?t('待審','Chờ duyệt')+' · '+(pending.actor?.name||''):t('目前沒有待審案件','Không có hồ sơ chờ duyệt')))}</p><p role=\"status\" data-authoring-review-inspection hidden></p>${pending?'<p>'+escapeHtml(pending.reason||'')+'</p>':''}<div class=\"toolbar\">${pending?`<button class=\"button ghost\" data-process-review=\"view\">${t('查看／審核','Xem / duyệt')}</button>${permissions.withdraw?`<button class=\"button ghost\" data-process-review=\"withdraw\">${t('撤回送審','Rút hồ sơ')}</button>`:''}`:''}${permissions.history?`<button class=\"button ghost\" data-process-review=\"history\">${t('歷史案件','Lịch sử hồ sơ')}</button>`:''}<button class=\"button ghost\" data-process-review=\"reload\">${t('重新整理','Tải lại')}</button></div>`;\n",
+          "after": "  const markup=`<h2>${t('製程送審案件','Hồ sơ duyệt quy trình')}</h2><p>${t('目前正式版本','Phiên bản có hiệu lực')} · ${effective?'V'+effective.number:'—'}</p><p role=\"status\">${escapeHtml(loadError ? displayDraftError(loadError) : (!f?t('正在讀取案件…','Đang tải hồ sơ…'):pending?t('待審','Chờ duyệt')+' · '+(pending.actor?.name||''):t('目前沒有待審案件','Không có hồ sơ chờ duyệt')))}</p><p role=\"status\" data-authoring-review-inspection hidden></p>${pending?'<p>'+escapeHtml(pending.reason||'')+'</p>':''}${loadError||client().hasUnknown()&&!admittedCommandPending()?errorMarkup():''}<p role=\"status\" data-authoring-review-progress></p><div class=\"toolbar\">${pending?`<button class=\"button ghost\" data-process-review=\"view\">${t('查看／審核','Xem / duyệt')}</button>${permissions.withdraw?`<button class=\"button ghost\" data-process-review=\"withdraw\">${t('撤回送審','Rút hồ sơ')}</button>`:''}`:''}${permissions.history?`<button class=\"button ghost\" data-process-review=\"history\">${t('歷史案件','Lịch sử hồ sơ')}</button>`:''}${client().hasUnknown()&&!admittedCommandPending()?`<button class=\"button ghost\" data-process-review=\"receipt\">${t('查原操作收據（唯讀）','Kiểm tra biên nhận gốc (chỉ đọc)')}</button>`:''}<button class=\"button ghost\" data-process-review=\"reload\">${t('重新整理','Tải lại')}</button></div>`;\n"
+        },
+        {
+          "offset": 68233,
+          "before": "  for(const button of target.querySelectorAll('[data-process-review]')){button.disabled=busy;button.onclick=async()=>{const name=button.dataset.processReview;button.disabled=true;try{\n",
+          "after": "  const progress=target.querySelector('[data-authoring-review-progress]');if(progress)progress.textContent=busy?t('處理中，請等待；完成前不會重複送出。','Đang xử lý, vui lòng đợi; không gửi lại trước khi hoàn tất.'):'';\n  const handlerOwner=identityStamp(),handlerContext=localContextEpoch,handlerCurrent=()=>sameStamp(handlerOwner,identityStamp())&&handlerContext===localContextEpoch&&state.view==='approval'&&state.approvalTab==='process';\n  for(const button of target.querySelectorAll('[data-process-review]')){button.disabled=busy||client().hasUnknown()&&!['receipt','reload'].includes(button.dataset.processReview);button.onclick=async()=>{const name=button.dataset.processReview;if(button.disabled||!button.isConnected||!handlerCurrent())return;button.disabled=true;try{\n   if(name==='receipt'){await retryOperation();return;}\n"
+        },
+        {
+          "offset": 70854,
+          "before": "   const answer=await host.VersionDraftUI.confirmReview({action:name==='return'?'reject':name,scope:t('製程送審','Duyệt quy trình'),selfReview:name!=='withdraw'&&pending.actor.id===actorId});if(!answer)return;\n   const detail={caseId:pending.id,...answer};if(name==='approve'){await inspect();const issues=inspection?.review?.issues||[];if(issues.length){if(!confirm(t('仍有 '+issues.length+' 項待補，確認帶待補核准？','Còn '+issues.length+' mục cần bổ sung. Xác nhận duyệt?')))return;detail.acknowledgedContentIssues=issues;}}\n   await action(name,detail);\n  }catch(e){error(e);}finally{button.disabled=false;}};}\n",
+          "after": "   await reviewDecision(name,pending?.id);\n  }catch(e){if(handlerCurrent())error(e);}finally{if(button.isConnected&&handlerCurrent())panel();}};}\n"
+        },
+        {
+          "offset": 72235,
+          "before": "  const f=flow(),pending=f?.pendingId,open=control?.versions.some(v=>v.status==='draft'),locked=!!submitStateUnconfirmed||!f||!permissions.edit||!!pending||!open,revertRecoveryPending=operationLedger()?.hasRevertRecovery?.()===true;\n",
+          "after": "  const f=flow(),pending=f?.pendingId,open=control?.versions.some(v=>v.status==='draft'),locked=!!submitStateUnconfirmed||!f||!permissions.edit||!!pending||!open,submitLocked=!!submitStateUnconfirmed||!f||!permissions.view||!!pending||!open,revertRecoveryPending=operationLedger()?.hasRevertRecovery?.()===true;\n"
+        },
+        {
+          "offset": 73431,
+          "before": "const markup=`<div><h3>${t('整個製程平台 · 共用草稿','Toàn bộ nền tảng quy trình · Bản nháp chung')}</h3><p>${pending?t('待審鎖定','Đang chờ duyệt · đã khóa'):f?.saved?t('已儲存版本與未儲存工作分開','Bản đã lưu và thay đổi chưa lưu được tách riêng'):t('尚未建立 V3 儲存快照；舊已儲存版本仍保留於封存，目前工作內容可能含未儲存修改','Chưa tạo bản lưu V3; các bản đã lưu trước đây vẫn còn trong kho cũ. Nội dung đang làm có thể gồm thay đổi chưa lưu')}</p><p role=\"status\">${escapeHtml(loadError ? displayDraftError(loadError) : t('已同步','Đã đồng bộ'))}</p>${remoteCanvasUpdate?'<p role=\"status\">'+t('共享內容有更新；目前製作畫面保留，衝突將在存取草稿時核對。','Nội dung chung đã cập nhật; giữ nguyên màn hình đang soạn, kiểm tra xung đột khi lưu bản nháp.')+'</p>':''}${errorMarkup()}${issueMarkup()}</div><div class=\"toolbar\">${!f||!open&&!pending?`<button class=\"button\" data-av3=\"begin\" ${revertRecoveryPending?'disabled':''}>${t('開始共用修改','Bắt đầu sửa chung')}</button>`:''}<button class=\"button\" data-av3=\"save\" ${locked?'disabled':''}>${t('存取草稿','Lưu bản nháp')}</button><button class=\"button signal\" data-av3=\"submit\" ${locked||!f?.saved||!permissions.submit||!savedInspectionReady()?'disabled':''}>${t('送出已儲存版本','Gửi bản đã lưu')}</button>${pending&&permissions.withdraw?`<button class=\"button\" data-av3=\"withdraw\">${t('撤回','Rút hồ sơ')}</button>`:''}${submitStateUnconfirmed?`<button class=\"button ghost\" data-av3=\"confirm-submit-state\">${t('重新讀取送審狀態（唯讀）','Đọc lại trạng thái gửi duyệt (chỉ đọc)')}</button>`:''}<button class=\"button ghost\" data-av3=\"retry\">${recoveryKind()}</button></div>`;\n",
+          "after": "const markup=`<div><h3>${t('整個製程平台 · 共用草稿','Toàn bộ nền tảng quy trình · Bản nháp chung')}</h3><p>${pending?t('待審鎖定','Đang chờ duyệt · đã khóa'):f?.saved?t('已儲存版本與未儲存工作分開','Bản đã lưu và thay đổi chưa lưu được tách riêng'):t('尚未建立 V3 儲存快照；舊已儲存版本仍保留於封存，目前工作內容可能含未儲存修改','Chưa tạo bản lưu V3; các bản đã lưu trước đây vẫn còn trong kho cũ. Nội dung đang làm có thể gồm thay đổi chưa lưu')}</p><p role=\"status\">${escapeHtml(loadError ? displayDraftError(loadError) : t('已同步','Đã đồng bộ'))}</p>${remoteCanvasUpdate?'<p role=\"status\">'+t('共享內容有更新；目前製作畫面保留，衝突將在存取草稿時核對。','Nội dung chung đã cập nhật; giữ nguyên màn hình đang soạn, kiểm tra xung đột khi lưu bản nháp.')+'</p>':''}${errorMarkup()}${issueMarkup()}</div><div class=\"toolbar\">${!f||!open&&!pending?`<button class=\"button\" data-av3=\"begin\" ${revertRecoveryPending?'disabled':''}>${t('開始共用修改','Bắt đầu sửa chung')}</button>`:''}<button class=\"button\" data-av3=\"save\" ${locked?'disabled':''}>${t('存取草稿','Lưu bản nháp')}</button><button class=\"button signal\" data-av3=\"submit\" ${submitLocked||!f?.saved||!permissions.submit||!savedInspectionReady()?'disabled':''}>${t('送出已儲存版本','Gửi bản đã lưu')}</button>${pending&&permissions.withdraw?`<button class=\"button\" data-av3=\"withdraw\">${t('撤回','Rút hồ sơ')}</button>`:''}${submitStateUnconfirmed?`<button class=\"button ghost\" data-av3=\"confirm-submit-state\">${t('重新讀取送審狀態（唯讀）','Đọc lại trạng thái gửi duyệt (chỉ đọc)')}</button>`:''}<button class=\"button ghost\" data-av3=\"retry\">${recoveryKind()}</button></div>`;\n"
+        },
+        {
+          "offset": 77137,
+          "before": "    if(['withdraw','approve','return'].includes(name)){detail.caseId=pending;const own=f.cases.find(c=>c.id===pending)?.actor.id===actorId;const answer=await host.VersionDraftUI.confirmReview({action:name==='return'?'reject':name,scope:t('整個製程平台','Toàn bộ nền tảng quy trình')+' · '+pending,selfReview:name!=='withdraw'&&own});if(!answer)return;Object.assign(detail,answer);}\n    if(name==='approve'){await inspect();const issues=inspection?.review?.issues||[];if(issues.length){if(!confirm(t('仍有 '+issues.length+' 項待補。確認帶待補核准？此確認會留下紀錄，不表示所有檢查通過。','Còn '+issues.length+' mục cần bổ sung. Xác nhận duyệt kèm các mục này? Việc xác nhận được ghi lại; không có nghĩa mọi kiểm tra đã đạt.')))return;detail.acknowledgedContentIssues=issues;}}\n",
+          "after": "    if(['withdraw','approve','return'].includes(name))return await reviewDecision(name,pending);\n"
+        }
+      ]
+    },
+    "public/process/shared-draft-client.js": {
+      "beforeHash": "32886b28ef01e46cf4b04b4b9f0d3b9e02047016226756c18731c0cddb43b70e",
+      "beforeNormalizedHash": "32886b28ef01e46cf4b04b4b9f0d3b9e02047016226756c18731c0cddb43b70e",
+      "afterHash": "034c0c7ad5a6c1a8d4cd28ed9be8ed7d7f7ab1c1507e4f3f6cd05132af152c66",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 32611,
+          "before": "",
+          "after": "    const processLifecycle=command=>/^\\/api\\/process-authoring\\/workflow(?:\\?|$)/.test(endpoint)&&['submit','withdraw','approve','return'].includes(command?.action);\n"
+        },
+        {
+          "offset": 59014,
+          "before": "",
+          "after": "    const operationQuery=id=>query(`operationId=${encodeURIComponent(id)}`)+(/^\\/api\\/process-authoring\\/workflow(?:\\?|$)/.test(endpoint)?'&accessEvent=1':'');\n    function identifiedReceipt(result,command){if(command&&processLifecycle(command)&&result.operationAction!==command.action)throw Object.assign(Error('INVALID_OPERATION_RECEIPT'),{operationId:command.operationId});return result;}\n"
+        },
+        {
+          "offset": 117491,
+          "before": "      const requestDeadline=['begin','begin-v1'].includes(body?.action)||cCreate?45000:body?mutationDeadline:45000;\n",
+          "after": "      const requestDeadline=['begin','begin-v1'].includes(body?.action)||cCreate?45000:body?(processLifecycle(body.command)?180000:mutationDeadline):45000;\n"
+        },
+        {
+          "offset": 133301,
+          "before": "      const command=unknown,owner=unknownOwner,original=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(command.operationId)}`)),command.operationId,command.action==='apply'?command.generation:undefined,command.action),result=await masterSaveReadback(equipmentLocalSave?await equipmentTerminal(original,command):original,command);\n",
+          "after": "      const command=unknown,owner=unknownOwner,original=confirmedReceipt(identifiedReceipt(await request(operationQuery(command.operationId)),command),command.operationId,command.action==='apply'?command.generation:undefined,command.action),result=await masterSaveReadback(equipmentLocalSave?await equipmentTerminal(original,command):original,command);\n"
+        },
+        {
+          "offset": 150349,
+          "before": "",
+          "after": "      operationInfo:()=>unknown?{operationId:unknown.operationId,action:unknown.action}:null,\n"
+        },
+        {
+          "offset": 159911,
+          "before": "      receipt:async (id,generation)=>{assertOwner();const command=unknown?.operationId===id?unknown:null,owner=unknownOwner,expected=generation??(command?.action==='apply'?command.generation:undefined),result=await masterSaveReadback(confirmedReceipt(await request(query(`operationId=${encodeURIComponent(id)}`)),id,expected,command?.action),command);if(externalBounded&&boundedRecord?.operationId===id){const settled=await boundedTerminal(result,boundedRecord);if(!unknown)syncFailures.delete(id);return settled;}if(externalBounded&&boundedScope==='fqc'&&!boundedRecord&&boundedText(generation)&&boundedKnown&&boundedKnown.generation!==generation){return historicalReadback(result,null,await request(endpoint,undefined,{requireAcceptedAccess:true}));}if(command)window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(unknown?.operationId===id)retain(null);syncFailures.delete(id);return result;},\n",
+          "after": "      receipt:async (id,generation)=>{assertOwner();const command=unknown?.operationId===id?unknown:null,owner=unknownOwner,expected=generation??(command?.action==='apply'?command.generation:undefined),result=await masterSaveReadback(confirmedReceipt(identifiedReceipt(await request(operationQuery(id)),command),id,expected,command?.action),command);if(externalBounded&&boundedRecord?.operationId===id){const settled=await boundedTerminal(result,boundedRecord);if(!unknown)syncFailures.delete(id);return settled;}if(externalBounded&&boundedScope==='fqc'&&!boundedRecord&&boundedText(generation)&&boundedKnown&&boundedKnown.generation!==generation){return historicalReadback(result,null,await request(endpoint,undefined,{requireAcceptedAccess:true}));}if(command)window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(unknown?.operationId===id)retain(null);syncFailures.delete(id);return result;},\n"
+        }
+      ]
+    },
+    "public/process/index.html": {
+      "beforeHash": "e1b582b80a562dfd218e9b808dd8d5c562ae988e06573e108a402a60b6292f08",
+      "beforeNormalizedHash": "e1b582b80a562dfd218e9b808dd8d5c562ae988e06573e108a402a60b6292f08",
+      "afterHash": "d2d51ea9a4bc2903ec468ec0a3153a575a8db1a1edea7c55dd9cf83e0e521f9c",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 6898,
+          "before": "    <script data-process-src=\"shared-draft-client.js?v=20261113-abc-master1\"></script>\n",
+          "after": "    <script data-process-src=\"shared-draft-client.js?v=20261114-process-review1\"></script>\n"
+        },
+        {
+          "offset": 9009,
+          "before": "    <script data-process-src=\"process-authoring-v3.js?v=20261113-submit-outcome1\"></script>\n",
+          "after": "    <script data-process-src=\"process-authoring-v3.js?v=20261114-process-review1\"></script>\n"
+        }
+      ]
+    },
+    "tests/shared-draft-receipt-recovery.test.mjs": {
+      "beforeHash": "beb565f8f28a6cb3374272bdd60c88742afc6f01abec44a10f4b1054ead6b521",
+      "beforeNormalizedHash": "beb565f8f28a6cb3374272bdd60c88742afc6f01abec44a10f4b1054ead6b521",
+      "afterHash": "a6c82eceb5d73a067d2749f6a4aa67b7cae066418cb884a0c07ac1c639760b7b",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 14841,
+          "before": "  'shared-draft-client.js':'20261113-abc-master1',\n  'process-authoring-v3.js':'20261113-submit-outcome1',\n",
+          "after": "  'shared-draft-client.js':'20261114-process-review1',\n  'process-authoring-v3.js':'20261114-process-review1',\n"
+        },
+        {
+          "offset": 16622,
+          "before": "",
+          "after": "for(const action of ['submit','withdraw','approve','return'])void test('authoring '+action+' waits beyond45s and aborts only at180s without replay',async()=>{\n const f=deadlineFixture('/api/process-authoring/workflow?caseMetadata=1'),result=observe(f.client.command('g',action,{caseId:'case',savedId:'saved',expectedRevision:1}));await tick();\n if(action==='submit'){f.calls[0].respond({permissions:{submit:true},otherReviewerAvailable:true});await tick();}\n const call=f.calls.find(c=>c.options.method==='POST'),command=JSON.parse(call.options.body).command,stored=[...f.memory];\n await f.advance(179999);assert.equal(call.aborted,false);assert.equal(result.settled,false);assert.deepEqual([...f.memory],stored);\n await f.advance(1);assert.equal(call.aborted,true);const lookup=f.calls.at(-1);assert.equal(lookup.options.method,'GET');assert(lookup.url.includes('operationId='+command.operationId));assert(lookup.url.includes('accessEvent=1'));\n lookup.respond({error:'OPERATION_NOT_FOUND'},404);await result.done;assert.match(result.error.message,/RESULT_UNKNOWN/);assert.equal(f.client.operationInfo().operationId,command.operationId);assert.deepEqual([...f.memory],stored);\n const inquiry=observe(f.client.retryUnknown());await tick();f.calls.at(-1).respond({...ack(command,{generation:'rotated'}),operationAction:action});await inquiry.done;assert.equal(inquiry.error,undefined);assert(!f.client.hasUnknown());assert.equal(f.calls.filter(c=>c.options.method==='POST').length,1);\n});\n"
+        }
+      ]
+    },
+    "tests/canvas-approved-history-fixture.mjs": {
+      "beforeHash": "e1815427e2304be3b2065a6b2e0ba604d86a5d6b6bd32a75346fd190143eb1a8",
+      "beforeNormalizedHash": "e1815427e2304be3b2065a6b2e0ba604d86a5d6b6bd32a75346fd190143eb1a8",
+      "afterHash": "9617634bf0b980ff1e66d0fb8e150223c8aedcffba06e78faf7352ee8d0765d5",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 827,
+          "before": "export async function setup({lang='zh',inline=false,intercept,pending=false,cold=false,earlyGuards=false}={}){\n",
+          "after": "export async function setup({lang='zh',inline=false,intercept,pending=false,cold=false,earlyGuards=false,user}={}){\n"
+        },
+        {
+          "offset": 2764,
+          "before": " const f=await apiFixture({scope:'PROCESS',inline,values:{processAuthoringControl:JSON.stringify(c),approvalVersions:JSON.stringify(legacy)}}),dom=canvasDOM(),doc=dom.document,create=doc.createElement.bind(doc);doc.documentElement.lang=lang;doc.visibilityState='visible';doc.createElement=tag=>{const n=create(tag);n.dataset=new Proxy(n.dataset,{set(o,k,v){o[k]=String(v);n.attrs['data-'+String(k).replace(/[A-Z]/g,x=>'-'+x.toLowerCase())]=String(v);return true;}});return n;};\n",
+          "after": " const f=await apiFixture({scope:'PROCESS',inline,user,values:{processAuthoringControl:JSON.stringify(c),approvalVersions:JSON.stringify(legacy)}}),dom=canvasDOM(),doc=dom.document,create=doc.createElement.bind(doc);doc.documentElement.lang=lang;doc.visibilityState='visible';doc.createElement=tag=>{const n=create(tag);n.dataset=new Proxy(n.dataset,{set(o,k,v){o[k]=String(v);n.attrs['data-'+String(k).replace(/[A-Z]/g,x=>'-'+x.toLowerCase())]=String(v);return true;}});return n;};\n"
+        },
+        {
+          "offset": 6195,
+          "before": " box.render=()=>{root.innerHTML='<section class=\"editor-page\"><div class=\"editor-toolbar\"></div><section class=\"editor-workspace\"><button id=\"retained-native\">Local action</button></section></section>';root.querySelector('#retained-native').onclick=()=>box.ProcessCanvasLocal.edit(wid,'A-CUT',[{id:'one',f:'name',value:'NATIVE_EDIT'}]);if(earlyGuards)box.ProcessAuthoringV3.guardHistoryHandlers();box.bindView();};enabled=true;if(cold){box.render();try{await box.ProcessAuthoringV3.readyForEditor();}catch(error){f.close();throw error;}}else await box.ProcessAuthoringV3.load();box.ProcessCanvasLocal.accept(box.ProcessAuthoringV3.flow());await box.ProcessCanvasLocal.recoveryReady();box.render();\n",
+          "after": " box.render=()=>{if(box.state.view==='approval'){root.innerHTML='<section class=\"approval-page\"><section id=\"approval-panel-process\"></section></section>';box.bindView();return;}root.innerHTML='<section class=\"editor-page\"><div class=\"editor-toolbar\"></div><section class=\"editor-workspace\"><button id=\"retained-native\">Local action</button></section></section>';root.querySelector('#retained-native').onclick=()=>box.ProcessCanvasLocal.edit(wid,'A-CUT',[{id:'one',f:'name',value:'NATIVE_EDIT'}]);if(earlyGuards)box.ProcessAuthoringV3.guardHistoryHandlers();box.bindView();};enabled=true;if(cold){box.render();try{await box.ProcessAuthoringV3.readyForEditor();}catch(error){f.close();throw error;}}else await box.ProcessAuthoringV3.load();box.ProcessCanvasLocal.accept(box.ProcessAuthoringV3.flow());await box.ProcessCanvasLocal.recoveryReady();box.render();\n"
+        }
+      ]
+    },
+    "tests/equipment-submit-source.test.cjs": {
+      "beforeHash": "b4bd8f0a774e18363f4b64fd013ee96e73c551229d28ae94c1350798d1c565c0",
+      "beforeNormalizedHash": "b4bd8f0a774e18363f4b64fd013ee96e73c551229d28ae94c1350798d1c565c0",
+      "afterHash": "7765e66e32732dcdf9155dfdfcdaedbb9930108290e81813d84acdb30f0b5d81",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 3147,
+          "before": " assert.equal(index.split('shared-draft-client.js?v=20261113-abc-master1').length,2);\n",
+          "after": " assert.equal(index.split('shared-draft-client.js?v=20261114-process-review1').length,2);\n"
+        }
+      ]
+    },
+    "tests/account-page-entry.test.cjs": {
+      "beforeHash": "fad81270c57b2393c09c087d8a89b8dc33f5b19e242ff221d042e3c929fbe0db",
+      "beforeNormalizedHash": "fad81270c57b2393c09c087d8a89b8dc33f5b19e242ff221d042e3c929fbe0db",
+      "afterHash": "993480caf570a76b7fcec011bf95b2e498ca355349429a825149a022b5a0214d",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 454,
+          "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-abc-master1','master-page-editor.js':'20261113-abc-master2','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261113-password-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
+          "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261114-process-review1','master-page-editor.js':'20261113-abc-master2','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261113-password-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+        }
+      ]
+    },
+    "tests/navigation-adapters.test.mjs": {
+      "beforeHash": "0e82c6f33a59f668e405f1c92e61b3539b050c9e6153adee8720d64434da32bb",
+      "beforeNormalizedHash": "0e82c6f33a59f668e405f1c92e61b3539b050c9e6153adee8720d64434da32bb",
+      "afterHash": "e69c7e9d3f95092e7e84165710d9a0a75217eb197bf97500c58bd66992bfb93c",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 17170,
+          "before": "  'process-authoring-v3.js':'20261113-submit-outcome1',\n",
+          "after": "  'process-authoring-v3.js':'20261114-process-review1',\n"
+        },
+        {
+          "offset": 17463,
+          "before": "  'shared-draft-client.js':'20261113-abc-master1',\n",
+          "after": "  'shared-draft-client.js':'20261114-process-review1',\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/CHANGELOG.md": {
+      "beforeHash": "d35f958d6ecfd4b9cdf3544b3bb4183ef047b73b61448c221d45849e87167184",
+      "beforeNormalizedHash": "d35f958d6ecfd4b9cdf3544b3bb4183ef047b73b61448c221d45849e87167184",
+      "afterHash": "4c2390105594b98824ea87f8f2ddaa9d60700fb29f13e4188706aa50b67c8abb",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-14 — Process review outcome candidate\n\nAdd version-confirmation original-receipt recovery and review dialog ownership/revision/single-flight guards. Bounded long-response tolerance for process lifecycle actions; preserve UNKNOWN and no replay. No live account/data/schema change, merge or deployment. [Evidence and limitations](../docs/acceptance/process-review-recovery-20261114.md).\n\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/modules/PROCESS.md": {
+      "beforeHash": "24ccb6f15a1e12595bb30464c563dc924e82450f5da7baca4c5c836202dfbf33",
+      "beforeNormalizedHash": "24ccb6f15a1e12595bb30464c563dc924e82450f5da7baca4c5c836202dfbf33",
+      "afterHash": "8dfb5f54d96e67579413a482e0ca02325042cbd32ff09bb21b5bbf4ce371dd7a",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 51698,
+          "before": "",
+          "after": "\n## 2026-11-14 review outcome candidate\n\nThe version-confirmation page exposes the same escaped operation diagnostics and read-only original-receipt recovery as the authoring editor. Submit/withdraw/approve/return have a bounded 180-second response wait; other authoring mutations and reads retain their prior budgets. Review confirmation pins the actor, delivery, page, generation, revision and pending case before dispatch. A cancelled or stale confirmation sends nothing. Late review replies cannot repaint another page. Receipt GET uses the retained operation identity plus server operationAction; missing or mismatched receipts preserve UNKNOWN. Submit uses its explicit permission independently of canvas edit rights; adopted module-review/platform-final-approval separation and correction rules remain server enforced, with no live policy activation. CAS, permissions and same-actor receipt access remain server enforced. Candidate evidence and live limits: [review recovery](../../docs/acceptance/process-review-recovery-20261114.md).\n"
+        }
+      ]
+    },
+    "HANDOFF.md": {
+      "beforeHash": "d900e9663c2c9bd6accf4161aa5bcc0f1774060b3610423ab7aa4a6f59c09ff5",
+      "beforeNormalizedHash": "d900e9663c2c9bd6accf4161aa5bcc0f1774060b3610423ab7aa4a6f59c09ff5",
+      "afterHash": "4ae99f692507ebd2cfd65856dc5ba721602494b3aeb790e6360d8c794f33ff65",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-14 — Process review recovery candidate\n\nIndependent main-b41b993 checkout; no #114/#115 branch mutation or wholesale import. [Root cause, isolation matrix, verification and live limitations](docs/acceptance/process-review-recovery-20261114.md). Retained real V31 withdrawal remains UNKNOWN and untouched; no test-Site access, merge or deployment.\n\n"
+        }
+      ]
+    }
+  }
+}

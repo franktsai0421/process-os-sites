@@ -1,0 +1,36 @@
+name: Process review recovery
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: process-review-recovery-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  review-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PROCESS_PROGRAM_COMMIT: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Exact source, signed actor matrix, unknown and confirmation fences
+        run: node --test tests/process-review-source.test.cjs tests/process-review-recovery.test.mjs tests/authoring-review-status.test.mjs tests/process-submit-outcome.test.mjs tests/shared-draft-receipt-recovery.test.mjs
+      - run: npx playwright install --with-deps chromium
+      - name: Desktop and phone viewport real dialogs with signed isolated routes
+        run: node tests/process-review-recovery-browser.mjs
+      - name: Upload isolated screenshots and source-bound report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: process-review-recovery
+          path: .sites-runtime/process-review-recovery/

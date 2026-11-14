@@ -1,3 +1,7 @@
+## 2026-11-14 — Process review recovery candidate
+
+Independent main-b41b993 checkout; no #114/#115 branch mutation or wholesale import. [Root cause, isolation matrix, verification and live limitations](docs/acceptance/process-review-recovery-20261114.md). Retained real V31 withdrawal remains UNKNOWN and untouched; no test-Site access, merge or deployment.
+
 ## 2026-11-13 — Password outcome repair candidate
 
 Independent main-based password-only records overlay and response-wait repair; administrator reset, own-password and fresh-login isolation with UNKNOWN/no-replay guards. [Evidence, source cause and live limitations](docs/acceptance/password-outcome-20261113.md). Draft review only; no real account, data, schema, merge or deployment change.
