@@ -5,7 +5,7 @@ import {ipqcCCreateCommand,readIpqcCCreateMutationState,encodeIpqcCCreateMutatio
 import {ipqcCSaveCommand,readIpqcCSaveMutationState,encodeIpqcCSaveMutationState} from '@/lib/ipqc-c-save-record-mutation';
 import {restoreAllowed,assertRestoreAccess,restoreEffects} from '@/lib/draft-restore-access';
 import { env } from 'cloudflare:workers';
-import { readState, identity, can, sameOrigin, encodeValues, stateRevisionIsCurrent, parse, responseHeaders, type State } from '@/lib/process-state';
+import { readState, identity, can, createIpqcCPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, parse, responseHeaders, type State } from '@/lib/process-state';
 import { parseIpqcControl, activeIpqc, openIpqc, copyIpqc } from '@/lib/ipqc-c';
 import { beginIpqcWorkflow, applyIpqcWorkflow, ipqcWorkflowContext, publicIpqcWorkflow, type IpqcWorkflowControl, type IpqcWorkflowCommand } from '@/lib/ipqc-c-workflow';
 import { DraftConflict, type DraftPermission } from '@/lib/shared-draft';
@@ -16,9 +16,10 @@ import {recordJSONResponse} from '@/lib/state-records-response';
 
 const KEY='ipqcCMasterControl';
 const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:responseHeaders});
-async function access(request:Request,state:State) {
-  const rights=await workflowAccess(request,state);
-  return {...rights,approve:await ipqcCFinalReviewAllowed(request,state,'approve'),return:await ipqcCFinalReviewAllowed(request,state,'return'),save:rights.edit||rights.save,restore:rights.edit&&await restoreAllowed(request,state),create:rights.edit&&await can(request,state,'ipqc-c.create'),delete:rights.edit&&await can(request,state,'ipqc-c.delete')};
+async function access(request:Request,state:State,phase?:Awaited<ReturnType<typeof createIpqcCPermissionPhase>>) {
+  const check=phase?phase.allowed:(key:string)=>can(request,state,key);
+  const rights=await workflowAccess(request,state,check);
+  return {...rights,approve:phase?phase.finalApprove():await ipqcCFinalReviewAllowed(request,state,'approve'),return:phase?await check('ipqc-c.view')&&await check('ipqc-c.return'):await ipqcCFinalReviewAllowed(request,state,'return'),save:rights.edit||rights.save,restore:rights.edit&&await restoreAllowed(request,state,check),create:rights.edit&&await check('ipqc-c.create'),delete:rights.edit&&await check('ipqc-c.delete')};
 }
 function readControl(state:State):IpqcWorkflowControl {const prepared=state.recordStorage?.models.get(KEY);return prepared?parseIpqcControl(state.values[KEY],prepared):copyIpqc(parseIpqcControl(state.values[KEY]));}
 function projection(control:IpqcWorkflowControl, actor:{id:string;name:string},at:string,closeRound=false) {
@@ -63,10 +64,9 @@ export async function GET(request:Request) {
     // Keep its full response/fresh GET; do not reuse POST authority or narrow
     // history/restore/receipt queries when selectors are combined.
     const createReadback=query.get('readback')==='ipqc-c-create-v1'&&[...query.keys()].every(key=>['readback','caseMetadata','compact'].includes(key));
-    // Normal compact workflow reads retain all objects/checks; overlap only GET metadata.
-    const workflowReadAhead=query.get('caseMetadata')==='1'&&query.get('compact')==='1'&&[...query.keys()].every(key=>['since','caseMetadata','compact'].includes(key));
-    const state=await readState({...(workflowReadAhead?{aggregateReadAhead:true}:{}),...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:createReadback?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY]}:{}),modelKey:KEY,deferDependencyHistory:true,deferHistory:true,caseId:query.get('caseId'),saveId:query.get('restoreSaveId'),versionId:query.get('versionId')||query.get('legacyVersionId')}),actor=await identity(request,state),permissions=await access(request,state);
-    if(!actor||!permissions.view)return reply({error:'FORBIDDEN'},403);
+    // All selected aggregates/checks remain; only GET metadata overlaps (max five).
+    const state=await readState({aggregateReadAhead:true,...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:createReadback?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY]}:{}),modelKey:KEY,deferDependencyHistory:true,deferHistory:true,caseId:query.get('caseId'),saveId:query.get('restoreSaveId'),versionId:query.get('versionId')||query.get('legacyVersionId')}),phase=await createIpqcCPermissionPhase(request,state),actor=phase.actor,permissions=await access(request,state,phase);
+    if(!actor||!permissions.view||!await phase.current())return reply({error:'FORBIDDEN'},403);
     if(query.has('permissions'))return reply({permissions,revision:state.revision,otherReviewerAvailable:otherReviewerAvailable(state,actor.id)});
     const control=readControl(state),flow=control.workflow;
     if(approvedOnly){
@@ -168,10 +168,11 @@ export async function POST(request:Request) {
     for(let attempt=0;attempt<4;attempt++) {
       const saveMutationState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&ipqcCSaveCommand(body.command)?await readIpqcCSaveMutationState(body.command):null;
       const createMutationState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&ipqcCCreateCommand(body.command)?await readIpqcCCreateMutationState(body.command):null;
-      const state=createMutationState||saveMutationState||await readState({modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:body.command?.localChanges||['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;
+      const state=createMutationState||saveMutationState||await readState({aggregateReadAhead:true,modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:body.command?.localChanges||['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=await createIpqcCPermissionPhase(request,state),actor=phase.actor;streamRecords=!!state.recordStorage;
       if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
       if(state.values.maintenanceMode==='1')return reply({error:'MAINTENANCE'},503);
-      const permissions=await access(request,state),control=readControl(state);
+      const permissions=await access(request,state,phase),control=readControl(state);
+      if(!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
       const knownPhotos=new Set((control.workflow?.working||openIpqc(control)?.snapshot||activeIpqc(control)?.snapshot)?.items.flatMap(item=>item.mediaItems.map(photo=>photo.id))||[]);
       const master=parse(state.values.masterDataControl,{}) as {active?:{C?:{products?:{code:string;stages:string[]}[]}}};
       const at=new Date().toISOString();
@@ -237,19 +238,20 @@ export async function POST(request:Request) {
         receipt=applyIpqcWorkflow(control,body.command,context);
         if(!alreadyAccepted&&body.command.action==='restore')await assertRestoreAccess(request,state,beforeChange,control.workflow!.working);
         if(!alreadyAccepted&&(body.command.action==='apply'||body.command.localChanges)){const effects=restoreEffects(beforeChange,control.workflow!.working);if(effects.create&&!permissions.create||effects.delete&&!permissions.delete)return reply({error:'FORBIDDEN'},403);}
-        if(alreadyAccepted)return reply({revision:state.revision,control:publicIpqcWorkflow(control,permissions.history,caseMetadata),receipt,unchanged:true,requestId});
+        if(alreadyAccepted){if(!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);return reply({revision:state.revision,control:publicIpqcWorkflow(control,permissions.history,caseMetadata),receipt,unchanged:true,requestId});}
         for(const item of control.workflow!.working.items)for(const photo of item.mediaItems)
           if(!knownPhotos.has(photo.id)&&!await env.STATE_ARCHIVE.head(`ipqc-c/photos/${photo.id}`))return reply({error:'PHOTO_NOT_UPLOADED'},422);
       }
       if(!beginAlreadyOpen)projection(control,actor,at,body.command?.action==='approve');
       if(begin)receipt=recordBegin(control,begin,actor.id,beginAlreadyOpen);
       if(!await stateRevisionIsCurrent(state))continue;
+      if(!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
       const prepared=state.recordStorage?new Map([[KEY,control]]):undefined;
       const values={...state.values,...(!prepared?{[KEY]:JSON.stringify(control)}:{})};
       const encoded=await (createMutationState?encodeIpqcCCreateMutationState(state,values,prepared):saveMutationState?encodeIpqcCSaveMutationState(state,values,prepared):encodeValues(values,state,prepared));
       // Recheck session revocation after slow photo/immutable storage I/O.
       // Account/permission changes remain fenced by the state revision CAS.
-      if((begin||body.command?.localChanges||ipqcCCreateCommand(body.command))&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);
+      if(!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
       const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?')
         .bind(state.revision+1,encoded,at,state.revision).run();
       if(changed.meta.changes!==1)continue;

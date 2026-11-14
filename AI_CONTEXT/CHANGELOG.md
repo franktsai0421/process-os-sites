@@ -1,3 +1,7 @@
+## 2026-11-14 — IPQC request-local authorization and required-read scheduling
+
+Independent speed candidate reduces repeated C session verification and overlaps bounded required aggregate reads for A/B and C without changing operation, draft, permission or persistence semantics. [Actual-handler baseline parity, measurements and validation limits](../docs/acceptance/ipqc-operation-speed-20261114.md). Draft PR only; no merge, deployment or live business data change.
+
 ## 2026-11-14 — Process IPQC link-rule candidate
 
 A/B choices/validation/completeness/source comparisons no longer use operation products or product routes. C editor now selects and saves item references, with product/error grouping and explicit stale-reference handling. Backend checks cross-workspace C occupancy and saved-release transfer under existing CAS. [Generated lifecycle evidence and limits](../docs/acceptance/process-ipqc-link-rules-20261114.md). No live-data rewrite, migration, merge or deployment.

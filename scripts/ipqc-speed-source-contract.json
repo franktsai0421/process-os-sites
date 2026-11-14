@@ -1,0 +1,433 @@
+{
+  "base": "c178ae227bcddf528a493dbf8b586cf310564c5b",
+  "files": {
+    "lib/process-state.ts": {
+      "beforeHash": "fe5cba13822530f1d15f759111fc1cf79292c2490d37b1cfc4fa3d4e04709ed3",
+      "beforeNormalizedHash": "5a8a75a3861ca1978b21211f5681915645e2593c5a56b34eb5f440e623a862cb",
+      "afterHash": "653df89f2bd62cd24d7f36e495c9734223a853185d1e0f36d956a9d6643c9e48",
+      "afterNormalizedHash": "858f860496ae055e709c42000891778681985efc868803b3713c8678bb149bed",
+      "beforeCRLFRanges": [
+        [
+          1,
+          139
+        ],
+        [
+          140,
+          242
+        ],
+        [
+          243,
+          270
+        ],
+        [
+          276,
+          320
+        ],
+        [
+          330,
+          436
+        ]
+      ],
+      "rules": [
+        {
+          "offset": 18183,
+          "before": "",
+          "after": "// Exact IPQC request-local readers/workflow. No caller-selected/global cache.\nexport async function createIpqcReadPermissionPhase(request:Request,state:State){\n  if(request.method!=='GET'||!['/api/ipqc-ab','/api/ipqc-c'].includes(new URL(request.url).pathname))throw Error('INVALID_PERMISSION_PHASE');\n  return createWorkflowPermissionPhase(request,state);\n}\nexport async function createIpqcCPermissionPhase(request:Request,state:State){\n  if(new URL(request.url).pathname!=='/api/ipqc-c/workflow')throw Error('INVALID_PERMISSION_PHASE');\n  const phase=await createWorkflowPermissionPhase(request,state);\n  // companyReader's exact-cell policy is distinct from legacy can() aliases.\n  const user=phase.actor?readPlatformUsers(state.values.platformUsers).find(user=>user.id===phase.actor!.id):null;\n  const access=user?effectiveAccess(user,state.values):null;\n  return Object.freeze({...phase,finalApprove:()=>phase.allowed('ipqc-c.view')&&!!access?.enabled&&access.cells['ipqc-c.view']===true&&access.cells['approval.view']===true&&access.cells['approval.approve']===true});\n}\n"
+        }
+      ]
+    },
+    "lib/versioned-shared-workflow.ts": {
+      "beforeHash": "2938ad1879248af30ae17e3457c5a7147adcf81f8aa864663dd3af9c1cd6075f",
+      "beforeNormalizedHash": "878481d3e462ab12ab801f437656ad9df8baa82d2b3987fa880488e9fc8dccb9",
+      "afterHash": "a0f596779ff54c6575d1ce4ba0984d1835339a5733a9e5d463ef15161ed83a94",
+      "afterNormalizedHash": "1732103662b1f49566692026985d001e23a6f0b610c4a1cea833b320838c7914",
+      "beforeCRLFRanges": [
+        [
+          11,
+          12
+        ],
+        [
+          13,
+          18
+        ],
+        [
+          20,
+          36
+        ],
+        [
+          46,
+          50
+        ],
+        [
+          60,
+          72
+        ],
+        [
+          73,
+          74
+        ],
+        [
+          75,
+          149
+        ],
+        [
+          151,
+          155
+        ],
+        [
+          163,
+          166
+        ],
+        [
+          167,
+          170
+        ],
+        [
+          171,
+          176
+        ],
+        [
+          178,
+          180
+        ],
+        [
+          181,
+          191
+        ],
+        [
+          192,
+          200
+        ],
+        [
+          218,
+          225
+        ],
+        [
+          236,
+          249
+        ],
+        [
+          251,
+          258
+        ],
+        [
+          268,
+          269
+        ],
+        [
+          299,
+          300
+        ],
+        [
+          301,
+          303
+        ],
+        [
+          304,
+          305
+        ],
+        [
+          306,
+          313
+        ],
+        [
+          315,
+          316
+        ],
+        [
+          317,
+          319
+        ],
+        [
+          322,
+          329
+        ],
+        [
+          330,
+          331
+        ],
+        [
+          333,
+          335
+        ],
+        [
+          336,
+          338
+        ],
+        [
+          339,
+          341
+        ],
+        [
+          344,
+          350
+        ],
+        [
+          351,
+          355
+        ],
+        [
+          359,
+          360
+        ],
+        [
+          362,
+          364
+        ],
+        [
+          366,
+          368
+        ]
+      ],
+      "rules": [
+        {
+          "offset": 35026,
+          "before": "        const state=requiredState||mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({aggregateReadAhead:body.action===undefined&&Object.keys(body).every(key=>key==='command')&&(isIpqcAB(request)&&['save','submit','withdraw'].includes(body.command?.action||'')||fqcAggregateReadAheadCommand(body.command)&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope')),deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=requiredPhase||await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);\n",
+          "after": "        const state=requiredState||mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({aggregateReadAhead:body.action===undefined&&Object.keys(body).every(key=>key==='command')&&(isIpqcAB(request)&&['apply','restore','save','submit','withdraw','approve','return'].includes(body.command?.action||'')||fqcAggregateReadAheadCommand(body.command)&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope')),deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=requiredPhase||await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);\n"
+        }
+      ]
+    },
+    "app/api/ipqc-ab/route.ts": {
+      "beforeHash": "5f7849eacb17739347117bf4eb7ed301d3992388ea3978560d20e3607268c3ed",
+      "beforeNormalizedHash": "5f7849eacb17739347117bf4eb7ed301d3992388ea3978560d20e3607268c3ed",
+      "afterHash": "eb917f5fd2fb384cf52bc26f8151db3f21f05930aa2dd895b88b08ebc015553c",
+      "afterNormalizedHash": "eb917f5fd2fb384cf52bc26f8151db3f21f05930aa2dd895b88b08ebc015553c",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 181,
+          "before": "import { readState, identity, can, sameOrigin, encodeValues, parse, maintenanceCredential,\n",
+          "after": "import { readState, identity, can, createIpqcReadPermissionPhase, sameOrigin, encodeValues, parse, maintenanceCredential,\n"
+        },
+        {
+          "offset": 8337,
+          "before": "    const state=await readState({aggregateReadAhead:true,keys,modelKey:equipmentOnly?undefined:KEY,deferHistory:true,deferDependencyHistory:true}),actor=await identity(request,state);\n    if(!actor||request.headers.has('X-Process-Expected-Actor')&&request.headers.get('X-Process-Expected-Actor')!==actor.id||!(await can(request,state,'view:data'))&&!(await can(request,state,'view:approval')))return reply({error:'沒有查看 IPQC-AB 權限'},403);\n    if(equipmentOnly)return reply({revision:state.revision,equipment:equipmentChoices(state.values)});\n",
+          "after": "    const state=await readState({aggregateReadAhead:true,keys,modelKey:equipmentOnly?undefined:KEY,deferHistory:true,deferDependencyHistory:true}),phase=await createIpqcReadPermissionPhase(request,state),actor=phase.actor;\n    if(!actor||request.headers.has('X-Process-Expected-Actor')&&request.headers.get('X-Process-Expected-Actor')!==actor.id||!phase.allowed('view:data')&&!phase.allowed('view:approval'))return reply({error:'沒有查看 IPQC-AB 權限'},403);\n    if(equipmentOnly){if(!await phase.current())return reply({error:'沒有查看 IPQC-AB 權限'},403);return reply({revision:state.revision,equipment:equipmentChoices(state.values)});}\n"
+        },
+        {
+          "offset": 9133,
+          "before": "    const control=parseAbControl(state.values[KEY],state.recordStorage?.models.get(KEY)),history=await can(request,state,'approval.compare');\n",
+          "after": "    const control=parseAbControl(state.values[KEY],state.recordStorage?.models.get(KEY)),history=phase.allowed('approval.compare');\n"
+        },
+        {
+          "offset": 10514,
+          "before": "",
+          "after": "    if(!await phase.current())return reply({error:'沒有查看 IPQC-AB 權限'},403);\n"
+        }
+      ]
+    },
+    "app/api/ipqc-c/route.ts": {
+      "beforeHash": "ad6e22c4d3fd0f2001ec95dbce1072d19f350ae56102f503712ceaf172f104da",
+      "beforeNormalizedHash": "ad6e22c4d3fd0f2001ec95dbce1072d19f350ae56102f503712ceaf172f104da",
+      "afterHash": "187bed2d2225643910745e866c97445b612b03410c3641d678d8d76a1f7e0a1a",
+      "afterNormalizedHash": "187bed2d2225643910745e866c97445b612b03410c3641d678d8d76a1f7e0a1a",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 162,
+          "before": "import { readState, identity, can, sameOrigin, encodeValues, parse, maintenanceCredential, responseHeaders as headers } from '@/lib/process-state';\n",
+          "after": "import { readState, identity, can, createIpqcReadPermissionPhase, sameOrigin, encodeValues, parse, maintenanceCredential, responseHeaders as headers } from '@/lib/process-state';\n"
+        },
+        {
+          "offset": 4161,
+          "before": "    const state = await readState({modelKey:KEY,deferHistory:true,deferDependencyHistory:true,...(!localHost(request)?{keys:readKeys}:{})});\n    const actor = await identity(request, state);\n    if (!actor || !(await can(request, state, 'ipqc-c.view')))\n",
+          "after": "    const state = await readState({aggregateReadAhead:true,modelKey:KEY,deferHistory:true,deferDependencyHistory:true,...(!localHost(request)?{keys:readKeys}:{})});\n    const phase=await createIpqcReadPermissionPhase(request,state),actor=phase.actor;\n    if (!actor || !phase.allowed('ipqc-c.view'))\n"
+        },
+        {
+          "offset": 5472,
+          "before": "    const body={ revision: state.revision, control: publicIpqcWorkflow(parseIpqcControl(state.values[KEY],state.recordStorage?.models.get(KEY)),await can(request,state,'approval.compare'),caseMetadata),\n",
+          "after": "    const body={ revision: state.revision, control: publicIpqcWorkflow(parseIpqcControl(state.values[KEY],state.recordStorage?.models.get(KEY)),phase.allowed('approval.compare'),caseMetadata),\n"
+        },
+        {
+          "offset": 5957,
+          "before": "",
+          "after": "    if(!await phase.current())return reply({error:'沒有查看 IPQC-C 的權限'},403);\n"
+        }
+      ]
+    },
+    "app/api/ipqc-c/workflow/route.ts": {
+      "beforeHash": "f70a7254c9a48241b00d86f1f4b4191b64ed52b78fbe49f714cdd7c83d9905fe",
+      "beforeNormalizedHash": "e7ddb1bc7e0bb8670e18fb9c38c77fc17a66907960312fdbf62062206a849d19",
+      "afterHash": "18ca4dd7f6269b3074d8c983f9d40f9c7533bc0eaf156acc7a9e56a9bdb6fd6f",
+      "afterNormalizedHash": "8659c1bc6bb4669ea2e02bfc3c4422325dfcbf91976549289549381adcb07e5a",
+      "beforeCRLFRanges": [
+        [
+          3,
+          5
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          21,
+          56
+        ],
+        [
+          61,
+          65
+        ],
+        [
+          68,
+          71
+        ],
+        [
+          96,
+          105
+        ],
+        [
+          106,
+          125
+        ],
+        [
+          126,
+          127
+        ],
+        [
+          128,
+          131
+        ],
+        [
+          132,
+          150
+        ],
+        [
+          152,
+          153
+        ],
+        [
+          166,
+          170
+        ],
+        [
+          171,
+          182
+        ],
+        [
+          184,
+          196
+        ],
+        [
+          203,
+          214
+        ],
+        [
+          216,
+          217
+        ],
+        [
+          220,
+          227
+        ],
+        [
+          228,
+          231
+        ],
+        [
+          235,
+          238
+        ],
+        [
+          239,
+          243
+        ],
+        [
+          245,
+          251
+        ],
+        [
+          252,
+          260
+        ],
+        [
+          261,
+          270
+        ]
+      ],
+      "rules": [
+        {
+          "offset": 659,
+          "before": "import { readState, identity, can, sameOrigin, encodeValues, stateRevisionIsCurrent, parse, responseHeaders, type State } from '@/lib/process-state';\n",
+          "after": "import { readState, identity, can, createIpqcCPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, parse, responseHeaders, type State } from '@/lib/process-state';\n"
+        },
+        {
+          "offset": 1669,
+          "before": "async function access(request:Request,state:State) {\n  const rights=await workflowAccess(request,state);\n  return {...rights,approve:await ipqcCFinalReviewAllowed(request,state,'approve'),return:await ipqcCFinalReviewAllowed(request,state,'return'),save:rights.edit||rights.save,restore:rights.edit&&await restoreAllowed(request,state),create:rights.edit&&await can(request,state,'ipqc-c.create'),delete:rights.edit&&await can(request,state,'ipqc-c.delete')};\n",
+          "after": "async function access(request:Request,state:State,phase?:Awaited<ReturnType<typeof createIpqcCPermissionPhase>>) {\n  const check=phase?phase.allowed:(key:string)=>can(request,state,key);\n  const rights=await workflowAccess(request,state,check);\n  return {...rights,approve:phase?phase.finalApprove():await ipqcCFinalReviewAllowed(request,state,'approve'),return:phase?await check('ipqc-c.view')&&await check('ipqc-c.return'):await ipqcCFinalReviewAllowed(request,state,'return'),save:rights.edit||rights.save,restore:rights.edit&&await restoreAllowed(request,state,check),create:rights.edit&&await check('ipqc-c.create'),delete:rights.edit&&await check('ipqc-c.delete')};\n"
+        },
+        {
+          "offset": 6016,
+          "before": "    // Normal compact workflow reads retain all objects/checks; overlap only GET metadata.\n    const workflowReadAhead=query.get('caseMetadata')==='1'&&query.get('compact')==='1'&&[...query.keys()].every(key=>['since','caseMetadata','compact'].includes(key));\n    const state=await readState({...(workflowReadAhead?{aggregateReadAhead:true}:{}),...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:createReadback?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY]}:{}),modelKey:KEY,deferDependencyHistory:true,deferHistory:true,caseId:query.get('caseId'),saveId:query.get('restoreSaveId'),versionId:query.get('versionId')||query.get('legacyVersionId')}),actor=await identity(request,state),permissions=await access(request,state);\n    if(!actor||!permissions.view)return reply({error:'FORBIDDEN'},403);\n",
+          "after": "    // All selected aggregates/checks remain; only GET metadata overlaps (max five).\n    const state=await readState({aggregateReadAhead:true,...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:createReadback?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY]}:{}),modelKey:KEY,deferDependencyHistory:true,deferHistory:true,caseId:query.get('caseId'),saveId:query.get('restoreSaveId'),versionId:query.get('versionId')||query.get('legacyVersionId')}),phase=await createIpqcCPermissionPhase(request,state),actor=phase.actor,permissions=await access(request,state,phase);\n    if(!actor||!permissions.view||!await phase.current())return reply({error:'FORBIDDEN'},403);\n"
+        },
+        {
+          "offset": 16965,
+          "before": "      const state=createMutationState||saveMutationState||await readState({modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:body.command?.localChanges||['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;\n",
+          "after": "      const state=createMutationState||saveMutationState||await readState({aggregateReadAhead:true,modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:body.command?.localChanges||['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=await createIpqcCPermissionPhase(request,state),actor=phase.actor;streamRecords=!!state.recordStorage;\n"
+        },
+        {
+          "offset": 17570,
+          "before": "      const permissions=await access(request,state),control=readControl(state);\n",
+          "after": "      const permissions=await access(request,state,phase),control=readControl(state);\n      if(!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);\n"
+        },
+        {
+          "offset": 25063,
+          "before": "        if(alreadyAccepted)return reply({revision:state.revision,control:publicIpqcWorkflow(control,permissions.history,caseMetadata),receipt,unchanged:true,requestId});\n",
+          "after": "        if(alreadyAccepted){if(!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);return reply({revision:state.revision,control:publicIpqcWorkflow(control,permissions.history,caseMetadata),receipt,unchanged:true,requestId});}\n"
+        },
+        {
+          "offset": 25777,
+          "before": "",
+          "after": "      if(!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);\n"
+        },
+        {
+          "offset": 26380,
+          "before": "      if((begin||body.command?.localChanges||ipqcCCreateCommand(body.command))&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);\n",
+          "after": "      if(!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/modules/QUALITY.md": {
+      "beforeHash": "eeee0b2553142a28e682fd2d375086cf9237adde125fe3a48b4dfbe23a189b97",
+      "beforeNormalizedHash": "eeee0b2553142a28e682fd2d375086cf9237adde125fe3a48b4dfbe23a189b97",
+      "afterHash": "cd8ae8e46a39c78e54c23ce63dbce69d2c3b420a434af52723e38135d5631a51",
+      "afterNormalizedHash": "cd8ae8e46a39c78e54c23ce63dbce69d2c3b420a434af52723e38135d5631a51",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-14 — IPQC operation speed (isolated candidate)\n\nExact IPQC page/workflow authorization phases reuse evaluation only inside the same request/selected state, with fresh session fences and per-CAS reconstruction. C retains exact platform final-approval cells. The existing bounded aggregate scheduler now also serves C reads/writes and scoped A/B Apply/restore/lifecycle writes; every selected object, integrity check, CAS, receipt and required readback remains. Client drafts, polling/deadlines and UNKNOWN recovery are unchanged. [Evidence, stage benchmark and limits](../../docs/acceptance/ipqc-operation-speed-20261114.md). No schema, live-data change or deployment.\n\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/CHANGELOG.md": {
+      "beforeHash": "4c2390105594b98824ea87f8f2ddaa9d60700fb29f13e4188706aa50b67c8abb",
+      "beforeNormalizedHash": "4c2390105594b98824ea87f8f2ddaa9d60700fb29f13e4188706aa50b67c8abb",
+      "afterHash": "2acd28bb91eb695aab50643f7cb7bb8c4f47031da25756eb681033c8711fad81",
+      "afterNormalizedHash": "2acd28bb91eb695aab50643f7cb7bb8c4f47031da25756eb681033c8711fad81",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-14 — IPQC request-local authorization and required-read scheduling\n\nIndependent speed candidate reduces repeated C session verification and overlaps bounded required aggregate reads for A/B and C without changing operation, draft, permission or persistence semantics. [Actual-handler baseline parity, measurements and validation limits](../docs/acceptance/ipqc-operation-speed-20261114.md). Draft PR only; no merge, deployment or live business data change.\n\n"
+        }
+      ]
+    },
+    "HANDOFF.md": {
+      "beforeHash": "4ae99f692507ebd2cfd65856dc5ba721602494b3aeb790e6360d8c794f33ff65",
+      "beforeNormalizedHash": "4ae99f692507ebd2cfd65856dc5ba721602494b3aeb790e6360d8c794f33ff65",
+      "afterHash": "c492eeef3bd2ede3296618ad6a4195a1851fca66365faa9a7d196172225cd8b1",
+      "afterNormalizedHash": "c492eeef3bd2ede3296618ad6a4195a1851fca66365faa9a7d196172225cd8b1",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-14 — Independent IPQC operation-speed candidate\n\nBranch `perf/ipqc-operation-speed-20261114` starts at main `c178ae2`, separate from #115/#117. Request-local permission evaluation and bounded full-read scheduling retain UNKNOWN/original receipts, CAS, final approval and all draft boundaries. [Current evidence and remaining CI/hosted acceptance](docs/acceptance/ipqc-operation-speed-20261114.md). No merge/deployment or existing QA/browser/data mutation. Earlier checkpoints below remain historical.\n\n"
+        }
+      ]
+    }
+  }
+}

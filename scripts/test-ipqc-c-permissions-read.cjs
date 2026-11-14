@@ -24,12 +24,19 @@ async function run(req,baseline=false){events=[];selects=0;revocations=0;const s
 const comparable=({status,headers,body})=>({status,headers,body});
 // #44's existing explicit cells: no implicit withdraw from view, and restore
 // is retired for new requests. Keep every other historical DTO field.
-// Identity checks follow workflowAccess's seven explicit cells plus the three
-// restore and two create/delete checks when edit is present, plus independent
-// platform/module review readers; module return now performs its own view and
-// return checks, rather than the retired single platform reader. No authority cache.
+// Frozen pre-phase cells retain their independent identity checks; the current
+// GET uses one selected-state phase and a fresh end-of-authority check. Counts
+// below are an independent actor-class oracle, never derived from observed I/O.
 const moduleViewActors=new Set(['frank','admin-two','reader','approval-reader','custom']);
-const extraRevocations=who=>(who?2:0)+(moduleViewActors.has(who)?1:0)+(['frank','admin-two'].includes(who)?6:['reader','custom'].includes(who)?3:who==='approval-reader'?1:who==='approval'?-5:who?-1:0);
+const historicalExtraRevocations=who=>(who?2:0)+(moduleViewActors.has(who)?1:0)+(['frank','admin-two'].includes(who)?6:['reader','custom'].includes(who)?3:who==='approval-reader'?1:who==='approval'?-5:who?-1:0);
+const phaseRevocations=who=>who?(moduleViewActors.has(who)?2:1):0;
+// Execute the actual frozen pre-optimization access function with the same
+// production dependencies, proving the original 16-call oracle still holds.
+const phaseBase='c178ae227bcddf528a493dbf8b586cf310564c5b',ts=require('typescript'),vm=require('node:vm');
+const phaseBaseBytes=execFileSync('git',['show',phaseBase+':'+route]),phaseTree=ts.createSourceFile(route,phaseBaseBytes.toString(),ts.ScriptTarget.Latest,true);
+const phaseAccessNode=phaseTree.statements.find(node=>ts.isFunctionDeclaration(node)&&node.name?.text==='access');assert(phaseAccessNode,'frozen access function missing');
+const phaseAccessSource=phaseAccessNode.getText(phaseTree),historicalModule={exports:{}};
+vm.runInNewContext(ts.transpileModule(phaseAccessSource+'\nexport {access};',{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module:historicalModule,exports:historicalModule.exports,workflowAccess:load('lib/versioned-shared-workflow.ts').workflowAccess,ipqcCFinalReviewAllowed:load('lib/ipqc-c-access.ts').ipqcCFinalReviewAllowed,restoreAllowed:load('lib/draft-restore-access.ts').restoreAllowed,can:(...args)=>core.can(...args)});
 function policyParity(actual,prior,who='reader'){
  const expected=structuredClone(comparable(prior));
  if(prior.status===200&&prior.body.restoreSaveId){assert.deepEqual(comparable(actual),{status:422,headers:prior.headers,body:{error:'DRAFT_RESTORE_NOT_SUPPORTED'}},'new restores are retired without returning any body snapshot');return;}
@@ -74,15 +81,29 @@ await check('P0 exact independent final-approval and module-return identity chec
   assert.equal(await review.ipqcCFinalReviewAllowed(req,state,'return'),false,'revocation between view and return denies operation');assert.equal(calls,2);
  }finally{testing=false;onRevocation=null;db.exec('DELETE FROM process_revoked_sessions');core.can=originalCan;core.companyReader=originalReader;}
 });
+await check('P0a frozen pre-phase identity cost and current phase keep the same exact cells/final approval',async()=>{
+ const state={revision:710,values},keys=['ipqc-c.view','ipqc-c.edit','ipqc-c.save','ipqc-c.submit','ipqc-c.withdraw','ipqc-c.return','ipqc-c.create','ipqc-c.delete','ipqc-c.restore','approval.view','approval.approve','approval.compare'];
+ for(const who of [...users.map(row=>row.id),'']){
+  const req=request(who),baseline=await run(req,true);revocations=0;
+  await core.identity(req,state);const oldRights=await historicalModule.exports.access(req,state);
+  assert.equal(revocations,baseline.metrics.revocations+historicalExtraRevocations(who),who+' original pre-phase exact independent-cell cost');
+  const expectedCells=await Promise.all(keys.map(key=>core.can(req,state,key)));revocations=0;
+  const phase=await core.createIpqcCPermissionPhase(req,state);
+  keys.forEach((key,index)=>assert.equal(phase.allowed(key),expectedCells[index],who+' unchanged cell '+key));
+  assert.equal(phase.finalApprove(),oldRights.approve,who+' exact platform-only approval');
+  const current=await phase.current();assert.equal(current,!!phase.actor);
+  assert.equal(revocations,phase.actor?2:who?1:0,who+' independent initial and fresh terminal session checks');
+ }
+});
 await check('P1 exact authorized operation-cell delta; other permissions revision headers and session parity',async()=>{
- for(const who of ['frank','admin-two','reader','approval','approval-reader','custom','template-denied','override-denied','other','disabled','deleted','']){const req=request(who,'?permissions=1',{forged:!who}),a=await run(req),b=await run(req,true);policyParity(a,b,who);assert.equal(a.metrics.revocations,b.metrics.revocations+extraRevocations(who),who+' exact explicit-cell identity-check delta');assert.equal(a.status,['frank','admin-two','reader','approval-reader','custom'].includes(who)?200:403,who);assert(!JSON.stringify(a.body).includes('private-access-sentinel'));}
- for(const who of ['approval','approval-reader'])for(const query of ['','?caseMetadata=1']){const req=request(who,query),a=await run(req),b=await run(req,true);policyParity(a,b,who);assert.equal(a.metrics.revocations,b.metrics.revocations+extraRevocations(who));}
+ for(const who of ['frank','admin-two','reader','approval','approval-reader','custom','template-denied','override-denied','other','disabled','deleted','']){const req=request(who,'?permissions=1',{forged:!who}),a=await run(req),b=await run(req,true);policyParity(a,b,who);assert.equal(a.metrics.revocations,phaseRevocations(who),who+' exact request-local phase identity-check count');assert.equal(a.status,['frank','admin-two','reader','approval-reader','custom'].includes(who)?200:403,who);assert(!JSON.stringify(a.body).includes('private-access-sentinel'));}
+ for(const who of ['approval','approval-reader'])for(const query of ['','?caseMetadata=1']){const req=request(who,query),a=await run(req),b=await run(req,true);policyParity(a,b,who);assert.equal(a.metrics.revocations,phaseRevocations(who));}
  for(const opts of [{expired:true},{epoch:2}]){const req=request('reader','?permissions=1',opts);assert.deepEqual(comparable(await run(req)),comparable(await run(req,true)));assert.equal((await run(req)).status,403);}
  const local=request('reader','?permissions=1',{local:true});policyParity(await run(local),await run(local,true));
 });
-await check('P2 five-key R2 cost stays bounded as unrelated aggregates grow; exact explicit-cell revocation delta',async()=>{
+await check('P2 five-key R2 cost stays bounded as unrelated aggregates grow; two fresh phase identity checks',async()=>{
  const req=request(),a=await run(req),b=await run(req,true);reduced=a.metrics;baseline=b.metrics;
- policyParity(a,b);assert.equal(a.metrics.gets,5);assert.equal(a.metrics.selects,1);assert(a.metrics.gets<b.metrics.gets);assert(a.metrics.bytes<b.metrics.bytes);assert.equal(a.metrics.revocations,b.metrics.revocations+extraRevocations('reader'));assert(a.metrics.revocations>1);
+ policyParity(a,b);assert.equal(a.metrics.gets,5);assert.equal(a.metrics.selects,1);assert(a.metrics.gets<b.metrics.gets);assert(a.metrics.bytes<b.metrics.bytes);assert.equal(a.metrics.revocations,phaseRevocations('reader'));assert(a.metrics.revocations>1);
  assert.deepEqual(new Set(a.keys),new Set(['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'].map(k=>refs[k].key)));
  const grown={...values};for(let i=0;i<12;i++)grown['unrelated-'+i]=JSON.stringify({index:i,text:'irrelevant'.repeat(3000)});install(await records.encodeRecordValues(bucket,grown));
  const large=await run(req),oldLarge=await run(req,true);grownBaseline=oldLarge.metrics;assert.deepEqual(large.metrics,reduced);policyParity(large,oldLarge);assert(oldLarge.metrics.gets>baseline.gets);install(raw);
@@ -103,11 +124,11 @@ await check('P6 legacy inline/chunk/R2 and absent archive preserve behavior',asy
  for(const format of formats){install(format);policyParity(await run(request()),await run(request(),true));}
  const original=env.STATE_ARCHIVE;try{env.STATE_ARCHIVE=undefined;install(inline);assert.equal((await run(request())).status,200);install(raw);assert.equal((await run(request())).status,503);}finally{env.STATE_ARCHIVE=original;install(raw);}
 });
-await check('P7 non-permissions GET preserves data/I/O with exact permission DTO and restore-check deltas',async()=>{
- for(const query of ['?caseMetadata=1','?since=not-current','?history=cases','?caseId=case0','?uiHistory=1','?legacyHistory=1','?versionId=active','?restoreSaveId=save0','?operationId=not-found']){const req=request('frank',query),a=await run(req),b=await run(req,true);policyParity(a,b,'frank');assert.deepEqual(a.metrics,{...b.metrics,revocations:b.metrics.revocations+extraRevocations('frank')},query);}
+await check('P7 non-permissions GET preserves data/I/O and exact permission DTO with phase session fences',async()=>{
+ for(const query of ['?caseMetadata=1','?since=not-current','?history=cases','?caseId=case0','?uiHistory=1','?legacyHistory=1','?versionId=active','?restoreSaveId=save0','?operationId=not-found']){const req=request('frank',query),a=await run(req),b=await run(req,true);policyParity(a,b,'frank');assert.deepEqual(a.metrics,{...b.metrics,revocations:phaseRevocations('frank')},query);}
  // Existing permissions precedence remains, even with unrelated selectors present.
  const req=request('frank','?permissions=1&caseId=missing&restoreSaveId=missing');policyParity(await run(req),await run(req,true),'frank');
- const denied=request('admin-two','?restoreSaveId=save0'),a=await run(denied),b=await run(denied,true);assert.equal(b.status,200);assert.deepEqual(comparable(a),{status:403,headers:b.headers,body:{error:'FORBIDDEN'}},'ordinary admin cannot inherit restore from edit');assert.equal(a.metrics.revocations,b.metrics.revocations+extraRevocations('admin-two'));
+ const denied=request('admin-two','?restoreSaveId=save0'),a=await run(denied),b=await run(denied,true);assert.equal(b.status,200);assert.deepEqual(comparable(a),{status:403,headers:b.headers,body:{error:'FORBIDDEN'}},'ordinary admin cannot inherit restore from edit');assert.equal(a.metrics.revocations,phaseRevocations('admin-two'));
 });
 await check('P8 exact composed performance plus #44 permission/restore spans and historical read-selection proof',async()=>{
  const priorBytes=execFileSync('git',['show',base+':'+route]),committedBytes=execFileSync('git',['show','HEAD:'+route]);
@@ -119,5 +140,5 @@ await check('P8 exact composed performance plus #44 permission/restore spans and
  const candidateBytes=withoutApprovedOperationAlignment(route,withoutExplicitPermissionReadAlignment(explicitBytes)),delta=Buffer.from("...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:{}),"),at=candidateBytes.indexOf(delta);assert(at>=0);assert.equal(candidateBytes.indexOf(delta,at+delta.length),-1);assert.deepEqual(Buffer.concat([candidateBytes.subarray(0,at),candidateBytes.subarray(at+delta.length)]),priorBytes);
  const marker=Buffer.from('export async function POST('),a=priorBytes.indexOf(marker),b=candidateBytes.indexOf(marker);assert(a>=0&&b>=0);assert.deepEqual(candidateBytes.subarray(b),priorBytes.subarray(a));
 });
-console.log(JSON.stringify({status:'PASS',groups:checks.length,checks,baseline,reduced,grownBaseline,baselineCommit:base,baselineHashes:baselineHashes(),network:false,handlerWrites:0,limits:['Synthetic storage work counts, not live latency','Exact #44 view/operation deltas plus independent final-review/module-return readers; new restore previews are retired; composed Save/performance spans reverse to native #44; other response data and read boundaries retained','Unrelated records failure isolation deliberately differs; required records remain fail closed','No authority cache; exact per-actor identity-check deltas include denied actors and independent final-review and module-return readers; retired restores perform no preview authorization reads']}));
+console.log(JSON.stringify({status:'PASS',groups:checks.length,checks,baseline,reduced,grownBaseline,baselineCommit:base,baselineHashes:baselineHashes(),network:false,handlerWrites:0,limits:['Synthetic storage work counts, not live latency','Exact #44 view/operation deltas plus independent final-review/module-return readers; new restore previews are retired; composed Save/performance spans reverse to native #44; other response data and read boundaries retained','Unrelated records failure isolation deliberately differs; required records remain fail closed','No cross-request authority cache; exact current phase costs include denied actors and fresh terminal checks. Frozen pre-phase cost and standalone independent review/return readers remain verified; retired restores perform no preview authorization reads']}));
 }finally{db.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

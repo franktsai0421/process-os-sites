@@ -1,0 +1,4577 @@
+{
+  "sourceCommit": "92d22878b57f2ec6c898b4b29245a5265233a838",
+  "sourceHashes": {
+    "lib/process-state.ts": "653df89f2bd62cd24d7f36e495c9734223a853185d1e0f36d956a9d6643c9e48",
+    "lib/versioned-shared-workflow.ts": "a0f596779ff54c6575d1ce4ba0984d1835339a5733a9e5d463ef15161ed83a94",
+    "app/api/ipqc-ab/route.ts": "eb917f5fd2fb384cf52bc26f8151db3f21f05930aa2dd895b88b08ebc015553c",
+    "app/api/ipqc-c/route.ts": "187bed2d2225643910745e866c97445b612b03410c3641d678d8d76a1f7e0a1a",
+    "app/api/ipqc-c/workflow/route.ts": "18ca4dd7f6269b3074d8c983f9d40f9c7533bc0eaf156acc7a9e56a9bdb6fd6f"
+  },
+  "harnessHash": "aafc99197fb5c5e31a9e7489da9e7607920c323261282eab111178e3609fc029",
+  "kind": "isolated actual handlers; generated minimal AB/C + 8 unrelated aggregates",
+  "ioDelayMs": 10,
+  "rounds": 4,
+  "limits": "Synthetic sensitivity experiment, not hosted latency. Request counts exclude setup and command prerequisite GETs (workflow-read reported separately). Phases overlap: can includes identity. I/O delay applies to every SQL and R2 operation. No UI/real data/network/cold start. No credentials, command bodies or account state are output.",
+  "samples": [
+    {
+      "moduleName": "ipqc-ab",
+      "round": 0,
+      "action": "create-error",
+      "requests": 1,
+      "wireBytes": 1743,
+      "decodeMs": 0.5873679999999695,
+      "sql": 8,
+      "revocations": 5,
+      "cas": 1,
+      "get": 19,
+      "put": 3,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 84.66681900000003
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.550415000000157
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.17679199999997763
+        },
+        "can": {
+          "calls": 1,
+          "ms": 11.28851799999984
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.1489000000001397
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.217255000000023
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 32.49024200000008
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.21676099999990583
+        }
+      },
+      "ms": 195.001581
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 0,
+      "action": "create-item",
+      "requests": 1,
+      "wireBytes": 2277,
+      "decodeMs": 0.40548900000021604,
+      "sql": 8,
+      "revocations": 5,
+      "cas": 1,
+      "get": 19,
+      "put": 3,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 84.96995700000002
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.433721999999761
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.2792629999999008
+        },
+        "can": {
+          "calls": 1,
+          "ms": 11.509144000000106
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.7089869999999792
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.28229199999987
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.656109000000015
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.07390900000018519
+        }
+      },
+      "ms": 196.58453199999985
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 0,
+      "action": "apply",
+      "requests": 1,
+      "wireBytes": 2468,
+      "decodeMs": 0.44730100000015227,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 19,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 74.50168500000018
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.456662000000051
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.22066600000016479
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.17994499999986147
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.31860800000004
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 32.41249199999993
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.06007900000031441
+        }
+      },
+      "ms": 175.51044299999967
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 0,
+      "action": "delete-item",
+      "requests": 1,
+      "wireBytes": 2654,
+      "decodeMs": 0.2820759999999609,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 19,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 74.26161500000035
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.388140999999905
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.17260499999974854
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.4493130000000747
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.223001000000295
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.9789880000003
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.08574700000008306
+        }
+      },
+      "ms": 173.2080289999999
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 0,
+      "action": "delete-error",
+      "requests": 1,
+      "wireBytes": 2842,
+      "decodeMs": 0.197631999999885,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 19,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 74.57054100000005
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.43138399999998
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.1894999999999527
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.23132200000009107
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.188690999999835
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.653717000000142
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.060349000000314845
+        }
+      },
+      "ms": 172.80487300000004
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 0,
+      "action": "page-read",
+      "requests": 1,
+      "wireBytes": 4450,
+      "decodeMs": 0.17891400000007707,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 10,
+      "put": 0,
+      "head": 0,
+      "peakGets": 4,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 64.24549799999977
+        },
+        "createIpqcReadPermissionPhase": {
+          "calls": 1,
+          "ms": 12.016118000000006
+        },
+        "public-projection": {
+          "calls": 2,
+          "ms": 0.08729900000025737
+        }
+      },
+      "ms": 89.21950599999991
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 0,
+      "action": "permissions",
+      "requests": 1,
+      "wireBytes": 216,
+      "decodeMs": 0.07470999999986816,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "peakGets": 3,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 31.841102999999748
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.760581000000002
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.009144000000105734
+        }
+      },
+      "ms": 55.94992199999979
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 0,
+      "action": "workflow-read",
+      "requests": 1,
+      "wireBytes": 1090,
+      "decodeMs": 0.4085530000002109,
+      "sql": 6,
+      "revocations": 4,
+      "cas": 0,
+      "get": 14,
+      "put": 0,
+      "head": 0,
+      "peakGets": 4,
+      "phases": {
+        "readState": {
+          "calls": 2,
+          "ms": 95.1302810000002
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 2,
+          "ms": 23.58460500000001
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.060719999999946594
+        }
+      },
+      "ms": 141.87970200000018
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 0,
+      "action": "save",
+      "requests": 1,
+      "wireBytes": 2143,
+      "decodeMs": 0.2935330000000249,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 20,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 85.23244999999997
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.64370800000006
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.294264000000112
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.09590200000002369
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.189902000000075
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 32.49874499999987
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.18361100000038277
+        }
+      },
+      "ms": 185.17319199999974
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 0,
+      "action": "submit",
+      "requests": 1,
+      "wireBytes": 3163,
+      "decodeMs": 0.3322710000002189,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 21,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 95.70564999999988
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.813658999999461
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.17978599999969447
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.9279900000001362
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.230222999999569
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 23.21679200000017
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.13328699999965465
+        }
+      },
+      "ms": 187.0638939999999
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 0,
+      "action": "withdraw",
+      "requests": 1,
+      "wireBytes": 2802,
+      "decodeMs": 0.27610700000059296,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 21,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 96.53756300000077
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.458174000000326
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.2151480000002266
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.20781700000043202
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.192275000000336
+        },
+        "version-projection": {
+          "calls": 1,
+          "ms": 0.025177999999868916
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 22.548846000000594
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.08508499999970809
+        }
+      },
+      "ms": 185.46854299999995
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 0,
+      "action": "submit",
+      "requests": 1,
+      "wireBytes": 3823,
+      "decodeMs": 0.3108089999996082,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 21,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 94.6361109999998
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.417824999999539
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.13978600000064034
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.28131499999926746
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.211184000000685
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 24.28948700000001
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.10639699999956065
+        }
+      },
+      "ms": 185.17992200000026
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 0,
+      "action": "approve",
+      "requests": 1,
+      "wireBytes": 3916,
+      "decodeMs": 1.0002570000006017,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 21,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 102.93379499999992
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.67596599999979
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.2971379999999044
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.4936680000000706
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.799952999999732
+        },
+        "version-projection": {
+          "calls": 1,
+          "ms": 0.018848000000616594
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 41.51797400000032
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 1.2213830000000598
+        }
+      },
+      "ms": 250.0470380000006
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 0,
+      "action": "create-error",
+      "requests": 1,
+      "wireBytes": 1909,
+      "decodeMs": 0.38661099999990256,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 3,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 84.16097799999989
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 12.286597999999685
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.4109570000000531
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.17793299999993906
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.201710000000276
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.7096590000001
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.039097999999285094
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.13043300000026647
+        }
+      },
+      "ms": 183.39759099999992
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 0,
+      "action": "create-item",
+      "requests": 1,
+      "wireBytes": 2547,
+      "decodeMs": 0.29838999999992666,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 10,
+      "put": 3,
+      "head": 0,
+      "peakGets": 2,
+      "phases": {
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.725828999999976
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.1918439999999464
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.4713259999998627
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.220798000000286
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.03195700000014767
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.07457999999951426
+        }
+      },
+      "ms": 193.1176690000002
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 0,
+      "action": "apply",
+      "requests": 1,
+      "wireBytes": 2738,
+      "decodeMs": 0.23879300000044168,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 72.33156500000041
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.952894000000015
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.22286999999960244
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.25297299999965617
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.149411000000327
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 32.01342300000033
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.06092999999964377
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.10253100000045379
+        }
+      },
+      "ms": 171.3786030000001
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 0,
+      "action": "delete-item",
+      "requests": 1,
+      "wireBytes": 2924,
+      "decodeMs": 0.4627440000003844,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 78.81565600000067
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 12.078169000000344
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.1482289999994464
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.2040710000001127
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.320702999999412
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 32.188640999999734
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.03647400000045309
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.12669699999969453
+        }
+      },
+      "ms": 179.52340800000002
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 0,
+      "action": "delete-error",
+      "requests": 1,
+      "wireBytes": 3112,
+      "decodeMs": 0.3677429999997912,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 78.71018100000038
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 12.651525999999649
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.5022319999998217
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.4269410000006246
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.227805999999873
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.38218500000039
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.027831000000333006
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.11569099999996979
+        }
+      },
+      "ms": 180.43606499999987
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 0,
+      "action": "page-read",
+      "requests": 1,
+      "wireBytes": 3837,
+      "decodeMs": 0.1719229999998788,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 9,
+      "put": 0,
+      "head": 0,
+      "peakGets": 4,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 52.93052499999976
+        },
+        "createIpqcReadPermissionPhase": {
+          "calls": 1,
+          "ms": 11.729104000000007
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.02229299999999057
+        }
+      },
+      "ms": 76.78099099999963
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 0,
+      "action": "permissions",
+      "requests": 1,
+      "wireBytes": 216,
+      "decodeMs": 0.0713450000002922,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "peakGets": 3,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 31.327433999999812
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.864133000000038
+        }
+      },
+      "ms": 55.35325399999965
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 0,
+      "action": "workflow-read",
+      "requests": 1,
+      "wireBytes": 2275,
+      "decodeMs": 0.09648300000026211,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 17,
+      "put": 0,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.45772299999953
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 12.138088000000607
+        }
+      },
+      "ms": 96.8068089999997
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 0,
+      "action": "save",
+      "requests": 1,
+      "wireBytes": 3381,
+      "decodeMs": 0.31234199999926204,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.35539700000027
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 12.239857000000484
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.29837099999895145
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.13151400000060676
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.221147000000201
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 22.484677000000374
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.033390000000508735
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.12093900000036228
+        }
+      },
+      "ms": 163.5385040000001
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 0,
+      "action": "submit",
+      "requests": 1,
+      "wireBytes": 4333,
+      "decodeMs": 0.43916799999897194,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.91806299999917
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 12.458651000000827
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.24824700000135635
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.6143069999998261
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.273473000001104
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 23.337267999999312
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.21890299999904528
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.12846999999965192
+        }
+      },
+      "ms": 167.15019100000063
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 0,
+      "action": "withdraw",
+      "requests": 1,
+      "wireBytes": 4016,
+      "decodeMs": 0.48340400000051886,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 75.47409200000038
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 12.044990000000325
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.20940900000096008
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.1702709999990475
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.314323999999033
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 22.280688000000737
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.05265799999870069
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.19515799999862793
+        }
+      },
+      "ms": 166.32460299999912
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 0,
+      "action": "submit",
+      "requests": 1,
+      "wireBytes": 4970,
+      "decodeMs": 2.442737000001216,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 83.17799000000014
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 14.3211510000001
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 3.8343729999996867
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.3275840000005701
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 9.441004000000248
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 24.17637300000024
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.08033900000009453
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.14020700000037323
+        }
+      },
+      "ms": 193.91387600000053
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 0,
+      "action": "approve",
+      "requests": 1,
+      "wireBytes": 4019,
+      "decodeMs": 0.40378600000076403,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 75.82646199999908
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 12.304352999999537
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.2603049999997893
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.2691079999985959
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.30561999999918
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 22.207369999998264
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.09393900000031863
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.13551000000006752
+        }
+      },
+      "ms": 166.88526099999945
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 1,
+      "action": "create-error",
+      "requests": 1,
+      "wireBytes": 1743,
+      "decodeMs": 0.22049599999991187,
+      "sql": 8,
+      "revocations": 5,
+      "cas": 1,
+      "get": 19,
+      "put": 3,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 84.80214800000067
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.651759000000311
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.41935900000135007
+        },
+        "can": {
+          "calls": 1,
+          "ms": 11.375019999999495
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.1445129999992787
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.237911000000167
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.567564000000857
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.18335099999967497
+        }
+      },
+      "ms": 195.03969400000096
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 1,
+      "action": "create-item",
+      "requests": 1,
+      "wireBytes": 2277,
+      "decodeMs": 0.23827200000050652,
+      "sql": 8,
+      "revocations": 5,
+      "cas": 1,
+      "get": 19,
+      "put": 3,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 84.71075799999926
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.910420999998678
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.33917099999962375
+        },
+        "can": {
+          "calls": 1,
+          "ms": 11.265574000000925
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.17946500000107335
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.215677000000142
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.685668000000078
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.06377399999837507
+        }
+      },
+      "ms": 195.24006000000008
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 1,
+      "action": "apply",
+      "requests": 1,
+      "wireBytes": 2468,
+      "decodeMs": 0.23031000000082713,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 19,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 75.88016099999913
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 12.001643999999942
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.29618699999991804
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.25034899999991467
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.3923020000002
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 32.53519199999937
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.05791499999941152
+        }
+      },
+      "ms": 176.97104799999943
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 1,
+      "action": "delete-item",
+      "requests": 1,
+      "wireBytes": 2654,
+      "decodeMs": 0.6513210000011895,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 19,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 102.66689800000131
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 17.762042000000292
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.3558050000010553
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.8044879999997647
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.248028999998496
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 32.95836599999893
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.12228999999933876
+        }
+      },
+      "ms": 213.50666199999978
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 1,
+      "action": "delete-error",
+      "requests": 1,
+      "wireBytes": 2842,
+      "decodeMs": 0.32636199999979,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 19,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 74.85185400000046
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 12.10465000000113
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.13021200000002864
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.14123899999867717
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.207479999999123
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 32.18757000000005
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.09968699999990349
+        }
+      },
+      "ms": 175.86168700000053
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 1,
+      "action": "page-read",
+      "requests": 1,
+      "wireBytes": 4450,
+      "decodeMs": 0.14554500000122061,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 10,
+      "put": 0,
+      "head": 0,
+      "peakGets": 4,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 63.419315999999526
+        },
+        "createIpqcReadPermissionPhase": {
+          "calls": 1,
+          "ms": 11.503183000000718
+        },
+        "public-projection": {
+          "calls": 2,
+          "ms": 0.038676999998642714
+        }
+      },
+      "ms": 86.7620079999997
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 1,
+      "action": "permissions",
+      "requests": 1,
+      "wireBytes": 216,
+      "decodeMs": 0.08883100000093691,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "peakGets": 3,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 34.56337600000006
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 13.3380619999989
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.008522999998604064
+        }
+      },
+      "ms": 60.094678999999815
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 1,
+      "action": "workflow-read",
+      "requests": 1,
+      "wireBytes": 1090,
+      "decodeMs": 0.26816599999983737,
+      "sql": 6,
+      "revocations": 4,
+      "cas": 0,
+      "get": 14,
+      "put": 0,
+      "head": 0,
+      "peakGets": 4,
+      "phases": {
+        "readState": {
+          "calls": 2,
+          "ms": 94.88409800000045
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 2,
+          "ms": 23.17268999999942
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.048000999999203486
+        }
+      },
+      "ms": 141.03261700000076
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 1,
+      "action": "save",
+      "requests": 1,
+      "wireBytes": 2143,
+      "decodeMs": 0.23259300000063377,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 20,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 84.3725400000003
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 10.995123000000603
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.20145700000102806
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.26176699999996345
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.273126999998567
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 33.369464000001244
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.13588100000015402
+        }
+      },
+      "ms": 184.99651300000005
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 1,
+      "action": "submit",
+      "requests": 1,
+      "wireBytes": 3163,
+      "decodeMs": 0.49529100000108883,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 21,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 94.4701180000011
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.674865000000864
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.1224000000001979
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.3852279999991879
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.264463999999862
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 24.54348299999947
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.18980000000010477
+        }
+      },
+      "ms": 186.59142699999938
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 1,
+      "action": "withdraw",
+      "requests": 1,
+      "wireBytes": 2802,
+      "decodeMs": 0.31760899999972025,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 21,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 94.89269100000092
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.42815200000041
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.15247500000077707
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.13362799999958952
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.191865999999209
+        },
+        "version-projection": {
+          "calls": 1,
+          "ms": 0.026018000000476604
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 22.609096999998656
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.15099300000110816
+        }
+      },
+      "ms": 183.8672349999997
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 1,
+      "action": "submit",
+      "requests": 1,
+      "wireBytes": 3823,
+      "decodeMs": 0.32280700000046636,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 21,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 94.7879120000016
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.534918999999718
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.19158300000162853
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.6876460000003135
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.270361999999295
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 44.813829000000624
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.14357200000085868
+        }
+      },
+      "ms": 207.7667990000009
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 1,
+      "action": "approve",
+      "requests": 1,
+      "wireBytes": 3916,
+      "decodeMs": 0.28642199999922013,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 21,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 97.88272499999948
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 12.058071999999811
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.28338799999983166
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.3336120000003575
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.334326999998666
+        },
+        "version-projection": {
+          "calls": 1,
+          "ms": 0.01876799999990908
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 23.59474399999999
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.1832109999995737
+        }
+      },
+      "ms": 189.93810699999995
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 1,
+      "action": "create-error",
+      "requests": 1,
+      "wireBytes": 1909,
+      "decodeMs": 0.28869699999995646,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 3,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 84.09476799999902
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.915415000001303
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.20204800000101386
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.1531859999995504
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.263986999998451
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.949126999999862
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.03257799999846611
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.15551000000050408
+        }
+      },
+      "ms": 183.32263299999977
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 1,
+      "action": "create-item",
+      "requests": 1,
+      "wireBytes": 2547,
+      "decodeMs": 0.23267399999895133,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 10,
+      "put": 3,
+      "head": 0,
+      "peakGets": 2,
+      "phases": {
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.862747000001036
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.19750199999907636
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.33886100000017905
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.286764000000403
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.029983999998876243
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.16242899999997462
+        }
+      },
+      "ms": 192.356898
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 1,
+      "action": "apply",
+      "requests": 1,
+      "wireBytes": 2738,
+      "decodeMs": 0.2100799999989249,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.4092440000004
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.749609999998938
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.21606900000006135
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.18314099999952305
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.208083999999872
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.629070000000866
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.018406999999569962
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.07207600000037928
+        }
+      },
+      "ms": 171.07959299999857
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 1,
+      "action": "delete-item",
+      "requests": 1,
+      "wireBytes": 2924,
+      "decodeMs": 0.23333400000046822,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.80072199999995
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.668400999998994
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.1893500000005588
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.19050100000094972
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.25477299999875
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 32.347005999999965
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.057013999999981024
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.08597699999882025
+        }
+      },
+      "ms": 173.10488900000018
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 1,
+      "action": "delete-error",
+      "requests": 1,
+      "wireBytes": 3112,
+      "decodeMs": 0.2948550000000978,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 75.72442899999805
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.758483000001434
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.23073099999965052
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.20184799999697134
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.25278999999864
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 33.31101900000067
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.02533699999912642
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.08843100000012782
+        }
+      },
+      "ms": 175.8074059999999
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 1,
+      "action": "page-read",
+      "requests": 1,
+      "wireBytes": 3837,
+      "decodeMs": 0.14796799999749055,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 9,
+      "put": 0,
+      "head": 0,
+      "peakGets": 4,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 54.383215000001655
+        },
+        "createIpqcReadPermissionPhase": {
+          "calls": 1,
+          "ms": 11.59947800000009
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.02487699999983306
+        }
+      },
+      "ms": 77.48565899999812
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 1,
+      "action": "permissions",
+      "requests": 1,
+      "wireBytes": 216,
+      "decodeMs": 0.07640299999911804,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "peakGets": 3,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 31.69141700000182
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 12.32002199999988
+        }
+      },
+      "ms": 55.71044500000062
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 1,
+      "action": "workflow-read",
+      "requests": 1,
+      "wireBytes": 2275,
+      "decodeMs": 0.10110999999960768,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 17,
+      "put": 0,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.310803999997
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.631815999997343
+        }
+      },
+      "ms": 96.07694099999935
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 1,
+      "action": "save",
+      "requests": 1,
+      "wireBytes": 3381,
+      "decodeMs": 0.2784509999983129,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 74.27126199999839
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.87109000000055
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.2247720000013942
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.1437820000028296
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.200071999999636
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 21.72977600000013
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.019899000002624234
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.12585600000238628
+        }
+      },
+      "ms": 162.57381299999906
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 1,
+      "action": "submit",
+      "requests": 1,
+      "wireBytes": 4333,
+      "decodeMs": 0.5169829999977082,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.62591800000155
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.817880999999034
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.17883399999846006
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.24445099999866216
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.371694999997999
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 22.559573000002274
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.10678700000062236
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.29218199999741046
+        }
+      },
+      "ms": 164.02335500000117
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 1,
+      "action": "withdraw",
+      "requests": 1,
+      "wireBytes": 4016,
+      "decodeMs": 0.2923319999972591,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 74.28184899999906
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.751853000001574
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.1931449999974575
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.1325360000009823
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.254251999998814
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 22.928297999998904
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.08053899999868008
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.11228499999924679
+        }
+      },
+      "ms": 164.13623200000075
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 1,
+      "action": "submit",
+      "requests": 1,
+      "wireBytes": 4970,
+      "decodeMs": 0.3093669999980193,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.35667200000171
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.666927999998734
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.17637999999715248
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.23309399999925517
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.181574999998702
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 24.87329999999929
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.049452999999630265
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.1076489999977639
+        }
+      },
+      "ms": 164.4810120000002
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 1,
+      "action": "approve",
+      "requests": 1,
+      "wireBytes": 4019,
+      "decodeMs": 0.2765880000006291,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.58953700000347
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.91485399999874
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.24662399999942863
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.2057939999976952
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.202855999999883
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 21.838166999998066
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.03397000000040862
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.11048400000072434
+        }
+      },
+      "ms": 161.93235800000184
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 2,
+      "action": "create-error",
+      "requests": 1,
+      "wireBytes": 1743,
+      "decodeMs": 0.28593200000250363,
+      "sql": 8,
+      "revocations": 5,
+      "cas": 1,
+      "get": 19,
+      "put": 3,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 83.87734700000146
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.666346999998495
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.18542399999932968
+        },
+        "can": {
+          "calls": 1,
+          "ms": 11.033171999999468
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.1361509999987902
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.203575999999885
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.380026999999245
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.2060639999981504
+        }
+      },
+      "ms": 192.7448860000004
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 2,
+      "action": "create-item",
+      "requests": 1,
+      "wireBytes": 2277,
+      "decodeMs": 0.20267899999817018,
+      "sql": 8,
+      "revocations": 5,
+      "cas": 1,
+      "get": 19,
+      "put": 3,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 84.02328199999829
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.3773199999996
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.12085800000204472
+        },
+        "can": {
+          "calls": 1,
+          "ms": 11.140841000000364
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.3451200000017707
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.18550000000323
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.64553900000101
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.046667999999044696
+        }
+      },
+      "ms": 192.74511699999857
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 2,
+      "action": "apply",
+      "requests": 1,
+      "wireBytes": 2468,
+      "decodeMs": 0.20294900000226335,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 19,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 72.99658000000272
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.492750999997952
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.2905690000006871
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.20713500000056229
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.216245999999956
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 32.086880999999266
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.0422820000021602
+        }
+      },
+      "ms": 170.1848229999996
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 2,
+      "action": "delete-item",
+      "requests": 1,
+      "wireBytes": 2654,
+      "decodeMs": 0.22653499999796622,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 19,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 74.13130599999931
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.396688000000722
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.4835640000019339
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.2606350000023667
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.249193999999989
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 33.00245300000097
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.059096999997564126
+        }
+      },
+      "ms": 174.60552100000132
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 2,
+      "action": "delete-error",
+      "requests": 1,
+      "wireBytes": 2842,
+      "decodeMs": 0.22939799999949173,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 19,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 74.38686299999972
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.735839999997552
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.11093400000027032
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.13473899999735295
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.188074000001507
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 32.09485299999869
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.03914799999984098
+        }
+      },
+      "ms": 172.58265299999766
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 2,
+      "action": "page-read",
+      "requests": 1,
+      "wireBytes": 4450,
+      "decodeMs": 0.14022699999986799,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 10,
+      "put": 0,
+      "head": 0,
+      "peakGets": 4,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 62.82719400000133
+        },
+        "createIpqcReadPermissionPhase": {
+          "calls": 1,
+          "ms": 11.378763000000617
+        },
+        "public-projection": {
+          "calls": 2,
+          "ms": 0.03161800000452786
+        }
+      },
+      "ms": 85.54507100000046
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 2,
+      "action": "permissions",
+      "requests": 1,
+      "wireBytes": 216,
+      "decodeMs": 0.17947500000082073,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "peakGets": 3,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 30.9011410000021
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.416016999999556
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.007399999998597195
+        }
+      },
+      "ms": 54.255787000001874
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 2,
+      "action": "workflow-read",
+      "requests": 1,
+      "wireBytes": 1090,
+      "decodeMs": 0.19035099999746308,
+      "sql": 6,
+      "revocations": 4,
+      "cas": 0,
+      "get": 14,
+      "put": 0,
+      "head": 0,
+      "peakGets": 4,
+      "phases": {
+        "readState": {
+          "calls": 2,
+          "ms": 94.1617640000004
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 2,
+          "ms": 22.513996000001498
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.04337400000076741
+        }
+      },
+      "ms": 138.99443600000086
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 2,
+      "action": "save",
+      "requests": 1,
+      "wireBytes": 2143,
+      "decodeMs": 0.5114550000034797,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 20,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 84.65041800000108
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.409528000000137
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.1860049999995681
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.08694800000012037
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.203005999999732
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 32.495364000002155
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.5730259999982081
+        }
+      },
+      "ms": 185.96380299999873
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 2,
+      "action": "submit",
+      "requests": 1,
+      "wireBytes": 3163,
+      "decodeMs": 0.3162269999993441,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 21,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 94.8564800000022
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.394125000002532
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.20590400000219233
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.3204029999978957
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.424603999999817
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 36.14238899999691
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.17047199999797158
+        }
+      },
+      "ms": 198.24090199999773
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 2,
+      "action": "withdraw",
+      "requests": 1,
+      "wireBytes": 2802,
+      "decodeMs": 0.2724530000014056,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 21,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 95.22169900000154
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.649201000000176
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.1758799999988696
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.12270100000023376
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.238578999997117
+        },
+        "version-projection": {
+          "calls": 1,
+          "ms": 0.026449000000866363
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 22.77563200000077
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.1571619999995164
+        }
+      },
+      "ms": 185.21744099999705
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 2,
+      "action": "submit",
+      "requests": 1,
+      "wireBytes": 3823,
+      "decodeMs": 0.30455000000074506,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 21,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 97.43633000000045
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.32303999999931
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.23825099999885424
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.3134329999993497
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.450151000000915
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 23.644634999996924
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.11289699999906588
+        }
+      },
+      "ms": 188.76762400000007
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 2,
+      "action": "approve",
+      "requests": 1,
+      "wireBytes": 3916,
+      "decodeMs": 0.3147949999984121,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 21,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 94.43989399999919
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.394866000002366
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.1150500000003376
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.21034100000179023
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.171059000000241
+        },
+        "version-projection": {
+          "calls": 1,
+          "ms": 0.00897400000030757
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 21.91227600000275
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.13215499999932945
+        }
+      },
+      "ms": 182.88620800000353
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 2,
+      "action": "create-error",
+      "requests": 1,
+      "wireBytes": 1909,
+      "decodeMs": 0.2465440000014496,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 3,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 84.0562310000023
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 12.025031999997736
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.24156700000094133
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.17103299999871524
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.225673000000825
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.410608999998658
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.022542999999132007
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.159696000002441
+        }
+      },
+      "ms": 182.090999
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 2,
+      "action": "create-item",
+      "requests": 1,
+      "wireBytes": 2547,
+      "decodeMs": 0.6262649999989662,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 10,
+      "put": 3,
+      "head": 0,
+      "peakGets": 2,
+      "phases": {
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.808109999998123
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.36963699999978417
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.27553700000134995
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.201114999999845
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.02826199999981327
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.09490000000005239
+        }
+      },
+      "ms": 192.04180399999677
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 2,
+      "action": "apply",
+      "requests": 1,
+      "wireBytes": 2738,
+      "decodeMs": 0.22395099999994272,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.75251300000309
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.885375000001659
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.19521800000075018
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.2883460000011837
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.243547000001854
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 33.24569100000008
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.04230299999835552
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.0913749999999709
+        }
+      },
+      "ms": 173.7883269999984
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 2,
+      "action": "delete-item",
+      "requests": 1,
+      "wireBytes": 2924,
+      "decodeMs": 0.24078500000177883,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.45080600000074
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.774080999999569
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.22609400000146707
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.1732159999992291
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.17934299999979
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.952829000001657
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.01842699999906472
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.07370900000023539
+        }
+      },
+      "ms": 171.88478399999804
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 2,
+      "action": "delete-error",
+      "requests": 1,
+      "wireBytes": 3112,
+      "decodeMs": 0.314394999997603,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.02794299999732
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.778968000002351
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.11625199999980396
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.16935000000012224
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.173635999999533
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.891841000000568
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.01867800000036368
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.07929699999658624
+        }
+      },
+      "ms": 170.89312000000064
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 2,
+      "action": "page-read",
+      "requests": 1,
+      "wireBytes": 3837,
+      "decodeMs": 0.16284100000120816,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 9,
+      "put": 0,
+      "head": 0,
+      "peakGets": 4,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 52.2889929999983
+        },
+        "createIpqcReadPermissionPhase": {
+          "calls": 1,
+          "ms": 11.194213999999192
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.04336399999738205
+        }
+      },
+      "ms": 74.77856900000188
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 2,
+      "action": "permissions",
+      "requests": 1,
+      "wireBytes": 216,
+      "decodeMs": 0.0707750000001397,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "peakGets": 3,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 31.305914000000485
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.564099999999598
+        }
+      },
+      "ms": 54.32918900000004
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 2,
+      "action": "workflow-read",
+      "requests": 1,
+      "wireBytes": 2275,
+      "decodeMs": 0.10123899999962305,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 17,
+      "put": 0,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 74.84164400000009
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 12.053341999999247
+        }
+      },
+      "ms": 98.1009559999984
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 2,
+      "action": "save",
+      "requests": 1,
+      "wireBytes": 3381,
+      "decodeMs": 0.23802099999738857,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 74.20881599999848
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.789001999997708
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.1999550000000454
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.125385000003007
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.218391000002157
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 21.68616900000052
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.0218719999975292
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.1365220000006957
+        }
+      },
+      "ms": 162.010882999999
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 2,
+      "action": "submit",
+      "requests": 1,
+      "wireBytes": 4333,
+      "decodeMs": 0.35463399999935064,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.33678300000247
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.586312999999791
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.2635000000009313
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.23673000000053435
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.180584999998246
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 22.048984000000928
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.04977399999916088
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.11845499999981257
+        }
+      },
+      "ms": 161.39753199999905
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 2,
+      "action": "withdraw",
+      "requests": 1,
+      "wireBytes": 4016,
+      "decodeMs": 0.3237879999978759,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.17698799999926
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.711796999999933
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.21093199999813805
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.1665659999998752
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.275359999999637
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 21.91797100000258
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.042922999997244915
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.10584600000220235
+        }
+      },
+      "ms": 161.13206400000126
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 2,
+      "action": "submit",
+      "requests": 1,
+      "wireBytes": 4970,
+      "decodeMs": 0.4086440000028233,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.72962499999994
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 12.080762999998115
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.17805299999963609
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.36850499999854947
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.343315000001894
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 29.410314000000653
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.07409899999765912
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.12193999999726657
+        }
+      },
+      "ms": 176.1166239999984
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 2,
+      "action": "approve",
+      "requests": 1,
+      "wireBytes": 4019,
+      "decodeMs": 0.4399200000007113,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 76.19398100000035
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 12.849679000002652
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.18806799999947543
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.21791200000006938
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.338057000000845
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 22.102363000001787
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.056512999999540625
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.18090699999811477
+        }
+      },
+      "ms": 167.07221299999946
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 3,
+      "action": "create-error",
+      "requests": 1,
+      "wireBytes": 1743,
+      "decodeMs": 0.24414099999921746,
+      "sql": 8,
+      "revocations": 5,
+      "cas": 1,
+      "get": 19,
+      "put": 3,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 83.31776900000114
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.322342999999819
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.1808579999997164
+        },
+        "can": {
+          "calls": 1,
+          "ms": 10.988999000001058
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.16221000000223285
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.174926000003325
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.28798900000038
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.15007200000036391
+        }
+      },
+      "ms": 191.0760760000012
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 3,
+      "action": "create-item",
+      "requests": 1,
+      "wireBytes": 2277,
+      "decodeMs": 0.19564900000113994,
+      "sql": 8,
+      "revocations": 5,
+      "cas": 1,
+      "get": 19,
+      "put": 3,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 83.90917500000069
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.228640000001178
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.16810800000166637
+        },
+        "can": {
+          "calls": 1,
+          "ms": 11.009977000001527
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.16326099999787402
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.184338000002754
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.430027999998856
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.04892199999812874
+        }
+      },
+      "ms": 191.59712000000218
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 3,
+      "action": "apply",
+      "requests": 1,
+      "wireBytes": 2468,
+      "decodeMs": 0.1869559999977355,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 19,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.0519830000012
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.360585000002175
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.19058199999926728
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.19475700000111829
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.201702999998815
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.48976600000242
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.037795999996887986
+        }
+      },
+      "ms": 170.06090100000074
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 3,
+      "action": "delete-item",
+      "requests": 1,
+      "wireBytes": 2654,
+      "decodeMs": 0.19510799999989104,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 19,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.56153699999777
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.261797999999544
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.17201399999976275
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.18433200000072247
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.228784000002634
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.71020099999805
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.05574200000046403
+        }
+      },
+      "ms": 170.68124700000044
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 3,
+      "action": "delete-error",
+      "requests": 1,
+      "wireBytes": 2842,
+      "decodeMs": 0.20775599999979022,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 19,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.16312900000048
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.265133000000787
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.1983829999990121
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.12691699999777484
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.190997000001516
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.759374000001117
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.041962000002968125
+        }
+      },
+      "ms": 170.2773309999975
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 3,
+      "action": "page-read",
+      "requests": 1,
+      "wireBytes": 4450,
+      "decodeMs": 0.18176800000219373,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 10,
+      "put": 0,
+      "head": 0,
+      "peakGets": 4,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 62.51863199999934
+        },
+        "createIpqcReadPermissionPhase": {
+          "calls": 1,
+          "ms": 10.325166999999055
+        },
+        "public-projection": {
+          "calls": 2,
+          "ms": 0.03106599999955506
+        }
+      },
+      "ms": 84.26938800000062
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 3,
+      "action": "permissions",
+      "requests": 1,
+      "wireBytes": 216,
+      "decodeMs": 0.0750609999995504,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "peakGets": 3,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 31.053350999998656
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.401574999999866
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.009904999998980202
+        }
+      },
+      "ms": 54.183014000002004
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 3,
+      "action": "workflow-read",
+      "requests": 1,
+      "wireBytes": 1090,
+      "decodeMs": 0.16672600000310922,
+      "sql": 6,
+      "revocations": 4,
+      "cas": 0,
+      "get": 14,
+      "put": 0,
+      "head": 0,
+      "peakGets": 4,
+      "phases": {
+        "readState": {
+          "calls": 2,
+          "ms": 93.28117199999542
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 2,
+          "ms": 22.4925230000008
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.04520700000284705
+        }
+      },
+      "ms": 137.94544099999985
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 3,
+      "action": "save",
+      "requests": 1,
+      "wireBytes": 2143,
+      "decodeMs": 0.1789040000003297,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 20,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 83.16165100000217
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.236480999999912
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.13335700000243378
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.09746400000221911
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.181153000001359
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.942313999999897
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.1377729999985604
+        }
+      },
+      "ms": 180.62521900000138
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 3,
+      "action": "submit",
+      "requests": 1,
+      "wireBytes": 3163,
+      "decodeMs": 0.26685400000133086,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 21,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 93.64836500000092
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.215158999999403
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.14734699999826262
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.29583700000148383
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.31927700000233
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 22.30736799999795
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.16659599999911734
+        }
+      },
+      "ms": 181.99248799999987
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 3,
+      "action": "withdraw",
+      "requests": 1,
+      "wireBytes": 2802,
+      "decodeMs": 0.24709400000210735,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 21,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 95.38873600000079
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.756838999997854
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.19736199999897508
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.203510000003007
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.224085999998351
+        },
+        "version-projection": {
+          "calls": 1,
+          "ms": 0.02517699999953038
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 22.812643000001117
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.08272199999919394
+        }
+      },
+      "ms": 185.50022700000045
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 3,
+      "action": "submit",
+      "requests": 1,
+      "wireBytes": 3823,
+      "decodeMs": 0.3458009999994829,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 21,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 95.32753599999705
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.579176999999618
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.24102599999969243
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.370057000000088
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.209334999999555
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 22.625136999999086
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.11268700000073295
+        }
+      },
+      "ms": 184.87579600000026
+    },
+    {
+      "moduleName": "ipqc-ab",
+      "round": 3,
+      "action": "approve",
+      "requests": 1,
+      "wireBytes": 3916,
+      "decodeMs": 0.3010549999999057,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 21,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 95.40166400000089
+        },
+        "createIpqcABPermissionPhase": {
+          "calls": 1,
+          "ms": 11.460301999999501
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.1804870000014489
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.2810349999999744
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.205039000000397
+        },
+        "version-projection": {
+          "calls": 1,
+          "ms": 0.013509999997040723
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 23.187448999997287
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.12438400000246475
+        }
+      },
+      "ms": 185.3860429999986
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 3,
+      "action": "create-error",
+      "requests": 1,
+      "wireBytes": 1909,
+      "decodeMs": 0.21920400000090012,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 3,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 84.5883560000002
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.836879999998928
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.2647309999993013
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.20571399999971618
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.255632000000332
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 32.37776700000177
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.029914999999164138
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.17703099999926053
+        }
+      },
+      "ms": 183.849041999998
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 3,
+      "action": "create-item",
+      "requests": 1,
+      "wireBytes": 2547,
+      "decodeMs": 0.39520400000037625,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 10,
+      "put": 3,
+      "head": 0,
+      "peakGets": 2,
+      "phases": {
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.6337900000035
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.1934350000010454
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.2796429999980319
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.231095999999525
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.02770099999906961
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.08811000000059721
+        }
+      },
+      "ms": 191.89705099999992
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 3,
+      "action": "apply",
+      "requests": 1,
+      "wireBytes": 2738,
+      "decodeMs": 0.21358599999803118,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.0773099999933
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.582683000000543
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.22189699999580625
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.18107700000109617
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.175294000000576
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.735077999997884
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.019829000004392583
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.07496099999843864
+        }
+      },
+      "ms": 170.5779429999966
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 3,
+      "action": "delete-item",
+      "requests": 1,
+      "wireBytes": 2924,
+      "decodeMs": 0.4793179999978747,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.21407099999487
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.578435999996145
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.13300700000399956
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.275616999999329
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.215383000002475
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 31.68908999999985
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.026690000006055925
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.09003300000040326
+        }
+      },
+      "ms": 171.57702000000427
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 3,
+      "action": "delete-error",
+      "requests": 1,
+      "wireBytes": 3112,
+      "decodeMs": 0.303819000000658,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 2,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 74.25341900000058
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.774275999996462
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.316608000000997
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.23890299999766285
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.378334000000905
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 32.86914300000353
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.03042499999719439
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.09405900000274414
+        }
+      },
+      "ms": 175.3467810000002
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 3,
+      "action": "page-read",
+      "requests": 1,
+      "wireBytes": 3837,
+      "decodeMs": 0.1727759999994305,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 9,
+      "put": 0,
+      "head": 0,
+      "peakGets": 4,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 52.75169900000037
+        },
+        "createIpqcReadPermissionPhase": {
+          "calls": 1,
+          "ms": 11.43484499999613
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.024847000000590924
+        }
+      },
+      "ms": 75.60993099999905
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 3,
+      "action": "permissions",
+      "requests": 1,
+      "wireBytes": 216,
+      "decodeMs": 0.0803989999985788,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "peakGets": 3,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 31.334374999998545
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.606199000001652
+        }
+      },
+      "ms": 54.767868000002636
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 3,
+      "action": "workflow-read",
+      "requests": 1,
+      "wireBytes": 2275,
+      "decodeMs": 0.11817500000324799,
+      "sql": 3,
+      "revocations": 2,
+      "cas": 0,
+      "get": 17,
+      "put": 0,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 74.43425399999978
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.978107000002638
+        }
+      },
+      "ms": 98.04708099999698
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 3,
+      "action": "save",
+      "requests": 1,
+      "wireBytes": 3381,
+      "decodeMs": 0.2560779999985243,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.58525999999983
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.793293999995512
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.21535800000128802
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.13259600000310456
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.230555000001914
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 22.049232999997912
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.031205999999656342
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.15924500000255648
+        }
+      },
+      "ms": 163.18623800000205
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 3,
+      "action": "submit",
+      "requests": 1,
+      "wireBytes": 4333,
+      "decodeMs": 0.3188910000026226,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 73.50678499999776
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 12.100577999997768
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.20732599999610102
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.23982499999692664
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.245658999992884
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 22.247144000000844
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.05416999999579275
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.1856340000013006
+        }
+      },
+      "ms": 162.67195300000458
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 3,
+      "action": "withdraw",
+      "requests": 1,
+      "wireBytes": 4016,
+      "decodeMs": 0.34236600000440376,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 74.18454999999813
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.692846000005375
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.38691100000141887
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.13424899999517947
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.248156000001472
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 22.783508000000438
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.05853600000409642
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.12884099999791943
+        }
+      },
+      "ms": 164.28973899999983
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 3,
+      "action": "submit",
+      "requests": 1,
+      "wireBytes": 4970,
+      "decodeMs": 0.3429870000036317,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 74.06218499999522
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 12.175749000001815
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.17180399999779183
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.2312420000016573
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.240970999999263
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 22.187631000000692
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.04949299999861978
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.10694799999328097
+        }
+      },
+      "ms": 163.35695499999565
+    },
+    {
+      "moduleName": "ipqc-c",
+      "round": 3,
+      "action": "approve",
+      "requests": 1,
+      "wireBytes": 4019,
+      "decodeMs": 0.32709299999987707,
+      "sql": 7,
+      "revocations": 4,
+      "cas": 1,
+      "get": 18,
+      "put": 1,
+      "head": 0,
+      "peakGets": 5,
+      "phases": {
+        "readState": {
+          "calls": 1,
+          "ms": 74.09127699999954
+        },
+        "createIpqcCPermissionPhase": {
+          "calls": 1,
+          "ms": 11.62550700000429
+        },
+        "fingerprint": {
+          "calls": 1,
+          "ms": 0.14414299999771174
+        },
+        "adapter-apply": {
+          "calls": 1,
+          "ms": 0.20003600000200095
+        },
+        "stateRevisionIsCurrent": {
+          "calls": 1,
+          "ms": 10.245858000002045
+        },
+        "encodeValues": {
+          "calls": 1,
+          "ms": 21.80757000000449
+        },
+        "public-projection": {
+          "calls": 1,
+          "ms": 0.04337400000076741
+        },
+        "wire-projection": {
+          "calls": 1,
+          "ms": 0.1487799999958952
+        }
+      },
+      "ms": 162.35563000000548
+    }
+  ]
+}
