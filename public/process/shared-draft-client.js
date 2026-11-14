@@ -322,10 +322,11 @@
     const box=document.createElement('div');box.dataset.masterRequestWait='true';const status=document.createElement('p'),stop=document.createElement('button');status.setAttribute('role','status');status.setAttribute('aria-live','polite');stop.type='button';stop.className='button ghost';
     stop.textContent=language==='vi'?'Dừng chờ':'停止等候';stop.onclick=()=>client.stopMasterWait();box.append(status,stop);if(outside)root.before(box);else root.prepend(box);
     let unwatch=()=>{};
-    const cleanup=()=>{unwatch();box.remove();window.removeEventListener?.('process-delivery-invalidated',retire);window.removeEventListener?.('pagehide',retire);};
-    const retire=()=>{client.stopMasterWait();cleanup();};
+    const activeTab=root.dataset.activeTab,owned=()=>root.isConnected&&root.dataset.activeTab===activeTab&&client.isBeginRuntimeCurrent?.()!==false&&client.isRuntimeCurrent?.()!==false;
+    const cleanup=()=>{unwatch();box.remove();window.removeEventListener?.('process-delivery-invalidated',retire);window.removeEventListener?.('pagehide',retire);window.removeEventListener?.('process-destination-ready',destination);};
+    const retire=()=>{client.stopMasterWait();cleanup();},destination=()=>{if(!owned())retire();};
     const paint=()=>{if(!box.isConnected){cleanup();return;}const pending=client.requestProgress().filter(value=>value.noFixedDeadline),seconds=Math.floor(Math.max(0,...pending.map(value=>value.elapsedMs))/1000);box.hidden=!pending.length;stop.disabled=!pending.length;status.textContent=!pending.length?'':language==='vi'?`Đang xử lý (ít nhất ${seconds}s), chưa xác nhận kết quả. Dừng chờ không hủy thao tác trên máy chủ; chỉ kiểm tra biên nhận gốc.`:`處理中（至少 ${seconds} 秒），結果尚未確認。停止等候不會撤銷伺服器操作；已送操作只查原回執，勿重複存取。`;};
-    unwatch=client.watchRequestProgress(paint);window.addEventListener?.('process-delivery-invalidated',retire);window.addEventListener?.('pagehide',retire);masterProgressMounts.set(root,cleanup);paint();
+    unwatch=client.watchRequestProgress(paint);window.addEventListener?.('process-delivery-invalidated',retire);window.addEventListener?.('pagehide',retire);window.addEventListener?.('process-destination-ready',destination);masterProgressMounts.set(root,cleanup);paint();
   };
   window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections,allowUnknownDeparture=false,durableBegin=false,equipmentLocalSave=false,processLocalSave=false,fqcComparedSave=false,iqcComparedSave=false}) => {
     // Hosted FQC Apply can legitimately finish after the old 15s cutoff. The

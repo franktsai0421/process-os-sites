@@ -148,3 +148,5 @@ LINES 離頁會停止本頁等待；已送原證據仍保留。重進時只在 s
 同 head 的 compiled PROCESS 已進入新增停止案例，頁面先前切換為越南文，而新 locator 誤只查中文導致 timeout；畫面已有 `Dừng chờ`，沒有 pageError。改用兩個精確語言名稱的 anchored locator，仍實際點擊按鈕並保留零重送、404 marker 與原回執斷言，不改 timeout 或 production 行為。
 
 `91864ea` LINES 原生 1280px 中文／390px 越南文均 PASS，含實際停止→404→原回執。Account 另呼叫獨立 tools UI fixture，仍缺標準 `before()`；同樣僅補該載具的 DOM port 並新增外部停止按鈕位置斷言，原有匯入／匯出／權限／同頁本機輸入測試全部保留。
+
+`5ef92e5` 的 FQC/IQC 最後 same-document delivery 原生檢查發現多留一個 pagehide listener。進度元件原先只聽 delivery-invalidated／pagehide，部分頁內導覽只通知 destination-ready；現也在 ready 核對原 root、tab、owner，離頁即停止等候並清除 watcher／DOM／所有自有 listener，同頁 ready 不停止。新增五次來回的 listener 身分精確相等與零 I/O 回歸；原 compiled delivery 的 exact ownership 斷言完全保留，沒有增加 listener 容許額度。cache family 更新為 `20261114-master-wait3`，仍待新 head CI。

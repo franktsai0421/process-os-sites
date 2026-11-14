@@ -188,3 +188,5 @@ Important implementation areas:
 AB/C/PROCESS V3 scopes are separate; line/stage management shares AB/C. Linked route changes may publish a derived PROCESS version in the same CAS, but must not clear independent PROCESS draft/pending work. See models/V3 and current data-model routing.
 
 BOM 離頁依實際欄位差異、待送修改、未套用匯入與未確認保存判定；空修改模式不視為未存。有匯入差異須先套用／放棄才可保存，詳見[20261010檢查點](../../docs/local-integration/20261010-bom-navigation.md)。
+
+2026-11-14: request-progress ownership also retires on destination-ready after a different tab/root/owner; same-page readiness retains the wait. All widget listeners/watchers are removed without I/O.
