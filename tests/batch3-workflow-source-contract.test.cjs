@@ -25,7 +25,9 @@ for(const [label,from,to]of [
  const altered=Buffer.from(current.toString().replace(from,to));assert.notDeepEqual(altered,current,'mutation must execute');assert.throws(()=>withoutDurableBegin(altered,file),/differs from pinned bytes/);
 });
 void test('batch3 refuses normalized, appended, wrong-file and non-Buffer inputs',()=>{
- for(const bytes of [Buffer.concat([current,Buffer.from(' ')]),Buffer.from(current.toString().replace(/\r\n/g,'\n'))])assert.throws(()=>withoutDurableBegin(bytes,file),/differs from pinned bytes/);
+ assert.throws(()=>withoutDurableBegin(Buffer.concat([current,Buffer.from(' ')]),file),/differs from pinned bytes/);
+ const historical=source('933277781a9549e2191dfb0d1aa91d0300e8c96a'),normalizedHistorical=Buffer.from(historical.toString().replace(/\r\n/g,'\n'));assert.notDeepEqual(normalizedHistorical,historical,'historical EOL mutation must execute');assert.throws(()=>withoutDurableBegin(normalizedHistorical,file),/differs from pinned bytes/,'original raw historical source still rejects normalization');
+ assert.deepEqual(withoutDurableBegin(Buffer.from(current.toString().replace(/\r\n/g,'\n')),file),previous,'exact current successor permits the already-reviewed checkout EOL equivalence only');
  for(const bytes of [current.toString(),new Uint8Array(current)])assert.throws(()=>withoutDurableBegin(bytes,file),/requires raw source bytes/);
  assert.throws(()=>withoutDurableBegin(current,'app/api/ipqc-c/workflow/route.ts'),/differs from pinned bytes/);
  assert.throws(()=>withoutDurableBegin(current,'unknown'),/Unknown Begin-v1 source contract/);
