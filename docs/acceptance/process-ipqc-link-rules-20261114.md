@@ -1,6 +1,6 @@
 # 製程方塊 ↔ IPQC A/B、C 規則候選
 
-基準：最新 main `c178ae227bcddf528a493dbf8b586cf310564c5b`（已合併 #116）。獨立 Dot checkout、同一草稿 PR #117／分支 `fix/process-ipqc-link-rules-20261114`。沒有操作公司電腦、現有測試站／正式資料、真帳號、遷移、部署或 GitHub 合併。
+基準：最新 main `379ae8deab89c0e90441cac50d6bb4f9f9cb22a0`（Frank 已合併 #115／#116）。獨立 Dot checkout、同一草稿 PR #117／分支 `fix/process-ipqc-link-rules-20261114`。沒有操作公司電腦、現有測試站／正式資料、真帳號、遷移、部署或 GitHub 合併。
 
 ## 修改矩陣
 
@@ -14,13 +14,13 @@
 | 保存／安全 | 完成編輯留本頁，再 atomic Save；保留權限、pending、CAS、receipt／UNKNOWN、安全去重，零自動 POST 重送、零背景輪詢 | inline＋records-v1、原子 Save stack、原生 lost ACK／404／原收據 |
 | 相容 | 舊 C query flag 不轉全選；IPQC 核准不核准 PROCESS；無 schema／migration／資料包 | 新建 error＋item→Save→Submit→核准→choices→保存／reload／生成正常登入 |
 
-## #116 共同整合
+## #115／#116 共同整合
 
 前身 d26da7b 的定向來源154、原子／採用233、歷史63測試與 C24組、lint／非增量TypeScript／guarded build、隔離原生 UI 已通過；10個工作流成功，Windows仍在完整回歸時，Frank 完成 #116 合併並要求整合新 main。這些只屬前身證據，不能當作共同整合通過。
 
-本候選合入真 main c178ae2，逐一保留 #116 的 lifecycle180秒、確認／actor／revision柵欄、submit-only 權、原收據診斷與 UNKNOWN／no-replay；`process-authoring-v3.js`、`shared-draft-client.js` 與 #116 pinned source JSON 均加上 byte-identical main 斷言。Cache 同時保留 review 與 IPQC 新版本。來源證據按「此精確候選→真 c178ae2→#116原 main→既有歷史」串接，舊 hash／負例不變。共同的 signed routes、review恢復、原生 review/IPQC 與廣域 CI 必須對新 head 重新執行，最終 SHA／完整結果以 PR 為準。
+本候選再合入真 main 379ae8d，保留 #115 的獨立 LINES／PROCESS 邊界、已核准來源驗證、明確等待／停止與原收據，以及 #116 的 lifecycle180秒、確認／actor／revision柵欄、submit-only 權、UNKNOWN／no-replay。上游 master／review 核心 runtime 與四份原 manifest 加上 exact Git blob／完整 worktree 斷言；cache 同時保留兩邊及 IPQC 新版本。來源證據按「此精確候選→真379ae8d→原三個真前身→既有歷史」串接，原 hash／負例不變。共同路由、master等待、review恢復及三套原生工作流均須以新 head 重新執行，最終 SHA／CI 以 PR 為準。
 
-#115 最新唯讀查證為 `3361ec0b6a7ab5a32f3a3df0cc53dfedaa7b07f4`，仍獨立 Draft。未修改其 refs 或搬入整份成果；其核准 master 投影與本次 C 身分檢查可語意並存，index／cache／source helper 未來仍需共同串接。#115 與本候選合樹尚未驗證。
+實際相容修正：page-v1 C choices 必須與 authoring validator 一樣，使用獨立核准 C catalog／LINES 組合，不能讀舊 active.C 相容快取。新增真 signed-route 案例用生成 page-v1 approved-owner baseline：相容快取故意放 PHANTOM；C002 產品無 TIEN 路線仍可找到已核准子項、從原001改選002並原子保存。C catalog／LINES 待審或版本ID歧義均拒絕，PHANTOM 不授權；A/B 清單不受無關 C 頁資格影響。原生 IPQC 載具也使用這個生成 page-v1 核准基準。這是測試設定，不宣稱執行真 master 採用／核准或遷移。
 
 ## 驗證界線
 
@@ -28,7 +28,7 @@
 
 原生載具使用 production editor／controller／shared transport 與實際 signed routes，1440px 中文 A、390px 越南文 C；checkbox、跨頁保留、完成、Save、reload、自身／他人、兩步轉移、換 actor、晚回應、C lost ACK／404／原收據零 POST replay。這是隔離模組 UI，來源建立經實際 API；沒有宣稱完整 hosted/adopted SPA、品質來源建立 UI 或真人站點驗收。Dot 本機 Chromium 被 kernel socket／ptrace 拒絕後未重試；原生執行由 GitHub CI 提供。
 
-NOT_RUN：真人站完整新來源流程、實體手機、真人跨電腦、多裝置／OS IME、真資料效能、部署，以及 #115 共同合樹。現場 v46 PROCESS V31 原撤回仍 UNKNOWN，沒有查明、清除或重送；AB V24／C V33、舊 QA L9空分類／C L10停用與進站樣本均未當作成功證據。
+NOT_RUN：真人站完整新來源流程、實體手機、真人跨電腦、多裝置／OS IME、真資料效能、部署，以及真人 master 採用／品質來源建立 UI 全流程。現場 v46 PROCESS V31 原撤回仍 UNKNOWN，沒有查明、清除或重送；AB V24／C V33、舊 QA L9空分類／C L10停用與進站樣本均未當作成功證據。
 
 ## 缺項 oracle 定向修復
 

@@ -1,3 +1,4 @@
+import {approvedMasterPageCatalog,approvedMasterProcessSource} from './master-approved-pages';
 import {parse} from './process-state';
 import {applyDraftCommand,DraftConflict,sameDraftValue,type DraftIssue,type DraftCommand,type DraftPath} from './shared-draft';
 import {type WorkflowAdapter,type VersionedControl} from './versioned-shared-workflow';
@@ -79,6 +80,7 @@ export function processAuthoringAdapter(canvasV2=false):WorkflowAdapter<Content,
   async access(_request,_state,p){return p;},
   context(control,state,base){const master=parse(state.values.masterDataControl,null);if(!master?.active)throw new DraftConflict('MASTER_SOURCE_REQUIRED',422);
    const user=parse(state.values.platformUsers,[]).find((u:Parameters<typeof effectiveAccess>[0])=>u.id===base.actor.id),access=user?effectiveAccess(user,state.values):null;
+   if(master.pageDraftLayout==='page-v1')master.active={...master.active,AB:approvedMasterPageCatalog(master,'AB').content,C:approvedMasterPageCatalog(master,'C').content,PROCESS:approvedMasterProcessSource(master).content};
    const products=['AB','C'].flatMap(s=>master.active[s]?.products||[]),lines=['AB','C'].flatMap(s=>master.active[s]?.lines||[]);
    const equipmentIds=new Set([...legacyMachineIds,...Object.values(master.active.PROCESS||{}).flatMap(templates=>(templates as {equipment?:{id:string}[];machineIds?:string[]}[]).flatMap(t=>[...(t.equipment||[]).map(e=>e.id),...(t.machineIds||[])]))]);
    // Dependencies are fixed for this context/CAS attempt. Construct at the

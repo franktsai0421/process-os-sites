@@ -1,0 +1,60 @@
+name: Lines and flow integration
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/master*.ts'
+      - 'lib/process-state.ts'
+      - 'lib/process-authoring-workflow.ts'
+      - 'public/process/master*.js'
+      - 'public/process/app.js'
+      - 'public/process/page-draft-merge.js'
+      - 'public/process/shared-draft-client.js'
+      - 'public/process/index.html'
+      - 'scripts/*lines-flow*'
+      - 'scripts/test-master-page-runtime.cjs'
+      - 'scripts/test-process-page-lifecycle.cjs'
+      - 'tests/lines-flow*'
+      - '.github/workflows/lines-flow-integration.yml'
+permissions:
+  contents: read
+concurrency:
+  group: lines-flow-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  isolated-pages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint -- --format unix
+      - run: npx tsc --noEmit
+      - name: Exact main provenance and effective negative controls
+        run: node --test tests/lines-flow-joint-source.test.cjs tests/lines-flow-source.test.cjs tests/lines-flow-pr102-source.test.cjs
+      - name: Independent page lifecycle, approved references, original receipts and read-only history
+        run: |
+          node scripts/test-master-page-runtime.cjs
+          node scripts/test-master-page-ui.cjs
+          node scripts/test-process-page-lifecycle.cjs
+          node scripts/test-process-page-roles.cjs
+          node scripts/test-lines-flow-boundaries.cjs
+          node scripts/test-draft-restore-access.mjs
+          node scripts/test-master-read-projection.cjs
+          node --test tests/lines-flow-wait.test.mjs tests/lines-flow-navigation.test.mjs tests/lines-flow-media-merge.test.mjs tests/lines-flow-process-conflicts.test.mjs tests/process-local-bridge.test.mjs tests/process-local-save.test.mjs
+          node --test --test-concurrency=1 tests/master-page-approved-history.test.mjs tests/master-page-approved-history-ui.test.mjs tests/process-master-history-ui.test.mjs
+      - run: npx playwright install --with-deps chromium
+      - name: Native desktop and narrow LINES buttons with isolated actual routes
+        run: node tests/lines-flow-browser.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: isolated-lines-flow-browser
+          path: .sites-runtime/lines-flow/
+          if-no-files-found: error

@@ -31,8 +31,15 @@ async function fixture(storage='inline'){
   return{url,error,item};
  }
  async function promote(url){if(url.includes('ipqc-ab')){url='/api/ipqc-ab/workflow?module=1';const b=await request(url,'POST',{action:'begin'});require('node:assert/strict').equal(b.status,200,JSON.stringify(b.body));}let r=await command(url,'save'),f=r.control?.workflow||r.workflow;r=await command(url,'submit',{savedId:f.saved.id,reason:'Synthetic new-item acceptance'});f=r.control?.workflow||r.workflow;const c=f.cases.find(c=>c.id===f.pendingId);return command(url,'approve',{caseId:c.id,acknowledgedContentIssues:c.contentIssues?.issues||[]},'reviewer');}
+ async function generatedMasterPages(routeless=[]){
+  const values=await state().then(s=>s.values),approved=copy(master.active);approved.C.products.forEach(p=>{if(routeless.includes(p.code))p.stages=[];});
+  const pages={'AB.catalog':{products:approved.AB.products,categoryGroups:approved.AB.categoryGroups},'C.catalog':{products:approved.C.products,categoryGroups:approved.C.categoryGroups},LINES:{AB:{lines:approved.AB.lines},C:{lines:approved.C.lines}},PROCESS:approved.PROCESS};
+  const root={pageDraftLayout:'page-v1',active:{...copy(approved),...copy(pages),C:{...copy(approved.C),products:[{...copy(approved.C.products[0]),code:'PHANTOM'}]}},versions:Object.entries(pages).map(([scope,snapshot])=>({id:randomUUID(),scope,status:'approved',snapshot:copy(snapshot)}))};
+  root.workflowScopes=Object.fromEntries(root.versions.map(v=>[v.scope,load('lib/shared-draft.ts').createSharedDraft('master:'+v.scope,v.snapshot,v.id,randomUUID())]));
+  values.masterDataControl=JSON.stringify(root);db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(storage==='records-v1'?await load('lib/state-records.ts').encodeRecordValues(env.STATE_ARCHIVE,values):JSON.stringify(values));return root;
+ }
  async function state(){return core.readState();}
  async function values(){return(await state()).values;}
- return{load,db,env,objects,master,initial,workspaces,request,command,endpoint,create,promote,values,trace,sessions,close:()=>db.close(),copy};
+ return{load,db,env,objects,master,initial,workspaces,request,command,endpoint,create,promote,values,trace,sessions,generatedMasterPages,close:()=>db.close(),copy};
 }
 module.exports={fixture};

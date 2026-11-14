@@ -21,3 +21,14 @@ export function approvedMasterPageCatalog(root:Root,page:'AB'|'C') {
  return {kind:'approved-page-composition-v1' as const,sources:{catalog:{scope:catalog.scope,versionId:catalog.versionId},
    lines:{scope:lines.scope,versionId:lines.versionId}},content:cloneDraft({...catalog.content,lines:partition.lines})};
 }
+
+// PROCESS has a separate approval pointer. Active JSON or a companion page's
+// approval cannot substitute for its own immutable, uniquely identified source.
+export function approvedMasterProcessSource(root:Root) {
+ const content=root.active?.PROCESS,flow=root.workflowScopes?.PROCESS,id=flow?.active?.id;
+ const candidates=root.versions?.filter(version=>version.scope==='PROCESS'&&version.status==='approved'&&sameDraftValue(version.snapshot,content))||[];
+ const source=flow?candidates.find(version=>version.id===id):candidates.length===1?candidates[0]:undefined;
+ if(!content||!source||typeof source.id!=='string'||!source.id||root.versions!.filter(version=>version.id===source.id).length!==1||flow&&(!flow.active||!sameDraftValue(flow.active.content,content)))
+  throw new DraftConflict('PROCESS_EFFECTIVE_BASELINE_CONFLICT',409);
+ return {scope:'master:PROCESS',versionId:source.id,content:cloneDraft(content)};
+}

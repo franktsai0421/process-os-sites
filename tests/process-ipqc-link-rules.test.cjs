@@ -69,3 +69,13 @@ void test('C legacy cross-workspace owner: signed-route denial, concurrent saved
  await edit(f,'C','one',[a]);assert.equal((await f.request(processURL)).body.control.workflow.saved.content.workspaces.find(w=>w.id===main.id).stages.TIEN[0].ipqcAssignments[0].itemId,a.itemId);
  }finally{f.close();}
 });
+
+void test('merged page-v1 C choices and new route-less product Save use approved catalog + LINES, never stale compatibility products',async()=>{
+ const f=await fixture('records-v1');try{const ab=await f.create('AB');await f.promote(ab.url);const c=await f.create('C','002');await f.promote(c.url);const root=await f.generatedMasterPages(['002']);
+ const q=await choices(f,'C',['002']);assert.equal(q.status,200);assert.equal(q.body.choices.length,1);assert.equal(q.body.choices[0].itemId,c.item.id);assert.equal((await choices(f,'C',['PHANTOM'])).body.reason,'NO_PRODUCTS');
+ const a=tuple(q.body.choices[0]),w=JSON.stringify(['SYN','C']),base=['workspaces',{id:w},'stages','TIEN',{id:'one'}],links=[...base,'ipqcAssignments'],products=[...base,'productCodes'];
+ await f.command(processURL,'apply',{moduleAction:'save-canvas-v1',source:'canvas-v2:'+JSON.stringify([w,'TIEN']),patches:[{op:'set',path:products,value:['002']},{op:'set',path:links,value:[a]}],guards:[{path:products,value:['001']},{path:links,value:[]}]});
+ const saved=(await f.request(processURL)).body.control.workflow.saved.content.workspaces.find(w=>w.line==='C').stages.TIEN[0];assert.deepEqual(saved.productCodes,['002']);assert.deepEqual(saved.ipqcAssignments,[a]);
+ for(const change of ['C.catalog','LINES','duplicate-id','catalog-pointer','lines-pointer','active-drift']){const bad=structuredClone(root);if(change==='duplicate-id')bad.versions.push(structuredClone(bad.versions.find(v=>v.scope==='C.catalog')));else if(change==='catalog-pointer'||change==='lines-pointer')bad.workflowScopes[change==='catalog-pointer'?'C.catalog':'LINES'].active.id='unknown-approved-owner';else if(change==='active-drift')bad.active['C.catalog'].products[0].name='drift';else bad.versions.find(v=>v.scope===change).status='pending';const values=await f.values();values.masterDataControl=JSON.stringify(bad);f.db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(await f.load('lib/state-records.ts').encodeRecordValues(f.env.STATE_ARCHIVE,values));assert.equal((await choices(f,'C',['002'])).status,503,'unapproved/ambiguous companion cannot grant C choices');const ownAB=await choices(f,'A');assert.equal(ownAB.status,200);assert.equal(ownAB.body.choices[0].itemId,ab.item.id,'AB choices do not acquire unrelated product/page eligibility');}
+ }finally{f.close();}
+});

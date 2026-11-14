@@ -5,7 +5,6 @@ import { applyDraftCommand, cloneDraft, DraftConflict, sameDraftValue, stableDra
   type DraftContext, type DraftPatch, type DraftPath, type SharedDraft } from './shared-draft';
 import { masterWorkflowAdapter } from './master-workflow';
 import { assertMasterPageContent, assertMasterPageSave } from './master-page-boundary';
-import { stageProcessLink, checkPinnedStageProcessLink, activateStageProcessLink, type StageProcessLink } from './master-stage-link';
 import { type WorkflowAdapter, type NumericVersion, type VersionedControl } from './versioned-shared-workflow';
 
 type Snapshot = Record<string, unknown>;
@@ -20,9 +19,6 @@ const array = (value:unknown):Record<string,unknown>[] => {
     throw new DraftConflict('MASTER_PAGE_CONTENT_INVALID',422);
   return value;
 };
-function flatten(value:Snapshot):Snapshot {
-  return {lines:scopes.flatMap(scope => array((value[scope] as Snapshot)?.lines))};
-}
 function snapshot(root:Root,page:Page):Snapshot {
   return approvedMasterPageSource(root,page).content;
 }
@@ -115,8 +111,7 @@ function atomicSave(page:Page,flow:SharedDraft<Snapshot>, command:Parameters<typ
 // The layout is a trusted stored-data cutover marker, never a query/env opt-in.
 // This adapter does not adopt legacy drafts, generate baselines, or delete data.
 export function masterPageWorkflowAdapter(page:Page):WorkflowAdapter<Snapshot,Control> {
-  let root:Root,linkedActivated=false;
-  let referenceValues:Record<string,string>={};
+  let root:Root;
   const scope=owner(page);
   function serializeModel(control:Control) {
     root.versions=[...root.versions.filter(version => version.scope !== scope),...control.versions.map(version => ({...version,scope}))];
@@ -156,7 +151,7 @@ export function masterPageWorkflowAdapter(page:Page):WorkflowAdapter<Snapshot,Co
         references:page === 'LINES' ? {} : {lines:cloneDraft((snapshot(root,'LINES')[page] as Snapshot).lines)}};
     },
     serialize:control=>JSON.stringify(serializeModel(control)),serializeModel,
-    projectValues:():Record<string,string>=>linkedActivated ? {processMasterData:JSON.stringify(root.active.PROCESS)} : {},
+    projectValues:():Record<string,string>=>({}),
     beforeCommand(control,command) {
       if (control.workflow && control.workflow.scope !== 'master:'+scope) throw new DraftConflict('MASTER_PAGE_OWNER_MISMATCH',409);
       if (command.action === 'save') assertMasterPageSave(page,command);
@@ -168,12 +163,11 @@ export function masterPageWorkflowAdapter(page:Page):WorkflowAdapter<Snapshot,Co
     requiresDelete:(_control,command)=>!!command.patches?.some(patch=>patch.op==='remove'||patch.op==='set'&&['stages','defaultStages'].some(field=>field===patch.path.at(-1))&&
       Array.isArray(command.input?.batches)&&(command.input.batches as {guards:{path:DraftPath;value:unknown}[]}[]).some(batch=>batch.guards.some(guard=>sameDraftValue(guard.path,patch.path)&&Array.isArray(guard.value)&&guard.value.some(value=>!Array.isArray(patch.value)||!patch.value.includes(value))))),
     context(control,state,base) {
-      referenceValues=state.values;
       const topology=snapshot(root,'LINES');
       // Reuse established catalog/source/reference checks with approved
       // companion content. Validation copies never enter persistence or receipts.
       const validators=scopes.map(part => {
-        const legacy=masterWorkflowAdapter(part),validation=cloneDraft(root);
+        const legacy=masterWorkflowAdapter(part,{independentTopology:true}),validation=cloneDraft(root);
         delete validation.pageDraftLayout;
         for(const target of scopes)validation.active[target]={...snapshot(root,target),lines:(snapshot(root,'LINES')[target] as Snapshot).lines};
         validation.versions=validation.versions.filter(version=>!['AB','C'].includes(version.scope)||!['draft','pending','pending-test'].includes(version.status));
@@ -240,17 +234,12 @@ export function masterPageWorkflowAdapter(page:Page):WorkflowAdapter<Snapshot,Co
       for(const review of flow.cases){const saved=flow.saves.find(save=>save.id===review.savedId);if(!saved||!sameDraftValue(saved.content,review.content))throw new DraftConflict('MASTER_PAGE_CASE_SAVE_MISMATCH',409);}
       const pending=flow.cases.filter(review=>review.status==='pending');
       if(flow.pendingId?(pending.length!==1||pending[0].id!==flow.pendingId||pending[0].savedId!==flow.saved?.id||!sameDraftValue(pending[0].content,flow.working)):pending.length>0)throw new DraftConflict('MASTER_PAGE_CASE_SAVE_MISMATCH',409);
-      let link:StageProcessLink|null=null;
-      type Review=typeof flow.cases[number]&{linkedProcess?:StageProcessLink};
-      const topologyScope='__page-lines-topology',linkRoot={...root,active:{...root.active,[topologyScope]:flatten(snapshot(root,'LINES'))}};
-      if (!already && page === 'LINES') {
-        if (command.action === 'submit' && flow.saved) link=stageProcessLink(linkRoot,topologyScope,flatten(flow.saved.content),referenceValues,flow.pendingId || undefined);
-        if (command.action === 'approve') {link=(flow.cases.find(review=>review.id === command.caseId) as Review|undefined)?.linkedProcess || null;if (link) checkPinnedStageProcessLink(root,link,command.caseId!);}
-      }
+      // Existing cross-page linked cases require explicit withdrawal/review return.
+      // Never silently approve their old PROCESS snapshot under the new policy.
+      if (!already && command.action === 'approve' && flow.cases.some(review=>review.id===command.caseId&&Object.hasOwn(review,'linkedProcess')))
+        throw new DraftConflict('MASTER_LEGACY_LINK_REQUIRES_WITHDRAWAL',409);
       if (!already && command.action === 'save') context.structure(flow.working,flow.working);
       const result=command.action === 'save' ? atomicSave(page,flow,command,{...context,commandFingerprint:context.commandFingerprint||stableDraftJSON(command)}) : applyDraftCommand(flow,command,context);
-      if (!already && link && command.action === 'submit') (result.state.cases.at(-1) as Review).linkedProcess=link;
-      if (!already && link && command.action === 'approve') {activateStageProcessLink(root,link,command.caseId!,context.actor,context.at);linkedActivated=true;}
       return result;
     },
   };

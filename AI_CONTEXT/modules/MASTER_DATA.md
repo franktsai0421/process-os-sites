@@ -1,3 +1,11 @@
+
+## 2026-11-14 — 兩頁明確等待及停止
+
+已安裝 LINES／PROCESS 的 canonical 按鈕讀寫與 PROCESS 引用查詢取消前端固定 45 秒 abort；單次進度提示不輪詢。停止等候不取消伺服器工作，已送原 ID／generation／marker 保留，404／晚到／錯誤回執不得當成功或失敗，只查原回執；CAS／授權不變。未採用 page-v1 的 LINES 仍唯讀，舊 linkedProcess 案件須有權人撤回／退回後分別送審，未遷移或操作實站。詳細來源、測試及平台未驗限制見既有 lines-flow 驗收紀錄。
+## 2026-11-13 — LINES／PROCESS 獨立整合候選
+
+LINES page-v1 核准不再連動產生 PROCESS 正式版；PROCESS 明確建立缺漏工段流程後自行保存／送審。未採用線別入口唯讀，不能借 AB/C 草稿。PROCESS 保存用整組衝突選擇並重比，照片組及晚到意圖選擇性回收真實 #102 遠端成果；原頁核准歷史與原操作回執保留，新歷史還原命令拒絕。主資料／製程引用驗證各頁真正核准來源。沒有 marker/data/ACL/schema 切換或部署。[需求、入口、資料缺口與驗收](../../docs/acceptance/lines-flow-integration-20261113/README.md)。
+
 2026-11-13續修：新page Save後bootstrap503已在actual route重現。effective-only讀取只為stored master page owners保留原approved active proof到companyState驗證，隨後仍剝離私有workflow；不生成baseline或變更持久schema。完整inline／records生命週期重讀、未知結果與阻擋見同一驗收紀錄。
 
 ## 2026-11-13 — A/B、C catalog cloud candidate
@@ -180,3 +188,5 @@ Important implementation areas:
 AB/C/PROCESS V3 scopes are separate; line/stage management shares AB/C. Linked route changes may publish a derived PROCESS version in the same CAS, but must not clear independent PROCESS draft/pending work. See models/V3 and current data-model routing.
 
 BOM 離頁依實際欄位差異、待送修改、未套用匯入與未確認保存判定；空修改模式不視為未存。有匯入差異須先套用／放棄才可保存，詳見[20261010檢查點](../../docs/local-integration/20261010-bom-navigation.md)。
+
+2026-11-14: request-progress ownership also retires on destination-ready after a different tab/root/owner; same-page readiness retains the wait. All widget listeners/watchers are removed without I/O.

@@ -1,3 +1,4 @@
+import {approvedMasterPageCatalog} from './master-approved-pages';
 import {DraftConflict,stableDraftJSON,type DraftIssue} from './shared-draft';
 import type {Workspace,Operation} from './process-authoring-workflow';
 import type {AbControl,AbError} from './ipqc-ab';
@@ -11,9 +12,10 @@ export const assignmentKey=(a:Pick<IPQCAssignment,'source'|'scope'|'itemId'>)=>J
 const operationNumber=(op:Operation)=>typeof op.number==='string'||typeof op.number==='number'?String(op.number):op.id;
 type ChoiceSourceReader=<T>(key:string,fallback:T)=>T;
 function ipqcChoicesFrom(readSource:ChoiceSourceReader,w:Pick<Workspace,'line'|'category'>,stage:string,selected:string[]){
- const master=readSource('masterDataControl',{active:{} as Record<string,{products?:Product[]}>});
+ const master=readSource('masterDataControl',{pageDraftLayout:undefined as string|undefined,active:{} as Record<string,{products?:Product[]}>});
  const source=w.line==='C'?'C':'AB',scope=source==='C'?'C':`${w.line}:${w.category}`;
- const products=(master.active?.[source]?.products||[]).filter(p=>p.line===w.line&&p.category===w.category&&selected.includes(p.code)).map(p=>p.code);
+ const sourceProducts=source==='C'&&master.pageDraftLayout==='page-v1'?(approvedMasterPageCatalog(master,'C').content as {products?:Product[]}).products:master.active?.[source]?.products;
+ const products=(sourceProducts||[]).filter(p=>p.line===w.line&&p.category===w.category&&selected.includes(p.code)).map(p=>p.code);
  const choices:IPQCChoice[]=[];
  if(source==='C'&&!products.length)return{source,scope,reason:'NO_PRODUCTS',choices};
  if(source==='AB'){

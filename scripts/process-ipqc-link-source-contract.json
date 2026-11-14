@@ -1,5 +1,5 @@
 {
-  "base": "c178ae227bcddf528a493dbf8b586cf310564c5b",
+  "base": "379ae8deab89c0e90441cac50d6bb4f9f9cb22a0",
   "files": {
     "lib/process-ipqc.ts": {
       "beforeHash": "56bccf4e17ab7975780fa70b823e8801938f1884d15772bce345e25fe6d13f8b",
@@ -98,87 +98,97 @@
         92,
         93
       ],
-      "afterHash": "af5ea3a251015d701133f9c91a08a2e12f543694c2ccfddafa1fb5a42dbe6c45",
-      "afterLength": 10790,
+      "afterHash": "ecbae78dde584e4b450b4ee20b4331cbd2f8230a11e6a8f5ba63af824d7a535a",
+      "afterLength": 11072,
       "rules": [
         {
-          "offset": 1418,
-          "before": " const products=(master.active?.[source]?.products||[]).filter(p=>p.line===w.line&&p.category===w.category&&p.stages?.includes(stage)&&selected.includes(p.code)).map(p=>p.code);\n",
-          "after": " const products=(master.active?.[source]?.products||[]).filter(p=>p.line===w.line&&p.category===w.category&&selected.includes(p.code)).map(p=>p.code);\n"
+          "offset": 0,
+          "before": "",
+          "after": "import {approvedMasterPageCatalog} from './master-approved-pages';\n"
         },
         {
-          "offset": 1601,
+          "offset": 1300,
+          "before": " const master=readSource('masterDataControl',{active:{} as Record<string,{products?:Product[]}>});\n",
+          "after": " const master=readSource('masterDataControl',{pageDraftLayout:undefined as string|undefined,active:{} as Record<string,{products?:Product[]}>});\n"
+        },
+        {
+          "offset": 1531,
+          "before": " const products=(master.active?.[source]?.products||[]).filter(p=>p.line===w.line&&p.category===w.category&&p.stages?.includes(stage)&&selected.includes(p.code)).map(p=>p.code);\n",
+          "after": " const sourceProducts=source==='C'&&master.pageDraftLayout==='page-v1'?(approvedMasterPageCatalog(master,'C').content as {products?:Product[]}).products:master.active?.[source]?.products;\n const products=(sourceProducts||[]).filter(p=>p.line===w.line&&p.category===w.category&&selected.includes(p.code)).map(p=>p.code);\n"
+        },
+        {
+          "offset": 1883,
           "before": "",
           "after": " if(source==='C'&&!products.length)return{source,scope,reason:'NO_PRODUCTS',choices};\n"
         },
         {
-          "offset": 2267,
+          "offset": 2549,
           "before": "  for(const i of v.snapshot.items){if(!errors.has(i.errorId))errors.set(i.errorId,v.snapshot.errors.find((e:AbError)=>e.id===i.errorId&&!e.deleted&&e.stageCode===stage&&e.line===w.line&&e.group===w.category));const e=errors.get(i.errorId),codes=i.productCodes.filter(p=>products.includes(p));\n   if(!e||i.deleted||!i.isEnabled||!codes.length)continue;\n",
           "after": "  for(const i of v.snapshot.items){if(!errors.has(i.errorId))errors.set(i.errorId,v.snapshot.errors.find((e:AbError)=>e.id===i.errorId&&!e.deleted&&e.stageCode===stage&&e.line===w.line&&e.group===w.category));const e=errors.get(i.errorId),codes=[...i.productCodes];\n   if(!e||i.deleted||!i.isEnabled)continue;\n"
         },
         {
-          "offset": 4229,
+          "offset": 4511,
           "before": " return{source,scope,reason:products.length?choices.length?'':'NO_MATCHING_ITEMS':'NO_PRODUCTS',choices};\n",
           "after": " return{source,scope,reason:source==='C'&&!products.length?'NO_PRODUCTS':choices.length?'':'NO_MATCHING_ITEMS',choices};\n"
         },
         {
-          "offset": 4951,
+          "offset": 5233,
           "before": "export function validateIPQCAssignments(workspaces:Workspace[],previous:Workspace[],values:Record<string,string>,preparedMaster?:unknown){\n",
           "after": "export function validateIPQCAssignments(workspaces:Workspace[],previous:Workspace[],values:Record<string,string>,preparedMaster?:unknown,saved:Workspace[]=[]){\n"
         },
         {
-          "offset": 5596,
+          "offset": 5878,
           "before": "",
           "after": " const occupied=new Map<string,Operation>();\n const occupancy=(w:Workspace,stage:string,a:IPQCAssignment)=>JSON.stringify([w.line,w.line==='C'?null:w.category,stage,assignmentKey(a)]);\n const previousOwners=new Map<string,{workspace:string;operation:string}[]>();\n for(const w of [...previous,...saved])for(const [stage,ops]of Object.entries(w.stages))for(const op of ops)for(const a of Array.isArray(op.ipqcAssignments)?assignments(op):[])if(a){const key=occupancy(w,stage,a),owners=previousOwners.get(key)||[];owners.push({workspace:w.id,operation:op.id});previousOwners.set(key,owners);}\n"
         },
         {
-          "offset": 6265,
+          "offset": 6547,
           "before": "  const occupied=new Map<string,Operation>();\n",
           "after": ""
         },
         {
-          "offset": 6883,
+          "offset": 7165,
           "before": "    const key=assignmentKey(a),owner=occupied.get(key);\n",
           "after": "    const key=assignmentKey(a),occupiedKey=occupancy(w,stage,a),owner=occupied.get(occupiedKey);\n"
         },
         {
-          "offset": 7091,
+          "offset": 7373,
           "before": "    occupied.set(key,op);\n",
           "after": "    occupied.set(occupiedKey,op);\n    const priorOwner=previousOwners.get(occupiedKey);\n    if(priorOwner?.some(owner=>owner.workspace!==w.id||owner.operation!==op.id))throw new DraftConflict('IPQC_TRANSFER_REQUIRES_SAVED_RELEASE: 請先取消原方塊分配並存取草稿 / Bỏ phân công ở bước cũ và lưu bản nháp trước',409);\n"
         },
         {
-          "offset": 7781,
+          "offset": 8063,
           "before": "    if(!choice||stableDraftJSON([...choice.productCodes].sort())!==stableDraftJSON([...a.productCodes].sort()))throw new DraftConflict('IPQC_SOURCE_CHANGED: Nguồn hoặc sản phẩm đã thay đổi / 來源或適用產品已變更，請重新選取',409);\n",
           "after": "    if(!choice||a.source==='C'&&stableDraftJSON([...choice.productCodes].sort())!==stableDraftJSON([...a.productCodes].sort()))throw new DraftConflict('IPQC_SOURCE_CHANGED: Nguồn hoặc sản phẩm đã thay đổi / 來源或適用產品已變更，請重新選取',409);\n"
         },
         {
-          "offset": 8994,
+          "offset": 9276,
           "before": "  if(values[w.line==='C'?'ipqcCMasterControl':'ipqcABMasterControl']&&ops.some(o=>o.productCodes?.length)&&found.reason==='SOURCE_NOT_APPROVED')issues.push({kind:'missing',path,message:'IPQC_SOURCE_NOT_APPROVED'});\n",
           "after": "  if(values[w.line==='C'?'ipqcCMasterControl':'ipqcABMasterControl']&&(w.line!=='C'||ops.some(o=>o.productCodes?.length))&&found.reason==='SOURCE_NOT_APPROVED')issues.push({kind:'missing',path,message:'IPQC_SOURCE_NOT_APPROVED'});\n"
         },
         {
-          "offset": 9551,
+          "offset": 9833,
           "before": "   if(!c||c.sourceVersionId!==a.sourceVersionId||stableDraftJSON([...c.productCodes].sort())!==stableDraftJSON([...a.productCodes].sort()))issues.push({kind:'missing',path:[...path,{id:op.id}],message:'IPQC_REFERENCE_CHANGED:'+a.itemId});\n",
           "after": "   if(!c||c.sourceVersionId!==a.sourceVersionId||a.source==='C'&&stableDraftJSON([...c.productCodes].sort())!==stableDraftJSON([...a.productCodes].sort()))issues.push({kind:'missing',path:[...path,{id:op.id}],message:'IPQC_REFERENCE_CHANGED:'+a.itemId});\n"
         }
       ]
     },
     "lib/process-authoring-workflow.ts": {
-      "beforeHash": "a8ddb97f36487c3b6ddc5b8bd0e2eab8bc3872461bcbf2c0e1850fb1b29921ae",
-      "beforeLength": 17898,
-      "beforeBlob": "3747ed9c6a5308dbaeb4ac44f5abab6b1e5ce819",
-      "beforeNormalizedHash": "a8ddb97f36487c3b6ddc5b8bd0e2eab8bc3872461bcbf2c0e1850fb1b29921ae",
+      "beforeHash": "af5e291d4d27428dca92c16e11dd910a4a699ada90b5fb6e5412f6f5025b50b6",
+      "beforeLength": 18218,
+      "beforeBlob": "2519c0518416465b6648cdf50bf9f3d3f399a1c2",
+      "beforeNormalizedHash": "af5e291d4d27428dca92c16e11dd910a4a699ada90b5fb6e5412f6f5025b50b6",
       "beforeCRLF": [],
-      "afterHash": "2f5a2af675aee5213f61df296e8a2e14233f94303482ff3d7e287fb807ce0391",
-      "afterLength": 18035,
+      "afterHash": "98ed021164e827f9e31ed83154f8131a7ce6d5ca7527d93b908f7099950021b9",
+      "afterLength": 18355,
       "rules": [
         {
-          "offset": 11638,
+          "offset": 11958,
           "before": "        if(op.productCodes.some((code:string)=>!routeAllows(code)&&!old?.productCodes.includes(code)))throw new DraftConflict('OPERATION_PRODUCT_ROUTE_INVALID',422);\n",
           "after": "        if(op.productCodes.some((code:string)=>!(w.line==='C'?products.some(p=>p.code===code&&p.category===w.category&&p.line===w.line):routeAllows(code))&&!old?.productCodes.includes(code)))throw new DraftConflict('OPERATION_PRODUCT_ROUTE_INVALID',422);\n"
         },
         {
-          "offset": 12830,
+          "offset": 13150,
           "before": "     validateIPQCAssignments(content.workspaces,previous.workspaces,state.values,master);\n",
           "after": "     validateIPQCAssignments(content.workspaces,previous.workspaces,state.values,master,control.workflow?.saved?.content.workspaces||[]);\n"
         }
@@ -396,21 +406,21 @@
       ]
     },
     "public/process/index.html": {
-      "beforeHash": "92dee408153ef9912282eb429949202c7ba1bcc4074965d507ce15200bd7b544",
-      "beforeLength": 11515,
-      "beforeBlob": "fb804c5dcc36063a484a4406bc8acfa325905bfd",
-      "beforeNormalizedHash": "92dee408153ef9912282eb429949202c7ba1bcc4074965d507ce15200bd7b544",
+      "beforeHash": "261df66c8e8940c2f23793ec39b7d485f419668ba16059c3ade6a1c6c15c279d",
+      "beforeLength": 11539,
+      "beforeBlob": "e10397d128650fba6f4983807ec88ca2c0029664",
+      "beforeNormalizedHash": "261df66c8e8940c2f23793ec39b7d485f419668ba16059c3ade6a1c6c15c279d",
       "beforeCRLF": [],
-      "afterHash": "cd24b991fa7a85acf94846be7aa4e03463fe41d5e060d5b69b702fcaa135dc3d",
-      "afterLength": 11491,
+      "afterHash": "a6ddd207b1978855991346e0e4509d600d8f9a253ae6161dd276946898ba5aaf",
+      "afterLength": 11515,
       "rules": [
         {
-          "offset": 9878,
+          "offset": 9902,
           "before": "    <script data-process-src=\"process-ipqc.js?v=20261110-ipqc-source-single-save1\"></script>\n",
           "after": "    <script data-process-src=\"process-ipqc.js?v=20261114-ipqc-link1\"></script>\n"
         },
         {
-          "offset": 10905,
+          "offset": 10929,
           "before": "    <script data-process-src=\"process-editor.js?v=20261110-process-integration2\"></script>\n",
           "after": "    <script data-process-src=\"process-editor.js?v=20261114-ipqc-link1\"></script>\n"
         }
@@ -465,13 +475,13 @@
       ]
     },
     "AI_CONTEXT/DATA_MODEL.md": {
-      "beforeHash": "f34fc5f0523910c3ad5ab49e8535a162637a13c0c0febeb2426781e3593bd408",
-      "beforeLength": 49359,
-      "beforeBlob": "2d29d1bca0848d86f31fb4f4af8c6716279f1d14",
-      "beforeNormalizedHash": "f34fc5f0523910c3ad5ab49e8535a162637a13c0c0febeb2426781e3593bd408",
+      "beforeHash": "3da21ff1f321443ffe26f164a6b03d61533f57dbfdff411bda6e170416f20519",
+      "beforeLength": 50014,
+      "beforeBlob": "c12d06a2464a79b753eff82bc28777ac0753cd8f",
+      "beforeNormalizedHash": "3da21ff1f321443ffe26f164a6b03d61533f57dbfdff411bda6e170416f20519",
       "beforeCRLF": [],
-      "afterHash": "ce1032d142821c820fc6062d03384f4155a654e2510711201cca9eb2938bf83b",
-      "afterLength": 49946,
+      "afterHash": "799e301fec5999edae3396ce5723cdf3735691e83962dacf0e6e6d482e252362",
+      "afterLength": 50601,
       "rules": [
         {
           "offset": 0,
@@ -481,29 +491,29 @@
       ]
     },
     "HANDOFF.md": {
-      "beforeHash": "4ae99f692507ebd2cfd65856dc5ba721602494b3aeb790e6360d8c794f33ff65",
-      "beforeLength": 87689,
-      "beforeBlob": "6ee3869ea64943210b46e416e9ae01ebc3f6c2a0",
-      "beforeNormalizedHash": "4ae99f692507ebd2cfd65856dc5ba721602494b3aeb790e6360d8c794f33ff65",
+      "beforeHash": "431044fbfa91966eb464a734e58a1b7e4f0ca9f303993ad879df32e1e6f1b923",
+      "beforeLength": 89841,
+      "beforeBlob": "a891f5cf44c7e6e8d6fcf261c439eb1e14cddd99",
+      "beforeNormalizedHash": "431044fbfa91966eb464a734e58a1b7e4f0ca9f303993ad879df32e1e6f1b923",
       "beforeCRLF": [],
-      "afterHash": "a1e37df65f31e4cd444f3bed038ad88196ad56ecfed0023895ce85dc9271a677",
-      "afterLength": 88273,
+      "afterHash": "49d20c73a013214f14c8f402ff4e73d036e36deed47d08801b1bd0fbfdfde4e0",
+      "afterLength": 90573,
       "rules": [
         {
           "offset": 0,
           "before": "",
-          "after": "## 2026-11-14 — Process ↔ IPQC link-rule candidate\n\nIndependent branch now integrates main c178ae2 (merged #116); no #115 ref changes. The #116 review recovery and shared transport are retained byte-for-byte. A/B product-independent approved choices, C editable persisted assignments, cross-workspace C occupancy and saved-release transfer. Generated new errors/items travel through real Save/Submit/approval routes. [Matrix, provenance, test and native/live limits](docs/acceptance/process-ipqc-link-rules-20261114.md). Draft only, no real data/account/schema/merge/deployment.\n\n"
+          "after": "## 2026-11-14 — Process ↔ IPQC link-rule candidate\n\nIndependent branch now integrates main 379ae8d (merged #115 and #116); source PR refs untouched. Upstream master boundaries, explicit wait/stop/original receipts and process review recovery are retained. C IPQC choices resolve approved page-v1 catalog/LINES owners consistently with authoring validation. A/B product-independent approved choices, C editable persisted assignments, cross-workspace C occupancy and saved-release transfer. Generated new errors/items travel through real Save/Submit/approval routes. [Matrix, provenance, test and native/live limits](docs/acceptance/process-ipqc-link-rules-20261114.md). Draft only, no real data/account/schema/merge/deployment.\n\n"
         }
       ]
     },
     "AI_CONTEXT/CHANGELOG.md": {
-      "beforeHash": "4c2390105594b98824ea87f8f2ddaa9d60700fb29f13e4188706aa50b67c8abb",
-      "beforeLength": 179591,
-      "beforeBlob": "395b1015bff32e9691a4b8ececa24c8cbe0d7fca",
-      "beforeNormalizedHash": "4c2390105594b98824ea87f8f2ddaa9d60700fb29f13e4188706aa50b67c8abb",
+      "beforeHash": "4dc468d72eacdde8736579d0a47d41b94c2d341ce23f5d40155fd01eb8a94979",
+      "beforeLength": 181471,
+      "beforeBlob": "f442b9dcf8651238ac2d35d254dd1b31daa82192",
+      "beforeNormalizedHash": "4dc468d72eacdde8736579d0a47d41b94c2d341ce23f5d40155fd01eb8a94979",
       "beforeCRLF": [],
-      "afterHash": "1b882bca89899985bcdcdfc7365e21c5ca633816ce0e12e2e49192a061b13798",
-      "afterLength": 180109,
+      "afterHash": "45a45f842c2cb7ac12be6ffb9ef6df3d9234860b71153f0a5acfe7eb0ab29592",
+      "afterLength": 181989,
       "rules": [
         {
           "offset": 0,
@@ -513,34 +523,34 @@
       ]
     },
     "tests/navigation-adapters.test.mjs": {
-      "beforeHash": "acace142dd28368c4b8148d1a1ca5b0a78f4c2097ec7bd8b644ff173104b2fea",
-      "beforeLength": 21550,
-      "beforeBlob": "9899c9affcb61e0ef1d6224dcab45e298b797dea",
-      "beforeNormalizedHash": "acace142dd28368c4b8148d1a1ca5b0a78f4c2097ec7bd8b644ff173104b2fea",
+      "beforeHash": "67e1e8a48320a3841b8dfd1d819abdc5114ad824413ce614ec91d8caf3763720",
+      "beforeLength": 21675,
+      "beforeBlob": "3aaffc6d4c94df61aeba7e8effd7de28f2062ae7",
+      "beforeNormalizedHash": "67e1e8a48320a3841b8dfd1d819abdc5114ad824413ce614ec91d8caf3763720",
       "beforeCRLF": [],
-      "afterHash": "3e27ff9eb6c66d85ca3ee1c4ae6a3aaad5cbec1da0eaef5db8df73122ca88cd0",
-      "afterLength": 21526,
+      "afterHash": "c7999bedb2d0e26b0b876c0b32e7ab04022e72919a902d84942cc25d7fd2b219",
+      "afterLength": 21651,
       "rules": [
         {
-          "offset": 17706,
+          "offset": 17831,
           "before": "  'process-ipqc.js':'20261110-ipqc-source-single-save1',\n",
           "after": "  'process-ipqc.js':'20261114-ipqc-link1',\n"
         },
         {
-          "offset": 17867,
+          "offset": 17992,
           "before": "  'process-editor.js':'20261110-process-integration2',\n",
           "after": "  'process-editor.js':'20261114-ipqc-link1',\n"
         }
       ]
     },
     "tests/shared-draft-receipt-recovery.test.mjs": {
-      "beforeHash": "d67003f9f01a2d7c76c76e5a8cbf602a853627b58d15c688b4c9d6c9845924b8",
-      "beforeLength": 18101,
-      "beforeBlob": "d7d32d7ac5145941ce59da3bcfc8cec3bf2186cd",
-      "beforeNormalizedHash": "d67003f9f01a2d7c76c76e5a8cbf602a853627b58d15c688b4c9d6c9845924b8",
+      "beforeHash": "c78e39f67d07e5036f6e16b1b9eb157b8c4b041225d180fe5d186720dce35cd5",
+      "beforeLength": 18125,
+      "beforeBlob": "808dc8ae39c2bdd50a13b5d1ecb1fe0965933d2e",
+      "beforeNormalizedHash": "c78e39f67d07e5036f6e16b1b9eb157b8c4b041225d180fe5d186720dce35cd5",
       "beforeCRLF": [],
-      "afterHash": "a91ca1228475bcf35e8c21ec551eb87492612697898aca84ef2b64fdd6625455",
-      "afterLength": 18077,
+      "afterHash": "ae07ba5eb824b2478b8d6dc6be619a9d536d1587e6fa31ed86e621129b43d2fa",
+      "afterLength": 18101,
       "rules": [
         {
           "offset": 14343,
@@ -548,7 +558,7 @@
           "after": "  'process-editor.js':'20261114-ipqc-link1',\n"
         },
         {
-          "offset": 14942,
+          "offset": 14956,
           "before": "  'process-ipqc.js':'20261110-ipqc-source-single-save1',\n",
           "after": "  'process-ipqc.js':'20261114-ipqc-link1',\n"
         }
@@ -619,6 +629,27 @@
           "offset": 30611,
           "before": " const result={status:'PASS_BOUNDED_IPQC_SOURCE_DECODE_REUSE',base:pin,sourceSHA:hash(fs.readFileSync(path.join(source,'lib/process-ipqc.ts'))),loaderBinding:{baseline:counters.ipqcBinding,candidate:candidateCounters.ipqcBinding,windowsAndPosixKeys:true},pairs,results,unitCases,deniedCommands,setupCalls,counts:{pairs:pairs.length,measuredGETs:results.length,unitCases:unitCases.length,deniedCommandPairs:deniedCommands.length,deniedPOSTs:deniedCommands.length*2,setupCalls:setupCalls.length,zeroWrites:results.every(x=>x.metrics.sqlWrites===0&&x.metrics.r2Writes===0)},limits:['Actual handler instrumented Node in-memorySQLite/R2; not Workers CPU, live OOM reproduction or native heap peak.','Quality approved source is derived synthetic; authoring setup uses actual normal login, Apply, Save, Submit and independent Return.','Source decode allocation reuse leaves choice iteration intact; the separately verified read closure omits only the fixture converted legacy approvalVersions aggregate. All remaining GET I/O events/order/bytes and all denied POST comparisons stay exact.','No POST route, CAS, authorization, selector, data model, schema or deadline changes.']};write('RESULT.json',result);console.log(JSON.stringify({status:result.status,...result.counts}));\n",
           "after": " const result={status:'PASS_BOUNDED_IPQC_SOURCE_DECODE_REUSE',base:pin,sourceSHA:hash(fs.readFileSync(path.join(source,'lib/process-ipqc.ts'))),loaderBinding:{baseline:counters.ipqcBinding,candidate:candidateCounters.ipqcBinding,windowsAndPosixKeys:true},pairs,results,unitCases,deniedCommands,setupCalls,counts:{ruleDeltaNegativeControls:negativeDeltas.length+1,pairs:pairs.length,measuredGETs:results.length,unitCases:unitCases.length,deniedCommandPairs:deniedCommands.length,deniedPOSTs:deniedCommands.length*2,setupCalls:setupCalls.length,zeroWrites:results.every(x=>x.metrics.sqlWrites===0&&x.metrics.r2Writes===0)},limits:['Actual handler instrumented Node in-memorySQLite/R2; not Workers CPU, live OOM reproduction or native heap peak.','Quality approved source is derived synthetic; authoring setup uses actual normal login, Apply, Save, Submit and independent Return.','Source decode allocation reuse leaves choice iteration intact; the separately verified read closure omits only the fixture converted legacy approvalVersions aggregate. All remaining GET I/O events/order/bytes and all denied POST comparisons stay exact.','The explicit A/B product-independent rule adds only the asserted 168 stage advisories and full192 choices in this fixture; no other DTO, header, I/O, immutable fixed issues, POST route, CAS, authorization, schema or deadline exception.']};write('RESULT.json',result);console.log(JSON.stringify({status:result.status,...result.counts}));\n"
+        }
+      ]
+    },
+    "scripts/lines-flow-joint-source-contract.cjs": {
+      "beforeHash": "5a9174f0f843f790627bd5b0fe9bed0f05eb28d1404e53f541e656d69a43bc5d",
+      "beforeLength": 2913,
+      "beforeBlob": "5e5e2c3680e96dd7a510ee98a88b6db1367312b8",
+      "beforeNormalizedHash": "5a9174f0f843f790627bd5b0fe9bed0f05eb28d1404e53f541e656d69a43bc5d",
+      "beforeCRLF": [],
+      "afterHash": "b9a0b38af61f1eb40b084994af0b1e7de3aefa19c1e5e28cbf3923063ed93c95",
+      "afterLength": 3133,
+      "rules": [
+        {
+          "offset": 888,
+          "before": " assert(p,'Joint lines/flow wrong file or target');let out=normalized(bytes);\n",
+          "after": " assert(p,'Joint lines/flow wrong file or target');bytes=require('./process-ipqc-link-source-contract.cjs').projectKnown(bytes,file);let out=normalized(bytes);\n"
+        },
+        {
+          "offset": 1789,
+          "before": "function projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'Joint lines/flow requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&Object.hasOwn(c.parents,target)&&hash(normalized(bytes))===c.afterHash?restore(bytes,file,target):bytes;}\n",
+          "after": "function projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'Joint lines/flow requires raw Buffer');if(!Object.hasOwn(contract.parents,target))return bytes;bytes=require('./process-ipqc-link-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&Object.hasOwn(c.parents,target)&&hash(normalized(bytes))===c.afterHash?restore(bytes,file,target):bytes;}\n"
         }
       ]
     }

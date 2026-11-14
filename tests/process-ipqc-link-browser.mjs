@@ -9,6 +9,7 @@ const scripts=['shared-draft-client.js','local-draft-recovery.js','local-draft-r
 const f=await fixture('records-v1');let browser;const report={kind:'ISOLATED_NATIVE_MODULE_UI',assertions:[],errors:[],sources:[]};
 try{
  for(const source of ['AB','C']){const created=await f.create(source);await f.promote(created.url);report.sources.push({source,errorId:created.error.id,itemId:created.item.id});}
+ await f.generatedMasterPages();report.masterSource='generated-page-v1-approved-owners (not an adoption/approval UI claim)';
  browser=await chromium.launch({headless:true,...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:{})});
  for(const {line,lang,width} of [{line:'A',lang:'zh',width:1440},{line:'C',lang:'vi',width:390}]){
   const context=await browser.newContext({viewport:{width,height:900}}),page=await context.newPage();let who='editor',hold=null,heldReady=null,loseSave=false,hideReceipt=false;const waits=[];

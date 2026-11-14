@@ -1,4 +1,4 @@
-import {approvedMasterPageCatalog} from './master-approved-pages';
+import {approvedMasterPageCatalog,approvedMasterProcessSource} from './master-approved-pages';
 import {legacyJsonValueText,type JsonValue} from './legacy-login-json';
 import { env } from 'cloudflare:workers';
 import { effectiveAccess, type PlatformUser } from './user-access';
@@ -323,7 +323,7 @@ export function publicState(state: State,actorId?:string) {
     // Site payload carries effective compatibility content only, never old
     // abandoned drafts or a fabricated combined approved version.
     // Validate both current approval pointers before omitting private owner proof.
-    master.active={AB:approvedMasterPageCatalog(master,'AB').content,C:approvedMasterPageCatalog(master,'C').content,...(master.active?.PROCESS?{PROCESS:master.active.PROCESS}:{})};
+    master.active={AB:approvedMasterPageCatalog(master,'AB').content,C:approvedMasterPageCatalog(master,'C').content,...(master.active?.PROCESS?{PROCESS:approvedMasterProcessSource(master).content}:{})};
     delete master.workflowScopes;
     master.versions=(master.versions||[]).filter((v:{scope:string;status:string;snapshot:unknown})=>v.scope==='PROCESS'&&v.status==='approved'&&JSON.stringify(v.snapshot)===JSON.stringify(master.active.PROCESS));
     values.masterDataControl=JSON.stringify({pageDraftLayout:master.pageDraftLayout,active:master.active,versions:master.versions});

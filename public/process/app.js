@@ -1690,7 +1690,7 @@ function bindProcessMasterName(input) {
     const state=active?t('正在套用這批名稱；後續輸入留待下次套用。','Đang áp dụng tên; nội dung nhập thêm giữ cho lần sau.'):recoveryBusy?t('正在核對本機恢復；尚未套用。','Đang kiểm tra khôi phục; chưa áp dụng.'):rejectionCleanup?t('原操作已確認拒絕；請在本機恢復完成清理，輸入保留且不會重送。','Thao tác đã bị từ chối; hoàn tất dọn trong khôi phục cục bộ, giữ nội dung và không gửi lại.'):pendingCommand?t('原操作結果待確認；只能查詢原收據，不會重新送出。','Chưa rõ kết quả; chỉ kiểm tra biên nhận cũ, không gửi lại.'):failure?message(failure):dirty()?t('名稱修改留在本機；按存取草稿後同事才看得到。','Tên đang ở máy này; đồng nghiệp thấy sau khi lưu bản nháp.'):t('名稱已記入本機修改；按存取草稿保存全部變更。','Tên đã ghi cục bộ; lưu bản nháp để lưu mọi thay đổi.');
     const notice=bar.querySelector('[data-name-state]'),text=state+(recoveryNotice?' '+recoveryNotice:'');if(notice.textContent!==text)notice.textContent=text;
     for(const button of bar.querySelectorAll('button'))button.disabled=active||recoveryBusy||composing||!ownerCurrent()||(button.dataset.nameAction==='apply'&&(!owned()||!dirty()||!!failure||!!pendingCommand))||(button.dataset.nameAction==='discard'&&(!dirty()&&!failure||!!pendingCommand||shared.client('PROCESS').hasUnknown()));
-    bar.querySelector('[data-name-action="review"]').hidden=!failure||!!pendingCommand;
+    const reviewButton=bar.querySelector('[data-name-action="review"]');if(reviewButton)reviewButton.hidden=!failure||!!pendingCommand;
     if(input.dataset&&input.dataset.unapplied!==String(dirty()))input.dataset.unapplied=String(dirty());
     if(shared.localProcess)updateProcessSharedStatus();
   };
@@ -1708,6 +1708,7 @@ function bindProcessMasterName(input) {
   };
   const startRecovery=()=>{
     recovery?.close();recoveryVerified=false;
+    if(shared.localProcess){recovery=null;recoveryNotice='';return;}
     if(!window.LocalDraftRecoverySession){recovery=null;recoveryNotice=t('本機恢復工具未載入；不會自動恢復或送出。','Chưa tải công cụ khôi phục; không tự khôi phục hay gửi.');return;}
     try{const session=window.LocalDraftRecoverySession.create({getContext:context,onStatus:result=>{
       if(recovery!==session||!ownerCurrent())return;
@@ -1863,7 +1864,7 @@ function bindProcessMasterName(input) {
     input.oninput=event=>{if(input!==attached||!owned())return;if(event.isComposing)composing=true;desired=input.value;edited=true;localRevision++;scheduleRecovery();status();};
     input.addEventListener('compositionstart',startComposition);input.addEventListener('compositionend',endComposition);detachComposition=()=>{attached.removeEventListener('compositionstart',startComposition);attached.removeEventListener('compositionend',endComposition);};
     const label=input.closest('.template-name-field');if(label?.after){bar=document.createElement('div');bar.className='process-name-apply-bar';bar.dataset.i18nSkip='true';const notice=document.createElement('span');notice.dataset.nameState='';notice.setAttribute('role','status');bar.append(notice);
-      for(const [action,zh,vi,callback] of [['apply','記入本機修改','Ghi thay đổi cục bộ',apply],['discard','放棄未套用名稱','Bỏ tên chưa áp dụng',discard],['review','核對最新內容','Đối chiếu bản mới',review],['recovery','查看本機恢復','Xem khôi phục cục bộ',showRecovery]]){const button=document.createElement('button');button.type='button';button.className='button '+(action==='apply'?'signal':'ghost');button.dataset.nameAction=action;button.textContent=t(zh,vi);button.onclick=()=>Promise.resolve().then(callback).catch(error=>{if(ownerCurrent())toast(message(error));});bar.append(button);}label.after(bar);status();}
+      for(const [action,zh,vi,callback] of (shared.localProcess?[['apply','記入本機修改','Ghi thay đổi cục bộ',apply],['discard','放棄未套用名稱','Bỏ tên chưa áp dụng',discard]]:[['apply','記入本機修改','Ghi thay đổi cục bộ',apply],['discard','放棄未套用名稱','Bỏ tên chưa áp dụng',discard],['review','核對最新內容','Đối chiếu bản mới',review],['recovery','查看本機恢復','Xem khôi phục cục bộ',showRecovery]])){const button=document.createElement('button');button.type='button';button.className='button '+(action==='apply'?'signal':'ghost');button.dataset.nameAction=action;button.textContent=t(zh,vi);button.onclick=()=>Promise.resolve().then(callback).catch(error=>{if(ownerCurrent())toast(message(error));});bar.append(button);}label.after(bar);status();}
   };
   binding.transfer=next=>{const visible=composing?input.value:desired;edited=edited||composing;composing=false;desired=visible;detachComposition();input.oninput=null;bar?.remove();input=next;binding.input=next;input.value=visible;attach();};
   processMasterNameBindings.add(binding);startRecovery();attach();for(const event of ['process-delivery-invalidated','process-sync-status','process-shared-state-updated'])window.addEventListener?.(event,invalidateRecoveryView);
@@ -1955,7 +1956,7 @@ async function beginProcessMasterDraft() {
 function saveProcessMasterDraft() {
   if(saveProcessMasterDraft.flight)return saveProcessMasterDraft.flight;
   const save=async()=>{
-    try{await flushProcessMasterNames();await window.MasterDataWorkflow.shared.execute('PROCESS','save');
+    try{await flushProcessMasterNames();const result=await window.MasterDataWorkflow.shared.execute('PROCESS','save');if(!result)return;
       toast(document.documentElement.lang==='vi'?'Đã lưu bản nháp chung.':'已存取共用草稿。');
       if(!document.querySelector('#equipment-editor-dialog[open]')&&(!window.ProcessMasterVersioning||!window.ProcessMasterVersioning.departureNames.dirty()))repaintProcessMasterPage();
     }catch(error){toast(window.sharedDraftErrorMessage?.(error)||error.message);}
@@ -2278,14 +2279,12 @@ function repaintProcessMasterPage() {
 }
 async function confirmProcessMasterRemoval(kind,id,label) {
   const actor=window.ProcessSync?.identity,generation=window.MasterDataWorkflow.shared.flow('PROCESS')?.generation;
-  const owned=()=>actor===window.ProcessSync?.identity&&generation===window.MasterDataWorkflow.shared.flow('PROCESS')?.generation&&!!editableProcessMasterData()&&canDeleteProcessMaster();
+  const owned=()=>state.view==='data'&&state.dataTab==='process-master'&&actor===window.ProcessSync?.identity&&generation===window.MasterDataWorkflow.shared.flow('PROCESS')?.generation&&!!editableProcessMasterData()&&canDeleteProcessMaster();
   if(!owned())return false;
   let result;
   if(window.MasterDataWorkflow.shared.isLocalProcessInsert?.(kind,id)===true)result={total:0,references:[]};
   else{
-    const response=await fetch('/api/master/references?scope=PROCESS&kind='+encodeURIComponent(kind)+'&id='+encodeURIComponent(id),{headers:window.ProcessSync?.platformHeaders?.(),signal:AbortSignal.timeout(15000)});
-    if(!response.ok)throw Error(processMasterText('無法確認引用，未刪除；請重試。','Không thể kiểm tra tham chiếu; chưa xóa. Hãy thử lại.'));
-    result=await response.json();
+    result=await window.MasterDataWorkflow.shared.client('PROCESS').masterReferences(kind,id,{isCurrent:owned});
   }
   if(!owned())return false;
   if(result.total){
@@ -2334,7 +2333,7 @@ function processMasterView() {
     templates = processMasterCatalogTemplates(pageMaster),
     editable = Boolean(editableProcessMasterData());
 
-  return `${processMasterVersionBar()}<div class="master-toolbar process-photo-master"><div><p class="eyebrow">OPERATION MASTER</p><h2>製程編輯台可用流程</h2><p>流程核准後可供製程編輯台使用。</p></div><div class="process-master-toolbar"><div class="process-master-actions">${editable && window.hasPermission?.('templates.create') ? '<button class="button signal" type="button" id="add-master-template">＋ 新增流程</button>' : ''}</div></div></div><div class="master-template-grid flow-photo-presets">${templates
+  return `${processMasterVersionBar()}<div class="master-toolbar process-photo-master"><div><p class="eyebrow">OPERATION MASTER</p><h2>製程編輯台可用流程</h2><p>流程核准後可供製程編輯台使用。</p></div><div class="process-master-toolbar"><div class="process-master-actions"><button class="button ghost" type="button" id="process-master-reload">${processMasterText('重新載入','Tải lại')}</button>${editable && window.hasPermission?.('templates.create') ? '<button class="button signal" type="button" id="add-master-template">＋ 新增流程</button>' : ''}</div></div></div><div class="master-template-grid flow-photo-presets">${templates
     .map(
       (template, index) => {
         const mediaItems = processTemplateMediaItems(template),
@@ -3343,9 +3342,30 @@ function bindDataInner(tab) {
     };
   }
   if (tab === 'process-master') {
+    window.mountMasterRequestProgress?.(document.querySelector('#data-content'),window.MasterDataWorkflow.shared.client('PROCESS'),document.documentElement.lang==='vi'?'vi':'zh',{outside:true});
     updateProcessSharedStatus();
     const permissions=window.MasterDataWorkflow?.shared.permissions('PROCESS');
     for(const [id,permission]of[['#process-master-new-draft','edit'],['#save-master-data','save'],['#process-master-submit','submit'],['#process-master-withdraw','withdraw']]){const button=document.querySelector(id);if(button&&permissions?.[permission]===false)button.disabled=true;}
+    const reload=document.querySelector('#process-master-reload');if(reload)reload.onclick=async()=>{
+      const shared=window.MasterDataWorkflow.shared;if(shared.busy()||reload.disabled)return;
+      if((shared.localDirty('PROCESS')||window.ProcessMasterVersioning.departureNames.dirty()||window.ProcessEquipment?.hasUnappliedChanges?.())&&!confirm(processMasterText('放棄本頁未存輸入並重載已保存草稿？','Bỏ đầu vào chưa lưu và tải lại bản nháp đã lưu?')))return;
+      const owner=window.ProcessSync?.identity,delivery=window.ProcessSync?.captureDelivery?.(),root=document.querySelector('#data-content');reload.disabled=true;root.inert=true;
+      try{await window.MasterDataWorkflow.loadScope('PROCESS');if(owner!==window.ProcessSync?.identity||delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===false||state.view!=='data'||state.dataTab!=='process-master'||root!==document.querySelector('#data-content'))return;
+        window.ProcessMasterVersioning.departureNames.discard();shared.discardLocal('PROCESS');window.ProcessEquipment?.abandon?.();repaintProcessMasterPage();
+      }catch(error){toast(window.sharedDraftErrorMessage?.(error)||error.message);}finally{root.inert=false;reload.disabled=false;}
+    };
+    const missingStages=routing.lines.flatMap(line=>line.stages).filter(stage=>!Object.hasOwn(currentProcessMasterData(),stage.code));
+    if(missingStages.length&&editableProcessMasterData()&&window.hasPermission?.('templates.create')){
+      const button=document.createElement('button');button.type='button';button.className='button ghost';button.textContent=processMasterText('建立缺漏工段流程','Tạo mẫu cho công đoạn còn thiếu');
+      button.onclick=async()=>{if(button.disabled)return;button.disabled=true;const before=editableProcessMasterData();if(!before)return;
+        try{const next=JSON.parse(JSON.stringify(before)),source=processMasterCatalogTemplates(before);
+          for(const stage of missingStages){if(Object.hasOwn(next,stage.code))continue;next[stage.code]=mergeRequiredProcessPresets(stage,source,true).map(template=>({...template,id:crypto.randomUUID(),machineIds:[],...('equipment' in template?{equipment:[]}:{})}));}
+          const batches=missingStages.map(stage=>({patches:[{op:'set',path:[stage.code],value:next[stage.code]}],guards:[{path:[],value:before}]}));
+          // One local patch retains absence guards; only explicit Save shares it.
+          const patch={patches:batches.flatMap(batch=>batch.patches),guards:[{path:[],value:before}]};await window.MasterDataWorkflow.shared.patch('PROCESS',patch.patches,patch.guards);repaintProcessMasterPage();
+        }catch(error){toast(window.sharedDraftErrorMessage?.(error)||error.message);}finally{button.disabled=false;}
+      };document.querySelector('.process-master-actions')?.append(button);
+    }
     const addMasterTemplate = document.querySelector('#add-master-template');
     if (addMasterTemplate) addMasterTemplate.onclick = async () => {
       const before = editableProcessMasterData();

@@ -316,7 +316,7 @@
     if(sync?.protected!==true||sync.deliveryProjection!==true||sync.requiresReload||sync.expired||!sync.identity?.id||sync.identity.id!==currentUser?.id||currentUser?.enabled===false||currentUser?.deletedAt||currentUser?.cells?.['lines.view']!==true||d?.view!=='data'||d.dataTab!=='line-admin'||d.module!=='lines'||d.key!=='data:line-admin'||catalog?.format!=='PROCESS_RUNTIME_CATALOG_V1'||!['AB','C'].every(scope=>catalog.loadedScopes?.includes(scope))||!Array.isArray(catalog.routing?.lines))throw Error('LINES_VIEW_RELOAD_REQUIRED');
     const vi=(document.documentElement.lang||'').toLowerCase().startsWith('vi'),rows=catalog.routing.lines,t=(zh,vn)=>vi?vn:zh;
     if(rows.some(line=>!line||typeof line.code!=='string'||!Array.isArray(line.stages)||line.stages.some(stage=>!stage||typeof stage.code!=='string')))throw Error('LINES_VIEW_RELOAD_REQUIRED');
-    content.innerHTML=`<section class="panel" data-lines-readonly data-i18n-skip="true"><h3>${t('線別與工段管理','Chuyền và công đoạn')}</h3><p role="status">${t('目前僅查看已核准的線別與工段；此畫面不修改或保存資料。','Chỉ xem chuyền và công đoạn đã duyệt; màn hình này không sửa hoặc lưu dữ liệu.')}</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px">${rows.map(line=>`<article class="panel" style="min-width:0;overflow-wrap:anywhere"><h4>${safe(line.code)} · ${safe(line.name||line.code)}</h4>${line.stages.length?`<ol>${line.stages.map(stage=>`<li>${safe(stage.code)} · ${safe(stage.name||stage.code)}</li>`).join('')}</ol>`:`<p>${t('尚無已核准工段','Chưa có công đoạn đã duyệt')}</p>`}</article>`).join('')||`<p>${t('尚無已核准線別','Chưa có chuyền đã duyệt')}</p>`}</div></section>`;
+    content.innerHTML=`<p role="status" data-i18n-skip="true">${t('尚未完成獨立草稿資料切換；目前僅查看已核准資料。','Bản nháp độc lập chưa được chuyển đổi; chỉ xem dữ liệu đã duyệt.')}</p><section class="panel" data-lines-readonly data-i18n-skip="true"><h3>${t('線別與工段管理','Chuyền và công đoạn')}</h3><p role="status">${t('目前僅查看已核准的線別與工段；此畫面不修改或保存資料。','Chỉ xem chuyền và công đoạn đã duyệt; màn hình này không sửa hoặc lưu dữ liệu.')}</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px">${rows.map(line=>`<article class="panel" style="min-width:0;overflow-wrap:anywhere"><h4>${safe(line.code)} · ${safe(line.name||line.code)}</h4>${line.stages.length?`<ol>${line.stages.map(stage=>`<li>${safe(stage.code)} · ${safe(stage.name||stage.code)}</li>`).join('')}</ol>`:`<p>${t('尚無已核准工段','Chưa có công đoạn đã duyệt')}</p>`}</article>`).join('')||`<p>${t('尚無已核准線別','Chưa có chuyền đã duyệt')}</p>`}</div></section>`;
   }
   function selectDataTab(tab, push = false) {
     if (!['AB','C','bom','line-admin','process-master','users','web-feedback'].includes(tab)) tab='AB';
@@ -332,9 +332,10 @@
       content.dataset.activeTab=tab;window.ProcessMasterPages.mount(content,{page:tab==='line-admin'?'LINES':tab});bindTabButtons();return;
     }
     if(tab==='line-admin'){
-      const cells=currentUser?.cells,visible=scope=>!cells||cells[(scope==='C'?'c':'ab')+'.view']===true;
-      if(!visible(state.masterScope))state.masterScope=visible('AB')?'AB':'C';
-      if(!visible(state.masterScope)){content.dataset.activeTab=tab;dataError=null;dataReady=Promise.resolve();try{approvedLinesOnly(content);}catch(error){dataError=error;content.innerHTML=`<section class="panel" data-line-permission-notice role="alert"><h3>${document.documentElement.lang==='vi'?'Chuyền và công đoạn':'線別與工段管理'}</h3><p>${document.documentElement.lang==='vi'?'Chưa xác minh được dữ liệu đã duyệt; hãy tải lại để kiểm tra.':'尚無法核對已核准資料；請重新載入確認。'}</p></section>`;}bindTabButtons();return;}
+      // The pre-cutover page cannot borrow either catalog's draft or rights.
+      content.dataset.activeTab=tab;dataError=null;dataReady=Promise.resolve();
+      try{approvedLinesOnly(content);}catch(error){dataError=error;content.innerHTML=`<section class="panel" data-line-permission-notice role="alert"><h3>${document.documentElement.lang==='vi'?'Chuyền và công đoạn':'線別與工段管理'}</h3><p>${document.documentElement.lang==='vi'?'Chưa xác minh được dữ liệu đã duyệt; hãy tải lại để kiểm tra.':'尚無法核對已核准資料；請重新載入確認。'}</p></section>`;}
+      bindTabButtons();return;
     }
     if(tab==='web-feedback'){
       content.dataset.activeTab=tab;
@@ -342,6 +343,7 @@
     }
     if(tab==='process-master'&&!sharedLoaded.has('PROCESS')){
       content.textContent=document.documentElement.lang==='vi'?'Đang tải dữ liệu quy trình…':'載入流程資料中…';
+      content.dataset.activeTab=tab;window.mountMasterRequestProgress?.(content,shared.client('PROCESS'),document.documentElement.lang==='vi'?'vi':'zh',{outside:true});
       if(!sharedLoading.has('PROCESS')){const generation=deliveryGeneration;sharedLoading.add('PROCESS');dataError=null;dataReady=shared.load('PROCESS').then(()=>{if(!ownsDelivery(generation))return;sharedLoaded.add('PROCESS');if(state.dataTab==='process-master')selectDataTab(tab);}).catch(error=>{
         if(!ownsDelivery(generation)||state.dataTab!=='process-master')return;dataError=error;content.textContent=displayDraftError(error);const retry=document.createElement('button');retry.className='button ghost';retry.textContent=document.documentElement.lang==='vi'?'Thử lại':'重試';retry.onclick=()=>selectDataTab(tab);content.append(retry);
       }).finally(()=>{if(ownsDelivery(generation))sharedLoading.delete('PROCESS');});}bindTabButtons();return;
@@ -955,8 +957,10 @@
     // permission scopes never become seeded master data or storage updates.
     const runtime=window.ProcessSync?.catalog;
     const fallback=scope=>runtime?{products:runtime.routing.lines.filter(line=>scope==='C'?line.code==='C':['A','B'].includes(line.code)).flatMap(line=>Object.values(runtime.routing.productRoutes).filter(row=>row.line===line.code)),lines:runtime.routing.lines.filter(line=>scope==='C'?line.code==='C':['A','B'].includes(line.code)),categoryGroups:(runtime.categoryGroups||[]).filter(group=>scope==='C'?group.line==='C':['A','B'].includes(group.line))}:empty;
-    const ab = control.active.AB || fallback('AB'),
-      c = control.active.C || fallback('C'),
+    // Independent page reads may contain topology or catalog only. Complete
+    // missing fields from the admitted approved runtime, never a draft/seed.
+    const ab = {...fallback('AB'),...control.active.AB},
+      c = {...fallback('C'),...control.active.C},
       all = [...clone(ab.products), ...clone(c.products)],
       groupMap = new Map();
     [
@@ -1173,6 +1177,7 @@
     },
     async loadScope(scope){const generation=deliveryGeneration,owner=window.ProcessSync?.identity,result=await shared.load(scope);if(ownsDelivery(generation)&&owner===window.ProcessSync?.identity)sharedLoaded.add(scope);return result;},
     resetProjection(){
+      window.retireMasterRequestProgress?.();
       window.ProcessMasterPages?.reset();
       deliveryGeneration++;shared.resetReads();sharedLoaded.clear();sharedLoading.clear();dataReady=Promise.resolve();dataError=null;
       abProducts=[];seed.AB={name:'AB 產線與類別',products:data.products.filter(product=>['A','B'].includes(routeLine(product))).map(product=>({...clone(product),unit:product.unit||'待補',line:routeLine(product),stages:routeStages(product)})),lines:routing.lines.filter(line=>['A','B'].includes(line.code)).map(clone)};

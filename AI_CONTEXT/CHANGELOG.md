@@ -2,10 +2,25 @@
 
 A/B choices/validation/completeness/source comparisons no longer use operation products or product routes. C editor now selects and saves item references, with product/error grouping and explicit stale-reference handling. Backend checks cross-workspace C occupancy and saved-release transfer under existing CAS. [Generated lifecycle evidence and limits](../docs/acceptance/process-ipqc-link-rules-20261114.md). No live-data rewrite, migration, merge or deployment.
 
+## 2026-11-14 — #115 整合 main #116
+
+主資料明確等待與製程審核 180 秒／原收據修復共同保留，四份原 manifest 不變、加入第三真前身 inverse。共同候選須獨立重跑；不是沿用舊綠燈。未操作真資料、設定、既有 UNKNOWN、合併或部署。詳見 lines-flow 驗收續篇。
+
 ## 2026-11-14 — Process review outcome candidate
 
 Add version-confirmation original-receipt recovery and review dialog ownership/revision/single-flight guards. Bounded long-response tolerance for process lifecycle actions; preserve UNKNOWN and no replay. No live account/data/schema change, merge or deployment. [Evidence and limitations](../docs/acceptance/process-review-recovery-20261114.md).
 
+## 2026-11-14 — 移除兩頁前端固定 45 秒中斷
+
+LINES／PROCESS canonical 讀寫與 PROCESS 引用查詢改為明確等待、單次提示及安全停止；保留原 UNKNOWN／回執、CAS、權限與晚到 fence。補充跨離頁原 marker accounting 及錯誤回執負例、兩套原生 Stop 案例。未採用 page-v1 與舊 linkedProcess 分頁再送限制仍保留；不遷移、不操作真資料。詳見既有 lines-flow 驗收紀錄。
+
+## 2026-11-14 — #115 整合已合併的密碼與 IPQC 修復
+
+原 #115 分支合入 main 4aa0f24，保留兩頁獨立草稿／審核及 #113／#114 的 password、IPQC 進度與原回執修復。三份原 source manifest 不變，新增雙前身精確 inverse，統一共同 runtime cache；共同候選結果及實站未驗範圍見[驗收](../docs/acceptance/lines-flow-integration-20261113/README.md#2026-11-14--與已合併-113114-的共同候選)。沒有資料／設定／備份變更或合併部署。
+
+## 2026-11-13 — 線別／工段與流程資料獨立候選
+
+獨立 main f0f425d 分支整合兩個主資料頁；線別不代核准流程、PROCESS 明確補齊缺漏工段、保存整組衝突／照片／晚到意圖、安全重載與有界回應、唯讀歷史和真正核准來源。選擇性回收真 #102 PROCESS helper，保留新 main 權限／history guards；不帶入 AB/C 或例行 FQC；已保留新 main 合併的 #111。資料採用／真人／原生限制見[驗收](../docs/acceptance/lines-flow-integration-20261113/README.md)，保持 Draft，不合併部署。
 ## 2026-11-13 — Password-only persistence and slow response candidate
 
 Isolate records-v1 credential/audit writes from unrelated business hydration; avoid artificial password POST aborts while retaining UNKNOWN/no-replay, authorization, old-password and CAS fences. [Isolated evidence and limits](../docs/acceptance/password-outcome-20261113.md). Draft only; no deployment/account/data migration.
