@@ -29,3 +29,7 @@
 原生載具使用 production editor／controller／shared transport 與實際 signed routes，1440px 中文 A、390px 越南文 C；checkbox、跨頁保留、完成、Save、reload、自身／他人、兩步轉移、換 actor、晚回應、C lost ACK／404／原收據零 POST replay。這是隔離模組 UI，來源建立經實際 API；沒有宣稱完整 hosted/adopted SPA、品質來源建立 UI 或真人站點驗收。Dot 本機 Chromium 被 kernel socket／ptrace 拒絕後未重試；原生執行由 GitHub CI 提供。
 
 NOT_RUN：真人站完整新來源流程、實體手機、真人跨電腦、多裝置／OS IME、真資料效能、部署，以及 #115 共同合樹。現場 v46 PROCESS V31 原撤回仍 UNKNOWN，沒有查明、清除或重送；AB V24／C V33、舊 QA L9空分類／C L10停用與進站樣本均未當作成功證據。
+
+## 缺項 oracle 定向修復
+
+bd9049c 的 Windows 全套在 read-reuse 雙版本 oracle 停下：舊產品資格只看24個已分配項目，新規則正確增加同 scope／工段168個未分配子項。oracle 保留真4e1基準，只接受 working／saved／未固定review中精確168個 advisory及其順序；固定歷史、全部其餘DTO／headers／I-O／拒絕不變。錯數／重複／亂序／錯scope／錯kind／額外欄位等負例保留；choices則明確驗舊2與新192完整記錄。此同一原測試亦提早放入精確head工作流，Windows原步驟不刪除、不跳過。
