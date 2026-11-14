@@ -1,5 +1,7 @@
 # 線別／工段與流程資料：獨立整合候選
 
+目前續整合：2026-11-14 將已含 #113／#114 的 main `4aa0f24c66861fb735d6ad581b81b190771122f8` 合入原 #115 分支；以下早期 checkpoint 保留為歷史證據，最終共同候選 SHA／CI 以 PR 最新表格為準。
+
 狀態：Draft；沒有合併、部署、資料切換、正式／既有測試站讀寫、帳號政策修改或新備份。使用 Dot 雲端獨立 worktree `lines-flow-integration-20261113`；沒有使用 Frank 公司電腦。開始時基底為遠端 main `f0f425d90ea883bab479801dd54f5deaed6cce69`（#110）。工作期間 #111 已合併，分支安全快轉至新 main `ba315149e7478c288d2f3af45c8668aa60070919`，逐段保留送審錯誤分類、原回執、資產 pin、兩個來源 inverse 與 CI。另一個 AB/C 產線與類別工作未搬入。
 
 ## 來源盤點
@@ -93,7 +95,7 @@ Git HTTPS push 因雲端沒有登入憑證而未執行。其後單筆大型 GitH
 
 目前資產版本進一步更新為 `20261113-lines-flow4`，對應上述 approved refresh 修正。另以實際 LINES 按鈕 → signed API → 真 `createMasterSharedBridge.load('LINES')` → production `applyActive` 整合測試，確認已核准畫布 routing 更新，產品從已授權 runtime 保留，不生 PROCESS、不多送操作；四項 controller 驗收通過。
 
-共同候選風險：#113／#114／#115 同改 `abc-master-source-contract.cjs` 的 `restore`／`projectKnown`、index 和導航／cache 斷言；#114／#115 同改 `shared-draft-client.js`。本 PR 未搬入兩個未合併候選。各自全綠不能證明三者相容，共同候選須保留三套 source proof 和負例、核對組合順序與完整真實前身，再跑實際合樹回歸；不能覆蓋任一組或降低 hash 門檻。
+2026-11-13 歷史 checkpoint 的共同候選風險（由下方 2026-11-14 共同合樹續修取代）：#113／#114／#115 同改 `abc-master-source-contract.cjs` 的 `restore`／`projectKnown`、index 和導航／cache 斷言；#114／#115 同改 `shared-draft-client.js`。本 PR 未搬入兩個未合併候選。各自全綠不能證明三者相容，共同候選須保留三套 source proof 和負例、核對組合順序與完整真實前身，再跑實際合樹回歸；不能覆蓋任一組或降低 hash 門檻。
 
 最終 runtime `20ca6c2` 的 FQC/IQC 廣域回歸 1,137 項中 1,136 通過，唯一失敗是舊測試仍要求 PROCESS 15 秒；本輪 master transport 已依需求採用有界 45 秒。精確期望修正為 45 秒，另測 generic PROCESS 與獨立 LINES 預設路徑；15 秒 generic FQC／similar path、45 秒 FQC／IQC、deadline 前零讀回、截止後只查一個原收據、單次 POST 和 UNKNOWN 斷言全部保留。此後修正僅測試與證據，不改 runtime。
 
@@ -102,3 +104,23 @@ Windows Local safety `43493755953` 的最後整合入口段落測出 PROCESS rea
 驗收邊界再次明列：LINES 原生為目前 controller＋真 route 的隔離模組載具；PROCESS 原生為編譯後完整 SPA。測試站部署及適當資料切換另經授權決策後，仍須實測 LINES 完整新架構入口、獨立草稿保存／重載、送審／撤回／再送／核准，以及 PROCESS 已核准引用／畫布刷新。隔離載具 PASS 不替代完整入口或實站驗收；沒有宣稱本次已部署或實站已驗收。
 
 修正後本地完整重跑失敗的 145-command 段落：138 組 PASS；6 組已知需原生／socket、1 組需 Windows PowerShell，列本地 NOT_RUN／BLOCKED，不作成功計算。其中 PowerShell 混合命令組其餘 227 個案例 PASS。未改動任何 GitHub CI 原測試或退出碼檢查；147/147 定向來源／歷史／衝突／導航／回執回歸、lint 與完整非增量 TypeScript PASS，完整 Windows 結果仍待新 head CI。
+
+## 2026-11-14 — 與已合併 #113／#114 的共同候選
+
+原公開 #115 `4ec19c4` 與目前 main `4aa0f24` 均保留於正常 merge ancestry，不重開 PR、不改 main。原本地已測 checkpoint 另保留可回復 ref，乾淨工作目錄對齊相同完整 tree 的公開 head 後整合。
+
+| 衝突／風險 | 解法與保留成果 | 共同候選驗證 |
+| --- | --- | --- |
+| shared client 的 LINES／PROCESS 45s 與 IPQC 180s | 保留 exact scope admission、IPQC one-shot progress 與 silent departure；保留 master readonly 回饋、原操作識別／回執／CAS／UNKNOWN。進度計時不讀取、不重送。 | 真 transport deadline／慢回應／丟回覆／取消／導航／重載與原收據回歸；原生 CI 待最終 head。 |
+| app clock 與 PROCESS controls | 同時保留 shell clock 空元素保護、PROCESS local apply/discard／缺漏流程建立／唯讀歷史和核准 refresh。 | clock、PROCESS binder／完整 compiled SPA 與 LINES controller＋真路由載具。 |
+| index/cache 與 account loader | 六個本輪資產一致新 tag `20261114-lines-flow-joint1`；保留 password helper、user-access 與 IPQC 原 main tags／載入順序。 | account entry、navigation、receipt cache、auth/browser。 |
+| 三套來源契約 | 原 LINES、password、IPQC manifest 完全不改；新增精確雙前身 inverse，先還原真 #115 或真 main，再執行原 hash／span／EOL 與負例。未知 bytes 不修補。 | 雙親 tree／ancestry、逐檔原 blob、LF／CRLF、刪除／重複／改 byte／wrong path/type/target 負例；保留三套原驗證。 |
+| 主資料生命週期與引用 | 不借用 AB/C 草稿，不核准 linked PROCESS；保留同頁 RAM／跨模組放棄、整組三選、原頁 approved-only history、approved refs／canvas refresh。 | 兩頁修改→保存→重載→送審→撤回→再送→核准、雙帳號與跨模組回歸及原生 CI。 |
+
+上述矩陣描述本次實作及待執行驗證，不以原三個 PR 各自綠燈推論共同相容。最終候選的結果將記錄於同一 #115，失敗須修復重跑，不刪測試或放寬 pins。
+
+委派時記錄測試站為 v45；另行主線發布不在本輪範圍，不用本輪隔離結果推定真站版本或驗收。Diem V31 撤回與先前兩筆 IPQC QA 結果仍 UNKNOWN，本次不查改、重送或清除其操作。沒有正式／既有測試站資料、marker／schema／ACL／帳密、備份或遷移操作，也沒有合併／部署。LINES 隔離模組載具與 PROCESS compiled SPA 的證據界線不變；完整 adopted LINES 入口、資料採用與真人站點／實體手機／真 IME 仍未驗。
+
+本地共同候選第一輪：source／cache／navigation／receipt 403/403、其餘功能 139/139、password 37/37、七個兩頁 lifecycle／roles／restore／read-projection 命令 PASS；lint、完整非增量 TypeScript、guarded build＋auth postbuild PASS。Password 初次執行缺既有 VM modules 旗標，36 個 fixture 無法載入；依原 account workflow 旗標定向重跑通過，沒有改測試。145-command 本地批次初次在自動核准審查因未核對暫存計畫而被拒、未執行；核對原 tracked workflow 的完整清單、固定 blob、各測試的 commit bytes 及副作用後，加入 no-shell allowlist 與有界執行，僅重試一次獲准。最終本地及 CI 結果見同一 PR 的最終表格。
+
+本地 145-command 共同回歸完成：138 組 PASS、6 組原生／socket NOT_RUN、1 組 Windows PowerShell BLOCKED；該混合命令其餘 227 個案例 PASS。原 Windows CI 全部命令、退出碼測試與原生腳本保留，不把本地不可用項計為成功。最終 runtime 與 build 前候選相同；後續只固定文件及精確 source manifest。上傳後的共同 head CI 結果以 #115 最新表格為準，不沿用 `4ec19c4` 舊綠燈。

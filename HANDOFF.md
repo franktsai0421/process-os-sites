@@ -1,6 +1,13 @@
+## 2026-11-14 — #115 在原分支續整合 main #114
+
+Frank 已手動合併 #113／#114；原 #115 合入真 main 4aa0f24，保留所有原 UNKNOWN、權限／CAS／冪等及來源負例。三套原 manifest 不改，以雙前身精確共同來源證明串接。共同候選 SHA／CI、衝突矩陣及未驗範圍見[同一驗收紀錄](docs/acceptance/lines-flow-integration-20261113/README.md#2026-11-14--與已合併-113114-的共同候選)及同一 Draft #115。委派時站點 v45 為歷史 checkpoint；另行主線發布不在此工作範圍，Diem V31 撤回與兩筆 IPQC QA 結果仍未知，沒有站點資料或既有 UNKNOWN 操作。不得合併或部署。
+
 ## 2026-11-13 — 線別與流程資料獨立草稿 PR 候選
 
 以原 main f0f425d 開始，已快轉至實際新 main ba31514 並保留已合併 #111；使用獨立 Dot worktree。主資料兩頁的需求、真正入口、舊資料啟用／切換與驗收分開記於[本輪對照](docs/acceptance/lines-flow-integration-20261113/README.md)。#102 真遠端已包含 body 稱本機的候選祖先，只擷取 PROCESS helper，不整包重播。未改真資料、marker、schema、ACL、備份、發布或原 PR 分支；不合併。
+## 2026-11-13 — Password outcome repair candidate
+
+Independent main-based password-only records overlay and response-wait repair; administrator reset, own-password and fresh-login isolation with UNKNOWN/no-replay guards. [Evidence, source cause and live limitations](docs/acceptance/password-outcome-20261113.md). Draft review only; no real account, data, schema, merge or deployment change.
 
 ## 2026-11-13 — AB/C master catalog cloud candidate
 

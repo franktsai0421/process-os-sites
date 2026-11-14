@@ -408,8 +408,8 @@ void test(
     );
   },
 );
-void test(
-  'compiled narrow 390 vi unknown Save keeps original marker across departure/reload/404, recovers GET-only',
+for(const inFlight of [false,true])for(const reloadBeforeRecovery of [false,true])void test(
+  `compiled narrow 390 vi original Save survives silent departure inFlight=${inFlight} reload=${reloadBeforeRecovery}, 404 and GET-only recovery`,
   { timeout: 60000 },
   async (t) => {
     const s = await setup(t),
@@ -428,8 +428,10 @@ void test(
     await page.locator('[data-ab-edit-item]').first().click();
     await page.locator('#ab-standard').fill('Narrow committed ACK loss');
     await page.locator('#ab-apply').click();
-    let loss = false,
-      down = true;
+    let loss = false, releaseLoss, enterLoss;
+    const lossEntered=new Promise(resolve=>{enterLoss=resolve;}),lossGate=new Promise(resolve=>{releaseLoss=resolve;});
+    t.after(()=>releaseLoss());
+    let down = true;
     await page.route('**/api/ipqc-ab/workflow?*', async (route) => {
       const req = route.request(),
         url = new URL(req.url());
@@ -444,14 +446,15 @@ void test(
         JSON.parse(req.postData() || '{}').command?.action === 'save'
       ) {
         loss = true;
-        await route.fetch();
+        await route.fetch();enterLoss();if(inFlight)await lossGate;
         return route.abort('failed');
       }
       return route.continue();
     });
     await page.locator('#ipqcab-save').click();
-    await idle(page);
+    if(inFlight)await lossEntered;else await idle(page);
     assert(loss);
+    assert.equal(await page.evaluate(()=>sharedDraftAccountState().queued>0),inFlight);
     assert.equal(posts.length, 1);
     const original = posts[0].command.operationId,
       keys = await markers(page);
@@ -466,13 +469,15 @@ void test(
       await page.locator('#process-navigation-departure').count(),
       0,
     );
-    assert.deepEqual(await markers(page), keys);
+    assert.deepEqual(await markers(page), keys);releaseLoss();await idle(page);
+    assert.deepEqual(await markers(page),keys,'late interrupted response retains original identity and cannot mutate destination');
+    assert.equal(await page.evaluate(()=>state.view),'dashboard');
     await page.evaluate(() => {
       void ProcessDeliveryNavigation.navigate('data', 'quality-ipqc-ab');
     });
     await page.locator('[data-ab-local-query]').waitFor();
-    await page.reload();
-    await page.locator('[data-ab-local-query]').waitFor({ timeout: 30000 });
+    if(reloadBeforeRecovery){await page.reload();
+    await page.locator('[data-ab-local-query]').waitFor({ timeout: 30000 });}
     assert.deepEqual(await markers(page), keys);
     assert.match(
       await page.locator('[data-ab-local-unknown]').innerText(),

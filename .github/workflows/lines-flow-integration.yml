@@ -37,7 +37,7 @@ jobs:
       - run: npm run lint -- --format unix
       - run: npx tsc --noEmit
       - name: Exact main provenance and effective negative controls
-        run: node --test tests/lines-flow-source.test.cjs tests/lines-flow-pr102-source.test.cjs
+        run: node --test tests/lines-flow-joint-source.test.cjs tests/lines-flow-source.test.cjs tests/lines-flow-pr102-source.test.cjs
       - name: Independent page lifecycle, approved references, original receipts and read-only history
         run: |
           node scripts/test-master-page-runtime.cjs

@@ -358,5 +358,33 @@
     "qualification": "Dot Linux lacks native socket/browser capability and powershell.exe. The Windows-only group still had 227 other cases PASS; no CI tests were skipped or weakened. Final full CI remains required.",
     "results": "/tmp/lines-flow-integrated-step-results.json",
     "log": "/tmp/lines-flow-integrated-step-full.log"
+  },
+  "jointMain114Integration": {
+    "date": "2026-11-14",
+    "main": "4aa0f24c66861fb735d6ad581b81b190771122f8",
+    "linesParent": "4ec19c40d04fb389d6c6329a7aa2c31341176802",
+    "originalManifests": "unchanged; exact byte comparison against genuine parent objects",
+    "proof": "scripts/lines-flow-joint-source-contract.json",
+    "finalCI": "pending; see latest #115 evidence for final candidate",
+    "liveAcceptance": "NOT_RUN; delegated v45 checkpoint is historical; another main publication is outside this task. Existing Diem V31 withdrawal/two IPQC QA outcomes remain UNKNOWN and untouched",
+    "noLiveDataOrDeployment": true,
+    "local": {
+      "sourceCacheNavigationReceipts": "403/403 PASS",
+      "functionalWithoutPassword": "139/139 PASS",
+      "passwordWithOriginalVMFlag": "37/37 PASS",
+      "pageRouteCommands": "7/7 PASS",
+      "lint": "PASS",
+      "typecheckNonIncremental": "PASS",
+      "guardedBuildAuthPostbuild": "PASS",
+      "broad145Commands": {
+        "PASS": 138,
+        "NOT_RUN_NATIVE_ENVIRONMENT": 6,
+        "BLOCKED_WINDOWS_POWERSHELL": 1,
+        "remainingCasesInWindowsMixedGroup": "227 PASS",
+        "originalCICommandsAndExitGuard": "unchanged"
+      },
+      "passwordInitialFailure": "36 fixture load failures from omitted --experimental-vm-modules; correct existing flag, no test edits",
+      "broadInitialDenial": "not executed; once retried after exact committed CI command allowlist and side-effect inspection; retry approved"
+    }
   }
 }

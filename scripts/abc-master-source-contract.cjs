@@ -5,10 +5,10 @@ const {contracts}=require('./abc-master-source-contract.json');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const normalized=bytes=>Buffer.from(bytes.toString('utf8').replaceAll('\r\n','\n'));
 function restore(bytes,file){
- assert(Buffer.isBuffer(bytes));bytes=require('./lines-flow-source-contract.cjs').projectKnown(bytes,file);const c=contracts.find(c=>c.file===file);assert(c,'ABC proof wrong path');
+ assert(Buffer.isBuffer(bytes));bytes=require('./lines-flow-source-contract.cjs').projectKnown(bytes,file);const c=contracts.find(c=>c.file===file);assert(c,'ABC proof wrong path');bytes=require('./ipqc-save-recovery-source-contract.cjs').projectMain113(bytes,file);bytes=require('./password-outcome-source-contract.cjs').projectKnown(bytes,file);bytes=require('./ipqc-save-recovery-source-contract.cjs').projectMain112(bytes,file);
  let result=normalized(bytes);assert.equal(hash(result),c.afterHash,'ABC successor differs');
  for(const r of [...c.rules].reverse()){const span=Buffer.from(r.after);assert.deepEqual(result.subarray(r.offset,r.offset+span.length),span,'ABC positioned span differs');result=Buffer.concat([result.subarray(0,r.offset),Buffer.from(r.before),result.subarray(r.offset+span.length)]);}
  assert.equal(hash(result),c.beforeNormalizedHash,'ABC normalized predecessor differs');const lines=result.toString().split('\n');for(const i of c.beforeCRLF)lines[i]+='\r';result=Buffer.from(lines.join('\n'));assert.equal(hash(result),c.beforeHash,'ABC original predecessor differs');return result;
 }
-function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes));bytes=require('./lines-flow-source-contract.cjs').projectKnown(bytes,file);return contracts.some(c=>c.file===file&&hash(normalized(bytes))===c.afterHash)?restore(bytes,file):bytes;}
+function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes));bytes=require('./lines-flow-source-contract.cjs').projectKnown(bytes,file);const c=contracts.find(c=>c.file===file);if(!c)return bytes;const original=bytes;bytes=require('./ipqc-save-recovery-source-contract.cjs').projectMain113(bytes,file);bytes=require('./password-outcome-source-contract.cjs').projectKnown(bytes,file);bytes=require('./ipqc-save-recovery-source-contract.cjs').projectMain112(bytes,file);return hash(normalized(bytes))===c.afterHash?restore(bytes,file):original;}
 module.exports={contracts,hash,restore,projectKnown};

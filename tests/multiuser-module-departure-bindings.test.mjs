@@ -110,7 +110,7 @@ for(const name of decisionModules){
  });
  void test(`${name}: actual adapter refuses unknown/revoked/pending without a write`,async()=>{
   const f=fixture(name);f.unknown(true);if(name==='routine-fqc')f.box.s.retry={operationId:'original'};
-  assert.equal(f.adapter.inspect().state,'unknown');await assert.rejects(f.adapter.save());await assert.rejects(f.adapter.discard());assert.equal(f.writes,0);
+  assert.equal(f.adapter.inspect().state,name==='ipqc-ab'?'clean':'unknown');await assert.rejects(f.adapter.save());await assert.rejects(f.adapter.discard());assert.equal(f.writes,0);
   f.unknown(false);f.box.s.retry=null;f.allowed(false);assert.equal(f.adapter.inspect().canSave,false);await assert.rejects(f.adapter.save());assert.equal(f.writes,0);
  });
 }
@@ -212,7 +212,7 @@ for(const name of decisionModules)for(const fault of ['identity','generation','u
  if(fault==='generation')b.window.ProcessSync.epoch++;
  if(fault==='unknown'){f.unknown(true);if(name==='routine-fqc')b.s.retry={operationId:'original'};}
  if(fault==='reload')b.window.ProcessSync.requiresReload=true;
- assert.equal(f.adapter.inspect().state,'unknown');assert.throws(()=>f.adapter.closeClean());assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);lease.release();assert.equal(b.root.inert,false);
+ if(name==='ipqc-ab'&&fault==='unknown'){assert.equal(f.adapter.inspect().state,'departing');f.adapter.closeClean();assert.equal(b.client.hasUnknown(),true);}else{assert.equal(f.adapter.inspect().state,'unknown');assert.throws(()=>f.adapter.closeClean());}assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);lease.release();assert.equal(b.root.inert,false);
 });
 
 void test('FQC extracted departure requires actual local input closures',()=>{
@@ -290,10 +290,10 @@ for(const condition of ['revoked','pending'])void test(`IPQC-AB ${condition} loc
  const before=JSON.stringify(b.control);assert.equal(f.adapter.inspect().canSave,false);await assert.rejects(f.adapter.save());
  const lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();assert.equal(b.localScopes.size,0);assert.equal(f.writes,0);assert.equal(JSON.stringify(b.control),before);
 });
-void test('IPQC-AB unknown departure clears RAM but preserves the original sent snapshot and receipt obligation',async()=>{
+void test('IPQC-AB unknown departure drops RAM payload but preserves the durable original receipt obligation',async()=>{
  const f=fixture('ipqc-ab'),b=f.box,anchor={operationId:'original-save'},client=b.moduleClient;stageAB(b);f.unknown(true);
  const sent={command:{operationId:anchor.operationId},snapshot:'original sent snapshot'};b.localSent=sent;
  Object.assign(client,{departureIdle:()=>true,departureUnknown:()=>anchor,coverDeparture:(value,current)=>{assert.equal(value,anchor);return{current,release(){}};}});
- const before=JSON.stringify(b.control);assert.equal(f.adapter.inspect().canAbandon,true);await assert.rejects(f.adapter.save());await assert.rejects(f.adapter.discard());
- const lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();assert.equal(b.localScopes.size,0);assert.equal(b.localSent,sent);assert.equal(client.departureUnknown(),anchor);assert.equal(client.hasUnknown(),true);assert.equal(f.writes,0);assert.equal(JSON.stringify(b.control),before);
+ const before=JSON.stringify(b.control);assert.equal(f.adapter.inspect().canAbandon,true);await assert.rejects(f.adapter.save());
+ const lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();assert.equal(b.localScopes.size,0);assert.equal(b.localSent,null);assert.equal(client.departureUnknown(),anchor);assert.equal(client.hasUnknown(),true);assert.equal(f.writes,0);assert.equal(JSON.stringify(b.control),before);
 });

@@ -1,6 +1,13 @@
+## 2026-11-14 — #115 整合已合併的密碼與 IPQC 修復
+
+原 #115 分支合入 main 4aa0f24，保留兩頁獨立草稿／審核及 #113／#114 的 password、IPQC 進度與原回執修復。三份原 source manifest 不變，新增雙前身精確 inverse，統一共同 runtime cache；共同候選結果及實站未驗範圍見[驗收](../docs/acceptance/lines-flow-integration-20261113/README.md#2026-11-14--與已合併-113114-的共同候選)。沒有資料／設定／備份變更或合併部署。
+
 ## 2026-11-13 — 線別／工段與流程資料獨立候選
 
 獨立 main f0f425d 分支整合兩個主資料頁；線別不代核准流程、PROCESS 明確補齊缺漏工段、保存整組衝突／照片／晚到意圖、安全重載與有界回應、唯讀歷史和真正核准來源。選擇性回收真 #102 PROCESS helper，保留新 main 權限／history guards；不帶入 AB/C 或例行 FQC；已保留新 main 合併的 #111。資料採用／真人／原生限制見[驗收](../docs/acceptance/lines-flow-integration-20261113/README.md)，保持 Draft，不合併部署。
+## 2026-11-13 — Password-only persistence and slow response candidate
+
+Isolate records-v1 credential/audit writes from unrelated business hydration; avoid artificial password POST aborts while retaining UNKNOWN/no-replay, authorization, old-password and CAS fences. [Isolated evidence and limits](../docs/acceptance/password-outcome-20261113.md). Draft only; no deployment/account/data migration.
 
 ## 2026-11-13 — AB/C主資料雲端草稿候選
 

@@ -11,6 +11,9 @@ on:
       - 'app/api/platform-login/**'
       - 'app/api/user-access/**'
       - 'lib/passwords.ts'
+      - 'lib/password-state.ts'
+      - 'tests/password-outcome-fixture.mjs'
+      - 'scripts/password-outcome-source-contract.*'
       - 'lib/user-access.ts'
       - 'lib/web-feedback.ts'
       - 'public/process/web-feedback*'
@@ -71,6 +74,10 @@ jobs:
         run: node --test tests/account-conflict-groups.test.mjs tests/account-process-followup-source.test.cjs tests/accounts-process-inline-oracle.test.mjs
       - name: Isolated account API and UI source regression
         run: node --experimental-vm-modules --test --test-concurrency=1 tests/account-priority-api.test.mjs tests/account-dialog-feedback.test.mjs tests/account-login-language.test.mjs tests/account-result-notice.test.mjs tests/account-policy-source-loader.test.mjs
+      - name: Login shell clock tolerates session replacement
+        run: node --test tests/account-display-clock.test.cjs
+      - name: Password persistence and uncertain response isolation
+        run: node --experimental-vm-modules --test tests/account-password-outcome.test.mjs tests/account-password-transport.test.mjs tests/account-password-source.test.cjs
       - name: Existing account authority and session protections
         run: |
           node scripts/test-user-access.mjs
@@ -122,6 +129,8 @@ jobs:
         run: node tests/user-permissions-native.test.mjs
       - name: Install isolated Chromium
         run: node node_modules/playwright/cli.js install --with-deps chromium
+      - name: Password reset, own change and new login in compiled Chromium
+        run: node --experimental-vm-modules tests/account-password-browser.mjs
       - name: Native lines-only approved page without workflow grants
         run: node tests/account-lines-view-browser.mjs
       - name: Joint desktop and mobile Canvas Save and silent departure

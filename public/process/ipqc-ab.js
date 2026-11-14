@@ -463,7 +463,7 @@
     working=entry.snapshot;versionId=entry.version.id;inputBasisOwner=inputOwner(transport());return entry;
   }
   function clearLocalEditing(){clearConflictEscape();localFilterViews.clear();localScopeSelections.clear();for(const p of localPhotos.values())URL.revokeObjectURL(p.preview);localPhotos.clear();localScopes.clear();localModuleGeneration=null;localBeginReceipt=null;localBeginExpectation=null;localBusinessBase=null;localConflict=null;localSaveIntent=null;localBatch=null;modal=null;viewer=null;modalBase=null;modalGeneration=null;working=null;}
-  function abandonLocalEditing(){clearLocalEditing();if(moduleClient&&!moduleClient.hasUnknown())localSent=null;}
+  function abandonLocalEditing(){clearLocalEditing();localSent=null;} // Only RAM; durable transport retains the original submitted identity.
   // Filters share one module batch. Only module departure/confirmed Save clears it.
   const localFilterKey=()=>JSON.stringify([key(),stage]);
   const hasLocalFilterForm=()=>[...localFilterViews.values()].some(view=>view.entry===localScopes.get(view.entry.scope)&&view.modal&&!view.modal.readonly);
@@ -1067,6 +1067,7 @@
     }
     for(const node of host.querySelectorAll('input,select,button,textarea'))for(const property of ['oninput','onchange','onclick','oncompositionstart','oncompositionend'])if(typeof node[property]==='function')node[property]=guardWorking(node,node[property]);
     window.VersionDraftUI?.mount(host,{localUnsaved:localDirty()||hasLocalFilterForm()||!!modal&&!modal.readonly,header:'.ipqcab-version',historyClient:()=>moduleTransport(),mountApprovedHistory,module:'IPQC-AB',moduleActions:true,scope:t('全部 IPQC-AB 草稿；A／B 全部群組與工段','Tất cả bản nháp IPQC-AB; mọi nhóm và công đoạn A/B'),version:version(),versions:scope()?.versions,active:active(),flow:control?.moduleDraft?.workflow||scope()?.workflow,busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#ipqcab-begin',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-ab-issue-kind="error"],[data-shared-issue-kind="error"]',missing:'[data-ab-issue-kind="missing"],[data-shared-issue-kind="missing"]',checked:{missing:true},history:['[data-shared-issue-kind="warning"]'],remove:['.ipqcab-history','#ab-case-history'],status:['#ipqcab-shared-status']});
+    window.mountSharedDraftRequestProgress?.(host,[moduleClient,sharedClient,...legacyABClients()],vi()?'vi':'zh');
     const body = host.querySelector('.ipqcab-dialog-body');
     if (body && modal) {
       body.dataset.scrollKey = `${modal.type}:${modal.id||modal.itemId||''}`;
@@ -1325,11 +1326,12 @@
   let moduleDeparture;const departureUploads=0;
   window.IPQCABUI = { navigation:{get departure(){return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({
     root:()=>host,flow:()=>control?.moduleDraft?.workflow,sharedDirty:()=>false,sharedOwned:()=>false,ownsRuntimeLocal:()=>true,
-    context:()=>[mutationLifetime,actor(),window.ProcessSync?.identityGeneration?.()],current:()=>!accessBlocked,busy:()=>busy,
-    unknown:()=>localPending(),failed:()=>false,unknownTransports:()=>[moduleClient,...legacyABClients(),photoDepartureTransport].filter(Boolean),unknownReady:()=>!busy,
+    // Departure drops only RAM edits; pending transport identity and write admission remain independent.
+    context:()=>[mutationLifetime,actor(),window.ProcessSync?.identityGeneration?.()],current:()=>!accessBlocked,busy:()=>false,
+    unknown:()=>false,failed:()=>false,unknownTransports:()=>[moduleClient,...legacyABClients(),photoDepartureTransport].filter(Boolean),unknownReady:()=>!busy,
     local:()=>localDirty()||hasLocalFilterForm()||!!modal&&!modal.readonly,canSave:()=>historyAllowsMutation()&&permittedAction('edit'),canDiscard:()=>true,save:()=>saveLocalModule(),
     discardUnknown(){abandonLocalEditing();},discard(){abandonLocalEditing();},closeClean(){abandonLocalEditing();},dialogs:()=>[...document.querySelectorAll('.ipqcab-overlay')],
-  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>saveLocalModule(),canLeave:()=>!busy,error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;abandonLocalEditing();mutationLifetime++;mutationSequence++;activeMutation=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class="ipqcab-page" id="ipqcab-page">IPQC-AB…</section>',
+  }),{autoAbandon:true});},requiresSave:()=>false,saveForDeparture:()=>saveLocalModule(),canLeave:()=>true,error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;abandonLocalEditing();mutationLifetime++;mutationSequence++;activeMutation=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class="ipqcab-page" id="ipqcab-page">IPQC-AB…</section>',
     openItemView(requestedVersion,itemId,requestedScope=''){
       pendingItemView={versionId:requestedVersion,itemId,scope:requestedScope};
       if (host?.dataset.activeTab==='quality-ipqc-ab' && document.contains(host)) { showPendingItem();return; }

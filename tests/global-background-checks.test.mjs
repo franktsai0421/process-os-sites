@@ -17,7 +17,7 @@ function declaration(source,name){const ast=ts.createSourceFile('caller.js',sour
 function fixture(){let requests=0,timers=0,listeners=0;const events=new Map(),window={addEventListener(name,fn){listeners++;events.set(name,fn);}},document={visibilityState:'visible',hasFocus:()=>true,addEventListener(){listeners++;}};const c={window,document,setTimeout(){timers++;throw Error('BACKGROUND_TIMER');},setInterval(){timers++;throw Error('BACKGROUND_INTERVAL');},clearTimeout(){},performance:{now:()=>0},fetch(){requests++;throw Error('BACKGROUND_FETCH');}};vm.createContext(c);vm.runInContext(shim,c);return{c,window,document,state:()=>({requests,timers,listeners})};}
 for(const [file,fn,variable] of [['fqc-master.js','pollShared','sharedPoll'],['iqc-master.js','scheduleRefresh','pollTimer'],['ipqc-ab.js','scheduleRefresh','pollTimer'],['ipqc-c.js','scheduleSharedRefresh','pollTimer']])void test(file+' real legacy owner cannot schedule any callback',()=>{
  const f=fixture(),poll=f.window.createForegroundPoll();Object.assign(f.c,{[variable]:poll,deliveryGeneration:1,mountSequence:1,workspaceReady:()=>true,currentReadOwner:()=>()=>true,actor:()=>({id:'synthetic'}),host:null});
- vm.runInContext(declaration(['fqc-master.js','iqc-master.js'].includes(file)?retiredDraftSource(process.cwd(),file):read(file),fn)+'\n'+fn+'();',f.c);
+ vm.runInContext(declaration(['fqc-master.js','iqc-master.js','ipqc-c.js'].includes(file)?retiredDraftSource(process.cwd(),file):read(file),fn)+'\n'+fn+'();',f.c);
  for(let i=0;i<100;i++){poll.schedule(()=>{throw Error('CALLBACK_EXECUTED');});poll.cancel();vm.runInContext(fn+'();',f.c);}
  poll.dispose();assert.deepEqual(f.state(),{requests:0,timers:0,listeners:0});
 });

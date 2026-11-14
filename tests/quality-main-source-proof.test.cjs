@@ -17,8 +17,8 @@ for(const c of proof.contracts)void test('joint source retains exact '+c.target+
   assert.throws(()=>proof.restoreParent(bad,c.file,c.target),/pinned/);
   assert.deepEqual(proof.projectKnown(bad,c.file,c.target),bad,'unrecognized source must not be repaired');
  }
- const offsets=new Set([0,committed.length-1,...c.rules.flatMap(r=>[r.offset,Math.min(committed.length-1,r.offset+Buffer.byteLength(r.after))])]);
- for(const at of offsets){const bad=Buffer.from(committed);bad[at]^=1;assert.throws(()=>proof.restoreParent(bad,c.file,c.target),/pinned/);assert.deepEqual(proof.projectKnown(bad,c.file,c.target),bad);}
+ const offsets=new Set([0,committed.length-1,...c.rules.flatMap(r=>[Math.min(committed.length-1,r.offset),Math.min(committed.length-1,r.offset+Buffer.byteLength(r.after))])]);
+ for(const at of offsets){const bad=Buffer.from(committed);bad[at]^=1;assert(!bad.equals(committed),'negative control must mutate an in-range byte of current source');assert.throws(()=>proof.restoreParent(bad,c.file,c.target),/pinned/);assert.deepEqual(proof.projectKnown(bad,c.file,c.target),bad);}
  for(const rule of c.rules){
   const span=Buffer.from(rule.after),prefix=committed.subarray(0,rule.offset),suffix=committed.subarray(rule.offset+span.length);
   for(const bad of [Buffer.concat([prefix,suffix]),Buffer.concat([prefix,span,span,suffix]),Buffer.concat([prefix,suffix,span])])if(!bad.equals(committed))assert.throws(()=>proof.restoreParent(bad,c.file,c.target),/pinned/);

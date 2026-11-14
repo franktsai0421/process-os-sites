@@ -38,7 +38,7 @@
     "file": "public/process/app.js",
     "line": 3730,
     "kind": "setInterval",
-    "hash": "e6433730de759afe2358bea43c4c28076846ca5e29664dea01a6a7e46a0d477d",
+    "hash": "45da8be861a1417472b8f5903f5fbb37bca5223e2e6f109de502a1ca09c5a8ec",
     "purpose": "Local display clock/elapsed time; callback issues no request."
   },
   {
@@ -327,5 +327,12 @@
     "kind": "setTimeout",
     "hash": "aef57849f2e4274c8f679bd3c40d98f3f5e49448dfda6c17d079decdaef8868e",
     "purpose": "Single 45-second deadline for an explicit photo/read request; aborts and rejects, never repeats or resends a write."
+  },
+  {
+    "file": "public/process/shared-draft-client.js",
+    "line": 977,
+    "kind": "setTimeout",
+    "hash": "67545b2b061244bdbc6ff9706e5f624a141551ead45695f13ba08a2216a7426e",
+    "purpose": "Three one-shot IPQC request progress notices at 10/45/120 seconds. UI text only; no fetch, retry or recurring timer."
   }
 ]
