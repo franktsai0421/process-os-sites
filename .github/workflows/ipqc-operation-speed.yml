@@ -63,3 +63,33 @@ jobs:
             /tmp/ipqc-operation-speed-*
             /tmp/process-ipqc-ab-compiled-*
           if-no-files-found: ignore
+
+  bounded-read-windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Original Windows bounded-read compatibility commands
+        shell: pwsh
+        run: |
+          node scripts/test-ipqc-c-bounded-read.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-ipqc-c-permissions-read.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-ipqc-ab-bounded-read.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-access-template-reuse.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
