@@ -142,3 +142,7 @@ LINES 離頁會停止本頁等待；已送原證據仍保留。重進時只在 s
 **交付限制：**未切可信 page-v1 的 LINES 仍為已核准資料唯讀，不能宣稱已啟用獨立 writer；採用 baseline、marker 與舊資料決策仍待另行授權。舊帶 linkedProcess 的案件保留並拒絕直接核准，須由有權操作者撤回／退回後分別保存、送審兩頁；本次不替真人案件執行、不自動遷移。原備份、真資料、UNKNOWN、schema／ACL／帳密與正式／既有測試站均未操作；不合併、不部署。
 
 跨模組本地回歸曾在 timer inventory 失敗：新 callback 仍只有 Map／UI 通知，但 body 改為 `progressValue(elapsedMs)`，因此指紋改變。僅更新該筆 `67545b2b…` → `338acf2d…` 的精確 hash 與用途；逐筆確認其他所有 timer hash 不變，保留整張 deep-equal、匯入圖與原 source 反例。虛擬 10 分鐘斷言同時確認不重排 timer、不增加任何 I/O。修正後相關來源／無背景檢查 248/248 PASS；不是新增通用豁免或放寬原三份 feature manifest。
+
+新 head `0f89da3` CI 的原模擬 DOM UI runner 缺少標準 `before()`，進度列 sibling 插入因此失敗，原生步驟未執行。只在該 runner 的 bounded DOM port 補齊真實 sibling 插入，另斷言實際停止按鈕位於 readonly page root 外；不改 production runtime、舊斷言或原生測試。修正後仍須新 head CI，不把此測試載具修正宣稱為原生通過。
+
+同 head 的 compiled PROCESS 已進入新增停止案例，頁面先前切換為越南文，而新 locator 誤只查中文導致 timeout；畫面已有 `Dừng chờ`，沒有 pageError。改用兩個精確語言名稱的 anchored locator，仍實際點擊按鈕並保留零重送、404 marker 與原回執斷言，不改 timeout 或 production 行為。

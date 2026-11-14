@@ -4,6 +4,9 @@ const fixture=require('./test-master-page-runtime.cjs');
 async function until(predicate){const deadline=Date.now()+15000;while(Date.now()<deadline){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,2));}throw Error('SYNTHETIC_UI_DID_NOT_SETTLE');}
 (async()=>{
  const {canvasDOM}=await import('./login-reentry-dom.mjs'),dom=canvasDOM(),f=await fixture(true),posts=[],storage=new Map();let lost=false,block=false;
+ // This bounded DOM port must implement the browser sibling insertion used by
+ // the live progress/Stop control, outside the readonly page root.
+ dom.Node.prototype.before=function(node){const parent=this.parentElement;if(!parent)return;node.remove();node.parentElement=parent;parent.children.splice(parent.children.indexOf(this),0,node);};
  const c={...dom,console,crypto:webcrypto,URL,URLSearchParams,Response,Request,Headers,AbortController,AbortSignal,structuredClone,Map,Set,Error,Promise,JSON,Date,Number,Math,setTimeout,clearTimeout,location:{origin:f.base,href:f.base+'/process/',pathname:'/process/'},CSS:{escape:String},bindDataInner(){},confirm:()=>true,prompt:()=> 'Synthetic action',sessionStorage:{get length(){return storage.size;},key:i=>[...storage.keys()][i]??null,getItem:key=>storage.get(key)??null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},ProcessSync:{identity:{id:'writer'},identityGeneration:()=>1,captureDelivery:()=>1,isCurrentDelivery:()=>true}};
  c.window=c;dom.events(c);c.document.visibilityState='visible';c.document.documentElement.lang='zh-TW';
  c.CustomEvent=class{constructor(type,options={}){this.type=type;this.detail=options.detail;}};
@@ -16,7 +19,7 @@ async function until(predicate){const deadline=Date.now()+15000;while(Date.now()
  async function peer(batches){const control=(await f.send('LINES')).body.control,r=await f.send('LINES',{command:f.save(control,batches)},'reviewer');assert.equal(r.status,200,JSON.stringify(r));}
  async function choice(label){await until(()=>!!dom.document.querySelector('dialog'));const target=[...dom.document.querySelector('dialog').querySelectorAll('button')].find(node=>node.textContent===label);assert(target,label);target.click();await idle();}
  try{
-  await idle();await click('開啟草稿');let count=posts.length;
+  await idle();const waitPanel=dom.document.body.children.find(node=>node.dataset.masterRequestWait==='true');assert(waitPanel,'real progress control mounted');assert.equal(waitPanel.parentElement,root.parentElement);assert(dom.document.body.children.indexOf(waitPanel)<dom.document.body.children.indexOf(root),'Stop remains outside readonly page root');assert(waitPanel.querySelectorAll('button').some(node=>node.textContent==='停止等候'));await click('開啟草稿');let count=posts.length;
   fill('線別名稱','Local A');await click('C');fill('線別名稱','Local C');await click('AB');assert.equal(input('線別名稱').value,'Local A');assert.equal(posts.length,count);await click('存取草稿');
   let current=await f.readRoot();assert.equal(current.workflowScopes.LINES.saved.content.AB.lines[0].name,'Local A');assert.equal(current.workflowScopes.LINES.saved.content.C.lines[0].name,'Local C');assert.equal(current.active.AB.lines[0].name,'A');
   const path=['AB','lines',{id:'line-A'},'name'],other=['C','lines',{id:'line-C'},'stages',{id:'stage-C'},'name'];
