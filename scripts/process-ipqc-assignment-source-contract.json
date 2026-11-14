@@ -547,11 +547,16 @@
       "beforeNormalizedHash": "662c18c8ca4134cf319a8573a32d80c0622903c542dec0fcf5bf1c526f335801",
       "beforeLength": 12328,
       "beforeCRLF": [],
-      "afterHash": "584a4fa552d6a2977fe251a677bdf12f4d86f071528fb5669f2354e443a728bd",
-      "afterLength": 14324,
+      "afterHash": "c40ab1ac8a1bfbaabf19f80575b4fdae6e0688024036ab616055b37d00b1afd5",
+      "afterLength": 14353,
       "rules": [
         {
-          "offset": 10385,
+          "offset": 1082,
+          "before": " await f.generatedMasterPages();report.masterSource='generated-page-v1-approved-owners (not an adoption/approval UI claim)';\n",
+          "after": " await f.generatedMasterPages([],{staleCompatibility:false});report.masterSource='generated-page-v1-approved-owners (not an adoption/approval UI claim)';\n"
+        },
+        {
+          "offset": 10414,
           "before": "",
           "after": "  // A new source item is created and approved through the actual signed routes.\n  // The previously assigned stable item is unchanged but belongs to a newer whole-source version.\n  const source=line==='C'?'C':'AB',extra=await f.create(source);await f.promote(extra.url);\n  await boot();await open('two');assert(await c.isChecked());assert.equal(await c.locator('..').locator('..').getAttribute('data-status'),'retained');\n  assert.equal(await page.locator('[data-ipqc-count=\"selected\"]').innerText(),'0');assert.equal(await page.locator('[data-ipqc-count=\"retained\"]').innerText(),'1');assert.equal(await page.locator('[data-ipqc-warning][data-ipqc-reasons=\"version\"]').count(),1);\n  assert.equal(await page.locator('.process-ipqc-group').first().getAttribute('data-complete'),'false');await page.screenshot({path:out+'/'+line+'-retained-'+width+'.png',fullPage:true});\n  await c.uncheck();assert.equal(await page.locator('[data-ipqc-warning]').count(),0);await c.check();assert.equal(await page.locator('[data-ipqc-warning]').count(),0);assert.equal(await page.locator('[data-ipqc-count=\"retained\"]').innerText(),'0');\n  const badge=page.locator('.process-ipqc-badge.selected').first();await badge.focus();await page.screenshot({path:out+'/'+line+'-reselected-'+width+'.png',fullPage:true});\n  const overflow=await page.locator('.pe-modal-body').evaluate(el=>el.scrollWidth>el.clientWidth+1);assert.equal(overflow,false,'source version text fits narrow/desktop modal');\n  await page.locator('#apply-operation').click();await page.locator('#process-operation-dialog').waitFor({state:'detached'});await save();await boot();await open('two');assert(await c.isChecked());assert.equal(await page.locator('[data-ipqc-warning]').count(),0);assert.equal(await page.locator('[data-ipqc-count=\"selected\"]').innerText(),'1');await cancel();\n  report.assertions.push(line+': real newer source approval → retained historical pin → explicit reselect clears warning → atomic Save/reload current PASS');\n"
         }
@@ -563,13 +568,13 @@
       "beforeNormalizedHash": "252a7b9d321c503d508b8320675d2e98525a15c82bef4a6101aad676cfd17330",
       "beforeLength": 15607,
       "beforeCRLF": [],
-      "afterHash": "29d57e4760a394edb2ebf0af4e192afe3e54435243800481366da12701e61a9e",
-      "afterLength": 17713,
+      "afterHash": "d9ca767e66e6e777cf6b6d4499b49f7baffd045fd5226bb76abcae9dd68fca76",
+      "afterLength": 18565,
       "rules": [
         {
           "offset": 15607,
           "before": "",
-          "after": "\nfor(const storage of ['inline','records-v1'])for(const source of ['AB','C'])void test(`${storage} ${source}: new unrelated source approval retains old stable link; explicit replacement persists current pin`,async()=>{\n const f=await fixture(storage);try{\n  const x=await f.create(source);await f.promote(x.url);const line=source==='C'?'C':'A',products=source==='C'?['001']:[],a=tuple((await choices(f,line,products)).body.choices[0]);await edit(f,line,'one',[a]);\n  const extra=await f.create(source);await f.promote(extra.url);const current=tuple((await choices(f,line,products)).body.choices.find(c=>c.itemId===a.itemId));assert.equal(current.itemId,a.itemId);assert.notEqual(current.sourceVersionId,a.sourceVersionId);assert.deepEqual(current.productCodes,a.productCodes);\n  const flow=(await f.request(processURL)).body.control.workflow,w=flow.working.workspaces.find(w=>w.line===line);assert.deepEqual(w.stages[x.error.stageCode][0].ipqcAssignments,[a]);\n  const ipqc=f.load('lib/process-ipqc.ts');assert(ipqc.ipqcIssues([w],await f.values()).some(i=>i.message==='IPQC_REFERENCE_CHANGED:'+a.itemId));\n  // An unrelated explicit Canvas Save must neither discard nor auto-upgrade the historical tuple.\n  const name=['workspaces',{id:w.id},'stages',x.error.stageCode,{id:'one'},'name'];await f.command(processURL,'apply',{moduleAction:'save-canvas-v1',source:'canvas-v2:'+JSON.stringify([w.id,x.error.stageCode]),patches:[{op:'set',path:name,value:'Unrelated synthetic edit'}],guards:[{path:name,value:w.stages[x.error.stageCode][0].name}]});\n  let read=(await f.request(processURL)).body.control.workflow;assert.deepEqual(read.saved.content.workspaces.find(w=>w.line===line).stages[x.error.stageCode][0].ipqcAssignments,[a]);\n  await edit(f,line,'one',[current],[a]);read=(await f.request(processURL)).body.control.workflow;const saved=read.saved.content.workspaces.find(w=>w.line===line);assert.deepEqual(saved.stages[x.error.stageCode][0].ipqcAssignments,[current]);assert(!ipqc.ipqcIssues([saved],await f.values()).some(i=>i.message==='IPQC_REFERENCE_CHANGED:'+a.itemId));\n }finally{f.close();}\n});\n"
+          "after": "\nfor(const storage of ['inline','records-v1'])for(const source of ['AB','C'])void test(`${storage} ${source}: new unrelated source approval retains old stable link; explicit replacement persists current pin`,async()=>{\n const f=await fixture(storage);try{\n  const x=await f.create(source);await f.promote(x.url);const line=source==='C'?'C':'A',products=source==='C'?['001']:[],a=tuple((await choices(f,line,products)).body.choices[0]);await edit(f,line,'one',[a]);\n  const extra=await f.create(source);await f.promote(extra.url);const current=tuple((await choices(f,line,products)).body.choices.find(c=>c.itemId===a.itemId));assert.equal(current.itemId,a.itemId);assert.notEqual(current.sourceVersionId,a.sourceVersionId);assert.deepEqual(current.productCodes,a.productCodes);\n  const flow=(await f.request(processURL)).body.control.workflow,w=flow.working.workspaces.find(w=>w.line===line);assert.deepEqual(w.stages[x.error.stageCode][0].ipqcAssignments,[a]);\n  const ipqc=f.load('lib/process-ipqc.ts');assert(ipqc.ipqcIssues([w],await f.values()).some(i=>i.message==='IPQC_REFERENCE_CHANGED:'+a.itemId));\n  // An unrelated explicit Canvas Save must neither discard nor auto-upgrade the historical tuple.\n  const name=['workspaces',{id:w.id},'stages',x.error.stageCode,{id:'one'},'name'];await f.command(processURL,'apply',{moduleAction:'save-canvas-v1',source:'canvas-v2:'+JSON.stringify([w.id,x.error.stageCode]),patches:[{op:'set',path:name,value:'Unrelated synthetic edit'}],guards:[{path:name,value:w.stages[x.error.stageCode][0].name}]});\n  let read=(await f.request(processURL)).body.control.workflow;assert.deepEqual(read.saved.content.workspaces.find(w=>w.line===line).stages[x.error.stageCode][0].ipqcAssignments,[a]);\n  await edit(f,line,'one',[current],[a]);read=(await f.request(processURL)).body.control.workflow;const saved=read.saved.content.workspaces.find(w=>w.line===line);assert.deepEqual(saved.stages[x.error.stageCode][0].ipqcAssignments,[current]);assert(!ipqc.ipqcIssues([saved],await f.values()).some(i=>i.message==='IPQC_REFERENCE_CHANGED:'+a.itemId));\n }finally{f.close();}\n});\n\nvoid test('native rollover preparation: generated page-v1 catalog permits real AB/C source creation and approval',async()=>{\n const f=await fixture('records-v1');try{\n  const originals=[];for(const source of ['AB','C']){const x=await f.create(source);await f.promote(x.url);originals.push({source,...x});}\n  await f.generatedMasterPages([],{staleCompatibility:false});\n  for(const x of originals){const line=x.source==='C'?'C':'A',products=line==='C'?['001']:[],old=(await choices(f,line,products)).body.choices.find(c=>c.itemId===x.item.id),extra=await f.create(x.source);await f.promote(extra.url);const current=(await choices(f,line,products)).body.choices.find(c=>c.itemId===x.item.id);assert(current);assert.notEqual(current.sourceVersionId,old.sourceVersionId);assert.deepEqual(current.productCodes,old.productCodes);}\n }finally{f.close();}\n});\n"
         }
       ]
     },
@@ -606,6 +611,27 @@
           "offset": 32718,
           "before": "",
           "after": "\nvoid test('removing one retained link keeps the other warning and its explicit source comparison',async()=>{\n const f=await fixture({assignmentsOverride:[assignment(),{...assignment(),itemId:'other-item'}]});for(const v of f.versions)v.snapshot.items.push({...copy(v.snapshot.items[0]),id:'other-item',code:'OTHER'});\n await f.open();assert.equal(f.panel().querySelectorAll('[data-ipqc-warning]').length,2);assert.equal(f.panel().querySelectorAll('[data-ipqc-compare]').length,2);\n const input=f.panel().querySelector('[data-ipqc-choice]');input.checked=false;input.onchange();await tick();assert.equal(f.panel().querySelectorAll('[data-ipqc-warning]').length,1);assert.equal(f.panel().querySelectorAll('[data-ipqc-compare]').length,1);assert.match(f.panel().querySelector('[data-ipqc-warning]').textContent,/other-item/);\n await f.compare();assert(f.panel().querySelector('[data-ipqc-adopt]'));assert.equal(f.posts().length,0);\n});\n"
+        }
+      ]
+    },
+    "tests/process-ipqc-link-fixture.cjs": {
+      "beforeBlob": "e453ce84c2e14db164cae9d6d8843a1d752efae0",
+      "beforeHash": "d6fac50a23a3a4235d9654c562e816a22e99353ea22d4ca90fad56152abe76ea",
+      "beforeNormalizedHash": "d6fac50a23a3a4235d9654c562e816a22e99353ea22d4ca90fad56152abe76ea",
+      "beforeLength": 9077,
+      "beforeCRLF": [],
+      "afterHash": "0831706107ec9231817a51140d4e3ce7e3128b859ac5df593a6fd99dc2b24911",
+      "afterLength": 9142,
+      "rules": [
+        {
+          "offset": 7559,
+          "before": " async function generatedMasterPages(routeless=[]){\n",
+          "after": " async function generatedMasterPages(routeless=[],{staleCompatibility=true}={}){\n"
+        },
+        {
+          "offset": 8071,
+          "before": "  const root={pageDraftLayout:'page-v1',active:{...copy(approved),...copy(pages),C:{...copy(approved.C),products:[{...copy(approved.C.products[0]),code:'PHANTOM'}]}},versions:Object.entries(pages).map(([scope,snapshot])=>({id:randomUUID(),scope,status:'approved',snapshot:copy(snapshot)}))};\n",
+          "after": "  const root={pageDraftLayout:'page-v1',active:{...copy(approved),...copy(pages),C:staleCompatibility?{...copy(approved.C),products:[{...copy(approved.C.products[0]),code:'PHANTOM'}]}:copy(approved.C)},versions:Object.entries(pages).map(([scope,snapshot])=>({id:randomUUID(),scope,status:'approved',snapshot:copy(snapshot)}))};\n"
         }
       ]
     }

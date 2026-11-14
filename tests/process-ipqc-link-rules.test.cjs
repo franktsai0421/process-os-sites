@@ -92,3 +92,11 @@ for(const storage of ['inline','records-v1'])for(const source of ['AB','C'])void
   await edit(f,line,'one',[current],[a]);read=(await f.request(processURL)).body.control.workflow;const saved=read.saved.content.workspaces.find(w=>w.line===line);assert.deepEqual(saved.stages[x.error.stageCode][0].ipqcAssignments,[current]);assert(!ipqc.ipqcIssues([saved],await f.values()).some(i=>i.message==='IPQC_REFERENCE_CHANGED:'+a.itemId));
  }finally{f.close();}
 });
+
+void test('native rollover preparation: generated page-v1 catalog permits real AB/C source creation and approval',async()=>{
+ const f=await fixture('records-v1');try{
+  const originals=[];for(const source of ['AB','C']){const x=await f.create(source);await f.promote(x.url);originals.push({source,...x});}
+  await f.generatedMasterPages([],{staleCompatibility:false});
+  for(const x of originals){const line=x.source==='C'?'C':'A',products=line==='C'?['001']:[],old=(await choices(f,line,products)).body.choices.find(c=>c.itemId===x.item.id),extra=await f.create(x.source);await f.promote(extra.url);const current=(await choices(f,line,products)).body.choices.find(c=>c.itemId===x.item.id);assert(current);assert.notEqual(current.sourceVersionId,old.sourceVersionId);assert.deepEqual(current.productCodes,old.productCodes);}
+ }finally{f.close();}
+});

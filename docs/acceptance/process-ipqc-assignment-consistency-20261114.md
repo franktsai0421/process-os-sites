@@ -39,3 +39,9 @@ NOT_RUN：v49 現場項目重讀／操作、正式環境、實體手機／真人
 - assignment-reuse、read-reuse、C-query 24 組與原 DOM parity PASS。僅調整明確新增的 retained metric／warning 預期，全部其餘展開標準、照片、占用與 lazy DOM 一致；未跑真資料速度量測。
 - lint／非增量 TypeScript／source boundaries PASS。全 repo regex scan 的兩項命中都是 main 已有的安全負例字串；本輪 changed-files scan 零 findings，無新增業務資料或憑證。
 - 精確候選 build／CI 以 PR head 的結果為準；本機 Chromium 啟動限制不冒充 native PASS。
+
+## 第一輪原生載具前置修正
+
+公開 head6769a319 的 exact-head CI 全部來源／domain／lint／TypeScript／建置通過；原生流程已通過 A 的新版本 retained／重選／Save／reload，進入 C 建立下一版來源時收到 PRODUCT_STAGE_INVALID。原載具 `generatedMasterPages()` 刻意在舊 active.C 快取放 PHANTOM，用於驗證 choices 不相信舊快取；新增的品質 create-error 仍依該相容產品檢查，兩種測試目的衝突。
+
+只修正 fixture：新增 `staleCompatibility` 選項，預設仍 true，原 PHANTOM 拒絕與 approved-page 正反例完整保留；原生來源建立流程明確用 false，讓合成 approved-page 與相容產品一致。新增 records-v1 signed-route 前置回歸，逐一建立／保存／送審／核准 AB/C 下一版並核對原 ID、新版本及相同產品。未改產品程式、API 驗證、來源核准、原 schema／資料或 CI deadline。首輪失敗不是現場驗收；最後原生結果以新 PR head 為準。
