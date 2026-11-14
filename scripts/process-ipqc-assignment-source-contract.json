@@ -382,18 +382,28 @@
       "beforeNormalizedHash": "db9b8a748b9fe135410ded6bd2c1800bbbf49fab28b2aee14b2f4a8f2501b818",
       "beforeLength": 3552,
       "beforeCRLF": [],
-      "afterHash": "f2f9640b96475151c717484c73bc7ff683dea00ebfd1a2dbbea910544f5cc01d",
-      "afterLength": 3643,
+      "afterHash": "674fe2fc804b3884134362e3b5d1b6ff4df310958fd7c74b1a66bc1a68ee947b",
+      "afterLength": 4710,
       "rules": [
         {
-          "offset": 1288,
-          "before": "        run: node --test tests/process-ipqc-link-source.test.cjs tests/lines-flow-joint-source.test.cjs tests/lines-flow-source.test.cjs tests/ipqc-save-recovery-source.test.cjs tests/navigation-adapters.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/account-password-source.test.cjs\n",
-          "after": "        run: node --test tests/process-ipqc-assignment-source.test.cjs tests/process-ipqc-link-source.test.cjs tests/lines-flow-joint-source.test.cjs tests/lines-flow-source.test.cjs tests/ipqc-save-recovery-source.test.cjs tests/navigation-adapters.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/account-password-source.test.cjs\n"
+          "offset": 250,
+          "before": "",
+          "after": "      - 'scripts/entry-performance/ipqc-index-semantics.cjs'\n"
         },
         {
-          "offset": 1706,
+          "offset": 1349,
+          "before": "        run: node --test tests/process-ipqc-link-source.test.cjs tests/lines-flow-joint-source.test.cjs tests/lines-flow-source.test.cjs tests/ipqc-save-recovery-source.test.cjs tests/navigation-adapters.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/account-password-source.test.cjs\n",
+          "after": "        run: node --test tests/process-ipqc-assignment-source.test.cjs tests/process-ipqc-link-source.test.cjs tests/lines-flow-joint-source.test.cjs tests/lines-flow-source.test.cjs tests/ipqc-save-recovery-source.test.cjs tests/navigation-adapters.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/account-password-source.test.cjs\n      - name: Actual retention renderer, historical first-match and handler guards\n        run: node scripts/entry-performance/ipqc-index-semantics.cjs\n"
+        },
+        {
+          "offset": 1919,
           "before": "        run: node --test tests/process-ipqc-link-rules.test.cjs tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-source-history-route.test.mjs tests/process-canvas-atomic-save-stack.test.mjs tests/canvas-pending-form-admission.test.mjs\n",
           "after": "        run: node --test tests/process-ipqc-assignment-state.test.mjs tests/process-ipqc-link-rules.test.cjs tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-source-history-route.test.mjs tests/process-canvas-atomic-save-stack.test.mjs tests/canvas-pending-form-admission.test.mjs\n"
+        },
+        {
+          "offset": 3856,
+          "before": "",
+          "after": "\n  retention-windows:\n    runs-on: windows-latest\n    timeout-minutes: 15\n    steps:\n      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}\n          fetch-depth: 0\n          persist-credentials: false\n      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020\n        with:\n          node-version: '24'\n          cache: npm\n      - run: npm ci --no-audit --no-fund\n      - name: Original Integrated entry retention command on Windows\n        run: node scripts/entry-performance/ipqc-index-semantics.cjs\n      - name: Existing LF/CRLF source boundary controls\n        run: node scripts/entry-performance/source-eol.test.cjs\n      - name: Actual full controller retained-link state\n        run: node --test tests/process-ipqc-assignment-state.test.mjs\n"
         }
       ]
     },
@@ -403,13 +413,13 @@
       "beforeNormalizedHash": "45a45f842c2cb7ac12be6ffb9ef6df3d9234860b71153f0a5acfe7eb0ab29592",
       "beforeLength": 181989,
       "beforeCRLF": [],
-      "afterHash": "49f1695f124c5ea34daa81114b5793dd39a59b214a68612fd12ac1421b8ecd8d",
-      "afterLength": 182383,
+      "afterHash": "b43755eb8ed52fd80befc127ffdd51b3073460c956d63d0ed2bb8cad8d547757",
+      "afterLength": 182875,
       "rules": [
         {
           "offset": 0,
           "before": "",
-          "after": "## 2026-11-14 — 製程 IPQC 舊關聯與現行選取一致性\n\n修正 A/B/C 同 ID 舊來源顯示綠色已選取、及明確重選後警示未更新的歧義；保留真失效、歷史及重複占用防護。獨立 main8bfc036 分支，只有隔離 fixture。[根因與驗證](../docs/acceptance/process-ipqc-assignment-consistency-20261114.md)。未合併、部署或操作真站資料。\n\n"
+          "after": "## 2026-11-14 — Windows IPQC retention 載具接線\n\n第31步舊 stale regex 在候選0筆匹配，改為執行現行完整警示函式；保留歷史 first-match／collision／checkbox guard 與零請求，補來源接線／語意負例和 LF/CRLF。同一原命令提早在 Linux／Windows 執行，原全套 gates 不變，產品程式及資料未改。[根因與界線](../docs/acceptance/process-ipqc-assignment-consistency-20261114.md#windows-integrated-entry-載具相容修正)。\n\n## 2026-11-14 — 製程 IPQC 舊關聯與現行選取一致性\n\n修正 A/B/C 同 ID 舊來源顯示綠色已選取、及明確重選後警示未更新的歧義；保留真失效、歷史及重複占用防護。獨立 main8bfc036 分支，只有隔離 fixture。[根因與驗證](../docs/acceptance/process-ipqc-assignment-consistency-20261114.md)。未合併、部署或操作真站資料。\n\n"
         }
       ]
     },
@@ -451,13 +461,13 @@
       "beforeNormalizedHash": "49d20c73a013214f14c8f402ff4e73d036e36deed47d08801b1bd0fbfdfde4e0",
       "beforeLength": 90573,
       "beforeCRLF": [],
-      "afterHash": "cd3234acdcf9390e43a8ec26f47dfb0b8e1509261c6b993dc22cfb16c1aff8e2",
-      "afterLength": 91061,
+      "afterHash": "f4d61c8a993c3753332adb522ec942ee0460d29ece6a38fbaffebb72d007e2c2",
+      "afterLength": 91249,
       "rules": [
         {
           "offset": 0,
           "before": "",
-          "after": "## 2026-11-14 — IPQC 關聯顯示一致性候選\n\n獨立 main8bfc036 checkout／`fix/process-ipqc-assignment-consistency-20261114`。完整追查比對身分與原版本條件，重現 A/B/C 已選取＋舊版本警示及明確重選後警示殘留；保留歷史與所有後端防護。IPQC 速度工作區和 AB/C runtime 不變。[本輪根因、隔離證據及未驗證項](docs/acceptance/process-ipqc-assignment-consistency-20261114.md)。無合併、部署或真資料操作。\n\n"
+          "after": "## 2026-11-14 — IPQC 關聯顯示一致性候選\n\n獨立 main8bfc036 checkout／`fix/process-ipqc-assignment-consistency-20261114`。完整追查比對身分與原版本條件，重現 A/B/C 已選取＋舊版本警示及明確重選後警示殘留；保留歷史與所有後端防護。IPQC 速度工作區和 AB/C runtime 不變。[本輪根因、隔離證據及未驗證項](docs/acceptance/process-ipqc-assignment-consistency-20261114.md)。Windows 第31步舊 stale 擷取載具已定向接回完整現行警示函式；原 guards、負例及全套 gates 保留，前置 Linux／Windows checks 以同一 PR 最新 head 為準。無合併、部署或真資料操作。\n\n"
         }
       ]
     },
@@ -632,6 +642,52 @@
           "offset": 8071,
           "before": "  const root={pageDraftLayout:'page-v1',active:{...copy(approved),...copy(pages),C:{...copy(approved.C),products:[{...copy(approved.C.products[0]),code:'PHANTOM'}]}},versions:Object.entries(pages).map(([scope,snapshot])=>({id:randomUUID(),scope,status:'approved',snapshot:copy(snapshot)}))};\n",
           "after": "  const root={pageDraftLayout:'page-v1',active:{...copy(approved),...copy(pages),C:staleCompatibility?{...copy(approved.C),products:[{...copy(approved.C.products[0]),code:'PHANTOM'}]}:copy(approved.C)},versions:Object.entries(pages).map(([scope,snapshot])=>({id:randomUUID(),scope,status:'approved',snapshot:copy(snapshot)}))};\n"
+        }
+      ]
+    },
+    "scripts/entry-performance/ipqc-index-semantics.cjs": {
+      "beforeBlob": "b01d65ee11d321321886dafac0b221bf4f4336c6",
+      "beforeHash": "70c5487a3b215ce814eb18eb4b2a59cfaae297c4e723b3eaa1334155fe9e1769",
+      "beforeNormalizedHash": "70c5487a3b215ce814eb18eb4b2a59cfaae297c4e723b3eaa1334155fe9e1769",
+      "beforeLength": 7774,
+      "beforeCRLF": [],
+      "afterHash": "8c59e5fc507a12df519d59eae5d4e1d663ce5818ac65d16faa080247d13df7bd",
+      "afterLength": 12921,
+      "rules": [
+        {
+          "offset": 2792,
+          "before": "function sourceParts(s){\n const start='const choices=result.choices',end='const groups=new Map()',handlerAnchor=\"panel.querySelectorAll('[data-ipqc-choice]').forEach(\";\n",
+          "after": "function sourceParts(input){\n const s=input.replaceAll('\\r\\n','\\n'),start='const choices=result.choices',end='const groups=new Map()',handlerAnchor=\"panel.querySelectorAll('[data-ipqc-choice]').forEach(\";\n"
+        },
+        {
+          "offset": 3349,
+          "before": " assert.equal(staleMatches.length,1,'unique stale expression');\n",
+          "after": " const renderer='  function renderAssignmentWarnings(',hasRenderer=s.includes(renderer);let renderSource='',stale='';\n if(hasRenderer){\n  assert.equal(staleMatches.length,0,'current renderer cannot also carry a legacy stale expression');\n  for(const anchor of [renderer,'  const referenceReasons=','  const key='])assert.equal(s.split(anchor).length,2,'unique retained source boundary: '+anchor);\n  const from=s.indexOf(renderer),to=s.indexOf('  const key=');assert(from<to,'ordered retained renderer boundaries');\n  const helpers=['h','text','label','referenceReasons'].map(name=>{const lines=s.split('\\n').filter(line=>line.startsWith('  const '+name+'='));assert.equal(lines.length,1,'unique retained helper: '+name);return lines[0];}).join('\\n');\n  renderSource=helpers+'\\n'+s.slice(from,to);\n  const wiring=\"warnings.innerHTML=(op.ipqcAssignments||[]).map(a=>{const c=byKey.get(key(a)),reasons=referenceReasons(a,c);if(!reasons.length)return '';\";\n  assert.equal(renderSource.split(wiring).length,2,'actual warning renderer must consume the retained reasons once');\n }else{assert.equal(staleMatches.length,1,'unique stale expression');stale=staleMatches[0][0];}\n"
+        },
+        {
+          "offset": 4857,
+          "before": " return{setup,stale:staleMatches[0][0],lookup:lookups[0][1],handler};\n",
+          "after": " return{setup,stale,lookup:lookups[0][1],handler,renderSource,hasRenderer};\n"
+        },
+        {
+          "offset": 4935,
+          "before": "function actual(file){const {setup,stale,lookup}=sourceParts(fs.readFileSync(file,'utf8'));return vm.runInNewContext('(result,op,input)=>{'+setup+stale+'return {stale,choice:'+lookup+'};}',{key,window:{},state:{editorLine:'A',category:'SYN'},editor:null,ensureCategoryEditor:()=>({})});}\n",
+          "after": "function viewPorts(){\n const warnings={innerHTML:'',querySelectorAll(selector){assert.equal(selector,'[data-ipqc-remove]');return[];}};\n return{warnings,panel:{querySelector(selector){assert.equal(selector,'[data-ipqc-warnings]');return warnings;}},document:{documentElement:{lang:'zh'},querySelector(selector){assert.equal(selector,'#apply-operation');return{disabled:false};}},escapeHtml:value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('\"','&quot;')};\n}\nfunction actualSource(source){\n const p=sourceParts(source),ports=viewPorts();\n // Observe which real map callbacks emit warnings, retaining native map return,\n // row identity/order and the entire production renderer. No predicate is copied.\n const render=p.hasRenderer?`const stale=[];let maps=0;const assigned=Array.from(op.ipqcAssignments||[]);Object.defineProperty(assigned,'map',{value:function(callback){maps++;return Array.prototype.map.call(this,(row,index,array)=>{const markup=callback(row,index,array);if(markup)stale.push(row);return markup;});}});renderAssignmentWarnings(panel,{...op,ipqcAssignments:assigned},choicesByKey,null,()=>{throw Error('RENDER_MUST_NOT_EDIT');});assert.equal(maps,1);`:p.stale;\n return vm.runInNewContext(p.renderSource+'\\n(result,op,input)=>{'+p.setup+render+'return {stale,choice:'+p.lookup+'};}',{assert,...ports,key,window:{},state:{editorLine:'A',category:'SYN'},editor:null,ensureCategoryEditor:()=>({}),fetch(){throw Error('UNEXPECTED_REQUEST');}});\n}\nfunction actual(file){return actualSource(fs.readFileSync(file,'utf8'));}\n"
+        },
+        {
+          "offset": 7386,
+          "before": "",
+          "after": "\n// Explicit AB rule delta: only C compares assignment product membership.\n// All other historical stale/first-match behavior remains under the original comparisons.\nconst currentFile=process.env.IPQC_CANDIDATE||path.resolve('public/process/process-ipqc.js'),currentSource=fs.readFileSync(currentFile,'utf8');\nconst sample=(source='AB')=>({source,scope:source==='C'?'C':'A',itemId:'stable',sourceVersionId:'v1',productCodes:['P1','P2']});\nfunction retainedMatrix(run){\n for(const source of ['AB','C']){\n  const c=sample(source),selected={...c,productCodes:['different']},input={dataset:{ipqcChoice:key(c)}};\n  assert.deepEqual(Array.from(run({choices:[c]},{ipqcAssignments:[selected]},input).stale),source==='C'?[selected]:[],'only C products alter current retention');\n  const old={...c,sourceVersionId:'old'},missing={...c,itemId:'missing'};\n  for(const assigned of [[c],[{...c,productCodes:['P2','P1']}],[old],[missing],[old,missing]]){\n   const expected=assigned.filter(a=>a===old||a===missing);assert.deepEqual(Array.from(run({choices:[c]},{ipqcAssignments:assigned},input).stale),expected);\n  }\n  assert.equal(run({choices:[c,{...c,sourceVersionId:'later-duplicate'}]},{ipqcAssignments:[c]},input).choice,c);\n }\n}\nretainedMatrix(newActual);\nfor(const eol of ['\\n','\\r\\n'])retainedMatrix(actualSource(currentSource.replaceAll('\\r\\n','\\n').replaceAll('\\n',eol)));\nconst change=(before,after)=>{assert.equal(currentSource.split(before).length,2,'unique fault-injection anchor');return currentSource.replace(before,after);};\nfor(const source of [currentSource+'\\n'+sourceParts(currentSource).renderSource,change('reasons=referenceReasons(a,c);if(!reasons.length)',\"reasons=[];if(!reasons.length)\")])assert.throws(()=>sourceParts(source),/unique retained|consume the retained/);\nfor(const source of [change(\"a.sourceVersionId!==c.sourceVersionId\",\"a.sourceVersionId===c.sourceVersionId\"),change(\"a.source==='C'&&JSON.stringify\",'JSON.stringify'),change(\"!c?['unavailable']\",\"!c?[]\")])assert.throws(()=>retainedMatrix(actualSource(source)),/current retention|Expected values/);\nassert.throws(()=>retainedMatrix(actualSource(change('if(!choicesByKey.has(k))',''))),{code:'ERR_ASSERTION'},'last duplicate must not replace the first source row');\nconsole.log('actual complete warning renderer: AB product delta, C membership, versions, missing source, order and LF/CRLF; binding/semantic negative controls PASS');\n"
+        },
+        {
+          "offset": 10919,
+          "before": " const box={window:{},state:{editorLine:'A',category:'SYN'},key,result:{choices:[choice]},op,input,ensureCategoryEditor:()=>({stage:[op]}),valid:()=>current,editor:{canEdit:()=>canEdit},badge:status=>status,updateOverview:()=>updates++,Event:class{constructor(type){this.type=type;}},panel:{querySelectorAll:()=>[input],dispatchEvent(event){assert.equal(event.type,'input');events++;}},fetch(){requests++;throw Error('UNEXPECTED_REQUEST');}};\n vm.runInNewContext(parts.setup+parts.handler,box);input.onchange();return{op,original,before,updates,events,requests,article};\n",
+          "after": " const ports=viewPorts();let renders=0;Object.defineProperty(ports.warnings,'innerHTML',{set(){renders++;}});\n const box={...ports,window:{},state:{editorLine:'A',category:'SYN'},key,result:{choices:[choice]},op,input,ensureCategoryEditor:()=>({stage:[op]}),valid:()=>current,editor:{canEdit:()=>canEdit},badge:status=>status,updateOverview:()=>updates++,Event:class{constructor(type){this.type=type;}},panel:{querySelector:selector=>ports.panel.querySelector(selector),querySelectorAll:()=>[input],dispatchEvent(event){assert.equal(event.type,'input');events++;}},fetch(){requests++;throw Error('UNEXPECTED_REQUEST');}};\n vm.runInNewContext(parts.renderSource+parts.setup+parts.handler,box);input.onchange();return{op,original,before,updates,events,requests,renders,article};\n"
+        },
+        {
+          "offset": 11698,
+          "before": "for(const options of [{selected:true},{selected:true,checked:false,current:false},{selected:true,checked:false,canEdit:false},{missing:true}]){const f=checkbox(options);assert.equal(f.op.ipqcAssignments,f.before,'guard must not replace the original assignment array');if(options.selected)assert.equal(f.op.ipqcAssignments[0],f.original);assert.equal(f.updates,0);assert.equal(f.events,0);assert.equal(f.requests,0);}\nconst chosen=checkbox();assert.equal(chosen.op.ipqcAssignments.length,1);assert.equal(chosen.op.ipqcAssignments[0].sourceVersionId,'new-source-version');assert.equal(chosen.updates,1);assert.equal(chosen.events,1);assert.equal(chosen.requests,0);assert.equal(chosen.article.dataset.status,'selected');\nconst removed=checkbox({selected:true,checked:false});assert.equal(removed.op.ipqcAssignments.length,0);assert.equal(removed.updates,1);assert.equal(removed.events,1);assert.equal(removed.requests,0);assert.equal(removed.article.dataset.status,'available');\n",
+          "after": "for(const options of [{selected:true},{selected:true,checked:false,current:false},{selected:true,checked:false,canEdit:false},{missing:true}]){const f=checkbox(options);assert.equal(f.op.ipqcAssignments,f.before,'guard must not replace the original assignment array');if(options.selected)assert.equal(f.op.ipqcAssignments[0],f.original);assert.equal(f.updates,0);assert.equal(f.events,0);assert.equal(f.requests,0);assert.equal(f.renders,0);}\nconst chosen=checkbox();assert.equal(chosen.op.ipqcAssignments.length,1);assert.equal(chosen.op.ipqcAssignments[0].sourceVersionId,'new-source-version');assert.equal(chosen.updates,1);assert.equal(chosen.events,1);assert.equal(chosen.requests,0);assert.equal(chosen.renders,1);assert.equal(chosen.article.dataset.status,'selected');\nconst removed=checkbox({selected:true,checked:false});assert.equal(removed.op.ipqcAssignments.length,0);assert.equal(removed.updates,1);assert.equal(removed.events,1);assert.equal(removed.requests,0);assert.equal(removed.renders,1);assert.equal(removed.article.dataset.status,'available');\n"
         }
       ]
     }

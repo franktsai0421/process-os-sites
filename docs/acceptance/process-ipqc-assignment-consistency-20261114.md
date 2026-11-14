@@ -45,3 +45,11 @@ NOT_RUN：v49 現場項目重讀／操作、正式環境、實體手機／真人
 公開 head6769a319 的 exact-head CI 全部來源／domain／lint／TypeScript／建置通過；原生流程已通過 A 的新版本 retained／重選／Save／reload，進入 C 建立下一版來源時收到 PRODUCT_STAGE_INVALID。原載具 `generatedMasterPages()` 刻意在舊 active.C 快取放 PHANTOM，用於驗證 choices 不相信舊快取；新增的品質 create-error 仍依該相容產品檢查，兩種測試目的衝突。
 
 只修正 fixture：新增 `staleCompatibility` 選項，預設仍 true，原 PHANTOM 拒絕與 approved-page 正反例完整保留；原生來源建立流程明確用 false，讓合成 approved-page 與相容產品一致。新增 records-v1 signed-route 前置回歸，逐一建立／保存／送審／核准 AB/C 下一版並核對原 ID、新版本及相同產品。未改產品程式、API 驗證、來源核准、原 schema／資料或 CI deadline。首輪失敗不是現場驗收；最後原生結果以新 PR head 為準。
+
+## Windows Integrated entry 載具相容修正
+
+原 head d486b4ff 的 Windows run43615398702／job132509246621 在第31步 `ipqc-index-semantics.cjs:20` 停下：舊載具以 regex 要求唯一 `const stale=...filter(...)`；現行 controller 已用 referenceReasons＋完整 renderAssignmentWarnings，擷取數量為0，實際候選語意比較與 checkbox guard 尚未執行。Dot 以原命令重現同一 0!==1；不是產品 UI 或資料保存失敗。
+
+只更新測試載具：歷史 fixture 照原來源執行，現行候選直接執行完整警示函式及其真實 helper。測試只觀測原生 map callback 哪些實際產生非空警示，保留原 map 回傳、物件身分與順序；不投影候選回舊版、不另寫 stale predicate。舊 lookup 次數、JSON tuple collision、first-match 及實際 checkbox 的 duplicate／owner／edit／missing／local-only 零請求斷言完整保留。明確驗 AB 產品不影響、C 產品影響、版本／缺來源、LF／CRLF，並以重複 helper／斷接 renderer／錯版／移除C條件／漏缺來源／last-wins 等有效負例證明檢查會拒絕漂移。
+
+同一原命令提早加入既有 exact-head workflow 的 Linux 與 Windows checks（Windows 另執行原 LF/CRLF controls 及實際完整 controller 狀態測試），原 Windows 第31步及後續 gates 不刪除、不跳過、不延時；所有產品程式、ACL、資料、schema、原 manifests 與並行速度工作區均未修改。最新 head／CI 以原草稿 PR #118 為準。
