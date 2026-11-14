@@ -1,6 +1,6 @@
 # Process review recovery candidate
 
-Base: actual GitHub main `b41b993d3d80580214de7cf1af122deb1c0745bf` (#113).
+Base: actual GitHub main `4aa0f24c66861fb735d6ad581b81b190771122f8` (#114), integrated after the initial #113-based candidate.
 Independent cloud checkout and `fix/process-review-recovery-20261114` branch.
 No company workstation, existing browser tab, deployed Site or business data was accessed.
 
@@ -20,7 +20,7 @@ The cause or result of Diem's real V31 withdrawal is **not established**. The su
 
 ## Scope and parallel work
 
-Read #114 at `7751989cb827859ba6a0fba47928c6d9135f10ad` and #115 at `4ec19c40d04fb389d6c6329a7aa2c31341176802`. Neither ref was changed or merged. #114 overlaps shared-draft-client/index; #115 also overlaps shared-draft-client/index, historical source helpers and documentation. Reconcile these semantic differences before combining candidates; separate CI passes do not prove a combined tree. This branch independently changes only process lifecycle budgets, receipt identification and review UI/controller behavior.
+Read #114 at `7751989cb827859ba6a0fba47928c6d9135f10ad` and #115 at `4ec19c40d04fb389d6c6329a7aa2c31341176802`. Neither source ref was changed. Main subsequently merged #114 at `4aa0f24c`; this branch integrates that main with both IPQC progress/180-second bounded recovery and the independently scoped process lifecycle budget intact. Exact process inverse now returns that genuine main, then the existing IPQC historical proof chain. #115 remains separate and overlaps shared-draft-client/index, historical source helpers and documentation; it still requires semantic reconciliation before combination.
 
 The source-only exact inverse proves current changed bytes back to actual main and plugs into the retained password/catalog/equipment/Submit/quality proof chain. Unknown or effective-drift bytes are rejected; existing historical fingerprints and negative controls remain.
 

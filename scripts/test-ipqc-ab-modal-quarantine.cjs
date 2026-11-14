@@ -5,13 +5,14 @@ const shared=fs.readFileSync('public/process/shared-draft-client.js','utf8');
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 const body=revision=>({revision,control:{scopes:{'A:G':{versions:[{id:'d',status:'draft',snapshot:{errors:[{id:'e',stageCode:'CUT',name:'SERVER NAME'}],items:[]}}]}}},catalog:{groups:[{line:'A',name:'G',defaultStages:['CUT']}],products:[],stages:[]},equipment:[]});
 function fixture({missingPort}={}){
- const pending=[],identity={id:'owner',role:'admin'},listeners=[],retry={},nameInput={value:'UNSAVED PRIVATE'};
+ const pending=[],identity={id:'owner',role:'admin'},listeners=[],progressNodes=[],retry={},nameInput={value:'UNSAVED PRIVATE'};
  const sync={identity,identityGeneration:()=>1,captureDelivery:()=>1,isCurrentDelivery:value=>value===1,platformHeaders:()=>({})};
  if(missingPort)delete sync[missingPort];
  const window={VersionDraftUI:{t:zh=>zh,mount(){}},addEventListener(){},ProcessSync:sync,ProcessIPQC:{mountReferences(){},referenceMarkup:()=>''}};
  const visible={isConnected:true,dataset:{activeTab:'quality-ipqc-ab'},innerHTML:'old content',childNodes:[nameInput],
-  querySelector(selector){if(selector==='[data-ab-access-retry]')return retry;if(selector==='#ab-error-name')return nameInput;if(selector.startsWith('#')&&this.innerHTML.includes('id="'+selector.slice(1)+'"'))return{addEventListener:(type,handler)=>listeners.push({s:selector,type,handler})};return null;},querySelectorAll:()=>[]};
- const context={window,document:{documentElement:{lang:'zh'},contains:()=>true,querySelectorAll:()=>[],querySelector:()=>null},MutationObserver:class{observe(){}},setTimeout,clearTimeout,AbortController,crypto:require('node:crypto').webcrypto,sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},CustomEvent:class{},URLSearchParams,location:{search:''},structuredClone,console,
+  prepend(node){node.isConnected=true;progressNodes.unshift(node);},
+  querySelector(selector){if(selector==='[data-ipqc-request-progress]')return progressNodes.find(node=>node.isConnected)||null;if(selector==='[data-ab-access-retry]')return retry;if(selector==='#ab-error-name')return nameInput;if(selector.startsWith('#')&&this.innerHTML.includes('id="'+selector.slice(1)+'"'))return{addEventListener:(type,handler)=>listeners.push({s:selector,type,handler})};return null;},querySelectorAll:()=>[]};
+ const context={window,document:{documentElement:{lang:'zh'},createElement(tag){assert.equal(tag,'p','real progress widget creates a text-only paragraph');return{dataset:{},isConnected:false,hidden:false,textContent:'',setAttribute(name,value){this[name]=value;},remove(){this.isConnected=false;}};},contains:()=>true,querySelectorAll:()=>[],querySelector:()=>null},MutationObserver:class{observe(){}},setTimeout,clearTimeout,AbortController,crypto:require('node:crypto').webcrypto,sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},CustomEvent:class{},URLSearchParams,location:{search:''},structuredClone,console,
   fetch:()=>new Promise(resolve=>pending.push(resolve))};
  vm.createContext(context);vm.runInContext(shared,context);require('./entry-performance/fixture-ports.cjs')(context);
  // Seed only a clean selection. The real load below, not this hook, establishes
@@ -21,7 +22,7 @@ function fixture({missingPort}={}){
  vm.runInContext(source.replace(/\}\)\(\);\s*$/,injection+'})();'),context);
  const t=window.test;t.init(body(1),visible);
  const answer=(index,data,status=200)=>{assert.equal(typeof pending[index],'function','expected actual dispatched request '+index);pending[index]({ok:status<400,status,json:async()=>data});};
- return{t,visible,pending,listeners,retry,sync,identity,answer,
+ return{t,visible,pending,listeners,progressNodes,retry,sync,identity,answer,
   async prime(){const start=pending.length,loading=t.load();assert.equal(pending.length-start,2);answer(start,{revision:1,permissions:{view:true,edit:true}});answer(start+1,body(1));assert.equal(await loading,true);assert.equal(t.get().inputBasisOwner.actor,identity);assert.equal(t.get().inputBasisOwner.host,visible);}};
 }
 void (async()=>{
@@ -36,6 +37,7 @@ void (async()=>{
  assert.equal(visible.innerHTML.includes('ipqcab-overlay'),false);
  for(const field of ['modal','viewer','modalBase','modalGeneration'])assert.equal(t.get()[field],null,field);
  assert.equal(t.get().privateQuarantine,retained);assert.equal(retained.modal.name,'UNSAVED PRIVATE');
+ assert(f.progressNodes.some(node=>node.isConnected&&node.dataset.ipqcRequestProgress==='true'&&node.role==='status'));assert(f.progressNodes.every(node=>!node.textContent.includes('UNSAVED PRIVATE')));
  assert(visible.innerHTML.includes('SERVER NAME'));assert(!visible.innerHTML.includes('ipqcab-modal'));assert(listeners.some(value=>value.s==='#ipqcab-line'&&value.type==='change'));
  const negative=[];
  // Missing original basis/strict owner ports must remain pre-GET rejections.

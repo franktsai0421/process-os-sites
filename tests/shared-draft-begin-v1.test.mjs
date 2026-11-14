@@ -1,3 +1,4 @@
+import ipqcRecoverySource from '../scripts/ipqc-save-recovery-source-contract.cjs';
 // Actual shared transport, synthetic HTTP/storage/clock; no live endpoint or business data.
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';import {webcrypto} from 'node:crypto';
 import {beginRecoveryFailureSummary,installBeginRecoveryProbe} from './begin-recovery-browser.mjs';
@@ -123,7 +124,8 @@ void test('failure diagnostics preserve every original native assertion, receipt
  const current=fs.readFileSync('tests/begin-recovery-browser.mjs','utf8');
  function reverse(raw){
   // Git checkout EOL alone may vary; all resulting source bytes must still match the original pinned buffer.
-  const source=raw.replace(/\r\n/g,'\n');assert(!source.includes('\r'),'Unpaired checkout CR is not source equivalence');
+  const checked=ipqcRecoverySource.projectKnown(Buffer.from(raw),'tests/begin-recovery-browser.mjs').toString('utf8');
+  const source=checked.replace(/\r\n/g,'\n');assert(!source.includes('\r'),'Unpaired checkout CR is not source equivalence');
   const start=source.indexOf('// Public CI failure output is an allowlist,'),end=source.indexOf('export async function runBeginRecoveryBrowser(');assert(start>=0&&end>start);
   const helper=source.slice(start,end);assert.equal(source.split(helper).length,2);let projected=source.replace(helper,'');
   for(const addition of ['   await context.addInitScript(installBeginRecoveryProbe);\n','clients:window.__beginRecoveryProbe?.(),','navigationStatus:document.documentElement.dataset.processNavigationStatus,readyGeneration:document.documentElement.dataset.processDestinationReadyGeneration,','console.error(JSON.stringify(beginRecoveryFailureSummary(report)));']){assert.equal(projected.split(addition).length,2);projected=projected.replace(addition,'');}

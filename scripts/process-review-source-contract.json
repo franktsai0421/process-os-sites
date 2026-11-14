@@ -1,6 +1,6 @@
 {
-  "base": "b41b993d3d80580214de7cf1af122deb1c0745bf",
-  "baseTree": "c18b888d47a0d57ef9483d24a57ad085df00526b",
+  "base": "4aa0f24c66861fb735d6ad581b81b190771122f8",
+  "baseTree": "5caeda2f20ed90bd9d725d1117fb3e201297f7bd",
   "files": {
     "public/process/process-authoring-v3.js": {
       "beforeHash": "4ffbeea3c0b39b6760aa778b09a0439ff913f3dda2f56bd825195a2f0e9dac08",
@@ -86,74 +86,74 @@
       ]
     },
     "public/process/shared-draft-client.js": {
-      "beforeHash": "32886b28ef01e46cf4b04b4b9f0d3b9e02047016226756c18731c0cddb43b70e",
-      "beforeNormalizedHash": "32886b28ef01e46cf4b04b4b9f0d3b9e02047016226756c18731c0cddb43b70e",
-      "afterHash": "034c0c7ad5a6c1a8d4cd28ed9be8ed7d7f7ab1c1507e4f3f6cd05132af152c66",
+      "beforeHash": "6f6919ff923e1fa145246cb5496a40f882b1892084b707ada0b6d913454f7673",
+      "beforeNormalizedHash": "6f6919ff923e1fa145246cb5496a40f882b1892084b707ada0b6d913454f7673",
+      "afterHash": "9a0b620be620acd9d420528b48be738300795a706d42a39053ba1ca75b42a7f2",
       "beforeCRLF": [],
       "rules": [
         {
-          "offset": 32611,
+          "offset": 33962,
           "before": "",
           "after": "    const processLifecycle=command=>/^\\/api\\/process-authoring\\/workflow(?:\\?|$)/.test(endpoint)&&['submit','withdraw','approve','return'].includes(command?.action);\n"
         },
         {
-          "offset": 59014,
+          "offset": 61123,
           "before": "",
           "after": "    const operationQuery=id=>query(`operationId=${encodeURIComponent(id)}`)+(/^\\/api\\/process-authoring\\/workflow(?:\\?|$)/.test(endpoint)?'&accessEvent=1':'');\n    function identifiedReceipt(result,command){if(command&&processLifecycle(command)&&result.operationAction!==command.action)throw Object.assign(Error('INVALID_OPERATION_RECEIPT'),{operationId:command.operationId});return result;}\n"
         },
         {
-          "offset": 117491,
-          "before": "      const requestDeadline=['begin','begin-v1'].includes(body?.action)||cCreate?45000:body?mutationDeadline:45000;\n",
-          "after": "      const requestDeadline=['begin','begin-v1'].includes(body?.action)||cCreate?45000:body?(processLifecycle(body.command)?180000:mutationDeadline):45000;\n"
+          "offset": 119600,
+          "before": "      const requestDeadline=ipqcSlowIO?180000:['begin','begin-v1'].includes(body?.action)||cCreate?45000:body?mutationDeadline:45000;\n",
+          "after": "      const requestDeadline=ipqcSlowIO?180000:['begin','begin-v1'].includes(body?.action)||cCreate?45000:body?(processLifecycle(body.command)?180000:mutationDeadline):45000;\n"
         },
         {
-          "offset": 133301,
+          "offset": 135937,
           "before": "      const command=unknown,owner=unknownOwner,original=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(command.operationId)}`)),command.operationId,command.action==='apply'?command.generation:undefined,command.action),result=await masterSaveReadback(equipmentLocalSave?await equipmentTerminal(original,command):original,command);\n",
           "after": "      const command=unknown,owner=unknownOwner,original=confirmedReceipt(identifiedReceipt(await request(operationQuery(command.operationId)),command),command.operationId,command.action==='apply'?command.generation:undefined,command.action),result=await masterSaveReadback(equipmentLocalSave?await equipmentTerminal(original,command):original,command);\n"
         },
         {
-          "offset": 150349,
+          "offset": 153272,
           "before": "",
           "after": "      operationInfo:()=>unknown?{operationId:unknown.operationId,action:unknown.action}:null,\n"
         },
         {
-          "offset": 159911,
+          "offset": 162834,
           "before": "      receipt:async (id,generation)=>{assertOwner();const command=unknown?.operationId===id?unknown:null,owner=unknownOwner,expected=generation??(command?.action==='apply'?command.generation:undefined),result=await masterSaveReadback(confirmedReceipt(await request(query(`operationId=${encodeURIComponent(id)}`)),id,expected,command?.action),command);if(externalBounded&&boundedRecord?.operationId===id){const settled=await boundedTerminal(result,boundedRecord);if(!unknown)syncFailures.delete(id);return settled;}if(externalBounded&&boundedScope==='fqc'&&!boundedRecord&&boundedText(generation)&&boundedKnown&&boundedKnown.generation!==generation){return historicalReadback(result,null,await request(endpoint,undefined,{requireAcceptedAccess:true}));}if(command)window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(unknown?.operationId===id)retain(null);syncFailures.delete(id);return result;},\n",
           "after": "      receipt:async (id,generation)=>{assertOwner();const command=unknown?.operationId===id?unknown:null,owner=unknownOwner,expected=generation??(command?.action==='apply'?command.generation:undefined),result=await masterSaveReadback(confirmedReceipt(identifiedReceipt(await request(operationQuery(id)),command),id,expected,command?.action),command);if(externalBounded&&boundedRecord?.operationId===id){const settled=await boundedTerminal(result,boundedRecord);if(!unknown)syncFailures.delete(id);return settled;}if(externalBounded&&boundedScope==='fqc'&&!boundedRecord&&boundedText(generation)&&boundedKnown&&boundedKnown.generation!==generation){return historicalReadback(result,null,await request(endpoint,undefined,{requireAcceptedAccess:true}));}if(command)window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(unknown?.operationId===id)retain(null);syncFailures.delete(id);return result;},\n"
         }
       ]
     },
     "public/process/index.html": {
-      "beforeHash": "e1b582b80a562dfd218e9b808dd8d5c562ae988e06573e108a402a60b6292f08",
-      "beforeNormalizedHash": "e1b582b80a562dfd218e9b808dd8d5c562ae988e06573e108a402a60b6292f08",
-      "afterHash": "d2d51ea9a4bc2903ec468ec0a3153a575a8db1a1edea7c55dd9cf83e0e521f9c",
+      "beforeHash": "9981c1f7272189f05c944b1881349ce1eb9dc66f8e7e1fee33072b1c92c407a0",
+      "beforeNormalizedHash": "9981c1f7272189f05c944b1881349ce1eb9dc66f8e7e1fee33072b1c92c407a0",
+      "afterHash": "92dee408153ef9912282eb429949202c7ba1bcc4074965d507ce15200bd7b544",
       "beforeCRLF": [],
       "rules": [
         {
-          "offset": 6898,
-          "before": "    <script data-process-src=\"shared-draft-client.js?v=20261113-abc-master1\"></script>\n",
+          "offset": 6893,
+          "before": "    <script data-process-src=\"shared-draft-client.js?v=20261113-ipqc-silent3\"></script>\n",
           "after": "    <script data-process-src=\"shared-draft-client.js?v=20261114-process-review1\"></script>\n"
         },
         {
-          "offset": 9009,
+          "offset": 9004,
           "before": "    <script data-process-src=\"process-authoring-v3.js?v=20261113-submit-outcome1\"></script>\n",
           "after": "    <script data-process-src=\"process-authoring-v3.js?v=20261114-process-review1\"></script>\n"
         }
       ]
     },
     "tests/shared-draft-receipt-recovery.test.mjs": {
-      "beforeHash": "beb565f8f28a6cb3374272bdd60c88742afc6f01abec44a10f4b1054ead6b521",
-      "beforeNormalizedHash": "beb565f8f28a6cb3374272bdd60c88742afc6f01abec44a10f4b1054ead6b521",
-      "afterHash": "a6c82eceb5d73a067d2749f6a4aa67b7cae066418cb884a0c07ac1c639760b7b",
+      "beforeHash": "c73edbcd3c1fc602916eb00be33de8e8b6fa9f5c7118b4752ecad054a4e0cc4f",
+      "beforeNormalizedHash": "c73edbcd3c1fc602916eb00be33de8e8b6fa9f5c7118b4752ecad054a4e0cc4f",
+      "afterHash": "d67003f9f01a2d7c76c76e5a8cbf602a853627b58d15c688b4c9d6c9845924b8",
       "beforeCRLF": [],
       "rules": [
         {
           "offset": 14841,
-          "before": "  'shared-draft-client.js':'20261113-abc-master1',\n  'process-authoring-v3.js':'20261113-submit-outcome1',\n",
+          "before": "  'shared-draft-client.js':'20261113-ipqc-silent3',\n  'process-authoring-v3.js':'20261113-submit-outcome1',\n",
           "after": "  'shared-draft-client.js':'20261114-process-review1',\n  'process-authoring-v3.js':'20261114-process-review1',\n"
         },
         {
-          "offset": 16622,
+          "offset": 16613,
           "before": "",
           "after": "for(const action of ['submit','withdraw','approve','return'])void test('authoring '+action+' waits beyond45s and aborts only at180s without replay',async()=>{\n const f=deadlineFixture('/api/process-authoring/workflow?caseMetadata=1'),result=observe(f.client.command('g',action,{caseId:'case',savedId:'saved',expectedRevision:1}));await tick();\n if(action==='submit'){f.calls[0].respond({permissions:{submit:true},otherReviewerAvailable:true});await tick();}\n const call=f.calls.find(c=>c.options.method==='POST'),command=JSON.parse(call.options.body).command,stored=[...f.memory];\n await f.advance(179999);assert.equal(call.aborted,false);assert.equal(result.settled,false);assert.deepEqual([...f.memory],stored);\n await f.advance(1);assert.equal(call.aborted,true);const lookup=f.calls.at(-1);assert.equal(lookup.options.method,'GET');assert(lookup.url.includes('operationId='+command.operationId));assert(lookup.url.includes('accessEvent=1'));\n lookup.respond({error:'OPERATION_NOT_FOUND'},404);await result.done;assert.match(result.error.message,/RESULT_UNKNOWN/);assert.equal(f.client.operationInfo().operationId,command.operationId);assert.deepEqual([...f.memory],stored);\n const inquiry=observe(f.client.retryUnknown());await tick();f.calls.at(-1).respond({...ack(command,{generation:'rotated'}),operationAction:action});await inquiry.done;assert.equal(inquiry.error,undefined);assert(!f.client.hasUnknown());assert.equal(f.calls.filter(c=>c.options.method==='POST').length,1);\n});\n"
         }
@@ -183,45 +183,45 @@
       ]
     },
     "tests/equipment-submit-source.test.cjs": {
-      "beforeHash": "b4bd8f0a774e18363f4b64fd013ee96e73c551229d28ae94c1350798d1c565c0",
-      "beforeNormalizedHash": "b4bd8f0a774e18363f4b64fd013ee96e73c551229d28ae94c1350798d1c565c0",
+      "beforeHash": "a9a9766daccf2de927d14dfc7e2abbdb9a4f309fc1e77ed0989c1818d62570ba",
+      "beforeNormalizedHash": "a9a9766daccf2de927d14dfc7e2abbdb9a4f309fc1e77ed0989c1818d62570ba",
       "afterHash": "7765e66e32732dcdf9155dfdfcdaedbb9930108290e81813d84acdb30f0b5d81",
       "beforeCRLF": [],
       "rules": [
         {
           "offset": 3147,
-          "before": " assert.equal(index.split('shared-draft-client.js?v=20261113-abc-master1').length,2);\n",
+          "before": " assert.equal(index.split('shared-draft-client.js?v=20261113-ipqc-silent3').length,2);\n",
           "after": " assert.equal(index.split('shared-draft-client.js?v=20261114-process-review1').length,2);\n"
         }
       ]
     },
     "tests/account-page-entry.test.cjs": {
-      "beforeHash": "fad81270c57b2393c09c087d8a89b8dc33f5b19e242ff221d042e3c929fbe0db",
-      "beforeNormalizedHash": "fad81270c57b2393c09c087d8a89b8dc33f5b19e242ff221d042e3c929fbe0db",
+      "beforeHash": "9d0c01ab9d33aa10207eb3da72746eda1fc8bc9723b4e969471b70895e7bc3f1",
+      "beforeNormalizedHash": "9d0c01ab9d33aa10207eb3da72746eda1fc8bc9723b4e969471b70895e7bc3f1",
       "afterHash": "993480caf570a76b7fcec011bf95b2e498ca355349429a825149a022b5a0214d",
       "beforeCRLF": [],
       "rules": [
         {
           "offset": 454,
-          "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-abc-master1','master-page-editor.js':'20261113-abc-master2','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261113-password-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
+          "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-ipqc-silent3','master-page-editor.js':'20261113-abc-master2','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261113-password-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
           "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261114-process-review1','master-page-editor.js':'20261113-abc-master2','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261113-password-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
         }
       ]
     },
     "tests/navigation-adapters.test.mjs": {
-      "beforeHash": "0e82c6f33a59f668e405f1c92e61b3539b050c9e6153adee8720d64434da32bb",
-      "beforeNormalizedHash": "0e82c6f33a59f668e405f1c92e61b3539b050c9e6153adee8720d64434da32bb",
-      "afterHash": "e69c7e9d3f95092e7e84165710d9a0a75217eb197bf97500c58bd66992bfb93c",
+      "beforeHash": "bb51f55fefabcb309b118b8e1de72098f0e2d2f020f9ce4842a57a14660f30e7",
+      "beforeNormalizedHash": "bb51f55fefabcb309b118b8e1de72098f0e2d2f020f9ce4842a57a14660f30e7",
+      "afterHash": "acace142dd28368c4b8148d1a1ca5b0a78f4c2097ec7bd8b644ff173104b2fea",
       "beforeCRLF": [],
       "rules": [
         {
-          "offset": 17170,
+          "offset": 17163,
           "before": "  'process-authoring-v3.js':'20261113-submit-outcome1',\n",
           "after": "  'process-authoring-v3.js':'20261114-process-review1',\n"
         },
         {
-          "offset": 17463,
-          "before": "  'shared-draft-client.js':'20261113-abc-master1',\n",
+          "offset": 17456,
+          "before": "  'shared-draft-client.js':'20261113-ipqc-silent3',\n",
           "after": "  'shared-draft-client.js':'20261114-process-review1',\n"
         }
       ]
