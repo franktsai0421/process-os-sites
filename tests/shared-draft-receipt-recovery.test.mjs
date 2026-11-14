@@ -58,7 +58,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
  const html=fs.readFileSync(path.join(root,'public/process/index.html'),'utf8');
  const references=[...html.matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
  const versions={
-  'process-editor.js':'20261110-process-integration2',
+  'process-editor.js':'20261114-ipqc-link1',
   'version-draft-ui.js':'20261113-submit-outcome1',
   'version-draft-ui.css':'20261112-quality-integration1',
   'canvas-approved-history.js':'20261110-account-pages1',
@@ -69,7 +69,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
   'local-draft-recovery.js':'20261103-fqc-generation1',
   'shared-draft-client.js':'20261113-ipqc-silent3',
   'process-authoring-v3.js':'20261113-submit-outcome1',
-  'process-ipqc.js':'20261110-ipqc-source-single-save1',
+  'process-ipqc.js':'20261114-ipqc-link1',
   'effective-version-notice.js':'20261109-explicit-checks1',
   'fqc-master.js':'20261112-quality-integration1',
   'fqc-master.css':'20261104-single-save1',

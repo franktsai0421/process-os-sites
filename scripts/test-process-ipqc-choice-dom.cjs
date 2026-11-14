@@ -23,6 +23,12 @@ function alignReviewedSingleSaveNotice(before,after,lang){
  assert.equal(a[0].children[0].textContent,old,'exact historical manual-flow notice');assert.equal(b[0].children[0].textContent,current,'exact reviewed current-page-then-single-Save notice');
  a[0].children[0].textContent=current;
 }
+function alignReviewedAssignmentLabels(before,after,lang){
+ const changes=lang==='vi'?[
+  ['Mỗi hạng mục chỉ thuộc một bước trong công đoạn. Bỏ chọn ở bước đang giữ, áp dụng, rồi chọn ở bước này.','Mỗi hạng mục chỉ thuộc một bước trong công đoạn. Bỏ chọn ở bước đang giữ, hoàn tất và lưu bản nháp, rồi chọn ở bước này.']
+ ]:[['本流程已選','本方塊已選取'],['其他流程使用中','其他方塊使用中'],['同工段每個項目只能分配一次。請先到占用方塊取消勾選並套用，再回來勾選此方塊。','同工段每個項目只能分配一次。請先到占用方塊取消勾選、完成編輯並存取草稿，再回來勾選此方塊。']];
+ for(const [old,current]of changes){const a=[before,...before.querySelectorAll('*')].filter(node=>node._text===old),b=[after,...after.querySelectorAll('*')].filter(node=>node._text===current);assert(a.length>0,'exact historical assignment label present');assert.equal(a.length,b.length,'exact reviewed assignment label count');for(const node of a)node._text=current;}
+}
 function choices(n=48){return Array.from({length:n},(_,i)=>({source:'AB',scope:'A:SYN',itemId:'item-'+i,sourceVersionId:'approved-1',code:'I'+i,errorId:'error-'+i%8,errorCode:'E'+i%8,errorName:'合成 lỗi '+i%8,productCodes:['P1','P2'],standard:'fresh standard '+i,description:'fresh description '+i,equipment:{assetCode:'EQ',pieceMark:'01',name:'Gauge'},rules:[{cadence:'batch',batchKind:'fixed_count',fixedCount:2}],frequency:'each',photos:[{id:'photo-'+i,name:'Photo '+i,note:'Note '+i}]}));}
 (async()=>{
  const {canvasDOM}=await import('./login-reentry-dom.mjs');
@@ -46,7 +52,7 @@ function choices(n=48){return Array.from({length:n},(_,i)=>({source:'AB',scope:'
   counts.push({language:lang,beforeNodes:count(before.panel),afterNodes:count(after.panel),items:49});assert(count(after.panel)<count(before.panel)*0.6);
   const a=before.panel.querySelectorAll('.process-ipqc-item-details'),b=after.panel.querySelectorAll('.process-ipqc-item-details');assert.equal(after.panel.querySelectorAll('.process-ipqc-photos').length,0);
   for(let i=0;i<a.length;i++){before.open(a[i]);after.open(b[i]);alignReviewedSourceLabel(a[i],b[i],lang);assert.deepEqual(tree(b[i]),tree(a[i]),'expanded standard/rules/photos match exact row '+i);const size=count(b[i]);after.close(b[i]);after.open(b[i]);assert.equal(count(b[i]),size,'reopening does not duplicate DOM');}
-  alignReviewedSingleSaveNotice(before.panel,after.panel,lang);assert.deepEqual(tree(after.panel),tree(before.panel),'entire expanded UI matches except two explicitly asserted reviewed labels');assert.equal(after.requests.length,1,'expanding details has no extra fetch');checks.push(lang+' same choices, ownership, retained links, exact expanded details and no duplicate nodes');
+  alignReviewedSingleSaveNotice(before.panel,after.panel,lang);alignReviewedAssignmentLabels(before.panel,after.panel,lang);assert.deepEqual(tree(after.panel),tree(before.panel),'entire expanded UI matches except explicitly asserted reviewed source, Save and assignment labels');assert.equal(after.requests.length,1,'expanding details has no extra fetch');checks.push(lang+' same choices, ownership, retained links, exact expanded details and no duplicate nodes');
   const input=after.panel.querySelectorAll('[data-ipqc-choice]').find(node=>node.dataset.ipqcChoice===key(after.rows[3]));input.checked=true;input.onchange();assert(after.op.ipqcAssignments.some(row=>row.itemId===after.rows[3].itemId));assert.equal(after.panel.querySelector('[data-ipqc-count="selected"]').textContent,'2');checks.push(lang+' assignment checkbox remains operative before any Save');
  }
  const stale=fixture('candidate');await stale.load();const retired=stale.panel.querySelector('.process-ipqc-item-details'),initial=count(retired);stale.c.ProcessSync.identity={id:'another'};stale.open(retired);assert.equal(count(retired),initial);checks.push('identity change prevents deferred private detail insertion');

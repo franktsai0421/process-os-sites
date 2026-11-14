@@ -57,3 +57,15 @@ void test('legacy Apply cancellation without Save cannot release a saved owner f
  await f.command(processURL,'save');await edit(f,'C','two',[a]);
  }finally{f.close();}
 });
+void test('C legacy cross-workspace owner: signed-route denial, concurrent saved release, then explicit transfer',async()=>{
+ const f=await fixture('records-v1');try{const x=await f.create('C');await f.promote(x.url);const a=tuple((await choices(f,'C',['001'])).body.choices[0]);await edit(f,'C','one',[a]);
+ // Generated legacy fixture only: product moved category while historical assignment was retained.
+ const values=await f.values(),control=JSON.parse(values.processAuthoringControl),main=control.workflow.working.workspaces.find(w=>w.line==='C'),legacy=structuredClone(main);legacy.id=JSON.stringify(['OLD','C']);legacy.category='OLD';legacy.stages.TIEN[0].number='OLD-C-OWNER';main.stages.TIEN.forEach(o=>o.ipqcAssignments=[]);control.workflow.working.workspaces.push(legacy);control.workflow.saved.content=structuredClone(control.workflow.working);control.versions.find(v=>v.status==='draft').snapshot=structuredClone(control.workflow.working);values.processAuthoringControl=JSON.stringify(control);
+ f.db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(await f.load('lib/state-records.ts').encodeRecordValues(f.env.STATE_ARCHIVE,values));
+ const before=f.db.prepare('SELECT revision FROM shared_state WHERE id=1').get().revision,flow=(await f.request(processURL)).body.control.workflow;
+ const command=(workspace,id,from,to,actor)=>{const path=['workspaces',{id:workspace},'stages','TIEN',{id},'ipqcAssignments'];return{action:'apply',moduleAction:'save-canvas-v1',source:'canvas-v2:'+JSON.stringify([workspace,'TIEN']),generation:flow.generation,expectedRevision:flow.revision,operationId:randomUUID(),clientId:'cross-'+actor,sequence:1,patches:[{op:'set',path,value:to}],guards:[{path,value:from}]};};
+ const allocate=command(main.id,'one',[],[a],'allocate'),release=command(legacy.id,'one',[a],[],'release');const denied=await f.request(processURL,'POST',{command:allocate});assert.equal(denied.status,409);assert.match(denied.body.error,/IPQC_TRANSFER_REQUIRES_SAVED_RELEASE/);assert.equal(f.db.prepare('SELECT revision FROM shared_state WHERE id=1').get().revision,before);
+ const replies=await Promise.all([f.request(processURL,'POST',{command:{...allocate,operationId:randomUUID()}},'editor'),f.request(processURL,'POST',{command:release},'peer')]);assert.deepEqual(replies.map(r=>r.status),[409,200]);const stored=(await f.request(processURL)).body.control.workflow;assert.equal(stored.saved.content.workspaces.find(w=>w.id===legacy.id).stages.TIEN[0].ipqcAssignments.length,0);assert.equal(stored.working.workspaces.find(w=>w.id===main.id).stages.TIEN[0].ipqcAssignments.length,0);
+ await edit(f,'C','one',[a]);assert.equal((await f.request(processURL)).body.control.workflow.saved.content.workspaces.find(w=>w.id===main.id).stages.TIEN[0].ipqcAssignments[0].itemId,a.itemId);
+ }finally{f.close();}
+});

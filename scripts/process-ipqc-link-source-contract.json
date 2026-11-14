@@ -511,6 +511,48 @@
           "after": "## 2026-11-14 — Process IPQC link-rule candidate\n\nA/B choices/validation/completeness/source comparisons no longer use operation products or product routes. C editor now selects and saves item references, with product/error grouping and explicit stale-reference handling. Backend checks cross-workspace C occupancy and saved-release transfer under existing CAS. [Generated lifecycle evidence and limits](../docs/acceptance/process-ipqc-link-rules-20261114.md). No live-data rewrite, migration, merge or deployment.\n\n"
         }
       ]
+    },
+    "tests/navigation-adapters.test.mjs": {
+      "beforeHash": "bb51f55fefabcb309b118b8e1de72098f0e2d2f020f9ce4842a57a14660f30e7",
+      "beforeLength": 21547,
+      "beforeBlob": "5d6a5cc61db9e581605f8acbe05540d9376abe30",
+      "beforeNormalizedHash": "bb51f55fefabcb309b118b8e1de72098f0e2d2f020f9ce4842a57a14660f30e7",
+      "beforeCRLF": [],
+      "afterHash": "6633ff1c77159e7768aabf5e71840016cdce31ec7930ec09fcd5ebd7f278a125",
+      "afterLength": 21523,
+      "rules": [
+        {
+          "offset": 17703,
+          "before": "  'process-ipqc.js':'20261110-ipqc-source-single-save1',\n",
+          "after": "  'process-ipqc.js':'20261114-ipqc-link1',\n"
+        },
+        {
+          "offset": 17864,
+          "before": "  'process-editor.js':'20261110-process-integration2',\n",
+          "after": "  'process-editor.js':'20261114-ipqc-link1',\n"
+        }
+      ]
+    },
+    "tests/shared-draft-receipt-recovery.test.mjs": {
+      "beforeHash": "c73edbcd3c1fc602916eb00be33de8e8b6fa9f5c7118b4752ecad054a4e0cc4f",
+      "beforeLength": 16610,
+      "beforeBlob": "ad3ecc947b5c56fb78eba51467ee8b96d1068773",
+      "beforeNormalizedHash": "c73edbcd3c1fc602916eb00be33de8e8b6fa9f5c7118b4752ecad054a4e0cc4f",
+      "beforeCRLF": [],
+      "afterHash": "92a4494364975493a19e098cb82ad6532f9cff82df5bc28bafb4381a108010e8",
+      "afterLength": 16586,
+      "rules": [
+        {
+          "offset": 14343,
+          "before": "  'process-editor.js':'20261110-process-integration2',\n",
+          "after": "  'process-editor.js':'20261114-ipqc-link1',\n"
+        },
+        {
+          "offset": 14939,
+          "before": "  'process-ipqc.js':'20261110-ipqc-source-single-save1',\n",
+          "after": "  'process-ipqc.js':'20261114-ipqc-link1',\n"
+        }
+      ]
     }
   }
 }
