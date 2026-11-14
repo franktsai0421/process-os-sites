@@ -264,6 +264,32 @@
           "after": "## 2026-11-14 — Process review recovery candidate\n\nIndependent main-b41b993 checkout; no #114/#115 branch mutation or wholesale import. [Root cause, isolation matrix, verification and live limitations](docs/acceptance/process-review-recovery-20261114.md). Retained real V31 withdrawal remains UNKNOWN and untouched; no test-Site access, merge or deployment.\n\n"
         }
       ]
+    },
+    "scripts/test-process-flow-record-mutation.cjs": {
+      "beforeHash": "35486320626fcfd3ab7d2388a1160a5b2d81efaf3b4011a453aa1aa507d94c59",
+      "beforeNormalizedHash": "35486320626fcfd3ab7d2388a1160a5b2d81efaf3b4011a453aa1aa507d94c59",
+      "afterHash": "42c6a552db8f88d773e92d3c6812ef57e6f854eaea3f78fc3567f46e225a3f87",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 37578,
+          "before": " {const ui=fs.readFileSync(path.join(root,'public/process/process-authoring-v3.js'),'utf8').replace(/\\r\\n/g,'\\n'),canvas=fs.readFileSync(path.join(root,'public/process/canvas-local.js'),'utf8').replace(/\\r\\n/g,'\\n'),dialogs=fs.readFileSync(path.join(root,'public/process/version-draft-ui.js'),'utf8').replace(/\\r\\n/g,'\\n');assert(ui.includes(\"const submission=host.captureSharedDraftSubmission(f)\"));assert(ui.includes(\"action('submit',{...submission,reason})\"));assert(ui.includes('const detail={caseId,...answer}'));assert(ui.includes('detail.acknowledgedContentIssues=issues'));const ast=ts.createSourceFile('canvas-local.js',canvas,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS),nodes=[];const visit=node=>{nodes.push(node);ts.forEachChild(node,visit);};visit(ast);\n",
+          "after": " {const ui=fs.readFileSync(path.join(root,'public/process/process-authoring-v3.js'),'utf8').replace(/\\r\\n/g,'\\n'),canvas=fs.readFileSync(path.join(root,'public/process/canvas-local.js'),'utf8').replace(/\\r\\n/g,'\\n'),dialogs=fs.readFileSync(path.join(root,'public/process/version-draft-ui.js'),'utf8').replace(/\\r\\n/g,'\\n');assert(ui.includes(\"const submission=host.captureSharedDraftSubmission(f)\"));assert(ui.includes(\"action('submit',{...submission,reason})\"));assert(ui.includes('const detail={caseId,expectedRevision:r.revision,...answer}'),'review captures the confirmed case revision before dispatch');assert(ui.includes('detail.acknowledgedContentIssues=issues'));const ast=ts.createSourceFile('canvas-local.js',canvas,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS),nodes=[];const visit=node=>{nodes.push(node);ts.forEachChild(node,visit);};visit(ast);\n"
+        }
+      ]
+    },
+    "scripts/test-process-review-current.mjs": {
+      "beforeHash": "71151e9f1625bf09fa8184ed851eb016e7de5f83652dab92a7b0a40768004ba8",
+      "beforeNormalizedHash": "71151e9f1625bf09fa8184ed851eb016e7de5f83652dab92a7b0a40768004ba8",
+      "afterHash": "b1eb85a5996e68600c575c41d77c1890da918d9c21c0d0b794cc3b8208cf5611",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 6621,
+          "before": " const ctx={document:{querySelector:()=>parent},flow:()=>({pendingId:'case',cases:[{id:'case',actor:{name:'Synthetic'},reason:'Reason'}]}),control:{activeVersionId:'active',versions:[{id:'active',number:1}]},permissions:{approve:true,return:true,withdraw:true,history:true},inspectionStatus:()=>'',loadError:'',busy:false,t:(zh,vi)=>ctx.vi?vi:zh,escapeHtml:s=>String(s),host:{VersionDraftUI:{preserveView:()=>()=>{}}}};vm.runInNewContext(source.slice(start,end)+';reviewPanel()',ctx);assert.equal(advisory.textContent,'');assert.equal(advisory.hidden,true);assert(target.innerHTML.includes('data-process-review=\"view\"'));assert(target.innerHTML.includes('data-process-review=\"withdraw\"'));assert(!target.innerHTML.includes('data-process-review=\"approve\"'));assert(!target.innerHTML.includes('data-process-review=\"return\"'));ctx.vi=true;vm.runInNewContext(source.slice(start,end)+';reviewPanel()',ctx);assert(target.innerHTML.includes('Xem / duyệt'));assert(!target.innerHTML.includes('查看／審核'));\n",
+          "after": " const rendererClient={hasUnknown:()=>false},rendererOwner={id:'synthetic-renderer',epoch:1};\n const ctx={client:()=>rendererClient,admittedCommandPending:()=>false,identityStamp:()=>rendererOwner,sameStamp:(a,b)=>a===b,localContextEpoch:0,state:{view:'approval',approvalTab:'process'},document:{querySelector:()=>parent},flow:()=>({pendingId:'case',cases:[{id:'case',actor:{name:'Synthetic'},reason:'Reason'}]}),control:{activeVersionId:'active',versions:[{id:'active',number:1}]},permissions:{approve:true,return:true,withdraw:true,history:true},inspectionStatus:()=>'',loadError:'',busy:false,t:(zh,vi)=>ctx.vi?vi:zh,escapeHtml:s=>String(s),host:{VersionDraftUI:{preserveView:()=>()=>{}}}};vm.runInNewContext(source.slice(start,end)+';reviewPanel()',ctx);assert.equal(advisory.textContent,'');assert.equal(advisory.hidden,true);assert(target.innerHTML.includes('data-process-review=\"view\"'));assert(target.innerHTML.includes('data-process-review=\"withdraw\"'));assert(!target.innerHTML.includes('data-process-review=\"approve\"'));assert(!target.innerHTML.includes('data-process-review=\"return\"'));ctx.vi=true;vm.runInNewContext(source.slice(start,end)+';reviewPanel()',ctx);assert(target.innerHTML.includes('Xem / duyệt'));assert(!target.innerHTML.includes('查看／審核'));\n"
+        }
+      ]
     }
   }
 }

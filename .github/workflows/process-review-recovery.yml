@@ -29,6 +29,7 @@ jobs:
         run: |
           node scripts/test-process-flow-record-mutation.cjs
           node scripts/test-process-review-current.mjs
+          node --test tests/accounts-process-integration-source.test.mjs
       - run: npx playwright install --with-deps chromium
       - name: Desktop and phone viewport real dialogs with signed isolated routes
         run: node tests/process-review-recovery-browser.mjs
