@@ -39,6 +39,10 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci --ignore-scripts
+      - name: C current no-poll Save projection and explicit permission recovery
+        run: node scripts/test-ipqc-c-save-projection-client.cjs
+      - name: IPQC slow Save and original receipt recovery
+        run: node --test --test-concurrency=1 tests/ipqc-save-recovery.test.mjs tests/ipqc-save-recovery-source.test.cjs tests/ipqc-request-progress.test.mjs
       - run: npx playwright install --with-deps chromium
       - run: node --test tests/ipqc-c-local-save-rejection.test.mjs tests/ipqc-c-case-comparison.test.mjs tests/ipqc-c-equipment-display.test.mjs
       - run: node --test tests/ipqc-c-integration-source-contract.test.cjs tests/ipqc-c-operation-admission.test.cjs tests/multiuser-ipqc-c-local-recovery-actual-stack.test.mjs tests/ipqc-c-read-io-source-contract.test.mjs

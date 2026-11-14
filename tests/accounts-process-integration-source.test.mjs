@@ -47,6 +47,6 @@ void test('reviewed account/process runtime union retains every installed file w
 });
 void test('joint contract rejects byte drift and keeps original native timeouts and safety assertions',()=>{
  for(const row of manifest.runtimeDecisions){const bytes=git('show','HEAD:'+row.path);assert.notEqual(hash(Buffer.concat([bytes,Buffer.from('\n// drift')])),row.sha256);}
- for(const file of ['tests/begin-recovery-browser.mjs','tests/process-draft-lifecycle-browser.mjs'])assert.deepEqual(git('show','HEAD:'+file),git('show',manifest.sources.pr104.commit+':'+file));
+ for(const file of ['tests/begin-recovery-browser.mjs','tests/process-draft-lifecycle-browser.mjs'])assert.deepEqual(published(git('show','HEAD:'+file),file),git('show',manifest.sources.pr104.commit+':'+file));
  assert.deepEqual(published(git('show','HEAD:.github/workflows/local-safety.yml'),'.github/workflows/local-safety.yml'),git('show',manifest.sources.main.commit+':.github/workflows/local-safety.yml'));
 });
