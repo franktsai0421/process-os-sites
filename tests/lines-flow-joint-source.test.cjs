@@ -9,7 +9,7 @@ for(const [file,c]of Object.entries(proof.contract.files))for(const [target,p]of
  for(const offset of new Set([0,bytes.length-1,...p.rules.map(r=>Math.min(r.offset,bytes.length-1))])){const bad=Buffer.from(bytes);bad[offset]^=1;assert(!bad.equals(bytes));assert.throws(()=>proof.restore(bad,file,target),/pinned/);assert(proof.projectKnown(bad,file,target).equals(bad));}
  for(const r of p.rules){const span=Buffer.from(r.after),prefix=bytes.subarray(0,r.offset),suffix=bytes.subarray(r.offset+span.length);for(const bad of [Buffer.concat([prefix,Buffer.from(r.before),suffix]),Buffer.concat([prefix,span,span.length?span:Buffer.from(r.before),suffix])]){assert(!bad.equals(bytes),'negative changes current bytes');assert.throws(()=>proof.restore(bad,file,target),/pinned/);assert(proof.projectKnown(bad,file,target).equals(bad));}}
 });
-void test('joint checkout has both true parent trees in committed ancestry',()=>assert.equal(proof.verifyRepository().status,'PASS_EXACT_LINES_FLOW_BOTH_PARENTS'));
-void test('three original feature manifests retain every original hash, span and negative-control input',()=>{
- for(const [file,target]of [['lines-flow-source-contract.json','lines'],['password-outcome-source-contract.json','main'],['ipqc-save-recovery-source-contract.json','main']])assert(fs.readFileSync('scripts/'+file).equals(git('show',proof.contract.parents[target].commit+':scripts/'+file)),file);
+void test('joint checkout has all three true parent trees in committed ancestry',()=>assert.equal(proof.verifyRepository().status,'PASS_EXACT_LINES_FLOW_BOTH_PARENTS'));
+void test('four original feature manifests retain every original hash, span and negative-control input',()=>{
+ for(const [file,target]of [['lines-flow-source-contract.json','lines'],['password-outcome-source-contract.json','main'],['ipqc-save-recovery-source-contract.json','main'],['process-review-source-contract.json','main116']])assert(fs.readFileSync('scripts/'+file).equals(git('show',proof.contract.parents[target].commit+':scripts/'+file)),file);
 });

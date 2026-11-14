@@ -1,3 +1,11 @@
+## 2026-11-14 — #115 整合 main #116
+
+主資料明確等待與製程審核 180 秒／原收據修復共同保留，四份原 manifest 不變、加入第三真前身 inverse。共同候選須獨立重跑；不是沿用舊綠燈。未操作真資料、設定、既有 UNKNOWN、合併或部署。詳見 lines-flow 驗收續篇。
+
+## 2026-11-14 — Process review outcome candidate
+
+Add version-confirmation original-receipt recovery and review dialog ownership/revision/single-flight guards. Bounded long-response tolerance for process lifecycle actions; preserve UNKNOWN and no replay. No live account/data/schema change, merge or deployment. [Evidence and limitations](../docs/acceptance/process-review-recovery-20261114.md).
+
 ## 2026-11-14 — 移除兩頁前端固定 45 秒中斷
 
 LINES／PROCESS canonical 讀寫與 PROCESS 引用查詢改為明確等待、單次提示及安全停止；保留原 UNKNOWN／回執、CAS、權限與晚到 fence。補充跨離頁原 marker accounting 及錯誤回執負例、兩套原生 Stop 案例。未採用 page-v1 與舊 linkedProcess 分頁再送限制仍保留；不遷移、不操作真資料。詳見既有 lines-flow 驗收紀錄。

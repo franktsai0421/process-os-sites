@@ -152,3 +152,11 @@ LINES 離頁會停止本頁等待；已送原證據仍保留。重進時只在 s
 `5ef92e5` 的 FQC/IQC 最後 same-document delivery 原生檢查發現多留一個 pagehide listener。進度元件原先只聽 delivery-invalidated／pagehide，部分頁內導覽只通知 destination-ready；現也在 ready 核對原 root、tab、owner，離頁即停止等候並清除 watcher／DOM／所有自有 listener，同頁 ready 不停止。新增五次來回的 listener 身分精確相等與零 I/O 回歸；原 compiled delivery 的 exact ownership 斷言完全保留，沒有增加 listener 容許額度。cache family 更新為 `20261114-master-wait3`，仍待新 head CI。
 
 補強已提交導覽但 ready 失敗的清理：既有 `MasterDataWorkflow.resetProjection()` 在新頁讀取前直接退休全部本模組進度元件，停止等候並刪除自有 listener；不必等成功 ready。取消於 commit 前不走 reset，原頁等待保留；同頁重繪只清舊元件、不停止同 client 等候。新增實際 resetProjection 函式執行與重複 retirement 冪等斷言，UNKNOWN／原 marker 保留。最終 cache family 為 `20261114-master-wait4`。
+
+## 2026-11-14 — #115 續整合已合併 #116
+
+Frank 合併 #116 後，main 前進至 `c178ae227bcddf528a493dbf8b586cf310564c5b`，前一個 `3361ec0b` 的單獨 CI 不作新共同候選驗收。shared transport 同時保留 installed LINES／PROCESS 無固定 elapsed abort、明確停止與原 marker，以及製程 authoring Submit／Withdraw／Approve／Return 180 秒、escaped operation ID、receipt action 核對與原收據 UI。保留 #116 actor／page／revision／case single-flight、Submit 獨立授權與原 server CAS。
+
+語意解決 shared client、index/cache、帳號／設備／navigation／receipt cache、IPQC source helper 與文件衝突；authoring tag 保留 #116，master 六資產採 `20261114-lines-flow-review1`。四份原 manifest（LINES、password、IPQC、process-review）完全不改；joint inverse 加入真正 `main116` 前身，仍保留原 `lines`／`main` pins、逐 byte／EOL／未知來源負例。兩套 proof 串接，不以互相覆蓋或更新原 hash 消除衝突。
+
+新共同候選須重新執行 lint、非增量 TypeScript、guarded build、四套來源負例、兩頁／製程送審確認與原回執，以及 compiled native 與完整 CI。其結果以本次最新 head 為準，舊綠燈均為歷史。資料切換／真站／實體手機／真 IME 仍未驗；Diem V31 與兩筆 IPQC QA UNKNOWN 未碰，不合併／部署。

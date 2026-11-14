@@ -1,3 +1,11 @@
+## 2026-11-14 — #115 整合 main #116
+
+主資料明確等待與製程審核 180 秒／原收據修復共同保留，四份原 manifest 不變、加入第三真前身 inverse。共同候選須獨立重跑；不是沿用舊綠燈。未操作真資料、設定、既有 UNKNOWN、合併或部署。詳見 lines-flow 驗收續篇。
+
+## 2026-11-14 — Process review recovery candidate
+
+Independent main-b41b993 checkout; no #114/#115 branch mutation or wholesale import. [Root cause, isolation matrix, verification and live limitations](docs/acceptance/process-review-recovery-20261114.md). Retained real V31 withdrawal remains UNKNOWN and untouched; no test-Site access, merge or deployment.
+
 ## 2026-11-14 — #115 固定時限續修
 
 原 checkout 缺失後，在同一 Dot 原路徑從公開 #115 729bcf9 恢復原分支。實際取消兩頁 canonical transport／PROCESS references 的 45 秒前端 abort，改為可停止的明確等待；不更動其他模組預算或 CAS／權限。原 marker、晚到與重進保護及 source negatives 保留。LINES 未採用 page-v1 仍唯讀；舊 linkedProcess 案件需有權人分別重送，未代執行或遷移。新 head／CI 及未驗項以同一 PR 最終回報為準；公開 PR body 更新先前遭自動審查拒絕，不藉其他入口繞過。
