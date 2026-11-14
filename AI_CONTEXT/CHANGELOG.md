@@ -1,3 +1,7 @@
+## 2026-11-14 — Process IPQC link-rule candidate
+
+A/B choices/validation/completeness/source comparisons no longer use operation products or product routes. C editor now selects and saves item references, with product/error grouping and explicit stale-reference handling. Backend checks cross-workspace C occupancy and saved-release transfer under existing CAS. [Generated lifecycle evidence and limits](../docs/acceptance/process-ipqc-link-rules-20261114.md). No live-data rewrite, migration, merge or deployment.
+
 ## 2026-11-13 — Password-only persistence and slow response candidate
 
 Isolate records-v1 credential/audit writes from unrelated business hydration; avoid artificial password POST aborts while retaining UNKNOWN/no-replay, authorization, old-password and CAS fences. [Isolated evidence and limits](../docs/acceptance/password-outcome-20261113.md). Draft only; no deployment/account/data migration.

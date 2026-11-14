@@ -1,0 +1,511 @@
+{
+  "base": "4aa0f24c66861fb735d6ad581b81b190771122f8",
+  "files": {
+    "lib/process-ipqc.ts": {
+      "beforeHash": "56bccf4e17ab7975780fa70b823e8801938f1884d15772bce345e25fe6d13f8b",
+      "beforeLength": 9873,
+      "beforeBlob": "e37e98555305db14d90147957dfb09264522c500",
+      "beforeNormalizedHash": "74ae09b410170a4390733a35a96a225b0f09a9c055539c361011f87d8eeb2154",
+      "beforeCRLF": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93
+      ],
+      "afterHash": "af5ea3a251015d701133f9c91a08a2e12f543694c2ccfddafa1fb5a42dbe6c45",
+      "afterLength": 10790,
+      "rules": [
+        {
+          "offset": 1418,
+          "before": " const products=(master.active?.[source]?.products||[]).filter(p=>p.line===w.line&&p.category===w.category&&p.stages?.includes(stage)&&selected.includes(p.code)).map(p=>p.code);\n",
+          "after": " const products=(master.active?.[source]?.products||[]).filter(p=>p.line===w.line&&p.category===w.category&&selected.includes(p.code)).map(p=>p.code);\n"
+        },
+        {
+          "offset": 1601,
+          "before": "",
+          "after": " if(source==='C'&&!products.length)return{source,scope,reason:'NO_PRODUCTS',choices};\n"
+        },
+        {
+          "offset": 2267,
+          "before": "  for(const i of v.snapshot.items){if(!errors.has(i.errorId))errors.set(i.errorId,v.snapshot.errors.find((e:AbError)=>e.id===i.errorId&&!e.deleted&&e.stageCode===stage&&e.line===w.line&&e.group===w.category));const e=errors.get(i.errorId),codes=i.productCodes.filter(p=>products.includes(p));\n   if(!e||i.deleted||!i.isEnabled||!codes.length)continue;\n",
+          "after": "  for(const i of v.snapshot.items){if(!errors.has(i.errorId))errors.set(i.errorId,v.snapshot.errors.find((e:AbError)=>e.id===i.errorId&&!e.deleted&&e.stageCode===stage&&e.line===w.line&&e.group===w.category));const e=errors.get(i.errorId),codes=[...i.productCodes];\n   if(!e||i.deleted||!i.isEnabled)continue;\n"
+        },
+        {
+          "offset": 4229,
+          "before": " return{source,scope,reason:products.length?choices.length?'':'NO_MATCHING_ITEMS':'NO_PRODUCTS',choices};\n",
+          "after": " return{source,scope,reason:source==='C'&&!products.length?'NO_PRODUCTS':choices.length?'':'NO_MATCHING_ITEMS',choices};\n"
+        },
+        {
+          "offset": 4951,
+          "before": "export function validateIPQCAssignments(workspaces:Workspace[],previous:Workspace[],values:Record<string,string>,preparedMaster?:unknown){\n",
+          "after": "export function validateIPQCAssignments(workspaces:Workspace[],previous:Workspace[],values:Record<string,string>,preparedMaster?:unknown,saved:Workspace[]=[]){\n"
+        },
+        {
+          "offset": 5596,
+          "before": "",
+          "after": " const occupied=new Map<string,Operation>();\n const occupancy=(w:Workspace,stage:string,a:IPQCAssignment)=>JSON.stringify([w.line,w.line==='C'?null:w.category,stage,assignmentKey(a)]);\n const previousOwners=new Map<string,{workspace:string;operation:string}[]>();\n for(const w of [...previous,...saved])for(const [stage,ops]of Object.entries(w.stages))for(const op of ops)for(const a of Array.isArray(op.ipqcAssignments)?assignments(op):[])if(a){const key=occupancy(w,stage,a),owners=previousOwners.get(key)||[];owners.push({workspace:w.id,operation:op.id});previousOwners.set(key,owners);}\n"
+        },
+        {
+          "offset": 6265,
+          "before": "  const occupied=new Map<string,Operation>();\n",
+          "after": ""
+        },
+        {
+          "offset": 6883,
+          "before": "    const key=assignmentKey(a),owner=occupied.get(key);\n",
+          "after": "    const key=assignmentKey(a),occupiedKey=occupancy(w,stage,a),owner=occupied.get(occupiedKey);\n"
+        },
+        {
+          "offset": 7091,
+          "before": "    occupied.set(key,op);\n",
+          "after": "    occupied.set(occupiedKey,op);\n    const priorOwner=previousOwners.get(occupiedKey);\n    if(priorOwner?.some(owner=>owner.workspace!==w.id||owner.operation!==op.id))throw new DraftConflict('IPQC_TRANSFER_REQUIRES_SAVED_RELEASE: 請先取消原方塊分配並存取草稿 / Bỏ phân công ở bước cũ và lưu bản nháp trước',409);\n"
+        },
+        {
+          "offset": 7781,
+          "before": "    if(!choice||stableDraftJSON([...choice.productCodes].sort())!==stableDraftJSON([...a.productCodes].sort()))throw new DraftConflict('IPQC_SOURCE_CHANGED: Nguồn hoặc sản phẩm đã thay đổi / 來源或適用產品已變更，請重新選取',409);\n",
+          "after": "    if(!choice||a.source==='C'&&stableDraftJSON([...choice.productCodes].sort())!==stableDraftJSON([...a.productCodes].sort()))throw new DraftConflict('IPQC_SOURCE_CHANGED: Nguồn hoặc sản phẩm đã thay đổi / 來源或適用產品已變更，請重新選取',409);\n"
+        },
+        {
+          "offset": 8994,
+          "before": "  if(values[w.line==='C'?'ipqcCMasterControl':'ipqcABMasterControl']&&ops.some(o=>o.productCodes?.length)&&found.reason==='SOURCE_NOT_APPROVED')issues.push({kind:'missing',path,message:'IPQC_SOURCE_NOT_APPROVED'});\n",
+          "after": "  if(values[w.line==='C'?'ipqcCMasterControl':'ipqcABMasterControl']&&(w.line!=='C'||ops.some(o=>o.productCodes?.length))&&found.reason==='SOURCE_NOT_APPROVED')issues.push({kind:'missing',path,message:'IPQC_SOURCE_NOT_APPROVED'});\n"
+        },
+        {
+          "offset": 9551,
+          "before": "   if(!c||c.sourceVersionId!==a.sourceVersionId||stableDraftJSON([...c.productCodes].sort())!==stableDraftJSON([...a.productCodes].sort()))issues.push({kind:'missing',path:[...path,{id:op.id}],message:'IPQC_REFERENCE_CHANGED:'+a.itemId});\n",
+          "after": "   if(!c||c.sourceVersionId!==a.sourceVersionId||a.source==='C'&&stableDraftJSON([...c.productCodes].sort())!==stableDraftJSON([...a.productCodes].sort()))issues.push({kind:'missing',path:[...path,{id:op.id}],message:'IPQC_REFERENCE_CHANGED:'+a.itemId});\n"
+        }
+      ]
+    },
+    "lib/process-authoring-workflow.ts": {
+      "beforeHash": "a8ddb97f36487c3b6ddc5b8bd0e2eab8bc3872461bcbf2c0e1850fb1b29921ae",
+      "beforeLength": 17898,
+      "beforeBlob": "3747ed9c6a5308dbaeb4ac44f5abab6b1e5ce819",
+      "beforeNormalizedHash": "a8ddb97f36487c3b6ddc5b8bd0e2eab8bc3872461bcbf2c0e1850fb1b29921ae",
+      "beforeCRLF": [],
+      "afterHash": "2f5a2af675aee5213f61df296e8a2e14233f94303482ff3d7e287fb807ce0391",
+      "afterLength": 18035,
+      "rules": [
+        {
+          "offset": 11638,
+          "before": "        if(op.productCodes.some((code:string)=>!routeAllows(code)&&!old?.productCodes.includes(code)))throw new DraftConflict('OPERATION_PRODUCT_ROUTE_INVALID',422);\n",
+          "after": "        if(op.productCodes.some((code:string)=>!(w.line==='C'?products.some(p=>p.code===code&&p.category===w.category&&p.line===w.line):routeAllows(code))&&!old?.productCodes.includes(code)))throw new DraftConflict('OPERATION_PRODUCT_ROUTE_INVALID',422);\n"
+        },
+        {
+          "offset": 12830,
+          "before": "     validateIPQCAssignments(content.workspaces,previous.workspaces,state.values,master);\n",
+          "after": "     validateIPQCAssignments(content.workspaces,previous.workspaces,state.values,master,control.workflow?.saved?.content.workspaces||[]);\n"
+        }
+      ]
+    },
+    "public/process/process-editor.js": {
+      "beforeHash": "2af42c24b68c297536b49e1a30688666575598274bb16823c508a6c98532b18e",
+      "beforeLength": 75383,
+      "beforeBlob": "5248dfc5e2b705ab6e4537a5d026f1bdd3c96978",
+      "beforeNormalizedHash": "2af42c24b68c297536b49e1a30688666575598274bb16823c508a6c98532b18e",
+      "beforeCRLF": [],
+      "afterHash": "8ab185d0a9fb9cbd2eeef5531cbd8772c56bf7127b49aa7b8df1857dc2f2affa",
+      "afterLength": 74528,
+      "rules": [
+        {
+          "offset": 39330,
+          "before": " function productPanel(o){const ps=productsForCategory().filter(p=>routeFor(p.code)?.line===state.editorLine&&(routeFor(p.code)?.stages||[]).includes(o.stageCode)),known=new Set(ps.map(p=>p.code));return `<p>${t('只設定本方塊。取消產品並套用會釋放該產品在本方塊的 BOM；加回須重新選取。','Chỉ áp dụng cho bước này. Bỏ sản phẩm và áp dụng sẽ giải phóng BOM; thêm lại phải chọn lại.')}</p><input data-product-search placeholder=\"${t('搜尋產品','Tìm sản phẩm')}\"><div class=\"pe-product-list\">${ps.map(p=>`<label><input type=\"checkbox\" data-product=\"${h(p.code)}\" ${o.productCodes?.includes(p.code)?'checked':''}><span><b>${h(p.code)}</b> ${h(p.name)}</span></label>`).join('')}</div>${(o.productCodes||[]).filter(c=>!known.has(c)).map(c=>`<p class=\"pe-warning\">${h(c)} · ${t('既有產品不在目前路線；保留待確認','Sản phẩm cũ ngoài tuyến; giữ để xác nhận')} <button type=\"button\" data-remove-product=\"${h(c)}\">${t('移除本方塊關聯','Bỏ liên kết bước này')}</button></p>`).join('')}`;}\n",
+          "after": " function productPanel(o){const ps=productsForCategory().filter(p=>routeFor(p.code)?.line===state.editorLine&&(state.editorLine==='C'||(routeFor(p.code)?.stages||[]).includes(o.stageCode))),known=new Set(ps.map(p=>p.code));return `<p>${t('只設定本方塊。取消產品並套用會釋放該產品在本方塊的 BOM；加回須重新選取。','Chỉ áp dụng cho bước này. Bỏ sản phẩm và áp dụng sẽ giải phóng BOM; thêm lại phải chọn lại.')}</p><input data-product-search placeholder=\"${t('搜尋產品','Tìm sản phẩm')}\"><div class=\"pe-product-list\">${ps.map(p=>`<label><input type=\"checkbox\" data-product=\"${h(p.code)}\" ${o.productCodes?.includes(p.code)?'checked':''}><span><b>${h(p.code)}</b> ${h(p.name)}</span></label>`).join('')}</div>${(o.productCodes||[]).filter(c=>!known.has(c)).map(c=>`<p class=\"pe-warning\">${h(c)} · ${t('既有產品不在目前路線；保留待確認','Sản phẩm cũ ngoài tuyến; giữ để xác nhận')} <button type=\"button\" data-remove-product=\"${h(c)}\">${t('移除本方塊關聯','Bỏ liên kết bước này')}</button></p>`).join('')}`;}\n"
+        },
+        {
+          "offset": 53192,
+          "before": " function ipqcPanel(o){return state.editorLine==='C'?`<label><input type=\"checkbox\" data-c-query ${o.ipqcQueryEnabled?'checked':''}>${t('啟用 IPQC-C 查詢','Bật tra cứu IPQC-C')}</label><p>${t('依目前產品與工段查詢核准標準。','Tra cứu tiêu chuẩn đã duyệt theo sản phẩm và công đoạn.')}</p><a href=\"?view=data&system=process&dataTab=quality-ipqc-c\" target=\"_blank\">${t('開啟 IPQC-C','Mở IPQC-C')}</a><section class=\"pe-c-ipqc-query\" aria-live=\"polite\"></section>${o.ipqcAssignments?.length?`<details class=\"pe-warning\"><summary>${t('原有分配保留（唯讀）','Giữ phân công cũ (chỉ đọc)')} · ${o.ipqcAssignments.length}</summary><pre>${h(JSON.stringify(o.ipqcAssignments,null,2))}</pre></details>`:''}`:'<div class=\"pe-ipqc\"></div>';}\n function renderPanel(){const m=modal,o=m.draft,p=m.dialog.querySelector('.pe-modal-body'),builders={basic,products:productPanel,bom:bomPanel,machines:machinePanel,common:x=>workPanel(x,''),'product-work':productWork,ipqc:ipqcPanel};p.innerHTML=builders[m.tab](o);p.scrollTop=m.scroll[m.tab]||0;m.dialog.querySelectorAll('[data-tab]').forEach(b=>{b.setAttribute('aria-selected',String(b.dataset.tab===m.tab));b.tabIndex=b.dataset.tab===m.tab?0:-1;});bindPanel();if(m.tab==='ipqc'){if(state.editorLine==='C')void host.ProcessIPQC?.mountCQuery(p.querySelector('.pe-c-ipqc-query'),o,{isCurrent:()=>modal===m&&m.tab==='ipqc'});else void host.ProcessIPQC?.mountChoices(p.querySelector('.pe-ipqc'),o,{workspace:m.workspace,isCurrent:()=>modal===m&&m.tab==='ipqc'&&formCurrent(m),canEdit:()=>formEditable(m)&&!m.uploading&&!localCanvas().pending?.(),localRevision:()=>host.ProcessAuthoringV3.recoveryAuthority().localEditEpoch,operations:()=>localCanvas().project(m.workspace,o.stageCode,ensureCategoryEditor()[o.stageCode]||[])});}refreshFormLock();}\n",
+          "after": " function ipqcPanel(){return '<div class=\"pe-ipqc\"></div>';}\n function renderPanel(){const m=modal,o=m.draft,p=m.dialog.querySelector('.pe-modal-body'),builders={basic,products:productPanel,bom:bomPanel,machines:machinePanel,common:x=>workPanel(x,''),'product-work':productWork,ipqc:ipqcPanel};p.innerHTML=builders[m.tab](o);p.scrollTop=m.scroll[m.tab]||0;m.dialog.querySelectorAll('[data-tab]').forEach(b=>{b.setAttribute('aria-selected',String(b.dataset.tab===m.tab));b.tabIndex=b.dataset.tab===m.tab?0:-1;});bindPanel();if(m.tab==='ipqc'){void host.ProcessIPQC?.mountChoices(p.querySelector('.pe-ipqc'),o,{workspace:m.workspace,isCurrent:()=>modal===m&&m.tab==='ipqc'&&formCurrent(m),canEdit:()=>formEditable(m)&&!m.uploading&&!localCanvas().pending?.(),localRevision:()=>host.ProcessAuthoringV3.recoveryAuthority().localEditEpoch,operations:()=>localCanvas().project(m.workspace,o.stageCode,ensureCategoryEditor()[o.stageCode]||[])});}refreshFormLock();}\n"
+        }
+      ]
+    },
+    "public/process/process-ipqc.js": {
+      "beforeHash": "868772d8196c03cabc17d180d14460cbc7b2152d13d2a9bb47391c151f5db58b",
+      "beforeLength": 39785,
+      "beforeBlob": "eaa084eaed7177dd246bab851a05af4f8dd0eb6a",
+      "beforeNormalizedHash": "641cc1d7251dcfba9c629ad8c36a17cc9c11c55b151cb719d5692673ed0b1e92",
+      "beforeCRLF": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        29,
+        31,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        55,
+        56,
+        57,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191,
+        192,
+        193,
+        194,
+        195,
+        196,
+        197,
+        198,
+        199,
+        200,
+        201,
+        202,
+        203
+      ],
+      "afterHash": "ea9ce0f612315a5eb8fd607e3b8b2545aa3679742a5f795636ef2f5768a2f50f",
+      "afterLength": 40708,
+      "rules": [
+        {
+          "offset": 401,
+          "before": "  const statusText=status=>({selected:text('Đã chọn ở bước này','本流程已選'),occupied:text('Đang dùng ở bước khác','其他流程使用中'),available:text('Chưa phân công','尚未分配')})[status];\n  const statusOf=(c,op,owners)=>owners.get(key(c))&&owners.get(key(c)).id!==op.id?'occupied':(op.ipqcAssignments||[]).some(a=>key(a)===key(c))?'selected':'available';\n",
+          "after": "  const statusText=status=>({selected:text('Đã chọn ở bước này','本方塊已選取'),occupied:text('Đang dùng ở bước khác','其他方塊使用中'),available:text('Chưa phân công','尚未分配')})[status];\n  const statusOf=(c,op,owners)=>(op.ipqcAssignments||[]).some(a=>key(a)===key(c))?'selected':owners.get(key(c))&&owners.get(key(c)).id!==op.id?'occupied':'available';\n"
+        },
+        {
+          "offset": 1865,
+          "before": "  const messages={SOURCE_NOT_APPROVED:['Chưa có nguồn IPQC được duyệt','尚無核准的 IPQC 來源'],NO_PRODUCTS:['Chọn sản phẩm trong thông tin cơ bản','請先在基本資料選擇產品'],NO_MATCHING_ITEMS:['Không có hạng mục phù hợp','沒有符合條件的項目']};\n",
+          "after": "  const messages={SOURCE_NOT_APPROVED:['Chưa có nguồn IPQC được duyệt','尚無核准的 IPQC 來源'],NO_PRODUCTS:['Chọn sản phẩm trong thông tin cơ bản','請先在基本資料選擇產品'],NO_MATCHING_ITEMS:['Không có hạng mục phù hợp','尚無檢查項目']};\n"
+        },
+        {
+          "offset": 5244,
+          "before": "    const selected=(op.ipqcAssignments||[]).some(a=>key(a)===key(c)),locked=owner&&owner.id!==op.id,readonly=document.querySelector('#apply-operation')?.disabled,status=locked?'occupied':selected?'selected':'available';\n",
+          "after": "    const selected=(op.ipqcAssignments||[]).some(a=>key(a)===key(c)),locked=!selected&&owner&&owner.id!==op.id,readonly=document.querySelector('#apply-operation')?.disabled,status=locked?'occupied':selected?'selected':'available';\n"
+        },
+        {
+          "offset": 5522,
+          "before": "    return `<article class=\"process-ipqc-choice\" data-status=\"${status}\"><label><input type=\"checkbox\" data-ipqc-choice=\"${h(key(c))}\" ${selected?'checked':''} ${locked||readonly?'disabled':''}><span><b>${h(c.code)}</b>${badge(status)}${locked?`<small class=\"process-ipqc-owner\">${h(owner.number||owner.id)} · ${h(owner.name)}</small>`:''}</span></label>${locked?`<p class=\"process-ipqc-advisory\">${label('Mỗi hạng mục chỉ thuộc một bước trong công đoạn. Bỏ chọn ở bước đang giữ, áp dụng, rồi chọn ở bước này.','同工段每個項目只能分配一次。請先到占用方塊取消勾選並套用，再回來勾選此方塊。')}</p>`:''}<details class=\"process-ipqc-item-details\"><summary>${label('Xem tiêu chuẩn nguồn hiện hành, sản phẩm và ảnh','查看現行來源標準、適用產品與照片')}</summary></details></article>`;\n",
+          "after": "    return `<article class=\"process-ipqc-choice\" data-status=\"${status}\"><label><input type=\"checkbox\" data-ipqc-choice=\"${h(key(c))}\" ${selected?'checked':''} ${locked||readonly?'disabled':''}><span><b>${h(c.code)}</b>${badge(status)}${locked?`<small class=\"process-ipqc-owner\">${h(owner.number||owner.id)} · ${h(owner.name)}</small>`:''}</span></label>${locked?`<p class=\"process-ipqc-advisory\">${label('Mỗi hạng mục chỉ thuộc một bước trong công đoạn. Bỏ chọn ở bước đang giữ, hoàn tất và lưu bản nháp, rồi chọn ở bước này.','同工段每個項目只能分配一次。請先到占用方塊取消勾選、完成編輯並存取草稿，再回來勾選此方塊。')}</p>`:''}<details class=\"process-ipqc-item-details\"><summary>${label('Xem tiêu chuẩn nguồn hiện hành, sản phẩm và ảnh','查看現行來源標準、適用產品與照片')}</summary></details></article>`;\n"
+        },
+        {
+          "offset": 7615,
+          "before": "      const choices=result.choices,choicesByKey=new Map(),owners=new Map();for(const c of choices){const k=key(c);if(!choicesByKey.has(k))choicesByKey.set(k,c);}for(const node of ensureCategoryEditor()[op.stageCode]||[])for(const a of node.ipqcAssignments||[])owners.set(key(a),node);\n      const groups=new Map(),detailBodies=[];for(const c of choices){const list=groups.get(c.errorId)||[];list.push(c);groups.set(c.errorId,list);}\n      const stale=(op.ipqcAssignments||[]).filter(a=>{const c=choicesByKey.get(key(a));return !c||c.sourceVersionId!==a.sourceVersionId||JSON.stringify([...a.productCodes].sort((a,b)=>a.localeCompare(b)))!==JSON.stringify([...c.productCodes].sort((a,b)=>a.localeCompare(b)));});\n",
+          "after": "      const choices=result.choices,choicesByKey=new Map(),owners=new Map();for(const c of choices){const k=key(c);if(!choicesByKey.has(k))choicesByKey.set(k,c);}const flow=window.ProcessAuthoringV3?.flow?.();\n      const inScope=w=>w.line===state.editorLine&&(result.source==='C'||w.category===state.category);\n      // Saved owners keep a local release occupied until the explicit Save succeeds.\n      for(const w of flow?.saved?.content?.workspaces||[])if(inScope(w))for(const node of w.stages[op.stageCode]||[])for(const a of node.ipqcAssignments||[])owners.set(key(a),editor&&w.id!==editor.workspace?{...node,id:w.id+':'+node.id,number:node.number||node.id}:node);\n      const rows=flow?.working?.workspaces;\n      if(rows)for(const w of rows)if(inScope(w))for(const node of window.ProcessCanvasLocal?.project?.(w.id,op.stageCode,w.stages[op.stageCode]||[])||w.stages[op.stageCode]||[])for(const a of node.ipqcAssignments||[])owners.set(key(a),editor&&w.id!==editor.workspace?{...node,id:w.id+':'+node.id,number:node.number||node.id}:node);\n      for(const node of editor?.operations?.()||ensureCategoryEditor()[op.stageCode]||[])for(const a of node.ipqcAssignments||[])owners.set(key(a),node);\n      const groups=new Map(),detailBodies=[];for(const c of choices){const group=JSON.stringify([c.source==='C'?c.productCodes[0]:null,c.errorId]),list=groups.get(group)||[];list.push(c);groups.set(group,list);}\n      const stale=(op.ipqcAssignments||[]).filter(a=>{const c=choicesByKey.get(key(a));return !c||c.sourceVersionId!==a.sourceVersionId||a.source==='C'&&JSON.stringify([...a.productCodes].sort((a,b)=>a.localeCompare(b)))!==JSON.stringify([...c.productCodes].sort((a,b)=>a.localeCompare(b)));});\n"
+        },
+        {
+          "offset": 9322,
+          "before": "      panel.innerHTML=`<div class=\"process-ipqc-context\"><b>${h(state.editorLine)} → ${h(state.category)} → ${h(op.stageCode)}</b><strong>${h(op.number||op.id)} · ${h(document.querySelector('#operation-name')?.value||op.name)}</strong><small>IPQC-${h(result.source)} · ${label('Chỉ dùng nguồn được duyệt','僅使用核准來源')}</small></div><p>${label('Chỉ phân công hạng mục. Hoàn tất để giữ trên trang hiện tại, rồi lưu bản nháp.','此處僅分配項目；完成方塊後先留目前頁面，再存取草稿。')}</p>${result.reason?`<div class=\"process-ipqc-warning\" role=\"status\"><p>${label(...messages[result.reason])}</p>${result.reason==='NO_PRODUCTS'?`<button type=\"button\" data-ipqc-products>${label('Chọn sản phẩm trong thông tin cơ bản','前往基本資料選擇產品')}</button>`:`<p>${result.reason==='SOURCE_NOT_APPROVED'?label('Lưu, gửi duyệt và duyệt nguồn đúng chuyền / nhóm; sau đó tải lại. Không dùng bản nháp làm nguồn.','請在品質後台將此線別／群組的來源保存、送審並核准，再重新讀取。草稿尚不能分配。'):label('Kiểm tra sản phẩm, công đoạn và trạng thái bật của tiêu chuẩn đã duyệt.','請核對核准標準的產品、工段與啟用狀態。')}</p><a href=\"?view=data&system=process&dataTab=quality-ipqc-${result.source==='AB'?'ab':'c'}&ipqcScope=${encodeURIComponent(result.scope)}&ipqcStage=${encodeURIComponent(op.stageCode)}\" target=\"_blank\" rel=\"noopener\">${label('Mở nguồn chất lượng · '+result.scope,'開啟品質來源 · '+result.scope)}</a>`}</div>`:''}<div class=\"process-ipqc-overview\" role=\"status\" aria-live=\"polite\">${['selected','occupied','available'].map(status=>`<div class=\"process-ipqc-metric ${status}\"><strong data-ipqc-count=\"${status}\">0</strong><span>${h(statusText(status))}</span></div>`).join('')}</div>${stale.map(a=>`<div class=\"process-ipqc-warning\" role=\"status\">${label('Liên kết cũ đã thay đổi hoặc không còn phù hợp; vẫn được giữ lại','既有關聯來源或產品條件已變更；原關聯仍保留')}<code>${h(a.itemId)}</code><button type=\"button\" data-ipqc-remove=\"${h(key(a))}\" ${document.querySelector('#apply-operation')?.disabled?'disabled':''}>${label('Bỏ liên kết','移除關聯')}</button></div>`).join('')}${[...groups.values()].map(list=>`<details class=\"process-ipqc-group\"><summary><span class=\"process-ipqc-group-title\"><b>${h(list[0].errorCode)}</b><span>${h(list[0].errorName)}</span></span><span class=\"process-ipqc-progress\" data-ipqc-progress></span></summary>${list.map(c=>choiceMarkup(c,op,owners.get(key(c)),detailBodies)).join('')}</details>`).join('')}<button type=\"button\" class=\"process-ipqc-reload\" data-ipqc-reload>${label('Tải lại nguồn','重新讀取來源')}</button>`;\n",
+          "after": "      panel.innerHTML=`<div class=\"process-ipqc-context\"><b>${h(state.editorLine)} → ${h(state.category)} → ${h(op.stageCode)}</b><strong>${h(op.number||op.id)} · ${h(document.querySelector('#operation-name')?.value||op.name)}</strong><small>IPQC-${h(result.source)} · ${label('Chỉ dùng nguồn được duyệt','僅使用核准來源')}</small></div><p>${label('Chỉ phân công hạng mục. Hoàn tất để giữ trên trang hiện tại, rồi lưu bản nháp.','此處僅分配項目；完成方塊後先留目前頁面，再存取草稿。')}</p>${result.reason?`<div class=\"process-ipqc-warning\" role=\"status\"><p>${label(...messages[result.reason])}</p>${result.reason==='NO_PRODUCTS'?`<button type=\"button\" data-ipqc-products>${label('Chọn sản phẩm trong thông tin cơ bản','前往基本資料選擇產品')}</button>`:`<p>${result.reason==='SOURCE_NOT_APPROVED'?label('Lưu, gửi duyệt và duyệt nguồn đúng chuyền / nhóm; sau đó tải lại. Không dùng bản nháp làm nguồn.','請在品質後台將此線別／群組的來源保存、送審並核准，再重新讀取。草稿尚不能分配。'):label('Kiểm tra sản phẩm, công đoạn và trạng thái bật của tiêu chuẩn đã duyệt.','請核對核准標準的工段與啟用狀態；C 線另依所選產品。')}</p><a href=\"?view=data&system=process&dataTab=quality-ipqc-${result.source==='AB'?'ab':'c'}&ipqcScope=${encodeURIComponent(result.scope)}&ipqcStage=${encodeURIComponent(op.stageCode)}\" target=\"_blank\" rel=\"noopener\">${label('Mở nguồn chất lượng · '+result.scope,'開啟品質來源 · '+result.scope)}</a>`}</div>`:''}<div class=\"process-ipqc-overview\" role=\"status\" aria-live=\"polite\">${['selected','occupied','available'].map(status=>`<div class=\"process-ipqc-metric ${status}\"><strong data-ipqc-count=\"${status}\">0</strong><span>${h(statusText(status))}</span></div>`).join('')}</div>${stale.map(a=>`<div class=\"process-ipqc-warning\" role=\"status\">${label('Liên kết cũ đã thay đổi hoặc không còn phù hợp; vẫn được giữ lại','既有關聯來源或產品條件已變更；原關聯仍保留')}<code>${h(a.itemId)}</code><button type=\"button\" data-ipqc-remove=\"${h(key(a))}\" ${document.querySelector('#apply-operation')?.disabled?'disabled':''}>${label('Bỏ liên kết','移除關聯')}</button></div>`).join('')}${[...groups.values()].map(list=>`<details class=\"process-ipqc-group\"><summary><span class=\"process-ipqc-group-title\"><b>${list[0].source==='C'?h(list[0].productCodes[0])+' → ':''}${h(list[0].errorCode)}</b><span>${h(list[0].errorName)}</span></span><span class=\"process-ipqc-progress\" data-ipqc-progress></span></summary>${list.map(c=>choiceMarkup(c,op,owners.get(key(c)),detailBodies)).join('')}</details>`).join('')}<button type=\"button\" class=\"process-ipqc-reload\" data-ipqc-reload>${label('Tải lại nguồn','重新讀取來源')}</button>`;\n"
+        },
+        {
+          "offset": 13479,
+          "before": "      panel.querySelectorAll('[data-ipqc-choice]').forEach(input=>input.onchange=()=>{if(!valid()||editor&&!editor.canEdit())return;const choice=choicesByKey.get(input.dataset.ipqcChoice);if(!choice||input.checked&&(op.ipqcAssignments||[]).some(a=>key(a)===key(choice)))return;op.ipqcAssignments=(op.ipqcAssignments||[]).filter(a=>key(a)!==key(choice));if(input.checked){op.ipqcAssignments.push({source:choice.source,scope:choice.scope,itemId:choice.itemId,sourceVersionId:choice.sourceVersionId,productCodes:[...choice.productCodes]});owners.set(key(choice),op);}else owners.delete(key(choice));const status=input.checked?'selected':'available';input.closest('article').dataset.status=status;input.closest('label').querySelector('.process-ipqc-badge').outerHTML=badge(status);updateOverview(panel,choices,op,owners);panel.dispatchEvent(new Event('input',{bubbles:true}));});\n",
+          "after": "      panel.querySelectorAll('[data-ipqc-choice]').forEach(input=>input.onchange=()=>{if(!valid()||editor&&!editor.canEdit())return;const choice=choicesByKey.get(input.dataset.ipqcChoice);if(!choice||input.disabled||input.checked&&((op.ipqcAssignments||[]).some(a=>key(a)===key(choice))||owners.has(key(choice))&&owners.get(key(choice)).id!==op.id))return;op.ipqcAssignments=(op.ipqcAssignments||[]).filter(a=>key(a)!==key(choice));if(input.checked){op.ipqcAssignments.push({source:choice.source,scope:choice.scope,itemId:choice.itemId,sourceVersionId:choice.sourceVersionId,productCodes:[...choice.productCodes]});owners.set(key(choice),op);}else owners.delete(key(choice));const status=input.checked?'selected':'available';input.closest('article').dataset.status=status;input.closest('label').querySelector('.process-ipqc-badge').outerHTML=badge(status);updateOverview(panel,choices,op,owners);panel.dispatchEvent(new Event('input',{bubbles:true}));});\n"
+        },
+        {
+          "offset": 16501,
+          "before": "  function currentSource(result,assignment,op){\n",
+          "after": "  function currentSource(result,assignment,_op){\n"
+        },
+        {
+          "offset": 16758,
+          "before": "    const matches=result.choices.filter(c=>c&&key(c)===key(assignment));if(matches.length!==1)throw Error('IPQC_SOURCE_UNAVAILABLE');const selected=sourceProjection(matches[0]);if(!selected.productCodes.length||new Set(selected.productCodes).size!==selected.productCodes.length||selected.productCodes.some(p=>!op.productCodes.includes(p)))throw Error('IPQC_SOURCE_UNAVAILABLE');return selected;\n",
+          "after": "    const matches=result.choices.filter(c=>c&&key(c)===key(assignment));if(matches.length!==1)throw Error('IPQC_SOURCE_UNAVAILABLE');const selected=sourceProjection(matches[0]);if(new Set(selected.productCodes).size!==selected.productCodes.length)throw Error('IPQC_SOURCE_UNAVAILABLE');return selected;\n"
+        },
+        {
+          "offset": 17595,
+          "before": "    if(!['sourceTool','sourceMethod'].every(k=>typeof i[k]==='string')||e.deleted!==false||i.deleted!==false||i.isEnabled!==true||e.line!==state.editorLine||e.group!==state.category||e.stageCode!==op.stageCode||!strings(i.productCodes)||assignment.productCodes.some(p=>!i.productCodes.includes(p))||!Array.isArray(i.standardPhotos)||!Array.isArray(i.methodPhotos))throw Error('IPQC_HISTORY_UNAVAILABLE');\n",
+          "after": "    if(!['sourceTool','sourceMethod'].every(k=>typeof i[k]==='string')||e.deleted!==false||i.deleted!==false||i.isEnabled!==true||e.line!==state.editorLine||e.group!==state.category||e.stageCode!==op.stageCode||!strings(i.productCodes)||!Array.isArray(i.standardPhotos)||!Array.isArray(i.methodPhotos))throw Error('IPQC_HISTORY_UNAVAILABLE');\n"
+        }
+      ]
+    },
+    "public/process/index.html": {
+      "beforeHash": "9981c1f7272189f05c944b1881349ce1eb9dc66f8e7e1fee33072b1c92c407a0",
+      "beforeLength": 11512,
+      "beforeBlob": "cc8d4462d55e3c0e148e0166a4d4514f5cec01e8",
+      "beforeNormalizedHash": "9981c1f7272189f05c944b1881349ce1eb9dc66f8e7e1fee33072b1c92c407a0",
+      "beforeCRLF": [],
+      "afterHash": "eee254421af06db34ecaa86bc24767c22850d64e012e065f61e3de6223b4dfc8",
+      "afterLength": 11488,
+      "rules": [
+        {
+          "offset": 9875,
+          "before": "    <script data-process-src=\"process-ipqc.js?v=20261110-ipqc-source-single-save1\"></script>\n",
+          "after": "    <script data-process-src=\"process-ipqc.js?v=20261114-ipqc-link1\"></script>\n"
+        },
+        {
+          "offset": 10902,
+          "before": "    <script data-process-src=\"process-editor.js?v=20261110-process-integration2\"></script>\n",
+          "after": "    <script data-process-src=\"process-editor.js?v=20261114-ipqc-link1\"></script>\n"
+        }
+      ]
+    },
+    "docs/specs/current/PROCESS_EDITOR.md": {
+      "beforeHash": "128905f5d6ca93315443893fed5082efae12f7916fc6429aa5c68c28195547e9",
+      "beforeLength": 20413,
+      "beforeBlob": "a75a1688f292652dffedc1a0d56600b011695558",
+      "beforeNormalizedHash": "128905f5d6ca93315443893fed5082efae12f7916fc6429aa5c68c28195547e9",
+      "beforeCRLF": [],
+      "afterHash": "0b5c9a922ce3917eac757b5b964e00b6aecbc2328fa2b75b652ab9807bfe3040",
+      "afterLength": 21490,
+      "rules": [
+        {
+          "offset": 18603,
+          "before": "A/B沿用同類別同工段內同一檢查項目只分配一方塊，顯示其他分配位置；同方塊可適用多產品。來源與可選標準沿用現行核准資料機制；不要在製程彈窗改主檔標準。C線沿用「開啟查詢功能」。隱藏不適用的另一線UI，示意圖並排只是比較。\n",
+          "after": "A/B 僅依方塊所在的線別＋類別＋工段取得已核准、啟用、未刪除的檢查子項；不以方塊產品、項目產品或產品路線過濾。無產品也能分配，變更產品不清除 A/B 關聯。C 依方塊已選的有效產品＋畫布工段勾選／取消並保存，多產品顯示聯集，按產品→錯誤→項目分組；不以產品路線隱藏符合的標準。未選產品提示先選，只有錯誤無子項顯示「尚無檢查項目」。進站／出站沒有 IPQC 分頁。\n\n同項目只能分給一方塊：A/B 同線別＋類別＋工段；C 同產品＋工段，涵蓋不同類別工作區的既有引用。本方塊顯示「本方塊已選取」、保持勾選且可取消；其他方塊顯示名稱／編號並鎖定。轉移須先原方塊取消、完成編輯並存取草稿，再到新方塊勾選並存取；後端在同一 CAS 驗證占用。完成編輯只留目前頁面，手動存取才持久保存。\n\n引用保存 source／scope／itemId／sourceVersionId；來源變版、停用、刪除或 C 變更產品時保留原引用，顯示待處理，不自動替換或清除。可明確移除再選；A/B 原來源比較／明確採用功能保留。舊 C ipqcQueryEnabled 不轉成全選；已核准歷史不改寫。IPQC 核准不等於製程核准，權限、待審、CAS、UNKNOWN 原收據與安全去重保留，沒有背景定時查詢。\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/modules/PROCESS.md": {
+      "beforeHash": "24ccb6f15a1e12595bb30464c563dc924e82450f5da7baca4c5c836202dfbf33",
+      "beforeLength": 51698,
+      "beforeBlob": "8905a525a03c75978fd992c7b65c031a8ae73c68",
+      "beforeNormalizedHash": "24ccb6f15a1e12595bb30464c563dc924e82450f5da7baca4c5c836202dfbf33",
+      "beforeCRLF": [],
+      "afterHash": "9fd99f6457708498627d73ae22787afe7874a558d4366c51571bedbeecf6ed19",
+      "afterLength": 52198,
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-14 — IPQC 方塊連接規則候選\n\n新版 operation editor 的 A/B、C 都使用既有 assignment checkbox 與 current-canvas atomic Save。A/B 不依產品／路線過濾；C 依有效產品與畫布工段，多產品聯集且保留變更後的歷史引用。全工作區的 C 占用與已存 owner 均檢查；取消後須先存取才能轉移。舊 query flag 不自動勾選。來源、測試與界線見[驗收矩陣](../../docs/acceptance/process-ipqc-link-rules-20261114.md)。\n\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/modules/QUALITY.md": {
+      "beforeHash": "eeee0b2553142a28e682fd2d375086cf9237adde125fe3a48b4dfbe23a189b97",
+      "beforeLength": 89154,
+      "beforeBlob": "6ff4e9d5a8ad37b9a2ed97ef378de798b59d3433",
+      "beforeNormalizedHash": "eeee0b2553142a28e682fd2d375086cf9237adde125fe3a48b4dfbe23a189b97",
+      "beforeCRLF": [],
+      "afterHash": "5e5698be5f6e7f0732c105428a093165e7cc8a59322632e7a9fca8ce88c862cd",
+      "afterLength": 89659,
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-14 — 製程 IPQC 來源與反向引用候選\n\n僅已核准 active version 的啟用未刪除子項可新建連接。A/B 按線別／類別／工段，產品欄位只作參考；C 按有效所選產品／工段，不增加產品路線門檻。來源改動保留舊版本 tuple 並標示；品質核准不核准製程。既有逆向引用讀取維持持久 PROCESS 版本／工作草稿，不查未完成表單。見[本輪矩陣](../../docs/acceptance/process-ipqc-link-rules-20261114.md)。\n\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/DATA_MODEL.md": {
+      "beforeHash": "f34fc5f0523910c3ad5ab49e8535a162637a13c0c0febeb2426781e3593bd408",
+      "beforeLength": 49359,
+      "beforeBlob": "2d29d1bca0848d86f31fb4f4af8c6716279f1d14",
+      "beforeNormalizedHash": "f34fc5f0523910c3ad5ab49e8535a162637a13c0c0febeb2426781e3593bd408",
+      "beforeCRLF": [],
+      "afterHash": "ce1032d142821c820fc6062d03384f4155a654e2510711201cca9eb2938bf83b",
+      "afterLength": 49946,
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-14 — IPQC assignment 規則候選\n\n沿用 operation.ipqcAssignments 的 source／scope／itemId／sourceVersionId／productCodes tuple 與原工作草稿／immutable Save／CAS，不新增 SQL、儲存鍵、migration 或批次資料改寫。A/B productCodes 為來源參考，不再作選取資格或缺項／來源變更判定；C 仍驗證單產品身分。C 占用驗證跨同工段所有工作區，包含既有不再適用的歷史引用。舊 ipqcQueryEnabled 保留、無自動勾選。見[變更及驗收](../docs/acceptance/process-ipqc-link-rules-20261114.md)。\n\n"
+        }
+      ]
+    },
+    "HANDOFF.md": {
+      "beforeHash": "d900e9663c2c9bd6accf4161aa5bcc0f1774060b3610423ab7aa4a6f59c09ff5",
+      "beforeLength": 87328,
+      "beforeBlob": "48a7a7d5197176f90ae7fe36186c8d1d280b528b",
+      "beforeNormalizedHash": "d900e9663c2c9bd6accf4161aa5bcc0f1774060b3610423ab7aa4a6f59c09ff5",
+      "beforeCRLF": [],
+      "afterHash": "0114497c09d6ff3bb2be7bf94fb1bec62d9f19e0e18736c8708e881745d3e22f",
+      "afterLength": 87814,
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-14 — Process ↔ IPQC link-rule candidate\n\nIndependent main4aa0f24c branch; no #115/#116 ref changes. A/B product-independent approved choices, C editable persisted assignments, cross-workspace C occupancy and saved-release transfer. Generated new errors/items travel through real Save/Submit/approval routes. [Matrix, provenance, test and native/live limits](docs/acceptance/process-ipqc-link-rules-20261114.md). Draft only, no real data/account/schema/merge/deployment.\n\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/CHANGELOG.md": {
+      "beforeHash": "d35f958d6ecfd4b9cdf3544b3bb4183ef047b73b61448c221d45849e87167184",
+      "beforeLength": 179192,
+      "beforeBlob": "e8cd2793cb60937b6f133019e5ca25c4b3bf78c7",
+      "beforeNormalizedHash": "d35f958d6ecfd4b9cdf3544b3bb4183ef047b73b61448c221d45849e87167184",
+      "beforeCRLF": [],
+      "afterHash": "9b21eabdb3f1debd8d0082c4a2ff476ba2177310cc40c525f04781921a3d919e",
+      "afterLength": 179710,
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-14 — Process IPQC link-rule candidate\n\nA/B choices/validation/completeness/source comparisons no longer use operation products or product routes. C editor now selects and saves item references, with product/error grouping and explicit stale-reference handling. Backend checks cross-workspace C occupancy and saved-release transfer under existing CAS. [Generated lifecycle evidence and limits](../docs/acceptance/process-ipqc-link-rules-20261114.md). No live-data rewrite, migration, merge or deployment.\n\n"
+        }
+      ]
+    }
+  }
+}

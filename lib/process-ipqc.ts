@@ -13,8 +13,9 @@ type ChoiceSourceReader=<T>(key:string,fallback:T)=>T;
 function ipqcChoicesFrom(readSource:ChoiceSourceReader,w:Pick<Workspace,'line'|'category'>,stage:string,selected:string[]){
  const master=readSource('masterDataControl',{active:{} as Record<string,{products?:Product[]}>});
  const source=w.line==='C'?'C':'AB',scope=source==='C'?'C':`${w.line}:${w.category}`;
- const products=(master.active?.[source]?.products||[]).filter(p=>p.line===w.line&&p.category===w.category&&p.stages?.includes(stage)&&selected.includes(p.code)).map(p=>p.code);
+ const products=(master.active?.[source]?.products||[]).filter(p=>p.line===w.line&&p.category===w.category&&selected.includes(p.code)).map(p=>p.code);
  const choices:IPQCChoice[]=[];
+ if(source==='C'&&!products.length)return{source,scope,reason:'NO_PRODUCTS',choices};
  if(source==='AB'){
   const control=readSource<AbControl|null>('ipqcABMasterControl',null),s=control?.scopes?.[scope],v=s?.versions.find(v=>v.id===s.activeVersionId&&v.status==='approved');
   if(!v)return{source,scope,reason:'SOURCE_NOT_APPROVED',choices};
@@ -22,8 +23,8 @@ function ipqcChoicesFrom(readSource:ChoiceSourceReader,w:Pick<Workspace,'line'|'
   // A read owns this immutable source. Resolve repeated errors lazily so the
   // first-match order and malformed-row failures remain those of Array.find.
   const errors=new Map<string,AbError|undefined>();
-  for(const i of v.snapshot.items){if(!errors.has(i.errorId))errors.set(i.errorId,v.snapshot.errors.find((e:AbError)=>e.id===i.errorId&&!e.deleted&&e.stageCode===stage&&e.line===w.line&&e.group===w.category));const e=errors.get(i.errorId),codes=i.productCodes.filter(p=>products.includes(p));
-   if(!e||i.deleted||!i.isEnabled||!codes.length)continue;
+  for(const i of v.snapshot.items){if(!errors.has(i.errorId))errors.set(i.errorId,v.snapshot.errors.find((e:AbError)=>e.id===i.errorId&&!e.deleted&&e.stageCode===stage&&e.line===w.line&&e.group===w.category));const e=errors.get(i.errorId),codes=[...i.productCodes];
+   if(!e||i.deleted||!i.isEnabled)continue;
    choices.push({source,scope,itemId:i.id,sourceVersionId:v.id,productCodes:codes,code:i.code,errorId:e.id,errorCode:e.code,errorName:e.name,standard:i.standard,description:i.methodText,inspection:[i.sourceTool,i.sourceMethod].filter(Boolean).join(' · '),equipment:i.equipmentSnapshot,rules:i.rules,frequency:i.sourceFrequency||'',photos:[...i.standardPhotos,...i.methodPhotos]});
   }
  }else{
@@ -36,7 +37,7 @@ function ipqcChoicesFrom(readSource:ChoiceSourceReader,w:Pick<Workspace,'line'|'
    choices.push({source,scope,itemId:i.id,sourceVersionId:v.id,productCodes:[i.productCode],code:i.code,errorId:e.id,errorCode:e.code,errorName:e.name,standard:i.standard,description:i.description,inspection:[i.tool,i.method].filter(Boolean).join(' · '),equipment:i.equipmentSnapshot,rules:i.rule?[i.rule]:[],frequency:i.frequency,photos:i.mediaItems});
   }
  }
- return{source,scope,reason:products.length?choices.length?'':'NO_MATCHING_ITEMS':'NO_PRODUCTS',choices};
+ return{source,scope,reason:source==='C'&&!products.length?'NO_PRODUCTS':choices.length?'':'NO_MATCHING_ITEMS',choices};
 }
 // Optional master is the caller's already parsed matching state value, never
 // client input or a cross-request cache. Other sources retain their lazy reads.
@@ -44,27 +45,32 @@ export function ipqcChoices(values:Record<string,string>,w:Pick<Workspace,'line'
  return ipqcChoicesFrom((key,fallback)=>key==='masterDataControl'&&values[key]&&preparedMaster!==undefined?preparedMaster as typeof fallback:read(values,key,fallback),w,stage,selected);
 }
 export const assignments=(op:Operation):IPQCAssignment[]=>op.ipqcAssignments as IPQCAssignment[]||[];
-export function validateIPQCAssignments(workspaces:Workspace[],previous:Workspace[],values:Record<string,string>,preparedMaster?:unknown){
+export function validateIPQCAssignments(workspaces:Workspace[],previous:Workspace[],values:Record<string,string>,preparedMaster?:unknown,saved:Workspace[]=[]){
  // Source strings are immutable within this synchronous call. Unchanged
  // historical links still skip decoding; no cache survives the invocation.
  const decoded=new Map<string,unknown>();
  const readSource:ChoiceSourceReader=(key,fallback)=>{if(!values[key])return fallback;if(key==='masterDataControl'&&preparedMaster!==undefined)return preparedMaster as typeof fallback;if(!decoded.has(key))decoded.set(key,read(values,key,fallback));return decoded.get(key) as typeof fallback;};
+ const occupied=new Map<string,Operation>();
+ const occupancy=(w:Workspace,stage:string,a:IPQCAssignment)=>JSON.stringify([w.line,w.line==='C'?null:w.category,stage,assignmentKey(a)]);
+ const previousOwners=new Map<string,{workspace:string;operation:string}[]>();
+ for(const w of [...previous,...saved])for(const [stage,ops]of Object.entries(w.stages))for(const op of ops)for(const a of Array.isArray(op.ipqcAssignments)?assignments(op):[])if(a){const key=occupancy(w,stage,a),owners=previousOwners.get(key)||[];owners.push({workspace:w.id,operation:op.id});previousOwners.set(key,owners);}
  for(const w of workspaces)for(const [stage,ops]of Object.entries(w.stages)){
-  const occupied=new Map<string,Operation>();
   for(const op of ops){
    if(op.ipqcAssignments!==undefined&&!Array.isArray(op.ipqcAssignments))throw new DraftConflict('IPQC_ASSIGNMENT_INVALID',422);
    const old=previous.find(p=>p.id===w.id)?.stages[stage]?.find(p=>p.id===op.id);
    let choices:IPQCChoice[]|undefined;
    for(const a of assignments(op)){
     if(!a||!['AB','C'].includes(a.source)||typeof a.scope!=='string'||!a.scope||typeof a.itemId!=='string'||!a.itemId||typeof a.sourceVersionId!=='string'||!a.sourceVersionId||!Array.isArray(a.productCodes)||a.productCodes.some(p=>typeof p!=='string'))throw new DraftConflict('IPQC_ASSIGNMENT_INVALID',422);
-    const key=assignmentKey(a),owner=occupied.get(key);
+    const key=assignmentKey(a),occupiedKey=occupancy(w,stage,a),owner=occupied.get(occupiedKey);
     if(owner)throw new DraftConflict(`IPQC_ALREADY_ASSIGNED: ${operationNumber(owner)} · ${owner.name}`,409);
-    occupied.set(key,op);
+    occupied.set(occupiedKey,op);
+    const priorOwner=previousOwners.get(occupiedKey);
+    if(priorOwner?.some(owner=>owner.workspace!==w.id||owner.operation!==op.id))throw new DraftConflict('IPQC_TRANSFER_REQUIRES_SAVED_RELEASE: 請先取消原方塊分配並存取草稿 / Bỏ phân công ở bước cũ và lưu bản nháp trước',409);
     // Preserve an unchanged historical link, even if its source/route was removed.
     if(old&&assignments(old).some(p=>stableDraftJSON(p)===stableDraftJSON(a)))continue;
     choices??=ipqcChoicesFrom(readSource,w,stage,op.productCodes).choices;
     const choice=choices.find(c=>assignmentKey(c)===key&&c.sourceVersionId===a.sourceVersionId);
-    if(!choice||stableDraftJSON([...choice.productCodes].sort())!==stableDraftJSON([...a.productCodes].sort()))throw new DraftConflict('IPQC_SOURCE_CHANGED: Nguồn hoặc sản phẩm đã thay đổi / 來源或適用產品已變更，請重新選取',409);
+    if(!choice||a.source==='C'&&stableDraftJSON([...choice.productCodes].sort())!==stableDraftJSON([...a.productCodes].sort()))throw new DraftConflict('IPQC_SOURCE_CHANGED: Nguồn hoặc sản phẩm đã thay đổi / 來源或適用產品已變更，請重新選取',409);
    }
   }
  }
@@ -78,11 +84,11 @@ export function ipqcIssues(workspaces:Workspace[],values:Record<string,string>,p
  for(const w of workspaces)for(const [stage,ops]of Object.entries(w.stages)){
   const found=ipqcChoicesFrom(readSource,w,stage,[...new Set(ops.flatMap(o=>o.productCodes||[]))]);
   const all=ops.flatMap(assignments),path:DraftIssue['path']=['workspaces',{id:w.id},'stages',stage];
-  if(values[w.line==='C'?'ipqcCMasterControl':'ipqcABMasterControl']&&ops.some(o=>o.productCodes?.length)&&found.reason==='SOURCE_NOT_APPROVED')issues.push({kind:'missing',path,message:'IPQC_SOURCE_NOT_APPROVED'});
+  if(values[w.line==='C'?'ipqcCMasterControl':'ipqcABMasterControl']&&(w.line!=='C'||ops.some(o=>o.productCodes?.length))&&found.reason==='SOURCE_NOT_APPROVED')issues.push({kind:'missing',path,message:'IPQC_SOURCE_NOT_APPROVED'});
   for(const c of found.choices)if(!all.some(a=>assignmentKey(a)===assignmentKey(c)))issues.push({kind:'missing',path,message:'IPQC_UNASSIGNED:'+c.code});
   for(const op of ops)for(const a of assignments(op)){
    const c=ipqcChoicesFrom(readSource,w,stage,op.productCodes).choices.find(c=>assignmentKey(c)===assignmentKey(a));
-   if(!c||c.sourceVersionId!==a.sourceVersionId||stableDraftJSON([...c.productCodes].sort())!==stableDraftJSON([...a.productCodes].sort()))issues.push({kind:'missing',path:[...path,{id:op.id}],message:'IPQC_REFERENCE_CHANGED:'+a.itemId});
+   if(!c||c.sourceVersionId!==a.sourceVersionId||a.source==='C'&&stableDraftJSON([...c.productCodes].sort())!==stableDraftJSON([...a.productCodes].sort()))issues.push({kind:'missing',path:[...path,{id:op.id}],message:'IPQC_REFERENCE_CHANGED:'+a.itemId});
   }
  }
  return issues;

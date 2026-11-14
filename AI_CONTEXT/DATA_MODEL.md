@@ -1,3 +1,7 @@
+## 2026-11-14 — IPQC assignment 規則候選
+
+沿用 operation.ipqcAssignments 的 source／scope／itemId／sourceVersionId／productCodes tuple 與原工作草稿／immutable Save／CAS，不新增 SQL、儲存鍵、migration 或批次資料改寫。A/B productCodes 為來源參考，不再作選取資格或缺項／來源變更判定；C 仍驗證單產品身分。C 占用驗證跨同工段所有工作區，包含既有不再適用的歷史引用。舊 ipqcQueryEnabled 保留、無自動勾選。見[變更及驗收](../docs/acceptance/process-ipqc-link-rules-20261114.md)。
+
 ## 2026-11-12 — Quality 整合候選的資料界線
 
 FQC／IQC 沿用既有共享 workflow、不可變保存／審核快照與原操作收據；同頁核准歷史是授權讀取，不新增歷史還原寫入。例行 FQC 的 opt-in `page-v1` 結構仍位於 `routineFqcControl`，整頁 baseline／workflow 與 document dependency 索引見[例行模型](models/ROUTINE_FQC.md)。舊 document layout、ID／歷史／收據保留；離線工具只輸出候選，沒有執行正式切換、schema 或 migration。來源與驗收界線見[整合追蹤](../docs/acceptance/fqc-iqc-integration-20261112/README.md)。

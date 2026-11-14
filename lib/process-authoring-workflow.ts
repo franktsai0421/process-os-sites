@@ -102,7 +102,7 @@ export function processAuthoringAdapter(canvasV2=false):WorkflowAdapter<Content,
         const routeAllows=(code:string)=>products.some(p=>p.code===code&&p.category===w.category&&p.line===w.line&&(p.stages||[]).includes(stage));
         // A later approved route may retire an existing selection. Retain it as
         // an advisory issue; only new product/BOM selections are forbidden.
-        if(op.productCodes.some((code:string)=>!routeAllows(code)&&!old?.productCodes.includes(code)))throw new DraftConflict('OPERATION_PRODUCT_ROUTE_INVALID',422);
+        if(op.productCodes.some((code:string)=>!(w.line==='C'?products.some(p=>p.code===code&&p.category===w.category&&p.line===w.line):routeAllows(code))&&!old?.productCodes.includes(code)))throw new DraftConflict('OPERATION_PRODUCT_ROUTE_INVALID',422);
         const beforeBom=old?.bomSelections??(old?.bomProductCode?{[old.bomProductCode]:old.bomItems||[]}:{});
         const afterBom=op.bomSelections??(op.bomProductCode?{[op.bomProductCode]:op.bomItems||[]}:{});
         for(const [code,items]of Object.entries(afterBom))if(!routeAllows(code)&&Array.isArray(items)&&items.some(item=>!beforeBom[code]?.includes(item)))throw new DraftConflict('OPERATION_PRODUCT_ROUTE_INVALID',422);
@@ -112,7 +112,7 @@ export function processAuthoringAdapter(canvasV2=false):WorkflowAdapter<Content,
      }
      if(!base.actor.admin&&previous.workspaces.some(w=>!content.workspaces.some(next=>next.id===w.id)&&!access?.lines.includes(w.line)))throw new DraftConflict('LINE_EDIT_FORBIDDEN',403);
      assertEditorIntegrity(content.workspaces,previous.workspaces,master.active.PROCESS||{},getBomRoots());
-     validateIPQCAssignments(content.workspaces,previous.workspaces,state.values,master);
+     validateIPQCAssignments(content.workspaces,previous.workspaces,state.values,master,control.workflow?.saved?.content.workspaces||[]);
     },
     validate(content){const issues:DraftIssue[]=[],bomRoots=getBomRoots();for(const w of content.workspaces){const all=Object.entries(w.stages).flatMap(([stage,ops])=>ops.map(op=>({op,stage}))),participating=new Set(all.flatMap(({op})=>op.productCodes||[]));
      const add=(stage:string,op:Operation|undefined,message:string,kind:DraftIssue['kind']='missing')=>issues.push({kind,path:['workspaces',{id:w.id},'stages',stage,...(op?[{id:op.id}]:[])],message});
