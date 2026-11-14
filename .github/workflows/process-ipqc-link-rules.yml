@@ -45,11 +45,18 @@ jobs:
       - name: Historical source and no-background compatibility
         run: node --test tests/accounts-process-integration-source.test.mjs tests/process-platform-canvas-contract.test.cjs tests/background-check-source-proof.test.cjs tests/global-background-checks.test.mjs
       - run: npm run lint
+        if: ${{ !cancelled() }}
       - run: npx tsc --noEmit --incremental false
+        if: ${{ !cancelled() }}
       - name: Build exact head
+        id: build_exact
+        if: ${{ !cancelled() }}
         run: npm run build
       - run: node node_modules/playwright/cli.js install --with-deps chromium
+        id: native_browser
+        if: ${{ !cancelled() && steps.build_exact.outcome == 'success' }}
       - name: Native production editor and real signed routes with generated sources
+        if: ${{ !cancelled() && steps.build_exact.outcome == 'success' && steps.native_browser.outcome == 'success' }}
         run: node tests/process-ipqc-link-browser.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

@@ -553,6 +553,43 @@
           "after": "  'process-ipqc.js':'20261114-ipqc-link1',\n"
         }
       ]
+    },
+    "scripts/test-process-ipqc-choice-dom.cjs": {
+      "beforeHash": "e6fd392f587a81d2a314feb9cff213406789c2d184bd448be81205fadf4dffbe",
+      "beforeLength": 10321,
+      "beforeBlob": "ca13e7d9f2f4e64c19538762f36c2b02b68aa5c9",
+      "beforeNormalizedHash": "e6fd392f587a81d2a314feb9cff213406789c2d184bd448be81205fadf4dffbe",
+      "beforeCRLF": [],
+      "afterHash": "527f612d5d75d94b26aacb833d536a5b166c40c04cf607f1845fe08c8e088b40",
+      "afterLength": 11544,
+      "rules": [
+        {
+          "offset": 2647,
+          "before": "",
+          "after": "function alignReviewedAssignmentLabels(before,after,lang){\n const changes=lang==='vi'?[\n  ['Mỗi hạng mục chỉ thuộc một bước trong công đoạn. Bỏ chọn ở bước đang giữ, áp dụng, rồi chọn ở bước này.','Mỗi hạng mục chỉ thuộc một bước trong công đoạn. Bỏ chọn ở bước đang giữ, hoàn tất và lưu bản nháp, rồi chọn ở bước này.']\n ]:[['本流程已選','本方塊已選取'],['其他流程使用中','其他方塊使用中'],['同工段每個項目只能分配一次。請先到占用方塊取消勾選並套用，再回來勾選此方塊。','同工段每個項目只能分配一次。請先到占用方塊取消勾選、完成編輯並存取草稿，再回來勾選此方塊。']];\n for(const [old,current]of changes){const a=[before,...before.querySelectorAll('*')].filter(node=>node._text===old),b=[after,...after.querySelectorAll('*')].filter(node=>node._text===current);assert(a.length>0,'exact historical assignment label present');assert.equal(a.length,b.length,'exact reviewed assignment label count');for(const node of a)node._text=current;}\n}\n"
+        },
+        {
+          "offset": 8165,
+          "before": "  alignReviewedSingleSaveNotice(before.panel,after.panel,lang);assert.deepEqual(tree(after.panel),tree(before.panel),'entire expanded UI matches except two explicitly asserted reviewed labels');assert.equal(after.requests.length,1,'expanding details has no extra fetch');checks.push(lang+' same choices, ownership, retained links, exact expanded details and no duplicate nodes');\n",
+          "after": "  alignReviewedSingleSaveNotice(before.panel,after.panel,lang);alignReviewedAssignmentLabels(before.panel,after.panel,lang);assert.deepEqual(tree(after.panel),tree(before.panel),'entire expanded UI matches except explicitly asserted reviewed source, Save and assignment labels');assert.equal(after.requests.length,1,'expanding details has no extra fetch');checks.push(lang+' same choices, ownership, retained links, exact expanded details and no duplicate nodes');\n"
+        }
+      ]
+    },
+    "scripts/test-process-ipqc-choice-read.cjs": {
+      "beforeHash": "fd43ead1ff2dff784859288a307cc76581d2f036ca68b5b739289c1ec659a984",
+      "beforeLength": 15959,
+      "beforeBlob": "31dbd0c16e76dee89f5c6e8ed8a550e12eaba05f",
+      "beforeNormalizedHash": "fd43ead1ff2dff784859288a307cc76581d2f036ca68b5b739289c1ec659a984",
+      "beforeCRLF": [],
+      "afterHash": "b0c9a7bcbb92c08d09955a0c3afa4c27841b381d879de6f980c28cdbc584f357",
+      "afterLength": 16482,
+      "rules": [
+        {
+          "offset": 7417,
+          "before": "function unit(name,f,verify=()=>{},method,args){const a=evaluate('baseline',f,method,args),b=evaluate('candidate',f,method,args);assert.deepEqual(b.result,a.result,name);verify(b.result);cases.push({name,status:'PASS'});return{baseline:a.counts,candidate:b.counts};}\n",
+          "after": "function unit(name,f,verify=()=>{},method,args){const a=evaluate('baseline',f,method,args),b=evaluate('candidate',f,method,args);if(name==='A wrong-product'){\n assert.equal(a.result.ok,true);assert.equal(b.result.ok,true);const extra=b.result.value.choices.filter(c=>!a.result.value.choices.some(old=>old.itemId===c.itemId));assert.equal(extra.length,1);assert.equal(extra[0].itemId,'item-0-0');assert.deepEqual(extra[0].productCodes,['missing']);assert.deepEqual({...b.result.value,choices:b.result.value.choices.filter(c=>c.itemId!==extra[0].itemId)},a.result.value,'only the confirmed A/B product-independent eligibility delta is admitted');\n }else assert.deepEqual(b.result,a.result,name);verify(b.result);cases.push({name,status:'PASS'});return{baseline:a.counts,candidate:b.counts};}\n"
+        }
+      ]
     }
   }
 }
