@@ -3729,7 +3729,8 @@ document.querySelector('#logout-button').onclick = async () => {
 };
 setInterval(() => {
   const now = new Date();
-  document.querySelector('#clock').textContent = now.toLocaleString('zh-TW', {
+  const clock = document.querySelector('#clock');
+  if (clock) clock.textContent = now.toLocaleString('zh-TW', {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',

@@ -1,6 +1,71 @@
 {
   "base": "ba315149e7478c288d2f3af45c8668aa60070919",
   "files": {
+    "public/process/app.js": {
+      "beforeBlob": "e127874d8d7b9015ae3864afa6bcc4e19668ffb3",
+      "beforeHash": "9fe4580853245d9b41c7e89449760d8f2a72cc418b6fe166a7f4dcc3ea37bebd",
+      "beforeLength": 221466,
+      "afterHash": "0dc7ccb70806ed700da1324b3ac5dd9ce58395bc10da8ea4e3e6e07d635e4b9f",
+      "afterNormalizedHash": "aa98854de5a5103f096b9261f157fdb52edd2b2f8dd2ccbf687f4acfb3558b9a",
+      "afterCRLF": [],
+      "rules": [
+        {
+          "offset": 218763,
+          "before": "  document.querySelector('#clock').textContent = now.toLocaleString('zh-TW', {\r\n",
+          "after": "  const clock = document.querySelector('#clock');\r\n  if (clock) clock.textContent = now.toLocaleString('zh-TW', {\r\n"
+        }
+      ],
+      "afterCRLFRanges": [
+        [
+          0,
+          58
+        ],
+        [
+          59,
+          61
+        ],
+        [
+          62,
+          63
+        ],
+        [
+          64,
+          293
+        ],
+        [
+          294,
+          721
+        ],
+        [
+          729,
+          1643
+        ],
+        [
+          1880,
+          1932
+        ],
+        [
+          1936,
+          3380
+        ],
+        [
+          3381,
+          3418
+        ],
+        [
+          3419,
+          3441
+        ],
+        [
+          3443,
+          3773
+        ],
+        [
+          3774,
+          3777
+        ]
+      ]
+    },
     "tests/accounts-process-integration-source.test.mjs": {
       "beforeBlob": "0a1e75b7d3b5b752d2d6c19786fec60789cd80d9",
       "beforeHash": "62503fc27b23f89e9bbde3de4f2ac088d330539f578cc6c311fe4c2f7efb1a19",
@@ -1123,27 +1188,32 @@
       "beforeBlob": "8754650445c28f2827ac99f780eee3360929ed2b",
       "beforeHash": "eca85f506d3043eb7f3c376260766990a1a9a5903d09f3f1f4b9eb6c47347d67",
       "beforeLength": 11525,
-      "afterHash": "f7e72e32c7eb292a7311f9ac094a2c3e3ce8006d91a32c7fc482085c05338496",
-      "afterNormalizedHash": "f7e72e32c7eb292a7311f9ac094a2c3e3ce8006d91a32c7fc482085c05338496",
+      "afterHash": "9981c1f7272189f05c944b1881349ce1eb9dc66f8e7e1fee33072b1c92c407a0",
+      "afterNormalizedHash": "9981c1f7272189f05c944b1881349ce1eb9dc66f8e7e1fee33072b1c92c407a0",
       "afterCRLF": [],
       "rules": [
         {
-          "offset": 6898,
+          "offset": 6319,
+          "before": "    <script data-process-src=\"app.js?v=20261105-process-local-save1\"></script>\n",
+          "after": "    <script data-process-src=\"app.js?v=20261114-account-clock1\"></script>\n"
+        },
+        {
+          "offset": 6893,
           "before": "    <script data-process-src=\"shared-draft-client.js?v=20261113-equipment-submit1\"></script>\n",
           "after": "    <script data-process-src=\"shared-draft-client.js?v=20261113-ipqc-silent3\"></script>\n"
         },
         {
-          "offset": 7722,
+          "offset": 7717,
           "before": "    <script data-process-src=\"master-page-editor.js?v=20261110-account-pages1\"></script>\n",
           "after": "    <script data-process-src=\"master-page-editor.js?v=20261113-abc-master2\"></script>\n"
         },
         {
-          "offset": 9973,
+          "offset": 9968,
           "before": "    <script data-process-src=\"ipqc-c.js?v=20261112-c-product4\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261112-ipqc-ab-filters2\"></script>\n",
           "after": "    <script data-process-src=\"ipqc-c.js?v=20261113-ipqc-silent3\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261113-ipqc-silent3\"></script>\n"
         },
         {
-          "offset": 11168,
+          "offset": 11163,
           "before": "    <script data-process-src=\"user-access.js?v=20261112-joint-conflict1\"></script>\n",
           "after": "    <script data-process-src=\"user-access.js?v=20261113-password-outcome1\"></script>\n"
         }
@@ -1153,8 +1223,8 @@
       "beforeBlob": "fc757b5dceedb2136f7f6218ffc8864a5bb729ac",
       "beforeHash": "3c6efeb0c9e8f01d1f665e3fcd686ab94613eb580b8ae9b29f1d1348a21db860",
       "beforeLength": 16627,
-      "afterHash": "5a03c94f29101d20d63f8176fc1a82c3918045ad5939737fe8f32ef37780524d",
-      "afterNormalizedHash": "5a03c94f29101d20d63f8176fc1a82c3918045ad5939737fe8f32ef37780524d",
+      "afterHash": "c73edbcd3c1fc602916eb00be33de8e8b6fa9f5c7118b4752ecad054a4e0cc4f",
+      "afterNormalizedHash": "c73edbcd3c1fc602916eb00be33de8e8b6fa9f5c7118b4752ecad054a4e0cc4f",
       "afterCRLF": [],
       "rules": [
         {
@@ -1171,6 +1241,11 @@
           "offset": 15242,
           "before": "  'ipqc-ab.js':'20261112-ipqc-ab-filters2',\n",
           "after": "  'ipqc-ab.js':'20261113-ipqc-silent3',\n"
+        },
+        {
+          "offset": 15399,
+          "before": "  'app.js':'20261105-process-local-save1',\n",
+          "after": "  'app.js':'20261114-account-clock1',\n"
         }
       ]
     },
@@ -1193,8 +1268,8 @@
       "beforeBlob": "a88a95729e44edadb0f6d62f6c9ab661a7cc0e59",
       "beforeHash": "a8dc36ab460d6f449d208ee027268eefcd4fcd99c0d4f1f52f3867b3519bd98b",
       "beforeLength": 21535,
-      "afterHash": "370c717fc40af8f0139e2165118f07b162562c23401b56045d84280c13cf76a6",
-      "afterNormalizedHash": "370c717fc40af8f0139e2165118f07b162562c23401b56045d84280c13cf76a6",
+      "afterHash": "bb51f55fefabcb309b118b8e1de72098f0e2d2f020f9ce4842a57a14660f30e7",
+      "afterNormalizedHash": "bb51f55fefabcb309b118b8e1de72098f0e2d2f020f9ce4842a57a14660f30e7",
       "afterCRLF": [],
       "rules": [
         {
@@ -1203,17 +1278,22 @@
           "after": "const accountRequest=part(accountSource,' async function requestValue(options={},fresh=false,waitForPassword=false){','\\n function expireSession()');\n"
         },
         {
-          "offset": 16879,
+          "offset": 16369,
+          "before": "  'app.js':'20261105-process-local-save1',\n",
+          "after": "  'app.js':'20261114-account-clock1',\n"
+        },
+        {
+          "offset": 16874,
           "before": "  'ipqc-ab.js':'20261112-ipqc-ab-filters2',\n  'ipqc-c.js':'20261112-c-product4',\n",
           "after": "  'ipqc-ab.js':'20261113-ipqc-silent3',\n  'ipqc-c.js':'20261113-ipqc-silent3',\n"
         },
         {
-          "offset": 17461,
+          "offset": 17456,
           "before": "  'shared-draft-client.js':'20261113-equipment-submit1',\n",
           "after": "  'shared-draft-client.js':'20261113-ipqc-silent3',\n"
         },
         {
-          "offset": 17611,
+          "offset": 17606,
           "before": "  'user-access.js':'20261112-joint-conflict1',\n",
           "after": "  'user-access.js':'20261113-password-outcome1',\n"
         }
@@ -1264,6 +1344,71 @@
     "base": "a85caf5a8f14770b02481f52f96e0ec1364458d3",
     "tree": "f900563685a2a8917d1066c4004e5a2675eb0796",
     "files": {
+      "public/process/app.js": {
+        "beforeBlob": "e127874d8d7b9015ae3864afa6bcc4e19668ffb3",
+        "beforeHash": "9fe4580853245d9b41c7e89449760d8f2a72cc418b6fe166a7f4dcc3ea37bebd",
+        "beforeLength": 221466,
+        "afterHash": "0dc7ccb70806ed700da1324b3ac5dd9ce58395bc10da8ea4e3e6e07d635e4b9f",
+        "afterNormalizedHash": "aa98854de5a5103f096b9261f157fdb52edd2b2f8dd2ccbf687f4acfb3558b9a",
+        "afterCRLF": [],
+        "rules": [
+          {
+            "offset": 218763,
+            "before": "  document.querySelector('#clock').textContent = now.toLocaleString('zh-TW', {\r\n",
+            "after": "  const clock = document.querySelector('#clock');\r\n  if (clock) clock.textContent = now.toLocaleString('zh-TW', {\r\n"
+          }
+        ],
+        "afterCRLFRanges": [
+          [
+            0,
+            58
+          ],
+          [
+            59,
+            61
+          ],
+          [
+            62,
+            63
+          ],
+          [
+            64,
+            293
+          ],
+          [
+            294,
+            721
+          ],
+          [
+            729,
+            1643
+          ],
+          [
+            1880,
+            1932
+          ],
+          [
+            1936,
+            3380
+          ],
+          [
+            3381,
+            3418
+          ],
+          [
+            3419,
+            3441
+          ],
+          [
+            3443,
+            3773
+          ],
+          [
+            3774,
+            3777
+          ]
+        ]
+      },
       "tests/accounts-process-integration-source.test.mjs": {
         "beforeBlob": "8d66eedeebf39d372982f1dea6876446414633e9",
         "beforeHash": "fdd0242c6db9abfee20b968a8ff1d95d680902a2b546596c5202281a937b2264",
@@ -2371,22 +2516,27 @@
         "beforeBlob": "7f7f52af72e9a3f9036c0a4e9f6ab4bba3e70421",
         "beforeHash": "d4a924bcbd5cc94ed3b0c351e53e5b26a98940e79b2e8418d7ecd10baa28ce75",
         "beforeLength": 11516,
-        "afterHash": "f7e72e32c7eb292a7311f9ac094a2c3e3ce8006d91a32c7fc482085c05338496",
-        "afterNormalizedHash": "f7e72e32c7eb292a7311f9ac094a2c3e3ce8006d91a32c7fc482085c05338496",
+        "afterHash": "9981c1f7272189f05c944b1881349ce1eb9dc66f8e7e1fee33072b1c92c407a0",
+        "afterNormalizedHash": "9981c1f7272189f05c944b1881349ce1eb9dc66f8e7e1fee33072b1c92c407a0",
         "afterCRLF": [],
         "rules": [
           {
-            "offset": 6898,
+            "offset": 6319,
+            "before": "    <script data-process-src=\"app.js?v=20261105-process-local-save1\"></script>\n",
+            "after": "    <script data-process-src=\"app.js?v=20261114-account-clock1\"></script>\n"
+          },
+          {
+            "offset": 6893,
             "before": "    <script data-process-src=\"shared-draft-client.js?v=20261113-abc-master1\"></script>\n",
             "after": "    <script data-process-src=\"shared-draft-client.js?v=20261113-ipqc-silent3\"></script>\n"
           },
           {
-            "offset": 9973,
+            "offset": 9968,
             "before": "    <script data-process-src=\"ipqc-c.js?v=20261112-c-product4\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261112-ipqc-ab-filters2\"></script>\n",
             "after": "    <script data-process-src=\"ipqc-c.js?v=20261113-ipqc-silent3\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261113-ipqc-silent3\"></script>\n"
           },
           {
-            "offset": 11168,
+            "offset": 11163,
             "before": "    <script data-process-src=\"user-access.js?v=20261112-joint-conflict1\"></script>\n",
             "after": "    <script data-process-src=\"user-access.js?v=20261113-password-outcome1\"></script>\n"
           }
@@ -2396,8 +2546,8 @@
         "beforeBlob": "3ecb82c3ec4facd7400d0ae84642ba17e12c0dd4",
         "beforeHash": "beb565f8f28a6cb3374272bdd60c88742afc6f01abec44a10f4b1054ead6b521",
         "beforeLength": 16618,
-        "afterHash": "5a03c94f29101d20d63f8176fc1a82c3918045ad5939737fe8f32ef37780524d",
-        "afterNormalizedHash": "5a03c94f29101d20d63f8176fc1a82c3918045ad5939737fe8f32ef37780524d",
+        "afterHash": "c73edbcd3c1fc602916eb00be33de8e8b6fa9f5c7118b4752ecad054a4e0cc4f",
+        "afterNormalizedHash": "c73edbcd3c1fc602916eb00be33de8e8b6fa9f5c7118b4752ecad054a4e0cc4f",
         "afterCRLF": [],
         "rules": [
           {
@@ -2409,6 +2559,11 @@
             "offset": 15242,
             "before": "  'ipqc-ab.js':'20261112-ipqc-ab-filters2',\n",
             "after": "  'ipqc-ab.js':'20261113-ipqc-silent3',\n"
+          },
+          {
+            "offset": 15399,
+            "before": "  'app.js':'20261105-process-local-save1',\n",
+            "after": "  'app.js':'20261114-account-clock1',\n"
           }
         ]
       },
@@ -2431,8 +2586,8 @@
         "beforeBlob": "23ce03c98c2d7053e5a395148bc4b3e31e2fcecd",
         "beforeHash": "0652812d5f9e967868acc7cd7721bc144151cc7a1903997d7b721353a89d879c",
         "beforeLength": 21529,
-        "afterHash": "370c717fc40af8f0139e2165118f07b162562c23401b56045d84280c13cf76a6",
-        "afterNormalizedHash": "370c717fc40af8f0139e2165118f07b162562c23401b56045d84280c13cf76a6",
+        "afterHash": "bb51f55fefabcb309b118b8e1de72098f0e2d2f020f9ce4842a57a14660f30e7",
+        "afterNormalizedHash": "bb51f55fefabcb309b118b8e1de72098f0e2d2f020f9ce4842a57a14660f30e7",
         "afterCRLF": [],
         "rules": [
           {
@@ -2441,17 +2596,22 @@
             "after": "const accountRequest=part(accountSource,' async function requestValue(options={},fresh=false,waitForPassword=false){','\\n function expireSession()');\n"
           },
           {
-            "offset": 16879,
+            "offset": 16369,
+            "before": "  'app.js':'20261105-process-local-save1',\n",
+            "after": "  'app.js':'20261114-account-clock1',\n"
+          },
+          {
+            "offset": 16874,
             "before": "  'ipqc-ab.js':'20261112-ipqc-ab-filters2',\n  'ipqc-c.js':'20261112-c-product4',\n",
             "after": "  'ipqc-ab.js':'20261113-ipqc-silent3',\n  'ipqc-c.js':'20261113-ipqc-silent3',\n"
           },
           {
-            "offset": 17461,
+            "offset": 17456,
             "before": "  'shared-draft-client.js':'20261113-abc-master1',\n",
             "after": "  'shared-draft-client.js':'20261113-ipqc-silent3',\n"
           },
           {
-            "offset": 17611,
+            "offset": 17606,
             "before": "  'user-access.js':'20261112-joint-conflict1',\n",
             "after": "  'user-access.js':'20261113-password-outcome1',\n"
           }
@@ -2503,6 +2663,71 @@
     "base": "b41b993d3d80580214de7cf1af122deb1c0745bf",
     "tree": "c18b888d47a0d57ef9483d24a57ad085df00526b",
     "files": {
+      "public/process/app.js": {
+        "beforeBlob": "e127874d8d7b9015ae3864afa6bcc4e19668ffb3",
+        "beforeHash": "9fe4580853245d9b41c7e89449760d8f2a72cc418b6fe166a7f4dcc3ea37bebd",
+        "beforeLength": 221466,
+        "afterHash": "0dc7ccb70806ed700da1324b3ac5dd9ce58395bc10da8ea4e3e6e07d635e4b9f",
+        "afterNormalizedHash": "aa98854de5a5103f096b9261f157fdb52edd2b2f8dd2ccbf687f4acfb3558b9a",
+        "afterCRLF": [],
+        "rules": [
+          {
+            "offset": 218763,
+            "before": "  document.querySelector('#clock').textContent = now.toLocaleString('zh-TW', {\r\n",
+            "after": "  const clock = document.querySelector('#clock');\r\n  if (clock) clock.textContent = now.toLocaleString('zh-TW', {\r\n"
+          }
+        ],
+        "afterCRLFRanges": [
+          [
+            0,
+            58
+          ],
+          [
+            59,
+            61
+          ],
+          [
+            62,
+            63
+          ],
+          [
+            64,
+            293
+          ],
+          [
+            294,
+            721
+          ],
+          [
+            729,
+            1643
+          ],
+          [
+            1880,
+            1932
+          ],
+          [
+            1936,
+            3380
+          ],
+          [
+            3381,
+            3418
+          ],
+          [
+            3419,
+            3441
+          ],
+          [
+            3443,
+            3773
+          ],
+          [
+            3774,
+            3777
+          ]
+        ]
+      },
       "tests/accounts-process-integration-source.test.mjs": {
         "beforeBlob": "bcea47664b7b24355c6bf0e752f4fe9e91a9c9d8",
         "beforeHash": "d78d7510b2f93da07cf92df66540ee247329bf6366746efa0ed1fdb552d26233",
@@ -3600,17 +3825,22 @@
         "beforeBlob": "fcd568c9e42e9a41c349f38a2d2928350d3962b0",
         "beforeHash": "e1b582b80a562dfd218e9b808dd8d5c562ae988e06573e108a402a60b6292f08",
         "beforeLength": 11518,
-        "afterHash": "f7e72e32c7eb292a7311f9ac094a2c3e3ce8006d91a32c7fc482085c05338496",
-        "afterNormalizedHash": "f7e72e32c7eb292a7311f9ac094a2c3e3ce8006d91a32c7fc482085c05338496",
+        "afterHash": "9981c1f7272189f05c944b1881349ce1eb9dc66f8e7e1fee33072b1c92c407a0",
+        "afterNormalizedHash": "9981c1f7272189f05c944b1881349ce1eb9dc66f8e7e1fee33072b1c92c407a0",
         "afterCRLF": [],
         "rules": [
           {
-            "offset": 6898,
+            "offset": 6319,
+            "before": "    <script data-process-src=\"app.js?v=20261105-process-local-save1\"></script>\n",
+            "after": "    <script data-process-src=\"app.js?v=20261114-account-clock1\"></script>\n"
+          },
+          {
+            "offset": 6893,
             "before": "    <script data-process-src=\"shared-draft-client.js?v=20261113-abc-master1\"></script>\n",
             "after": "    <script data-process-src=\"shared-draft-client.js?v=20261113-ipqc-silent3\"></script>\n"
           },
           {
-            "offset": 9973,
+            "offset": 9968,
             "before": "    <script data-process-src=\"ipqc-c.js?v=20261112-c-product4\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261112-ipqc-ab-filters2\"></script>\n",
             "after": "    <script data-process-src=\"ipqc-c.js?v=20261113-ipqc-silent3\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261113-ipqc-silent3\"></script>\n"
           }
@@ -3620,8 +3850,8 @@
         "beforeBlob": "3ecb82c3ec4facd7400d0ae84642ba17e12c0dd4",
         "beforeHash": "beb565f8f28a6cb3374272bdd60c88742afc6f01abec44a10f4b1054ead6b521",
         "beforeLength": 16618,
-        "afterHash": "5a03c94f29101d20d63f8176fc1a82c3918045ad5939737fe8f32ef37780524d",
-        "afterNormalizedHash": "5a03c94f29101d20d63f8176fc1a82c3918045ad5939737fe8f32ef37780524d",
+        "afterHash": "c73edbcd3c1fc602916eb00be33de8e8b6fa9f5c7118b4752ecad054a4e0cc4f",
+        "afterNormalizedHash": "c73edbcd3c1fc602916eb00be33de8e8b6fa9f5c7118b4752ecad054a4e0cc4f",
         "afterCRLF": [],
         "rules": [
           {
@@ -3633,6 +3863,11 @@
             "offset": 15242,
             "before": "  'ipqc-ab.js':'20261112-ipqc-ab-filters2',\n",
             "after": "  'ipqc-ab.js':'20261113-ipqc-silent3',\n"
+          },
+          {
+            "offset": 15399,
+            "before": "  'app.js':'20261105-process-local-save1',\n",
+            "after": "  'app.js':'20261114-account-clock1',\n"
           }
         ]
       },
@@ -3655,17 +3890,22 @@
         "beforeBlob": "108461def0e3b14788d7d72fafc33cdd2b4d492e",
         "beforeHash": "0e82c6f33a59f668e405f1c92e61b3539b050c9e6153adee8720d64434da32bb",
         "beforeLength": 21553,
-        "afterHash": "370c717fc40af8f0139e2165118f07b162562c23401b56045d84280c13cf76a6",
-        "afterNormalizedHash": "370c717fc40af8f0139e2165118f07b162562c23401b56045d84280c13cf76a6",
+        "afterHash": "bb51f55fefabcb309b118b8e1de72098f0e2d2f020f9ce4842a57a14660f30e7",
+        "afterNormalizedHash": "bb51f55fefabcb309b118b8e1de72098f0e2d2f020f9ce4842a57a14660f30e7",
         "afterCRLF": [],
         "rules": [
           {
-            "offset": 16879,
+            "offset": 16369,
+            "before": "  'app.js':'20261105-process-local-save1',\n",
+            "after": "  'app.js':'20261114-account-clock1',\n"
+          },
+          {
+            "offset": 16874,
             "before": "  'ipqc-ab.js':'20261112-ipqc-ab-filters2',\n  'ipqc-c.js':'20261112-c-product4',\n",
             "after": "  'ipqc-ab.js':'20261113-ipqc-silent3',\n  'ipqc-c.js':'20261113-ipqc-silent3',\n"
           },
           {
-            "offset": 17461,
+            "offset": 17456,
             "before": "  'shared-draft-client.js':'20261113-abc-master1',\n",
             "after": "  'shared-draft-client.js':'20261113-ipqc-silent3',\n"
           }

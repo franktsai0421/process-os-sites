@@ -78,7 +78,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
   'ipqc-ab.js':'20261113-ipqc-silent3',
   'routine-equipment.js':'20261113-equipment-integration2',
   'process-equipment.js':'20261105-process-local-save1',
-  'app.js':'20261105-process-local-save1',
+  'app.js':'20261114-account-clock1',
   'bom-workspace.js':'20261105-bom-atomic1',
   'master-admin-ui.js':'20261105-abc-local-save1',
   'master-shared-client.js':'20261112-process-history1',

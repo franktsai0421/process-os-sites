@@ -124,7 +124,7 @@ void test('changed persistent-navigation executable references have coherent new
  const expected={
   'master-reference-viewer.js':'20261030-pr5152-integrated1',
   'editor-line-selection.js':'20261110-process-integration2',
-  'app.js':'20261105-process-local-save1',
+  'app.js':'20261114-account-clock1',
   'approval-tabs.js':'20261025-navigation2',
   'bom-workspace.js':'20261105-bom-atomic1',
   'bootstrap.js':'20261110-account-pages1',
