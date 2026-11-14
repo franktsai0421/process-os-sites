@@ -69,7 +69,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
   'local-draft-recovery.js':'20261103-fqc-generation1',
   'shared-draft-client.js':'20261114-lines-flow-review1',
   'process-authoring-v3.js':'20261114-process-review1',
-  'process-ipqc.js':'20261114-ipqc-link1',
+  'process-ipqc.js':'20261114-ipqc-assignment2',
   'effective-version-notice.js':'20261109-explicit-checks1',
   'fqc-master.js':'20261112-quality-integration1',
   'fqc-master.css':'20261104-single-save1',

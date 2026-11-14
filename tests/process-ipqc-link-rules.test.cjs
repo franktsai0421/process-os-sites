@@ -79,3 +79,16 @@ void test('merged page-v1 C choices and new route-less product Save use approved
  for(const change of ['C.catalog','LINES','duplicate-id','catalog-pointer','lines-pointer','active-drift']){const bad=structuredClone(root);if(change==='duplicate-id')bad.versions.push(structuredClone(bad.versions.find(v=>v.scope==='C.catalog')));else if(change==='catalog-pointer'||change==='lines-pointer')bad.workflowScopes[change==='catalog-pointer'?'C.catalog':'LINES'].active.id='unknown-approved-owner';else if(change==='active-drift')bad.active['C.catalog'].products[0].name='drift';else bad.versions.find(v=>v.scope===change).status='pending';const values=await f.values();values.masterDataControl=JSON.stringify(bad);f.db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(await f.load('lib/state-records.ts').encodeRecordValues(f.env.STATE_ARCHIVE,values));assert.equal((await choices(f,'C',['002'])).status,503,'unapproved/ambiguous companion cannot grant C choices');const ownAB=await choices(f,'A');assert.equal(ownAB.status,200);assert.equal(ownAB.body.choices[0].itemId,ab.item.id,'AB choices do not acquire unrelated product/page eligibility');}
  }finally{f.close();}
 });
+
+for(const storage of ['inline','records-v1'])for(const source of ['AB','C'])void test(`${storage} ${source}: new unrelated source approval retains old stable link; explicit replacement persists current pin`,async()=>{
+ const f=await fixture(storage);try{
+  const x=await f.create(source);await f.promote(x.url);const line=source==='C'?'C':'A',products=source==='C'?['001']:[],a=tuple((await choices(f,line,products)).body.choices[0]);await edit(f,line,'one',[a]);
+  const extra=await f.create(source);await f.promote(extra.url);const current=tuple((await choices(f,line,products)).body.choices.find(c=>c.itemId===a.itemId));assert.equal(current.itemId,a.itemId);assert.notEqual(current.sourceVersionId,a.sourceVersionId);assert.deepEqual(current.productCodes,a.productCodes);
+  const flow=(await f.request(processURL)).body.control.workflow,w=flow.working.workspaces.find(w=>w.line===line);assert.deepEqual(w.stages[x.error.stageCode][0].ipqcAssignments,[a]);
+  const ipqc=f.load('lib/process-ipqc.ts');assert(ipqc.ipqcIssues([w],await f.values()).some(i=>i.message==='IPQC_REFERENCE_CHANGED:'+a.itemId));
+  // An unrelated explicit Canvas Save must neither discard nor auto-upgrade the historical tuple.
+  const name=['workspaces',{id:w.id},'stages',x.error.stageCode,{id:'one'},'name'];await f.command(processURL,'apply',{moduleAction:'save-canvas-v1',source:'canvas-v2:'+JSON.stringify([w.id,x.error.stageCode]),patches:[{op:'set',path:name,value:'Unrelated synthetic edit'}],guards:[{path:name,value:w.stages[x.error.stageCode][0].name}]});
+  let read=(await f.request(processURL)).body.control.workflow;assert.deepEqual(read.saved.content.workspaces.find(w=>w.line===line).stages[x.error.stageCode][0].ipqcAssignments,[a]);
+  await edit(f,line,'one',[current],[a]);read=(await f.request(processURL)).body.control.workflow;const saved=read.saved.content.workspaces.find(w=>w.line===line);assert.deepEqual(saved.stages[x.error.stageCode][0].ipqcAssignments,[current]);assert(!ipqc.ipqcIssues([saved],await f.values()).some(i=>i.message==='IPQC_REFERENCE_CHANGED:'+a.itemId));
+ }finally{f.close();}
+});

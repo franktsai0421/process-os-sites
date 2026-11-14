@@ -1,3 +1,7 @@
+## 2026-11-14 — IPQC 關聯顯示一致性
+
+`process-ipqc.js` 用穩定 ID 保留勾選／占用，另依原 sourceVersionId 與 C productCodes 判定 selected／retained。版本更新不等於重複項目或產品失效；警示顯示原因及原／現行版本。checkbox 與 A/B 明確採用立即更新警示／計數／分組，不寫回來源或自動改歷史。後端 validation、advisory、權限及唯一占用不變。[隔離重現、驗證及現場限制](../../docs/acceptance/process-ipqc-assignment-consistency-20261114.md)。
+
 ## 2026-11-14 — IPQC 方塊連接規則候選
 
 新版 operation editor 的 A/B、C 都使用既有 assignment checkbox 與 current-canvas atomic Save。A/B 不依產品／路線過濾；C 依有效產品與畫布工段，多產品聯集且保留變更後的歷史引用。全工作區的 C 占用與已存 owner 均檢查；取消後須先存取才能轉移。舊 query flag 不自動勾選。來源、測試與界線見[驗收矩陣](../../docs/acceptance/process-ipqc-link-rules-20261114.md)。

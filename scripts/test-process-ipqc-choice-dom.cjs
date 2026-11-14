@@ -29,6 +29,17 @@ function alignReviewedAssignmentLabels(before,after,lang){
  ]:[['本流程已選','本方塊已選取'],['其他流程使用中','其他方塊使用中'],['同工段每個項目只能分配一次。請先到占用方塊取消勾選並套用，再回來勾選此方塊。','同工段每個項目只能分配一次。請先到占用方塊取消勾選、完成編輯並存取草稿，再回來勾選此方塊。']];
  for(const [old,current]of changes){const a=[before,...before.querySelectorAll('*')].filter(node=>node._text===old),b=[after,...after.querySelectorAll('*')].filter(node=>node._text===current);assert(a.length>0,'exact historical assignment label present');assert.equal(a.length,b.length,'exact reviewed assignment label count');for(const node of a)node._text=current;}
 }
+// Only the pinned fixture's explicit retained warning/metric delta is aligned.
+// Production state transitions and true-invalid reasons run in assignment-state tests.
+function alignReviewedRetainedWarning(before,after,lang){
+ const Node=before.constructor,metric=new Node('div'),wrapper=new Node('div'),k='[&quot;AB&quot;,&quot;A:SYN&quot;,&quot;retained-old&quot;]';
+ metric.innerHTML=`<div class="process-ipqc-metric retained"><strong data-ipqc-count="retained">1</strong><span>${lang==='vi'?'Giữ liên kết cũ · cần xác nhận':'保留舊關聯・待確認'}</span></div>`;
+ assert.deepEqual(tree(after.querySelector('.process-ipqc-metric.retained')),tree(metric.firstElementChild));
+ before.querySelector('.process-ipqc-metric.selected').after(metric.firstElementChild);
+ wrapper.innerHTML=`<div data-ipqc-warnings aria-live="polite"><div class="process-ipqc-warning" role="status" data-ipqc-warning="${k}" data-ipqc-reasons="unavailable"><p><span>${lang==='vi'?'Không còn trong nguồn được duyệt phù hợp với chuyền / nhóm / công đoạn / sản phẩm hiện tại':'現行核准來源已無符合線別／類別／工段／產品的項目'}</span></p><p><span>${lang==='vi'?'Liên kết cũ vẫn được giữ; chưa tự đổi sang nguồn hiện hành.':'原關聯仍保留；尚未自動改用現行來源。'}</span></p><code>retained-old</code><button type="button" data-ipqc-remove="${k}"><span>${lang==='vi'?'Bỏ liên kết':'移除關聯'}</span></button></div></div>`;
+ assert.deepEqual(tree(after.querySelector('[data-ipqc-warnings]')),tree(wrapper.firstElementChild));
+ const old=before.querySelector('.process-ipqc-warning');assert.equal(old.querySelector('code').textContent,'retained-old');assert(old.textContent.includes(lang==='vi'?'Liên kết cũ đã thay đổi':'既有關聯來源或產品條件已變更'));old.after(wrapper.firstElementChild);old.remove();
+}
 function choices(n=48){return Array.from({length:n},(_,i)=>({source:'AB',scope:'A:SYN',itemId:'item-'+i,sourceVersionId:'approved-1',code:'I'+i,errorId:'error-'+i%8,errorCode:'E'+i%8,errorName:'合成 lỗi '+i%8,productCodes:['P1','P2'],standard:'fresh standard '+i,description:'fresh description '+i,equipment:{assetCode:'EQ',pieceMark:'01',name:'Gauge'},rules:[{cadence:'batch',batchKind:'fixed_count',fixedCount:2}],frequency:'each',photos:[{id:'photo-'+i,name:'Photo '+i,note:'Note '+i}]}));}
 (async()=>{
  const {canvasDOM}=await import('./login-reentry-dom.mjs');
@@ -52,7 +63,7 @@ function choices(n=48){return Array.from({length:n},(_,i)=>({source:'AB',scope:'
   counts.push({language:lang,beforeNodes:count(before.panel),afterNodes:count(after.panel),items:49});assert(count(after.panel)<count(before.panel)*0.6);
   const a=before.panel.querySelectorAll('.process-ipqc-item-details'),b=after.panel.querySelectorAll('.process-ipqc-item-details');assert.equal(after.panel.querySelectorAll('.process-ipqc-photos').length,0);
   for(let i=0;i<a.length;i++){before.open(a[i]);after.open(b[i]);alignReviewedSourceLabel(a[i],b[i],lang);assert.deepEqual(tree(b[i]),tree(a[i]),'expanded standard/rules/photos match exact row '+i);const size=count(b[i]);after.close(b[i]);after.open(b[i]);assert.equal(count(b[i]),size,'reopening does not duplicate DOM');}
-  alignReviewedSingleSaveNotice(before.panel,after.panel,lang);alignReviewedAssignmentLabels(before.panel,after.panel,lang);assert.deepEqual(tree(after.panel),tree(before.panel),'entire expanded UI matches except explicitly asserted reviewed source, Save and assignment labels');assert.equal(after.requests.length,1,'expanding details has no extra fetch');checks.push(lang+' same choices, ownership, retained links, exact expanded details and no duplicate nodes');
+  alignReviewedSingleSaveNotice(before.panel,after.panel,lang);alignReviewedAssignmentLabels(before.panel,after.panel,lang);alignReviewedRetainedWarning(before.panel,after.panel,lang);assert.deepEqual(tree(after.panel),tree(before.panel),'entire expanded UI matches except explicitly asserted reviewed source, Save and assignment labels');assert.equal(after.requests.length,1,'expanding details has no extra fetch');checks.push(lang+' same choices, ownership, retained links, exact expanded details and no duplicate nodes');
   const input=after.panel.querySelectorAll('[data-ipqc-choice]').find(node=>node.dataset.ipqcChoice===key(after.rows[3]));input.checked=true;input.onchange();assert(after.op.ipqcAssignments.some(row=>row.itemId===after.rows[3].itemId));assert.equal(after.panel.querySelector('[data-ipqc-count="selected"]').textContent,'2');checks.push(lang+' assignment checkbox remains operative before any Save');
  }
  const stale=fixture('candidate');await stale.load();const retired=stale.panel.querySelector('.process-ipqc-item-details'),initial=count(retired);stale.c.ProcessSync.identity={id:'another'};stale.open(retired);assert.equal(count(retired),initial);checks.push('identity change prevents deferred private detail insertion');

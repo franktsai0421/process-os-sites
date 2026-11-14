@@ -1,3 +1,7 @@
+## 2026-11-14 — IPQC 關聯顯示一致性候選
+
+獨立 main8bfc036 checkout／`fix/process-ipqc-assignment-consistency-20261114`。完整追查比對身分與原版本條件，重現 A/B/C 已選取＋舊版本警示及明確重選後警示殘留；保留歷史與所有後端防護。IPQC 速度工作區和 AB/C runtime 不變。[本輪根因、隔離證據及未驗證項](docs/acceptance/process-ipqc-assignment-consistency-20261114.md)。無合併、部署或真資料操作。
+
 ## 2026-11-14 — Process ↔ IPQC link-rule candidate
 
 Independent branch now integrates main 379ae8d (merged #115 and #116); source PR refs untouched. Upstream master boundaries, explicit wait/stop/original receipts and process review recovery are retained. C IPQC choices resolve approved page-v1 catalog/LINES owners consistently with authoring validation. A/B product-independent approved choices, C editable persisted assignments, cross-workspace C occupancy and saved-release transfer. Generated new errors/items travel through real Save/Submit/approval routes. [Matrix, provenance, test and native/live limits](docs/acceptance/process-ipqc-link-rules-20261114.md). Draft only, no real data/account/schema/merge/deployment.
