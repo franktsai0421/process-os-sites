@@ -25,6 +25,10 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Exact source, signed actor matrix, unknown and confirmation fences
         run: node --test tests/process-review-source.test.cjs tests/process-review-recovery.test.mjs tests/authoring-review-status.test.mjs tests/process-submit-outcome.test.mjs tests/shared-draft-receipt-recovery.test.mjs
+      - name: Real process Flow routes retain selected case and revision guards
+        run: |
+          node scripts/test-process-flow-record-mutation.cjs
+          node scripts/test-process-review-current.mjs
       - run: npx playwright install --with-deps chromium
       - name: Desktop and phone viewport real dialogs with signed isolated routes
         run: node tests/process-review-recovery-browser.mjs
