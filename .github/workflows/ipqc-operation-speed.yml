@@ -36,6 +36,12 @@ jobs:
       - run: npx tsc --noEmit --incremental false
       - run: node --test --test-concurrency=1 tests/ipqc-operation-speed.test.cjs tests/ipqc-operation-speed-source.test.cjs tests/ipqc-operation-speed-joint-source.test.cjs tests/ipqc-save-recovery.test.mjs tests/ipqc-save-recovery-source.test.cjs tests/ipqc-request-progress.test.mjs tests/ipqc-c-operation-admission.test.cjs tests/ipqc-ab-save-revision-fence.test.mjs tests/ipqc-ab-local-save.test.mjs tests/fqc-read-ahead.test.mjs
       - run: node scripts/test-ipqc-c-operation-permissions.cjs
+      - name: Exact Windows bounded-read command group on portable fixtures
+        run: |
+          node scripts/test-ipqc-c-bounded-read.cjs
+          node scripts/test-ipqc-c-permissions-read.cjs
+          node scripts/test-ipqc-ab-bounded-read.cjs
+          node scripts/test-access-template-reuse.cjs
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - name: Original isolated AB compiled UI and lifecycle acceptance
