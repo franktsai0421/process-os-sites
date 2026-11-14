@@ -1,0 +1,806 @@
+{
+  "parents": {
+    "main117": "8bfc03679b0e53889c604e110ad843a2fc7b3ae5",
+    "speed": "765a2027acf0b04e517264555e1260a8d845ca50"
+  },
+  "files": {
+    "lib/process-state.ts": {
+      "afterHash": "5d17fe420c404651d69820af38c2e3d4b7cf1e221a0adfa8d022ceeb22f20cf3",
+      "parents": {
+        "main117": {
+          "hash": "c8f3ea475028f139dd1a548b8a4fe8a58c43bc1d58fb9876798c3ed5a41c5486",
+          "normalizedHash": "f65c19a4e0975981012763f74173d457071d4fcccfa53c4c0d5f247c36b33ddc",
+          "crlf": [
+            [
+              1,
+              139
+            ],
+            [
+              140,
+              242
+            ],
+            [
+              243,
+              270
+            ],
+            [
+              276,
+              320
+            ],
+            [
+              330,
+              436
+            ]
+          ],
+          "rules": [
+            {
+              "offset": 18211,
+              "before": "",
+              "after": "// Exact IPQC request-local readers/workflow. No caller-selected/global cache.\nexport async function createIpqcReadPermissionPhase(request:Request,state:State){\n  if(request.method!=='GET'||!['/api/ipqc-ab','/api/ipqc-c'].includes(new URL(request.url).pathname))throw Error('INVALID_PERMISSION_PHASE');\n  return createWorkflowPermissionPhase(request,state);\n}\nexport async function createIpqcCPermissionPhase(request:Request,state:State){\n  if(new URL(request.url).pathname!=='/api/ipqc-c/workflow')throw Error('INVALID_PERMISSION_PHASE');\n  const phase=await createWorkflowPermissionPhase(request,state);\n  // companyReader's exact-cell policy is distinct from legacy can() aliases.\n  const user=phase.actor?readPlatformUsers(state.values.platformUsers).find(user=>user.id===phase.actor!.id):null;\n  const access=user?effectiveAccess(user,state.values):null;\n  return Object.freeze({...phase,finalApprove:()=>phase.allowed('ipqc-c.view')&&!!access?.enabled&&access.cells['ipqc-c.view']===true&&access.cells['approval.view']===true&&access.cells['approval.approve']===true});\n}\n"
+            }
+          ]
+        },
+        "speed": {
+          "hash": "653df89f2bd62cd24d7f36e495c9734223a853185d1e0f36d956a9d6643c9e48",
+          "normalizedHash": "858f860496ae055e709c42000891778681985efc868803b3713c8678bb149bed",
+          "crlf": [
+            [
+              1,
+              139
+            ],
+            [
+              140,
+              242
+            ],
+            [
+              243,
+              270
+            ],
+            [
+              289,
+              333
+            ],
+            [
+              343,
+              449
+            ]
+          ],
+          "rules": [
+            {
+              "offset": 0,
+              "before": "import {approvedMasterPageCatalog} from './master-approved-pages';\n",
+              "after": "import {approvedMasterPageCatalog,approvedMasterProcessSource} from './master-approved-pages';\n"
+            },
+            {
+              "offset": 23177,
+              "before": "    master.active={AB:approvedMasterPageCatalog(master,'AB').content,C:approvedMasterPageCatalog(master,'C').content,...(master.active?.PROCESS?{PROCESS:master.active.PROCESS}:{})};\n",
+              "after": "    master.active={AB:approvedMasterPageCatalog(master,'AB').content,C:approvedMasterPageCatalog(master,'C').content,...(master.active?.PROCESS?{PROCESS:approvedMasterProcessSource(master).content}:{})};\n"
+            }
+          ]
+        }
+      }
+    },
+    "lib/versioned-shared-workflow.ts": {
+      "afterHash": "1732103662b1f49566692026985d001e23a6f0b610c4a1cea833b320838c7914",
+      "parents": {
+        "main117": {
+          "hash": "2938ad1879248af30ae17e3457c5a7147adcf81f8aa864663dd3af9c1cd6075f",
+          "normalizedHash": "878481d3e462ab12ab801f437656ad9df8baa82d2b3987fa880488e9fc8dccb9",
+          "crlf": [
+            [
+              11,
+              12
+            ],
+            [
+              13,
+              18
+            ],
+            [
+              20,
+              36
+            ],
+            [
+              46,
+              50
+            ],
+            [
+              60,
+              72
+            ],
+            [
+              73,
+              74
+            ],
+            [
+              75,
+              149
+            ],
+            [
+              151,
+              155
+            ],
+            [
+              163,
+              166
+            ],
+            [
+              167,
+              170
+            ],
+            [
+              171,
+              176
+            ],
+            [
+              178,
+              180
+            ],
+            [
+              181,
+              191
+            ],
+            [
+              192,
+              200
+            ],
+            [
+              218,
+              225
+            ],
+            [
+              236,
+              249
+            ],
+            [
+              251,
+              258
+            ],
+            [
+              268,
+              269
+            ],
+            [
+              299,
+              300
+            ],
+            [
+              301,
+              303
+            ],
+            [
+              304,
+              305
+            ],
+            [
+              306,
+              313
+            ],
+            [
+              315,
+              316
+            ],
+            [
+              317,
+              319
+            ],
+            [
+              322,
+              329
+            ],
+            [
+              330,
+              331
+            ],
+            [
+              333,
+              335
+            ],
+            [
+              336,
+              338
+            ],
+            [
+              339,
+              341
+            ],
+            [
+              344,
+              350
+            ],
+            [
+              351,
+              355
+            ],
+            [
+              359,
+              360
+            ],
+            [
+              362,
+              364
+            ],
+            [
+              366,
+              368
+            ]
+          ],
+          "rules": [
+            {
+              "offset": 35026,
+              "before": "        const state=requiredState||mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({aggregateReadAhead:body.action===undefined&&Object.keys(body).every(key=>key==='command')&&(isIpqcAB(request)&&['save','submit','withdraw'].includes(body.command?.action||'')||fqcAggregateReadAheadCommand(body.command)&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope')),deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=requiredPhase||await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);\n",
+              "after": "        const state=requiredState||mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({aggregateReadAhead:body.action===undefined&&Object.keys(body).every(key=>key==='command')&&(isIpqcAB(request)&&['apply','restore','save','submit','withdraw','approve','return'].includes(body.command?.action||'')||fqcAggregateReadAheadCommand(body.command)&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope')),deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=requiredPhase||await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);\n"
+            }
+          ]
+        },
+        "speed": {
+          "hash": "a0f596779ff54c6575d1ce4ba0984d1835339a5733a9e5d463ef15161ed83a94",
+          "normalizedHash": "1732103662b1f49566692026985d001e23a6f0b610c4a1cea833b320838c7914",
+          "crlf": [
+            [
+              11,
+              12
+            ],
+            [
+              13,
+              18
+            ],
+            [
+              20,
+              36
+            ],
+            [
+              46,
+              50
+            ],
+            [
+              60,
+              72
+            ],
+            [
+              73,
+              74
+            ],
+            [
+              75,
+              149
+            ],
+            [
+              151,
+              155
+            ],
+            [
+              163,
+              166
+            ],
+            [
+              167,
+              170
+            ],
+            [
+              171,
+              176
+            ],
+            [
+              178,
+              180
+            ],
+            [
+              181,
+              191
+            ],
+            [
+              192,
+              200
+            ],
+            [
+              218,
+              225
+            ],
+            [
+              236,
+              249
+            ],
+            [
+              251,
+              258
+            ],
+            [
+              268,
+              269
+            ],
+            [
+              299,
+              300
+            ],
+            [
+              301,
+              303
+            ],
+            [
+              304,
+              305
+            ],
+            [
+              306,
+              313
+            ],
+            [
+              315,
+              316
+            ],
+            [
+              317,
+              319
+            ],
+            [
+              322,
+              329
+            ],
+            [
+              330,
+              331
+            ],
+            [
+              333,
+              335
+            ],
+            [
+              336,
+              338
+            ],
+            [
+              339,
+              341
+            ],
+            [
+              344,
+              350
+            ],
+            [
+              351,
+              355
+            ],
+            [
+              359,
+              360
+            ],
+            [
+              362,
+              364
+            ],
+            [
+              366,
+              368
+            ]
+          ],
+          "rules": []
+        }
+      }
+    },
+    "app/api/ipqc-ab/route.ts": {
+      "afterHash": "eb917f5fd2fb384cf52bc26f8151db3f21f05930aa2dd895b88b08ebc015553c",
+      "parents": {
+        "main117": {
+          "hash": "5f7849eacb17739347117bf4eb7ed301d3992388ea3978560d20e3607268c3ed",
+          "normalizedHash": "5f7849eacb17739347117bf4eb7ed301d3992388ea3978560d20e3607268c3ed",
+          "crlf": [],
+          "rules": [
+            {
+              "offset": 181,
+              "before": "import { readState, identity, can, sameOrigin, encodeValues, parse, maintenanceCredential,\n",
+              "after": "import { readState, identity, can, createIpqcReadPermissionPhase, sameOrigin, encodeValues, parse, maintenanceCredential,\n"
+            },
+            {
+              "offset": 8337,
+              "before": "    const state=await readState({aggregateReadAhead:true,keys,modelKey:equipmentOnly?undefined:KEY,deferHistory:true,deferDependencyHistory:true}),actor=await identity(request,state);\n    if(!actor||request.headers.has('X-Process-Expected-Actor')&&request.headers.get('X-Process-Expected-Actor')!==actor.id||!(await can(request,state,'view:data'))&&!(await can(request,state,'view:approval')))return reply({error:'沒有查看 IPQC-AB 權限'},403);\n    if(equipmentOnly)return reply({revision:state.revision,equipment:equipmentChoices(state.values)});\n",
+              "after": "    const state=await readState({aggregateReadAhead:true,keys,modelKey:equipmentOnly?undefined:KEY,deferHistory:true,deferDependencyHistory:true}),phase=await createIpqcReadPermissionPhase(request,state),actor=phase.actor;\n    if(!actor||request.headers.has('X-Process-Expected-Actor')&&request.headers.get('X-Process-Expected-Actor')!==actor.id||!phase.allowed('view:data')&&!phase.allowed('view:approval'))return reply({error:'沒有查看 IPQC-AB 權限'},403);\n    if(equipmentOnly){if(!await phase.current())return reply({error:'沒有查看 IPQC-AB 權限'},403);return reply({revision:state.revision,equipment:equipmentChoices(state.values)});}\n"
+            },
+            {
+              "offset": 9133,
+              "before": "    const control=parseAbControl(state.values[KEY],state.recordStorage?.models.get(KEY)),history=await can(request,state,'approval.compare');\n",
+              "after": "    const control=parseAbControl(state.values[KEY],state.recordStorage?.models.get(KEY)),history=phase.allowed('approval.compare');\n"
+            },
+            {
+              "offset": 10514,
+              "before": "",
+              "after": "    if(!await phase.current())return reply({error:'沒有查看 IPQC-AB 權限'},403);\n"
+            }
+          ]
+        },
+        "speed": {
+          "hash": "eb917f5fd2fb384cf52bc26f8151db3f21f05930aa2dd895b88b08ebc015553c",
+          "normalizedHash": "eb917f5fd2fb384cf52bc26f8151db3f21f05930aa2dd895b88b08ebc015553c",
+          "crlf": [],
+          "rules": []
+        }
+      }
+    },
+    "app/api/ipqc-c/route.ts": {
+      "afterHash": "187bed2d2225643910745e866c97445b612b03410c3641d678d8d76a1f7e0a1a",
+      "parents": {
+        "main117": {
+          "hash": "ad6e22c4d3fd0f2001ec95dbce1072d19f350ae56102f503712ceaf172f104da",
+          "normalizedHash": "ad6e22c4d3fd0f2001ec95dbce1072d19f350ae56102f503712ceaf172f104da",
+          "crlf": [],
+          "rules": [
+            {
+              "offset": 162,
+              "before": "import { readState, identity, can, sameOrigin, encodeValues, parse, maintenanceCredential, responseHeaders as headers } from '@/lib/process-state';\n",
+              "after": "import { readState, identity, can, createIpqcReadPermissionPhase, sameOrigin, encodeValues, parse, maintenanceCredential, responseHeaders as headers } from '@/lib/process-state';\n"
+            },
+            {
+              "offset": 4161,
+              "before": "    const state = await readState({modelKey:KEY,deferHistory:true,deferDependencyHistory:true,...(!localHost(request)?{keys:readKeys}:{})});\n    const actor = await identity(request, state);\n    if (!actor || !(await can(request, state, 'ipqc-c.view')))\n",
+              "after": "    const state = await readState({aggregateReadAhead:true,modelKey:KEY,deferHistory:true,deferDependencyHistory:true,...(!localHost(request)?{keys:readKeys}:{})});\n    const phase=await createIpqcReadPermissionPhase(request,state),actor=phase.actor;\n    if (!actor || !phase.allowed('ipqc-c.view'))\n"
+            },
+            {
+              "offset": 5472,
+              "before": "    const body={ revision: state.revision, control: publicIpqcWorkflow(parseIpqcControl(state.values[KEY],state.recordStorage?.models.get(KEY)),await can(request,state,'approval.compare'),caseMetadata),\n",
+              "after": "    const body={ revision: state.revision, control: publicIpqcWorkflow(parseIpqcControl(state.values[KEY],state.recordStorage?.models.get(KEY)),phase.allowed('approval.compare'),caseMetadata),\n"
+            },
+            {
+              "offset": 5957,
+              "before": "",
+              "after": "    if(!await phase.current())return reply({error:'沒有查看 IPQC-C 的權限'},403);\n"
+            }
+          ]
+        },
+        "speed": {
+          "hash": "187bed2d2225643910745e866c97445b612b03410c3641d678d8d76a1f7e0a1a",
+          "normalizedHash": "187bed2d2225643910745e866c97445b612b03410c3641d678d8d76a1f7e0a1a",
+          "crlf": [],
+          "rules": []
+        }
+      }
+    },
+    "app/api/ipqc-c/workflow/route.ts": {
+      "afterHash": "8659c1bc6bb4669ea2e02bfc3c4422325dfcbf91976549289549381adcb07e5a",
+      "parents": {
+        "main117": {
+          "hash": "f70a7254c9a48241b00d86f1f4b4191b64ed52b78fbe49f714cdd7c83d9905fe",
+          "normalizedHash": "e7ddb1bc7e0bb8670e18fb9c38c77fc17a66907960312fdbf62062206a849d19",
+          "crlf": [
+            [
+              3,
+              5
+            ],
+            [
+              6,
+              20
+            ],
+            [
+              21,
+              56
+            ],
+            [
+              61,
+              65
+            ],
+            [
+              68,
+              71
+            ],
+            [
+              96,
+              105
+            ],
+            [
+              106,
+              125
+            ],
+            [
+              126,
+              127
+            ],
+            [
+              128,
+              131
+            ],
+            [
+              132,
+              150
+            ],
+            [
+              152,
+              153
+            ],
+            [
+              166,
+              170
+            ],
+            [
+              171,
+              182
+            ],
+            [
+              184,
+              196
+            ],
+            [
+              203,
+              214
+            ],
+            [
+              216,
+              217
+            ],
+            [
+              220,
+              227
+            ],
+            [
+              228,
+              231
+            ],
+            [
+              235,
+              238
+            ],
+            [
+              239,
+              243
+            ],
+            [
+              245,
+              251
+            ],
+            [
+              252,
+              260
+            ],
+            [
+              261,
+              270
+            ]
+          ],
+          "rules": [
+            {
+              "offset": 659,
+              "before": "import { readState, identity, can, sameOrigin, encodeValues, stateRevisionIsCurrent, parse, responseHeaders, type State } from '@/lib/process-state';\n",
+              "after": "import { readState, identity, can, createIpqcCPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, parse, responseHeaders, type State } from '@/lib/process-state';\n"
+            },
+            {
+              "offset": 1669,
+              "before": "async function access(request:Request,state:State) {\n  const rights=await workflowAccess(request,state);\n  return {...rights,approve:await ipqcCFinalReviewAllowed(request,state,'approve'),return:await ipqcCFinalReviewAllowed(request,state,'return'),save:rights.edit||rights.save,restore:rights.edit&&await restoreAllowed(request,state),create:rights.edit&&await can(request,state,'ipqc-c.create'),delete:rights.edit&&await can(request,state,'ipqc-c.delete')};\n",
+              "after": "async function access(request:Request,state:State,phase?:Awaited<ReturnType<typeof createIpqcCPermissionPhase>>) {\n  const check=phase?phase.allowed:(key:string)=>can(request,state,key);\n  const rights=await workflowAccess(request,state,check);\n  return {...rights,approve:phase?phase.finalApprove():await ipqcCFinalReviewAllowed(request,state,'approve'),return:phase?await check('ipqc-c.view')&&await check('ipqc-c.return'):await ipqcCFinalReviewAllowed(request,state,'return'),save:rights.edit||rights.save,restore:rights.edit&&await restoreAllowed(request,state,check),create:rights.edit&&await check('ipqc-c.create'),delete:rights.edit&&await check('ipqc-c.delete')};\n"
+            },
+            {
+              "offset": 6016,
+              "before": "    // Normal compact workflow reads retain all objects/checks; overlap only GET metadata.\n    const workflowReadAhead=query.get('caseMetadata')==='1'&&query.get('compact')==='1'&&[...query.keys()].every(key=>['since','caseMetadata','compact'].includes(key));\n    const state=await readState({...(workflowReadAhead?{aggregateReadAhead:true}:{}),...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:createReadback?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY]}:{}),modelKey:KEY,deferDependencyHistory:true,deferHistory:true,caseId:query.get('caseId'),saveId:query.get('restoreSaveId'),versionId:query.get('versionId')||query.get('legacyVersionId')}),actor=await identity(request,state),permissions=await access(request,state);\n    if(!actor||!permissions.view)return reply({error:'FORBIDDEN'},403);\n",
+              "after": "    // All selected aggregates/checks remain; only GET metadata overlaps (max five).\n    const state=await readState({aggregateReadAhead:true,...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:createReadback?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY]}:{}),modelKey:KEY,deferDependencyHistory:true,deferHistory:true,caseId:query.get('caseId'),saveId:query.get('restoreSaveId'),versionId:query.get('versionId')||query.get('legacyVersionId')}),phase=await createIpqcCPermissionPhase(request,state),actor=phase.actor,permissions=await access(request,state,phase);\n    if(!actor||!permissions.view||!await phase.current())return reply({error:'FORBIDDEN'},403);\n"
+            },
+            {
+              "offset": 16965,
+              "before": "      const state=createMutationState||saveMutationState||await readState({modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:body.command?.localChanges||['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;\n",
+              "after": "      const state=createMutationState||saveMutationState||await readState({aggregateReadAhead:true,modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:body.command?.localChanges||['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=await createIpqcCPermissionPhase(request,state),actor=phase.actor;streamRecords=!!state.recordStorage;\n"
+            },
+            {
+              "offset": 17570,
+              "before": "      const permissions=await access(request,state),control=readControl(state);\n",
+              "after": "      const permissions=await access(request,state,phase),control=readControl(state);\n      if(!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);\n"
+            },
+            {
+              "offset": 25063,
+              "before": "        if(alreadyAccepted)return reply({revision:state.revision,control:publicIpqcWorkflow(control,permissions.history,caseMetadata),receipt,unchanged:true,requestId});\n",
+              "after": "        if(alreadyAccepted){if(!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);return reply({revision:state.revision,control:publicIpqcWorkflow(control,permissions.history,caseMetadata),receipt,unchanged:true,requestId});}\n"
+            },
+            {
+              "offset": 25777,
+              "before": "",
+              "after": "      if(!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);\n"
+            },
+            {
+              "offset": 26380,
+              "before": "      if((begin||body.command?.localChanges||ipqcCCreateCommand(body.command))&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);\n",
+              "after": "      if(!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);\n"
+            }
+          ]
+        },
+        "speed": {
+          "hash": "18ca4dd7f6269b3074d8c983f9d40f9c7533bc0eaf156acc7a9e56a9bdb6fd6f",
+          "normalizedHash": "8659c1bc6bb4669ea2e02bfc3c4422325dfcbf91976549289549381adcb07e5a",
+          "crlf": [
+            [
+              3,
+              5
+            ],
+            [
+              6,
+              7
+            ],
+            [
+              8,
+              18
+            ],
+            [
+              22,
+              57
+            ],
+            [
+              62,
+              66
+            ],
+            [
+              69,
+              71
+            ],
+            [
+              96,
+              105
+            ],
+            [
+              106,
+              125
+            ],
+            [
+              126,
+              127
+            ],
+            [
+              128,
+              131
+            ],
+            [
+              132,
+              150
+            ],
+            [
+              152,
+              153
+            ],
+            [
+              166,
+              170
+            ],
+            [
+              171,
+              173
+            ],
+            [
+              175,
+              183
+            ],
+            [
+              185,
+              197
+            ],
+            [
+              204,
+              215
+            ],
+            [
+              217,
+              218
+            ],
+            [
+              221,
+              228
+            ],
+            [
+              229,
+              232
+            ],
+            [
+              236,
+              239
+            ],
+            [
+              241,
+              244
+            ],
+            [
+              248,
+              253
+            ],
+            [
+              254,
+              262
+            ],
+            [
+              263,
+              272
+            ]
+          ],
+          "rules": []
+        }
+      }
+    },
+    "AI_CONTEXT/modules/QUALITY.md": {
+      "afterHash": "669196bc81592c9f820f1fa9e80f30bac68d2458b4c9a2991d9558dfaf32119f",
+      "parents": {
+        "main117": {
+          "hash": "5e5698be5f6e7f0732c105428a093165e7cc8a59322632e7a9fca8ce88c862cd",
+          "normalizedHash": "5e5698be5f6e7f0732c105428a093165e7cc8a59322632e7a9fca8ce88c862cd",
+          "crlf": [],
+          "rules": [
+            {
+              "offset": 0,
+              "before": "",
+              "after": "## 2026-11-14 — IPQC operation speed (isolated candidate)\n\nExact IPQC page/workflow authorization phases reuse evaluation only inside the same request/selected state, with fresh session fences and per-CAS reconstruction. C retains exact platform final-approval cells. The existing bounded aggregate scheduler now also serves C reads/writes and scoped A/B Apply/restore/lifecycle writes; every selected object, integrity check, CAS, receipt and required readback remains. Client drafts, polling/deadlines and UNKNOWN recovery are unchanged. [Evidence, stage benchmark and limits](../../docs/acceptance/ipqc-operation-speed-20261114.md). No schema, live-data change or deployment.\n\n"
+            }
+          ]
+        },
+        "speed": {
+          "hash": "cd8ae8e46a39c78e54c23ce63dbce69d2c3b420a434af52723e38135d5631a51",
+          "normalizedHash": "cd8ae8e46a39c78e54c23ce63dbce69d2c3b420a434af52723e38135d5631a51",
+          "crlf": [],
+          "rules": [
+            {
+              "offset": 681,
+              "before": "",
+              "after": "\n## 2026-11-14 — 製程 IPQC 來源與反向引用候選\n\n僅已核准 active version 的啟用未刪除子項可新建連接。A/B 按線別／類別／工段，產品欄位只作參考；C 按有效所選產品／工段，不增加產品路線門檻。來源改動保留舊版本 tuple 並標示；品質核准不核准製程。既有逆向引用讀取維持持久 PROCESS 版本／工作草稿，不查未完成表單。見[本輪矩陣](../../docs/acceptance/process-ipqc-link-rules-20261114.md)。\n"
+            }
+          ]
+        }
+      }
+    },
+    "AI_CONTEXT/CHANGELOG.md": {
+      "afterHash": "f3ac20b6d99371911cddb7b48dc6b09e1bfb34a01cec24b9045ddb2aa3db0c49",
+      "parents": {
+        "main117": {
+          "hash": "45a45f842c2cb7ac12be6ffb9ef6df3d9234860b71153f0a5acfe7eb0ab29592",
+          "normalizedHash": "45a45f842c2cb7ac12be6ffb9ef6df3d9234860b71153f0a5acfe7eb0ab29592",
+          "crlf": [],
+          "rules": [
+            {
+              "offset": 0,
+              "before": "",
+              "after": "## 2026-11-14 — IPQC request-local authorization and required-read scheduling\n\nIndependent speed candidate reduces repeated C session verification and overlaps bounded required aggregate reads for A/B and C without changing operation, draft, permission or persistence semantics. [Actual-handler baseline parity, measurements and validation limits](../docs/acceptance/ipqc-operation-speed-20261114.md). Draft PR only; no merge, deployment or live business data change.\n\n"
+            }
+          ]
+        },
+        "speed": {
+          "hash": "2acd28bb91eb695aab50643f7cb7bb8c4f47031da25756eb681033c8711fad81",
+          "normalizedHash": "2acd28bb91eb695aab50643f7cb7bb8c4f47031da25756eb681033c8711fad81",
+          "crlf": [],
+          "rules": [
+            {
+              "offset": 470,
+              "before": "",
+              "after": "\n## 2026-11-14 — Process IPQC link-rule candidate\n\nA/B choices/validation/completeness/source comparisons no longer use operation products or product routes. C editor now selects and saves item references, with product/error grouping and explicit stale-reference handling. Backend checks cross-workspace C occupancy and saved-release transfer under existing CAS. [Generated lifecycle evidence and limits](../docs/acceptance/process-ipqc-link-rules-20261114.md). No live-data rewrite, migration, merge or deployment.\n\n## 2026-11-14 — #115 整合 main #116\n\n主資料明確等待與製程審核 180 秒／原收據修復共同保留，四份原 manifest 不變、加入第三真前身 inverse。共同候選須獨立重跑；不是沿用舊綠燈。未操作真資料、設定、既有 UNKNOWN、合併或部署。詳見 lines-flow 驗收續篇。\n"
+            },
+            {
+              "offset": 1720,
+              "before": "",
+              "after": "## 2026-11-14 — 移除兩頁前端固定 45 秒中斷\n\nLINES／PROCESS canonical 讀寫與 PROCESS 引用查詢改為明確等待、單次提示及安全停止；保留原 UNKNOWN／回執、CAS、權限與晚到 fence。補充跨離頁原 marker accounting 及錯誤回執負例、兩套原生 Stop 案例。未採用 page-v1 與舊 linkedProcess 分頁再送限制仍保留；不遷移、不操作真資料。詳見既有 lines-flow 驗收紀錄。\n\n## 2026-11-14 — #115 整合已合併的密碼與 IPQC 修復\n\n原 #115 分支合入 main 4aa0f24，保留兩頁獨立草稿／審核及 #113／#114 的 password、IPQC 進度與原回執修復。三份原 source manifest 不變，新增雙前身精確 inverse，統一共同 runtime cache；共同候選結果及實站未驗範圍見[驗收](../docs/acceptance/lines-flow-integration-20261113/README.md#2026-11-14--與已合併-113114-的共同候選)。沒有資料／設定／備份變更或合併部署。\n\n## 2026-11-13 — 線別／工段與流程資料獨立候選\n\n獨立 main f0f425d 分支整合兩個主資料頁；線別不代核准流程、PROCESS 明確補齊缺漏工段、保存整組衝突／照片／晚到意圖、安全重載與有界回應、唯讀歷史和真正核准來源。選擇性回收真 #102 PROCESS helper，保留新 main 權限／history guards；不帶入 AB/C 或例行 FQC；已保留新 main 合併的 #111。資料採用／真人／原生限制見[驗收](../docs/acceptance/lines-flow-integration-20261113/README.md)，保持 Draft，不合併部署。\n"
+            }
+          ]
+        }
+      }
+    },
+    "HANDOFF.md": {
+      "afterHash": "44e71377fdde6621296a168be40e92389b0d53e80d23db8d1cadb06d5048d085",
+      "parents": {
+        "main117": {
+          "hash": "49d20c73a013214f14c8f402ff4e73d036e36deed47d08801b1bd0fbfdfde4e0",
+          "normalizedHash": "49d20c73a013214f14c8f402ff4e73d036e36deed47d08801b1bd0fbfdfde4e0",
+          "crlf": [],
+          "rules": [
+            {
+              "offset": 0,
+              "before": "",
+              "after": "## 2026-11-14 — Independent IPQC operation-speed candidate\n\nBranch `perf/ipqc-operation-speed-20261114` starts at main `c178ae2`, separate from #115/#117. Request-local permission evaluation and bounded full-read scheduling retain UNKNOWN/original receipts, CAS, final approval and all draft boundaries. [Current evidence and remaining CI/hosted acceptance](docs/acceptance/ipqc-operation-speed-20261114.md). No merge/deployment or existing QA/browser/data mutation. Earlier checkpoints below remain historical.\n\n"
+            }
+          ]
+        },
+        "speed": {
+          "hash": "c492eeef3bd2ede3296618ad6a4195a1851fca66365faa9a7d196172225cd8b1",
+          "normalizedHash": "c492eeef3bd2ede3296618ad6a4195a1851fca66365faa9a7d196172225cd8b1",
+          "crlf": [],
+          "rules": [
+            {
+              "offset": 514,
+              "before": "",
+              "after": "\n## 2026-11-14 — Process ↔ IPQC link-rule candidate\n\nIndependent branch now integrates main 379ae8d (merged #115 and #116); source PR refs untouched. Upstream master boundaries, explicit wait/stop/original receipts and process review recovery are retained. C IPQC choices resolve approved page-v1 catalog/LINES owners consistently with authoring validation. A/B product-independent approved choices, C editable persisted assignments, cross-workspace C occupancy and saved-release transfer. Generated new errors/items travel through real Save/Submit/approval routes. [Matrix, provenance, test and native/live limits](docs/acceptance/process-ipqc-link-rules-20261114.md). Draft only, no real data/account/schema/merge/deployment.\n\n## 2026-11-14 — #115 整合 main #116\n\n主資料明確等待與製程審核 180 秒／原收據修復共同保留，四份原 manifest 不變、加入第三真前身 inverse。共同候選須獨立重跑；不是沿用舊綠燈。未操作真資料、設定、既有 UNKNOWN、合併或部署。詳見 lines-flow 驗收續篇。\n"
+            },
+            {
+              "offset": 1940,
+              "before": "",
+              "after": "## 2026-11-14 — #115 固定時限續修\n\n原 checkout 缺失後，在同一 Dot 原路徑從公開 #115 729bcf9 恢復原分支。實際取消兩頁 canonical transport／PROCESS references 的 45 秒前端 abort，改為可停止的明確等待；不更動其他模組預算或 CAS／權限。原 marker、晚到與重進保護及 source negatives 保留。LINES 未採用 page-v1 仍唯讀；舊 linkedProcess 案件需有權人分別重送，未代執行或遷移。新 head／CI 及未驗項以同一 PR 最終回報為準；公開 PR body 更新先前遭自動審查拒絕，不藉其他入口繞過。\n\n## 2026-11-14 — #115 在原分支續整合 main #114\n\nFrank 已手動合併 #113／#114；原 #115 合入真 main 4aa0f24，保留所有原 UNKNOWN、權限／CAS／冪等及來源負例。三套原 manifest 不改，以雙前身精確共同來源證明串接。共同候選 SHA／CI、衝突矩陣及未驗範圍見[同一驗收紀錄](docs/acceptance/lines-flow-integration-20261113/README.md#2026-11-14--與已合併-113114-的共同候選)及同一 Draft #115。委派時站點 v45 為歷史 checkpoint；另行主線發布不在此工作範圍，Diem V31 撤回與兩筆 IPQC QA 結果仍未知，沒有站點資料或既有 UNKNOWN 操作。不得合併或部署。\n\n## 2026-11-13 — 線別與流程資料獨立草稿 PR 候選\n\n以原 main f0f425d 開始，已快轉至實際新 main ba31514 並保留已合併 #111；使用獨立 Dot worktree。主資料兩頁的需求、真正入口、舊資料啟用／切換與驗收分開記於[本輪對照](docs/acceptance/lines-flow-integration-20261113/README.md)。#102 真遠端已包含 body 稱本機的候選祖先，只擷取 PROCESS helper，不整包重播。未改真資料、marker、schema、ACL、備份、發布或原 PR 分支；不合併。\n"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

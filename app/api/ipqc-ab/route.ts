@@ -1,7 +1,7 @@
 import {abLocalLineage} from '@/lib/ipqc-ab-local-lineage';
 import {isImmutableRecordBody,readImmutableRecord} from '@/lib/state-records';
 import { env } from 'cloudflare:workers';
-import { readState, identity, can, sameOrigin, encodeValues, parse, maintenanceCredential,
+import { readState, identity, can, createIpqcReadPermissionPhase, sameOrigin, encodeValues, parse, maintenanceCredential,
   stateRevisionIsCurrent,responseHeaders as headers } from '@/lib/process-state';
 import { activeAb, catalogFromMaster, checkedAbSnapshot, copyAb, nextAbCode,abDraftIssues,
   openAb, parseAbControl, scopeKey, submissionIssues, type AbCatalog, type AbControl,
@@ -114,18 +114,19 @@ export async function GET(request: Request) {
     const caseMetadata=query.get('caseMetadata')==='1';
     const identityKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
     const keys=equipmentOnly?[...identityKeys,'routineEquipmentControl']:[...identityKeys,KEY,'masterDataControl',...(deferred?[]:['routineEquipmentControl'])];
-    const state=await readState({aggregateReadAhead:true,keys,modelKey:equipmentOnly?undefined:KEY,deferHistory:true,deferDependencyHistory:true}),actor=await identity(request,state);
-    if(!actor||request.headers.has('X-Process-Expected-Actor')&&request.headers.get('X-Process-Expected-Actor')!==actor.id||!(await can(request,state,'view:data'))&&!(await can(request,state,'view:approval')))return reply({error:'沒有查看 IPQC-AB 權限'},403);
-    if(equipmentOnly)return reply({revision:state.revision,equipment:equipmentChoices(state.values)});
+    const state=await readState({aggregateReadAhead:true,keys,modelKey:equipmentOnly?undefined:KEY,deferHistory:true,deferDependencyHistory:true}),phase=await createIpqcReadPermissionPhase(request,state),actor=phase.actor;
+    if(!actor||request.headers.has('X-Process-Expected-Actor')&&request.headers.get('X-Process-Expected-Actor')!==actor.id||!phase.allowed('view:data')&&!phase.allowed('view:approval'))return reply({error:'沒有查看 IPQC-AB 權限'},403);
+    if(equipmentOnly){if(!await phase.current())return reply({error:'沒有查看 IPQC-AB 權限'},403);return reply({revision:state.revision,equipment:equipmentChoices(state.values)});}
     const catalog = catalogFromMaster(state.values.masterDataControl);
     const equipment = deferred?undefined:equipmentChoices(state.values);
-    const control=parseAbControl(state.values[KEY],state.recordStorage?.models.get(KEY)),history=await can(request,state,'approval.compare');
+    const control=parseAbControl(state.values[KEY],state.recordStorage?.models.get(KEY)),history=phase.allowed('approval.compare');
     const lineageBodies=new Map<string,Promise<unknown>>(),resolveLineage=async(value:unknown)=>{if(!isImmutableRecordBody(value))return value;const ref=value.__immutableBody;if(!lineageBodies.has(ref.sha256))lineageBodies.set(ref.sha256,readImmutableRecord(env.STATE_ARCHIVE,ref).then(JSON.parse));return lineageBodies.get(ref.sha256)!;};
     const localLineage=query.get('localLineage')==='1'?await abLocalLineage(control as AbModuleRoot,state.revision,catalog.groups.map(g=>g.line+':'+g.name),resolveLineage):undefined;
     if(localLineage){const current=await identity(request,state);if(!current||current.id!==actor.id)return reply({error:'ACCOUNT_CHANGED_REOPEN_REQUIRED'},403);if(!await stateRevisionIsCurrent(state))return reply({error:'MODULE_CHANGED_RECONFIRM'},409);}
     for(const [key,scope]of Object.entries(control.scopes))control.scopes[key]=visibleSharedControl(scope as AbSharedScope,history,caseMetadata);
     const moduleControl=(control as AbModuleRoot).moduleDraft;if(moduleControl)(control as AbModuleRoot).moduleDraft=visibleSharedControl(moduleControl,history,caseMetadata);
     const body={ revision:state.revision, control, catalog,...(localLineage?{localLineage}:{}), ...(deferred?{equipmentDeferred:true}:{equipment}) };
+    if(!await phase.current())return reply({error:'沒有查看 IPQC-AB 權限'},403);
     return state.recordStorage&&!caseMetadata?recordJSONResponse(body,env.STATE_ARCHIVE,headers):reply(body);
   } catch (error) {
     console.error('[ipqc-ab] load failed',error);

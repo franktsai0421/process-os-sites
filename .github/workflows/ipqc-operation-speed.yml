@@ -1,0 +1,59 @@
+name: IPQC operation speed
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'app/api/ipqc-ab/**'
+      - 'app/api/ipqc-c/**'
+      - 'public/process/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/ipqc-operation-speed.yml'
+permissions:
+  contents: read
+jobs:
+  isolated:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      PROCESS_PROGRAM_COMMIT: ${{ github.event.pull_request.head.sha }}
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run lint
+      - run: npx tsc --noEmit --incremental false
+      - run: node --test --test-concurrency=1 tests/ipqc-operation-speed.test.cjs tests/ipqc-operation-speed-source.test.cjs tests/ipqc-operation-speed-joint-source.test.cjs tests/ipqc-save-recovery.test.mjs tests/ipqc-save-recovery-source.test.cjs tests/ipqc-request-progress.test.mjs tests/ipqc-c-operation-admission.test.cjs tests/ipqc-ab-save-revision-fence.test.mjs tests/ipqc-ab-local-save.test.mjs tests/fqc-read-ahead.test.mjs
+      - run: node scripts/test-ipqc-c-operation-permissions.cjs
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Original isolated AB compiled UI and lifecycle acceptance
+        run: node --test --test-concurrency=1 tests/ipqc-ab-compiled-browser.acceptance.mjs tests/ipqc-ab-compiled-gaps.acceptance.mjs
+      - name: Original isolated C local UI, create/edit/delete and Save races
+        run: node scripts/test-ipqc-c-local-browser.cjs
+        env:
+          IPQCC_PROFILE: '1'
+          IPQCC_EVIDENCE_DIR: /tmp/ipqc-operation-speed-c-ui
+      - name: Original isolated AB local UI and access races
+        run: node --test --test-concurrency=1 tests/ipqc-ab-local-browser.test.mjs tests/ipqc-ab-scope-permission-races.test.mjs
+      - name: Reproducible actual-handler stage benchmark
+        run: IPQC_SPEED_OUTPUT=/tmp/ipqc-operation-speed-candidate.json node scripts/benchmark-ipqc-operations.cjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: ipqc-operation-speed-isolated-evidence
+          path: |
+            /tmp/ipqc-operation-speed-*
+            /tmp/process-ipqc-ab-compiled-*
+          if-no-files-found: ignore

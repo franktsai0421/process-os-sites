@@ -1,0 +1,505 @@
+{
+  "base": "8bfc03679b0e53889c604e110ad843a2fc7b3ae5",
+  "candidate": "608c78927098ff911dd5c4caf03de68e86b260a5",
+  "harnessHash": "aafc99197fb5c5e31a9e7489da9e7607920c323261282eab111178e3609fc029",
+  "ioDelayMs": 10,
+  "rounds": 4,
+  "excludedWarmupRounds": 1,
+  "measuredRounds": 3,
+  "rows": [
+    {
+      "operation": "ipqc-ab:create-error",
+      "beforeMs": 306.83,
+      "afterMs": 193.87,
+      "requests": 1,
+      "wireBytes": 1743,
+      "sql": [
+        8,
+        8
+      ],
+      "revocations": [
+        5,
+        5
+      ],
+      "r2Gets": [
+        19,
+        19
+      ]
+    },
+    {
+      "operation": "ipqc-ab:create-item",
+      "beforeMs": 305.55,
+      "afterMs": 193.9,
+      "requests": 1,
+      "wireBytes": 2277,
+      "sql": [
+        8,
+        8
+      ],
+      "revocations": [
+        5,
+        5
+      ],
+      "r2Gets": [
+        19,
+        19
+      ]
+    },
+    {
+      "operation": "ipqc-ab:apply",
+      "beforeMs": 283.59,
+      "afterMs": 171.97,
+      "requests": 1,
+      "wireBytes": 2468,
+      "sql": [
+        7,
+        7
+      ],
+      "revocations": [
+        4,
+        4
+      ],
+      "r2Gets": [
+        19,
+        19
+      ]
+    },
+    {
+      "operation": "ipqc-ab:delete-item",
+      "beforeMs": 285.44,
+      "afterMs": 170.89,
+      "requests": 1,
+      "wireBytes": 2654,
+      "sql": [
+        7,
+        7
+      ],
+      "revocations": [
+        4,
+        4
+      ],
+      "r2Gets": [
+        19,
+        19
+      ]
+    },
+    {
+      "operation": "ipqc-ab:delete-error",
+      "beforeMs": 287.37,
+      "afterMs": 170.55,
+      "requests": 1,
+      "wireBytes": 2842,
+      "sql": [
+        7,
+        7
+      ],
+      "revocations": [
+        4,
+        4
+      ],
+      "r2Gets": [
+        19,
+        19
+      ]
+    },
+    {
+      "operation": "ipqc-ab:page-read",
+      "beforeMs": 96.69,
+      "afterMs": 85.73,
+      "requests": 1,
+      "wireBytes": 4450,
+      "sql": [
+        4,
+        3
+      ],
+      "revocations": [
+        3,
+        2
+      ],
+      "r2Gets": [
+        10,
+        10
+      ]
+    },
+    {
+      "operation": "ipqc-ab:permissions",
+      "beforeMs": 54.32,
+      "afterMs": 57.12,
+      "requests": 1,
+      "wireBytes": 216,
+      "sql": [
+        3,
+        3
+      ],
+      "revocations": [
+        2,
+        2
+      ],
+      "r2Gets": [
+        5,
+        5
+      ]
+    },
+    {
+      "operation": "ipqc-ab:workflow-read",
+      "beforeMs": 139.69,
+      "afterMs": 138.87,
+      "requests": 1,
+      "wireBytes": 1090,
+      "sql": [
+        6,
+        6
+      ],
+      "revocations": [
+        4,
+        4
+      ],
+      "r2Gets": [
+        14,
+        14
+      ]
+    },
+    {
+      "operation": "ipqc-ab:save",
+      "beforeMs": 182.65,
+      "afterMs": 182.59,
+      "requests": 1,
+      "wireBytes": 2143,
+      "sql": [
+        7,
+        7
+      ],
+      "revocations": [
+        4,
+        4
+      ],
+      "r2Gets": [
+        20,
+        20
+      ]
+    },
+    {
+      "operation": "ipqc-ab:submit",
+      "beforeMs": 184.13,
+      "afterMs": 183.64,
+      "requests": 1,
+      "wireBytes": 3163,
+      "sql": [
+        7,
+        7
+      ],
+      "revocations": [
+        4,
+        4
+      ],
+      "r2Gets": [
+        21,
+        21
+      ]
+    },
+    {
+      "operation": "ipqc-ab:withdraw",
+      "beforeMs": 185.7,
+      "afterMs": 182.81,
+      "requests": 1,
+      "wireBytes": 2802,
+      "sql": [
+        7,
+        7
+      ],
+      "revocations": [
+        4,
+        4
+      ],
+      "r2Gets": [
+        21,
+        21
+      ]
+    },
+    {
+      "operation": "ipqc-ab:resubmit",
+      "beforeMs": 183.15,
+      "afterMs": 183.62,
+      "requests": 1,
+      "wireBytes": 3823,
+      "sql": [
+        7,
+        7
+      ],
+      "revocations": [
+        4,
+        4
+      ],
+      "r2Gets": [
+        21,
+        21
+      ]
+    },
+    {
+      "operation": "ipqc-ab:approve",
+      "beforeMs": 296.76,
+      "afterMs": 184.89,
+      "requests": 1,
+      "wireBytes": 3916,
+      "sql": [
+        7,
+        7
+      ],
+      "revocations": [
+        4,
+        4
+      ],
+      "r2Gets": [
+        21,
+        21
+      ]
+    },
+    {
+      "operation": "ipqc-c:create-error",
+      "beforeMs": 419.73,
+      "afterMs": 185.71,
+      "requests": 1,
+      "wireBytes": 1909,
+      "sql": [
+        19,
+        7
+      ],
+      "revocations": [
+        16,
+        4
+      ],
+      "r2Gets": [
+        18,
+        18
+      ]
+    },
+    {
+      "operation": "ipqc-c:create-item",
+      "beforeMs": 336.22,
+      "afterMs": 194.05,
+      "requests": 1,
+      "wireBytes": 2547,
+      "sql": [
+        20,
+        7
+      ],
+      "revocations": [
+        17,
+        4
+      ],
+      "r2Gets": [
+        10,
+        10
+      ]
+    },
+    {
+      "operation": "ipqc-c:apply",
+      "beforeMs": 417.71,
+      "afterMs": 171.59,
+      "requests": 1,
+      "wireBytes": 2738,
+      "sql": [
+        19,
+        7
+      ],
+      "revocations": [
+        16,
+        4
+      ],
+      "r2Gets": [
+        18,
+        18
+      ]
+    },
+    {
+      "operation": "ipqc-c:delete-item",
+      "beforeMs": 418.08,
+      "afterMs": 172.29,
+      "requests": 1,
+      "wireBytes": 2924,
+      "sql": [
+        19,
+        7
+      ],
+      "revocations": [
+        16,
+        4
+      ],
+      "r2Gets": [
+        18,
+        18
+      ]
+    },
+    {
+      "operation": "ipqc-c:delete-error",
+      "beforeMs": 407.7,
+      "afterMs": 172.46,
+      "requests": 1,
+      "wireBytes": 3112,
+      "sql": [
+        19,
+        7
+      ],
+      "revocations": [
+        16,
+        4
+      ],
+      "r2Gets": [
+        18,
+        18
+      ]
+    },
+    {
+      "operation": "ipqc-c:page-read",
+      "beforeMs": 117.84,
+      "afterMs": 75.52,
+      "requests": 1,
+      "wireBytes": 3837,
+      "sql": [
+        4,
+        3
+      ],
+      "revocations": [
+        3,
+        2
+      ],
+      "r2Gets": [
+        9,
+        9
+      ]
+    },
+    {
+      "operation": "ipqc-c:permissions",
+      "beforeMs": 222.91,
+      "afterMs": 54.56,
+      "requests": 1,
+      "wireBytes": 216,
+      "sql": [
+        17,
+        3
+      ],
+      "revocations": [
+        16,
+        2
+      ],
+      "r2Gets": [
+        5,
+        5
+      ]
+    },
+    {
+      "operation": "ipqc-c:workflow-read",
+      "beforeMs": 251.5,
+      "afterMs": 97.17,
+      "requests": 1,
+      "wireBytes": 2275,
+      "sql": [
+        17,
+        3
+      ],
+      "revocations": [
+        16,
+        2
+      ],
+      "r2Gets": [
+        17,
+        17
+      ]
+    },
+    {
+      "operation": "ipqc-c:save",
+      "beforeMs": 402.65,
+      "afterMs": 161.02,
+      "requests": 1,
+      "wireBytes": 3381,
+      "sql": [
+        19,
+        7
+      ],
+      "revocations": [
+        16,
+        4
+      ],
+      "r2Gets": [
+        18,
+        18
+      ]
+    },
+    {
+      "operation": "ipqc-c:submit",
+      "beforeMs": 400.18,
+      "afterMs": 165.41,
+      "requests": 1,
+      "wireBytes": 4333,
+      "sql": [
+        19,
+        7
+      ],
+      "revocations": [
+        16,
+        4
+      ],
+      "r2Gets": [
+        18,
+        18
+      ]
+    },
+    {
+      "operation": "ipqc-c:withdraw",
+      "beforeMs": 404.64,
+      "afterMs": 162.5,
+      "requests": 1,
+      "wireBytes": 4016,
+      "sql": [
+        19,
+        7
+      ],
+      "revocations": [
+        16,
+        4
+      ],
+      "r2Gets": [
+        18,
+        18
+      ]
+    },
+    {
+      "operation": "ipqc-c:resubmit",
+      "beforeMs": 413.07,
+      "afterMs": 164,
+      "requests": 1,
+      "wireBytes": 4970,
+      "sql": [
+        19,
+        7
+      ],
+      "revocations": [
+        16,
+        4
+      ],
+      "r2Gets": [
+        18,
+        18
+      ]
+    },
+    {
+      "operation": "ipqc-c:approve",
+      "beforeMs": 346.43,
+      "afterMs": 165.2,
+      "requests": 1,
+      "wireBytes": 4019,
+      "sql": [
+        14,
+        7
+      ],
+      "revocations": [
+        11,
+        4
+      ],
+      "r2Gets": [
+        18,
+        18
+      ]
+    }
+  ]
+}

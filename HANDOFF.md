@@ -1,3 +1,7 @@
+## 2026-11-14 — Independent IPQC operation-speed candidate
+
+Branch `perf/ipqc-operation-speed-20261114` starts at main `c178ae2`, separate from #115/#117. Request-local permission evaluation and bounded full-read scheduling retain UNKNOWN/original receipts, CAS, final approval and all draft boundaries. [Current evidence and remaining CI/hosted acceptance](docs/acceptance/ipqc-operation-speed-20261114.md). No merge/deployment or existing QA/browser/data mutation. Earlier checkpoints below remain historical.
+
 ## 2026-11-14 — Process ↔ IPQC link-rule candidate
 
 Independent branch now integrates main 379ae8d (merged #115 and #116); source PR refs untouched. Upstream master boundaries, explicit wait/stop/original receipts and process review recovery are retained. C IPQC choices resolve approved page-v1 catalog/LINES owners consistently with authoring validation. A/B product-independent approved choices, C editable persisted assignments, cross-workspace C occupancy and saved-release transfer. Generated new errors/items travel through real Save/Submit/approval routes. [Matrix, provenance, test and native/live limits](docs/acceptance/process-ipqc-link-rules-20261114.md). Draft only, no real data/account/schema/merge/deployment.
