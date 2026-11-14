@@ -1,3 +1,7 @@
+## 2026-11-14 — Independent IPQC operation-speed candidate
+
+Branch `perf/ipqc-operation-speed-20261114` starts at main `c178ae2`, separate from #115/#117. Request-local permission evaluation and bounded full-read scheduling retain UNKNOWN/original receipts, CAS, final approval and all draft boundaries. [Current evidence and remaining CI/hosted acceptance](docs/acceptance/ipqc-operation-speed-20261114.md). No merge/deployment or existing QA/browser/data mutation. Earlier checkpoints below remain historical.
+
 ## 2026-11-14 — Process review recovery candidate
 
 Independent main-b41b993 checkout; no #114/#115 branch mutation or wholesale import. [Root cause, isolation matrix, verification and live limitations](docs/acceptance/process-review-recovery-20261114.md). Retained real V31 withdrawal remains UNKNOWN and untouched; no test-Site access, merge or deployment.

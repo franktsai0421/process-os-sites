@@ -1,0 +1,739 @@
+{
+  "base": "c178ae227bcddf528a493dbf8b586cf310564c5b",
+  "candidate": "92d22878b57f2ec6c898b4b29245a5265233a838",
+  "harnessHash": "aafc99197fb5c5e31a9e7489da9e7607920c323261282eab111178e3609fc029",
+  "warmupRounds": 1,
+  "measuredRounds": 3,
+  "ioDelayMs": 10,
+  "description": "Real isolated handlers; fixed 10ms per SQL/R2 I/O. Precompiled routes. Sequential baseline then candidate. Final artifacts/docs change no production bytes. No hosted estimates.",
+  "summary": [
+    {
+      "operation": "ipqc-ab:create-error",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 308.8,
+        "minMs": 304.74,
+        "maxMs": 312.27,
+        "requests": 1,
+        "wireBytes": 1743,
+        "sql": 8,
+        "revocations": 5,
+        "r2Get": 19,
+        "r2Put": 3,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 192.74,
+        "minMs": 191.08,
+        "maxMs": 195.04,
+        "requests": 1,
+        "wireBytes": 1743,
+        "sql": 8,
+        "revocations": 5,
+        "r2Get": 19,
+        "r2Put": 3,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-ab:create-item",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 304.09,
+        "minMs": 303.22,
+        "maxMs": 306.41,
+        "requests": 1,
+        "wireBytes": 2277,
+        "sql": 8,
+        "revocations": 5,
+        "r2Get": 19,
+        "r2Put": 3,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 192.75,
+        "minMs": 191.6,
+        "maxMs": 195.24,
+        "requests": 1,
+        "wireBytes": 2277,
+        "sql": 8,
+        "revocations": 5,
+        "r2Get": 19,
+        "r2Put": 3,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-ab:apply",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 283.95,
+        "minMs": 282.77,
+        "maxMs": 284.75,
+        "requests": 1,
+        "wireBytes": 2468,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 19,
+        "r2Put": 2,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 170.18,
+        "minMs": 170.06,
+        "maxMs": 176.97,
+        "requests": 1,
+        "wireBytes": 2468,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 19,
+        "r2Put": 2,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-ab:delete-item",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 284.02,
+        "minMs": 282.66,
+        "maxMs": 289.06,
+        "requests": 1,
+        "wireBytes": 2654,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 19,
+        "r2Put": 2,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 174.61,
+        "minMs": 170.68,
+        "maxMs": 213.51,
+        "requests": 1,
+        "wireBytes": 2654,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 19,
+        "r2Put": 2,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-ab:delete-error",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 288.01,
+        "minMs": 283.13,
+        "maxMs": 295.69,
+        "requests": 1,
+        "wireBytes": 2842,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 19,
+        "r2Put": 2,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 172.58,
+        "minMs": 170.28,
+        "maxMs": 175.86,
+        "requests": 1,
+        "wireBytes": 2842,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 19,
+        "r2Put": 2,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-ab:page-read",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 98.27,
+        "minMs": 96.36,
+        "maxMs": 98.82,
+        "requests": 1,
+        "wireBytes": 4450,
+        "sql": 4,
+        "revocations": 3,
+        "r2Get": 10,
+        "r2Put": 0,
+        "cas": 0
+      },
+      "after": {
+        "medianMs": 85.55,
+        "minMs": 84.27,
+        "maxMs": 86.76,
+        "requests": 1,
+        "wireBytes": 4450,
+        "sql": 3,
+        "revocations": 2,
+        "r2Get": 10,
+        "r2Put": 0,
+        "cas": 0
+      }
+    },
+    {
+      "operation": "ipqc-ab:permissions",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 54.64,
+        "minMs": 53.52,
+        "maxMs": 54.82,
+        "requests": 1,
+        "wireBytes": 216,
+        "sql": 3,
+        "revocations": 2,
+        "r2Get": 5,
+        "r2Put": 0,
+        "cas": 0
+      },
+      "after": {
+        "medianMs": 54.26,
+        "minMs": 54.18,
+        "maxMs": 60.09,
+        "requests": 1,
+        "wireBytes": 216,
+        "sql": 3,
+        "revocations": 2,
+        "r2Get": 5,
+        "r2Put": 0,
+        "cas": 0
+      }
+    },
+    {
+      "operation": "ipqc-ab:workflow-read",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 139.78,
+        "minMs": 138.31,
+        "maxMs": 139.94,
+        "requests": 1,
+        "wireBytes": 1090,
+        "sql": 6,
+        "revocations": 4,
+        "r2Get": 14,
+        "r2Put": 0,
+        "cas": 0
+      },
+      "after": {
+        "medianMs": 138.99,
+        "minMs": 137.95,
+        "maxMs": 141.03,
+        "requests": 1,
+        "wireBytes": 1090,
+        "sql": 6,
+        "revocations": 4,
+        "r2Get": 14,
+        "r2Put": 0,
+        "cas": 0
+      }
+    },
+    {
+      "operation": "ipqc-ab:save",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 185.96,
+        "minMs": 185.59,
+        "maxMs": 202.69,
+        "requests": 1,
+        "wireBytes": 2143,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 20,
+        "r2Put": 2,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 185,
+        "minMs": 180.63,
+        "maxMs": 185.96,
+        "requests": 1,
+        "wireBytes": 2143,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 20,
+        "r2Put": 2,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-ab:submit",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 184.88,
+        "minMs": 184.23,
+        "maxMs": 186.35,
+        "requests": 1,
+        "wireBytes": 3163,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 21,
+        "r2Put": 1,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 186.59,
+        "minMs": 181.99,
+        "maxMs": 198.24,
+        "requests": 1,
+        "wireBytes": 3163,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 21,
+        "r2Put": 1,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-ab:withdraw",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 184.13,
+        "minMs": 182.25,
+        "maxMs": 184.37,
+        "requests": 1,
+        "wireBytes": 2802,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 21,
+        "r2Put": 1,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 185.22,
+        "minMs": 183.87,
+        "maxMs": 185.5,
+        "requests": 1,
+        "wireBytes": 2802,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 21,
+        "r2Put": 1,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-ab:resubmit",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 184.66,
+        "minMs": 183.45,
+        "maxMs": 185.48,
+        "requests": 1,
+        "wireBytes": 3823,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 21,
+        "r2Put": 1,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 188.77,
+        "minMs": 184.88,
+        "maxMs": 207.77,
+        "requests": 1,
+        "wireBytes": 3823,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 21,
+        "r2Put": 1,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-ab:approve",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 296.87,
+        "minMs": 295.32,
+        "maxMs": 300.02,
+        "requests": 1,
+        "wireBytes": 3916,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 21,
+        "r2Put": 1,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 185.39,
+        "minMs": 182.89,
+        "maxMs": 189.94,
+        "requests": 1,
+        "wireBytes": 3916,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 21,
+        "r2Put": 1,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-c:create-error",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 424.8,
+        "minMs": 421.32,
+        "maxMs": 426.44,
+        "requests": 1,
+        "wireBytes": 1909,
+        "sql": 19,
+        "revocations": 16,
+        "r2Get": 18,
+        "r2Put": 3,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 183.32,
+        "minMs": 182.09,
+        "maxMs": 183.85,
+        "requests": 1,
+        "wireBytes": 1909,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 18,
+        "r2Put": 3,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-c:create-item",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 342.4,
+        "minMs": 340.6,
+        "maxMs": 353.19,
+        "requests": 1,
+        "wireBytes": 2547,
+        "sql": 20,
+        "revocations": 17,
+        "r2Get": 10,
+        "r2Put": 3,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 192.04,
+        "minMs": 191.9,
+        "maxMs": 192.36,
+        "requests": 1,
+        "wireBytes": 2547,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 10,
+        "r2Put": 3,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-c:apply",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 412,
+        "minMs": 406.04,
+        "maxMs": 426.97,
+        "requests": 1,
+        "wireBytes": 2738,
+        "sql": 19,
+        "revocations": 16,
+        "r2Get": 18,
+        "r2Put": 2,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 171.08,
+        "minMs": 170.58,
+        "maxMs": 173.79,
+        "requests": 1,
+        "wireBytes": 2738,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 18,
+        "r2Put": 2,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-c:delete-item",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 411.3,
+        "minMs": 408.31,
+        "maxMs": 412.9,
+        "requests": 1,
+        "wireBytes": 2924,
+        "sql": 19,
+        "revocations": 16,
+        "r2Get": 18,
+        "r2Put": 2,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 171.88,
+        "minMs": 171.58,
+        "maxMs": 173.1,
+        "requests": 1,
+        "wireBytes": 2924,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 18,
+        "r2Put": 2,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-c:delete-error",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 406.02,
+        "minMs": 404.49,
+        "maxMs": 416.99,
+        "requests": 1,
+        "wireBytes": 3112,
+        "sql": 19,
+        "revocations": 16,
+        "r2Get": 18,
+        "r2Put": 2,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 175.35,
+        "minMs": 170.89,
+        "maxMs": 175.81,
+        "requests": 1,
+        "wireBytes": 3112,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 18,
+        "r2Put": 2,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-c:page-read",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 117.35,
+        "minMs": 117.2,
+        "maxMs": 118.68,
+        "requests": 1,
+        "wireBytes": 3837,
+        "sql": 4,
+        "revocations": 3,
+        "r2Get": 9,
+        "r2Put": 0,
+        "cas": 0
+      },
+      "after": {
+        "medianMs": 75.61,
+        "minMs": 74.78,
+        "maxMs": 77.49,
+        "requests": 1,
+        "wireBytes": 3837,
+        "sql": 3,
+        "revocations": 2,
+        "r2Get": 9,
+        "r2Put": 0,
+        "cas": 0
+      }
+    },
+    {
+      "operation": "ipqc-c:permissions",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 219.72,
+        "minMs": 218.14,
+        "maxMs": 224.54,
+        "requests": 1,
+        "wireBytes": 216,
+        "sql": 17,
+        "revocations": 16,
+        "r2Get": 5,
+        "r2Put": 0,
+        "cas": 0
+      },
+      "after": {
+        "medianMs": 54.77,
+        "minMs": 54.33,
+        "maxMs": 55.71,
+        "requests": 1,
+        "wireBytes": 216,
+        "sql": 3,
+        "revocations": 2,
+        "r2Get": 5,
+        "r2Put": 0,
+        "cas": 0
+      }
+    },
+    {
+      "operation": "ipqc-c:workflow-read",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 264.17,
+        "minMs": 257.87,
+        "maxMs": 308.39,
+        "requests": 1,
+        "wireBytes": 2275,
+        "sql": 17,
+        "revocations": 16,
+        "r2Get": 17,
+        "r2Put": 0,
+        "cas": 0
+      },
+      "after": {
+        "medianMs": 98.05,
+        "minMs": 96.08,
+        "maxMs": 98.1,
+        "requests": 1,
+        "wireBytes": 2275,
+        "sql": 3,
+        "revocations": 2,
+        "r2Get": 17,
+        "r2Put": 0,
+        "cas": 0
+      }
+    },
+    {
+      "operation": "ipqc-c:save",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 404.78,
+        "minMs": 401.28,
+        "maxMs": 416.77,
+        "requests": 1,
+        "wireBytes": 3381,
+        "sql": 19,
+        "revocations": 16,
+        "r2Get": 18,
+        "r2Put": 1,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 162.57,
+        "minMs": 162.01,
+        "maxMs": 163.19,
+        "requests": 1,
+        "wireBytes": 3381,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 18,
+        "r2Put": 1,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-c:submit",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 401.53,
+        "minMs": 396.52,
+        "maxMs": 403.57,
+        "requests": 1,
+        "wireBytes": 4333,
+        "sql": 19,
+        "revocations": 16,
+        "r2Get": 18,
+        "r2Put": 1,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 162.67,
+        "minMs": 161.4,
+        "maxMs": 164.02,
+        "requests": 1,
+        "wireBytes": 4333,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 18,
+        "r2Put": 1,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-c:withdraw",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 402.05,
+        "minMs": 401.29,
+        "maxMs": 402.72,
+        "requests": 1,
+        "wireBytes": 4016,
+        "sql": 19,
+        "revocations": 16,
+        "r2Get": 18,
+        "r2Put": 1,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 164.14,
+        "minMs": 161.13,
+        "maxMs": 164.29,
+        "requests": 1,
+        "wireBytes": 4016,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 18,
+        "r2Put": 1,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-c:resubmit",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 406.69,
+        "minMs": 395.9,
+        "maxMs": 463.78,
+        "requests": 1,
+        "wireBytes": 4970,
+        "sql": 19,
+        "revocations": 16,
+        "r2Get": 18,
+        "r2Put": 1,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 164.48,
+        "minMs": 163.36,
+        "maxMs": 176.12,
+        "requests": 1,
+        "wireBytes": 4970,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 18,
+        "r2Put": 1,
+        "cas": 1
+      }
+    },
+    {
+      "operation": "ipqc-c:approve",
+      "samplesEach": 3,
+      "before": {
+        "medianMs": 342.6,
+        "minMs": 341.83,
+        "maxMs": 351.73,
+        "requests": 1,
+        "wireBytes": 4019,
+        "sql": 14,
+        "revocations": 11,
+        "r2Get": 18,
+        "r2Put": 1,
+        "cas": 1
+      },
+      "after": {
+        "medianMs": 162.36,
+        "minMs": 161.93,
+        "maxMs": 167.07,
+        "requests": 1,
+        "wireBytes": 4019,
+        "sql": 7,
+        "revocations": 4,
+        "r2Get": 18,
+        "r2Put": 1,
+        "cas": 1
+      }
+    }
+  ]
+}

@@ -1,3 +1,7 @@
+## 2026-11-14 — IPQC request-local authorization and required-read scheduling
+
+Independent speed candidate reduces repeated C session verification and overlaps bounded required aggregate reads for A/B and C without changing operation, draft, permission or persistence semantics. [Actual-handler baseline parity, measurements and validation limits](../docs/acceptance/ipqc-operation-speed-20261114.md). Draft PR only; no merge, deployment or live business data change.
+
 ## 2026-11-14 — Process review outcome candidate
 
 Add version-confirmation original-receipt recovery and review dialog ownership/revision/single-flight guards. Bounded long-response tolerance for process lifecycle actions; preserve UNKNOWN and no replay. No live account/data/schema change, merge or deployment. [Evidence and limitations](../docs/acceptance/process-review-recovery-20261114.md).

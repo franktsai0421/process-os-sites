@@ -1,3 +1,7 @@
+## 2026-11-14 — IPQC operation speed (isolated candidate)
+
+Exact IPQC page/workflow authorization phases reuse evaluation only inside the same request/selected state, with fresh session fences and per-CAS reconstruction. C retains exact platform final-approval cells. The existing bounded aggregate scheduler now also serves C reads/writes and scoped A/B Apply/restore/lifecycle writes; every selected object, integrity check, CAS, receipt and required readback remains. Client drafts, polling/deadlines and UNKNOWN recovery are unchanged. [Evidence, stage benchmark and limits](../../docs/acceptance/ipqc-operation-speed-20261114.md). No schema, live-data change or deployment.
+
 ## 2026-11-13 — Equipment integration candidate
 
 Inspection equipment retains per-page RAM across filters, offers one grouped

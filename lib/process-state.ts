@@ -274,6 +274,19 @@ export async function createIpqcABPermissionPhase(request:Request,state:State){
   if(new URL(request.url).pathname!=='/api/ipqc-ab/workflow')throw Error('INVALID_PERMISSION_PHASE');
   return createWorkflowPermissionPhase(request,state);
 }
+// Exact IPQC request-local readers/workflow. No caller-selected/global cache.
+export async function createIpqcReadPermissionPhase(request:Request,state:State){
+  if(request.method!=='GET'||!['/api/ipqc-ab','/api/ipqc-c'].includes(new URL(request.url).pathname))throw Error('INVALID_PERMISSION_PHASE');
+  return createWorkflowPermissionPhase(request,state);
+}
+export async function createIpqcCPermissionPhase(request:Request,state:State){
+  if(new URL(request.url).pathname!=='/api/ipqc-c/workflow')throw Error('INVALID_PERMISSION_PHASE');
+  const phase=await createWorkflowPermissionPhase(request,state);
+  // companyReader's exact-cell policy is distinct from legacy can() aliases.
+  const user=phase.actor?readPlatformUsers(state.values.platformUsers).find(user=>user.id===phase.actor!.id):null;
+  const access=user?effectiveAccess(user,state.values):null;
+  return Object.freeze({...phase,finalApprove:()=>phase.allowed('ipqc-c.view')&&!!access?.enabled&&access.cells['ipqc-c.view']===true&&access.cells['approval.view']===true&&access.cells['approval.approve']===true});
+}
 async function createWorkflowPermissionPhase(request:Request,state:State){
   const keys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
   const auth=keys.map(key=>state.values[key]),revision=state.revision;
