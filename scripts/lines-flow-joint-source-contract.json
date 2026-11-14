@@ -337,8 +337,8 @@
       }
     },
     "docs/acceptance/lines-flow-integration-20261113/README.md": {
-      "afterHash": "165b3fbd791731effb4b0257b52cd91b5c0da94c4ed5b93f16056c6fae03db74",
-      "afterLength": 27559,
+      "afterHash": "240704cd0d6fd537e8f257844087bc389686e8341bd272e79a855f840d4bef16",
+      "afterLength": 27879,
       "parents": {
         "lines": {
           "hash": "384693ed4979fb839360f6789440454cb98b1e800487463f8f90ed564ad63622",
@@ -365,7 +365,7 @@
             {
               "offset": 19536,
               "before": "",
-              "after": "\n## 2026-11-14 — 與已合併 #113／#114 的共同候選\n\n原公開 #115 `4ec19c4` 與目前 main `4aa0f24` 均保留於正常 merge ancestry，不重開 PR、不改 main。原本地已測 checkpoint 另保留可回復 ref，乾淨工作目錄對齊相同完整 tree 的公開 head 後整合。\n\n| 衝突／風險 | 解法與保留成果 | 共同候選驗證 |\n| --- | --- | --- |\n| shared client 的 LINES／PROCESS 45s 與 IPQC 180s | 保留 exact scope admission、IPQC one-shot progress 與 silent departure；保留 master readonly 回饋、原操作識別／回執／CAS／UNKNOWN。進度計時不讀取、不重送。 | 真 transport deadline／慢回應／丟回覆／取消／導航／重載與原收據回歸；原生 CI 待最終 head。 |\n| app clock 與 PROCESS controls | 同時保留 shell clock 空元素保護、PROCESS local apply/discard／缺漏流程建立／唯讀歷史和核准 refresh。 | clock、PROCESS binder／完整 compiled SPA 與 LINES controller＋真路由載具。 |\n| index/cache 與 account loader | 六個本輪資產一致新 tag `20261114-lines-flow-joint1`；保留 password helper、user-access 與 IPQC 原 main tags／載入順序。 | account entry、navigation、receipt cache、auth/browser。 |\n| 三套來源契約 | 原 LINES、password、IPQC manifest 完全不改；新增精確雙前身 inverse，先還原真 #115 或真 main，再執行原 hash／span／EOL 與負例。未知 bytes 不修補。 | 雙親 tree／ancestry、逐檔原 blob、LF／CRLF、刪除／重複／改 byte／wrong path/type/target 負例；保留三套原驗證。 |\n| 主資料生命週期與引用 | 不借用 AB/C 草稿，不核准 linked PROCESS；保留同頁 RAM／跨模組放棄、整組三選、原頁 approved-only history、approved refs／canvas refresh。 | 兩頁修改→保存→重載→送審→撤回→再送→核准、雙帳號與跨模組回歸及原生 CI。 |\n\n上述矩陣描述本次實作及待執行驗證，不以原三個 PR 各自綠燈推論共同相容。最終候選的結果將記錄於同一 #115，失敗須修復重跑，不刪測試或放寬 pins。\n\n委派時記錄測試站為 v45；另行主線發布不在本輪範圍，不用本輪隔離結果推定真站版本或驗收。Diem V31 撤回與先前兩筆 IPQC QA 結果仍 UNKNOWN，本次不查改、重送或清除其操作。沒有正式／既有測試站資料、marker／schema／ACL／帳密、備份或遷移操作，也沒有合併／部署。LINES 隔離模組載具與 PROCESS compiled SPA 的證據界線不變；完整 adopted LINES 入口、資料採用與真人站點／實體手機／真 IME 仍未驗。\n\n本地共同候選第一輪：source／cache／navigation／receipt 403/403、其餘功能 139/139、password 37/37、七個兩頁 lifecycle／roles／restore／read-projection 命令 PASS；lint、完整非增量 TypeScript、guarded build＋auth postbuild PASS。Password 初次執行缺既有 VM modules 旗標，36 個 fixture 無法載入；依原 account workflow 旗標定向重跑通過，沒有改測試。145-command 本地批次初次在自動核准審查因未核對暫存計畫而被拒、未執行；核對原 tracked workflow 的完整清單、固定 blob、各測試的 commit bytes 及副作用後，加入 no-shell allowlist 與有界執行，僅重試一次獲准。最終本地及 CI 結果見同一 PR 的最終表格。\n\n本地 145-command 共同回歸完成：138 組 PASS、6 組原生／socket NOT_RUN、1 組 Windows PowerShell BLOCKED；該混合命令其餘 227 個案例 PASS。原 Windows CI 全部命令、退出碼測試與原生腳本保留，不把本地不可用項計為成功。最終 runtime 與 build 前候選相同；後續只固定文件及精確 source manifest。上傳後的共同 head CI 結果以 #115 最新表格為準，不沿用 `4ec19c4` 舊綠燈。\n\n## 2026-11-14 — 取消 master 按鈕的固定過早中斷\n\n實際檢查確認：原 #115 canonical LINES page client、PROCESS local client 的 request timer 會在 45 秒 abort，PROCESS 刪除前引用 GET 也用 `AbortSignal.timeout(45000)`。這些是前端自設界線，會中斷慢 headers 或 body，不是純提示。現改為只在這兩頁已安裝、scope／owner 已驗證的 canonical transport 取消固定 elapsed-time abort；AB/C catalog 原 explicit I/O、IPQC/FQC/IQC/authoring 及未安裝 generic／legacy URL 的既有策略不變。\n\n每次請求立即顯示處理中，10／45／120 秒僅為單次 UI 提示，不讀取、不重送、不宣稱成功或比例提速。「停止等候」透過原請求 AbortController 和等待 fence 停止 headers／body 等候，不宣稱撤銷伺服器工作。讀取停止可重讀；已送 Begin／Save／Submit／review 保留原 operation／generation／marker，沒有自動續送。晚到結果不得改 UI、權限或 marker；404 不證明沒寫入，只由有效原回執核對。PROCESS 引用改走同一 transport，保留 server 權限及頁面 owner/view fence。\n\nLINES 離頁會停止本頁等待；已送原證據仍保留。重進時只在 successor 已持有完全相同 marker、舊 owner 已失效、沒有其他 queued／未知／失敗時，轉移重複的帳號 projection 計算，不刪舊證據或 storage。新 client 仍承擔原 UNKNOWN；變造 marker、錯誤世代收據、404 均不得解除。只有原有效回執能恢復操作。PROCESS 沿用既有 bounded 原收據與 owner 保護。\n\n測試涵蓋虛擬 10 分鐘讀取、120 秒 Save headers／body 成功與停止、Begin 送出前／後、去重、404、晚到 ACK、離頁／重進、變造 marker／錯誤世代回執及帳號 barrier。既有 LINES 原生載具與 PROCESS compiled SPA 皆追加實際停止等候按鈕案例；本地 Chromium 啟動受 socket EPERM 阻擋，沒有改 flags 或重試繞過，原生結果待新 head CI。三份原 feature manifest 不改，雙前身 inverse 只更新新候選 hash／spans，仍逐 byte 還原真 parents。\n\n本次沒有證據可把 45 秒稱為平台強制界線，也沒有修改或聲稱可取消瀏覽器、網路、代理或代管平台自身的終止條件；實站限制未量測。真正連線／平台中斷仍是 unavailable／UNKNOWN，不能推定回滾或盲重送。\n\n**交付限制：**未切可信 page-v1 的 LINES 仍為已核准資料唯讀，不能宣稱已啟用獨立 writer；採用 baseline、marker 與舊資料決策仍待另行授權。舊帶 linkedProcess 的案件保留並拒絕直接核准，須由有權操作者撤回／退回後分別保存、送審兩頁；本次不替真人案件執行、不自動遷移。原備份、真資料、UNKNOWN、schema／ACL／帳密與正式／既有測試站均未操作；不合併、不部署。\n\n跨模組本地回歸曾在 timer inventory 失敗：新 callback 仍只有 Map／UI 通知，但 body 改為 `progressValue(elapsedMs)`，因此指紋改變。僅更新該筆 `67545b2b…` → `338acf2d…` 的精確 hash 與用途；逐筆確認其他所有 timer hash 不變，保留整張 deep-equal、匯入圖與原 source 反例。虛擬 10 分鐘斷言同時確認不重排 timer、不增加任何 I/O。修正後相關來源／無背景檢查 248/248 PASS；不是新增通用豁免或放寬原三份 feature manifest。\n\n新 head `0f89da3` CI 的原模擬 DOM UI runner 缺少標準 `before()`，進度列 sibling 插入因此失敗，原生步驟未執行。只在該 runner 的 bounded DOM port 補齊真實 sibling 插入，另斷言實際停止按鈕位於 readonly page root 外；不改 production runtime、舊斷言或原生測試。修正後仍須新 head CI，不把此測試載具修正宣稱為原生通過。\n\n同 head 的 compiled PROCESS 已進入新增停止案例，頁面先前切換為越南文，而新 locator 誤只查中文導致 timeout；畫面已有 `Dừng chờ`，沒有 pageError。改用兩個精確語言名稱的 anchored locator，仍實際點擊按鈕並保留零重送、404 marker 與原回執斷言，不改 timeout 或 production 行為。\n"
+              "after": "\n## 2026-11-14 — 與已合併 #113／#114 的共同候選\n\n原公開 #115 `4ec19c4` 與目前 main `4aa0f24` 均保留於正常 merge ancestry，不重開 PR、不改 main。原本地已測 checkpoint 另保留可回復 ref，乾淨工作目錄對齊相同完整 tree 的公開 head 後整合。\n\n| 衝突／風險 | 解法與保留成果 | 共同候選驗證 |\n| --- | --- | --- |\n| shared client 的 LINES／PROCESS 45s 與 IPQC 180s | 保留 exact scope admission、IPQC one-shot progress 與 silent departure；保留 master readonly 回饋、原操作識別／回執／CAS／UNKNOWN。進度計時不讀取、不重送。 | 真 transport deadline／慢回應／丟回覆／取消／導航／重載與原收據回歸；原生 CI 待最終 head。 |\n| app clock 與 PROCESS controls | 同時保留 shell clock 空元素保護、PROCESS local apply/discard／缺漏流程建立／唯讀歷史和核准 refresh。 | clock、PROCESS binder／完整 compiled SPA 與 LINES controller＋真路由載具。 |\n| index/cache 與 account loader | 六個本輪資產一致新 tag `20261114-lines-flow-joint1`；保留 password helper、user-access 與 IPQC 原 main tags／載入順序。 | account entry、navigation、receipt cache、auth/browser。 |\n| 三套來源契約 | 原 LINES、password、IPQC manifest 完全不改；新增精確雙前身 inverse，先還原真 #115 或真 main，再執行原 hash／span／EOL 與負例。未知 bytes 不修補。 | 雙親 tree／ancestry、逐檔原 blob、LF／CRLF、刪除／重複／改 byte／wrong path/type/target 負例；保留三套原驗證。 |\n| 主資料生命週期與引用 | 不借用 AB/C 草稿，不核准 linked PROCESS；保留同頁 RAM／跨模組放棄、整組三選、原頁 approved-only history、approved refs／canvas refresh。 | 兩頁修改→保存→重載→送審→撤回→再送→核准、雙帳號與跨模組回歸及原生 CI。 |\n\n上述矩陣描述本次實作及待執行驗證，不以原三個 PR 各自綠燈推論共同相容。最終候選的結果將記錄於同一 #115，失敗須修復重跑，不刪測試或放寬 pins。\n\n委派時記錄測試站為 v45；另行主線發布不在本輪範圍，不用本輪隔離結果推定真站版本或驗收。Diem V31 撤回與先前兩筆 IPQC QA 結果仍 UNKNOWN，本次不查改、重送或清除其操作。沒有正式／既有測試站資料、marker／schema／ACL／帳密、備份或遷移操作，也沒有合併／部署。LINES 隔離模組載具與 PROCESS compiled SPA 的證據界線不變；完整 adopted LINES 入口、資料採用與真人站點／實體手機／真 IME 仍未驗。\n\n本地共同候選第一輪：source／cache／navigation／receipt 403/403、其餘功能 139/139、password 37/37、七個兩頁 lifecycle／roles／restore／read-projection 命令 PASS；lint、完整非增量 TypeScript、guarded build＋auth postbuild PASS。Password 初次執行缺既有 VM modules 旗標，36 個 fixture 無法載入；依原 account workflow 旗標定向重跑通過，沒有改測試。145-command 本地批次初次在自動核准審查因未核對暫存計畫而被拒、未執行；核對原 tracked workflow 的完整清單、固定 blob、各測試的 commit bytes 及副作用後，加入 no-shell allowlist 與有界執行，僅重試一次獲准。最終本地及 CI 結果見同一 PR 的最終表格。\n\n本地 145-command 共同回歸完成：138 組 PASS、6 組原生／socket NOT_RUN、1 組 Windows PowerShell BLOCKED；該混合命令其餘 227 個案例 PASS。原 Windows CI 全部命令、退出碼測試與原生腳本保留，不把本地不可用項計為成功。最終 runtime 與 build 前候選相同；後續只固定文件及精確 source manifest。上傳後的共同 head CI 結果以 #115 最新表格為準，不沿用 `4ec19c4` 舊綠燈。\n\n## 2026-11-14 — 取消 master 按鈕的固定過早中斷\n\n實際檢查確認：原 #115 canonical LINES page client、PROCESS local client 的 request timer 會在 45 秒 abort，PROCESS 刪除前引用 GET 也用 `AbortSignal.timeout(45000)`。這些是前端自設界線，會中斷慢 headers 或 body，不是純提示。現改為只在這兩頁已安裝、scope／owner 已驗證的 canonical transport 取消固定 elapsed-time abort；AB/C catalog 原 explicit I/O、IPQC/FQC/IQC/authoring 及未安裝 generic／legacy URL 的既有策略不變。\n\n每次請求立即顯示處理中，10／45／120 秒僅為單次 UI 提示，不讀取、不重送、不宣稱成功或比例提速。「停止等候」透過原請求 AbortController 和等待 fence 停止 headers／body 等候，不宣稱撤銷伺服器工作。讀取停止可重讀；已送 Begin／Save／Submit／review 保留原 operation／generation／marker，沒有自動續送。晚到結果不得改 UI、權限或 marker；404 不證明沒寫入，只由有效原回執核對。PROCESS 引用改走同一 transport，保留 server 權限及頁面 owner/view fence。\n\nLINES 離頁會停止本頁等待；已送原證據仍保留。重進時只在 successor 已持有完全相同 marker、舊 owner 已失效、沒有其他 queued／未知／失敗時，轉移重複的帳號 projection 計算，不刪舊證據或 storage。新 client 仍承擔原 UNKNOWN；變造 marker、錯誤世代收據、404 均不得解除。只有原有效回執能恢復操作。PROCESS 沿用既有 bounded 原收據與 owner 保護。\n\n測試涵蓋虛擬 10 分鐘讀取、120 秒 Save headers／body 成功與停止、Begin 送出前／後、去重、404、晚到 ACK、離頁／重進、變造 marker／錯誤世代回執及帳號 barrier。既有 LINES 原生載具與 PROCESS compiled SPA 皆追加實際停止等候按鈕案例；本地 Chromium 啟動受 socket EPERM 阻擋，沒有改 flags 或重試繞過，原生結果待新 head CI。三份原 feature manifest 不改，雙前身 inverse 只更新新候選 hash／spans，仍逐 byte 還原真 parents。\n\n本次沒有證據可把 45 秒稱為平台強制界線，也沒有修改或聲稱可取消瀏覽器、網路、代理或代管平台自身的終止條件；實站限制未量測。真正連線／平台中斷仍是 unavailable／UNKNOWN，不能推定回滾或盲重送。\n\n**交付限制：**未切可信 page-v1 的 LINES 仍為已核准資料唯讀，不能宣稱已啟用獨立 writer；採用 baseline、marker 與舊資料決策仍待另行授權。舊帶 linkedProcess 的案件保留並拒絕直接核准，須由有權操作者撤回／退回後分別保存、送審兩頁；本次不替真人案件執行、不自動遷移。原備份、真資料、UNKNOWN、schema／ACL／帳密與正式／既有測試站均未操作；不合併、不部署。\n\n跨模組本地回歸曾在 timer inventory 失敗：新 callback 仍只有 Map／UI 通知，但 body 改為 `progressValue(elapsedMs)`，因此指紋改變。僅更新該筆 `67545b2b…` → `338acf2d…` 的精確 hash 與用途；逐筆確認其他所有 timer hash 不變，保留整張 deep-equal、匯入圖與原 source 反例。虛擬 10 分鐘斷言同時確認不重排 timer、不增加任何 I/O。修正後相關來源／無背景檢查 248/248 PASS；不是新增通用豁免或放寬原三份 feature manifest。\n\n新 head `0f89da3` CI 的原模擬 DOM UI runner 缺少標準 `before()`，進度列 sibling 插入因此失敗，原生步驟未執行。只在該 runner 的 bounded DOM port 補齊真實 sibling 插入，另斷言實際停止按鈕位於 readonly page root 外；不改 production runtime、舊斷言或原生測試。修正後仍須新 head CI，不把此測試載具修正宣稱為原生通過。\n\n同 head 的 compiled PROCESS 已進入新增停止案例，頁面先前切換為越南文，而新 locator 誤只查中文導致 timeout；畫面已有 `Dừng chờ`，沒有 pageError。改用兩個精確語言名稱的 anchored locator，仍實際點擊按鈕並保留零重送、404 marker 與原回執斷言，不改 timeout 或 production 行為。\n\n`91864ea` LINES 原生 1280px 中文／390px 越南文均 PASS，含實際停止→404→原回執。Account 另呼叫獨立 tools UI fixture，仍缺標準 `before()`；同樣僅補該載具的 DOM port 並新增外部停止按鈕位置斷言，原有匯入／匯出／權限／同頁本機輸入測試全部保留。\n"
             }
           ]
         }
@@ -2769,6 +2769,50 @@
               "offset": 10487,
               "before": "    assert(after.active.PROCESS['A-2']);assert(after.active.PROCESS['C-2']);assert.equal(after.versions.filter(v=>v.id===pending.id+'-PROCESS').length,1);\n",
               "after": "    assert(after.active.LINES.AB.lines[0].stages.some(stage=>stage.code==='A-2'));assert(after.active.LINES.C.lines[0].stages.some(stage=>stage.code==='C-2'));\n    assert.deepEqual(after.active.PROCESS,before.active.PROCESS);assert.deepEqual(after.workflowScopes.PROCESS,before.workflowScopes.PROCESS);assert.deepEqual(after.versions.filter(v=>v.scope==='PROCESS'),before.versions.filter(v=>v.scope==='PROCESS'));assert.equal(after.versions.filter(v=>v.id===pending.id+'-PROCESS').length,0);\n"
+            }
+          ]
+        }
+      }
+    },
+    "scripts/test-master-page-tools-ui.cjs": {
+      "afterHash": "1367f5a31aa8b1a0efb8c6e47b6d4f40efdb352c3d1c394735d789bf911fd4f9",
+      "afterLength": 11792,
+      "parents": {
+        "lines": {
+          "hash": "d1860f5777acd809036ae02d3ff49427d7a25ffbd95758b4b73e899e18b33f6e",
+          "normalizedHash": "d1860f5777acd809036ae02d3ff49427d7a25ffbd95758b4b73e899e18b33f6e",
+          "length": 11222,
+          "blob": "1230a8107a2a1b199a3f86ae7ab4fc50e94bc6f7",
+          "crlf": [],
+          "rules": [
+            {
+              "offset": 692,
+              "before": "",
+              "after": " dom.Node.prototype.before=function(node){const parent=this.parentElement;if(!parent)return;node.remove();node.parentElement=parent;parent.children.splice(parent.children.indexOf(this),0,node);};\n"
+            },
+            {
+              "offset": 4778,
+              "before": " await idle();await click('開啟草稿');return{f,c,root,api,posts,exports,idle,buttons,button,input,click,fill,file,importFile,deny};\n",
+              "after": " await idle();if(page==='LINES'){const waitPanel=dom.document.body.children.find(node=>node.dataset.masterRequestWait==='true');assert(waitPanel,'LINES progress control mounted outside readonly root');assert(waitPanel.querySelectorAll('button').some(node=>node.textContent==='停止等候'));assert(dom.document.body.children.indexOf(waitPanel)<dom.document.body.children.indexOf(root));}await click('開啟草稿');return{f,c,root,api,posts,exports,idle,buttons,button,input,click,fill,file,importFile,deny};\n"
+            }
+          ]
+        },
+        "main": {
+          "hash": "d1860f5777acd809036ae02d3ff49427d7a25ffbd95758b4b73e899e18b33f6e",
+          "normalizedHash": "d1860f5777acd809036ae02d3ff49427d7a25ffbd95758b4b73e899e18b33f6e",
+          "length": 11222,
+          "blob": "1230a8107a2a1b199a3f86ae7ab4fc50e94bc6f7",
+          "crlf": [],
+          "rules": [
+            {
+              "offset": 692,
+              "before": "",
+              "after": " dom.Node.prototype.before=function(node){const parent=this.parentElement;if(!parent)return;node.remove();node.parentElement=parent;parent.children.splice(parent.children.indexOf(this),0,node);};\n"
+            },
+            {
+              "offset": 4778,
+              "before": " await idle();await click('開啟草稿');return{f,c,root,api,posts,exports,idle,buttons,button,input,click,fill,file,importFile,deny};\n",
+              "after": " await idle();if(page==='LINES'){const waitPanel=dom.document.body.children.find(node=>node.dataset.masterRequestWait==='true');assert(waitPanel,'LINES progress control mounted outside readonly root');assert(waitPanel.querySelectorAll('button').some(node=>node.textContent==='停止等候'));assert(dom.document.body.children.indexOf(waitPanel)<dom.document.body.children.indexOf(root));}await click('開啟草稿');return{f,c,root,api,posts,exports,idle,buttons,button,input,click,fill,file,importFile,deny};\n"
             }
           ]
         }

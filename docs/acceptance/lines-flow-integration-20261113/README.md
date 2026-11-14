@@ -146,3 +146,5 @@ LINES 離頁會停止本頁等待；已送原證據仍保留。重進時只在 s
 新 head `0f89da3` CI 的原模擬 DOM UI runner 缺少標準 `before()`，進度列 sibling 插入因此失敗，原生步驟未執行。只在該 runner 的 bounded DOM port 補齊真實 sibling 插入，另斷言實際停止按鈕位於 readonly page root 外；不改 production runtime、舊斷言或原生測試。修正後仍須新 head CI，不把此測試載具修正宣稱為原生通過。
 
 同 head 的 compiled PROCESS 已進入新增停止案例，頁面先前切換為越南文，而新 locator 誤只查中文導致 timeout；畫面已有 `Dừng chờ`，沒有 pageError。改用兩個精確語言名稱的 anchored locator，仍實際點擊按鈕並保留零重送、404 marker 與原回執斷言，不改 timeout 或 production 行為。
+
+`91864ea` LINES 原生 1280px 中文／390px 越南文均 PASS，含實際停止→404→原回執。Account 另呼叫獨立 tools UI fixture，仍缺標準 `before()`；同樣僅補該載具的 DOM port 並新增外部停止按鈕位置斷言，原有匯入／匯出／權限／同頁本機輸入測試全部保留。
