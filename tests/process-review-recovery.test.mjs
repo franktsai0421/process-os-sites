@@ -114,3 +114,9 @@ for(const high of [false,true])void test(`adopted ${high?'platform approver':'mo
  const f=await setup({pending:false,user:{id:'qa-'+crypto.randomUUID(),role:'staff'}});t.after(f.close);f.box.scrollTo=()=>{};f.box.alert=()=>{};f.box.ProcessEditorV2.departure.inspect=()=>({state:'clean'});f.canvas.edit(JSON.stringify(['G','A']),'A-CUT',[{id:'one',f:'name',value:'Generated substantive policy content'}]);assert.equal(await f.api.save(),true);await ready(f);await installPolicy(f,{high,moduleReviewer:!high});
  f.box.VersionDraftUI.confirmSubmit=async()=> 'Generated policy submit';const b=f.doc.querySelector('[data-av3=submit]');assert.equal(b.disabled,false);await b.click();assert.ok(f.api.flow().pendingId);assert.equal(f.box.sharedDraftAccountState().unknown,false);
 });
+for(const action of ['withdraw','approve'])void test(`${action}: account replacement cannot accept old reply or discard its original operation`,async t=>{
+ const gate=deferred(),entered=deferred();let armed=false;const f=await fixture({intercept:async(url,o,send)=>{const response=await send();if(armed&&o.body&&JSON.parse(o.body).command?.action===action){entered.resolve();await gate.promise;}return response;}});t.after(f.close);armed=true;
+ const run=action==='withdraw'?button(f,action).click():approve(f);await entered.promise;const marker=[...f.session.data],count=posts(f).length;assert(marker.length);
+ f.api.navigation.reset();f.box.ProcessSync.identity={id:'qa-replacement-'+crypto.randomUUID()};f.box.state.view='dashboard';f.root.innerHTML='<p>NEW ACCOUNT DESTINATION</p>';gate.resolve();await run;
+ assert.equal(f.root.textContent,'NEW ACCOUNT DESTINATION');assert.equal(posts(f).length,count);assert.deepEqual([...f.session.data],marker,'old actor keeps exact unresolved original bytes');assert.equal(f.box.sharedDraftAccountState().unknown,false,'old actor unknown is not attributed to the replacement actor');
+});
