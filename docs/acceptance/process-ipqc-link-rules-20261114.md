@@ -26,10 +26,16 @@
 
 測試均為獨立生成記憶體 SQLite／Map R2、隨機正常登入。真正 create-error／create-item→Save→Submit→另一角色核准；A/B 整份 module Save／review，C 從空 draft scaffold 新建，不改舊 QA 名稱冒充新增。
 
-原生載具使用 production editor／controller／shared transport 與實際 signed routes，1440px 中文 A、390px 越南文 C；checkbox、跨頁保留、完成、Save、reload、自身／他人、兩步轉移、換 actor、晚回應、C lost ACK／404／原收據零 POST replay。這是隔離模組 UI，來源建立經實際 API；沒有宣稱完整 hosted/adopted SPA、品質來源建立 UI 或真人站點驗收。Dot 本機 Chromium 被 kernel socket／ptrace 拒絕後未重試；原生執行由 GitHub CI 提供。
+原生載具使用 production editor／controller／shared transport 與實際 signed routes，1440px 中文 A、390px 越南文 C；checkbox、跨頁保留、完成、Save、reload、自身／他人、兩步轉移、換 actor、晚回應、C lost ACK／404／原收據零 POST replay。這是隔離模組 UI，來源建立經實際 API；沒有宣稱完整 hosted/adopted SPA、品質來源建立 UI 或真人站點驗收。Dot 本機 Chromium 受 kernel socket／ptrace 限制，原生執行由 GitHub CI 提供。
 
 NOT_RUN：真人站完整新來源流程、實體手機、真人跨電腦、多裝置／OS IME、真資料效能、部署，以及真人 master 採用／品質來源建立 UI 全流程。現場 v46 PROCESS V31 原撤回仍 UNKNOWN，沒有查明、清除或重送；AB V24／C V33、舊 QA L9空分類／C L10停用與進站樣本均未當作成功證據。
 
 ## 缺項 oracle 定向修復
 
 bd9049c 的 Windows 全套在 read-reuse 雙版本 oracle 停下：舊產品資格只看24個已分配項目，新規則正確增加同 scope／工段168個未分配子項。oracle 保留真4e1基準，只接受 working／saved／未固定review中精確168個 advisory及其順序；固定歷史、全部其餘DTO／headers／I-O／拒絕不變。錯數／重複／亂序／錯scope／錯kind／額外欄位等負例保留；choices則明確驗舊2與新192完整記錄。此同一原測試亦提早放入精確head工作流，Windows原步驟不刪除、不跳過。
+
+## 合併後 validator 載具接線
+
+c96f24be 的 Windows 原步驟31在 assignment-reuse 載具舊 import 數量斷言中止：page-v1 C 正式來源修復新增 approvedMasterPageCatalog import，而舊載具只允許 shared-draft 一個 import，尚未執行 validator。載具改為精確辨識這兩個 import，實際核准 catalog 透過既有隔離 TypeScript loader 綁定，不使用 stub；任何其他 import 仍拒絕。原真 validator fixture、全部結果／錯誤順序／parse 次數／bytes 與不可變輸入斷言保留，成對載具已通過。同一原測試加入精確 head 工作流提早執行，Windows 原 gate 保留。production runtime 未因這個載具修復變更。
+
+修復後的本機補驗：原 assignment-reuse 29案例 PASS（80個變更方塊parse160→3）；443來源／負例、lint與完整非增量TypeScript PASS。原Windows步驟31另預檢139個指令 PASS；PowerShell專用測試在Linux沒有powershell.exe，5個原生指令由GitHub Windows跑（其中1個透過間接fixture啟動Chromium，受同一socket／ptrace限制，未當產品失敗或PASS）。原Windows工作流及全部命令未修改；最後結果以新head CI為準。

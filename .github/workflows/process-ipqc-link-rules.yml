@@ -40,6 +40,8 @@ jobs:
         run: node --test tests/process-ipqc-link-source.test.cjs tests/lines-flow-joint-source.test.cjs tests/lines-flow-source.test.cjs tests/ipqc-save-recovery-source.test.cjs tests/navigation-adapters.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/account-password-source.test.cjs
       - name: New source lifecycle, product/scope, races and saved release
         run: node --test tests/process-ipqc-link-rules.test.cjs tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-source-history-route.test.mjs tests/process-canvas-atomic-save-stack.test.mjs tests/canvas-pending-form-admission.test.mjs
+      - name: Actual validator paired decode and merged approved-page import binding
+        run: node scripts/test-authoring-ipqc-assignment-reuse.cjs
       - name: Exact historical read reuse with explicit AB completeness delta
         run: node scripts/test-authoring-ipqc-read-reuse.cjs
       - name: Current C assignment and retained legacy query guards
