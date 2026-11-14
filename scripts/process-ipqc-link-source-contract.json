@@ -1,5 +1,5 @@
 {
-  "base": "4aa0f24c66861fb735d6ad581b81b190771122f8",
+  "base": "c178ae227bcddf528a493dbf8b586cf310564c5b",
   "files": {
     "lib/process-ipqc.ts": {
       "beforeHash": "56bccf4e17ab7975780fa70b823e8801938f1884d15772bce345e25fe6d13f8b",
@@ -396,21 +396,21 @@
       ]
     },
     "public/process/index.html": {
-      "beforeHash": "9981c1f7272189f05c944b1881349ce1eb9dc66f8e7e1fee33072b1c92c407a0",
-      "beforeLength": 11512,
-      "beforeBlob": "cc8d4462d55e3c0e148e0166a4d4514f5cec01e8",
-      "beforeNormalizedHash": "9981c1f7272189f05c944b1881349ce1eb9dc66f8e7e1fee33072b1c92c407a0",
+      "beforeHash": "92dee408153ef9912282eb429949202c7ba1bcc4074965d507ce15200bd7b544",
+      "beforeLength": 11515,
+      "beforeBlob": "fb804c5dcc36063a484a4406bc8acfa325905bfd",
+      "beforeNormalizedHash": "92dee408153ef9912282eb429949202c7ba1bcc4074965d507ce15200bd7b544",
       "beforeCRLF": [],
-      "afterHash": "eee254421af06db34ecaa86bc24767c22850d64e012e065f61e3de6223b4dfc8",
-      "afterLength": 11488,
+      "afterHash": "cd24b991fa7a85acf94846be7aa4e03463fe41d5e060d5b69b702fcaa135dc3d",
+      "afterLength": 11491,
       "rules": [
         {
-          "offset": 9875,
+          "offset": 9878,
           "before": "    <script data-process-src=\"process-ipqc.js?v=20261110-ipqc-source-single-save1\"></script>\n",
           "after": "    <script data-process-src=\"process-ipqc.js?v=20261114-ipqc-link1\"></script>\n"
         },
         {
-          "offset": 10902,
+          "offset": 10905,
           "before": "    <script data-process-src=\"process-editor.js?v=20261110-process-integration2\"></script>\n",
           "after": "    <script data-process-src=\"process-editor.js?v=20261114-ipqc-link1\"></script>\n"
         }
@@ -433,13 +433,13 @@
       ]
     },
     "AI_CONTEXT/modules/PROCESS.md": {
-      "beforeHash": "24ccb6f15a1e12595bb30464c563dc924e82450f5da7baca4c5c836202dfbf33",
-      "beforeLength": 51698,
-      "beforeBlob": "8905a525a03c75978fd992c7b65c031a8ae73c68",
-      "beforeNormalizedHash": "24ccb6f15a1e12595bb30464c563dc924e82450f5da7baca4c5c836202dfbf33",
+      "beforeHash": "8dfb5f54d96e67579413a482e0ca02325042cbd32ff09bb21b5bbf4ce371dd7a",
+      "beforeLength": 52741,
+      "beforeBlob": "db0dd73db5d414be9946edcea7bb5f8b75df57be",
+      "beforeNormalizedHash": "8dfb5f54d96e67579413a482e0ca02325042cbd32ff09bb21b5bbf4ce371dd7a",
       "beforeCRLF": [],
-      "afterHash": "9fd99f6457708498627d73ae22787afe7874a558d4366c51571bedbeecf6ed19",
-      "afterLength": 52198,
+      "afterHash": "cd5f43ac140af90fd563e5ffcdc888410f0f41e21d471601628f97908177612b",
+      "afterLength": 53241,
       "rules": [
         {
           "offset": 0,
@@ -481,29 +481,29 @@
       ]
     },
     "HANDOFF.md": {
-      "beforeHash": "d900e9663c2c9bd6accf4161aa5bcc0f1774060b3610423ab7aa4a6f59c09ff5",
-      "beforeLength": 87328,
-      "beforeBlob": "48a7a7d5197176f90ae7fe36186c8d1d280b528b",
-      "beforeNormalizedHash": "d900e9663c2c9bd6accf4161aa5bcc0f1774060b3610423ab7aa4a6f59c09ff5",
+      "beforeHash": "4ae99f692507ebd2cfd65856dc5ba721602494b3aeb790e6360d8c794f33ff65",
+      "beforeLength": 87689,
+      "beforeBlob": "6ee3869ea64943210b46e416e9ae01ebc3f6c2a0",
+      "beforeNormalizedHash": "4ae99f692507ebd2cfd65856dc5ba721602494b3aeb790e6360d8c794f33ff65",
       "beforeCRLF": [],
-      "afterHash": "0114497c09d6ff3bb2be7bf94fb1bec62d9f19e0e18736c8708e881745d3e22f",
-      "afterLength": 87814,
+      "afterHash": "a1e37df65f31e4cd444f3bed038ad88196ad56ecfed0023895ce85dc9271a677",
+      "afterLength": 88273,
       "rules": [
         {
           "offset": 0,
           "before": "",
-          "after": "## 2026-11-14 — Process ↔ IPQC link-rule candidate\n\nIndependent main4aa0f24c branch; no #115/#116 ref changes. A/B product-independent approved choices, C editable persisted assignments, cross-workspace C occupancy and saved-release transfer. Generated new errors/items travel through real Save/Submit/approval routes. [Matrix, provenance, test and native/live limits](docs/acceptance/process-ipqc-link-rules-20261114.md). Draft only, no real data/account/schema/merge/deployment.\n\n"
+          "after": "## 2026-11-14 — Process ↔ IPQC link-rule candidate\n\nIndependent branch now integrates main c178ae2 (merged #116); no #115 ref changes. The #116 review recovery and shared transport are retained byte-for-byte. A/B product-independent approved choices, C editable persisted assignments, cross-workspace C occupancy and saved-release transfer. Generated new errors/items travel through real Save/Submit/approval routes. [Matrix, provenance, test and native/live limits](docs/acceptance/process-ipqc-link-rules-20261114.md). Draft only, no real data/account/schema/merge/deployment.\n\n"
         }
       ]
     },
     "AI_CONTEXT/CHANGELOG.md": {
-      "beforeHash": "d35f958d6ecfd4b9cdf3544b3bb4183ef047b73b61448c221d45849e87167184",
-      "beforeLength": 179192,
-      "beforeBlob": "e8cd2793cb60937b6f133019e5ca25c4b3bf78c7",
-      "beforeNormalizedHash": "d35f958d6ecfd4b9cdf3544b3bb4183ef047b73b61448c221d45849e87167184",
+      "beforeHash": "4c2390105594b98824ea87f8f2ddaa9d60700fb29f13e4188706aa50b67c8abb",
+      "beforeLength": 179591,
+      "beforeBlob": "395b1015bff32e9691a4b8ececa24c8cbe0d7fca",
+      "beforeNormalizedHash": "4c2390105594b98824ea87f8f2ddaa9d60700fb29f13e4188706aa50b67c8abb",
       "beforeCRLF": [],
-      "afterHash": "9b21eabdb3f1debd8d0082c4a2ff476ba2177310cc40c525f04781921a3d919e",
-      "afterLength": 179710,
+      "afterHash": "1b882bca89899985bcdcdfc7365e21c5ca633816ce0e12e2e49192a061b13798",
+      "afterLength": 180109,
       "rules": [
         {
           "offset": 0,
@@ -513,34 +513,34 @@
       ]
     },
     "tests/navigation-adapters.test.mjs": {
-      "beforeHash": "bb51f55fefabcb309b118b8e1de72098f0e2d2f020f9ce4842a57a14660f30e7",
-      "beforeLength": 21547,
-      "beforeBlob": "5d6a5cc61db9e581605f8acbe05540d9376abe30",
-      "beforeNormalizedHash": "bb51f55fefabcb309b118b8e1de72098f0e2d2f020f9ce4842a57a14660f30e7",
+      "beforeHash": "acace142dd28368c4b8148d1a1ca5b0a78f4c2097ec7bd8b644ff173104b2fea",
+      "beforeLength": 21550,
+      "beforeBlob": "9899c9affcb61e0ef1d6224dcab45e298b797dea",
+      "beforeNormalizedHash": "acace142dd28368c4b8148d1a1ca5b0a78f4c2097ec7bd8b644ff173104b2fea",
       "beforeCRLF": [],
-      "afterHash": "6633ff1c77159e7768aabf5e71840016cdce31ec7930ec09fcd5ebd7f278a125",
-      "afterLength": 21523,
+      "afterHash": "3e27ff9eb6c66d85ca3ee1c4ae6a3aaad5cbec1da0eaef5db8df73122ca88cd0",
+      "afterLength": 21526,
       "rules": [
         {
-          "offset": 17703,
+          "offset": 17706,
           "before": "  'process-ipqc.js':'20261110-ipqc-source-single-save1',\n",
           "after": "  'process-ipqc.js':'20261114-ipqc-link1',\n"
         },
         {
-          "offset": 17864,
+          "offset": 17867,
           "before": "  'process-editor.js':'20261110-process-integration2',\n",
           "after": "  'process-editor.js':'20261114-ipqc-link1',\n"
         }
       ]
     },
     "tests/shared-draft-receipt-recovery.test.mjs": {
-      "beforeHash": "c73edbcd3c1fc602916eb00be33de8e8b6fa9f5c7118b4752ecad054a4e0cc4f",
-      "beforeLength": 16610,
-      "beforeBlob": "ad3ecc947b5c56fb78eba51467ee8b96d1068773",
-      "beforeNormalizedHash": "c73edbcd3c1fc602916eb00be33de8e8b6fa9f5c7118b4752ecad054a4e0cc4f",
+      "beforeHash": "d67003f9f01a2d7c76c76e5a8cbf602a853627b58d15c688b4c9d6c9845924b8",
+      "beforeLength": 18101,
+      "beforeBlob": "d7d32d7ac5145941ce59da3bcfc8cec3bf2186cd",
+      "beforeNormalizedHash": "d67003f9f01a2d7c76c76e5a8cbf602a853627b58d15c688b4c9d6c9845924b8",
       "beforeCRLF": [],
-      "afterHash": "92a4494364975493a19e098cb82ad6532f9cff82df5bc28bafb4381a108010e8",
-      "afterLength": 16586,
+      "afterHash": "a91ca1228475bcf35e8c21ec551eb87492612697898aca84ef2b64fdd6625455",
+      "afterLength": 18077,
       "rules": [
         {
           "offset": 14343,
@@ -548,7 +548,7 @@
           "after": "  'process-editor.js':'20261114-ipqc-link1',\n"
         },
         {
-          "offset": 14939,
+          "offset": 14942,
           "before": "  'process-ipqc.js':'20261110-ipqc-source-single-save1',\n",
           "after": "  'process-ipqc.js':'20261114-ipqc-link1',\n"
         }

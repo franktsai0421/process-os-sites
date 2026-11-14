@@ -1,6 +1,10 @@
 ## 2026-11-14 — Process ↔ IPQC link-rule candidate
 
-Independent main4aa0f24c branch; no #115/#116 ref changes. A/B product-independent approved choices, C editable persisted assignments, cross-workspace C occupancy and saved-release transfer. Generated new errors/items travel through real Save/Submit/approval routes. [Matrix, provenance, test and native/live limits](docs/acceptance/process-ipqc-link-rules-20261114.md). Draft only, no real data/account/schema/merge/deployment.
+Independent branch now integrates main c178ae2 (merged #116); no #115 ref changes. The #116 review recovery and shared transport are retained byte-for-byte. A/B product-independent approved choices, C editable persisted assignments, cross-workspace C occupancy and saved-release transfer. Generated new errors/items travel through real Save/Submit/approval routes. [Matrix, provenance, test and native/live limits](docs/acceptance/process-ipqc-link-rules-20261114.md). Draft only, no real data/account/schema/merge/deployment.
+
+## 2026-11-14 — Process review recovery candidate
+
+Independent main-b41b993 checkout; no #114/#115 branch mutation or wholesale import. [Root cause, isolation matrix, verification and live limitations](docs/acceptance/process-review-recovery-20261114.md). Retained real V31 withdrawal remains UNKNOWN and untouched; no test-Site access, merge or deployment.
 
 ## 2026-11-13 — Password outcome repair candidate
 

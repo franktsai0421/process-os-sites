@@ -316,6 +316,7 @@
     // retry. Timeout still means unknown and only the original receipt is read.
     const fqcMutation=externalDurableBounded?.scope==='FQC'&&/^\/api\/fqc\/workflow(?:\?|$)/.test(endpoint);
     const iqcMutation=externalDurableBounded?.scope==='IQC'&&/^\/api\/iqc\/workflow(?:\?|$)/.test(endpoint);
+    const processLifecycle=command=>/^\/api\/process-authoring\/workflow(?:\?|$)/.test(endpoint)&&['submit','withdraw','approve','return'].includes(command?.action);
     const mutationDeadline=fqcMutation||iqcMutation||/^\/api\/process-authoring\/workflow(?:\?|$)/.test(endpoint)?45000:15000;
     // Canvas alone may delegate durable intent to its claimed recovery store.
     // The synchronous proof is rechecked immediately before fetch, after queueing.
@@ -491,6 +492,8 @@
     }
     if(beginRecord)reportAccessEvent({action:'begin-v1',operationId:beginRecord.operationId});
     const query=value=>endpoint+(endpoint.includes('?')?'&':'?')+value;
+    const operationQuery=id=>query(`operationId=${encodeURIComponent(id)}`)+(/^\/api\/process-authoring\/workflow(?:\?|$)/.test(endpoint)?'&accessEvent=1':'');
+    function identifiedReceipt(result,command){if(command&&processLifecycle(command)&&result.operationAction!==command.action)throw Object.assign(Error('INVALID_OPERATION_RECEIPT'),{operationId:command.operationId});return result;}
     const key=`shared-draft-v3-operation:${actorId}:${endpoint}`;
     if(!externalStrict)try { unknown=unpackCommand(JSON.parse(sessionStorage.getItem(key)||'null'));if(unknown){unknownOwner=departureOwner();reportAccessEvent(unknown);} } catch { recoveryInvalid=true; /* Retain the corrupt record and block writes; never erase an uncertain operation. */ }
     // AB create alone: live, privately issued commands can prove a fixed-code
@@ -974,7 +977,7 @@
       // IPQC-C create-item needs bounded time for immutable-state I/O. This
       // avoids a premature unknown; it is not a latency optimization or retry.
       const cCreate=body?.command?.action==='apply'&&body.command.moduleAction==='create-item'&&/^\/api\/ipqc-c\/workflow(?:\?|$)/.test(endpoint);
-      const requestDeadline=ipqcSlowIO?180000:['begin','begin-v1'].includes(body?.action)||cCreate?45000:body?mutationDeadline:45000;
+      const requestDeadline=ipqcSlowIO?180000:['begin','begin-v1'].includes(body?.action)||cCreate?45000:body?(processLifecycle(body.command)?180000:mutationDeadline):45000;
       let deadlineExpired=false,phase='headers';
       const controller=new AbortController(),timer=catalogExplicitIO?null:setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);
       // One-shot UI notices only: no polling, read or resend. The finite deadline
@@ -1097,7 +1100,7 @@
     async function resolveUnknown() {
       if(beginOutstanding())return resolveBegin();
       if(!unknown)return null;
-      const command=unknown,owner=unknownOwner,original=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(command.operationId)}`)),command.operationId,command.action==='apply'?command.generation:undefined,command.action),result=await masterSaveReadback(equipmentLocalSave?await equipmentTerminal(original,command):original,command);
+      const command=unknown,owner=unknownOwner,original=confirmedReceipt(identifiedReceipt(await request(operationQuery(command.operationId)),command),command.operationId,command.action==='apply'?command.generation:undefined,command.action),result=await masterSaveReadback(equipmentLocalSave?await equipmentTerminal(original,command):original,command);
       if(externalBounded&&boundedRecord?.operationId===command.operationId){const settled=await boundedTerminal(result,boundedRecord);if(!unknown){syncFailures.delete(command.operationId);reportAccessEvent(command,'receipt-observed');}return settled;}
       reportAccessEvent(command,'receipt-observed');window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);
       syncFailures.delete(command.operationId);if(unknown?.operationId===command.operationId)retain(null);return result;
@@ -1253,6 +1256,7 @@
       },
       resolveUnknown,
       retryUnknown:async()=>{if(beginOutstanding())return resolveBegin();assertMutationAdmission();if(beginPending||retryPending||queued)throw Error('OPERATION_IN_PROGRESS');if(!unknown)return null;const command=unknown;queued++;const operation=resolveUnknown();retryPending=operation;try{const result=await operation;syncFailures.delete(command.operationId);return result;}finally{if(retryPending===operation)retryPending=null;queued--;}},
+      operationInfo:()=>unknown?{operationId:unknown.operationId,action:unknown.action}:null,
       hasUnknown:(observedOnly=false)=>!!unknown||recoveryInvalid||(boundedScope==='bom'&&observedOnly?!!beginRecord||beginInvalid:beginOutstanding()),
       hasUnknownBegin:()=>beginOutstanding(),isBeginRuntimeCurrent:beginRuntimeCurrent,
       retireEquipmentProjection(raw){if(!equipmentLocalSave||beginRuntimeCurrent()||queued||beginPending||retryPending||recoveryInvalid||beginOutstanding()||raw!==sessionStorage.getItem(key)||raw!==(unknown?JSON.stringify(packCommand(unknown)):null))return false;equipmentProjectionRetired=true;return true;},
@@ -1321,7 +1325,7 @@
       prepareCreate(generation,moduleAction,input){assertMutationAdmission();if(!abCreate||!['create-item','create-error'].includes(moduleAction))throw Error('AB_CREATE_SCOPE_REQUIRED');if(typeof generation!=='string'||!generation)throw Error('AB_CREATE_GENERATION_REQUIRED');const command=client.prepare(generation,'apply',{moduleAction,input}),entry={raw:JSON.stringify(command),owner:{...departureOwner(),delivery:window.ProcessSync?.captureDelivery?.()},flight:null,consumed:false};abAssert(entry,command);abCommands.set(command,entry);abSelected.set(command.operationId,entry);return command;},
       finalizeRejectedCreate:abFinalize,
       prepare(generation,action,details={}) {assertOwner();if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');const command={...details,action,generation,clientId,sequence:++sequence,operationId:crypto.randomUUID()};if(canvasTarget)try{canvasCommands.set(command,canvasJSONCopy(command,true));}catch{/* Unsupported proof shape retains the original dispatch/GET path. */}return command;},
-      receipt:async (id,generation)=>{assertOwner();const command=unknown?.operationId===id?unknown:null,owner=unknownOwner,expected=generation??(command?.action==='apply'?command.generation:undefined),result=await masterSaveReadback(confirmedReceipt(await request(query(`operationId=${encodeURIComponent(id)}`)),id,expected,command?.action),command);if(externalBounded&&boundedRecord?.operationId===id){const settled=await boundedTerminal(result,boundedRecord);if(!unknown)syncFailures.delete(id);return settled;}if(externalBounded&&boundedScope==='fqc'&&!boundedRecord&&boundedText(generation)&&boundedKnown&&boundedKnown.generation!==generation){return historicalReadback(result,null,await request(endpoint,undefined,{requireAcceptedAccess:true}));}if(command)window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(unknown?.operationId===id)retain(null);syncFailures.delete(id);return result;},
+      receipt:async (id,generation)=>{assertOwner();const command=unknown?.operationId===id?unknown:null,owner=unknownOwner,expected=generation??(command?.action==='apply'?command.generation:undefined),result=await masterSaveReadback(confirmedReceipt(identifiedReceipt(await request(operationQuery(id)),command),id,expected,command?.action),command);if(externalBounded&&boundedRecord?.operationId===id){const settled=await boundedTerminal(result,boundedRecord);if(!unknown)syncFailures.delete(id);return settled;}if(externalBounded&&boundedScope==='fqc'&&!boundedRecord&&boundedText(generation)&&boundedKnown&&boundedKnown.generation!==generation){return historicalReadback(result,null,await request(endpoint,undefined,{requireAcceptedAccess:true}));}if(command)window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(unknown?.operationId===id)retain(null);syncFailures.delete(id);return result;},
       command(generation,action,details={}) {return client.sendPrepared(client.prepare(generation,action,details));},
       sendPrepared(command,options) {
         fqcAdmission(command);iqcAdmission(command);

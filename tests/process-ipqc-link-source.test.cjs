@@ -7,3 +7,5 @@ for(const [file,c]of Object.entries(proof.contract.files))void test('exact IPQC-
  for(const offset of [0,Math.floor(bytes.length/2),bytes.length-1]){const changed=Buffer.from(bytes);changed[offset]^=1;assert.throws(()=>proof.restore(changed,file));assert.deepEqual(proof.projectKnown(changed,file),changed);}
  assert.throws(()=>proof.restore(bytes,'wrong-path'));assert.deepEqual(proof.projectKnown(before,file),before);
 });
+
+for(const file of ['public/process/process-authoring-v3.js','public/process/shared-draft-client.js','scripts/process-review-source-contract.json'])void test('merged main review recovery remains byte-identical: '+file,()=>{const expected=git('show',proof.contract.base+':'+file);assert(fs.readFileSync(file).equals(expected),'merged #116 source or pinned contract changed: '+file);});
