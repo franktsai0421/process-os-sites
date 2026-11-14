@@ -386,5 +386,33 @@
       "passwordInitialFailure": "36 fixture load failures from omitted --experimental-vm-modules; correct existing flag, no test edits",
       "broadInitialDenial": "not executed; once retried after exact committed CI command allowlist and side-effect inspection; retry approved"
     }
+  },
+  "masterExplicitWaitCorrection": {
+    "date": "2026-11-14",
+    "predecessor": "729bcf9103af3795f12579ffabc0ae3c0765377c",
+    "cause": "Installed LINES/PROCESS request timer and PROCESS references AbortSignal actively aborted headers/body at 45s",
+    "policy": "No fixed elapsed-time abort for installed canonical two-page clients; explicit stop/read-only or original-receipt recovery; other scopes unchanged",
+    "safety": [
+      "original operation/generation/marker retained",
+      "CAS and permissions unchanged",
+      "404/malformed generation/tampered marker cannot settle",
+      "no auto recovery after explicit stop; no replay",
+      "late ACK and navigation fenced",
+      "stale account projection transfer only with same marker and no other pending work"
+    ],
+    "nativeLocal": "BLOCKED_SOCKET_EPERM; no flags or retry bypass",
+    "nativeCI": "pending new head; same PR",
+    "activationLimits": [
+      "LINES without trusted page-v1 stays approved readonly",
+      "legacy linkedProcess case must be withdrawn/returned and independently resubmitted by authorized operator; not done here"
+    ],
+    "platformLimits": "frontend 45s removed; no measured claim about hosting/browser/network limits; interruptions remain unavailable or UNKNOWN",
+    "tests": "tests/lines-flow-wait.test.mjs; original shared transport, page lifecycle and native suites retained",
+    "timerAudit": {
+      "old": "67545b2b061244bdbc6ff9706e5f624a141551ead45695f13ba08a2216a7426e",
+      "new": "338acf2d7f36e8e1481bdc044621f3e229422771a80d8351e1a9b3f00c43266e",
+      "scope": "one reviewed pure UI callback only; all other timer hashes unchanged; strict deep-equal and original source negatives kept",
+      "sourceAndNoBackgroundRetest": "248/248 PASS"
+    }
   }
 }

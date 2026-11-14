@@ -1,3 +1,7 @@
+## 2026-11-14 — #115 固定時限續修
+
+原 checkout 缺失後，在同一 Dot 原路徑從公開 #115 729bcf9 恢復原分支。實際取消兩頁 canonical transport／PROCESS references 的 45 秒前端 abort，改為可停止的明確等待；不更動其他模組預算或 CAS／權限。原 marker、晚到與重進保護及 source negatives 保留。LINES 未採用 page-v1 仍唯讀；舊 linkedProcess 案件需有權人分別重送，未代執行或遷移。新 head／CI 及未驗項以同一 PR 最終回報為準；公開 PR body 更新先前遭自動審查拒絕，不藉其他入口繞過。
+
 ## 2026-11-14 — #115 在原分支續整合 main #114
 
 Frank 已手動合併 #113／#114；原 #115 合入真 main 4aa0f24，保留所有原 UNKNOWN、權限／CAS／冪等及來源負例。三套原 manifest 不改，以雙前身精確共同來源證明串接。共同候選 SHA／CI、衝突矩陣及未驗範圍見[同一驗收紀錄](docs/acceptance/lines-flow-integration-20261113/README.md#2026-11-14--與已合併-113114-的共同候選)及同一 Draft #115。委派時站點 v45 為歷史 checkpoint；另行主線發布不在此工作範圍，Diem V31 撤回與兩筆 IPQC QA 結果仍未知，沒有站點資料或既有 UNKNOWN 操作。不得合併或部署。

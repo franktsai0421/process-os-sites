@@ -1,3 +1,7 @@
+## 2026-11-14 — 移除兩頁前端固定 45 秒中斷
+
+LINES／PROCESS canonical 讀寫與 PROCESS 引用查詢改為明確等待、單次提示及安全停止；保留原 UNKNOWN／回執、CAS、權限與晚到 fence。補充跨離頁原 marker accounting 及錯誤回執負例、兩套原生 Stop 案例。未採用 page-v1 與舊 linkedProcess 分頁再送限制仍保留；不遷移、不操作真資料。詳見既有 lines-flow 驗收紀錄。
+
 ## 2026-11-14 — #115 整合已合併的密碼與 IPQC 修復
 
 原 #115 分支合入 main 4aa0f24，保留兩頁獨立草稿／審核及 #113／#114 的 password、IPQC 進度與原回執修復。三份原 source manifest 不變，新增雙前身精確 inverse，統一共同 runtime cache；共同候選結果及實站未驗範圍見[驗收](../docs/acceptance/lines-flow-integration-20261113/README.md#2026-11-14--與已合併-113114-的共同候選)。沒有資料／設定／備份變更或合併部署。

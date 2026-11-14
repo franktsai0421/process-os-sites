@@ -1,5 +1,7 @@
 # 線別／工段與流程資料：獨立整合候選
 
+目前續修：2026-11-14 取消已安裝 LINES／PROCESS 的前端固定 45 秒 abort；早期有界 45 秒 checkpoint 屬歷史，以下最新規則與 PR 最終 head 結果優先。
+
 目前續整合：2026-11-14 將已含 #113／#114 的 main `4aa0f24c66861fb735d6ad581b81b190771122f8` 合入原 #115 分支；以下早期 checkpoint 保留為歷史證據，最終共同候選 SHA／CI 以 PR 最新表格為準。
 
 狀態：Draft；沒有合併、部署、資料切換、正式／既有測試站讀寫、帳號政策修改或新備份。使用 Dot 雲端獨立 worktree `lines-flow-integration-20261113`；沒有使用 Frank 公司電腦。開始時基底為遠端 main `f0f425d90ea883bab479801dd54f5deaed6cce69`（#110）。工作期間 #111 已合併，分支安全快轉至新 main `ba315149e7478c288d2f3af45c8668aa60070919`，逐段保留送審錯誤分類、原回執、資產 pin、兩個來源 inverse 與 CI。另一個 AB/C 產線與類別工作未搬入。
@@ -29,7 +31,7 @@
 | 歷史僅已核准唯讀 | 保留兩頁原頁 approved selector；PROCESS 舊 history helper 拒絕開還原彈窗，新 restore command 拒絕；原成功收據保留查詢。 | 未改舊歷史、immutable 保存或回執；沒有從歷史覆寫 current。 | 63 個既有核准來源／原頁 DOM／權限／晚到回應案例；另有新舊入口防護測試。 |
 | 無定時同步／取消恢復入口 | 主資料無 draft poll；PROCESS localProcess 名稱列只提供記入本機與放棄，不提供核對最新／本機恢復。必要 GET 只由進頁、重載、Save、送審、歷史或回執操作觸發。 | 舊恢復資料不讀、不匯入、不刪除。 | 原 timer inventory／無輪詢回歸；未以停用完整性檢查改善速度。 |
 | 每個按鈕有真實效果 | 下表列實際按鈕與測試；新增重載與忙碌文案。取消不報保存成功。 | 沿用現行授權，不改公開範圍、帳號政策或無關匯出入功能。 | 權限不足／非法階段由前後端拒絕並保留資料，沒有假成功。原生結果見 CI，真人未驗。 |
-| 讀寫時間與取消安全 | master mutation 對齊現行其他主流程 45s 有界 transport；PROCESS 引用讀取 45s。明確處理中、single flight；讀取與保存延遲不能跨 actor/epoch/delivery/view。 | 沒有無限 timeout；未知結果保留原操作，不把 timeout 當確定失敗。 | 模擬慢回應、斷線／deadline、double-click、取消與舊回應；真資料相同條件效能未量測，不宣稱比例提速。 |
+| 讀寫時間與取消安全 | 已安裝 canonical LINES／PROCESS transport 與 PROCESS 引用查詢不設前端固定 elapsed-time abort；保留明確處理中、single flight、停止等候與原回執。延遲不能跨 actor/epoch/delivery/view。 | 不以等待冒充效能改善；使用者可停止客戶端等候／離頁，已送操作仍 UNKNOWN，只查原回執。其他模組及未安裝 legacy client 的原預算保留。 | 模擬慢回應、斷線／deadline、double-click、取消與舊回應；真資料相同條件效能未量測，不宣稱比例提速。 |
 | 正式引用與刷新 | LINES/Catalog 分別核對原始已核准來源；PROCESS 新來源 helper 驗 active/pointer/unique approved body；製程 API 使用已核准組合，拒絕草稿或 forged compatibility mirror。頁面核准後重新載入對應 owner 並刷新 runtime routing。 | 沒有把 pending/working/saved 當正式來源。SQL schema、ID 與持久格式不變。 | 生命週期涵蓋真 authoring Save、隱藏工段保留與引用；未跑真站跨機畫布。 |
 
 ## 實際按鈕驗收清單
@@ -124,3 +126,19 @@ Windows Local safety `43493755953` 的最後整合入口段落測出 PROCESS rea
 本地共同候選第一輪：source／cache／navigation／receipt 403/403、其餘功能 139/139、password 37/37、七個兩頁 lifecycle／roles／restore／read-projection 命令 PASS；lint、完整非增量 TypeScript、guarded build＋auth postbuild PASS。Password 初次執行缺既有 VM modules 旗標，36 個 fixture 無法載入；依原 account workflow 旗標定向重跑通過，沒有改測試。145-command 本地批次初次在自動核准審查因未核對暫存計畫而被拒、未執行；核對原 tracked workflow 的完整清單、固定 blob、各測試的 commit bytes 及副作用後，加入 no-shell allowlist 與有界執行，僅重試一次獲准。最終本地及 CI 結果見同一 PR 的最終表格。
 
 本地 145-command 共同回歸完成：138 組 PASS、6 組原生／socket NOT_RUN、1 組 Windows PowerShell BLOCKED；該混合命令其餘 227 個案例 PASS。原 Windows CI 全部命令、退出碼測試與原生腳本保留，不把本地不可用項計為成功。最終 runtime 與 build 前候選相同；後續只固定文件及精確 source manifest。上傳後的共同 head CI 結果以 #115 最新表格為準，不沿用 `4ec19c4` 舊綠燈。
+
+## 2026-11-14 — 取消 master 按鈕的固定過早中斷
+
+實際檢查確認：原 #115 canonical LINES page client、PROCESS local client 的 request timer 會在 45 秒 abort，PROCESS 刪除前引用 GET 也用 `AbortSignal.timeout(45000)`。這些是前端自設界線，會中斷慢 headers 或 body，不是純提示。現改為只在這兩頁已安裝、scope／owner 已驗證的 canonical transport 取消固定 elapsed-time abort；AB/C catalog 原 explicit I/O、IPQC/FQC/IQC/authoring 及未安裝 generic／legacy URL 的既有策略不變。
+
+每次請求立即顯示處理中，10／45／120 秒僅為單次 UI 提示，不讀取、不重送、不宣稱成功或比例提速。「停止等候」透過原請求 AbortController 和等待 fence 停止 headers／body 等候，不宣稱撤銷伺服器工作。讀取停止可重讀；已送 Begin／Save／Submit／review 保留原 operation／generation／marker，沒有自動續送。晚到結果不得改 UI、權限或 marker；404 不證明沒寫入，只由有效原回執核對。PROCESS 引用改走同一 transport，保留 server 權限及頁面 owner/view fence。
+
+LINES 離頁會停止本頁等待；已送原證據仍保留。重進時只在 successor 已持有完全相同 marker、舊 owner 已失效、沒有其他 queued／未知／失敗時，轉移重複的帳號 projection 計算，不刪舊證據或 storage。新 client 仍承擔原 UNKNOWN；變造 marker、錯誤世代收據、404 均不得解除。只有原有效回執能恢復操作。PROCESS 沿用既有 bounded 原收據與 owner 保護。
+
+測試涵蓋虛擬 10 分鐘讀取、120 秒 Save headers／body 成功與停止、Begin 送出前／後、去重、404、晚到 ACK、離頁／重進、變造 marker／錯誤世代回執及帳號 barrier。既有 LINES 原生載具與 PROCESS compiled SPA 皆追加實際停止等候按鈕案例；本地 Chromium 啟動受 socket EPERM 阻擋，沒有改 flags 或重試繞過，原生結果待新 head CI。三份原 feature manifest 不改，雙前身 inverse 只更新新候選 hash／spans，仍逐 byte 還原真 parents。
+
+本次沒有證據可把 45 秒稱為平台強制界線，也沒有修改或聲稱可取消瀏覽器、網路、代理或代管平台自身的終止條件；實站限制未量測。真正連線／平台中斷仍是 unavailable／UNKNOWN，不能推定回滾或盲重送。
+
+**交付限制：**未切可信 page-v1 的 LINES 仍為已核准資料唯讀，不能宣稱已啟用獨立 writer；採用 baseline、marker 與舊資料決策仍待另行授權。舊帶 linkedProcess 的案件保留並拒絕直接核准，須由有權操作者撤回／退回後分別保存、送審兩頁；本次不替真人案件執行、不自動遷移。原備份、真資料、UNKNOWN、schema／ACL／帳密與正式／既有測試站均未操作；不合併、不部署。
+
+跨模組本地回歸曾在 timer inventory 失敗：新 callback 仍只有 Map／UI 通知，但 body 改為 `progressValue(elapsedMs)`，因此指紋改變。僅更新該筆 `67545b2b…` → `338acf2d…` 的精確 hash 與用途；逐筆確認其他所有 timer hash 不變，保留整張 deep-equal、匯入圖與原 source 反例。虛擬 10 分鐘斷言同時確認不重排 timer、不增加任何 I/O。修正後相關來源／無背景檢查 248/248 PASS；不是新增通用豁免或放寬原三份 feature manifest。

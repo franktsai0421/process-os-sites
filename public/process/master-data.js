@@ -343,6 +343,7 @@
     }
     if(tab==='process-master'&&!sharedLoaded.has('PROCESS')){
       content.textContent=document.documentElement.lang==='vi'?'Đang tải dữ liệu quy trình…':'載入流程資料中…';
+      content.dataset.activeTab=tab;window.mountMasterRequestProgress?.(content,shared.client('PROCESS'),document.documentElement.lang==='vi'?'vi':'zh',{outside:true});
       if(!sharedLoading.has('PROCESS')){const generation=deliveryGeneration;sharedLoading.add('PROCESS');dataError=null;dataReady=shared.load('PROCESS').then(()=>{if(!ownsDelivery(generation))return;sharedLoaded.add('PROCESS');if(state.dataTab==='process-master')selectDataTab(tab);}).catch(error=>{
         if(!ownsDelivery(generation)||state.dataTab!=='process-master')return;dataError=error;content.textContent=displayDraftError(error);const retry=document.createElement('button');retry.className='button ghost';retry.textContent=document.documentElement.lang==='vi'?'Thử lại':'重試';retry.onclick=()=>selectDataTab(tab);content.append(retry);
       }).finally(()=>{if(ownsDelivery(generation))sharedLoading.delete('PROCESS');});}bindTabButtons();return;

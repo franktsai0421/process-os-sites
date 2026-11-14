@@ -2279,14 +2279,12 @@ function repaintProcessMasterPage() {
 }
 async function confirmProcessMasterRemoval(kind,id,label) {
   const actor=window.ProcessSync?.identity,generation=window.MasterDataWorkflow.shared.flow('PROCESS')?.generation;
-  const owned=()=>actor===window.ProcessSync?.identity&&generation===window.MasterDataWorkflow.shared.flow('PROCESS')?.generation&&!!editableProcessMasterData()&&canDeleteProcessMaster();
+  const owned=()=>state.view==='data'&&state.dataTab==='process-master'&&actor===window.ProcessSync?.identity&&generation===window.MasterDataWorkflow.shared.flow('PROCESS')?.generation&&!!editableProcessMasterData()&&canDeleteProcessMaster();
   if(!owned())return false;
   let result;
   if(window.MasterDataWorkflow.shared.isLocalProcessInsert?.(kind,id)===true)result={total:0,references:[]};
   else{
-    const response=await fetch('/api/master/references?scope=PROCESS&kind='+encodeURIComponent(kind)+'&id='+encodeURIComponent(id),{headers:window.ProcessSync?.platformHeaders?.(),signal:AbortSignal.timeout(45000)});
-    if(!response.ok)throw Error(processMasterText('無法確認引用，未刪除；請重試。','Không thể kiểm tra tham chiếu; chưa xóa. Hãy thử lại.'));
-    result=await response.json();
+    result=await window.MasterDataWorkflow.shared.client('PROCESS').masterReferences(kind,id,{isCurrent:owned});
   }
   if(!owned())return false;
   if(result.total){
@@ -3344,6 +3342,7 @@ function bindDataInner(tab) {
     };
   }
   if (tab === 'process-master') {
+    window.mountMasterRequestProgress?.(document.querySelector('#data-content'),window.MasterDataWorkflow.shared.client('PROCESS'),document.documentElement.lang==='vi'?'vi':'zh',{outside:true});
     updateProcessSharedStatus();
     const permissions=window.MasterDataWorkflow?.shared.permissions('PROCESS');
     for(const [id,permission]of[['#process-master-new-draft','edit'],['#save-master-data','save'],['#process-master-submit','submit'],['#process-master-withdraw','withdraw']]){const button=document.querySelector(id);if(button&&permissions?.[permission]===false)button.disabled=true;}

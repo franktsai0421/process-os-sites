@@ -1,3 +1,7 @@
+
+## 2026-11-14 — 兩頁明確等待及停止
+
+已安裝 LINES／PROCESS 的 canonical 按鈕讀寫與 PROCESS 引用查詢取消前端固定 45 秒 abort；單次進度提示不輪詢。停止等候不取消伺服器工作，已送原 ID／generation／marker 保留，404／晚到／錯誤回執不得當成功或失敗，只查原回執；CAS／授權不變。未採用 page-v1 的 LINES 仍唯讀，舊 linkedProcess 案件須有權人撤回／退回後分別送審，未遷移或操作實站。詳細來源、測試及平台未驗限制見既有 lines-flow 驗收紀錄。
 ## 2026-11-13 — LINES／PROCESS 獨立整合候選
 
 LINES page-v1 核准不再連動產生 PROCESS 正式版；PROCESS 明確建立缺漏工段流程後自行保存／送審。未採用線別入口唯讀，不能借 AB/C 草稿。PROCESS 保存用整組衝突選擇並重比，照片組及晚到意圖選擇性回收真實 #102 遠端成果；原頁核准歷史與原操作回執保留，新歷史還原命令拒絕。主資料／製程引用驗證各頁真正核准來源。沒有 marker/data/ACL/schema 切換或部署。[需求、入口、資料缺口與驗收](../../docs/acceptance/lines-flow-integration-20261113/README.md)。

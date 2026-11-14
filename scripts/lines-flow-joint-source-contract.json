@@ -106,8 +106,8 @@
       }
     },
     ".github/workflows/lines-flow-integration.yml": {
-      "afterHash": "07ee8956d2ac3905887d9d8a961a7552133fc7f152d3bd1dfe0e5f26490667de",
-      "afterLength": 2685,
+      "afterHash": "bb829d5ba837e0e99bf38119a294ed81796a3416eddd2ac7ee1433b93f2243b4",
+      "afterLength": 2716,
       "parents": {
         "lines": {
           "hash": "0c11c2fd39e8a8360c5140e4fb1a263715195b33e5fec922c93acb338bf92d16",
@@ -120,14 +120,19 @@
               "offset": 1256,
               "before": "        run: node --test tests/lines-flow-source.test.cjs tests/lines-flow-pr102-source.test.cjs\n",
               "after": "        run: node --test tests/lines-flow-joint-source.test.cjs tests/lines-flow-source.test.cjs tests/lines-flow-pr102-source.test.cjs\n"
+            },
+            {
+              "offset": 1877,
+              "before": "          node --test tests/lines-flow-navigation.test.mjs tests/lines-flow-media-merge.test.mjs tests/lines-flow-process-conflicts.test.mjs tests/process-local-bridge.test.mjs tests/process-local-save.test.mjs\n",
+              "after": "          node --test tests/lines-flow-wait.test.mjs tests/lines-flow-navigation.test.mjs tests/lines-flow-media-merge.test.mjs tests/lines-flow-process-conflicts.test.mjs tests/process-local-bridge.test.mjs tests/process-local-save.test.mjs\n"
             }
           ]
         }
       }
     },
     "AI_CONTEXT/CHANGELOG.md": {
-      "afterHash": "f460ada84761599f33b876a709d2ecebf2b90ad7b1c2ac62026c29336aa6ce2d",
-      "afterLength": 180286,
+      "afterHash": "3125554421db0f98293cf37a367da4a652895c5faa2722c1163551597b3c8890",
+      "afterLength": 180740,
       "parents": {
         "lines": {
           "hash": "559657006e6d74469192ce3eed38ccffb743c0b9f9196aacc3993108406ce9a9",
@@ -139,10 +144,10 @@
             {
               "offset": 0,
               "before": "",
-              "after": "## 2026-11-14 — #115 整合已合併的密碼與 IPQC 修復\n\n原 #115 分支合入 main 4aa0f24，保留兩頁獨立草稿／審核及 #113／#114 的 password、IPQC 進度與原回執修復。三份原 source manifest 不變，新增雙前身精確 inverse，統一共同 runtime cache；共同候選結果及實站未驗範圍見[驗收](../docs/acceptance/lines-flow-integration-20261113/README.md#2026-11-14--與已合併-113114-的共同候選)。沒有資料／設定／備份變更或合併部署。\n\n"
+              "after": "## 2026-11-14 — 移除兩頁前端固定 45 秒中斷\n\nLINES／PROCESS canonical 讀寫與 PROCESS 引用查詢改為明確等待、單次提示及安全停止；保留原 UNKNOWN／回執、CAS、權限與晚到 fence。補充跨離頁原 marker accounting 及錯誤回執負例、兩套原生 Stop 案例。未採用 page-v1 與舊 linkedProcess 分頁再送限制仍保留；不遷移、不操作真資料。詳見既有 lines-flow 驗收紀錄。\n\n## 2026-11-14 — #115 整合已合併的密碼與 IPQC 修復\n\n原 #115 分支合入 main 4aa0f24，保留兩頁獨立草稿／審核及 #113／#114 的 password、IPQC 進度與原回執修復。三份原 source manifest 不變，新增雙前身精確 inverse，統一共同 runtime cache；共同候選結果及實站未驗範圍見[驗收](../docs/acceptance/lines-flow-integration-20261113/README.md#2026-11-14--與已合併-113114-的共同候選)。沒有資料／設定／備份變更或合併部署。\n\n"
             },
             {
-              "offset": 1094,
+              "offset": 1548,
               "before": "",
               "after": "## 2026-11-13 — Password-only persistence and slow response candidate\n\nIsolate records-v1 credential/audit writes from unrelated business hydration; avoid artificial password POST aborts while retaining UNKNOWN/no-replay, authorization, old-password and CAS fences. [Isolated evidence and limits](../docs/acceptance/password-outcome-20261113.md). Draft only; no deployment/account/data migration.\n"
             }
@@ -158,7 +163,7 @@
             {
               "offset": 0,
               "before": "",
-              "after": "## 2026-11-14 — #115 整合已合併的密碼與 IPQC 修復\n\n原 #115 分支合入 main 4aa0f24，保留兩頁獨立草稿／審核及 #113／#114 的 password、IPQC 進度與原回執修復。三份原 source manifest 不變，新增雙前身精確 inverse，統一共同 runtime cache；共同候選結果及實站未驗範圍見[驗收](../docs/acceptance/lines-flow-integration-20261113/README.md#2026-11-14--與已合併-113114-的共同候選)。沒有資料／設定／備份變更或合併部署。\n\n## 2026-11-13 — 線別／工段與流程資料獨立候選\n\n獨立 main f0f425d 分支整合兩個主資料頁；線別不代核准流程、PROCESS 明確補齊缺漏工段、保存整組衝突／照片／晚到意圖、安全重載與有界回應、唯讀歷史和真正核准來源。選擇性回收真 #102 PROCESS helper，保留新 main 權限／history guards；不帶入 AB/C 或例行 FQC；已保留新 main 合併的 #111。資料採用／真人／原生限制見[驗收](../docs/acceptance/lines-flow-integration-20261113/README.md)，保持 Draft，不合併部署。\n"
+              "after": "## 2026-11-14 — 移除兩頁前端固定 45 秒中斷\n\nLINES／PROCESS canonical 讀寫與 PROCESS 引用查詢改為明確等待、單次提示及安全停止；保留原 UNKNOWN／回執、CAS、權限與晚到 fence。補充跨離頁原 marker accounting 及錯誤回執負例、兩套原生 Stop 案例。未採用 page-v1 與舊 linkedProcess 分頁再送限制仍保留；不遷移、不操作真資料。詳見既有 lines-flow 驗收紀錄。\n\n## 2026-11-14 — #115 整合已合併的密碼與 IPQC 修復\n\n原 #115 分支合入 main 4aa0f24，保留兩頁獨立草稿／審核及 #113／#114 的 password、IPQC 進度與原回執修復。三份原 source manifest 不變，新增雙前身精確 inverse，統一共同 runtime cache；共同候選結果及實站未驗範圍見[驗收](../docs/acceptance/lines-flow-integration-20261113/README.md#2026-11-14--與已合併-113114-的共同候選)。沒有資料／設定／備份變更或合併部署。\n\n## 2026-11-13 — 線別／工段與流程資料獨立候選\n\n獨立 main f0f425d 分支整合兩個主資料頁；線別不代核准流程、PROCESS 明確補齊缺漏工段、保存整組衝突／照片／晚到意圖、安全重載與有界回應、唯讀歷史和真正核准來源。選擇性回收真 #102 PROCESS helper，保留新 main 權限／history guards；不帶入 AB/C 或例行 FQC；已保留新 main 合併的 #111。資料採用／真人／原生限制見[驗收](../docs/acceptance/lines-flow-integration-20261113/README.md)，保持 Draft，不合併部署。\n"
             }
           ]
         }
@@ -193,8 +198,8 @@
       }
     },
     "AI_CONTEXT/modules/MASTER_DATA.md": {
-      "afterHash": "75e6350cac14e050bf37ac26e89ede0f829cfd57359fc38831da2215d272dc4b",
-      "afterLength": 29929,
+      "afterHash": "b0ce283d2265a9eea6802e7d29b962d5f3d8514e7d3a5b9acd8520919bead878",
+      "afterLength": 30508,
       "parents": {
         "lines": {
           "hash": "75e6350cac14e050bf37ac26e89ede0f829cfd57359fc38831da2215d272dc4b",
@@ -202,7 +207,13 @@
           "length": 29929,
           "blob": "51b0a337640c9c08a5a648238351db5e751cf0ff",
           "crlf": [],
-          "rules": []
+          "rules": [
+            {
+              "offset": 0,
+              "before": "",
+              "after": "\n## 2026-11-14 — 兩頁明確等待及停止\n\n已安裝 LINES／PROCESS 的 canonical 按鈕讀寫與 PROCESS 引用查詢取消前端固定 45 秒 abort；單次進度提示不輪詢。停止等候不取消伺服器工作，已送原 ID／generation／marker 保留，404／晚到／錯誤回執不得當成功或失敗，只查原回執；CAS／授權不變。未採用 page-v1 的 LINES 仍唯讀，舊 linkedProcess 案件須有權人撤回／退回後分別送審，未遷移或操作實站。詳細來源、測試及平台未驗限制見既有 lines-flow 驗收紀錄。\n"
+            }
+          ]
         },
         "main": {
           "hash": "0f5b52be76a440041fba12728336e2bbc8ca88a4129389d5459db550b22d86c5",
@@ -214,7 +225,7 @@
             {
               "offset": 0,
               "before": "",
-              "after": "## 2026-11-13 — LINES／PROCESS 獨立整合候選\n\nLINES page-v1 核准不再連動產生 PROCESS 正式版；PROCESS 明確建立缺漏工段流程後自行保存／送審。未採用線別入口唯讀，不能借 AB/C 草稿。PROCESS 保存用整組衝突選擇並重比，照片組及晚到意圖選擇性回收真實 #102 遠端成果；原頁核准歷史與原操作回執保留，新歷史還原命令拒絕。主資料／製程引用驗證各頁真正核准來源。沒有 marker/data/ACL/schema 切換或部署。[需求、入口、資料缺口與驗收](../../docs/acceptance/lines-flow-integration-20261113/README.md)。\n\n"
+              "after": "\n## 2026-11-14 — 兩頁明確等待及停止\n\n已安裝 LINES／PROCESS 的 canonical 按鈕讀寫與 PROCESS 引用查詢取消前端固定 45 秒 abort；單次進度提示不輪詢。停止等候不取消伺服器工作，已送原 ID／generation／marker 保留，404／晚到／錯誤回執不得當成功或失敗，只查原回執；CAS／授權不變。未採用 page-v1 的 LINES 仍唯讀，舊 linkedProcess 案件須有權人撤回／退回後分別送審，未遷移或操作實站。詳細來源、測試及平台未驗限制見既有 lines-flow 驗收紀錄。\n## 2026-11-13 — LINES／PROCESS 獨立整合候選\n\nLINES page-v1 核准不再連動產生 PROCESS 正式版；PROCESS 明確建立缺漏工段流程後自行保存／送審。未採用線別入口唯讀，不能借 AB/C 草稿。PROCESS 保存用整組衝突選擇並重比，照片組及晚到意圖選擇性回收真實 #102 遠端成果；原頁核准歷史與原操作回執保留，新歷史還原命令拒絕。主資料／製程引用驗證各頁真正核准來源。沒有 marker/data/ACL/schema 切換或部署。[需求、入口、資料缺口與驗收](../../docs/acceptance/lines-flow-integration-20261113/README.md)。\n\n"
             }
           ]
         }
@@ -249,8 +260,8 @@
       }
     },
     "HANDOFF.md": {
-      "afterHash": "ea436692116226f1f7daadf3442d212dd4c5a76e67c97927ad39e1e44d157e57",
-      "afterLength": 88537,
+      "afterHash": "3ad646fc042ad73f0ef7942793c4a0103b9e2aad08a9ca3dbf904e5de889aab4",
+      "afterLength": 89148,
       "parents": {
         "lines": {
           "hash": "f3b141607f3d12892388e91191b4d27cc0d77bd719cfc8966e58cdf7e2fc3634",
@@ -262,10 +273,10 @@
             {
               "offset": 0,
               "before": "",
-              "after": "## 2026-11-14 — #115 在原分支續整合 main #114\n\nFrank 已手動合併 #113／#114；原 #115 合入真 main 4aa0f24，保留所有原 UNKNOWN、權限／CAS／冪等及來源負例。三套原 manifest 不改，以雙前身精確共同來源證明串接。共同候選 SHA／CI、衝突矩陣及未驗範圍見[同一驗收紀錄](docs/acceptance/lines-flow-integration-20261113/README.md#2026-11-14--與已合併-113114-的共同候選)及同一 Draft #115。委派時站點 v45 為歷史 checkpoint；另行主線發布不在此工作範圍，Diem V31 撤回與兩筆 IPQC QA 結果仍未知，沒有站點資料或既有 UNKNOWN 操作。不得合併或部署。\n\n"
+              "after": "## 2026-11-14 — #115 固定時限續修\n\n原 checkout 缺失後，在同一 Dot 原路徑從公開 #115 729bcf9 恢復原分支。實際取消兩頁 canonical transport／PROCESS references 的 45 秒前端 abort，改為可停止的明確等待；不更動其他模組預算或 CAS／權限。原 marker、晚到與重進保護及 source negatives 保留。LINES 未採用 page-v1 仍唯讀；舊 linkedProcess 案件需有權人分別重送，未代執行或遷移。新 head／CI 及未驗項以同一 PR 最終回報為準；公開 PR body 更新先前遭自動審查拒絕，不藉其他入口繞過。\n\n## 2026-11-14 — #115 在原分支續整合 main #114\n\nFrank 已手動合併 #113／#114；原 #115 合入真 main 4aa0f24，保留所有原 UNKNOWN、權限／CAS／冪等及來源負例。三套原 manifest 不改，以雙前身精確共同來源證明串接。共同候選 SHA／CI、衝突矩陣及未驗範圍見[同一驗收紀錄](docs/acceptance/lines-flow-integration-20261113/README.md#2026-11-14--與已合併-113114-的共同候選)及同一 Draft #115。委派時站點 v45 為歷史 checkpoint；另行主線發布不在此工作範圍，Diem V31 撤回與兩筆 IPQC QA 結果仍未知，沒有站點資料或既有 UNKNOWN 操作。不得合併或部署。\n\n"
             },
             {
-              "offset": 1209,
+              "offset": 1820,
               "before": "",
               "after": "## 2026-11-13 — Password outcome repair candidate\n\nIndependent main-based password-only records overlay and response-wait repair; administrator reset, own-password and fresh-login isolation with UNKNOWN/no-replay guards. [Evidence, source cause and live limitations](docs/acceptance/password-outcome-20261113.md). Draft review only; no real account, data, schema, merge or deployment change.\n"
             }
@@ -281,7 +292,7 @@
             {
               "offset": 0,
               "before": "",
-              "after": "## 2026-11-14 — #115 在原分支續整合 main #114\n\nFrank 已手動合併 #113／#114；原 #115 合入真 main 4aa0f24，保留所有原 UNKNOWN、權限／CAS／冪等及來源負例。三套原 manifest 不改，以雙前身精確共同來源證明串接。共同候選 SHA／CI、衝突矩陣及未驗範圍見[同一驗收紀錄](docs/acceptance/lines-flow-integration-20261113/README.md#2026-11-14--與已合併-113114-的共同候選)及同一 Draft #115。委派時站點 v45 為歷史 checkpoint；另行主線發布不在此工作範圍，Diem V31 撤回與兩筆 IPQC QA 結果仍未知，沒有站點資料或既有 UNKNOWN 操作。不得合併或部署。\n\n## 2026-11-13 — 線別與流程資料獨立草稿 PR 候選\n\n以原 main f0f425d 開始，已快轉至實際新 main ba31514 並保留已合併 #111；使用獨立 Dot worktree。主資料兩頁的需求、真正入口、舊資料啟用／切換與驗收分開記於[本輪對照](docs/acceptance/lines-flow-integration-20261113/README.md)。#102 真遠端已包含 body 稱本機的候選祖先，只擷取 PROCESS helper，不整包重播。未改真資料、marker、schema、ACL、備份、發布或原 PR 分支；不合併。\n"
+              "after": "## 2026-11-14 — #115 固定時限續修\n\n原 checkout 缺失後，在同一 Dot 原路徑從公開 #115 729bcf9 恢復原分支。實際取消兩頁 canonical transport／PROCESS references 的 45 秒前端 abort，改為可停止的明確等待；不更動其他模組預算或 CAS／權限。原 marker、晚到與重進保護及 source negatives 保留。LINES 未採用 page-v1 仍唯讀；舊 linkedProcess 案件需有權人分別重送，未代執行或遷移。新 head／CI 及未驗項以同一 PR 最終回報為準；公開 PR body 更新先前遭自動審查拒絕，不藉其他入口繞過。\n\n## 2026-11-14 — #115 在原分支續整合 main #114\n\nFrank 已手動合併 #113／#114；原 #115 合入真 main 4aa0f24，保留所有原 UNKNOWN、權限／CAS／冪等及來源負例。三套原 manifest 不改，以雙前身精確共同來源證明串接。共同候選 SHA／CI、衝突矩陣及未驗範圍見[同一驗收紀錄](docs/acceptance/lines-flow-integration-20261113/README.md#2026-11-14--與已合併-113114-的共同候選)及同一 Draft #115。委派時站點 v45 為歷史 checkpoint；另行主線發布不在此工作範圍，Diem V31 撤回與兩筆 IPQC QA 結果仍未知，沒有站點資料或既有 UNKNOWN 操作。不得合併或部署。\n\n## 2026-11-13 — 線別與流程資料獨立草稿 PR 候選\n\n以原 main f0f425d 開始，已快轉至實際新 main ba31514 並保留已合併 #111；使用獨立 Dot worktree。主資料兩頁的需求、真正入口、舊資料啟用／切換與驗收分開記於[本輪對照](docs/acceptance/lines-flow-integration-20261113/README.md)。#102 真遠端已包含 body 稱本機的候選祖先，只擷取 PROCESS helper，不整包重播。未改真資料、marker、schema、ACL、備份、發布或原 PR 分支；不合併。\n"
             }
           ]
         }
@@ -326,8 +337,8 @@
       }
     },
     "docs/acceptance/lines-flow-integration-20261113/README.md": {
-      "afterHash": "2df5bbd992f73e34836d0b3e539e377c270720eebab33d0eca6665c3397cfb51",
-      "afterLength": 23073,
+      "afterHash": "fde5db2801fe8fbf32fcb57516922803fe9c6644d1363e06e804c6bdbfab6f09",
+      "afterLength": 26800,
       "parents": {
         "lines": {
           "hash": "384693ed4979fb839360f6789440454cb98b1e800487463f8f90ed564ad63622",
@@ -339,17 +350,22 @@
             {
               "offset": 54,
               "before": "",
-              "after": "\n目前續整合：2026-11-14 將已含 #113／#114 的 main `4aa0f24c66861fb735d6ad581b81b190771122f8` 合入原 #115 分支；以下早期 checkpoint 保留為歷史證據，最終共同候選 SHA／CI 以 PR 最新表格為準。\n"
+              "after": "\n目前續修：2026-11-14 取消已安裝 LINES／PROCESS 的前端固定 45 秒 abort；早期有界 45 秒 checkpoint 屬歷史，以下最新規則與 PR 最終 head 結果優先。\n\n目前續整合：2026-11-14 將已含 #113／#114 的 main `4aa0f24c66861fb735d6ad581b81b190771122f8` 合入原 #115 分支；以下早期 checkpoint 保留為歷史證據，最終共同候選 SHA／CI 以 PR 最新表格為準。\n"
             },
             {
-              "offset": 16648,
+              "offset": 6115,
+              "before": "| 讀寫時間與取消安全 | master mutation 對齊現行其他主流程 45s 有界 transport；PROCESS 引用讀取 45s。明確處理中、single flight；讀取與保存延遲不能跨 actor/epoch/delivery/view。 | 沒有無限 timeout；未知結果保留原操作，不把 timeout 當確定失敗。 | 模擬慢回應、斷線／deadline、double-click、取消與舊回應；真資料相同條件效能未量測，不宣稱比例提速。 |\n",
+              "after": "| 讀寫時間與取消安全 | 已安裝 canonical LINES／PROCESS transport 與 PROCESS 引用查詢不設前端固定 elapsed-time abort；保留明確處理中、single flight、停止等候與原回執。延遲不能跨 actor/epoch/delivery/view。 | 不以等待冒充效能改善；使用者可停止客戶端等候／離頁，已送操作仍 UNKNOWN，只查原回執。其他模組及未安裝 legacy client 的原預算保留。 | 模擬慢回應、斷線／deadline、double-click、取消與舊回應；真資料相同條件效能未量測，不宣稱比例提速。 |\n"
+            },
+            {
+              "offset": 16964,
               "before": "共同候選風險：#113／#114／#115 同改 `abc-master-source-contract.cjs` 的 `restore`／`projectKnown`、index 和導航／cache 斷言；#114／#115 同改 `shared-draft-client.js`。本 PR 未搬入兩個未合併候選。各自全綠不能證明三者相容，共同候選須保留三套 source proof 和負例、核對組合順序與完整真實前身，再跑實際合樹回歸；不能覆蓋任一組或降低 hash 門檻。\n",
               "after": "2026-11-13 歷史 checkpoint 的共同候選風險（由下方 2026-11-14 共同合樹續修取代）：#113／#114／#115 同改 `abc-master-source-contract.cjs` 的 `restore`／`projectKnown`、index 和導航／cache 斷言；#114／#115 同改 `shared-draft-client.js`。本 PR 未搬入兩個未合併候選。各自全綠不能證明三者相容，共同候選須保留三套 source proof 和負例、核對組合順序與完整真實前身，再跑實際合樹回歸；不能覆蓋任一組或降低 hash 門檻。\n"
             },
             {
-              "offset": 19220,
+              "offset": 19536,
               "before": "",
-              "after": "\n## 2026-11-14 — 與已合併 #113／#114 的共同候選\n\n原公開 #115 `4ec19c4` 與目前 main `4aa0f24` 均保留於正常 merge ancestry，不重開 PR、不改 main。原本地已測 checkpoint 另保留可回復 ref，乾淨工作目錄對齊相同完整 tree 的公開 head 後整合。\n\n| 衝突／風險 | 解法與保留成果 | 共同候選驗證 |\n| --- | --- | --- |\n| shared client 的 LINES／PROCESS 45s 與 IPQC 180s | 保留 exact scope admission、IPQC one-shot progress 與 silent departure；保留 master readonly 回饋、原操作識別／回執／CAS／UNKNOWN。進度計時不讀取、不重送。 | 真 transport deadline／慢回應／丟回覆／取消／導航／重載與原收據回歸；原生 CI 待最終 head。 |\n| app clock 與 PROCESS controls | 同時保留 shell clock 空元素保護、PROCESS local apply/discard／缺漏流程建立／唯讀歷史和核准 refresh。 | clock、PROCESS binder／完整 compiled SPA 與 LINES controller＋真路由載具。 |\n| index/cache 與 account loader | 六個本輪資產一致新 tag `20261114-lines-flow-joint1`；保留 password helper、user-access 與 IPQC 原 main tags／載入順序。 | account entry、navigation、receipt cache、auth/browser。 |\n| 三套來源契約 | 原 LINES、password、IPQC manifest 完全不改；新增精確雙前身 inverse，先還原真 #115 或真 main，再執行原 hash／span／EOL 與負例。未知 bytes 不修補。 | 雙親 tree／ancestry、逐檔原 blob、LF／CRLF、刪除／重複／改 byte／wrong path/type/target 負例；保留三套原驗證。 |\n| 主資料生命週期與引用 | 不借用 AB/C 草稿，不核准 linked PROCESS；保留同頁 RAM／跨模組放棄、整組三選、原頁 approved-only history、approved refs／canvas refresh。 | 兩頁修改→保存→重載→送審→撤回→再送→核准、雙帳號與跨模組回歸及原生 CI。 |\n\n上述矩陣描述本次實作及待執行驗證，不以原三個 PR 各自綠燈推論共同相容。最終候選的結果將記錄於同一 #115，失敗須修復重跑，不刪測試或放寬 pins。\n\n委派時記錄測試站為 v45；另行主線發布不在本輪範圍，不用本輪隔離結果推定真站版本或驗收。Diem V31 撤回與先前兩筆 IPQC QA 結果仍 UNKNOWN，本次不查改、重送或清除其操作。沒有正式／既有測試站資料、marker／schema／ACL／帳密、備份或遷移操作，也沒有合併／部署。LINES 隔離模組載具與 PROCESS compiled SPA 的證據界線不變；完整 adopted LINES 入口、資料採用與真人站點／實體手機／真 IME 仍未驗。\n\n本地共同候選第一輪：source／cache／navigation／receipt 403/403、其餘功能 139/139、password 37/37、七個兩頁 lifecycle／roles／restore／read-projection 命令 PASS；lint、完整非增量 TypeScript、guarded build＋auth postbuild PASS。Password 初次執行缺既有 VM modules 旗標，36 個 fixture 無法載入；依原 account workflow 旗標定向重跑通過，沒有改測試。145-command 本地批次初次在自動核准審查因未核對暫存計畫而被拒、未執行；核對原 tracked workflow 的完整清單、固定 blob、各測試的 commit bytes 及副作用後，加入 no-shell allowlist 與有界執行，僅重試一次獲准。最終本地及 CI 結果見同一 PR 的最終表格。\n\n本地 145-command 共同回歸完成：138 組 PASS、6 組原生／socket NOT_RUN、1 組 Windows PowerShell BLOCKED；該混合命令其餘 227 個案例 PASS。原 Windows CI 全部命令、退出碼測試與原生腳本保留，不把本地不可用項計為成功。最終 runtime 與 build 前候選相同；後續只固定文件及精確 source manifest。上傳後的共同 head CI 結果以 #115 最新表格為準，不沿用 `4ec19c4` 舊綠燈。\n"
+              "after": "\n## 2026-11-14 — 與已合併 #113／#114 的共同候選\n\n原公開 #115 `4ec19c4` 與目前 main `4aa0f24` 均保留於正常 merge ancestry，不重開 PR、不改 main。原本地已測 checkpoint 另保留可回復 ref，乾淨工作目錄對齊相同完整 tree 的公開 head 後整合。\n\n| 衝突／風險 | 解法與保留成果 | 共同候選驗證 |\n| --- | --- | --- |\n| shared client 的 LINES／PROCESS 45s 與 IPQC 180s | 保留 exact scope admission、IPQC one-shot progress 與 silent departure；保留 master readonly 回饋、原操作識別／回執／CAS／UNKNOWN。進度計時不讀取、不重送。 | 真 transport deadline／慢回應／丟回覆／取消／導航／重載與原收據回歸；原生 CI 待最終 head。 |\n| app clock 與 PROCESS controls | 同時保留 shell clock 空元素保護、PROCESS local apply/discard／缺漏流程建立／唯讀歷史和核准 refresh。 | clock、PROCESS binder／完整 compiled SPA 與 LINES controller＋真路由載具。 |\n| index/cache 與 account loader | 六個本輪資產一致新 tag `20261114-lines-flow-joint1`；保留 password helper、user-access 與 IPQC 原 main tags／載入順序。 | account entry、navigation、receipt cache、auth/browser。 |\n| 三套來源契約 | 原 LINES、password、IPQC manifest 完全不改；新增精確雙前身 inverse，先還原真 #115 或真 main，再執行原 hash／span／EOL 與負例。未知 bytes 不修補。 | 雙親 tree／ancestry、逐檔原 blob、LF／CRLF、刪除／重複／改 byte／wrong path/type/target 負例；保留三套原驗證。 |\n| 主資料生命週期與引用 | 不借用 AB/C 草稿，不核准 linked PROCESS；保留同頁 RAM／跨模組放棄、整組三選、原頁 approved-only history、approved refs／canvas refresh。 | 兩頁修改→保存→重載→送審→撤回→再送→核准、雙帳號與跨模組回歸及原生 CI。 |\n\n上述矩陣描述本次實作及待執行驗證，不以原三個 PR 各自綠燈推論共同相容。最終候選的結果將記錄於同一 #115，失敗須修復重跑，不刪測試或放寬 pins。\n\n委派時記錄測試站為 v45；另行主線發布不在本輪範圍，不用本輪隔離結果推定真站版本或驗收。Diem V31 撤回與先前兩筆 IPQC QA 結果仍 UNKNOWN，本次不查改、重送或清除其操作。沒有正式／既有測試站資料、marker／schema／ACL／帳密、備份或遷移操作，也沒有合併／部署。LINES 隔離模組載具與 PROCESS compiled SPA 的證據界線不變；完整 adopted LINES 入口、資料採用與真人站點／實體手機／真 IME 仍未驗。\n\n本地共同候選第一輪：source／cache／navigation／receipt 403/403、其餘功能 139/139、password 37/37、七個兩頁 lifecycle／roles／restore／read-projection 命令 PASS；lint、完整非增量 TypeScript、guarded build＋auth postbuild PASS。Password 初次執行缺既有 VM modules 旗標，36 個 fixture 無法載入；依原 account workflow 旗標定向重跑通過，沒有改測試。145-command 本地批次初次在自動核准審查因未核對暫存計畫而被拒、未執行；核對原 tracked workflow 的完整清單、固定 blob、各測試的 commit bytes 及副作用後，加入 no-shell allowlist 與有界執行，僅重試一次獲准。最終本地及 CI 結果見同一 PR 的最終表格。\n\n本地 145-command 共同回歸完成：138 組 PASS、6 組原生／socket NOT_RUN、1 組 Windows PowerShell BLOCKED；該混合命令其餘 227 個案例 PASS。原 Windows CI 全部命令、退出碼測試與原生腳本保留，不把本地不可用項計為成功。最終 runtime 與 build 前候選相同；後續只固定文件及精確 source manifest。上傳後的共同 head CI 結果以 #115 最新表格為準，不沿用 `4ec19c4` 舊綠燈。\n\n## 2026-11-14 — 取消 master 按鈕的固定過早中斷\n\n實際檢查確認：原 #115 canonical LINES page client、PROCESS local client 的 request timer 會在 45 秒 abort，PROCESS 刪除前引用 GET 也用 `AbortSignal.timeout(45000)`。這些是前端自設界線，會中斷慢 headers 或 body，不是純提示。現改為只在這兩頁已安裝、scope／owner 已驗證的 canonical transport 取消固定 elapsed-time abort；AB/C catalog 原 explicit I/O、IPQC/FQC/IQC/authoring 及未安裝 generic／legacy URL 的既有策略不變。\n\n每次請求立即顯示處理中，10／45／120 秒僅為單次 UI 提示，不讀取、不重送、不宣稱成功或比例提速。「停止等候」透過原請求 AbortController 和等待 fence 停止 headers／body 等候，不宣稱撤銷伺服器工作。讀取停止可重讀；已送 Begin／Save／Submit／review 保留原 operation／generation／marker，沒有自動續送。晚到結果不得改 UI、權限或 marker；404 不證明沒寫入，只由有效原回執核對。PROCESS 引用改走同一 transport，保留 server 權限及頁面 owner/view fence。\n\nLINES 離頁會停止本頁等待；已送原證據仍保留。重進時只在 successor 已持有完全相同 marker、舊 owner 已失效、沒有其他 queued／未知／失敗時，轉移重複的帳號 projection 計算，不刪舊證據或 storage。新 client 仍承擔原 UNKNOWN；變造 marker、錯誤世代收據、404 均不得解除。只有原有效回執能恢復操作。PROCESS 沿用既有 bounded 原收據與 owner 保護。\n\n測試涵蓋虛擬 10 分鐘讀取、120 秒 Save headers／body 成功與停止、Begin 送出前／後、去重、404、晚到 ACK、離頁／重進、變造 marker／錯誤世代回執及帳號 barrier。既有 LINES 原生載具與 PROCESS compiled SPA 皆追加實際停止等候按鈕案例；本地 Chromium 啟動受 socket EPERM 阻擋，沒有改 flags 或重試繞過，原生結果待新 head CI。三份原 feature manifest 不改，雙前身 inverse 只更新新候選 hash／spans，仍逐 byte 還原真 parents。\n\n本次沒有證據可把 45 秒稱為平台強制界線，也沒有修改或聲稱可取消瀏覽器、網路、代理或代管平台自身的終止條件；實站限制未量測。真正連線／平台中斷仍是 unavailable／UNKNOWN，不能推定回滾或盲重送。\n\n**交付限制：**未切可信 page-v1 的 LINES 仍為已核准資料唯讀，不能宣稱已啟用獨立 writer；採用 baseline、marker 與舊資料決策仍待另行授權。舊帶 linkedProcess 的案件保留並拒絕直接核准，須由有權操作者撤回／退回後分別保存、送審兩頁；本次不替真人案件執行、不自動遷移。原備份、真資料、UNKNOWN、schema／ACL／帳密與正式／既有測試站均未操作；不合併、不部署。\n\n跨模組本地回歸曾在 timer inventory 失敗：新 callback 仍只有 Map／UI 通知，但 body 改為 `progressValue(elapsedMs)`，因此指紋改變。僅更新該筆 `67545b2b…` → `338acf2d…` 的精確 hash 與用途；逐筆確認其他所有 timer hash 不變，保留整張 deep-equal、匯入圖與原 source 反例。虛擬 10 分鐘斷言同時確認不重排 timer、不增加任何 I/O。修正後相關來源／無背景檢查 248/248 PASS；不是新增通用豁免或放寬原三份 feature manifest。\n"
             }
           ]
         }
@@ -370,8 +386,8 @@
       }
     },
     "docs/acceptance/lines-flow-integration-20261113/verification.json": {
-      "afterHash": "ab0a6b571a56666ad63dcbdaf0257f74cfe958f34c471faaba5c87bd59bde57a",
-      "afterLength": 14462,
+      "afterHash": "af110884b756605068e01fa2a8bd94af99255202ca78862dc58ddaaf58516b81",
+      "afterLength": 16234,
       "parents": {
         "lines": {
           "hash": "0f781ae78b8c2e6f3db165d2f22c9ccb634a83ca304e5f682cdbdabb43f3d84e",
@@ -383,7 +399,7 @@
             {
               "offset": 12960,
               "before": "",
-              "after": "  },\n  \"jointMain114Integration\": {\n    \"date\": \"2026-11-14\",\n    \"main\": \"4aa0f24c66861fb735d6ad581b81b190771122f8\",\n    \"linesParent\": \"4ec19c40d04fb389d6c6329a7aa2c31341176802\",\n    \"originalManifests\": \"unchanged; exact byte comparison against genuine parent objects\",\n    \"proof\": \"scripts/lines-flow-joint-source-contract.json\",\n    \"finalCI\": \"pending; see latest #115 evidence for final candidate\",\n    \"liveAcceptance\": \"NOT_RUN; delegated v45 checkpoint is historical; another main publication is outside this task. Existing Diem V31 withdrawal/two IPQC QA outcomes remain UNKNOWN and untouched\",\n    \"noLiveDataOrDeployment\": true,\n    \"local\": {\n      \"sourceCacheNavigationReceipts\": \"403/403 PASS\",\n      \"functionalWithoutPassword\": \"139/139 PASS\",\n      \"passwordWithOriginalVMFlag\": \"37/37 PASS\",\n      \"pageRouteCommands\": \"7/7 PASS\",\n      \"lint\": \"PASS\",\n      \"typecheckNonIncremental\": \"PASS\",\n      \"guardedBuildAuthPostbuild\": \"PASS\",\n      \"broad145Commands\": {\n        \"PASS\": 138,\n        \"NOT_RUN_NATIVE_ENVIRONMENT\": 6,\n        \"BLOCKED_WINDOWS_POWERSHELL\": 1,\n        \"remainingCasesInWindowsMixedGroup\": \"227 PASS\",\n        \"originalCICommandsAndExitGuard\": \"unchanged\"\n      },\n      \"passwordInitialFailure\": \"36 fixture load failures from omitted --experimental-vm-modules; correct existing flag, no test edits\",\n      \"broadInitialDenial\": \"not executed; once retried after exact committed CI command allowlist and side-effect inspection; retry approved\"\n    }\n"
+              "after": "  },\n  \"jointMain114Integration\": {\n    \"date\": \"2026-11-14\",\n    \"main\": \"4aa0f24c66861fb735d6ad581b81b190771122f8\",\n    \"linesParent\": \"4ec19c40d04fb389d6c6329a7aa2c31341176802\",\n    \"originalManifests\": \"unchanged; exact byte comparison against genuine parent objects\",\n    \"proof\": \"scripts/lines-flow-joint-source-contract.json\",\n    \"finalCI\": \"pending; see latest #115 evidence for final candidate\",\n    \"liveAcceptance\": \"NOT_RUN; delegated v45 checkpoint is historical; another main publication is outside this task. Existing Diem V31 withdrawal/two IPQC QA outcomes remain UNKNOWN and untouched\",\n    \"noLiveDataOrDeployment\": true,\n    \"local\": {\n      \"sourceCacheNavigationReceipts\": \"403/403 PASS\",\n      \"functionalWithoutPassword\": \"139/139 PASS\",\n      \"passwordWithOriginalVMFlag\": \"37/37 PASS\",\n      \"pageRouteCommands\": \"7/7 PASS\",\n      \"lint\": \"PASS\",\n      \"typecheckNonIncremental\": \"PASS\",\n      \"guardedBuildAuthPostbuild\": \"PASS\",\n      \"broad145Commands\": {\n        \"PASS\": 138,\n        \"NOT_RUN_NATIVE_ENVIRONMENT\": 6,\n        \"BLOCKED_WINDOWS_POWERSHELL\": 1,\n        \"remainingCasesInWindowsMixedGroup\": \"227 PASS\",\n        \"originalCICommandsAndExitGuard\": \"unchanged\"\n      },\n      \"passwordInitialFailure\": \"36 fixture load failures from omitted --experimental-vm-modules; correct existing flag, no test edits\",\n      \"broadInitialDenial\": \"not executed; once retried after exact committed CI command allowlist and side-effect inspection; retry approved\"\n    }\n  },\n  \"masterExplicitWaitCorrection\": {\n    \"date\": \"2026-11-14\",\n    \"predecessor\": \"729bcf9103af3795f12579ffabc0ae3c0765377c\",\n    \"cause\": \"Installed LINES/PROCESS request timer and PROCESS references AbortSignal actively aborted headers/body at 45s\",\n    \"policy\": \"No fixed elapsed-time abort for installed canonical two-page clients; explicit stop/read-only or original-receipt recovery; other scopes unchanged\",\n    \"safety\": [\n      \"original operation/generation/marker retained\",\n      \"CAS and permissions unchanged\",\n      \"404/malformed generation/tampered marker cannot settle\",\n      \"no auto recovery after explicit stop; no replay\",\n      \"late ACK and navigation fenced\",\n      \"stale account projection transfer only with same marker and no other pending work\"\n    ],\n    \"nativeLocal\": \"BLOCKED_SOCKET_EPERM; no flags or retry bypass\",\n    \"nativeCI\": \"pending new head; same PR\",\n    \"activationLimits\": [\n      \"LINES without trusted page-v1 stays approved readonly\",\n      \"legacy linkedProcess case must be withdrawn/returned and independently resubmitted by authorized operator; not done here\"\n    ],\n    \"platformLimits\": \"frontend 45s removed; no measured claim about hosting/browser/network limits; interruptions remain unavailable or UNKNOWN\",\n    \"tests\": \"tests/lines-flow-wait.test.mjs; original shared transport, page lifecycle and native suites retained\",\n    \"timerAudit\": {\n      \"old\": \"67545b2b061244bdbc6ff9706e5f624a141551ead45695f13ba08a2216a7426e\",\n      \"new\": \"338acf2d7f36e8e1481bdc044621f3e229422771a80d8351e1a9b3f00c43266e\",\n      \"scope\": \"one reviewed pure UI callback only; all other timer hashes unchanged; strict deep-equal and original source negatives kept\",\n      \"sourceAndNoBackgroundRetest\": \"248/248 PASS\"\n    }\n"
             }
           ]
         }
@@ -404,8 +420,8 @@
       }
     },
     "docs/specs/current/SHARED_DRAFT.md": {
-      "afterHash": "b7f7e4bd8bda6a00d18c31b2ec515235248d014c15407c54aea011de34730758",
-      "afterLength": 21689,
+      "afterHash": "0452e10ef8c8aa2a3bb6904518c535e44aacd5169ffdf603641dae100b394735",
+      "afterLength": 22268,
       "parents": {
         "lines": {
           "hash": "b7f7e4bd8bda6a00d18c31b2ec515235248d014c15407c54aea011de34730758",
@@ -413,7 +429,13 @@
           "length": 21689,
           "blob": "8bf43e95a45ab0997f6e042ad87d7869190fbde9",
           "crlf": [],
-          "rules": []
+          "rules": [
+            {
+              "offset": 0,
+              "before": "",
+              "after": "\n## 2026-11-14 — 兩頁明確等待及停止\n\n已安裝 LINES／PROCESS 的 canonical 按鈕讀寫與 PROCESS 引用查詢取消前端固定 45 秒 abort；單次進度提示不輪詢。停止等候不取消伺服器工作，已送原 ID／generation／marker 保留，404／晚到／錯誤回執不得當成功或失敗，只查原回執；CAS／授權不變。未採用 page-v1 的 LINES 仍唯讀，舊 linkedProcess 案件須有權人撤回／退回後分別送審，未遷移或操作實站。詳細來源、測試及平台未驗限制見既有 lines-flow 驗收紀錄。\n"
+            }
+          ]
         },
         "main": {
           "hash": "d5967bb3558a490c297e6bfa257b8cbdec580bb14ac07a55b29ddabe7c1ad9d9",
@@ -425,7 +447,7 @@
             {
               "offset": 0,
               "before": "",
-              "after": "## 2026-11-13 — 線別／工段與流程主資料兩頁\n\n本節只針對「線別與工段管理」與「流程資料」兩個主資料管理頁，取代較早借用 AB/C 草稿或線別連動核准 PROCESS 的規則。各頁獨立保存、送審、撤回、發回、核准及權限；同頁類別／線別／工段／篩選保留未存輸入，不另建草稿，跨模組離開直接放棄未存輸入但保留已存及原 UNKNOWN 識別。新增工段不能產生流程資料正式版；PROCESS 必須明確建立、保存及獨立核准。不可套用製程編輯台切工段放棄的特例。\n\n只在存取或送審核對版本；衝突整組選「用我的／用對方的／取消」，保留不衝突修改，選擇後版本再變需重比，取消不寫入；未知只查原回執，不盲重送。歷史僅列已核准來源，在原頁唯讀，不能還原覆蓋目前資料。無固定背景同步、查看最新共享或本機表單恢復。正式引用必須來自對應頁原始已核准版本。page-v1 的程式入口不等於既有資料已採用，不能硬設 marker 或刪舊資料；[本輪入口／資料決策／驗收對照](../../acceptance/lines-flow-integration-20261113/README.md)。保留舊備份，本輪不新增備份或操作正式／既有測試站資料。\n\n"
+              "after": "\n## 2026-11-14 — 兩頁明確等待及停止\n\n已安裝 LINES／PROCESS 的 canonical 按鈕讀寫與 PROCESS 引用查詢取消前端固定 45 秒 abort；單次進度提示不輪詢。停止等候不取消伺服器工作，已送原 ID／generation／marker 保留，404／晚到／錯誤回執不得當成功或失敗，只查原回執；CAS／授權不變。未採用 page-v1 的 LINES 仍唯讀，舊 linkedProcess 案件須有權人撤回／退回後分別送審，未遷移或操作實站。詳細來源、測試及平台未驗限制見既有 lines-flow 驗收紀錄。\n## 2026-11-13 — 線別／工段與流程主資料兩頁\n\n本節只針對「線別與工段管理」與「流程資料」兩個主資料管理頁，取代較早借用 AB/C 草稿或線別連動核准 PROCESS 的規則。各頁獨立保存、送審、撤回、發回、核准及權限；同頁類別／線別／工段／篩選保留未存輸入，不另建草稿，跨模組離開直接放棄未存輸入但保留已存及原 UNKNOWN 識別。新增工段不能產生流程資料正式版；PROCESS 必須明確建立、保存及獨立核准。不可套用製程編輯台切工段放棄的特例。\n\n只在存取或送審核對版本；衝突整組選「用我的／用對方的／取消」，保留不衝突修改，選擇後版本再變需重比，取消不寫入；未知只查原回執，不盲重送。歷史僅列已核准來源，在原頁唯讀，不能還原覆蓋目前資料。無固定背景同步、查看最新共享或本機表單恢復。正式引用必須來自對應頁原始已核准版本。page-v1 的程式入口不等於既有資料已採用，不能硬設 marker 或刪舊資料；[本輪入口／資料決策／驗收對照](../../acceptance/lines-flow-integration-20261113/README.md)。保留舊備份，本輪不新增備份或操作正式／既有測試站資料。\n\n"
             }
           ]
         }
@@ -718,8 +740,8 @@
       }
     },
     "public/process/app.js": {
-      "afterHash": "e102486db28ba0e54ab04b41c5aab182425fe4f063f05f7c76662b4b020d75bd",
-      "afterLength": 221292,
+      "afterHash": "7647f160fad435b589cf6b60476fd7890000b7132fbd0c8a0bda8a42a0836947",
+      "afterLength": 221233,
       "parents": {
         "lines": {
           "hash": "6d2ddf5a8424ae8edc99a284ba2a60d992d0d4c2b68d8735ae08535dd7ad5baa",
@@ -794,7 +816,22 @@
           ],
           "rules": [
             {
-              "offset": 218599,
+              "offset": 141489,
+              "before": "  const owned=()=>actor===window.ProcessSync?.identity&&generation===window.MasterDataWorkflow.shared.flow('PROCESS')?.generation&&!!editableProcessMasterData()&&canDeleteProcessMaster();\n",
+              "after": "  const owned=()=>state.view==='data'&&state.dataTab==='process-master'&&actor===window.ProcessSync?.identity&&generation===window.MasterDataWorkflow.shared.flow('PROCESS')?.generation&&!!editableProcessMasterData()&&canDeleteProcessMaster();\n"
+            },
+            {
+              "offset": 141891,
+              "before": "    const response=await fetch('/api/master/references?scope=PROCESS&kind='+encodeURIComponent(kind)+'&id='+encodeURIComponent(id),{headers:window.ProcessSync?.platformHeaders?.(),signal:AbortSignal.timeout(45000)});\n    if(!response.ok)throw Error(processMasterText('無法確認引用，未刪除；請重試。','Không thể kiểm tra tham chiếu; chưa xóa. Hãy thử lại.'));\n    result=await response.json();\n",
+              "after": "    result=await window.MasterDataWorkflow.shared.client('PROCESS').masterReferences(kind,id,{isCurrent:owned});\n"
+            },
+            {
+              "offset": 194989,
+              "before": "",
+              "after": "    window.mountMasterRequestProgress?.(document.querySelector('#data-content'),window.MasterDataWorkflow.shared.client('PROCESS'),document.documentElement.lang==='vi'?'vi':'zh',{outside:true});\n"
+            },
+            {
+              "offset": 218540,
               "before": "  document.querySelector('#clock').textContent = now.toLocaleString('zh-TW', {\n",
               "after": "  const clock = document.querySelector('#clock');\n  if (clock) clock.textContent = now.toLocaleString('zh-TW', {\n"
             }
@@ -877,17 +914,27 @@
               "after": "    try{await flushProcessMasterNames();const result=await window.MasterDataWorkflow.shared.execute('PROCESS','save');if(!result)return;\n"
             },
             {
-              "offset": 141836,
-              "before": "    const response=await fetch('/api/master/references?scope=PROCESS&kind='+encodeURIComponent(kind)+'&id='+encodeURIComponent(id),{headers:window.ProcessSync?.platformHeaders?.(),signal:AbortSignal.timeout(15000)});\n",
-              "after": "    const response=await fetch('/api/master/references?scope=PROCESS&kind='+encodeURIComponent(kind)+'&id='+encodeURIComponent(id),{headers:window.ProcessSync?.platformHeaders?.(),signal:AbortSignal.timeout(45000)});\n"
+              "offset": 141489,
+              "before": "  const owned=()=>actor===window.ProcessSync?.identity&&generation===window.MasterDataWorkflow.shared.flow('PROCESS')?.generation&&!!editableProcessMasterData()&&canDeleteProcessMaster();\n",
+              "after": "  const owned=()=>state.view==='data'&&state.dataTab==='process-master'&&actor===window.ProcessSync?.identity&&generation===window.MasterDataWorkflow.shared.flow('PROCESS')?.generation&&!!editableProcessMasterData()&&canDeleteProcessMaster();\n"
             },
             {
-              "offset": 145332,
+              "offset": 141891,
+              "before": "    const response=await fetch('/api/master/references?scope=PROCESS&kind='+encodeURIComponent(kind)+'&id='+encodeURIComponent(id),{headers:window.ProcessSync?.platformHeaders?.(),signal:AbortSignal.timeout(15000)});\n    if(!response.ok)throw Error(processMasterText('無法確認引用，未刪除；請重試。','Không thể kiểm tra tham chiếu; chưa xóa. Hãy thử lại.'));\n    result=await response.json();\n",
+              "after": "    result=await window.MasterDataWorkflow.shared.client('PROCESS').masterReferences(kind,id,{isCurrent:owned});\n"
+            },
+            {
+              "offset": 145078,
               "before": "  return `${processMasterVersionBar()}<div class=\"master-toolbar process-photo-master\"><div><p class=\"eyebrow\">OPERATION MASTER</p><h2>製程編輯台可用流程</h2><p>流程核准後可供製程編輯台使用。</p></div><div class=\"process-master-toolbar\"><div class=\"process-master-actions\">${editable && window.hasPermission?.('templates.create') ? '<button class=\"button signal\" type=\"button\" id=\"add-master-template\">＋ 新增流程</button>' : ''}</div></div></div><div class=\"master-template-grid flow-photo-presets\">${templates\n",
               "after": "  return `${processMasterVersionBar()}<div class=\"master-toolbar process-photo-master\"><div><p class=\"eyebrow\">OPERATION MASTER</p><h2>製程編輯台可用流程</h2><p>流程核准後可供製程編輯台使用。</p></div><div class=\"process-master-toolbar\"><div class=\"process-master-actions\"><button class=\"button ghost\" type=\"button\" id=\"process-master-reload\">${processMasterText('重新載入','Tải lại')}</button>${editable && window.hasPermission?.('templates.create') ? '<button class=\"button signal\" type=\"button\" id=\"add-master-template\">＋ 新增流程</button>' : ''}</div></div></div><div class=\"master-template-grid flow-photo-presets\">${templates\n"
             },
             {
-              "offset": 195640,
+              "offset": 194989,
+              "before": "",
+              "after": "    window.mountMasterRequestProgress?.(document.querySelector('#data-content'),window.MasterDataWorkflow.shared.client('PROCESS'),document.documentElement.lang==='vi'?'vi':'zh',{outside:true});\n"
+            },
+            {
+              "offset": 195581,
               "before": "",
               "after": "    const reload=document.querySelector('#process-master-reload');if(reload)reload.onclick=async()=>{\n      const shared=window.MasterDataWorkflow.shared;if(shared.busy()||reload.disabled)return;\n      if((shared.localDirty('PROCESS')||window.ProcessMasterVersioning.departureNames.dirty()||window.ProcessEquipment?.hasUnappliedChanges?.())&&!confirm(processMasterText('放棄本頁未存輸入並重載已保存草稿？','Bỏ đầu vào chưa lưu và tải lại bản nháp đã lưu?')))return;\n      const owner=window.ProcessSync?.identity,delivery=window.ProcessSync?.captureDelivery?.(),root=document.querySelector('#data-content');reload.disabled=true;root.inert=true;\n      try{await window.MasterDataWorkflow.loadScope('PROCESS');if(owner!==window.ProcessSync?.identity||delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===false||state.view!=='data'||state.dataTab!=='process-master'||root!==document.querySelector('#data-content'))return;\n        window.ProcessMasterVersioning.departureNames.discard();shared.discardLocal('PROCESS');window.ProcessEquipment?.abandon?.();repaintProcessMasterPage();\n      }catch(error){toast(window.sharedDraftErrorMessage?.(error)||error.message);}finally{root.inert=false;reload.disabled=false;}\n    };\n    const missingStages=routing.lines.flatMap(line=>line.stages).filter(stage=>!Object.hasOwn(currentProcessMasterData(),stage.code));\n    if(missingStages.length&&editableProcessMasterData()&&window.hasPermission?.('templates.create')){\n      const button=document.createElement('button');button.type='button';button.className='button ghost';button.textContent=processMasterText('建立缺漏工段流程','Tạo mẫu cho công đoạn còn thiếu');\n      button.onclick=async()=>{if(button.disabled)return;button.disabled=true;const before=editableProcessMasterData();if(!before)return;\n        try{const next=JSON.parse(JSON.stringify(before)),source=processMasterCatalogTemplates(before);\n          for(const stage of missingStages){if(Object.hasOwn(next,stage.code))continue;next[stage.code]=mergeRequiredProcessPresets(stage,source,true).map(template=>({...template,id:crypto.randomUUID(),machineIds:[],...('equipment' in template?{equipment:[]}:{})}));}\n          const batches=missingStages.map(stage=>({patches:[{op:'set',path:[stage.code],value:next[stage.code]}],guards:[{path:[],value:before}]}));\n          // One local patch retains absence guards; only explicit Save shares it.\n          const patch={patches:batches.flatMap(batch=>batch.patches),guards:[{path:[],value:before}]};await window.MasterDataWorkflow.shared.patch('PROCESS',patch.patches,patch.guards);repaintProcessMasterPage();\n        }catch(error){toast(window.sharedDraftErrorMessage?.(error)||error.message);}finally{button.disabled=false;}\n      };document.querySelector('.process-master-actions')?.append(button);\n    }\n"
             }
@@ -896,8 +943,8 @@
       }
     },
     "public/process/index.html": {
-      "afterHash": "2718597fdd4e8bc8463a2d44f1e82606342a7bb20e6940fd505f17bde11fa61f",
-      "afterLength": 11533,
+      "afterHash": "a78ac94b6668213cb36eab75a3c56760dc98b99234f7fa16debf7442b98297c1",
+      "afterLength": 11503,
       "parents": {
         "lines": {
           "hash": "a5b90a892b9a73ad6bac6421d6ec075daf183c4ced745d68767824dafc8fcb4f",
@@ -909,30 +956,30 @@
             {
               "offset": 6319,
               "before": "    <script data-process-src=\"app.js?v=20261113-lines-flow4\"></script>\n",
-              "after": "    <script data-process-src=\"app.js?v=20261114-lines-flow-joint1\"></script>\n"
+              "after": "    <script data-process-src=\"app.js?v=20261114-master-wait2\"></script>\n"
             },
             {
-              "offset": 6896,
+              "offset": 6891,
               "before": "    <script data-process-src=\"shared-draft-client.js?v=20261113-lines-flow4\"></script>\n    <script data-process-src=\"master-shared-client.js?v=20261113-lines-flow4\"></script>\n",
-              "after": "    <script data-process-src=\"shared-draft-client.js?v=20261114-lines-flow-joint1\"></script>\n    <script data-process-src=\"master-shared-client.js?v=20261114-lines-flow-joint1\"></script>\n"
+              "after": "    <script data-process-src=\"shared-draft-client.js?v=20261114-master-wait2\"></script>\n    <script data-process-src=\"master-shared-client.js?v=20261114-master-wait2\"></script>\n"
             },
             {
-              "offset": 7449,
+              "offset": 7434,
               "before": "    <script data-process-src=\"page-draft-merge.js?v=20261113-lines-flow4\"></script>\n",
-              "after": "    <script data-process-src=\"page-draft-merge.js?v=20261114-lines-flow-joint1\"></script>\n"
+              "after": "    <script data-process-src=\"page-draft-merge.js?v=20261114-master-wait2\"></script>\n"
             },
             {
-              "offset": 7729,
+              "offset": 7709,
               "before": "    <script data-process-src=\"master-page-editor.js?v=20261113-lines-flow4\"></script>\n    <script data-process-src=\"master-data.js?v=20261113-lines-flow4\"></script>\n",
-              "after": "    <script data-process-src=\"master-page-editor.js?v=20261114-lines-flow-joint1\"></script>\n    <script data-process-src=\"master-data.js?v=20261114-lines-flow-joint1\"></script>\n"
+              "after": "    <script data-process-src=\"master-page-editor.js?v=20261114-master-wait2\"></script>\n    <script data-process-src=\"master-data.js?v=20261114-master-wait2\"></script>\n"
             },
             {
-              "offset": 9989,
+              "offset": 9959,
               "before": "    <script data-process-src=\"ipqc-c.js?v=20261112-c-product4\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261112-ipqc-ab-filters2\"></script>\n",
               "after": "    <script data-process-src=\"ipqc-c.js?v=20261113-ipqc-silent3\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261113-ipqc-silent3\"></script>\n"
             },
             {
-              "offset": 11184,
+              "offset": 11154,
               "before": "    <script data-process-src=\"user-access.js?v=20261112-joint-conflict1\"></script>\n",
               "after": "    <script data-process-src=\"user-access.js?v=20261113-password-outcome1\"></script>\n"
             }
@@ -948,22 +995,22 @@
             {
               "offset": 6319,
               "before": "    <script data-process-src=\"app.js?v=20261114-account-clock1\"></script>\n",
-              "after": "    <script data-process-src=\"app.js?v=20261114-lines-flow-joint1\"></script>\n"
+              "after": "    <script data-process-src=\"app.js?v=20261114-master-wait2\"></script>\n"
             },
             {
-              "offset": 6896,
+              "offset": 6891,
               "before": "    <script data-process-src=\"shared-draft-client.js?v=20261113-ipqc-silent3\"></script>\n    <script data-process-src=\"master-shared-client.js?v=20261112-process-history1\"></script>\n",
-              "after": "    <script data-process-src=\"shared-draft-client.js?v=20261114-lines-flow-joint1\"></script>\n    <script data-process-src=\"master-shared-client.js?v=20261114-lines-flow-joint1\"></script>\n"
+              "after": "    <script data-process-src=\"shared-draft-client.js?v=20261114-master-wait2\"></script>\n    <script data-process-src=\"master-shared-client.js?v=20261114-master-wait2\"></script>\n"
             },
             {
-              "offset": 7449,
+              "offset": 7434,
               "before": "    <script data-process-src=\"page-draft-merge.js?v=20261110-account-pages1\"></script>\n",
-              "after": "    <script data-process-src=\"page-draft-merge.js?v=20261114-lines-flow-joint1\"></script>\n"
+              "after": "    <script data-process-src=\"page-draft-merge.js?v=20261114-master-wait2\"></script>\n"
             },
             {
-              "offset": 7729,
+              "offset": 7709,
               "before": "    <script data-process-src=\"master-page-editor.js?v=20261113-abc-master2\"></script>\n    <script data-process-src=\"master-data.js?v=20261110-account-pages1\"></script>\n",
-              "after": "    <script data-process-src=\"master-page-editor.js?v=20261114-lines-flow-joint1\"></script>\n    <script data-process-src=\"master-data.js?v=20261114-lines-flow-joint1\"></script>\n"
+              "after": "    <script data-process-src=\"master-page-editor.js?v=20261114-master-wait2\"></script>\n    <script data-process-src=\"master-data.js?v=20261114-master-wait2\"></script>\n"
             }
           ]
         }
@@ -1595,8 +1642,8 @@
       }
     },
     "public/process/master-data.js": {
-      "afterHash": "8fc948a49aa62ff8b1bb652a08268840d93b86a89e8bb757e4e0ee00b536482f",
-      "afterLength": 64977,
+      "afterHash": "e9d1cdd5473915e83559ac19061a5d7f2a69752ea595003d38c331cee0f01a87",
+      "afterLength": 65146,
       "parents": {
         "lines": {
           "hash": "309b4fad0dd7f75549616bba1a753a5bd88df926f63a7482efba32e1d747fdac",
@@ -1693,7 +1740,13 @@
               1279
             ]
           ],
-          "rules": []
+          "rules": [
+            {
+              "offset": 20515,
+              "before": "",
+              "after": "      content.dataset.activeTab=tab;window.mountMasterRequestProgress?.(content,shared.client('PROCESS'),document.documentElement.lang==='vi'?'vi':'zh',{outside:true});\n"
+            }
+          ]
         },
         "main": {
           "hash": "6ef5e2502ad4803815c7ca4a926a21ce87d05f3b101bcb583f408964a22d46a8",
@@ -1806,7 +1859,12 @@
               "after": "      // The pre-cutover page cannot borrow either catalog's draft or rights.\n      content.dataset.activeTab=tab;dataError=null;dataReady=Promise.resolve();\n      try{approvedLinesOnly(content);}catch(error){dataError=error;content.innerHTML=`<section class=\"panel\" data-line-permission-notice role=\"alert\"><h3>${document.documentElement.lang==='vi'?'Chuyền và công đoạn':'線別與工段管理'}</h3><p>${document.documentElement.lang==='vi'?'Chưa xác minh được dữ liệu đã duyệt; hãy tải lại để kiểm tra.':'尚無法核對已核准資料；請重新載入確認。'}</p></section>`;}\n      bindTabButtons();return;\n"
             },
             {
-              "offset": 45223,
+              "offset": 20515,
+              "before": "",
+              "after": "      content.dataset.activeTab=tab;window.mountMasterRequestProgress?.(content,shared.client('PROCESS'),document.documentElement.lang==='vi'?'vi':'zh',{outside:true});\n"
+            },
+            {
+              "offset": 45392,
               "before": "    const ab = control.active.AB || fallback('AB'),\n      c = control.active.C || fallback('C'),\n",
               "after": "    // Independent page reads may contain topology or catalog only. Complete\n    // missing fields from the admitted approved runtime, never a draft/seed.\n    const ab = {...fallback('AB'),...control.active.AB},\n      c = {...fallback('C'),...control.active.C},\n"
             }
@@ -1815,8 +1873,8 @@
       }
     },
     "public/process/master-page-editor.js": {
-      "afterHash": "f00db66d431b9aa936b8777052f7675dc23da81fe6788d97992b2bb100730ba0",
-      "afterLength": 33429,
+      "afterHash": "8aa270e82448818be7926c2b45dae704b7d256beff26c18ed3eaac17afd0d203",
+      "afterLength": 33649,
       "parents": {
         "lines": {
           "hash": "f00db66d431b9aa936b8777052f7675dc23da81fe6788d97992b2bb100730ba0",
@@ -1824,7 +1882,18 @@
           "length": 33429,
           "blob": "d8e00557b76b735769c750faf09b9ffb5032ae4f",
           "crlf": [],
-          "rules": []
+          "rules": [
+            {
+              "offset": 30454,
+              "before": "",
+              "after": "   if(page==='LINES')host.mountMasterRequestProgress?.(container,client,document.documentElement.lang==='vi'?'vi':'zh',{outside:true});\n"
+            },
+            {
+              "offset": 32161,
+              "before": "  return {owner,departure,relabel(){if(!busy&&!choiceDialog)render();},busy:()=>busy,deactivate(){viewEpoch++;choiceCancel?.();history?.retire();container=null;control=undefined;base=undefined;mine=undefined;generation=undefined;pendingImportFile=undefined;importApplied=false;},mount(element){container=element;render();if(!control||!dirty()&&!busy)void act(()=>read(true));},dirty,save:()=>act(save),reset(){viewEpoch++;choiceCancel?.();history?.retire();container=null;},inspect:()=>({base:base===undefined?undefined:copy(base),mine:mine===undefined?undefined:copy(mine),generation,pendingImportFile,importApplied,error,permissions})};\n",
+              "after": "  return {owner,departure,relabel(){if(!busy&&!choiceDialog)render();},busy:()=>busy,deactivate(){viewEpoch++;if(page==='LINES')client.stopMasterWait();choiceCancel?.();history?.retire();container=null;control=undefined;base=undefined;mine=undefined;generation=undefined;pendingImportFile=undefined;importApplied=false;},mount(element){container=element;render();if(!control||!dirty()&&!busy)void act(()=>read(true));},dirty,save:()=>act(save),reset(){viewEpoch++;if(page==='LINES')client.stopMasterWait();choiceCancel?.();history?.retire();container=null;},inspect:()=>({base:base===undefined?undefined:copy(base),mine:mine===undefined?undefined:copy(mine),generation,pendingImportFile,importApplied,error,permissions})};\n"
+            }
+          ]
         },
         "main": {
           "hash": "cb14e38b39d11b75ce733619df68fac5463151a7901b406916d2dff39004bded",
@@ -1884,14 +1953,19 @@
               "after": "   button(toolbar,t('送審','Gửi duyệt'),()=>lifecycle('submit'),!busy&&!!flow()?.saved&&!flow().pendingId&&permissions.submit===true&&!dirty()&&!client.hasUnknown()).dataset.pageSubmit='';\n"
             },
             {
-              "offset": 30784,
+              "offset": 30454,
+              "before": "",
+              "after": "   if(page==='LINES')host.mountMasterRequestProgress?.(container,client,document.documentElement.lang==='vi'?'vi':'zh',{outside:true});\n"
+            },
+            {
+              "offset": 30920,
               "before": "   transferToolbar(panel);button(toolbar,t('取消本機修改','Hủy thay đổi cục bộ'),()=>{if(host.confirm(t('放棄本頁尚未存取的修改？','Bỏ thay đổi chưa lưu của trang?'))){discardLocal();pendingImportFile=undefined;importApplied=false;}},canEdit()&&dirty());if(page==='LINES')lines(panel);else catalogs(panel);history?.mount(container);history?.guardDOM(container);\n",
               "after": "   transferToolbar(panel);button(toolbar,t('取消本機修改','Hủy thay đổi cục bộ'),()=>{if(host.confirm(t('放棄本頁尚未存取的修改？','Bỏ thay đổi chưa lưu của trang?'))){discardLocal();pendingImportFile=undefined;importApplied=false;}},canEdit()&&dirty()).dataset.pageDiscard='';if(page==='LINES')lines(panel);else catalogs(panel);history?.mount(container);history?.guardDOM(container);\n"
             },
             {
-              "offset": 32025,
+              "offset": 32161,
               "before": "  return {owner,departure,relabel(){if(!busy&&!choiceDialog)render();},busy:()=>busy,deactivate(){history?.retire();container=null;if(!client.hasUnknown()&&!busy){control=undefined;base=undefined;mine=undefined;generation=undefined;}},mount(element){container=element;render();if(!control||!dirty()&&!busy)void act(()=>read(true));},dirty,save:()=>act(save),reset(){history?.retire();container=null;},inspect:()=>({base:copy(base),mine:copy(mine),generation,pendingImportFile,importApplied,error,permissions})};\n",
-              "after": "  return {owner,departure,relabel(){if(!busy&&!choiceDialog)render();},busy:()=>busy,deactivate(){viewEpoch++;choiceCancel?.();history?.retire();container=null;control=undefined;base=undefined;mine=undefined;generation=undefined;pendingImportFile=undefined;importApplied=false;},mount(element){container=element;render();if(!control||!dirty()&&!busy)void act(()=>read(true));},dirty,save:()=>act(save),reset(){viewEpoch++;choiceCancel?.();history?.retire();container=null;},inspect:()=>({base:base===undefined?undefined:copy(base),mine:mine===undefined?undefined:copy(mine),generation,pendingImportFile,importApplied,error,permissions})};\n"
+              "after": "  return {owner,departure,relabel(){if(!busy&&!choiceDialog)render();},busy:()=>busy,deactivate(){viewEpoch++;if(page==='LINES')client.stopMasterWait();choiceCancel?.();history?.retire();container=null;control=undefined;base=undefined;mine=undefined;generation=undefined;pendingImportFile=undefined;importApplied=false;},mount(element){container=element;render();if(!control||!dirty()&&!busy)void act(()=>read(true));},dirty,save:()=>act(save),reset(){viewEpoch++;if(page==='LINES')client.stopMasterWait();choiceCancel?.();history?.retire();container=null;},inspect:()=>({base:base===undefined?undefined:copy(base),mine:mine===undefined?undefined:copy(mine),generation,pendingImportFile,importApplied,error,permissions})};\n"
             }
           ]
         }
@@ -1979,8 +2053,8 @@
       }
     },
     "public/process/shared-draft-client.js": {
-      "afterHash": "3d3ab2d83796dc147c52250bb1f6833764689965e49f3f0738ba6aca9a060c8e",
-      "afterLength": 202380,
+      "afterHash": "5ce7882a452ece2a35bdb3e20353303173d264433f8fdda54d671a3b74afab83",
+      "afterLength": 207730,
       "parents": {
         "lines": {
           "hash": "288985b7693a48acf2771aa91f36b2f4a1423b2a6128901a605b32c34df7dd24",
@@ -1990,39 +2064,99 @@
           "crlf": [],
           "rules": [
             {
-              "offset": 32448,
+              "offset": 2693,
               "before": "",
-              "after": "  const progressMounts=new WeakMap();\n  window.mountSharedDraftRequestProgress=(root,clients,language)=>{\n    if(!root?.isConnected)return;\n    progressMounts.get(root)?.();\n    root.querySelector('[data-ipqc-request-progress]')?.remove();\n    const node=document.createElement('p');node.dataset.ipqcRequestProgress='true';node.setAttribute('role','status');node.setAttribute('aria-live','polite');node.hidden=true;root.prepend(node);\n    const targets=[...new Set(clients.filter(Boolean))],paint=()=>{\n      if(!node.isConnected)return;\n      const pending=targets.flatMap(client=>client.requestProgress?.()||[]),seconds=Math.floor(Math.max(0,...pending.map(value=>value.elapsedMs))/1000);\n      node.hidden=!pending.length;\n      node.textContent=!pending.length?'':language==='vi'\n        ?`Đang chờ máy chủ (ít nhất ${seconds}s). Chưa xác nhận lưu. Không bấm lưu lại; tối đa 3 phút cho mỗi yêu cầu. Nếu mất phản hồi, chỉ kiểm tra biên nhận gốc.`\n        :`正在等候伺服器（至少 ${seconds} 秒），尚未確認儲存。請勿再次存取；每個請求最多等候 3 分鐘。若回應中斷，只查證原操作回執。`;\n    };\n    const stops=targets.map(client=>client.watchRequestProgress?.(paint)).filter(Boolean);progressMounts.set(root,()=>stops.forEach(stop=>stop()));paint();\n  };\n"
+              "after": "      MASTER_READ_WAIT_STOPPED:['已停止等候讀取，可重新載入。','Đã dừng chờ đọc; có thể tải lại.'],\n      MASTER_WRITE_WAIT_STOPPED_UNKNOWN:['已停止等候，操作結果仍未知；只查原操作回執，勿重新存取。','Đã dừng chờ; kết quả chưa rõ. Chỉ kiểm tra biên nhận gốc, không lưu lại.'],\n"
             },
             {
-              "offset": 39501,
+              "offset": 18852,
+              "before": "  const clients=new Set(),clientAccounts=new WeakMap(),transports=new Map(),boundedRetirements=new WeakMap(),rejectionCapabilities=new WeakMap(),rejectionFlights=new WeakMap();\n",
+              "after": "  const clients=new Set(),clientAccounts=new WeakMap(),transports=new Map(),boundedRetirements=new WeakMap(),masterProjectionRetirements=new WeakMap(),rejectionCapabilities=new WeakMap(),rejectionFlights=new WeakMap();\n"
+            },
+            {
+              "offset": 32850,
+              "before": "",
+              "after": "  const progressMounts=new WeakMap();\n  window.mountSharedDraftRequestProgress=(root,clients,language)=>{\n    if(!root?.isConnected)return;\n    progressMounts.get(root)?.();\n    root.querySelector('[data-ipqc-request-progress]')?.remove();\n    const node=document.createElement('p');node.dataset.ipqcRequestProgress='true';node.setAttribute('role','status');node.setAttribute('aria-live','polite');node.hidden=true;root.prepend(node);\n    const targets=[...new Set(clients.filter(Boolean))],paint=()=>{\n      if(!node.isConnected)return;\n      const pending=targets.flatMap(client=>client.requestProgress?.()||[]),seconds=Math.floor(Math.max(0,...pending.map(value=>value.elapsedMs))/1000);\n      node.hidden=!pending.length;\n      node.textContent=!pending.length?'':language==='vi'\n        ?`Đang chờ máy chủ (ít nhất ${seconds}s). Chưa xác nhận lưu. Không bấm lưu lại; tối đa 3 phút cho mỗi yêu cầu. Nếu mất phản hồi, chỉ kiểm tra biên nhận gốc.`\n        :`正在等候伺服器（至少 ${seconds} 秒），尚未確認儲存。請勿再次存取；每個請求最多等候 3 分鐘。若回應中斷，只查證原操作回執。`;\n    };\n    const stops=targets.map(client=>client.watchRequestProgress?.(paint)).filter(Boolean);progressMounts.set(root,()=>stops.forEach(stop=>stop()));paint();\n  };\n  const masterProgressMounts=new WeakMap();\n  window.mountMasterRequestProgress=(root,client,language,{outside=false}={})=>{\n    if(!root?.isConnected||!client?.watchRequestProgress)return;\n    masterProgressMounts.get(root)?.();\n    const box=document.createElement('div');box.dataset.masterRequestWait='true';const status=document.createElement('p'),stop=document.createElement('button');status.setAttribute('role','status');status.setAttribute('aria-live','polite');stop.type='button';stop.className='button ghost';\n    stop.textContent=language==='vi'?'Dừng chờ':'停止等候';stop.onclick=()=>client.stopMasterWait();box.append(status,stop);if(outside)root.before(box);else root.prepend(box);\n    let unwatch=()=>{};\n    const cleanup=()=>{unwatch();box.remove();window.removeEventListener?.('process-delivery-invalidated',retire);window.removeEventListener?.('pagehide',retire);};\n    const retire=()=>{client.stopMasterWait();cleanup();};\n    const paint=()=>{if(!box.isConnected){cleanup();return;}const pending=client.requestProgress().filter(value=>value.noFixedDeadline),seconds=Math.floor(Math.max(0,...pending.map(value=>value.elapsedMs))/1000);box.hidden=!pending.length;stop.disabled=!pending.length;status.textContent=!pending.length?'':language==='vi'?`Đang xử lý (ít nhất ${seconds}s), chưa xác nhận kết quả. Dừng chờ không hủy thao tác trên máy chủ; chỉ kiểm tra biên nhận gốc.`:`處理中（至少 ${seconds} 秒），結果尚未確認。停止等候不會撤銷伺服器操作；已送操作只查原回執，勿重複存取。`;};\n    unwatch=client.watchRequestProgress(paint);window.addEventListener?.('process-delivery-invalidated',retire);window.addEventListener?.('pagehide',retire);masterProgressMounts.set(root,cleanup);paint();\n  };\n"
+            },
+            {
+              "offset": 41145,
+              "before": "",
+              "after": "    // Installed LINES/PROCESS use explicit waiting, never an elapsed-time abort.\n    // Catalog policy and all other transport scopes keep their existing rules.\n    const masterExplicitIO=pageLocalBegin&&beginParams.get('scope')==='LINES'||masterLocalBegin&&processLocalSave;\n    const masterWaits=new Set(),masterStopped=new WeakSet();\n"
+            },
+            {
+              "offset": 42046,
               "before": "",
               "after": "    // Only the installed durable IPQC transports get the slow immutable-I/O budget.\n    // Similar URLs and old group clients retain their existing contracts.\n    const ipqcSlowIO=durableBegin&&(boundedScope==='ipqc-ab:module'&&endpoint==='/api/ipqc-ab/workflow?module=1&caseMetadata=1'||boundedScope==='ipqc-c'&&endpoint==='/api/ipqc-c/workflow?caseMetadata=1');\n    const requestProgressListeners=new Set(),requestProgress=new Map();\n    const publishRequestProgress=()=>{for(const listener of requestProgressListeners)try{listener();}catch{/* Status must never alter operation settlement. */}};\n"
             },
             {
-              "offset": 59623,
-              "before": "    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||catalogPageBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);\n",
-              "after": "    // Installed IPQC navigation never settles a write: retain markers, account UNKNOWN and mutation admission.\n    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&(boundedScope==='ipqc-c'||ipqcSlowIO&&boundedScope==='ipqc-ab:module'),queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||catalogPageBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);\n"
+              "offset": 45025,
+              "before": "    let boundedProjectionRetired=false,equipmentProjectionRetired=false;\n",
+              "after": "    const masterPredecessor=masterExplicitIO&&!externalBounded?transports.get(transportKey):null;\n    let masterProjectionRetired=false,boundedProjectionRetired=false,equipmentProjectionRetired=false;\n"
             },
             {
-              "offset": 119749,
+              "offset": 62296,
+              "before": "    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||catalogPageBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);\n",
+              "after": "    // Installed IPQC navigation never settles a write: retain markers, account UNKNOWN and mutation admission.\n    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&(boundedScope==='ipqc-c'||ipqcSlowIO&&boundedScope==='ipqc-ab:module'),queued:()=>queued,unknown:()=>!masterProjectionRetired&&!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!masterProjectionRetired&&!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||catalogPageBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);\n"
+            },
+            {
+              "offset": 122474,
               "before": "      const requestDeadline=['begin','begin-v1'].includes(body?.action)||cCreate?45000:body?mutationDeadline:45000;\n",
               "after": "      const requestDeadline=ipqcSlowIO?180000:['begin','begin-v1'].includes(body?.action)||cCreate?45000:body?mutationDeadline:45000;\n"
             },
             {
-              "offset": 120082,
-              "before": "",
-              "after": "      // One-shot UI notices only: no polling, read or resend. The finite deadline\n      // retains UNKNOWN and the original identity if no qualified ACK arrives.\n      const progressToken={},progressTimers=ipqcSlowIO?[10000,45000,120000].map(elapsedMs=>setTimeout(()=>{requestProgress.set(progressToken,{kind:body?'write':kind,phase,elapsedMs});publishRequestProgress();},elapsedMs)):[];\n"
+              "offset": 122657,
+              "before": "      const controller=new AbortController(),timer=catalogExplicitIO?null:setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);\n",
+              "after": "      const controller=new AbortController(),timer=catalogExplicitIO||masterExplicitIO?null:setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);\n      // One-shot UI notices only: no polling, read or resend. The finite deadline\n      // retains UNKNOWN and the original identity if no qualified ACK arrives.\n      const progressToken={},progressValue=elapsedMs=>({kind:body?'write':kind,phase,elapsedMs,...(masterExplicitIO?{noFixedDeadline:true}:{})});\n      let stopWait;const stopped=masterExplicitIO?new Promise((_,reject)=>{stopWait=reject;}):null;\n      const wait=masterExplicitIO?{stop(){const error=Object.assign(Error(body?'MASTER_WRITE_WAIT_STOPPED_UNKNOWN':'MASTER_READ_WAIT_STOPPED'),{code:body?'MASTER_WRITE_WAIT_STOPPED_UNKNOWN':'MASTER_READ_WAIT_STOPPED',outcome:body?'unknown':'unavailable'});masterStopped.add(error);stopWait(error);controller.abort(error);}}:null;\n      const settled=promise=>stopped?Promise.race([promise,stopped]):promise;\n      if(wait){masterWaits.add(wait);requestProgress.set(progressToken,progressValue(0));publishRequestProgress();}\n      const progressTimers=ipqcSlowIO||masterExplicitIO?[10000,45000,120000].map(elapsedMs=>setTimeout(()=>{requestProgress.set(progressToken,progressValue(elapsedMs));publishRequestProgress();},elapsedMs)):[];\n"
             },
             {
-              "offset": 129985,
+              "offset": 126284,
+              "before": "        let response;try{response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(fqcMutation&&body?.command?.action==='apply'?'&projection=fqc-apply-ack-v1':responseProjection==='iqc-edit-v1'&&!new URLSearchParams(url.split('?')[1]||'').has('approvedOnly')?'&projection=iqc-edit-v1':''),requestOptions);}\n",
+              "after": "        let response;try{response=await settled(fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(fqcMutation&&body?.command?.action==='apply'?'&projection=fqc-apply-ack-v1':responseProjection==='iqc-edit-v1'&&!new URLSearchParams(url.split('?')[1]||'').has('approvedOnly')?'&projection=iqc-edit-v1':''),requestOptions));}\n"
+            },
+            {
+              "offset": 126949,
+              "before": "        phase='body';let result;try{result=await response.json();}catch(error){let currentRead=true;try{assertReadCurrent(response.status);}catch{currentRead=false;}if(currentRead&&!body&&[401,403].includes(response.status))projectAccess({},response.status,false,accessOwner);if(currentRead&&!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));if(!body&&readOptions?.requireAcceptedAccess===true&&[401,403].includes(response.status)){throw Object.assign(Error(`HTTP ${response.status}`),{status:response.status,cause:error});}throw error;}\n",
+              "after": "        phase='body';let result;try{result=await settled(response.json());}catch(error){let currentRead=true;try{assertReadCurrent(response.status);}catch{currentRead=false;}if(currentRead&&!body&&[401,403].includes(response.status))projectAccess({},response.status,false,accessOwner);if(currentRead&&!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));if(!body&&readOptions?.requireAcceptedAccess===true&&[401,403].includes(response.status)){throw Object.assign(Error(`HTTP ${response.status}`),{status:response.status,cause:error});}throw error;}\n"
+            },
+            {
+              "offset": 133501,
               "before": "      } finally {clearTimeout(timer);if(canvasObserving){canvasRequests--;if(body?.command)canvasArms.delete(body.command.operationId);}}\n",
-              "after": "      } finally {clearTimeout(timer);for(const timer of progressTimers)clearTimeout(timer);if(requestProgress.delete(progressToken))publishRequestProgress();if(canvasObserving){canvasRequests--;if(body?.command)canvasArms.delete(body.command.operationId);}}\n"
+              "after": "      } finally {if(wait)masterWaits.delete(wait);clearTimeout(timer);for(const timer of progressTimers)clearTimeout(timer);if(requestProgress.delete(progressToken))publishRequestProgress();if(canvasObserving){canvasRequests--;if(body?.command)canvasArms.delete(body.command.operationId);}}\n"
             },
             {
-              "offset": 145896,
+              "offset": 139475,
               "before": "",
-              "after": "      requestProgress:()=>[...requestProgress.values()].map(value=>({...value})),\n      watchRequestProgress(listener){if(typeof listener!=='function')throw Error('PROGRESS_LISTENER_REQUIRED');requestProgressListeners.add(listener);return()=>requestProgressListeners.delete(listener);},\n"
+              "after": "    function transferMasterProjection(){\n      // Transfer accounting only after the successor has the identical original\n      // marker. No operation, marker or old evidence is cleared by this step.\n      if(!masterExplicitIO||externalBounded||!beginRuntimeCurrent()||recoveryInvalid||!unknown)return;\n      const raw=JSON.stringify(packCommand(unknown));if(sessionStorage.getItem(key)!==raw)return;\n      masterProjectionRetirements.get(masterPredecessor)?.(raw);\n    }\n"
+            },
+            {
+              "offset": 140068,
+              "before": "      const command=unknown,owner=unknownOwner,original=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(command.operationId)}`)),command.operationId,command.action==='apply'?command.generation:undefined,command.action),result=await masterSaveReadback(equipmentLocalSave?await equipmentTerminal(original,command):original,command);\n",
+              "after": "      const command=unknown,owner=unknownOwner,original=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(command.operationId)}`)),command.operationId,command.action==='apply'||masterExplicitIO&&!externalBounded&&command.action==='save'?command.generation:undefined,command.action),result=await masterSaveReadback(equipmentLocalSave?await equipmentTerminal(original,command):original,command);\n"
+            },
+            {
+              "offset": 140861,
+              "before": "      syncFailures.delete(command.operationId);if(unknown?.operationId===command.operationId)retain(null);return result;\n",
+              "after": "      if(masterExplicitIO&&!externalBounded&&sessionStorage.getItem(key)!==JSON.stringify(packCommand(command)))throw Error('RECOVERY_RECORD_CHANGED');\n      transferMasterProjection();syncFailures.delete(command.operationId);if(unknown?.operationId===command.operationId)retain(null);return result;\n"
+            },
+            {
+              "offset": 142374,
+              "before": "      try {const original=confirmedReceipt(await request(endpoint,{command}),command.operationId,command.action==='apply'?command.generation:undefined,command.action),result=await masterSaveReadback(equipmentLocalSave?await equipmentTerminal(original,command,true):original,command);const abEntry=abSelected.get(command.operationId);if(abEntry)abClear(abEntry,command);if(externalBounded)return await boundedTerminal(result,boundedRecord,true);window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(!abEntry)retain(null);if(command.action!=='apply')validation=null;return result;}\n",
+              "after": "      try {const original=confirmedReceipt(await request(endpoint,{command}),command.operationId,command.action==='apply'||masterExplicitIO&&!externalBounded&&command.action==='save'?command.generation:undefined,command.action),result=await masterSaveReadback(equipmentLocalSave?await equipmentTerminal(original,command,true):original,command);const abEntry=abSelected.get(command.operationId);if(abEntry)abClear(abEntry,command);if(externalBounded)return await boundedTerminal(result,boundedRecord,true);window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(!abEntry)retain(null);if(command.action!=='apply')validation=null;return result;}\n"
+            },
+            {
+              "offset": 143518,
+              "before": "",
+              "after": "        if(masterStopped.has(error))throw Object.assign(error,{operationId:command.operationId});\n"
+            },
+            {
+              "offset": 150317,
+              "before": "",
+              "after": "      requestProgress:()=>[...requestProgress.values()].map(value=>({...value})),\n      stopMasterWait(){if(!masterExplicitIO)return false;const waits=[...masterWaits];for(const wait of waits)wait.stop();return waits.length>0;},\n      masterReferences(kind,id,options){if(!masterExplicitIO||!processLocalSave)throw Error('PROCESS_REFERENCE_SCOPE_REQUIRED');return request('/api/master/references?scope=PROCESS&kind='+encodeURIComponent(kind)+'&id='+encodeURIComponent(id),undefined,options);},\n      watchRequestProgress(listener){if(typeof listener!=='function')throw Error('PROGRESS_LISTENER_REQUIRED');requestProgressListeners.add(listener);return()=>requestProgressListeners.delete(listener);},\n"
+            },
+            {
+              "offset": 174831,
+              "before": "",
+              "after": "    if(masterExplicitIO&&!externalBounded){\n      masterProjectionRetirements.set(client,raw=>{\n        if(beginRuntimeCurrent()||queued||beginPending||retryPending||recoveryInvalid||beginOutstanding()||!unknown||raw!==JSON.stringify(packCommand(unknown))||sessionStorage.getItem(key)!==raw||[...syncFailures.keys()].some(id=>id!==unknown.operationId))return false;\n        masterProjectionRetired=true;masterProjectionRetirements.get(masterPredecessor)?.(raw);return true;\n      });transferMasterProjection();\n    }\n"
             }
           ]
         },
@@ -2036,12 +2170,97 @@
             {
               "offset": 2693,
               "before": "",
-              "after": "      MASTER_LEGACY_LINK_REQUIRES_WITHDRAWAL:['此舊案件包含跨頁流程連動，請先撤回或退回，再分別送審兩頁。既有內容保留。','Hồ sơ cũ liên kết hai trang; hãy rút hoặc trả lại rồi gửi duyệt từng trang. Giữ nội dung cũ.'],\n      APPROVED_HISTORY_USE_PAGE_SELECTOR:['請使用本頁已核准版本選單查看唯讀歷史。','Dùng danh sách phiên bản đã duyệt trên trang để xem lịch sử chỉ đọc.'],\n      APPROVED_HISTORY_READ_ONLY:['已核准歷史僅供查看，不能還原覆蓋目前資料。','Lịch sử đã duyệt chỉ để xem; không khôi phục đè dữ liệu hiện tại.'],\n"
+              "after": "      MASTER_READ_WAIT_STOPPED:['已停止等候讀取，可重新載入。','Đã dừng chờ đọc; có thể tải lại.'],\n      MASTER_WRITE_WAIT_STOPPED_UNKNOWN:['已停止等候，操作結果仍未知；只查原操作回執，勿重新存取。','Đã dừng chờ; kết quả chưa rõ. Chỉ kiểm tra biên nhận gốc, không lưu lại.'],\n      MASTER_LEGACY_LINK_REQUIRES_WITHDRAWAL:['此舊案件包含跨頁流程連動，請先撤回或退回，再分別送審兩頁。既有內容保留。','Hồ sơ cũ liên kết hai trang; hãy rút hoặc trả lại rồi gửi duyệt từng trang. Giữ nội dung cũ.'],\n      APPROVED_HISTORY_USE_PAGE_SELECTOR:['請使用本頁已核准版本選單查看唯讀歷史。','Dùng danh sách phiên bản đã duyệt trên trang để xem lịch sử chỉ đọc.'],\n      APPROVED_HISTORY_READ_ONLY:['已核准歷史僅供查看，不能還原覆蓋目前資料。','Lịch sử đã duyệt chỉ để xem; không khôi phục đè dữ liệu hiện tại.'],\n"
             },
             {
-              "offset": 34638,
+              "offset": 18852,
+              "before": "  const clients=new Set(),clientAccounts=new WeakMap(),transports=new Map(),boundedRetirements=new WeakMap(),rejectionCapabilities=new WeakMap(),rejectionFlights=new WeakMap();\n",
+              "after": "  const clients=new Set(),clientAccounts=new WeakMap(),transports=new Map(),boundedRetirements=new WeakMap(),masterProjectionRetirements=new WeakMap(),rejectionCapabilities=new WeakMap(),rejectionFlights=new WeakMap();\n"
+            },
+            {
+              "offset": 34201,
+              "before": "",
+              "after": "  const masterProgressMounts=new WeakMap();\n  window.mountMasterRequestProgress=(root,client,language,{outside=false}={})=>{\n    if(!root?.isConnected||!client?.watchRequestProgress)return;\n    masterProgressMounts.get(root)?.();\n    const box=document.createElement('div');box.dataset.masterRequestWait='true';const status=document.createElement('p'),stop=document.createElement('button');status.setAttribute('role','status');status.setAttribute('aria-live','polite');stop.type='button';stop.className='button ghost';\n    stop.textContent=language==='vi'?'Dừng chờ':'停止等候';stop.onclick=()=>client.stopMasterWait();box.append(status,stop);if(outside)root.before(box);else root.prepend(box);\n    let unwatch=()=>{};\n    const cleanup=()=>{unwatch();box.remove();window.removeEventListener?.('process-delivery-invalidated',retire);window.removeEventListener?.('pagehide',retire);};\n    const retire=()=>{client.stopMasterWait();cleanup();};\n    const paint=()=>{if(!box.isConnected){cleanup();return;}const pending=client.requestProgress().filter(value=>value.noFixedDeadline),seconds=Math.floor(Math.max(0,...pending.map(value=>value.elapsedMs))/1000);box.hidden=!pending.length;stop.disabled=!pending.length;status.textContent=!pending.length?'':language==='vi'?`Đang xử lý (ít nhất ${seconds}s), chưa xác nhận kết quả. Dừng chờ không hủy thao tác trên máy chủ; chỉ kiểm tra biên nhận gốc.`:`處理中（至少 ${seconds} 秒），結果尚未確認。停止等候不會撤銷伺服器操作；已送操作只查原回執，勿重複存取。`;};\n    unwatch=client.watchRequestProgress(paint);window.addEventListener?.('process-delivery-invalidated',retire);window.addEventListener?.('pagehide',retire);masterProgressMounts.set(root,cleanup);paint();\n  };\n"
+            },
+            {
+              "offset": 36845,
               "before": "    const mutationDeadline=fqcMutation||iqcMutation||/^\\/api\\/process-authoring\\/workflow(?:\\?|$)/.test(endpoint)?45000:15000;\n",
               "after": "    const mutationDeadline=fqcMutation||iqcMutation||/^\\/api\\/(?:process-authoring\\/workflow|master\\/(?:workflow|pages))(?:\\?|$)/.test(endpoint)?45000:15000;\n"
+            },
+            {
+              "offset": 41145,
+              "before": "",
+              "after": "    // Installed LINES/PROCESS use explicit waiting, never an elapsed-time abort.\n    // Catalog policy and all other transport scopes keep their existing rules.\n    const masterExplicitIO=pageLocalBegin&&beginParams.get('scope')==='LINES'||masterLocalBegin&&processLocalSave;\n    const masterWaits=new Set(),masterStopped=new WeakSet();\n"
+            },
+            {
+              "offset": 45025,
+              "before": "    let boundedProjectionRetired=false,equipmentProjectionRetired=false;\n",
+              "after": "    const masterPredecessor=masterExplicitIO&&!externalBounded?transports.get(transportKey):null;\n    let masterProjectionRetired=false,boundedProjectionRetired=false,equipmentProjectionRetired=false;\n"
+            },
+            {
+              "offset": 62408,
+              "before": "    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&(boundedScope==='ipqc-c'||ipqcSlowIO&&boundedScope==='ipqc-ab:module'),queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||catalogPageBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);\n",
+              "after": "    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&(boundedScope==='ipqc-c'||ipqcSlowIO&&boundedScope==='ipqc-ab:module'),queued:()=>queued,unknown:()=>!masterProjectionRetired&&!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!masterProjectionRetired&&!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||catalogPageBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);\n"
+            },
+            {
+              "offset": 122657,
+              "before": "      const controller=new AbortController(),timer=catalogExplicitIO?null:setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);\n",
+              "after": "      const controller=new AbortController(),timer=catalogExplicitIO||masterExplicitIO?null:setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);\n"
+            },
+            {
+              "offset": 122988,
+              "before": "      const progressToken={},progressTimers=ipqcSlowIO?[10000,45000,120000].map(elapsedMs=>setTimeout(()=>{requestProgress.set(progressToken,{kind:body?'write':kind,phase,elapsedMs});publishRequestProgress();},elapsedMs)):[];\n",
+              "after": "      const progressToken={},progressValue=elapsedMs=>({kind:body?'write':kind,phase,elapsedMs,...(masterExplicitIO?{noFixedDeadline:true}:{})});\n      let stopWait;const stopped=masterExplicitIO?new Promise((_,reject)=>{stopWait=reject;}):null;\n      const wait=masterExplicitIO?{stop(){const error=Object.assign(Error(body?'MASTER_WRITE_WAIT_STOPPED_UNKNOWN':'MASTER_READ_WAIT_STOPPED'),{code:body?'MASTER_WRITE_WAIT_STOPPED_UNKNOWN':'MASTER_READ_WAIT_STOPPED',outcome:body?'unknown':'unavailable'});masterStopped.add(error);stopWait(error);controller.abort(error);}}:null;\n      const settled=promise=>stopped?Promise.race([promise,stopped]):promise;\n      if(wait){masterWaits.add(wait);requestProgress.set(progressToken,progressValue(0));publishRequestProgress();}\n      const progressTimers=ipqcSlowIO||masterExplicitIO?[10000,45000,120000].map(elapsedMs=>setTimeout(()=>{requestProgress.set(progressToken,progressValue(elapsedMs));publishRequestProgress();},elapsedMs)):[];\n"
+            },
+            {
+              "offset": 126284,
+              "before": "        let response;try{response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(fqcMutation&&body?.command?.action==='apply'?'&projection=fqc-apply-ack-v1':responseProjection==='iqc-edit-v1'&&!new URLSearchParams(url.split('?')[1]||'').has('approvedOnly')?'&projection=iqc-edit-v1':''),requestOptions);}\n",
+              "after": "        let response;try{response=await settled(fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(fqcMutation&&body?.command?.action==='apply'?'&projection=fqc-apply-ack-v1':responseProjection==='iqc-edit-v1'&&!new URLSearchParams(url.split('?')[1]||'').has('approvedOnly')?'&projection=iqc-edit-v1':''),requestOptions));}\n"
+            },
+            {
+              "offset": 126949,
+              "before": "        phase='body';let result;try{result=await response.json();}catch(error){let currentRead=true;try{assertReadCurrent(response.status);}catch{currentRead=false;}if(currentRead&&!body&&[401,403].includes(response.status))projectAccess({},response.status,false,accessOwner);if(currentRead&&!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));if(!body&&readOptions?.requireAcceptedAccess===true&&[401,403].includes(response.status)){throw Object.assign(Error(`HTTP ${response.status}`),{status:response.status,cause:error});}throw error;}\n",
+              "after": "        phase='body';let result;try{result=await settled(response.json());}catch(error){let currentRead=true;try{assertReadCurrent(response.status);}catch{currentRead=false;}if(currentRead&&!body&&[401,403].includes(response.status))projectAccess({},response.status,false,accessOwner);if(currentRead&&!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));if(!body&&readOptions?.requireAcceptedAccess===true&&[401,403].includes(response.status)){throw Object.assign(Error(`HTTP ${response.status}`),{status:response.status,cause:error});}throw error;}\n"
+            },
+            {
+              "offset": 133501,
+              "before": "      } finally {clearTimeout(timer);for(const timer of progressTimers)clearTimeout(timer);if(requestProgress.delete(progressToken))publishRequestProgress();if(canvasObserving){canvasRequests--;if(body?.command)canvasArms.delete(body.command.operationId);}}\n",
+              "after": "      } finally {if(wait)masterWaits.delete(wait);clearTimeout(timer);for(const timer of progressTimers)clearTimeout(timer);if(requestProgress.delete(progressToken))publishRequestProgress();if(canvasObserving){canvasRequests--;if(body?.command)canvasArms.delete(body.command.operationId);}}\n"
+            },
+            {
+              "offset": 139475,
+              "before": "",
+              "after": "    function transferMasterProjection(){\n      // Transfer accounting only after the successor has the identical original\n      // marker. No operation, marker or old evidence is cleared by this step.\n      if(!masterExplicitIO||externalBounded||!beginRuntimeCurrent()||recoveryInvalid||!unknown)return;\n      const raw=JSON.stringify(packCommand(unknown));if(sessionStorage.getItem(key)!==raw)return;\n      masterProjectionRetirements.get(masterPredecessor)?.(raw);\n    }\n"
+            },
+            {
+              "offset": 140068,
+              "before": "      const command=unknown,owner=unknownOwner,original=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(command.operationId)}`)),command.operationId,command.action==='apply'?command.generation:undefined,command.action),result=await masterSaveReadback(equipmentLocalSave?await equipmentTerminal(original,command):original,command);\n",
+              "after": "      const command=unknown,owner=unknownOwner,original=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(command.operationId)}`)),command.operationId,command.action==='apply'||masterExplicitIO&&!externalBounded&&command.action==='save'?command.generation:undefined,command.action),result=await masterSaveReadback(equipmentLocalSave?await equipmentTerminal(original,command):original,command);\n"
+            },
+            {
+              "offset": 140861,
+              "before": "      syncFailures.delete(command.operationId);if(unknown?.operationId===command.operationId)retain(null);return result;\n",
+              "after": "      if(masterExplicitIO&&!externalBounded&&sessionStorage.getItem(key)!==JSON.stringify(packCommand(command)))throw Error('RECOVERY_RECORD_CHANGED');\n      transferMasterProjection();syncFailures.delete(command.operationId);if(unknown?.operationId===command.operationId)retain(null);return result;\n"
+            },
+            {
+              "offset": 142374,
+              "before": "      try {const original=confirmedReceipt(await request(endpoint,{command}),command.operationId,command.action==='apply'?command.generation:undefined,command.action),result=await masterSaveReadback(equipmentLocalSave?await equipmentTerminal(original,command,true):original,command);const abEntry=abSelected.get(command.operationId);if(abEntry)abClear(abEntry,command);if(externalBounded)return await boundedTerminal(result,boundedRecord,true);window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(!abEntry)retain(null);if(command.action!=='apply')validation=null;return result;}\n",
+              "after": "      try {const original=confirmedReceipt(await request(endpoint,{command}),command.operationId,command.action==='apply'||masterExplicitIO&&!externalBounded&&command.action==='save'?command.generation:undefined,command.action),result=await masterSaveReadback(equipmentLocalSave?await equipmentTerminal(original,command,true):original,command);const abEntry=abSelected.get(command.operationId);if(abEntry)abClear(abEntry,command);if(externalBounded)return await boundedTerminal(result,boundedRecord,true);window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(!abEntry)retain(null);if(command.action!=='apply')validation=null;return result;}\n"
+            },
+            {
+              "offset": 143518,
+              "before": "",
+              "after": "        if(masterStopped.has(error))throw Object.assign(error,{operationId:command.operationId});\n"
+            },
+            {
+              "offset": 150399,
+              "before": "",
+              "after": "      stopMasterWait(){if(!masterExplicitIO)return false;const waits=[...masterWaits];for(const wait of waits)wait.stop();return waits.length>0;},\n      masterReferences(kind,id,options){if(!masterExplicitIO||!processLocalSave)throw Error('PROCESS_REFERENCE_SCOPE_REQUIRED');return request('/api/master/references?scope=PROCESS&kind='+encodeURIComponent(kind)+'&id='+encodeURIComponent(id),undefined,options);},\n"
+            },
+            {
+              "offset": 174831,
+              "before": "",
+              "after": "    if(masterExplicitIO&&!externalBounded){\n      masterProjectionRetirements.set(client,raw=>{\n        if(beginRuntimeCurrent()||queued||beginPending||retryPending||recoveryInvalid||beginOutstanding()||!unknown||raw!==JSON.stringify(packCommand(unknown))||sessionStorage.getItem(key)!==raw||[...syncFailures.keys()].some(id=>id!==unknown.operationId))return false;\n        masterProjectionRetired=true;masterProjectionRetirements.get(masterPredecessor)?.(raw);return true;\n      });transferMasterProjection();\n    }\n"
             }
           ]
         }
@@ -2763,8 +2982,8 @@
       }
     },
     "tests/account-page-entry.test.cjs": {
-      "afterHash": "4c05e29ba709e57a1257abe6a92cd466810d6b20edaafec25b142eba4fe5d85b",
-      "afterLength": 3095,
+      "afterHash": "f4b0279108b881ad064cbb326c74b5f079c1013585d6236d4fabf64509df528e",
+      "afterLength": 3070,
       "parents": {
         "lines": {
           "hash": "0db3eb6bf3cd9f62931624155e3b30f2b98f773227dfd7ef330385ea944ceb25",
@@ -2776,7 +2995,7 @@
             {
               "offset": 454,
               "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-lines-flow4','master-page-editor.js':'20261113-lines-flow4','master-shared-client.js':'20261113-lines-flow4','page-draft-merge.js':'20261113-lines-flow4','master-data.js':'20261113-lines-flow4','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261112-joint-conflict1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
-              "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261114-lines-flow-joint1','master-page-editor.js':'20261114-lines-flow-joint1','master-shared-client.js':'20261114-lines-flow-joint1','page-draft-merge.js':'20261114-lines-flow-joint1','master-data.js':'20261114-lines-flow-joint1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261113-password-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+              "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261114-master-wait2','master-page-editor.js':'20261114-master-wait2','master-shared-client.js':'20261114-master-wait2','page-draft-merge.js':'20261114-master-wait2','master-data.js':'20261114-master-wait2','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261113-password-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
             }
           ]
         },
@@ -2790,7 +3009,7 @@
             {
               "offset": 454,
               "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261113-ipqc-silent3','master-page-editor.js':'20261113-abc-master2','master-shared-client.js':'20261112-process-history1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261113-password-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
-              "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261114-lines-flow-joint1','master-page-editor.js':'20261114-lines-flow-joint1','master-shared-client.js':'20261114-lines-flow-joint1','page-draft-merge.js':'20261114-lines-flow-joint1','master-data.js':'20261114-lines-flow-joint1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261113-password-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+              "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261114-master-wait2','master-page-editor.js':'20261114-master-wait2','master-shared-client.js':'20261114-master-wait2','page-draft-merge.js':'20261114-master-wait2','master-data.js':'20261114-master-wait2','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261113-password-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
             }
           ]
         }
@@ -2891,8 +3110,8 @@
       }
     },
     "tests/equipment-submit-source.test.cjs": {
-      "afterHash": "02f3962377870d85f1c00124f8f374274aaf47437ebe9bf7894b69d968602a61",
-      "afterLength": 3502,
+      "afterHash": "e9a430156b5dfd2db73c232f68f9bc85c2026c65bdd0c8843cab04bfba2ad8dd",
+      "afterLength": 3497,
       "parents": {
         "lines": {
           "hash": "74dc35c023853730e61ace5ad97339f01d2698fb87ba221fd11345dba9afa2fe",
@@ -2904,7 +3123,7 @@
             {
               "offset": 3147,
               "before": " assert.equal(index.split('shared-draft-client.js?v=20261113-lines-flow4').length,2);\n",
-              "after": " assert.equal(index.split('shared-draft-client.js?v=20261114-lines-flow-joint1').length,2);\n"
+              "after": " assert.equal(index.split('shared-draft-client.js?v=20261114-master-wait2').length,2);\n"
             }
           ]
         },
@@ -2918,15 +3137,15 @@
             {
               "offset": 3147,
               "before": " assert.equal(index.split('shared-draft-client.js?v=20261113-ipqc-silent3').length,2);\n",
-              "after": " assert.equal(index.split('shared-draft-client.js?v=20261114-lines-flow-joint1').length,2);\n"
+              "after": " assert.equal(index.split('shared-draft-client.js?v=20261114-master-wait2').length,2);\n"
             }
           ]
         }
       }
     },
     "tests/fixtures/browser-timer-inventory.json": {
-      "afterHash": "4fde0d31a4053eff14385fac10bd2a51cc1eca0199c9855a8a150d56e3657e86",
-      "afterLength": 13489,
+      "afterHash": "ce74dfc608adcca1a7485b2813588a1d8c2c824538b4415a37c2e3e3bd14df0a",
+      "afterLength": 13534,
       "parents": {
         "lines": {
           "hash": "9ecdfa1709dc54bab302d88f1ceb629f597daddccecc38ec579d35a35627b642",
@@ -2943,7 +3162,7 @@
             {
               "offset": 13164,
               "before": "",
-              "after": "  },\n  {\n    \"file\": \"public/process/shared-draft-client.js\",\n    \"line\": 977,\n    \"kind\": \"setTimeout\",\n    \"hash\": \"67545b2b061244bdbc6ff9706e5f624a141551ead45695f13ba08a2216a7426e\",\n    \"purpose\": \"Three one-shot IPQC request progress notices at 10/45/120 seconds. UI text only; no fetch, retry or recurring timer.\"\n"
+              "after": "  },\n  {\n    \"file\": \"public/process/shared-draft-client.js\",\n    \"line\": 1009,\n    \"kind\": \"setTimeout\",\n    \"hash\": \"338acf2d7f36e8e1481bdc044621f3e229422771a80d8351e1a9b3f00c43266e\",\n    \"purpose\": \"Three one-shot IPQC/explicit master request progress notices at 10/45/120 seconds. UI text only; no fetch, retry or recurring timer; master notices never abort.\"\n"
             }
           ]
         },
@@ -2953,7 +3172,18 @@
           "length": 13489,
           "blob": "520619f7620fc7ac829f4505ef8ec7dcac2a4077",
           "crlf": [],
-          "rules": []
+          "rules": [
+            {
+              "offset": 13226,
+              "before": "    \"line\": 977,\n",
+              "after": "    \"line\": 1009,\n"
+            },
+            {
+              "offset": 13270,
+              "before": "    \"hash\": \"67545b2b061244bdbc6ff9706e5f624a141551ead45695f13ba08a2216a7426e\",\n    \"purpose\": \"Three one-shot IPQC request progress notices at 10/45/120 seconds. UI text only; no fetch, retry or recurring timer.\"\n",
+              "after": "    \"hash\": \"338acf2d7f36e8e1481bdc044621f3e229422771a80d8351e1a9b3f00c43266e\",\n    \"purpose\": \"Three one-shot IPQC/explicit master request progress notices at 10/45/120 seconds. UI text only; no fetch, retry or recurring timer; master notices never abort.\"\n"
+            }
+          ]
         }
       }
     },
@@ -3114,8 +3344,8 @@
       }
     },
     "tests/lines-flow-browser.mjs": {
-      "afterHash": "e9b72ae2044195c3c980876b9872e2c951c3e93d0208f1e830d9cc331417f159",
-      "afterLength": 8377,
+      "afterHash": "57d076afea51afb37aa8245b0f946bbbccc8443d821b0e2250b30e999433a36c",
+      "afterLength": 10056,
       "parents": {
         "lines": {
           "hash": "e9b72ae2044195c3c980876b9872e2c951c3e93d0208f1e830d9cc331417f159",
@@ -3123,7 +3353,28 @@
           "length": 8377,
           "blob": "2f4366e87638130ffdb281f39cc3ae2af8fd36ae",
           "crlf": [],
-          "rules": []
+          "rules": [
+            {
+              "offset": 1406,
+              "before": "",
+              "after": "  let slowSave=false,hideReceipt=false,stopClicked=false,releaseSlow,enteredSlow;const slowGate=new Promise(r=>releaseSlow=r),slowStarted=new Promise(r=>enteredSlow=r);\n"
+            },
+            {
+              "offset": 2740,
+              "before": "    if(url.pathname==='/api/master/pages'){const body=request.postDataJSON();calls.push({method:request.method(),body,url:url.href});const result=await f.route[request.method()](new Request(url,{method:request.method(),headers:{cookie:f.cookies.writer,origin:f.base,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})}));return route.fulfill({status:result.status,headers:Object.fromEntries(result.headers),body:await result.text()});}\n",
+              "after": "    if(url.pathname==='/api/master/pages'){const body=request.postDataJSON();calls.push({method:request.method(),body,url:url.href});if(hideReceipt&&url.searchParams.has('operationId'))return route.fulfill({status:404,json:{error:'OPERATION_NOT_FOUND'}});const result=await f.route[request.method()](new Request(url,{method:request.method(),headers:{cookie:f.cookies.writer,origin:f.base,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})}));const payload=await result.text(),held=slowSave&&body?.command?.action==='save';if(held){slowSave=false;enteredSlow();await slowGate;}return route.fulfill({status:result.status,headers:Object.fromEntries(result.headers),body:payload}).catch(error=>{if(!held||!stopClicked)throw error;});}\n"
+            },
+            {
+              "offset": 7408,
+              "before": "",
+              "after": "   await page.getByLabel(label('線別名稱','Tên chuyền'),{exact:true}).fill('Native stopped wait');const stopPosts=calls.filter(row=>row.method==='POST').length;slowSave=true;hideReceipt=true;await button('存取草稿','Lưu bản nháp').click();await slowStarted;const beforeStop=calls.length;stopClicked=true;await button('停止等候','Dừng chờ').click();await idle();assert.equal(calls.length,beforeStop,'Stop neither replays nor queries');const marker=await page.evaluate(()=>Object.entries(sessionStorage));assert(marker.length);await click('查詢原操作結果','Tra cứu kết quả thao tác');assert.deepEqual(await page.evaluate(()=>Object.entries(sessionStorage)),marker);releaseSlow();hideReceipt=false;await click('查詢原操作結果','Tra cứu kết quả thao tác');assert.equal(calls.filter(row=>row.method==='POST').length,stopPosts+1);assert.equal(await page.getByLabel(label('線別名稱','Tên chuyền'),{exact:true}).inputValue(),'Native stopped wait');assert.deepEqual(await page.evaluate(()=>sharedDraftAccountState()),{queued:0,unknown:false,failed:false});\n"
+            },
+            {
+              "offset": 8797,
+              "before": "   const dir='.sites-runtime/lines-flow';fs.mkdirSync(dir,{recursive:true});await page.screenshot({path:dir+'/lines-'+width+'-'+lang+'.png',fullPage:true});report.checks.push({width,lang,status:'PASS',checks:'same-page AB/C retained; double click one Save; reload; create/edit/delete stage and empty line; submit/withdraw/resubmit/return/approve; PROCESS unchanged; departure abandons RAM only; viewport overflow/touch target',posts:count});\n  }catch(error){report.failedState={width,lang,text:await page.locator('body').innerText(),buttons:await page.getByRole('button',{includeHidden:true}).allTextContents(),calls};await page.screenshot({path:'.sites-runtime/lines-flow/failure-'+width+'.png',fullPage:true}).catch(()=>{});throw error;}finally{await context.close();f.close();}\n",
+              "after": "   const dir='.sites-runtime/lines-flow';fs.mkdirSync(dir,{recursive:true});await page.screenshot({path:dir+'/lines-'+width+'-'+lang+'.png',fullPage:true});report.checks.push({width,lang,status:'PASS',checks:'same-page AB/C retained; double click one Save; reload; create/edit/delete stage and empty line; submit/withdraw/resubmit/return/approve; PROCESS unchanged; departure abandons RAM only; viewport overflow/touch target; native Stop wait/404/original receipt without replay',posts:calls.filter(row=>row.method==='POST').length});\n  }catch(error){report.failedState={width,lang,text:await page.locator('body').innerText(),buttons:await page.getByRole('button',{includeHidden:true}).allTextContents(),calls};await page.screenshot({path:'.sites-runtime/lines-flow/failure-'+width+'.png',fullPage:true}).catch(()=>{});throw error;}finally{releaseSlow();await context.close();f.close();}\n"
+            }
+          ]
         }
       }
     },
@@ -3170,8 +3421,8 @@
       }
     },
     "tests/lines-flow-process-conflicts.test.mjs": {
-      "afterHash": "8673ca2e3177a4954d299b3086a382f59c1656ee2a0258ad9553b7ac21b6505f",
-      "afterLength": 16243,
+      "afterHash": "3340bdcb2e5ed24740afbb27b6fc6128a2bd6a4267424a5573f0fad20388b150",
+      "afterLength": 18142,
       "parents": {
         "lines": {
           "hash": "8673ca2e3177a4954d299b3086a382f59c1656ee2a0258ad9553b7ac21b6505f",
@@ -3179,7 +3430,13 @@
           "length": 16243,
           "blob": "67e701aca74288692d6fc0bad76b4028f7aff5e1",
           "crlf": [],
-          "rules": []
+          "rules": [
+            {
+              "offset": 7358,
+              "before": "void test('PROCESS slow Save uses finite 45s boundary, single dispatch and truthful timeout classification',async t=>{\n const x=await setup(t);await x.stage('Slow');let deadline,abort;const timers=x.box.setTimeout;x.box.setTimeout=(fn,ms)=>{if(ms===45000){deadline=ms;abort=fn;return timers(()=>{},45000);}if(ms===15000)throw Error('SHORT_MUTATION_DEADLINE');return timers(fn,ms);};\n x.intercept(async(_url,options,send)=>{if(options.body){await new Promise((resolve,reject)=>{const timer=setTimeout(resolve,30);options.signal.addEventListener('abort',()=>{clearTimeout(timer);reject(Object.assign(Error('Synthetic request deadline'),{name:'AbortError'}));},{once:true});});}return send();});\n const task=x.bridge.execute('PROCESS','save');await until(()=>x.posts().length===1);await assert.rejects(x.bridge.execute('PROCESS','save'),/OPERATION_IN_PROGRESS/);assert.equal(deadline,45000);abort();await assert.rejects(task,/UNKNOWN/);assert(x.bridge.client('PROCESS').hasUnknown());assert.equal(x.posts().length,1);assert.equal(x.control.workflowScopes.PROCESS.saved,null);\n",
+              "after": "for(const phase of ['headers','body'])void test('PROCESS slow Save '+phase+' survives virtual 120s, single dispatch and exact CAS',async t=>{\n const x=await setup(t);await x.stage('Slow');let release,entered,signal;const gate=new Promise(r=>release=r),started=new Promise(r=>entered=r),timers=new Map();let timer=0;\n x.box.setTimeout=(fn,ms)=>{timers.set(++timer,{fn,ms});return timer;};x.box.clearTimeout=id=>timers.delete(id);\n x.intercept(async(_url,options,send)=>{if(!options.body)return send();signal=options.signal;const response=await send();if(phase==='headers'){entered();await gate;return response;}return {ok:response.ok,status:response.status,json:async()=>{entered();await gate;return response.json();}};});\n const task=x.bridge.execute('PROCESS','save');await started;for(const [id,timer]of timers)if(timer.ms<=120000){timers.delete(id);timer.fn();}\n assert.equal(signal.aborted,false);await assert.rejects(x.bridge.execute('PROCESS','save'),/OPERATION_IN_PROGRESS/);assert.equal(x.posts().length,1);assert.equal(x.control.workflowScopes.PROCESS.saved,null);\n release();await task;assert.equal(x.posts().length,1);assert.equal(x.control.workflowScopes.PROCESS.saved.content['A-CUT'][1].name,'Slow');assert.equal(x.bridge.client('PROCESS').hasUnknown(),false);assert.equal(timers.size,0);\n});\nfor(const phase of ['headers','body'])void test('PROCESS stop '+phase+' wait retains original UNKNOWN; ignores late ACK and only original receipt can settle',async t=>{\n const x=await setup(t);await x.stage('Stop wait');let release,entered;const gate=new Promise(r=>release=r),started=new Promise(r=>entered=r);\n x.intercept(async(_url,options,send)=>{const response=await send();if(!options.body)return response;if(phase==='headers'){entered();await gate;return response;}return {ok:response.ok,status:response.status,json:async()=>{entered();await gate;return response.json();}};});\n const task=x.bridge.execute('PROCESS','save'),rejected=assert.rejects(task,/UNKNOWN/);await started;const command=copy(x.posts()[0].body),count=x.calls.length;assert(x.bridge.client('PROCESS').stopMasterWait());await rejected;\n assert.equal(x.calls.length,count,'stop never starts recovery or repeats a write');const marker=[...x.disk];assert(marker.length);assert(x.bridge.client('PROCESS').hasUnknown());assert.equal(x.control.workflowScopes.PROCESS.saved,null);\n x.intercept(null);x.mode('missing');await assert.rejects(x.bridge.recover('PROCESS'),/OPERATION_NOT_FOUND/);assert.deepEqual([...x.disk],marker);release();await new Promise(r=>setTimeout(r,10));assert.equal(x.control.workflowScopes.PROCESS.saved,null,'late ACK cannot adopt or clear original marker');assert.deepEqual([...x.disk],marker);\n x.mode('');await x.bridge.recover('PROCESS');assert.equal(x.posts().length,1);assert.deepEqual(x.posts()[0].body,command);assert.equal(x.control.workflowScopes.PROCESS.saved.content['A-CUT'][1].name,'Stop wait');assert.equal(x.bridge.client('PROCESS').hasUnknown(),false);\n"
+            }
+          ]
         }
       }
     },
@@ -3241,8 +3498,8 @@
       }
     },
     "tests/navigation-adapters.test.mjs": {
-      "afterHash": "5abf18f649b069568c073ff26cebc167ef034db1f731e85c43efa1fbeeb91d0c",
-      "afterLength": 21669,
+      "afterHash": "a3960e0d1c9e1c5bcb7cede8eea47387427ac1f39d5e1026f7dee445cd6de7d2",
+      "afterLength": 21639,
       "parents": {
         "lines": {
           "hash": "d7e5f6cfb6f2cd2bd3e29fff071b9cb9d4abd1a3dd90bb39e9ae1e9dfa9d0b9c",
@@ -3259,30 +3516,30 @@
             {
               "offset": 16245,
               "before": "  'page-draft-merge.js':'20261113-lines-flow4',\n  'master-page-editor.js':'20261113-lines-flow4',\n",
-              "after": "  'page-draft-merge.js':'20261114-lines-flow-joint1',\n  'master-page-editor.js':'20261114-lines-flow-joint1',\n"
+              "after": "  'page-draft-merge.js':'20261114-master-wait2',\n  'master-page-editor.js':'20261114-master-wait2',\n"
             },
             {
-              "offset": 16479,
+              "offset": 16469,
               "before": "  'app.js':'20261113-lines-flow4',\n",
-              "after": "  'app.js':'20261114-lines-flow-joint1',\n"
+              "after": "  'app.js':'20261114-master-wait2',\n"
             },
             {
-              "offset": 16987,
+              "offset": 16972,
               "before": "  'ipqc-ab.js':'20261112-ipqc-ab-filters2',\n  'ipqc-c.js':'20261112-c-product4',\n",
               "after": "  'ipqc-ab.js':'20261113-ipqc-silent3',\n  'ipqc-c.js':'20261113-ipqc-silent3',\n"
             },
             {
-              "offset": 17117,
+              "offset": 17102,
               "before": "  'master-data.js':'20261113-lines-flow4',\n  'master-shared-client.js':'20261113-lines-flow4',\n",
-              "after": "  'master-data.js':'20261114-lines-flow-joint1',\n  'master-shared-client.js':'20261114-lines-flow-joint1',\n"
+              "after": "  'master-data.js':'20261114-master-wait2',\n  'master-shared-client.js':'20261114-master-wait2',\n"
             },
             {
-              "offset": 17573,
+              "offset": 17548,
               "before": "  'shared-draft-client.js':'20261113-lines-flow4',\n",
-              "after": "  'shared-draft-client.js':'20261114-lines-flow-joint1',\n"
+              "after": "  'shared-draft-client.js':'20261114-master-wait2',\n"
             },
             {
-              "offset": 17728,
+              "offset": 17698,
               "before": "  'user-access.js':'20261112-joint-conflict1',\n",
               "after": "  'user-access.js':'20261113-password-outcome1',\n"
             }
@@ -3298,22 +3555,22 @@
             {
               "offset": 16245,
               "before": "",
-              "after": "  'page-draft-merge.js':'20261114-lines-flow-joint1',\n  'master-page-editor.js':'20261114-lines-flow-joint1',\n"
+              "after": "  'page-draft-merge.js':'20261114-master-wait2',\n  'master-page-editor.js':'20261114-master-wait2',\n"
             },
             {
-              "offset": 16479,
+              "offset": 16469,
               "before": "  'app.js':'20261114-account-clock1',\n",
-              "after": "  'app.js':'20261114-lines-flow-joint1',\n"
+              "after": "  'app.js':'20261114-master-wait2',\n"
             },
             {
-              "offset": 17117,
+              "offset": 17102,
               "before": "  'master-data.js':'20261110-account-pages1',\n  'master-shared-client.js':'20261112-process-history1',\n",
-              "after": "  'master-data.js':'20261114-lines-flow-joint1',\n  'master-shared-client.js':'20261114-lines-flow-joint1',\n"
+              "after": "  'master-data.js':'20261114-master-wait2',\n  'master-shared-client.js':'20261114-master-wait2',\n"
             },
             {
-              "offset": 17573,
+              "offset": 17548,
               "before": "  'shared-draft-client.js':'20261113-ipqc-silent3',\n",
-              "after": "  'shared-draft-client.js':'20261114-lines-flow-joint1',\n"
+              "after": "  'shared-draft-client.js':'20261114-master-wait2',\n"
             }
           ]
         }
@@ -3334,8 +3591,8 @@
       }
     },
     "tests/process-local-save-browser.mjs": {
-      "afterHash": "8ce9ed9c2142b9c02be91a287b885772f7bd1dea1285328c5049ba4a27cb8129",
-      "afterLength": 19254,
+      "afterHash": "4715d848d2692260ec370900ae343d44f7840d1c2e692b678b0c37fac7577e84",
+      "afterLength": 21476,
       "parents": {
         "lines": {
           "hash": "8ce9ed9c2142b9c02be91a287b885772f7bd1dea1285328c5049ba4a27cb8129",
@@ -3343,7 +3600,23 @@
           "length": 19254,
           "blob": "213f21e76fa903ae5f9364fa0f48b56555bb2e1e",
           "crlf": [],
-          "rules": []
+          "rules": [
+            {
+              "offset": 359,
+              "before": "const report={status:'PENDING',checks:[],http:[],pageErrors:[],nativePrompts:[],notRun:['live Site','physical phone','native OS IME','cross-machine']};let f,browser,page,stage='startup';\n",
+              "after": "const report={status:'PENDING',checks:[],http:[],pageErrors:[],nativePrompts:[],notRun:['live Site','physical phone','native OS IME','cross-machine']};let f,browser,page,releaseStop,stage='startup';\n"
+            },
+            {
+              "offset": 16756,
+              "before": "",
+              "after": " stage='native Stop waiting preserves original Save';let arrivedStop,hideStopReceipt=true,holdStop=true,stopClicked=false;const stopGate=new Promise(r=>releaseStop=r),stopSent=new Promise(r=>arrivedStop=r);\n const stopRoute=async r=>{const req=r.request(),body=req.method()==='POST'?req.postDataJSON():null;if(req.url().includes('operationId=')&&hideStopReceipt)return r.fulfill({status:404,json:{error:'OPERATION_NOT_FOUND'}});if(holdStop&&body?.command?.action==='save'){holdStop=false;const response=await r.fetch();arrivedStop();await stopGate;return r.fulfill({response}).catch(error=>{if(!stopClicked)throw error;});}return r.continue();};\n await page.route('**/api/master/workflow?**',stopRoute);const stopPosts=posts('frank').length;await page.locator('[data-master-name]').nth(5).fill('Native stopped PROCESS');await page.locator('#save-master-data').click();await stopSent;const readsBeforeStop=traffic.filter(row=>row.id==='frank'&&row.url.includes('operationId=')).length;stopClicked=true;await page.getByRole('button',{name:'停止等候',exact:true}).click();await page.waitForFunction(()=>!MasterDataWorkflow.shared.busy()&&MasterDataWorkflow.shared.client('PROCESS').hasUnknown());assert.equal(traffic.filter(row=>row.id==='frank'&&row.url.includes('operationId=')).length,readsBeforeStop);const stopMarker=await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.includes('shared-draft')));await page.evaluate(async()=>{try{await MasterDataWorkflow.shared.recover('PROCESS');}catch{}});assert.deepEqual(await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.includes('shared-draft'))),stopMarker);releaseStop();hideStopReceipt=false;await page.evaluate(()=>MasterDataWorkflow.shared.recover('PROCESS'));assert.equal(posts('frank').length,stopPosts+1);assert.equal((await root()).workflowScopes.PROCESS.saved.content['A-A'][5].name,'Native stopped PROCESS');assert.equal(await page.evaluate(()=>MasterDataWorkflow.shared.client('PROCESS').hasUnknown()),false);await page.unroute('**/api/master/workflow?**',stopRoute);report.checks.push('native Stop wait keeps original UNKNOWN through 404 and settles original Save without another POST');\n"
+            },
+            {
+              "offset": 21222,
+              "before": "finally{await browser?.close();await f?.close();fs.mkdirSync('.sites-runtime',{recursive:true});fs.writeFileSync('.sites-runtime/process-local-save-browser.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));}\n",
+              "after": "finally{releaseStop?.();await browser?.close();await f?.close();fs.mkdirSync('.sites-runtime',{recursive:true});fs.writeFileSync('.sites-runtime/process-local-save-browser.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));}\n"
+            }
+          ]
         },
         "main": {
           "hash": "22bedbe1300c26cb25055270b2fc5584c45bc117fdb102135a295483f49f9bd1",
@@ -3353,9 +3626,24 @@
           "crlf": [],
           "rules": [
             {
-              "offset": 8360,
+              "offset": 359,
+              "before": "const report={status:'PENDING',checks:[],http:[],pageErrors:[],nativePrompts:[],notRun:['live Site','physical phone','native OS IME','cross-machine']};let f,browser,page,stage='startup';\n",
+              "after": "const report={status:'PENDING',checks:[],http:[],pageErrors:[],nativePrompts:[],notRun:['live Site','physical phone','native OS IME','cross-machine']};let f,browser,page,releaseStop,stage='startup';\n"
+            },
+            {
+              "offset": 8372,
               "before": " await open(peer);await page.locator('[data-master-name]').nth(5).fill('Owner stale');await peer.locator('[data-master-name]').nth(5).fill('Peer current');await save(peer);const beforeConflict=await root();await page.locator('#save-master-data').click();await page.waitForFunction(()=>!MasterDataWorkflow.shared.busy());assert.deepEqual(await root(),beforeConflict);assert.equal(await page.locator('[data-master-name]').nth(5).inputValue(),'Owner stale');\n stage='silent SPA departure';await page.locator('[data-tab=line-admin]').click();await page.locator('#master-lines-scope').waitFor();assert.equal(await page.locator('[data-navigation-departure]').count(),0);await open(page);assert.equal(await page.locator('[data-master-name]').nth(5).inputValue(),'Peer current');report.checks.push('two actors retain different fields; true conflict retains input and storage; silent SPA abandonment');\n",
               "after": " await open(peer);await page.locator('[data-master-name]').nth(5).fill('Owner stale');await peer.locator('[data-master-name]').nth(5).fill('Peer current');await save(peer);const beforeConflict=await root();const conflictPosts=posts('frank').length;await page.locator('#save-master-data').click();const conflict=page.locator('dialog.vd-dialog');await conflict.waitFor();assert.equal(posts('frank').length,conflictPosts);await conflict.getByRole('button',{name:/^(取消|Hủy)$/}).click();await page.waitForFunction(()=>!MasterDataWorkflow.shared.busy());assert.deepEqual(await root(),beforeConflict);assert.equal(await page.locator('[data-master-name]').nth(5).inputValue(),'Owner stale');\n await page.locator('#save-master-data').click();await conflict.waitFor();await conflict.getByRole('button',{name:/^(用對方的|Dùng của người khác)$/}).click();await page.waitForFunction(()=>!MasterDataWorkflow.shared.busy()&&!MasterDataWorkflow.shared.localDirty('PROCESS'));assert.equal(posts('frank').length,conflictPosts+1);assert.equal((await root()).workflowScopes.PROCESS.saved.content['A-A'][5].name,'Peer current');report.checks.push('actual two-account whole-group Cancel retains input with zero POST; chosen-theirs saves exactly once and keeps peer fields');\n stage='silent SPA departure';const departurePosts=posts('frank').length,departureRoot=await root();await page.locator('[data-tab=line-admin]').click();await page.locator('[data-lines-readonly]').waitFor();assert.equal(posts('frank').length,departurePosts);assert.deepEqual(await root(),departureRoot);assert.equal(await page.locator('[data-navigation-departure]').count(),0);await open(page);assert.equal(await page.locator('[data-master-name]').nth(5).inputValue(),'Peer current');report.checks.push('two actors retain different fields; true conflict retains input and storage; silent SPA abandonment');\n"
+            },
+            {
+              "offset": 16756,
+              "before": "",
+              "after": " stage='native Stop waiting preserves original Save';let arrivedStop,hideStopReceipt=true,holdStop=true,stopClicked=false;const stopGate=new Promise(r=>releaseStop=r),stopSent=new Promise(r=>arrivedStop=r);\n const stopRoute=async r=>{const req=r.request(),body=req.method()==='POST'?req.postDataJSON():null;if(req.url().includes('operationId=')&&hideStopReceipt)return r.fulfill({status:404,json:{error:'OPERATION_NOT_FOUND'}});if(holdStop&&body?.command?.action==='save'){holdStop=false;const response=await r.fetch();arrivedStop();await stopGate;return r.fulfill({response}).catch(error=>{if(!stopClicked)throw error;});}return r.continue();};\n await page.route('**/api/master/workflow?**',stopRoute);const stopPosts=posts('frank').length;await page.locator('[data-master-name]').nth(5).fill('Native stopped PROCESS');await page.locator('#save-master-data').click();await stopSent;const readsBeforeStop=traffic.filter(row=>row.id==='frank'&&row.url.includes('operationId=')).length;stopClicked=true;await page.getByRole('button',{name:'停止等候',exact:true}).click();await page.waitForFunction(()=>!MasterDataWorkflow.shared.busy()&&MasterDataWorkflow.shared.client('PROCESS').hasUnknown());assert.equal(traffic.filter(row=>row.id==='frank'&&row.url.includes('operationId=')).length,readsBeforeStop);const stopMarker=await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.includes('shared-draft')));await page.evaluate(async()=>{try{await MasterDataWorkflow.shared.recover('PROCESS');}catch{}});assert.deepEqual(await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.includes('shared-draft'))),stopMarker);releaseStop();hideStopReceipt=false;await page.evaluate(()=>MasterDataWorkflow.shared.recover('PROCESS'));assert.equal(posts('frank').length,stopPosts+1);assert.equal((await root()).workflowScopes.PROCESS.saved.content['A-A'][5].name,'Native stopped PROCESS');assert.equal(await page.evaluate(()=>MasterDataWorkflow.shared.client('PROCESS').hasUnknown()),false);await page.unroute('**/api/master/workflow?**',stopRoute);report.checks.push('native Stop wait keeps original UNKNOWN through 404 and settles original Save without another POST');\n"
+            },
+            {
+              "offset": 21222,
+              "before": "finally{await browser?.close();await f?.close();fs.mkdirSync('.sites-runtime',{recursive:true});fs.writeFileSync('.sites-runtime/process-local-save-browser.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));}\n",
+              "after": "finally{releaseStop?.();await browser?.close();await f?.close();fs.mkdirSync('.sites-runtime',{recursive:true});fs.writeFileSync('.sites-runtime/process-local-save-browser.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));}\n"
             }
           ]
         }
@@ -3423,8 +3711,8 @@
       }
     },
     "tests/shared-draft-receipt-recovery.test.mjs": {
-      "afterHash": "403ec861fe79d70569bcc0a4ecbc739af438aa95ec2fa81d848464d3aaad0fb9",
-      "afterLength": 16631,
+      "afterHash": "5c008ab4e629a6fbe3107c4fd2c5b7a193179ce99834ad07b3060c64acf7e310",
+      "afterLength": 16601,
       "parents": {
         "lines": {
           "hash": "264e9c67d90ff04f75a49df1413fee84474af4884b196545071ab64ba752cbd3",
@@ -3436,32 +3724,32 @@
             {
               "offset": 14566,
               "before": "  'page-draft-merge.js':'20261113-lines-flow4',\n",
-              "after": "  'page-draft-merge.js':'20261114-lines-flow-joint1',\n"
+              "after": "  'page-draft-merge.js':'20261114-master-wait2',\n"
             },
             {
-              "offset": 14738,
+              "offset": 14733,
               "before": "  'master-page-editor.js':'20261113-lines-flow4',\n",
-              "after": "  'master-page-editor.js':'20261114-lines-flow-joint1',\n"
+              "after": "  'master-page-editor.js':'20261114-master-wait2',\n"
             },
             {
-              "offset": 14850,
+              "offset": 14840,
               "before": "  'shared-draft-client.js':'20261113-lines-flow4',\n",
-              "after": "  'shared-draft-client.js':'20261114-lines-flow-joint1',\n"
+              "after": "  'shared-draft-client.js':'20261114-master-wait2',\n"
             },
             {
-              "offset": 15256,
+              "offset": 15241,
               "before": "  'ipqc-ab.js':'20261112-ipqc-ab-filters2',\n",
               "after": "  'ipqc-ab.js':'20261113-ipqc-silent3',\n"
             },
             {
-              "offset": 15413,
+              "offset": 15398,
               "before": "  'app.js':'20261113-lines-flow4',\n",
-              "after": "  'app.js':'20261114-lines-flow-joint1',\n"
+              "after": "  'app.js':'20261114-master-wait2',\n"
             },
             {
-              "offset": 15550,
+              "offset": 15530,
               "before": "  'master-shared-client.js':'20261113-lines-flow4',\n  'master-data.js':'20261113-lines-flow4',\n",
-              "after": "  'master-shared-client.js':'20261114-lines-flow-joint1',\n  'master-data.js':'20261114-lines-flow-joint1',\n"
+              "after": "  'master-shared-client.js':'20261114-master-wait2',\n  'master-data.js':'20261114-master-wait2',\n"
             }
           ]
         },
@@ -3475,27 +3763,27 @@
             {
               "offset": 14566,
               "before": "  'page-draft-merge.js':'20261110-account-pages1',\n",
-              "after": "  'page-draft-merge.js':'20261114-lines-flow-joint1',\n"
+              "after": "  'page-draft-merge.js':'20261114-master-wait2',\n"
             },
             {
-              "offset": 14738,
+              "offset": 14733,
               "before": "  'master-page-editor.js':'20261113-abc-master2',\n",
-              "after": "  'master-page-editor.js':'20261114-lines-flow-joint1',\n"
+              "after": "  'master-page-editor.js':'20261114-master-wait2',\n"
             },
             {
-              "offset": 14850,
+              "offset": 14840,
               "before": "  'shared-draft-client.js':'20261113-ipqc-silent3',\n",
-              "after": "  'shared-draft-client.js':'20261114-lines-flow-joint1',\n"
+              "after": "  'shared-draft-client.js':'20261114-master-wait2',\n"
             },
             {
-              "offset": 15413,
+              "offset": 15398,
               "before": "  'app.js':'20261114-account-clock1',\n",
-              "after": "  'app.js':'20261114-lines-flow-joint1',\n"
+              "after": "  'app.js':'20261114-master-wait2',\n"
             },
             {
-              "offset": 15550,
+              "offset": 15530,
               "before": "  'master-shared-client.js':'20261112-process-history1',\n  'master-data.js':'20261110-account-pages1',\n",
-              "after": "  'master-shared-client.js':'20261114-lines-flow-joint1',\n  'master-data.js':'20261114-lines-flow-joint1',\n"
+              "after": "  'master-shared-client.js':'20261114-master-wait2',\n  'master-data.js':'20261114-master-wait2',\n"
             }
           ]
         }

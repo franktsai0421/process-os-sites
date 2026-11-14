@@ -330,9 +330,9 @@
   },
   {
     "file": "public/process/shared-draft-client.js",
-    "line": 977,
+    "line": 1009,
     "kind": "setTimeout",
-    "hash": "67545b2b061244bdbc6ff9706e5f624a141551ead45695f13ba08a2216a7426e",
-    "purpose": "Three one-shot IPQC request progress notices at 10/45/120 seconds. UI text only; no fetch, retry or recurring timer."
+    "hash": "338acf2d7f36e8e1481bdc044621f3e229422771a80d8351e1a9b3f00c43266e",
+    "purpose": "Three one-shot IPQC/explicit master request progress notices at 10/45/120 seconds. UI text only; no fetch, retry or recurring timer; master notices never abort."
   }
 ]
