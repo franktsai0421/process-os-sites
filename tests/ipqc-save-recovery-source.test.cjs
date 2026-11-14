@@ -16,3 +16,12 @@ for(const file of Object.keys(proof.contract.main112.files))void test('IPQC merg
  assert.deepEqual(proof.projectMain112(prior,file),prior);assert.deepEqual(proof.projectMain112(current,'unrelated'),current);
  assert.throws(()=>proof.restoreMain112(current.toString(),file),/raw Buffer/);
 });
+
+for(const file of Object.keys(proof.contract.main113.files))void test('IPQC merge preserves exact main113 predecessor and rejects drift '+file,()=>{
+ const current=fs.readFileSync(file),prior=execFileSync('git',['show',proof.contract.main113.base+':'+file]);
+ assert.deepEqual(proof.restoreMain113(current,file),prior);assert.deepEqual(proof.projectMain113(current,file),prior);
+ assert.deepEqual(proof.restoreMain113(Buffer.from(current.toString().replace(/\r?\n/g,'\r\n')),file),prior);
+ for(const bad of [Buffer.concat([current,Buffer.from(' ')]),current.subarray(1),prior])assert.throws(()=>proof.restoreMain113(bad,file));
+ assert.deepEqual(proof.projectMain113(prior,file),prior);assert.deepEqual(proof.projectMain113(current,'unrelated'),current);
+ assert.throws(()=>proof.restoreMain113(current.toString(),file),/raw Buffer/);
+});

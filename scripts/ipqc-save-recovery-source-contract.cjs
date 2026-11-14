@@ -18,4 +18,6 @@ function restore(bytes,file){assert(Buffer.isBuffer(bytes),'IPQC recovery requir
 function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'IPQC recovery requires raw Buffer');const c=entry(contract.files,file);return c&&hash(normalized(bytes))===c.afterNormalizedHash?inverse(bytes,c):bytes;}
 function restoreMain112(bytes,file){assert(Buffer.isBuffer(bytes),'IPQC recovery requires raw Buffer');const c=entry(contract.main112?.files,file);assert(c,'IPQC recovery wrong main112 file');return inverse(bytes,c);}
 function projectMain112(bytes,file){assert(Buffer.isBuffer(bytes),'IPQC recovery requires raw Buffer');const c=entry(contract.main112?.files,file);return c&&hash(normalized(bytes))===c.afterNormalizedHash?inverse(bytes,c):bytes;}
-module.exports=Object.freeze({contract,hash,restore,projectKnown,restoreMain112,projectMain112});
+function restoreMain113(bytes,file){assert(Buffer.isBuffer(bytes),'IPQC recovery requires raw Buffer');const c=entry(contract.main113?.files,file);assert(c,'IPQC recovery wrong main113 file');return inverse(bytes,c);}
+function projectMain113(bytes,file){assert(Buffer.isBuffer(bytes),'IPQC recovery requires raw Buffer');const c=entry(contract.main113?.files,file);return c&&hash(normalized(bytes))===c.afterNormalizedHash?inverse(bytes,c):bytes;}
+module.exports=Object.freeze({contract,hash,restore,projectKnown,restoreMain112,projectMain112,restoreMain113,projectMain113});

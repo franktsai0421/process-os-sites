@@ -1,3 +1,7 @@
+## 2026-11-13 — Password outcome repair candidate
+
+Independent main-based password-only records overlay and response-wait repair; administrator reset, own-password and fresh-login isolation with UNKNOWN/no-replay guards. [Evidence, source cause and live limitations](docs/acceptance/password-outcome-20261113.md). Draft review only; no real account, data, schema, merge or deployment change.
+
 ## 2026-11-13 — AB/C master catalog cloud candidate
 
 Independent main-f0f425d draft candidate improves explicit catalog I/O, fresh Save verification, progress and new-row visibility. Read-only pinned legacy ownership inventory; no adoption/data/backup/deployment. [Sources,21 requirements and verification limits](docs/acceptance/abc-master-integration-20261113/README.md). LINES and PROCESS remain separately owned work.

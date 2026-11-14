@@ -73,7 +73,7 @@ for(const change of ['history-display','history-permission'])void test('actual I
  assert.equal(f.box.control,null);assert.equal(f.box.revision,null);
 });
 const accountSource=source('user-access.js');
-const accountRequest=part(accountSource,' async function requestValue(options={},fresh=false){','\n function expireSession()');
+const accountRequest=part(accountSource,' async function requestValue(options={},fresh=false,waitForPassword=false){','\n function expireSession()');
 const accountSend=part(accountSource,' async function send(payload){','\n function paint()');
 assert(accountRequest.startsWith(' async function requestValue(')&&accountRequest.includes('finally{clearTimeout(timer);}'));
 assert(accountSend.includes('writeEpoch++')&&accountSend.includes('finally{writing--;}'));
@@ -148,7 +148,7 @@ void test('changed persistent-navigation executable references have coherent new
   'shared-draft-client.js':'20261113-ipqc-silent3',
   'shared-state.js':'20261106-access-offline1',
   'tooling.js':'20261113-equipment-integration2',
-  'user-access.js':'20261112-joint-conflict1',
+  'user-access.js':'20261113-password-outcome1',
   'navigation-forms.js':'20261025-navigation2',
   'process-ipqc.js':'20261110-ipqc-source-single-save1',
   'data-safety-ui.js':'20261110-account-priority-candidate',
