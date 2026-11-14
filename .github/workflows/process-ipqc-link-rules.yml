@@ -40,6 +40,8 @@ jobs:
         run: node --test tests/process-ipqc-link-source.test.cjs
       - name: New source lifecycle, product/scope, races and saved release
         run: node --test tests/process-ipqc-link-rules.test.cjs tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-source-history-route.test.mjs tests/process-canvas-atomic-save-stack.test.mjs tests/canvas-pending-form-admission.test.mjs
+      - name: Current C assignment and retained legacy query guards
+        run: node scripts/test-process-ipqc-c-query.cjs
       - name: Historical source and no-background compatibility
         run: node --test tests/accounts-process-integration-source.test.mjs tests/process-platform-canvas-contract.test.cjs tests/background-check-source-proof.test.cjs tests/global-background-checks.test.mjs
       - run: npm run lint
