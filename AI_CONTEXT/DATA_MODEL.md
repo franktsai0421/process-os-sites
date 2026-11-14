@@ -1,3 +1,7 @@
+## 2026-11-13 — LINES 與 PROCESS 核准邊界候選
+
+沿用 `masterDataControl` page-v1 owner／versions／workflowScopes 與現有 CAS／immutable Save／原收據。LINES 新案件不攜帶 linkedProcess；舊案件保留，需撤回／退回後重新分頁送審。PROCESS 缺漏 stage array 由顯式本機輸入及 guarded atomic Save 建立，需獨立 create/edit/save 權限與已核准 LINES；核准以前不投影為正式資料。沒有 SQL、schema、marker 或既有資料變更。PROCESS active／pointer／unique approved snapshot 由獨立來源核對。[完整界線](../docs/acceptance/lines-flow-integration-20261113/README.md)。
+
 ## 2026-11-12 — Quality 整合候選的資料界線
 
 FQC／IQC 沿用既有共享 workflow、不可變保存／審核快照與原操作收據；同頁核准歷史是授權讀取，不新增歷史還原寫入。例行 FQC 的 opt-in `page-v1` 結構仍位於 `routineFqcControl`，整頁 baseline／workflow 與 document dependency 索引見[例行模型](models/ROUTINE_FQC.md)。舊 document layout、ID／歷史／收據保留；離線工具只輸出候選，沒有執行正式切換、schema 或 migration。來源與驗收界線見[整合追蹤](../docs/acceptance/fqc-iqc-integration-20261112/README.md)。

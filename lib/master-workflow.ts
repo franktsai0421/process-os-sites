@@ -1,3 +1,4 @@
+import {approvedMasterPageCatalog,approvedMasterProcessSource} from './master-approved-pages';
 import {removedProcessMasterTargets,processMasterReferences} from './process-master-references';
 import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON,sameDraftValue,type SharedDraft,type DraftIssue,type DraftPatch,type DraftPath} from './shared-draft';
 import {type WorkflowAdapter,type NumericVersion} from './versioned-shared-workflow';
@@ -28,7 +29,7 @@ export function normalizeMasterSnapshot(snapshot:Snapshot,scope:string):Snapshot
  }
  return next;
 }
-export function masterWorkflowAdapter(scope:string,options:{legacyArchive?:boolean}={}):WorkflowAdapter<Snapshot,Library>{
+export function masterWorkflowAdapter(scope:string,options:{legacyArchive?:boolean;independentTopology?:boolean}={}):WorkflowAdapter<Snapshot,Library>{
  let root:Root,legacy=new Map<string,Version>(),values:Record<string,string>,linkedActivated=false,checkEnteredFields=false;
  function serializeModel(control:Library){if(options.legacyArchive)throw new DraftConflict('MASTER_LEGACY_ARCHIVE_READ_ONLY',409);const cases=new Set(control.workflow?.cases.map(c=>c.id)||[]);
    root.versions=[...root.versions.filter(v=>v.scope!==scope),...control.versions.map(v=>({...v,scope,parentVersionId:v.baseVersionId??v.parentVersionId,
@@ -49,6 +50,7 @@ export function masterWorkflowAdapter(scope:string,options:{legacyArchive?:boole
    }
    // Each adapter belongs to one request. Keep untouched legacy snapshots by
    // reference; deep-copying every historical version here multiplies heap use.
+   if(scope==='PROCESS'&&(root as Root&{pageDraftLayout?:string}).pageDraftLayout==='page-v1')approvedMasterProcessSource(root);
    const versions=root.versions.filter(v=>v.scope===scope);legacy=new Map(versions.map(v=>[v.id,v]));
    const matchingActive=(v:Version)=>v.status==='approved'&&sameDraftValue(v.snapshot,root.active[scope]);
    const active=versions.find(v=>v.id===root.workflowScopes?.[scope]?.active.id&&matchingActive(v))||versions.find(matchingActive);
@@ -59,6 +61,7 @@ export function masterWorkflowAdapter(scope:string,options:{legacyArchive?:boole
   serializeModel,
   projectValues():Record<string,string>{return scope==='PROCESS'||linkedActivated?{processMasterData:JSON.stringify(root.active.PROCESS)}:{};},
   beforeBegin(){if(scope==='PROCESS')assertProcessLinkAvailable(root);},
+  requiresCreate(control,command){return scope==='PROCESS'&&!!command.patches?.some(patch=>patch.op==='set'&&patch.path.length===1&&typeof patch.path[0]==='string'&&!Object.hasOwn(control.workflow?.working||{},patch.path[0]));},
   requiresDelete(control,command){
    if(command.action==='restore')return true;
    if(command.moduleAction==='save-local-v1'&&Array.isArray(command.input?.batches))for(const batch of command.input.batches as {patches:DraftPatch[];guards:{path:DraftPath;value:unknown}[]}[]){
@@ -82,7 +85,7 @@ export function masterWorkflowAdapter(scope:string,options:{legacyArchive?:boole
     // Do not leak names/IDs/paths from modules this actor cannot view.
     throw new DraftConflict('CATALOG_IN_USE',409,visibleCatalogReferences(impact,cells));
    };
-   const stages=new Set(['AB','C'].flatMap(s=>rows(master.active[s]?.lines||[]).flatMap(l=>rows(l.stages).map(s=>str(s.code)))));
+   const stages=new Set((['AB','C'] as const).flatMap(s=>rows(((master as Root&{pageDraftLayout?:string}).pageDraftLayout==='page-v1'?approvedMasterPageCatalog(master,s).content:master.active[s])?.lines||[]).flatMap(l=>rows(l.stages).map(s=>str(s.code)))));
    return{...base,activeId:control.activeVersionId,
     semantic(content){const strip=(v:unknown):unknown=>Array.isArray(v)?v.map(strip):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).filter(([k])=>k!=='id').map(([k,x])=>[k,strip(x)])):v;return scope==='PROCESS'?content:strip(content);},
     structure(content,previous){
@@ -113,7 +116,7 @@ export function masterWorkflowAdapter(scope:string,options:{legacyArchive?:boole
        throw new DraftConflict('LINE_HAS_STAGES',409);
       const removed=removedMasterStages(previous,content),impact=stageReferences(state.values,removed,previous,root);
       if(impact.total)throw new DraftConflict('STAGE_IN_USE',409,impact);
-      assertStageTemplateAvailable(master,previous,content);
+      if(!options.independentTopology)assertStageTemplateAvailable(master,previous,content);
       const products=rows(content.products),lines=rows(content.lines),categories=rows(content.categoryGroups);unique(products);unique(products,'code');unique(lines);const lineCodes=unique(lines,'code');unique(categories);
       // Match the existing line/stage form rules for new or changed fields.
       // Untouched legacy identifiers/names remain readable and are not migrated.
@@ -164,7 +167,7 @@ export function masterWorkflowAdapter(scope:string,options:{legacyArchive?:boole
       for(const stage of stages){const templates=rows(content[stage]||[]);if(presets.some(key=>!templates.some(t=>t.presetKey===key)))issues.push({kind:'missing',path:[stage],message:'REQUIRED_PROCESS_PRESETS_MISSING'});for(const template of templates){if(!str(template.name).trim())issues.push({kind:'missing',path:[stage,{id:template.id},'name'],message:'NAME_REQUIRED'});for(const e of rows(template.equipment||[]))if(!str(e.name).trim())issues.push({kind:'missing',path:[stage,{id:template.id},'equipment',{id:e.id},'name'],message:'NAME_REQUIRED'});}}
      }else{
       checkReferences(master.active[scope],content);
-      assertStageTemplateAvailable(master,master.active[scope],content,control.workflow?.pendingId||undefined);
+      if(!options.independentTopology)assertStageTemplateAvailable(master,master.active[scope],content,control.workflow?.pendingId||undefined);
       for(const product of rows(content.products))if(!str(product.name).trim()||!rows(content.lines).some(l=>l.code===product.line)||!Array.isArray(product.stages)||!product.stages.length)issues.push({kind:'missing',path:['products',{id:product.id}],message:'PRODUCT_NAME_ROUTE_REQUIRED'});
       // Only necessary topology changes are linked. PROCESS drafts/pending and
       // another linked case remain authoritative locks, never automatically cleared.
@@ -174,6 +177,8 @@ export function masterWorkflowAdapter(scope:string,options:{legacyArchive?:boole
    };
   },
   apply:function applyMaster(control,command,context){
+   // Route authorization precedes this module invariant; old committed receipts remain replayable.
+   if(scope==='PROCESS'&&command.action==='restore'&&!control.workflow?.receipts[command.operationId])throw new DraftConflict('APPROVED_HISTORY_READ_ONLY',409);
    const original=control.workflow!;
    if(command.action==='save'&&command.moduleAction==='save-local-v1'){
     if(original.receipts[command.operationId])return applyDraftCommand(original,command,context);
@@ -199,7 +204,8 @@ export function masterWorkflowAdapter(scope:string,options:{legacyArchive?:boole
    if(command.moduleAction&&(scope!=='PROCESS'||command.moduleAction==='save-local-v1'))throw new DraftConflict('INVALID_MODULE_ACTION',422);
    checkEnteredFields=command.action==='apply';if(command.action==='apply')for(const p of command.patches||[]){
    const path=p.path,first=path[0],field=path.at(-1);if(typeof first!=='string'||scope!=='PROCESS'&&!['products','lines','categoryGroups'].includes(first))throw new DraftConflict('INVALID_COLLECTION',422);
-   if(p.op==='set'&&(path.length<3||typeof path[1]!=='object'))throw new DraftConflict('COLLECTION_REPLACEMENT_FORBIDDEN',422);
+   const newStage=scope==='PROCESS'&&p.op==='set'&&path.length===1&&!Object.hasOwn(control.workflow!.working,first)&&Array.isArray(p.value);
+   if(p.op==='set'&&!newStage&&(path.length<3||typeof path[1]!=='object'))throw new DraftConflict('COLLECTION_REPLACEMENT_FORBIDDEN',422);
    if(p.op==='set'&&(first==='lines'&&path.length===3&&field==='stages'||scope==='PROCESS'&&field==='equipment'))throw new DraftConflict('COLLECTION_REPLACEMENT_FORBIDDEN',422);
    if(p.op==='remove'&&(path.length<2||typeof field!=='object'))throw new DraftConflict('ENTITY_REMOVAL_REQUIRED',422);
    if(p.op==='set'&&(typeof field!=='string'||['id','presetKey','presetVersion'].includes(field)))throw new DraftConflict('IMMUTABLE_IDENTITY',422);
@@ -209,7 +215,7 @@ export function masterWorkflowAdapter(scope:string,options:{legacyArchive?:boole
     if(!allowed.includes(str(field))||first!=='lines'&&path.length!==3||first==='lines'&&path.length!==3&&!(path.length===5&&path[2]==='stages'&&typeof path[3]==='object'))throw new DraftConflict('UNSUPPORTED_CATALOG_PATCH',422);
    }
    // Every existing-field update must retain its original value as a dependency guard.
-   if(!control.workflow!.receipts[command.operationId]&&p.op!=='insert'&&!(command.guards||[]).some(g=>stableDraftJSON(g.path)===stableDraftJSON(path)))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
+   if(!control.workflow!.receipts[command.operationId]&&p.op!=='insert'&&!(command.guards||[]).some(g=>stableDraftJSON(g.path)===stableDraftJSON(path)||newStage&&g.path.length===0&&sameDraftValue(g.value,control.workflow!.working)))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
   }
    if(scope==='PROCESS')assertProcessLinkAvailable(root);
    const flow=control.workflow!,already=flow.receipts[command.operationId];

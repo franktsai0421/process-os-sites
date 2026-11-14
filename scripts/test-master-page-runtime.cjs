@@ -60,15 +60,16 @@ if(require.main===module)(async()=>{
     assert.equal(final.retainedExtension.original,true);
    }finally{f.close();}
   });
-  await check((record?'records':'inline')+' full topology uses one union PROCESS link and one CAS approval',async()=>{
+  await check((record?'records':'inline')+' full topology approves only LINES and preserves PROCESS baseline/workflow/history',async()=>{
    const f=await fixture(record);try {
     let c=await f.begin('LINES');const batches=['AB','C'].map(part=>{const code=part==='AB'?'A':'C',path=[part,'lines',{id:'line-'+code},'stages'];return{patches:[{op:'insert',path,value:{id:'new-'+code,code:code+'-2',name:'New '+code}}],guards:[]};});
     let r=await f.send('LINES',{command:f.save(c,batches)});assert.equal(r.status,200,JSON.stringify(r));c=r.body.control;
     r=await f.send('LINES',{command:f.command(c,'submit',{expectedRevision:c.workflow.revision,savedId:c.workflow.saved.id,reason:'Synthetic union'})});assert.equal(r.status,200,JSON.stringify(r));c=r.body.control;
-    const before=await f.readRoot(),pending=before.workflowScopes.LINES.cases.at(-1),link=pending.linkedProcess;
-    assert.deepEqual([...link.added].sort((a,b)=>a.localeCompare(b)),['A-2','C-2']);assert(link.content['A-2']);assert(link.content['C-2']);assert.equal(before.active.PROCESS['A-2'],undefined);
+    const before=await f.readRoot(),pending=before.workflowScopes.LINES.cases.at(-1);
+    assert.equal(pending.linkedProcess,undefined);assert.equal(before.active.PROCESS['A-2'],undefined);
     r=await f.send('LINES',{command:f.command(c,'approve',{caseId:c.workflow.pendingId,reason:'Approve union'})},'reviewer');assert.equal(r.status,200,JSON.stringify(r));const after=await f.readRoot();
-    assert(after.active.PROCESS['A-2']);assert(after.active.PROCESS['C-2']);assert.equal(after.versions.filter(v=>v.id===pending.id+'-PROCESS').length,1);
+    assert(after.active.LINES.AB.lines[0].stages.some(stage=>stage.code==='A-2'));assert(after.active.LINES.C.lines[0].stages.some(stage=>stage.code==='C-2'));
+    assert.deepEqual(after.active.PROCESS,before.active.PROCESS);assert.deepEqual(after.workflowScopes.PROCESS,before.workflowScopes.PROCESS);assert.deepEqual(after.versions.filter(v=>v.scope==='PROCESS'),before.versions.filter(v=>v.scope==='PROCESS'));assert.equal(after.versions.filter(v=>v.id===pending.id+'-PROCESS').length,0);
    }finally{f.close();}
   });
  }

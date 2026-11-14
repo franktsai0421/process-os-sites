@@ -1,0 +1,418 @@
+{
+  "environment": "Dot cloud Node 24; actual handlers; isolated SQLite :memory: / Map R2 / signed synthetic accounts",
+  "base": "ba315149e7478c288d2f3af45c8668aa60070919",
+  "runtimeCommit": "b7dd4badc5465fe5c8112ec58e21695236733489",
+  "runtimeAfterEvidence": "Final guarded build and 243 source-lineage/negative controls PASS on b7dd4ba; only acceptance documentation changes follow.",
+  "runs": [
+    {
+      "name": "final bounded-read runtime exact source/inverse/negative controls",
+      "status": "PASS",
+      "tests": 243,
+      "head": "b7dd4badc5465fe5c8112ec58e21695236733489",
+      "log": "/tmp/lines-flow-source-upload.log"
+    },
+    {
+      "name": "both real controllers one comparison GET + one mutation POST; conflicts retain second fresh read; actual PROCESS creation button",
+      "status": "PASS",
+      "tests": 14,
+      "log": "/tmp/lines-flow-single-read.log"
+    },
+    {
+      "name": "final runtime guarded build and auth postbuild",
+      "status": "PASS",
+      "head": "b7dd4badc5465fe5c8112ec58e21695236733489",
+      "log": "/tmp/lines-flow-build-upload.log"
+    },
+    {
+      "name": "exact source/inverse/negative-control lineage",
+      "status": "PASS",
+      "tests": 242,
+      "log": "/tmp/lines-flow-source-final3.log"
+    },
+    {
+      "name": "receipt/history/dialog/navigation focused final",
+      "status": "PASS",
+      "tests": 122,
+      "log": "/tmp/lines-flow-targeted-final.log"
+    },
+    {
+      "name": "final source/cache/receipt pins after native runner update",
+      "status": "PASS",
+      "tests": 71,
+      "log": "/tmp/lines-flow-final-pin-retest.log"
+    },
+    {
+      "name": "PROCESS grouped choices, distinct signed actors, deadline and actual initialization button",
+      "status": "PASS",
+      "tests": 11,
+      "log": "/tmp/lines-flow-process-conflicts-final.log"
+    },
+    {
+      "name": "25 related route/compatibility commands",
+      "status": "PASS_AFTER_TARGETED_FIXES",
+      "commands": [
+        {
+          "command": "node scripts/test-master-page-runtime.cjs",
+          "exit": 0,
+          "seconds": 6.59
+        },
+        {
+          "command": "node scripts/test-master-page-ui.cjs",
+          "exit": 0,
+          "seconds": 1.64
+        },
+        {
+          "command": "node scripts/test-process-page-lifecycle.cjs",
+          "exit": 0,
+          "seconds": 3.71
+        },
+        {
+          "command": "node scripts/test-process-page-roles.cjs",
+          "exit": 0,
+          "seconds": 2.58
+        },
+        {
+          "command": "node scripts/test-lines-flow-boundaries.cjs",
+          "exit": 0,
+          "seconds": 3.8
+        },
+        {
+          "command": "node scripts/test-master-page-review-regressions.cjs",
+          "exit": 0,
+          "seconds": 6.17
+        },
+        {
+          "command": "node scripts/test-master-page-boundary.cjs",
+          "exit": 0,
+          "seconds": 0.8
+        },
+        {
+          "command": "node scripts/test-master-page-name-save.cjs",
+          "exit": 0,
+          "seconds": 0.4
+        },
+        {
+          "command": "node scripts/test-master-public-page-authority.cjs",
+          "exit": 0,
+          "seconds": 4.34
+        },
+        {
+          "command": "node scripts/test-master-page-tools-ui.cjs",
+          "exit": 0,
+          "seconds": 3.8
+        },
+        {
+          "command": "node scripts/test-master-page-transfer.cjs",
+          "exit": 0,
+          "seconds": 0.31
+        },
+        {
+          "command": "node scripts/test-master-page-excel.cjs",
+          "exit": 0,
+          "seconds": 0.19
+        },
+        {
+          "command": "node scripts/test-master-workflow-v3.cjs",
+          "exit": 0,
+          "seconds": 1.19
+        },
+        {
+          "command": "node scripts/test-master-stage-link-v3.cjs",
+          "exit": 0,
+          "seconds": 2.27
+        },
+        {
+          "command": "node scripts/test-master-product-route-mode.cjs",
+          "exit": 0,
+          "seconds": 6.31
+        },
+        {
+          "command": "node scripts/test-master-field-guards.cjs",
+          "exit": 0,
+          "seconds": 5.59
+        },
+        {
+          "command": "node scripts/test-master-legacy-format-retention.cjs",
+          "exit": 0,
+          "seconds": 4.42
+        },
+        {
+          "command": "node scripts/test-lines-cloud-api.cjs",
+          "exit": 0,
+          "seconds": 0.89
+        },
+        {
+          "command": "node scripts/test-lines-legacy-api.cjs",
+          "exit": 0,
+          "seconds": 1.06
+        },
+        {
+          "command": "node scripts/test-process-master-name-guards.cjs",
+          "exit": 1,
+          "seconds": 5.02
+        },
+        {
+          "command": "node scripts/test-master-read-projection.cjs",
+          "exit": 1,
+          "seconds": 0.33
+        },
+        {
+          "command": "node scripts/test-master-prepared-model.cjs",
+          "exit": 0,
+          "seconds": 7.62
+        },
+        {
+          "command": "node scripts/test-master-references-prepared.cjs",
+          "exit": 0,
+          "seconds": 1.02
+        },
+        {
+          "command": "node scripts/test-master-active-catalog.cjs",
+          "exit": 0,
+          "seconds": 3.17
+        },
+        {
+          "command": "node scripts/test-unified-master-review.cjs",
+          "exit": 0,
+          "seconds": 0.13
+        }
+      ],
+      "resolved": [
+        "test-process-master-name-guards.cjs PASS 27 groups after loading actual processMasterText",
+        "test-master-read-projection.cjs PASS with checked transition and session marker ports; no original assertion removed"
+      ]
+    },
+    {
+      "name": "full lint / nonincremental TypeScript",
+      "status": "PASS"
+    },
+    {
+      "name": "guarded build, auth postbuild and source boundary",
+      "status": "PASS",
+      "log": "/tmp/lines-flow-build-final.log"
+    },
+    {
+      "name": "source-only full history and worktree preflight",
+      "status": "PASS",
+      "head": "bc3ada6e0edfe242195be3ead5dda6c3082a4a3b",
+      "commits": 735,
+      "uniqueBlobs": 6640,
+      "workingFiles": 2265,
+      "followup": "final-head preflight follows before push"
+    },
+    {
+      "name": "local native Chromium",
+      "status": "BLOCKED",
+      "reason": "Chromium process_singleton socket() EPERM before page creation; no local retry/flag workaround",
+      "remote": "same module runner plus existing compiled PROCESS runner in GitHub CI"
+    },
+    {
+      "name": "live Site, real data/cutover, physical phone, real IME, cross-machine and deployment",
+      "status": "NOT_RUN"
+    }
+  ],
+  "interpretation": "Suites overlap; counts are not combined into coverage. Original failures/logs retained; scoped fixes and final retests are separate. No live-data or backup operation.",
+  "latestMain": "a85caf5a8f14770b02481f52f96e0ec1364458d3",
+  "latestMergedRuntime": "3ad1f55",
+  "publicationAttempt": {
+    "gitPush": "not executed: no HTTPS credential",
+    "oldTree": "4690514624d345bae43cc295efa4e7f0f63fe198",
+    "createTree": "aborted, exact expected tree and branch subsequently returned 404; not resent",
+    "latestMain": "#112 merged while interrupted; semantically merged before new publication candidate",
+    "smallerObjectPlan": "verified blob SHAs, small SHA-only tree, exact tree readback, one new draft PR"
+  },
+  "approvalRefreshFollowup": {
+    "status": "PASS_LOCAL_PENDING_FINAL_CI",
+    "masterDataBlob": "3517a1a1095d089e95da232466b2fc5b75c188b9",
+    "checks": [
+      "production applyActive with LINES-only owner preserves approved runtime products and refreshes canvas routing",
+      "genuine a85caf5 applyActive counterexample crashes on missing product array",
+      "catalog-only owner retains admitted approved topology",
+      "actual LINES approve button + signed route + real shared bridge + production applyActive; four original operations, zero extra POST, no PROCESS publication"
+    ],
+    "controllerCases": 4,
+    "productionProjectionChecks": 9,
+    "logs": [
+      "/tmp/lines-flow-approve-refresh-controller.log",
+      "/tmp/lines-flow-approved-refresh-fix.log"
+    ],
+    "cacheTag": "20261113-lines-flow4",
+    "finalRemoteHeadAndCI": "See PR #115 final evidence; earlier head PASS is not final-head acceptance",
+    "formatFollowup": "Only one mixed CRLF continuation normalized; complete LF-normalized runtime bytes unchanged."
+  },
+  "masterDeadlineTestFollowup": {
+    "status": "PASS_LOCAL_PENDING_FINAL_CI",
+    "runtimeUnchangedFrom": "20ca6c2e3c2ad64c4a27e7fed0f474f564c133cd",
+    "file": "tests/fqc-apply-reliability.test.mjs",
+    "passed": 47,
+    "log": "/tmp/lines-flow-fqc-deadline-fix.log",
+    "changes": [
+      "bounded PROCESS expected deadline 15000 -> required 45000",
+      "add default PROCESS and independent LINES exact 45000 cases"
+    ],
+    "preserved": [
+      "generic FQC and similar path remain 15000",
+      "FQC and IQC remain bounded 45000",
+      "no receipt before exact deadline",
+      "one original POST and one receipt GET",
+      "RESULT_UNKNOWN and original unknown marker retained"
+    ],
+    "previousWideCI": {
+      "run": 43491157259,
+      "passed": 1136,
+      "failed": 1,
+      "reason": "outdated PROCESS 15s expectation"
+    },
+    "finalCI": "See final PR #115 evidence"
+  },
+  "restoreAuthorizationFollowup": {
+    "status": "PASS_LOCAL_PENDING_FINAL_CI",
+    "priorWindowsRun": 43493755953,
+    "failure": "PROCESS readonly guard preceded original 403 restore permission gate",
+    "fix": "Move PROCESS new-restore invariant into adapter apply after existing route authorization; leave shared authorization framework unchanged",
+    "masterWorkflowBlob": "82bccdc679e7f5855d5e4aba051d4b7c27f6e36f",
+    "log": "/tmp/lines-flow-restore-auth-fix.log",
+    "actualAdapters": 10,
+    "preserved": [
+      "original no-grant 403 and full state unchanged",
+      "other nine adapters authorized restore 200 and effects assertions",
+      "PROCESS authorized and primary new restore 409 readonly and full state unchanged",
+      "trusted legacy committed PROCESS receipt 200 exact replay and full state unchanged"
+    ],
+    "realDataWrites": 0,
+    "finalCI": "See final PR #115 head evidence",
+    "localTargetedRegression": 147,
+    "lint": "PASS",
+    "fullNonIncrementalTypeScript": "PASS"
+  },
+  "nativeAcceptanceBoundary": {
+    "LINES": "current controller and actual signed routes in isolated native module harness; not adopted full SPA entry or live Site",
+    "PROCESS": "compiled full SPA with synthetic signed accounts/data",
+    "requiredAfterAuthorizedTestDeploymentAndDataDecision": [
+      "LINES full new-architecture entry",
+      "independent draft Save and reload",
+      "Submit Withdraw Resubmit Approve",
+      "PROCESS approved-only references and canvas refresh"
+    ],
+    "liveSiteAccepted": false
+  },
+  "failedWindowsStepLocalRerun": {
+    "workflowStep": "Integrated entry and read-only delivery contracts",
+    "originalCommands": 145,
+    "passedCommands": 138,
+    "notRunNativeCommands": 6,
+    "blockedWindowsPowerShellCommands": 1,
+    "functionalFailures": 0,
+    "nativeNotRun": [
+      [
+        "node",
+        "scripts/test-tooling-local-browser.cjs"
+      ],
+      [
+        "node",
+        "--test",
+        "tests/workflow-begin-contract.test.cjs",
+        "tests/workflow-begin-receipt.test.cjs",
+        "tests/shared-draft-begin-v1.test.mjs",
+        "tests/module-begin-recovery.test.mjs",
+        "tests/iqc-begin-generation.test.mjs"
+      ],
+      [
+        "node",
+        "scripts/test-quality-begin-generation-browser.cjs"
+      ],
+      [
+        "node",
+        "scripts/test-ipqc-ab-ack-deny.cjs"
+      ],
+      [
+        "node",
+        "scripts/test-iqc-content-issues.cjs"
+      ],
+      [
+        "node",
+        "scripts/test-iqc-number-hint.cjs"
+      ]
+    ],
+    "windowsOnly": [
+      [
+        "node",
+        "--test",
+        "tests/ab-c-route-reference.test.mjs",
+        "tests/master-bridge-ownership.test.mjs",
+        "tests/login-intent.test.mjs",
+        "tests/delivery-read-plan.test.mjs",
+        "tests/process-bootstrap.test.mjs",
+        "tests/integrated-bootstrap-client.test.mjs",
+        "tests/player-intent.test.mjs",
+        "tests/destination-delivery.test.mjs",
+        "tests/delivery-navigation.test.mjs",
+        "tests/navigation-lifecycle.test.mjs",
+        "tests/navigation-adapters.test.mjs",
+        "tests/destination-transaction.test.mjs",
+        "tests/bounded-media-loading.test.mjs",
+        "tests/shared-draft-no-change.test.mjs",
+        "tests/ci-integrated-exit.test.mjs"
+      ]
+    ],
+    "qualification": "Dot Linux lacks native socket/browser capability and powershell.exe. The Windows-only group still had 227 other cases PASS; no CI tests were skipped or weakened. Final full CI remains required.",
+    "results": "/tmp/lines-flow-integrated-step-results.json",
+    "log": "/tmp/lines-flow-integrated-step-full.log"
+  },
+  "jointMain114Integration": {
+    "date": "2026-11-14",
+    "main": "4aa0f24c66861fb735d6ad581b81b190771122f8",
+    "linesParent": "4ec19c40d04fb389d6c6329a7aa2c31341176802",
+    "originalManifests": "unchanged; exact byte comparison against genuine parent objects",
+    "proof": "scripts/lines-flow-joint-source-contract.json",
+    "finalCI": "pending; see latest #115 evidence for final candidate",
+    "liveAcceptance": "NOT_RUN; delegated v45 checkpoint is historical; another main publication is outside this task. Existing Diem V31 withdrawal/two IPQC QA outcomes remain UNKNOWN and untouched",
+    "noLiveDataOrDeployment": true,
+    "local": {
+      "sourceCacheNavigationReceipts": "403/403 PASS",
+      "functionalWithoutPassword": "139/139 PASS",
+      "passwordWithOriginalVMFlag": "37/37 PASS",
+      "pageRouteCommands": "7/7 PASS",
+      "lint": "PASS",
+      "typecheckNonIncremental": "PASS",
+      "guardedBuildAuthPostbuild": "PASS",
+      "broad145Commands": {
+        "PASS": 138,
+        "NOT_RUN_NATIVE_ENVIRONMENT": 6,
+        "BLOCKED_WINDOWS_POWERSHELL": 1,
+        "remainingCasesInWindowsMixedGroup": "227 PASS",
+        "originalCICommandsAndExitGuard": "unchanged"
+      },
+      "passwordInitialFailure": "36 fixture load failures from omitted --experimental-vm-modules; correct existing flag, no test edits",
+      "broadInitialDenial": "not executed; once retried after exact committed CI command allowlist and side-effect inspection; retry approved"
+    }
+  },
+  "masterExplicitWaitCorrection": {
+    "date": "2026-11-14",
+    "predecessor": "729bcf9103af3795f12579ffabc0ae3c0765377c",
+    "cause": "Installed LINES/PROCESS request timer and PROCESS references AbortSignal actively aborted headers/body at 45s",
+    "policy": "No fixed elapsed-time abort for installed canonical two-page clients; explicit stop/read-only or original-receipt recovery; other scopes unchanged",
+    "safety": [
+      "original operation/generation/marker retained",
+      "CAS and permissions unchanged",
+      "404/malformed generation/tampered marker cannot settle",
+      "no auto recovery after explicit stop; no replay",
+      "late ACK and navigation fenced",
+      "stale account projection transfer only with same marker and no other pending work"
+    ],
+    "nativeLocal": "BLOCKED_SOCKET_EPERM; no flags or retry bypass",
+    "nativeCI": "pending new head; same PR",
+    "activationLimits": [
+      "LINES without trusted page-v1 stays approved readonly",
+      "legacy linkedProcess case must be withdrawn/returned and independently resubmitted by authorized operator; not done here"
+    ],
+    "platformLimits": "frontend 45s removed; no measured claim about hosting/browser/network limits; interruptions remain unavailable or UNKNOWN",
+    "tests": "tests/lines-flow-wait.test.mjs; original shared transport, page lifecycle and native suites retained",
+    "timerAudit": {
+      "old": "67545b2b061244bdbc6ff9706e5f624a141551ead45695f13ba08a2216a7426e",
+      "new": "338acf2d7f36e8e1481bdc044621f3e229422771a80d8351e1a9b3f00c43266e",
+      "scope": "one reviewed pure UI callback only; all other timer hashes unchanged; strict deep-equal and original source negatives kept",
+      "sourceAndNoBackgroundRetest": "248/248 PASS"
+    }
+  }
+}

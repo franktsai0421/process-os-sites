@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),ts=require('typescript');
 const {DatabaseSync}=require('node:sqlite'),{randomUUID}=require('node:crypto'),harness=require('./ipqc-ab-import-harness.cjs'),master=require('./v3-master-permission-fixture.cjs');
 process.chdir(path.resolve(__dirname,'..'));
-const app=fs.readFileSync('public/process/app.js','utf8'),ast=ts.createSourceFile('app.js',app,ts.ScriptTarget.ES2022,true,ts.ScriptKind.JS),names=['processMasterTemplateKey','processMasterCatalogMatches','bindProcessMasterName','flushProcessMasterNames','saveProcessMasterDraft','submitProcessMasterDraft','repaintProcessMasterPage'];
+const app=fs.readFileSync('public/process/app.js','utf8'),ast=ts.createSourceFile('app.js',app,ts.ScriptTarget.ES2022,true,ts.ScriptKind.JS),names=['processMasterText','processMasterTemplateKey','processMasterCatalogMatches','bindProcessMasterName','flushProcessMasterNames','saveProcessMasterDraft','submitProcessMasterDraft','repaintProcessMasterPage'];
 const functions=names.map(name=>{const node=ast.statements.find(s=>ts.isFunctionDeclaration(s)&&s.name?.text===name);assert(node,'actual function '+name);return node.getText(ast);}).join('\n');
 assert.match(app,/document\.querySelectorAll\('\[data-master-name\]'\)\.forEach\(bindProcessMasterName\)/);
 const defer=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{promise,resolve};};
