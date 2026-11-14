@@ -1,3 +1,7 @@
+## 2026-11-14 — IPQC 關聯呈現，無資料遷移
+
+既有 source／scope／itemId 定位關聯，sourceVersionId 保留來源版本，C productCodes 保留適用產品。UI 新增 retained 顯示狀態及即時計算警示；不新增保存欄位、不重寫歷史、不自動升版。無 SQL、schema、R2 格式、權限或來源資料異動。[驗證與界線](../docs/acceptance/process-ipqc-assignment-consistency-20261114.md)。
+
 ## 2026-11-14 — IPQC assignment 規則候選
 
 沿用 operation.ipqcAssignments 的 source／scope／itemId／sourceVersionId／productCodes tuple 與原工作草稿／immutable Save／CAS，不新增 SQL、儲存鍵、migration 或批次資料改寫。A/B productCodes 為來源參考，不再作選取資格或缺項／來源變更判定；C 仍驗證單產品身分。C 占用驗證跨同工段所有工作區，包含既有不再適用的歷史引用。舊 ipqcQueryEnabled 保留、無自動勾選。見[變更及驗收](../docs/acceptance/process-ipqc-link-rules-20261114.md)。

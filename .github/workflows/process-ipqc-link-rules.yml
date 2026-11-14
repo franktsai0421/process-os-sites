@@ -8,6 +8,7 @@ on:
       - 'public/process/index.html'
       - 'tests/process-ipqc*'
       - 'scripts/process-ipqc-link-*'
+      - 'scripts/entry-performance/ipqc-index-semantics.cjs'
       - 'scripts/password-outcome-source-contract.cjs'
       - '.github/workflows/process-ipqc-link-rules.yml'
 permissions:
@@ -37,9 +38,11 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - name: Exact source inverse and negative controls
-        run: node --test tests/process-ipqc-link-source.test.cjs tests/lines-flow-joint-source.test.cjs tests/lines-flow-source.test.cjs tests/ipqc-save-recovery-source.test.cjs tests/navigation-adapters.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/account-password-source.test.cjs
+        run: node --test tests/process-ipqc-assignment-source.test.cjs tests/process-ipqc-link-source.test.cjs tests/lines-flow-joint-source.test.cjs tests/lines-flow-source.test.cjs tests/ipqc-save-recovery-source.test.cjs tests/navigation-adapters.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/account-password-source.test.cjs
+      - name: Actual retention renderer, historical first-match and handler guards
+        run: node scripts/entry-performance/ipqc-index-semantics.cjs
       - name: New source lifecycle, product/scope, races and saved release
-        run: node --test tests/process-ipqc-link-rules.test.cjs tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-source-history-route.test.mjs tests/process-canvas-atomic-save-stack.test.mjs tests/canvas-pending-form-admission.test.mjs
+        run: node --test tests/process-ipqc-assignment-state.test.mjs tests/process-ipqc-link-rules.test.cjs tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-source-history-route.test.mjs tests/process-canvas-atomic-save-stack.test.mjs tests/canvas-pending-form-admission.test.mjs
       - name: Actual validator paired decode and merged approved-page import binding
         run: node scripts/test-authoring-ipqc-assignment-reuse.cjs
       - name: Exact historical read reuse with explicit AB completeness delta
@@ -68,3 +71,24 @@ jobs:
           name: process-ipqc-link-ui-${{ github.event.pull_request.head.sha }}
           path: ipqc-link-ui-evidence
           if-no-files-found: error
+
+  retention-windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Original Integrated entry retention command on Windows
+        run: node scripts/entry-performance/ipqc-index-semantics.cjs
+      - name: Existing LF/CRLF source boundary controls
+        run: node scripts/entry-performance/source-eol.test.cjs
+      - name: Actual full controller retained-link state
+        run: node --test tests/process-ipqc-assignment-state.test.mjs

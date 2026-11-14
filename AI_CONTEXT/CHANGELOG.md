@@ -1,3 +1,11 @@
+## 2026-11-14 — Windows IPQC retention 載具接線
+
+第31步舊 stale regex 在候選0筆匹配，改為執行現行完整警示函式；保留歷史 first-match／collision／checkbox guard 與零請求，補來源接線／語意負例和 LF/CRLF。同一原命令提早在 Linux／Windows 執行，原全套 gates 不變，產品程式及資料未改。[根因與界線](../docs/acceptance/process-ipqc-assignment-consistency-20261114.md#windows-integrated-entry-載具相容修正)。
+
+## 2026-11-14 — 製程 IPQC 舊關聯與現行選取一致性
+
+修正 A/B/C 同 ID 舊來源顯示綠色已選取、及明確重選後警示未更新的歧義；保留真失效、歷史及重複占用防護。獨立 main8bfc036 分支，只有隔離 fixture。[根因與驗證](../docs/acceptance/process-ipqc-assignment-consistency-20261114.md)。未合併、部署或操作真站資料。
+
 ## 2026-11-14 — Process IPQC link-rule candidate
 
 A/B choices/validation/completeness/source comparisons no longer use operation products or product routes. C editor now selects and saves item references, with product/error grouping and explicit stale-reference handling. Backend checks cross-workspace C occupancy and saved-release transfer under existing CAS. [Generated lifecycle evidence and limits](../docs/acceptance/process-ipqc-link-rules-20261114.md). No live-data rewrite, migration, merge or deployment.

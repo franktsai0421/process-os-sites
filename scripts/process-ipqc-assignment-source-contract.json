@@ -1,0 +1,695 @@
+{
+  "base": "8bfc03679b0e53889c604e110ad843a2fc7b3ae5",
+  "files": {
+    "public/process/process-ipqc.js": {
+      "beforeBlob": "6bbb064f89e73c3df9174c9359cb282fcded529b",
+      "beforeHash": "84e3db7a74f9bf14ce5d749c8fbb8ef5ee6125639c065e5133e62dfee0e32b03",
+      "beforeNormalizedHash": "23697119c7bbcfaf2db74568e3b66e7a6096f28b4abd46b0259e4d3c4ac990e8",
+      "beforeLength": 40867,
+      "beforeCRLF": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        27,
+        29,
+        32,
+        35,
+        36,
+        37,
+        47,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        62,
+        63,
+        64,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191,
+        192,
+        193,
+        194,
+        195,
+        196,
+        197,
+        198,
+        199,
+        200,
+        201,
+        202,
+        203,
+        204,
+        205,
+        206,
+        207,
+        208,
+        209,
+        210
+      ],
+      "afterHash": "0625b82cc2752c349ddb2521515006957ff9a30362c8c24299d50c8bfb9b65c3",
+      "afterLength": 43601,
+      "rules": [
+        {
+          "offset": 401,
+          "before": "  const statusText=status=>({selected:text('Đã chọn ở bước này','本方塊已選取'),occupied:text('Đang dùng ở bước khác','其他方塊使用中'),available:text('Chưa phân công','尚未分配')})[status];\n  const statusOf=(c,op,owners)=>(op.ipqcAssignments||[]).some(a=>key(a)===key(c))?'selected':owners.get(key(c))&&owners.get(key(c)).id!==op.id?'occupied':'available';\n  const badge=status=>`<span class=\"process-ipqc-badge ${status}\"><i aria-hidden=\"true\">${status==='selected'?'✓':status==='occupied'?'↗':'○'}</i>${h(statusText(status))}</span>`;\n",
+          "after": "  const statusText=status=>({selected:text('Đã chọn ở bước này','本方塊已選取'),retained:text('Giữ liên kết cũ · cần xác nhận','保留舊關聯・待確認'),occupied:text('Đang dùng ở bước khác','其他方塊使用中'),available:text('Chưa phân công','尚未分配')})[status];\n  // Identity owns the checkbox; the pinned version/C products determine whether\n  // it is current. Keep historical ownership without calling it current selection.\n  const referenceReasons=(a,c)=>!c?['unavailable']:[...(a.sourceVersionId!==c.sourceVersionId?['version']:[]),...(a.source==='C'&&JSON.stringify([...a.productCodes].sort((a,b)=>a.localeCompare(b)))!==JSON.stringify([...c.productCodes].sort((a,b)=>a.localeCompare(b)))?['products']:[])];\n  const statusOf=(c,op,owners)=>{const a=(op.ipqcAssignments||[]).find(a=>key(a)===key(c));return a?referenceReasons(a,c).length?'retained':'selected':owners.get(key(c))&&owners.get(key(c)).id!==op.id?'occupied':'available';};\n  const badge=status=>`<span class=\"process-ipqc-badge ${status}\"><i aria-hidden=\"true\">${status==='selected'?'✓':status==='retained'?'!':status==='occupied'?'↗':'○'}</i>${h(statusText(status))}</span>`;\n"
+        },
+        {
+          "offset": 1661,
+          "before": "    for(const status of ['selected','occupied','available']){const count=choices.filter(c=>statusOf(c,op,owners)===status).length;panel.querySelector(`[data-ipqc-count=\"${status}\"]`).textContent=count;}\n    for(const group of panel.querySelectorAll('.process-ipqc-group')){const inputs=[...group.querySelectorAll('[data-ipqc-choice]')],used=inputs.filter(i=>i.checked||i.disabled&&i.closest('article').dataset.status==='occupied').length;group.querySelector('[data-ipqc-progress]').textContent=text(`${used}/${inputs.length} đã phân công`,`${used}/${inputs.length} 已分配`);group.dataset.complete=String(used===inputs.length);}\n",
+          "after": "    const byKey=new Map(choices.map(c=>[key(c),c]));\n    for(const status of ['selected','retained','occupied','available']){const count=status==='retained'?(op.ipqcAssignments||[]).filter(a=>referenceReasons(a,byKey.get(key(a))).length).length:choices.filter(c=>statusOf(c,op,owners)===status).length;panel.querySelector(`[data-ipqc-count=\"${status}\"]`).textContent=count;}\n    for(const group of panel.querySelectorAll('.process-ipqc-group')){const inputs=[...group.querySelectorAll('[data-ipqc-choice]')],used=inputs.filter(i=>['selected','occupied'].includes(i.closest('article').dataset.status)).length,retained=inputs.filter(i=>i.closest('article').dataset.status==='retained').length;group.querySelector('[data-ipqc-progress]').textContent=text(`${used}/${inputs.length} đã phân công${retained?` · ${retained} cần xác nhận`:''}`,`${used}/${inputs.length} 已分配${retained?` · ${retained} 待確認`:''}`);group.dataset.complete=String(used===inputs.length);}\n  }\n  function renderAssignmentWarnings(panel,op,byKey,editor,valid){\n    const warnings=panel.querySelector('[data-ipqc-warnings]');\n    warnings.innerHTML=(op.ipqcAssignments||[]).map(a=>{const c=byKey.get(key(a)),reasons=referenceReasons(a,c);if(!reasons.length)return '';\n      const descriptions={unavailable:['Không còn trong nguồn được duyệt phù hợp với chuyền / nhóm / công đoạn / sản phẩm hiện tại','現行核准來源已無符合線別／類別／工段／產品的項目'],version:['Phiên bản nguồn được duyệt đã cập nhật','核准來源版本已更新'],products:['Sản phẩm của liên kết khác với nguồn hiện hành','關聯適用產品與現行來源不同']};\n      return `<div class=\"process-ipqc-warning\" role=\"status\" data-ipqc-warning=\"${h(key(a))}\" data-ipqc-reasons=\"${reasons.join(' ')}\">${reasons.map(reason=>`<p>${label(...descriptions[reason])}</p>`).join('')}<p>${label('Liên kết cũ vẫn được giữ; chưa tự đổi sang nguồn hiện hành.','原關聯仍保留；尚未自動改用現行來源。')}</p><code>${h(a.itemId)}</code>${reasons.includes('version')?`<p>${label('Phiên bản liên kết','關聯版本')} <code>${h(a.sourceVersionId)}</code>${label('Phiên bản hiện hành','現行版本')} <code>${h(c.sourceVersionId)}</code></p>`:''}<button type=\"button\" data-ipqc-remove=\"${h(key(a))}\" ${document.querySelector('#apply-operation')?.disabled?'disabled':''}>${label('Bỏ liên kết','移除關聯')}</button></div>`;\n    }).join('');\n    warnings.querySelectorAll('[data-ipqc-remove]').forEach(button=>button.onclick=()=>{if(!valid()||editor&&!editor.canEdit())return;op.ipqcAssignments=(op.ipqcAssignments||[]).filter(a=>key(a)!==button.dataset.ipqcRemove);panel.dispatchEvent(new Event('input',{bubbles:true}));void loadChoices(panel,op,editor);});\n"
+        },
+        {
+          "offset": 8083,
+          "before": "    const selected=(op.ipqcAssignments||[]).some(a=>key(a)===key(c)),locked=!selected&&owner&&owner.id!==op.id,readonly=document.querySelector('#apply-operation')?.disabled,status=locked?'occupied':selected?'selected':'available';\n",
+          "after": "    const selected=(op.ipqcAssignments||[]).some(a=>key(a)===key(c)),locked=!selected&&owner&&owner.id!==op.id,readonly=document.querySelector('#apply-operation')?.disabled,status=selected?referenceReasons((op.ipqcAssignments||[]).find(a=>key(a)===key(c)),c).length?'retained':'selected':locked?'occupied':'available';\n"
+        },
+        {
+          "offset": 11996,
+          "before": "      const stale=(op.ipqcAssignments||[]).filter(a=>{const c=choicesByKey.get(key(a));return !c||c.sourceVersionId!==a.sourceVersionId||a.source==='C'&&JSON.stringify([...a.productCodes].sort((a,b)=>a.localeCompare(b)))!==JSON.stringify([...c.productCodes].sort((a,b)=>a.localeCompare(b)));});\n",
+          "after": ""
+        },
+        {
+          "offset": 11997,
+          "before": "      panel.innerHTML=`<div class=\"process-ipqc-context\"><b>${h(state.editorLine)} → ${h(state.category)} → ${h(op.stageCode)}</b><strong>${h(op.number||op.id)} · ${h(document.querySelector('#operation-name')?.value||op.name)}</strong><small>IPQC-${h(result.source)} · ${label('Chỉ dùng nguồn được duyệt','僅使用核准來源')}</small></div><p>${label('Chỉ phân công hạng mục. Hoàn tất để giữ trên trang hiện tại, rồi lưu bản nháp.','此處僅分配項目；完成方塊後先留目前頁面，再存取草稿。')}</p>${result.reason?`<div class=\"process-ipqc-warning\" role=\"status\"><p>${label(...messages[result.reason])}</p>${result.reason==='NO_PRODUCTS'?`<button type=\"button\" data-ipqc-products>${label('Chọn sản phẩm trong thông tin cơ bản','前往基本資料選擇產品')}</button>`:`<p>${result.reason==='SOURCE_NOT_APPROVED'?label('Lưu, gửi duyệt và duyệt nguồn đúng chuyền / nhóm; sau đó tải lại. Không dùng bản nháp làm nguồn.','請在品質後台將此線別／群組的來源保存、送審並核准，再重新讀取。草稿尚不能分配。'):label('Kiểm tra sản phẩm, công đoạn và trạng thái bật của tiêu chuẩn đã duyệt.','請核對核准標準的工段與啟用狀態；C 線另依所選產品。')}</p><a href=\"?view=data&system=process&dataTab=quality-ipqc-${result.source==='AB'?'ab':'c'}&ipqcScope=${encodeURIComponent(result.scope)}&ipqcStage=${encodeURIComponent(op.stageCode)}\" target=\"_blank\" rel=\"noopener\">${label('Mở nguồn chất lượng · '+result.scope,'開啟品質來源 · '+result.scope)}</a>`}</div>`:''}<div class=\"process-ipqc-overview\" role=\"status\" aria-live=\"polite\">${['selected','occupied','available'].map(status=>`<div class=\"process-ipqc-metric ${status}\"><strong data-ipqc-count=\"${status}\">0</strong><span>${h(statusText(status))}</span></div>`).join('')}</div>${stale.map(a=>`<div class=\"process-ipqc-warning\" role=\"status\">${label('Liên kết cũ đã thay đổi hoặc không còn phù hợp; vẫn được giữ lại','既有關聯來源或產品條件已變更；原關聯仍保留')}<code>${h(a.itemId)}</code><button type=\"button\" data-ipqc-remove=\"${h(key(a))}\" ${document.querySelector('#apply-operation')?.disabled?'disabled':''}>${label('Bỏ liên kết','移除關聯')}</button></div>`).join('')}${[...groups.values()].map(list=>`<details class=\"process-ipqc-group\"><summary><span class=\"process-ipqc-group-title\"><b>${list[0].source==='C'?h(list[0].productCodes[0])+' → ':''}${h(list[0].errorCode)}</b><span>${h(list[0].errorName)}</span></span><span class=\"process-ipqc-progress\" data-ipqc-progress></span></summary>${list.map(c=>choiceMarkup(c,op,owners.get(key(c)),detailBodies)).join('')}</details>`).join('')}<button type=\"button\" class=\"process-ipqc-reload\" data-ipqc-reload>${label('Tải lại nguồn','重新讀取來源')}</button>`;\n",
+          "after": "\n      panel.innerHTML=`<div class=\"process-ipqc-context\"><b>${h(state.editorLine)} → ${h(state.category)} → ${h(op.stageCode)}</b><strong>${h(op.number||op.id)} · ${h(document.querySelector('#operation-name')?.value||op.name)}</strong><small>IPQC-${h(result.source)} · ${label('Chỉ dùng nguồn được duyệt','僅使用核准來源')}</small></div><p>${label('Chỉ phân công hạng mục. Hoàn tất để giữ trên trang hiện tại, rồi lưu bản nháp.','此處僅分配項目；完成方塊後先留目前頁面，再存取草稿。')}</p>${result.reason?`<div class=\"process-ipqc-warning\" role=\"status\"><p>${label(...messages[result.reason])}</p>${result.reason==='NO_PRODUCTS'?`<button type=\"button\" data-ipqc-products>${label('Chọn sản phẩm trong thông tin cơ bản','前往基本資料選擇產品')}</button>`:`<p>${result.reason==='SOURCE_NOT_APPROVED'?label('Lưu, gửi duyệt và duyệt nguồn đúng chuyền / nhóm; sau đó tải lại. Không dùng bản nháp làm nguồn.','請在品質後台將此線別／群組的來源保存、送審並核准，再重新讀取。草稿尚不能分配。'):label('Kiểm tra sản phẩm, công đoạn và trạng thái bật của tiêu chuẩn đã duyệt.','請核對核准標準的工段與啟用狀態；C 線另依所選產品。')}</p><a href=\"?view=data&system=process&dataTab=quality-ipqc-${result.source==='AB'?'ab':'c'}&ipqcScope=${encodeURIComponent(result.scope)}&ipqcStage=${encodeURIComponent(op.stageCode)}\" target=\"_blank\" rel=\"noopener\">${label('Mở nguồn chất lượng · '+result.scope,'開啟品質來源 · '+result.scope)}</a>`}</div>`:''}<div class=\"process-ipqc-overview\" role=\"status\" aria-live=\"polite\">${['selected','retained','occupied','available'].map(status=>`<div class=\"process-ipqc-metric ${status}\"><strong data-ipqc-count=\"${status}\">0</strong><span>${h(statusText(status))}</span></div>`).join('')}</div><div data-ipqc-warnings aria-live=\"polite\"></div>${[...groups.values()].map(list=>`<details class=\"process-ipqc-group\"><summary><span class=\"process-ipqc-group-title\"><b>${list[0].source==='C'?h(list[0].productCodes[0])+' → ':''}${h(list[0].errorCode)}</b><span>${h(list[0].errorName)}</span></span><span class=\"process-ipqc-progress\" data-ipqc-progress></span></summary>${list.map(c=>choiceMarkup(c,op,owners.get(key(c)),detailBodies)).join('')}</details>`).join('')}<button type=\"button\" class=\"process-ipqc-reload\" data-ipqc-reload>${label('Tải lại nguồn','重新讀取來源')}</button>`;\n"
+        },
+        {
+          "offset": 14587,
+          "before": "",
+          "after": "      renderAssignmentWarnings(panel,op,choicesByKey,editor,valid);\n"
+        },
+        {
+          "offset": 15830,
+          "before": "      panel.querySelectorAll('[data-ipqc-choice]').forEach(input=>input.onchange=()=>{if(!valid()||editor&&!editor.canEdit())return;const choice=choicesByKey.get(input.dataset.ipqcChoice);if(!choice||input.disabled||input.checked&&((op.ipqcAssignments||[]).some(a=>key(a)===key(choice))||owners.has(key(choice))&&owners.get(key(choice)).id!==op.id))return;op.ipqcAssignments=(op.ipqcAssignments||[]).filter(a=>key(a)!==key(choice));if(input.checked){op.ipqcAssignments.push({source:choice.source,scope:choice.scope,itemId:choice.itemId,sourceVersionId:choice.sourceVersionId,productCodes:[...choice.productCodes]});owners.set(key(choice),op);}else owners.delete(key(choice));const status=input.checked?'selected':'available';input.closest('article').dataset.status=status;input.closest('label').querySelector('.process-ipqc-badge').outerHTML=badge(status);updateOverview(panel,choices,op,owners);panel.dispatchEvent(new Event('input',{bubbles:true}));});\n      panel.querySelectorAll('[data-ipqc-remove]').forEach(button=>button.onclick=()=>{if(!valid()||editor&&!editor.canEdit())return;op.ipqcAssignments=(op.ipqcAssignments||[]).filter(a=>key(a)!==button.dataset.ipqcRemove);panel.dispatchEvent(new Event('input',{bubbles:true}));void loadChoices(panel,op,editor);});\n      if(editor&&result.source==='AB')mountSourceComparisons(panel,op,editor,valid,query);\n",
+          "after": "      panel.querySelectorAll('[data-ipqc-choice]').forEach(input=>input.onchange=()=>{if(!valid()||editor&&!editor.canEdit())return;const choice=choicesByKey.get(input.dataset.ipqcChoice);if(!choice||input.disabled||input.checked&&((op.ipqcAssignments||[]).some(a=>key(a)===key(choice))||owners.has(key(choice))&&owners.get(key(choice)).id!==op.id))return;op.ipqcAssignments=(op.ipqcAssignments||[]).filter(a=>key(a)!==key(choice));if(input.checked){op.ipqcAssignments.push({source:choice.source,scope:choice.scope,itemId:choice.itemId,sourceVersionId:choice.sourceVersionId,productCodes:[...choice.productCodes]});owners.set(key(choice),op);}else owners.delete(key(choice));const status=input.checked?'selected':'available';input.closest('article').dataset.status=status;input.closest('label').querySelector('.process-ipqc-badge').outerHTML=badge(status);updateOverview(panel,choices,op,owners);renderAssignmentWarnings(panel,op,choicesByKey,editor,valid);if(editor&&result.source==='AB')mountSourceComparisons(panel,op,editor,valid,query,refreshAdopted);panel.dispatchEvent(new Event('input',{bubbles:true}));});\n\n      const refreshAdopted=next=>{const index=choices.findIndex(c=>key(c)===key(next));if(index>=0)choices[index]=next;choicesByKey.set(key(next),next);for(const input of panel.querySelectorAll('[data-ipqc-choice]')){const c=choicesByKey.get(input.dataset.ipqcChoice),status=statusOf(c,op,owners);input.closest('article').dataset.status=status;input.closest('label').querySelector('.process-ipqc-badge').outerHTML=badge(status);}updateOverview(panel,choices,op,owners);renderAssignmentWarnings(panel,op,choicesByKey,editor,valid);mountSourceComparisons(panel,op,editor,valid,query,refreshAdopted);};\n      if(editor&&result.source==='AB')mountSourceComparisons(panel,op,editor,valid,query,refreshAdopted);\n"
+        },
+        {
+          "offset": 25414,
+          "before": "  function mountSourceComparisons(panel,op,editor,valid,query){\n",
+          "after": "  function mountSourceComparisons(panel,op,editor,valid,query,onAdopt){\n"
+        },
+        {
+          "offset": 29396,
+          "before": "              op.ipqcAssignments=op.ipqcAssignments.map(a=>key(a)===key(assignment)?{...a,sourceVersionId:next.sourceVersionId,productCodes:[...next.productCodes]}:a);preview=null;panel.dispatchEvent(new Event('input',{bubbles:true}));detail.textContent=text('Đã dùng nguồn trên biểu mẫu hiện tại; chưa lưu bản nháp. Hoàn tất bước rồi bấm “Lưu bản nháp”.','已採用至目前表單；尚未存取草稿。完成方塊後請按「存取草稿」。');button.disabled=true;\n",
+          "after": "              op.ipqcAssignments=op.ipqcAssignments.map(a=>key(a)===key(assignment)?{...a,sourceVersionId:next.sourceVersionId,productCodes:[...next.productCodes]}:a);preview=null;panel.querySelector('[data-ipqc-warnings]').after(detail);onAdopt?.(next);panel.dispatchEvent(new Event('input',{bubbles:true}));detail.textContent=text('Đã dùng nguồn trên biểu mẫu hiện tại; chưa lưu bản nháp. Hoàn tất bước rồi bấm “Lưu bản nháp”.','已採用至目前表單；尚未存取草稿。完成方塊後請按「存取草稿」。');button.disabled=true;\n"
+        }
+      ]
+    },
+    "public/process/process-ipqc.css": {
+      "beforeBlob": "62dcf2831870a23daa79fb7a68fe7ab561c87cdf",
+      "beforeHash": "57517ef0f74e5765f3b04f8ba7a8e47d792af3653f78717e361f9ec1409afe44",
+      "beforeNormalizedHash": "07d69945bbf12cf41696290fcad43daa3e8d6b38ef69efaef9193a6608a3b6b3",
+      "beforeLength": 8996,
+      "beforeCRLF": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84
+      ],
+      "afterHash": "f9c6201f65e7932260864500f9081f4726f37e2a9ddd1241debc5c9d63457823",
+      "afterLength": 9316,
+      "rules": [
+        {
+          "offset": 3416,
+          "before": ".process-ipqc-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}\n",
+          "after": ".process-ipqc-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}\n"
+        },
+        {
+          "offset": 8911,
+          "before": "",
+          "after": "\n.process-ipqc-metric.retained,.process-ipqc-badge.retained{color:#7a3d14;background:#fff0e4;border-color:#e1bd9f}\n.process-ipqc-choice[data-status=retained]{background:#fff8f0;border-color:#dfc3a7;border-left-color:#ad642d}\n[data-ipqc-warnings]:empty{display:none}\n[data-ipqc-warning]{overflow-wrap:anywhere}\n@media(max-width:900px){.process-ipqc-overview{grid-template-columns:repeat(2,minmax(0,1fr))}}\n"
+        }
+      ]
+    },
+    "public/process/index.html": {
+      "beforeBlob": "a5a01a74820630e6f4bef84e311b7fb46cf4fc9e",
+      "beforeHash": "a6ddd207b1978855991346e0e4509d600d8f9a253ae6161dd276946898ba5aaf",
+      "beforeNormalizedHash": "a6ddd207b1978855991346e0e4509d600d8f9a253ae6161dd276946898ba5aaf",
+      "beforeLength": 11515,
+      "beforeCRLF": [],
+      "afterHash": "bb152460c5a892e09e83cf8cf38b21cf3510618139ac0c24b31857602f88c8a7",
+      "afterLength": 11521,
+      "rules": [
+        {
+          "offset": 9822,
+          "before": "    <link rel=\"stylesheet\" href=\"process-ipqc.css?v=20261031-bom-ab-recovery1\">\n    <script data-process-src=\"process-ipqc.js?v=20261114-ipqc-link1\"></script>\n",
+          "after": "    <link rel=\"stylesheet\" href=\"process-ipqc.css?v=20261114-ipqc-assignment2\">\n    <script data-process-src=\"process-ipqc.js?v=20261114-ipqc-assignment2\"></script>\n"
+        }
+      ]
+    },
+    "tests/navigation-adapters.test.mjs": {
+      "beforeBlob": "3409a8f5d4a39d13f6474eb1ff5f71347f1a65a8",
+      "beforeHash": "c7999bedb2d0e26b0b876c0b32e7ab04022e72919a902d84942cc25d7fd2b219",
+      "beforeNormalizedHash": "c7999bedb2d0e26b0b876c0b32e7ab04022e72919a902d84942cc25d7fd2b219",
+      "beforeLength": 21651,
+      "beforeCRLF": [],
+      "afterHash": "2cbeaa10b4aba981c99093fa07bf8ae25d46032d1b473470606280886b3a9446",
+      "afterLength": 21657,
+      "rules": [
+        {
+          "offset": 17831,
+          "before": "  'process-ipqc.js':'20261114-ipqc-link1',\n",
+          "after": "  'process-ipqc.js':'20261114-ipqc-assignment2',\n"
+        },
+        {
+          "offset": 18091,
+          "before": "  'process-ipqc.css':'20261031-bom-ab-recovery1',\n",
+          "after": "  'process-ipqc.css':'20261114-ipqc-assignment2',\n"
+        }
+      ]
+    },
+    "tests/shared-draft-receipt-recovery.test.mjs": {
+      "beforeBlob": "044f945a138e6de5df15ec4965f4dc9b4a1057da",
+      "beforeHash": "ae07ba5eb824b2478b8d6dc6be619a9d536d1587e6fa31ed86e621129b43d2fa",
+      "beforeNormalizedHash": "ae07ba5eb824b2478b8d6dc6be619a9d536d1587e6fa31ed86e621129b43d2fa",
+      "beforeLength": 18101,
+      "beforeCRLF": [],
+      "afterHash": "dfb7217d6f2b2fdcf6746dd03cde8b6df782d26928366827b13ee8877cea7d78",
+      "afterLength": 18107,
+      "rules": [
+        {
+          "offset": 14956,
+          "before": "  'process-ipqc.js':'20261114-ipqc-link1',\n",
+          "after": "  'process-ipqc.js':'20261114-ipqc-assignment2',\n"
+        }
+      ]
+    },
+    "scripts/process-ipqc-link-source-contract.cjs": {
+      "beforeBlob": "8cb1b37ad901e11d132e49b691a32172fc63df25",
+      "beforeHash": "bead9668c1e677730274b0c1cf26b7a3c52e821c8a40934574494480ab739bda",
+      "beforeNormalizedHash": "bead9668c1e677730274b0c1cf26b7a3c52e821c8a40934574494480ab739bda",
+      "beforeLength": 1549,
+      "beforeCRLF": [],
+      "afterHash": "2b83a26668a1037af795a926d96b2dfe04a74760d3e5009765a258055f86b583",
+      "afterLength": 1725,
+      "rules": [
+        {
+          "offset": 397,
+          "before": " assert(Buffer.isBuffer(bytes),'IPQC link proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'IPQC link proof wrong path');bytes=normalized(bytes);assert.equal(hash(bytes),c.afterHash,'IPQC link successor differs');assert.equal(bytes.length,c.afterLength);\n",
+          "after": " assert(Buffer.isBuffer(bytes),'IPQC link proof requires raw Buffer');bytes=require('./process-ipqc-assignment-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'IPQC link proof wrong path');bytes=normalized(bytes);assert.equal(hash(bytes),c.afterHash,'IPQC link successor differs');assert.equal(bytes.length,c.afterLength);\n"
+        },
+        {
+          "offset": 1321,
+          "before": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'IPQC link proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n",
+          "after": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'IPQC link proof requires raw Buffer');bytes=require('./process-ipqc-assignment-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n"
+        }
+      ]
+    },
+    "scripts/test-process-ipqc-choice-dom.cjs": {
+      "beforeBlob": "48bbf752ccdc823fe992691804ccac65794bae3d",
+      "beforeHash": "527f612d5d75d94b26aacb833d536a5b166c40c04cf607f1845fe08c8e088b40",
+      "beforeNormalizedHash": "527f612d5d75d94b26aacb833d536a5b166c40c04cf607f1845fe08c8e088b40",
+      "beforeLength": 11544,
+      "beforeCRLF": [],
+      "afterHash": "8289c1955e49102c0db6d3b0b83ba116dd73644ead86c012b98652b3eef7b451",
+      "afterLength": 13525,
+      "rules": [
+        {
+          "offset": 3785,
+          "before": "",
+          "after": "// Only the pinned fixture's explicit retained warning/metric delta is aligned.\n// Production state transitions and true-invalid reasons run in assignment-state tests.\nfunction alignReviewedRetainedWarning(before,after,lang){\n const Node=before.constructor,metric=new Node('div'),wrapper=new Node('div'),k='[&quot;AB&quot;,&quot;A:SYN&quot;,&quot;retained-old&quot;]';\n metric.innerHTML=`<div class=\"process-ipqc-metric retained\"><strong data-ipqc-count=\"retained\">1</strong><span>${lang==='vi'?'Giữ liên kết cũ · cần xác nhận':'保留舊關聯・待確認'}</span></div>`;\n assert.deepEqual(tree(after.querySelector('.process-ipqc-metric.retained')),tree(metric.firstElementChild));\n before.querySelector('.process-ipqc-metric.selected').after(metric.firstElementChild);\n wrapper.innerHTML=`<div data-ipqc-warnings aria-live=\"polite\"><div class=\"process-ipqc-warning\" role=\"status\" data-ipqc-warning=\"${k}\" data-ipqc-reasons=\"unavailable\"><p><span>${lang==='vi'?'Không còn trong nguồn được duyệt phù hợp với chuyền / nhóm / công đoạn / sản phẩm hiện tại':'現行核准來源已無符合線別／類別／工段／產品的項目'}</span></p><p><span>${lang==='vi'?'Liên kết cũ vẫn được giữ; chưa tự đổi sang nguồn hiện hành.':'原關聯仍保留；尚未自動改用現行來源。'}</span></p><code>retained-old</code><button type=\"button\" data-ipqc-remove=\"${k}\"><span>${lang==='vi'?'Bỏ liên kết':'移除關聯'}</span></button></div></div>`;\n assert.deepEqual(tree(after.querySelector('[data-ipqc-warnings]')),tree(wrapper.firstElementChild));\n const old=before.querySelector('.process-ipqc-warning');assert.equal(old.querySelector('code').textContent,'retained-old');assert(old.textContent.includes(lang==='vi'?'Liên kết cũ đã thay đổi':'既有關聯來源或產品條件已變更'));old.after(wrapper.firstElementChild);old.remove();\n}\n"
+        },
+        {
+          "offset": 10086,
+          "before": "  alignReviewedSingleSaveNotice(before.panel,after.panel,lang);alignReviewedAssignmentLabels(before.panel,after.panel,lang);assert.deepEqual(tree(after.panel),tree(before.panel),'entire expanded UI matches except explicitly asserted reviewed source, Save and assignment labels');assert.equal(after.requests.length,1,'expanding details has no extra fetch');checks.push(lang+' same choices, ownership, retained links, exact expanded details and no duplicate nodes');\n",
+          "after": "  alignReviewedSingleSaveNotice(before.panel,after.panel,lang);alignReviewedAssignmentLabels(before.panel,after.panel,lang);alignReviewedRetainedWarning(before.panel,after.panel,lang);assert.deepEqual(tree(after.panel),tree(before.panel),'entire expanded UI matches except explicitly asserted reviewed source, Save and assignment labels');assert.equal(after.requests.length,1,'expanding details has no extra fetch');checks.push(lang+' same choices, ownership, retained links, exact expanded details and no duplicate nodes');\n"
+        }
+      ]
+    },
+    ".github/workflows/process-ipqc-link-rules.yml": {
+      "beforeBlob": "a599e28fd039665bf634431cf4549333bd0fbb6d",
+      "beforeHash": "db9b8a748b9fe135410ded6bd2c1800bbbf49fab28b2aee14b2f4a8f2501b818",
+      "beforeNormalizedHash": "db9b8a748b9fe135410ded6bd2c1800bbbf49fab28b2aee14b2f4a8f2501b818",
+      "beforeLength": 3552,
+      "beforeCRLF": [],
+      "afterHash": "674fe2fc804b3884134362e3b5d1b6ff4df310958fd7c74b1a66bc1a68ee947b",
+      "afterLength": 4710,
+      "rules": [
+        {
+          "offset": 250,
+          "before": "",
+          "after": "      - 'scripts/entry-performance/ipqc-index-semantics.cjs'\n"
+        },
+        {
+          "offset": 1349,
+          "before": "        run: node --test tests/process-ipqc-link-source.test.cjs tests/lines-flow-joint-source.test.cjs tests/lines-flow-source.test.cjs tests/ipqc-save-recovery-source.test.cjs tests/navigation-adapters.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/account-password-source.test.cjs\n",
+          "after": "        run: node --test tests/process-ipqc-assignment-source.test.cjs tests/process-ipqc-link-source.test.cjs tests/lines-flow-joint-source.test.cjs tests/lines-flow-source.test.cjs tests/ipqc-save-recovery-source.test.cjs tests/navigation-adapters.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/account-password-source.test.cjs\n      - name: Actual retention renderer, historical first-match and handler guards\n        run: node scripts/entry-performance/ipqc-index-semantics.cjs\n"
+        },
+        {
+          "offset": 1919,
+          "before": "        run: node --test tests/process-ipqc-link-rules.test.cjs tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-source-history-route.test.mjs tests/process-canvas-atomic-save-stack.test.mjs tests/canvas-pending-form-admission.test.mjs\n",
+          "after": "        run: node --test tests/process-ipqc-assignment-state.test.mjs tests/process-ipqc-link-rules.test.cjs tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-source-history-route.test.mjs tests/process-canvas-atomic-save-stack.test.mjs tests/canvas-pending-form-admission.test.mjs\n"
+        },
+        {
+          "offset": 3856,
+          "before": "",
+          "after": "\n  retention-windows:\n    runs-on: windows-latest\n    timeout-minutes: 15\n    steps:\n      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}\n          fetch-depth: 0\n          persist-credentials: false\n      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020\n        with:\n          node-version: '24'\n          cache: npm\n      - run: npm ci --no-audit --no-fund\n      - name: Original Integrated entry retention command on Windows\n        run: node scripts/entry-performance/ipqc-index-semantics.cjs\n      - name: Existing LF/CRLF source boundary controls\n        run: node scripts/entry-performance/source-eol.test.cjs\n      - name: Actual full controller retained-link state\n        run: node --test tests/process-ipqc-assignment-state.test.mjs\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/CHANGELOG.md": {
+      "beforeBlob": "814564067fd2135ddfd6d9c54e36b8069e768b1c",
+      "beforeHash": "45a45f842c2cb7ac12be6ffb9ef6df3d9234860b71153f0a5acfe7eb0ab29592",
+      "beforeNormalizedHash": "45a45f842c2cb7ac12be6ffb9ef6df3d9234860b71153f0a5acfe7eb0ab29592",
+      "beforeLength": 181989,
+      "beforeCRLF": [],
+      "afterHash": "b43755eb8ed52fd80befc127ffdd51b3073460c956d63d0ed2bb8cad8d547757",
+      "afterLength": 182875,
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-14 — Windows IPQC retention 載具接線\n\n第31步舊 stale regex 在候選0筆匹配，改為執行現行完整警示函式；保留歷史 first-match／collision／checkbox guard 與零請求，補來源接線／語意負例和 LF/CRLF。同一原命令提早在 Linux／Windows 執行，原全套 gates 不變，產品程式及資料未改。[根因與界線](../docs/acceptance/process-ipqc-assignment-consistency-20261114.md#windows-integrated-entry-載具相容修正)。\n\n## 2026-11-14 — 製程 IPQC 舊關聯與現行選取一致性\n\n修正 A/B/C 同 ID 舊來源顯示綠色已選取、及明確重選後警示未更新的歧義；保留真失效、歷史及重複占用防護。獨立 main8bfc036 分支，只有隔離 fixture。[根因與驗證](../docs/acceptance/process-ipqc-assignment-consistency-20261114.md)。未合併、部署或操作真站資料。\n\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/DATA_MODEL.md": {
+      "beforeBlob": "d828c84b0b4f71b23e99384cb3e6b5182ed1326f",
+      "beforeHash": "799e301fec5999edae3396ce5723cdf3735691e83962dacf0e6e6d482e252362",
+      "beforeNormalizedHash": "799e301fec5999edae3396ce5723cdf3735691e83962dacf0e6e6d482e252362",
+      "beforeLength": 50601,
+      "beforeCRLF": [],
+      "afterHash": "432cc8b00820d33c5b24b2c9e4aa1a92b28d85d96c5566782f33dbe4e05657c4",
+      "afterLength": 51041,
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-14 — IPQC 關聯呈現，無資料遷移\n\n既有 source／scope／itemId 定位關聯，sourceVersionId 保留來源版本，C productCodes 保留適用產品。UI 新增 retained 顯示狀態及即時計算警示；不新增保存欄位、不重寫歷史、不自動升版。無 SQL、schema、R2 格式、權限或來源資料異動。[驗證與界線](../docs/acceptance/process-ipqc-assignment-consistency-20261114.md)。\n\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/modules/PROCESS.md": {
+      "beforeBlob": "56abefd1276f50eabf45a010fccabb84cb4c6ae8",
+      "beforeHash": "cd5f43ac140af90fd563e5ffcdc888410f0f41e21d471601628f97908177612b",
+      "beforeNormalizedHash": "cd5f43ac140af90fd563e5ffcdc888410f0f41e21d471601628f97908177612b",
+      "beforeLength": 53241,
+      "beforeCRLF": [],
+      "afterHash": "61e13da06ebe7964414ab1010473ac137eafb51097a9c1d0c2b57197fd8a62ee",
+      "afterLength": 53788,
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-14 — IPQC 關聯顯示一致性\n\n`process-ipqc.js` 用穩定 ID 保留勾選／占用，另依原 sourceVersionId 與 C productCodes 判定 selected／retained。版本更新不等於重複項目或產品失效；警示顯示原因及原／現行版本。checkbox 與 A/B 明確採用立即更新警示／計數／分組，不寫回來源或自動改歷史。後端 validation、advisory、權限及唯一占用不變。[隔離重現、驗證及現場限制](../../docs/acceptance/process-ipqc-assignment-consistency-20261114.md)。\n\n"
+        }
+      ]
+    },
+    "HANDOFF.md": {
+      "beforeBlob": "2189c7e9c9af8730e6206b8901105260ca03f868",
+      "beforeHash": "49d20c73a013214f14c8f402ff4e73d036e36deed47d08801b1bd0fbfdfde4e0",
+      "beforeNormalizedHash": "49d20c73a013214f14c8f402ff4e73d036e36deed47d08801b1bd0fbfdfde4e0",
+      "beforeLength": 90573,
+      "beforeCRLF": [],
+      "afterHash": "f4d61c8a993c3753332adb522ec942ee0460d29ece6a38fbaffebb72d007e2c2",
+      "afterLength": 91249,
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-14 — IPQC 關聯顯示一致性候選\n\n獨立 main8bfc036 checkout／`fix/process-ipqc-assignment-consistency-20261114`。完整追查比對身分與原版本條件，重現 A/B/C 已選取＋舊版本警示及明確重選後警示殘留；保留歷史與所有後端防護。IPQC 速度工作區和 AB/C runtime 不變。[本輪根因、隔離證據及未驗證項](docs/acceptance/process-ipqc-assignment-consistency-20261114.md)。Windows 第31步舊 stale 擷取載具已定向接回完整現行警示函式；原 guards、負例及全套 gates 保留，前置 Linux／Windows checks 以同一 PR 最新 head 為準。無合併、部署或真資料操作。\n\n"
+        }
+      ]
+    },
+    "docs/specs/current/IPQC_POLICY.md": {
+      "beforeBlob": "e80fc3a8be0b9404ca831ded84faa08e11b9a551",
+      "beforeHash": "1fd664d4b1fc78a8a366d6811e1d1ca46500acc344269c51377df1eed489f4ea",
+      "beforeNormalizedHash": "c09355c71ae67c581034dea8e6a552a91bf318010378e998438e69d2066cea03",
+      "beforeLength": 4097,
+      "beforeCRLF": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "afterHash": "581eda3538ba95f62084c6f03734fbe4f2e767f47ae34e9ada27afed5485a23f",
+      "afterLength": 4138,
+      "rules": [
+        {
+          "offset": 1737,
+          "before": "製程項目仍只取同線別／群組、產品、工段的啟用核准來源；同工段同項目只能分配一次。占用者須顯示方塊編號及移轉步驟。未核准來源提供品質來源入口，未選產品提供基本資料入口。項目標準、產品、方式、照片與頻率預設收折，展開後完整可讀。\n",
+          "after": "製程項目只取啟用核准來源；A/B 依線別／群組／工段，不依方塊產品；C 依產品／工段。進出站不顯示 IPQC。同工段同項目只能分配一次。占用者須顯示方塊編號及移轉步驟。未核准來源提供品質來源入口，未選產品提供基本資料入口。項目標準、產品、方式、照片與頻率預設收折，展開後完整可讀。\n"
+        }
+      ]
+    },
+    "docs/specs/current/PROCESS_EDITOR.md": {
+      "beforeBlob": "c38c56dc0ad5476fb7ab6f28162ceac5ddd1d684",
+      "beforeHash": "0b5c9a922ce3917eac757b5b964e00b6aecbc2328fa2b75b652ab9807bfe3040",
+      "beforeNormalizedHash": "0b5c9a922ce3917eac757b5b964e00b6aecbc2328fa2b75b652ab9807bfe3040",
+      "beforeLength": 21490,
+      "beforeCRLF": [],
+      "afterHash": "333470b8475fdbd4e07ddc030fd4a09a222f0752e61ed8b88ed4180882f063f5",
+      "afterLength": 21727,
+      "rules": [
+        {
+          "offset": 19559,
+          "before": "",
+          "after": "現行選取與保留舊關聯分開呈現；警示分辨來源版本、C 適用產品及現行無符合項目，版本差異顯示原／現行 ID。明確取消／重選或 A/B 來源採用後即時重算，不殘留已處理警示。\n\n"
+        }
+      ]
+    },
+    "docs/specs/current/PROCESS_WORKFLOW.md": {
+      "beforeBlob": "9c4e861874ed1723ba16c0395d955c3898f4397e",
+      "beforeHash": "a296a494a54d8dd97cd75cbd9bea477a64a1a5564467036413566761e3a5a4cd",
+      "beforeNormalizedHash": "a296a494a54d8dd97cd75cbd9bea477a64a1a5564467036413566761e3a5a4cd",
+      "beforeLength": 5786,
+      "beforeCRLF": [],
+      "afterHash": "50d74754f4581a03cae4ad29f8e157d69bdd883d90a6cec7fa04f49bb4572a51",
+      "afterLength": 6126,
+      "rules": [
+        {
+          "offset": 28,
+          "before": "狀態：Current confirmed requirements。編輯台互動與 C 線入口以 2026-10-08 [PROCESS_EDITOR](PROCESS_EDITOR.md) 為準；本文件保留共享文稿、AB 分配及既有引用生命週期。\n",
+          "after": "狀態：Current confirmed requirements。編輯台互動與 IPQC 入口依現行 [PROCESS_EDITOR](PROCESS_EDITOR.md)；本文件保留共享文稿及既有引用生命週期。\n"
+        },
+        {
+          "offset": 252,
+          "before": "目前 V3 編輯彈窗依類型分成 2／6／7 頁。一般作業的 AB IPQC 分配依已核准品質版本、現行產品路線、類別、工段與已選產品，按錯誤代碼分組後逐項勾選；C 編輯頁只有查詢開關，既有 C 分配唯讀保留，不因切換頁面刪除。舊 C 分配 API／反向引用保留相容。用穩定項目 ID 關聯，同類別／線別／工段及製程版本內只允許一個方塊占用同項目；同代碼不同項目可分開。多產品保留每個適用產品，不合併不同項目。\n",
+          "after": "一般作業的 A/B IPQC 分配依核准啟用來源、線別、類別及工段，不依方塊所選產品；C 依核准啟用來源、產品及工段。進出站沒有 IPQC 分頁。同工段同項目只能分配一次，顯示占用方塊；C 占用涵蓋跨類別工作區。改選前須由原方塊取消並存取草稿。現行完整規則見 [PROCESS_EDITOR](PROCESS_EDITOR.md)。\n"
+        },
+        {
+          "offset": 640,
+          "before": "只改分配，不改後台標準。來源未核准、來源失效或產品條件改變要明示；失效原關聯保留並允許明確移除。未分配列待補，不新增送審阻擋。切分頁保留未套用內容；取消不保存。沿用 Apply → 共享工作內容同步 → 手動 Save → 固定 Submit → Review，後端包含 CAS 重試均驗證最終內容的唯一占用。\n",
+          "after": "穩定 source／scope／itemId 表示「哪個關聯」，sourceVersionId 及 C productCodes 表示「原本選取的來源條件」。只有條件相符才顯示綠色「本方塊已選取」。舊版本或 C 適用產品不同顯示「保留舊關聯・待確認」；來源不再符合線別／類別／工段／產品時，保留原關聯並列警示。版本差異顯示原／現行版本，不以同 item ID 推定重複建立，也不自動更換原版本。A/B 來源產品僅供參考，不與方塊產品比對。\n\n取消、明確重新選取或 A/B 比較後採用時，即時重算卡片、數量、分組及警示。只清除已明確處理項目的警示，其他失效關聯及唯一占用仍保留。切分頁保留目前表單；取消不保存。完成方塊編輯後留在目前頁面，一次明確「存取草稿」才保存，沿用固定 Submit／Review、CAS、權限及原收據防護。\n\n"
+        }
+      ]
+    },
+    "tests/process-ipqc-link-browser.mjs": {
+      "beforeBlob": "a0ede7bf78d09efa10219f49861753bec529cfac",
+      "beforeHash": "662c18c8ca4134cf319a8573a32d80c0622903c542dec0fcf5bf1c526f335801",
+      "beforeNormalizedHash": "662c18c8ca4134cf319a8573a32d80c0622903c542dec0fcf5bf1c526f335801",
+      "beforeLength": 12328,
+      "beforeCRLF": [],
+      "afterHash": "c40ab1ac8a1bfbaabf19f80575b4fdae6e0688024036ab616055b37d00b1afd5",
+      "afterLength": 14353,
+      "rules": [
+        {
+          "offset": 1082,
+          "before": " await f.generatedMasterPages();report.masterSource='generated-page-v1-approved-owners (not an adoption/approval UI claim)';\n",
+          "after": " await f.generatedMasterPages([],{staleCompatibility:false});report.masterSource='generated-page-v1-approved-owners (not an adoption/approval UI claim)';\n"
+        },
+        {
+          "offset": 10414,
+          "before": "",
+          "after": "  // A new source item is created and approved through the actual signed routes.\n  // The previously assigned stable item is unchanged but belongs to a newer whole-source version.\n  const source=line==='C'?'C':'AB',extra=await f.create(source);await f.promote(extra.url);\n  await boot();await open('two');assert(await c.isChecked());assert.equal(await c.locator('..').locator('..').getAttribute('data-status'),'retained');\n  assert.equal(await page.locator('[data-ipqc-count=\"selected\"]').innerText(),'0');assert.equal(await page.locator('[data-ipqc-count=\"retained\"]').innerText(),'1');assert.equal(await page.locator('[data-ipqc-warning][data-ipqc-reasons=\"version\"]').count(),1);\n  assert.equal(await page.locator('.process-ipqc-group').first().getAttribute('data-complete'),'false');await page.screenshot({path:out+'/'+line+'-retained-'+width+'.png',fullPage:true});\n  await c.uncheck();assert.equal(await page.locator('[data-ipqc-warning]').count(),0);await c.check();assert.equal(await page.locator('[data-ipqc-warning]').count(),0);assert.equal(await page.locator('[data-ipqc-count=\"retained\"]').innerText(),'0');\n  const badge=page.locator('.process-ipqc-badge.selected').first();await badge.focus();await page.screenshot({path:out+'/'+line+'-reselected-'+width+'.png',fullPage:true});\n  const overflow=await page.locator('.pe-modal-body').evaluate(el=>el.scrollWidth>el.clientWidth+1);assert.equal(overflow,false,'source version text fits narrow/desktop modal');\n  await page.locator('#apply-operation').click();await page.locator('#process-operation-dialog').waitFor({state:'detached'});await save();await boot();await open('two');assert(await c.isChecked());assert.equal(await page.locator('[data-ipqc-warning]').count(),0);assert.equal(await page.locator('[data-ipqc-count=\"selected\"]').innerText(),'1');await cancel();\n  report.assertions.push(line+': real newer source approval → retained historical pin → explicit reselect clears warning → atomic Save/reload current PASS');\n"
+        }
+      ]
+    },
+    "tests/process-ipqc-link-rules.test.cjs": {
+      "beforeBlob": "e45656cebcefed67ad81853d543e73227b909b12",
+      "beforeHash": "252a7b9d321c503d508b8320675d2e98525a15c82bef4a6101aad676cfd17330",
+      "beforeNormalizedHash": "252a7b9d321c503d508b8320675d2e98525a15c82bef4a6101aad676cfd17330",
+      "beforeLength": 15607,
+      "beforeCRLF": [],
+      "afterHash": "d9ca767e66e6e777cf6b6d4499b49f7baffd045fd5226bb76abcae9dd68fca76",
+      "afterLength": 18565,
+      "rules": [
+        {
+          "offset": 15607,
+          "before": "",
+          "after": "\nfor(const storage of ['inline','records-v1'])for(const source of ['AB','C'])void test(`${storage} ${source}: new unrelated source approval retains old stable link; explicit replacement persists current pin`,async()=>{\n const f=await fixture(storage);try{\n  const x=await f.create(source);await f.promote(x.url);const line=source==='C'?'C':'A',products=source==='C'?['001']:[],a=tuple((await choices(f,line,products)).body.choices[0]);await edit(f,line,'one',[a]);\n  const extra=await f.create(source);await f.promote(extra.url);const current=tuple((await choices(f,line,products)).body.choices.find(c=>c.itemId===a.itemId));assert.equal(current.itemId,a.itemId);assert.notEqual(current.sourceVersionId,a.sourceVersionId);assert.deepEqual(current.productCodes,a.productCodes);\n  const flow=(await f.request(processURL)).body.control.workflow,w=flow.working.workspaces.find(w=>w.line===line);assert.deepEqual(w.stages[x.error.stageCode][0].ipqcAssignments,[a]);\n  const ipqc=f.load('lib/process-ipqc.ts');assert(ipqc.ipqcIssues([w],await f.values()).some(i=>i.message==='IPQC_REFERENCE_CHANGED:'+a.itemId));\n  // An unrelated explicit Canvas Save must neither discard nor auto-upgrade the historical tuple.\n  const name=['workspaces',{id:w.id},'stages',x.error.stageCode,{id:'one'},'name'];await f.command(processURL,'apply',{moduleAction:'save-canvas-v1',source:'canvas-v2:'+JSON.stringify([w.id,x.error.stageCode]),patches:[{op:'set',path:name,value:'Unrelated synthetic edit'}],guards:[{path:name,value:w.stages[x.error.stageCode][0].name}]});\n  let read=(await f.request(processURL)).body.control.workflow;assert.deepEqual(read.saved.content.workspaces.find(w=>w.line===line).stages[x.error.stageCode][0].ipqcAssignments,[a]);\n  await edit(f,line,'one',[current],[a]);read=(await f.request(processURL)).body.control.workflow;const saved=read.saved.content.workspaces.find(w=>w.line===line);assert.deepEqual(saved.stages[x.error.stageCode][0].ipqcAssignments,[current]);assert(!ipqc.ipqcIssues([saved],await f.values()).some(i=>i.message==='IPQC_REFERENCE_CHANGED:'+a.itemId));\n }finally{f.close();}\n});\n\nvoid test('native rollover preparation: generated page-v1 catalog permits real AB/C source creation and approval',async()=>{\n const f=await fixture('records-v1');try{\n  const originals=[];for(const source of ['AB','C']){const x=await f.create(source);await f.promote(x.url);originals.push({source,...x});}\n  await f.generatedMasterPages([],{staleCompatibility:false});\n  for(const x of originals){const line=x.source==='C'?'C':'A',products=line==='C'?['001']:[],old=(await choices(f,line,products)).body.choices.find(c=>c.itemId===x.item.id),extra=await f.create(x.source);await f.promote(extra.url);const current=(await choices(f,line,products)).body.choices.find(c=>c.itemId===x.item.id);assert(current);assert.notEqual(current.sourceVersionId,old.sourceVersionId);assert.deepEqual(current.productCodes,old.productCodes);}\n }finally{f.close();}\n});\n"
+        }
+      ]
+    },
+    "tests/process-ipqc-source-adopt.test.mjs": {
+      "beforeBlob": "51616c76e05584a703c4cc53c6063b6e4e9d1ea7",
+      "beforeHash": "a8f51e2887c5b33790c5a8ef07fdfdb9afeb53ff859f2584fedb6c5ba579f1a9",
+      "beforeNormalizedHash": "a8f51e2887c5b33790c5a8ef07fdfdb9afeb53ff859f2584fedb6c5ba579f1a9",
+      "beforeLength": 32143,
+      "beforeCRLF": [],
+      "afterHash": "bc3567fa6b7d926d736858301e7bded38d33a9ed347cbf6c51882534e149b772",
+      "afterLength": 33652,
+      "rules": [
+        {
+          "offset": 2177,
+          "before": "async function fixture({lang='zh',assignmentOverride}={}){\n",
+          "after": "async function fixture({lang='zh',assignmentOverride,assignmentsOverride}={}){\n"
+        },
+        {
+          "offset": 3980,
+          "before": "",
+          "after": " if(assignmentsOverride)remote.workflow.working.workspaces[0].stages[stage][0].ipqcAssignments=copy(assignmentsOverride);\n"
+        },
+        {
+          "offset": 20081,
+          "before": " const f=await fixture();await f.open();await f.compare();const input=f.panel().querySelector('[data-ipqc-choice]');input.checked=false;input.onchange();await tick();await f.adopt();assert.equal(f.record().draft.ipqcAssignments.length,0);assert.equal(f.calls.length,3);assert.equal(f.posts().length,0);\n",
+          "after": " const f=await fixture();await f.open();await f.compare();const adopt=f.panel().querySelector('[data-ipqc-adopt]'),input=f.panel().querySelector('[data-ipqc-choice]');input.checked=false;input.onchange();await tick();assert.equal(f.panel().querySelector('[data-ipqc-warning]'),null,'removed assignment has no stale warning');await adopt.click();await tick();assert.equal(f.record().draft.ipqcAssignments.length,0);assert.equal(f.calls.length,3);assert.equal(f.posts().length,0);\n"
+        },
+        {
+          "offset": 22278,
+          "before": " const f=await fixture({lang});await f.open();await f.compare();const detail=f.panel().querySelector('.process-ipqc-source-review');assert.equal(detail.querySelectorAll('img').length,0);assert.equal(detail.querySelector('.process-ipqc-diff').children.length,2);const previewNotice=lang==='zh'?'只更新目前表單的分配版本記錄；完成方塊後按「存取草稿」。不修改來源標準。':'Chỉ đổi phiên bản liên kết trên biểu mẫu hiện tại. Hoàn tất bước rồi bấm “Lưu bản nháp”. Không sửa tiêu chuẩn nguồn.';assert(detail.textContent.includes(previewNotice));assert.doesNotMatch(detail.textContent,/同步|đồng bộ|手動儲存|lưu thủ công/);const qualityBefore=plain(f.quality),sharedBefore=plain(f.remote);await f.adopt();const adoptedNotice=lang==='zh'?'已採用至目前表單；尚未存取草稿。完成方塊後請按「存取草稿」。':'Đã dùng nguồn trên biểu mẫu hiện tại; chưa lưu bản nháp. Hoàn tất bước rồi bấm “Lưu bản nháp”.';assert.equal(detail.textContent,adoptedNotice);assert.doesNotMatch(detail.textContent,/同步|đồng bộ/);assert.equal(f.posts().length,0,'compare/adopt only update the local form');assert.deepEqual(plain(f.remote),sharedBefore);assert.deepEqual(plain(f.quality),qualityBefore);await f.finish();assert.equal(f.posts().length,0,'completing the operation stays local');await f.box.ProcessAuthoringV3.save();assert.equal(f.posts().length,1,'one explicit Save persists the adopted reference');assert.equal(JSON.parse(f.posts()[0].options.body).command.moduleAction,'save-canvas-v1');assert.equal(f.remote.workflow.saved.content.workspaces[0].stages[stage][0].ipqcAssignments[0].sourceVersionId,'new');assert.deepEqual(plain(f.quality),qualityBefore);assert.equal(f.calls.some(c=>c.url.includes('/photo')),false);const css=fs.readFileSync('public/process/process-ipqc.css','utf8');assert.match(css,/@media\\(max-width:560px\\)\\{\\.process-ipqc-diff\\{grid-template-columns:minmax\\(0,1fr\\)\\}/);assert.match(css,/\\.process-ipqc-source-review button,\\[data-ipqc-compare\\]\\{min-height:44px/);\n",
+          "after": " const f=await fixture({lang});await f.open();await f.compare();const detail=f.panel().querySelector('.process-ipqc-source-review');assert.equal(detail.querySelectorAll('img').length,0);assert.equal(detail.querySelector('.process-ipqc-diff').children.length,2);const previewNotice=lang==='zh'?'只更新目前表單的分配版本記錄；完成方塊後按「存取草稿」。不修改來源標準。':'Chỉ đổi phiên bản liên kết trên biểu mẫu hiện tại. Hoàn tất bước rồi bấm “Lưu bản nháp”. Không sửa tiêu chuẩn nguồn.';assert(detail.textContent.includes(previewNotice));assert.doesNotMatch(detail.textContent,/同步|đồng bộ|手動儲存|lưu thủ công/);const qualityBefore=plain(f.quality),sharedBefore=plain(f.remote);await f.adopt();const adoptedNotice=lang==='zh'?'已採用至目前表單；尚未存取草稿。完成方塊後請按「存取草稿」。':'Đã dùng nguồn trên biểu mẫu hiện tại; chưa lưu bản nháp. Hoàn tất bước rồi bấm “Lưu bản nháp”.';assert.equal(detail.textContent,adoptedNotice);assert.doesNotMatch(detail.textContent,/同步|đồng bộ/);assert.equal(f.panel().querySelector('[data-ipqc-warning]'),null);assert.equal(f.panel().querySelector('[data-ipqc-choice]').closest('article').dataset.status,'selected');assert.equal(f.panel().querySelector('[data-ipqc-count=\"retained\"]').textContent,'0');assert.equal(f.posts().length,0,'compare/adopt only update the local form');assert.deepEqual(plain(f.remote),sharedBefore);assert.deepEqual(plain(f.quality),qualityBefore);await f.finish();assert.equal(f.posts().length,0,'completing the operation stays local');await f.box.ProcessAuthoringV3.save();assert.equal(f.posts().length,1,'one explicit Save persists the adopted reference');assert.equal(JSON.parse(f.posts()[0].options.body).command.moduleAction,'save-canvas-v1');assert.equal(f.remote.workflow.saved.content.workspaces[0].stages[stage][0].ipqcAssignments[0].sourceVersionId,'new');assert.deepEqual(plain(f.quality),qualityBefore);assert.equal(f.calls.some(c=>c.url.includes('/photo')),false);const css=fs.readFileSync('public/process/process-ipqc.css','utf8');assert.match(css,/@media\\(max-width:560px\\)\\{\\.process-ipqc-diff\\{grid-template-columns:minmax\\(0,1fr\\)\\}/);assert.match(css,/\\.process-ipqc-source-review button,\\[data-ipqc-compare\\]\\{min-height:44px/);\n"
+        },
+        {
+          "offset": 32718,
+          "before": "",
+          "after": "\nvoid test('removing one retained link keeps the other warning and its explicit source comparison',async()=>{\n const f=await fixture({assignmentsOverride:[assignment(),{...assignment(),itemId:'other-item'}]});for(const v of f.versions)v.snapshot.items.push({...copy(v.snapshot.items[0]),id:'other-item',code:'OTHER'});\n await f.open();assert.equal(f.panel().querySelectorAll('[data-ipqc-warning]').length,2);assert.equal(f.panel().querySelectorAll('[data-ipqc-compare]').length,2);\n const input=f.panel().querySelector('[data-ipqc-choice]');input.checked=false;input.onchange();await tick();assert.equal(f.panel().querySelectorAll('[data-ipqc-warning]').length,1);assert.equal(f.panel().querySelectorAll('[data-ipqc-compare]').length,1);assert.match(f.panel().querySelector('[data-ipqc-warning]').textContent,/other-item/);\n await f.compare();assert(f.panel().querySelector('[data-ipqc-adopt]'));assert.equal(f.posts().length,0);\n});\n"
+        }
+      ]
+    },
+    "tests/process-ipqc-link-fixture.cjs": {
+      "beforeBlob": "e453ce84c2e14db164cae9d6d8843a1d752efae0",
+      "beforeHash": "d6fac50a23a3a4235d9654c562e816a22e99353ea22d4ca90fad56152abe76ea",
+      "beforeNormalizedHash": "d6fac50a23a3a4235d9654c562e816a22e99353ea22d4ca90fad56152abe76ea",
+      "beforeLength": 9077,
+      "beforeCRLF": [],
+      "afterHash": "0831706107ec9231817a51140d4e3ce7e3128b859ac5df593a6fd99dc2b24911",
+      "afterLength": 9142,
+      "rules": [
+        {
+          "offset": 7559,
+          "before": " async function generatedMasterPages(routeless=[]){\n",
+          "after": " async function generatedMasterPages(routeless=[],{staleCompatibility=true}={}){\n"
+        },
+        {
+          "offset": 8071,
+          "before": "  const root={pageDraftLayout:'page-v1',active:{...copy(approved),...copy(pages),C:{...copy(approved.C),products:[{...copy(approved.C.products[0]),code:'PHANTOM'}]}},versions:Object.entries(pages).map(([scope,snapshot])=>({id:randomUUID(),scope,status:'approved',snapshot:copy(snapshot)}))};\n",
+          "after": "  const root={pageDraftLayout:'page-v1',active:{...copy(approved),...copy(pages),C:staleCompatibility?{...copy(approved.C),products:[{...copy(approved.C.products[0]),code:'PHANTOM'}]}:copy(approved.C)},versions:Object.entries(pages).map(([scope,snapshot])=>({id:randomUUID(),scope,status:'approved',snapshot:copy(snapshot)}))};\n"
+        }
+      ]
+    },
+    "scripts/entry-performance/ipqc-index-semantics.cjs": {
+      "beforeBlob": "b01d65ee11d321321886dafac0b221bf4f4336c6",
+      "beforeHash": "70c5487a3b215ce814eb18eb4b2a59cfaae297c4e723b3eaa1334155fe9e1769",
+      "beforeNormalizedHash": "70c5487a3b215ce814eb18eb4b2a59cfaae297c4e723b3eaa1334155fe9e1769",
+      "beforeLength": 7774,
+      "beforeCRLF": [],
+      "afterHash": "8c59e5fc507a12df519d59eae5d4e1d663ce5818ac65d16faa080247d13df7bd",
+      "afterLength": 12921,
+      "rules": [
+        {
+          "offset": 2792,
+          "before": "function sourceParts(s){\n const start='const choices=result.choices',end='const groups=new Map()',handlerAnchor=\"panel.querySelectorAll('[data-ipqc-choice]').forEach(\";\n",
+          "after": "function sourceParts(input){\n const s=input.replaceAll('\\r\\n','\\n'),start='const choices=result.choices',end='const groups=new Map()',handlerAnchor=\"panel.querySelectorAll('[data-ipqc-choice]').forEach(\";\n"
+        },
+        {
+          "offset": 3349,
+          "before": " assert.equal(staleMatches.length,1,'unique stale expression');\n",
+          "after": " const renderer='  function renderAssignmentWarnings(',hasRenderer=s.includes(renderer);let renderSource='',stale='';\n if(hasRenderer){\n  assert.equal(staleMatches.length,0,'current renderer cannot also carry a legacy stale expression');\n  for(const anchor of [renderer,'  const referenceReasons=','  const key='])assert.equal(s.split(anchor).length,2,'unique retained source boundary: '+anchor);\n  const from=s.indexOf(renderer),to=s.indexOf('  const key=');assert(from<to,'ordered retained renderer boundaries');\n  const helpers=['h','text','label','referenceReasons'].map(name=>{const lines=s.split('\\n').filter(line=>line.startsWith('  const '+name+'='));assert.equal(lines.length,1,'unique retained helper: '+name);return lines[0];}).join('\\n');\n  renderSource=helpers+'\\n'+s.slice(from,to);\n  const wiring=\"warnings.innerHTML=(op.ipqcAssignments||[]).map(a=>{const c=byKey.get(key(a)),reasons=referenceReasons(a,c);if(!reasons.length)return '';\";\n  assert.equal(renderSource.split(wiring).length,2,'actual warning renderer must consume the retained reasons once');\n }else{assert.equal(staleMatches.length,1,'unique stale expression');stale=staleMatches[0][0];}\n"
+        },
+        {
+          "offset": 4857,
+          "before": " return{setup,stale:staleMatches[0][0],lookup:lookups[0][1],handler};\n",
+          "after": " return{setup,stale,lookup:lookups[0][1],handler,renderSource,hasRenderer};\n"
+        },
+        {
+          "offset": 4935,
+          "before": "function actual(file){const {setup,stale,lookup}=sourceParts(fs.readFileSync(file,'utf8'));return vm.runInNewContext('(result,op,input)=>{'+setup+stale+'return {stale,choice:'+lookup+'};}',{key,window:{},state:{editorLine:'A',category:'SYN'},editor:null,ensureCategoryEditor:()=>({})});}\n",
+          "after": "function viewPorts(){\n const warnings={innerHTML:'',querySelectorAll(selector){assert.equal(selector,'[data-ipqc-remove]');return[];}};\n return{warnings,panel:{querySelector(selector){assert.equal(selector,'[data-ipqc-warnings]');return warnings;}},document:{documentElement:{lang:'zh'},querySelector(selector){assert.equal(selector,'#apply-operation');return{disabled:false};}},escapeHtml:value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('\"','&quot;')};\n}\nfunction actualSource(source){\n const p=sourceParts(source),ports=viewPorts();\n // Observe which real map callbacks emit warnings, retaining native map return,\n // row identity/order and the entire production renderer. No predicate is copied.\n const render=p.hasRenderer?`const stale=[];let maps=0;const assigned=Array.from(op.ipqcAssignments||[]);Object.defineProperty(assigned,'map',{value:function(callback){maps++;return Array.prototype.map.call(this,(row,index,array)=>{const markup=callback(row,index,array);if(markup)stale.push(row);return markup;});}});renderAssignmentWarnings(panel,{...op,ipqcAssignments:assigned},choicesByKey,null,()=>{throw Error('RENDER_MUST_NOT_EDIT');});assert.equal(maps,1);`:p.stale;\n return vm.runInNewContext(p.renderSource+'\\n(result,op,input)=>{'+p.setup+render+'return {stale,choice:'+p.lookup+'};}',{assert,...ports,key,window:{},state:{editorLine:'A',category:'SYN'},editor:null,ensureCategoryEditor:()=>({}),fetch(){throw Error('UNEXPECTED_REQUEST');}});\n}\nfunction actual(file){return actualSource(fs.readFileSync(file,'utf8'));}\n"
+        },
+        {
+          "offset": 7386,
+          "before": "",
+          "after": "\n// Explicit AB rule delta: only C compares assignment product membership.\n// All other historical stale/first-match behavior remains under the original comparisons.\nconst currentFile=process.env.IPQC_CANDIDATE||path.resolve('public/process/process-ipqc.js'),currentSource=fs.readFileSync(currentFile,'utf8');\nconst sample=(source='AB')=>({source,scope:source==='C'?'C':'A',itemId:'stable',sourceVersionId:'v1',productCodes:['P1','P2']});\nfunction retainedMatrix(run){\n for(const source of ['AB','C']){\n  const c=sample(source),selected={...c,productCodes:['different']},input={dataset:{ipqcChoice:key(c)}};\n  assert.deepEqual(Array.from(run({choices:[c]},{ipqcAssignments:[selected]},input).stale),source==='C'?[selected]:[],'only C products alter current retention');\n  const old={...c,sourceVersionId:'old'},missing={...c,itemId:'missing'};\n  for(const assigned of [[c],[{...c,productCodes:['P2','P1']}],[old],[missing],[old,missing]]){\n   const expected=assigned.filter(a=>a===old||a===missing);assert.deepEqual(Array.from(run({choices:[c]},{ipqcAssignments:assigned},input).stale),expected);\n  }\n  assert.equal(run({choices:[c,{...c,sourceVersionId:'later-duplicate'}]},{ipqcAssignments:[c]},input).choice,c);\n }\n}\nretainedMatrix(newActual);\nfor(const eol of ['\\n','\\r\\n'])retainedMatrix(actualSource(currentSource.replaceAll('\\r\\n','\\n').replaceAll('\\n',eol)));\nconst change=(before,after)=>{assert.equal(currentSource.split(before).length,2,'unique fault-injection anchor');return currentSource.replace(before,after);};\nfor(const source of [currentSource+'\\n'+sourceParts(currentSource).renderSource,change('reasons=referenceReasons(a,c);if(!reasons.length)',\"reasons=[];if(!reasons.length)\")])assert.throws(()=>sourceParts(source),/unique retained|consume the retained/);\nfor(const source of [change(\"a.sourceVersionId!==c.sourceVersionId\",\"a.sourceVersionId===c.sourceVersionId\"),change(\"a.source==='C'&&JSON.stringify\",'JSON.stringify'),change(\"!c?['unavailable']\",\"!c?[]\")])assert.throws(()=>retainedMatrix(actualSource(source)),/current retention|Expected values/);\nassert.throws(()=>retainedMatrix(actualSource(change('if(!choicesByKey.has(k))',''))),{code:'ERR_ASSERTION'},'last duplicate must not replace the first source row');\nconsole.log('actual complete warning renderer: AB product delta, C membership, versions, missing source, order and LF/CRLF; binding/semantic negative controls PASS');\n"
+        },
+        {
+          "offset": 10919,
+          "before": " const box={window:{},state:{editorLine:'A',category:'SYN'},key,result:{choices:[choice]},op,input,ensureCategoryEditor:()=>({stage:[op]}),valid:()=>current,editor:{canEdit:()=>canEdit},badge:status=>status,updateOverview:()=>updates++,Event:class{constructor(type){this.type=type;}},panel:{querySelectorAll:()=>[input],dispatchEvent(event){assert.equal(event.type,'input');events++;}},fetch(){requests++;throw Error('UNEXPECTED_REQUEST');}};\n vm.runInNewContext(parts.setup+parts.handler,box);input.onchange();return{op,original,before,updates,events,requests,article};\n",
+          "after": " const ports=viewPorts();let renders=0;Object.defineProperty(ports.warnings,'innerHTML',{set(){renders++;}});\n const box={...ports,window:{},state:{editorLine:'A',category:'SYN'},key,result:{choices:[choice]},op,input,ensureCategoryEditor:()=>({stage:[op]}),valid:()=>current,editor:{canEdit:()=>canEdit},badge:status=>status,updateOverview:()=>updates++,Event:class{constructor(type){this.type=type;}},panel:{querySelector:selector=>ports.panel.querySelector(selector),querySelectorAll:()=>[input],dispatchEvent(event){assert.equal(event.type,'input');events++;}},fetch(){requests++;throw Error('UNEXPECTED_REQUEST');}};\n vm.runInNewContext(parts.renderSource+parts.setup+parts.handler,box);input.onchange();return{op,original,before,updates,events,requests,renders,article};\n"
+        },
+        {
+          "offset": 11698,
+          "before": "for(const options of [{selected:true},{selected:true,checked:false,current:false},{selected:true,checked:false,canEdit:false},{missing:true}]){const f=checkbox(options);assert.equal(f.op.ipqcAssignments,f.before,'guard must not replace the original assignment array');if(options.selected)assert.equal(f.op.ipqcAssignments[0],f.original);assert.equal(f.updates,0);assert.equal(f.events,0);assert.equal(f.requests,0);}\nconst chosen=checkbox();assert.equal(chosen.op.ipqcAssignments.length,1);assert.equal(chosen.op.ipqcAssignments[0].sourceVersionId,'new-source-version');assert.equal(chosen.updates,1);assert.equal(chosen.events,1);assert.equal(chosen.requests,0);assert.equal(chosen.article.dataset.status,'selected');\nconst removed=checkbox({selected:true,checked:false});assert.equal(removed.op.ipqcAssignments.length,0);assert.equal(removed.updates,1);assert.equal(removed.events,1);assert.equal(removed.requests,0);assert.equal(removed.article.dataset.status,'available');\n",
+          "after": "for(const options of [{selected:true},{selected:true,checked:false,current:false},{selected:true,checked:false,canEdit:false},{missing:true}]){const f=checkbox(options);assert.equal(f.op.ipqcAssignments,f.before,'guard must not replace the original assignment array');if(options.selected)assert.equal(f.op.ipqcAssignments[0],f.original);assert.equal(f.updates,0);assert.equal(f.events,0);assert.equal(f.requests,0);assert.equal(f.renders,0);}\nconst chosen=checkbox();assert.equal(chosen.op.ipqcAssignments.length,1);assert.equal(chosen.op.ipqcAssignments[0].sourceVersionId,'new-source-version');assert.equal(chosen.updates,1);assert.equal(chosen.events,1);assert.equal(chosen.requests,0);assert.equal(chosen.renders,1);assert.equal(chosen.article.dataset.status,'selected');\nconst removed=checkbox({selected:true,checked:false});assert.equal(removed.op.ipqcAssignments.length,0);assert.equal(removed.updates,1);assert.equal(removed.events,1);assert.equal(removed.requests,0);assert.equal(removed.renders,1);assert.equal(removed.article.dataset.status,'available');\n"
+        }
+      ]
+    }
+  }
+}
