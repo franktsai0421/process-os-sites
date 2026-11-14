@@ -1,6 +1,6 @@
 /* Actual TypeScript domain, synthetic JSON/workspaces only. No server, credentials or business storage.
  * Old validator is an exact function fixture from a75e717 (PR36 candidate), not a timing expectation.
- * Built-in Node TypeScript transformation keeps this portable without dependency installation. */
+ * Built-in Node transformation instruments the domain; approved page guards use the actual isolated repository loader. */
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
 const {stripTypeScriptTypes}=require('node:module'),{createHash}=require('node:crypto');
 const root=path.resolve(__dirname,'..'),hash=value=>createHash('sha256').update(value).digest('hex'),copy=structuredClone;
@@ -13,11 +13,14 @@ const freeze=value=>{if(value&&typeof value==='object'&&!Object.isFrozen(value))
 function load(source){
  const stats={calls:[],enabled:false,freeze:false};let values={};
  const instrumentedJSON={...JSON,parse(input,...args){if(stats.enabled)stats.calls.push({key:Object.keys(values).find(key=>values[key]===input)||'other',bytes:Buffer.byteLength(String(input))});const result=JSON.parse(input,...args);return stats.freeze?freeze(result):result;},stringify:JSON.stringify};
- const context={JSON:instrumentedJSON,console,Map,Set,Error,TypeError,SyntaxError};vm.createContext(context);
+ const approvedMasterPageCatalog=require('./ipqc-ab-import-harness.cjs')()('lib/master-approved-pages.ts').approvedMasterPageCatalog;
+ assert.equal(typeof approvedMasterPageCatalog,'function','actual merged-main approved catalog guard');
+ const context={JSON:instrumentedJSON,console,Map,Set,Error,TypeError,SyntaxError,approvedMasterPageCatalog};vm.createContext(context);
  const core=stripTypeScriptTypes(fs.readFileSync(path.join(root,'lib/shared-draft.ts'),'utf8'),{mode:'transform'}).replace(/^export /gm,'');
  vm.runInContext(core,context,{filename:'actual-shared-draft.js'});
- const transformed=stripTypeScriptTypes(source,{mode:'transform'});assert.equal((transformed.match(/^import /gm)||[]).length,1);
- const code=transformed.replace(/^import \{ DraftConflict, stableDraftJSON \} from '\.\/shared-draft';\s*/m,'').replace(/^export /gm,'');
+ const transformed=stripTypeScriptTypes(source,{mode:'transform'});assert.equal((transformed.match(/^import /gm)||[]).length,2,'only exact shared-draft and approved-page imports');
+ const code=transformed.replace(/^import \{ approvedMasterPageCatalog \} from '\.\/master-approved-pages';\s*/m,'').replace(/^import \{ DraftConflict, stableDraftJSON \} from '\.\/shared-draft';\s*/m,'').replace(/^export /gm,'');
+ assert.doesNotMatch(code,/^import /m,'unknown import must not escape explicit bindings');
  vm.runInContext(code+'\nthis.api={validateIPQCAssignments,ipqcChoices,ipqcIssues};',context,{filename:'actual-process-ipqc.js'});
  return{api:context.api,stats,run(fixture,measure=true){values=fixture.values;stats.calls=[];stats.enabled=measure;stats.freeze=measure;const before=JSON.stringify(fixture);let result;try{context.api.validateIPQCAssignments(fixture.next,fixture.previous,values);result={status:200};}catch(error){result={status:error.status||null,name:error.name,message:error.message,code:error.code||null,details:error.details===undefined?null:JSON.parse(JSON.stringify(error.details))};}assert.equal(JSON.stringify(fixture),before,'validator must not mutate input');return{result,parses:copy(stats.calls),bytes:stats.calls.reduce((n,row)=>n+row.bytes,0)};}};
 }
@@ -36,7 +39,7 @@ function fixture(count=8,mixed=false){
  return{values,next:[{id:'WA',line:'A',category:'SYN',stages:{CUT:aOps}},...(mixed?[{id:'WC',line:'C',category:'SYN',stages:{CUT:cOps}}]:[])],previous:[]};
 }
 const baseline=load(baselineRaw),candidate=load(raw),cases=[],benefits=[];
-function check(name,modify,expected){const f=fixture(8,true);modify?.(f);freeze(f);const old=baseline.run(f),next=candidate.run(f);assert.deepEqual(next.result,old.result,name+': result/error order');if(expected)expected(old,next,f);cases.push({name,result:next.result,baselineParses:old.parses.length,candidateParses:next.parses.length,baselineBytes:old.bytes,candidateBytes:next.bytes,baselineReadOrder:old.parses.map(p=>p.key),candidateReadOrder:next.parses.map(p=>p.key)});return{old,next,f};}
+function check(name,modify,expected){const f=fixture(8,true);modify?.(f);freeze(f);const old=baseline.run(f),next=candidate.run(f);if(name==='duplicate choice id with mismatched first products keeps first-match rejection'){assert.equal(old.result.status,409);assert.equal(next.result.status,200,'A/B product metadata is no longer an assignment eligibility condition');}else assert.deepEqual(next.result,old.result,name+': result/error order');if(expected)expected(old,next,f);cases.push({name,result:next.result,baselineParses:old.parses.length,candidateParses:next.parses.length,baselineBytes:old.bytes,candidateBytes:next.bytes,baselineReadOrder:old.parses.map(p=>p.key),candidateReadOrder:next.parses.map(p=>p.key)});return{old,next,f};}
 check('normal AB+C changed links',null,old=>assert.equal(old.result.status,200));
 check('normal AB only changed links',f=>f.next.length=1,old=>assert.equal(old.result.status,200));
 check('empty workspaces with malformed unrelated inputs never parse',f=>{f.next=[];f.values.masterDataControl='{bad';},(old,next)=>{assert.equal(old.parses.length,0);assert.equal(next.parses.length,0);});

@@ -1,3 +1,7 @@
+## 2026-11-14 — IPQC 方塊連接規則候選
+
+新版 operation editor 的 A/B、C 都使用既有 assignment checkbox 與 current-canvas atomic Save。A/B 不依產品／路線過濾；C 依有效產品與畫布工段，多產品聯集且保留變更後的歷史引用。全工作區的 C 占用與已存 owner 均檢查；取消後須先存取才能轉移。舊 query flag 不自動勾選。來源、測試與界線見[驗收矩陣](../../docs/acceptance/process-ipqc-link-rules-20261114.md)。
+
 ## 2026-11-13 — 製程送審結果分類
 
 確定拒絕與讀取失敗不再顯示假「結果未知／同步失敗」；無差異送審說明草稿保留。真正未知仍鎖定原操作並唯讀查收據，404不提示重送。後端無差異保護與撤回原快照重送規則不變。[根因與隔離驗證](../../docs/acceptance/process-submit-outcome-20261113.md)。

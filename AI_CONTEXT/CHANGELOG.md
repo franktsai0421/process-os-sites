@@ -1,3 +1,7 @@
+## 2026-11-14 — Process IPQC link-rule candidate
+
+A/B choices/validation/completeness/source comparisons no longer use operation products or product routes. C editor now selects and saves item references, with product/error grouping and explicit stale-reference handling. Backend checks cross-workspace C occupancy and saved-release transfer under existing CAS. [Generated lifecycle evidence and limits](../docs/acceptance/process-ipqc-link-rules-20261114.md). No live-data rewrite, migration, merge or deployment.
+
 ## 2026-11-14 — #115 整合 main #116
 
 主資料明確等待與製程審核 180 秒／原收據修復共同保留，四份原 manifest 不變、加入第三真前身 inverse。共同候選須獨立重跑；不是沿用舊綠燈。未操作真資料、設定、既有 UNKNOWN、合併或部署。詳見 lines-flow 驗收續篇。

@@ -1,3 +1,7 @@
+## 2026-11-14 — IPQC assignment 規則候選
+
+沿用 operation.ipqcAssignments 的 source／scope／itemId／sourceVersionId／productCodes tuple 與原工作草稿／immutable Save／CAS，不新增 SQL、儲存鍵、migration 或批次資料改寫。A/B productCodes 為來源參考，不再作選取資格或缺項／來源變更判定；C 仍驗證單產品身分。C 占用驗證跨同工段所有工作區，包含既有不再適用的歷史引用。舊 ipqcQueryEnabled 保留、無自動勾選。見[變更及驗收](../docs/acceptance/process-ipqc-link-rules-20261114.md)。
+
 ## 2026-11-13 — LINES 與 PROCESS 核准邊界候選
 
 沿用 `masterDataControl` page-v1 owner／versions／workflowScopes 與現有 CAS／immutable Save／原收據。LINES 新案件不攜帶 linkedProcess；舊案件保留，需撤回／退回後重新分頁送審。PROCESS 缺漏 stage array 由顯式本機輸入及 guarded atomic Save 建立，需獨立 create/edit/save 權限與已核准 LINES；核准以前不投影為正式資料。沒有 SQL、schema、marker 或既有資料變更。PROCESS active／pointer／unique approved snapshot 由獨立來源核對。[完整界線](../docs/acceptance/lines-flow-integration-20261113/README.md)。

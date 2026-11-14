@@ -1,3 +1,7 @@
+## 2026-11-14 — Process ↔ IPQC link-rule candidate
+
+Independent branch now integrates main 379ae8d (merged #115 and #116); source PR refs untouched. Upstream master boundaries, explicit wait/stop/original receipts and process review recovery are retained. C IPQC choices resolve approved page-v1 catalog/LINES owners consistently with authoring validation. A/B product-independent approved choices, C editable persisted assignments, cross-workspace C occupancy and saved-release transfer. Generated new errors/items travel through real Save/Submit/approval routes. [Matrix, provenance, test and native/live limits](docs/acceptance/process-ipqc-link-rules-20261114.md). Draft only, no real data/account/schema/merge/deployment.
+
 ## 2026-11-14 — #115 整合 main #116
 
 主資料明確等待與製程審核 180 秒／原收據修復共同保留，四份原 manifest 不變、加入第三真前身 inverse。共同候選須獨立重跑；不是沿用舊綠燈。未操作真資料、設定、既有 UNKNOWN、合併或部署。詳見 lines-flow 驗收續篇。
