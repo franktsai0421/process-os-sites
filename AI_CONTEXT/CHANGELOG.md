@@ -2,6 +2,10 @@
 
 獨立 main e040a7e 候選：移轉回應與查詢解耦、AQL 預設欄位、本地／已存／未知狀態及伺服器編碼提示；AB 關聯精簡投影與有界序列化；檢具／模具逐請求權限評估；唯讀歷史過期與寫入結果分開呈現。無資料遷移、實站寫入、權限變更或部署。[證據與限制](../docs/acceptance/quality-root-causes-20261115.md)。
 
+## 2026-11-15 — 製程 IPQC 頻率顯示修正候選
+
+獨立 main c6ac41a6 分支修正 C 的 AQL 重複前綴，AB／其他頻率內容保留，中越文與唯讀 DOM 補測。[根因、測試及 CI 界線](../docs/acceptance/process-ipqc-frequency-20261115.md)。不改資料、權限或檢具／模具功能與速度工作，不合併或部署。
+
 ## 2026-11-15 — 製程 IPQC 明確採用及切換後送審驗證
 
 獨立 main e040a7e 修復候選：A/B/C 舊關聯明確採用核准新版，保留詳細區與唯一占用／權限／CAS；修復 filter 舊 history watcher 誤觸 CANVAS_REVIEW_CHANGED 及切換後未重新檢查的 disabled Submit。[根因、隔離證據、並行工作交接與未驗範圍](../docs/acceptance/process-ipqc-adopt-review-20261115.md)。無資料／schema／部署變更。

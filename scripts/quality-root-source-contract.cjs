@@ -1,4 +1,4 @@
-// Test-only exact successor -> verified merged #120 main. Unknown source never opts in.
+// Test-only exact successor -> verified merged #122 main. Unknown source never opts in.
 // Runtime never imports this inverse; original source manifests remain unchanged.
 const assert=require('node:assert/strict'),{createHash}=require('node:crypto');
 const contract=require('./quality-root-source-contract.json'),hash=b=>createHash('sha256').update(b).digest('hex'),normalized=b=>Buffer.from(b.toString('utf8').replaceAll('\r\n','\n'));

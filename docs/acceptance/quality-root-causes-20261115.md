@@ -102,3 +102,15 @@ Diem檢具照片完成表單後頁首矛盾，已由本批hasLocalDraftInput（�
 新增共用檔案注意：權限工作若改 `navigation-adapters.test.mjs` 須保留本批tags與自身權限斷言；速度工作若改timer清單須逐筆保留此明確使用者刪除action單次deadline，不能整檔覆蓋。未修改帳號／ACL功能或製程方塊功能。
 
 新版 `98de5a3e` CI 的 Account permissions 已越過原 navigation 失敗，再於後段 `account-page-entry.test.cjs` 發現相同類型的冷啟動tag預期遺漏。只修shared client／version UI兩個精確tag，保留單筆、存在、載入順序與CSS獨立版本斷言；不改任何帳號或權限實作。該檔納入新exact inverse，且全面搜尋其餘可執行測試／腳本的舊資產tag（歷史manifest不改），沒有另一處未處理的直接舊tag斷言。
+
+
+## 423a930 FQC/IQC race fixture 與 #122 main 整合
+
+精確 run 43732192912／job 132866870153 的原始 log 顯示步驟23 `test-routine-equipment-edit-open-race.mjs` 失敗 `0 !== 1`，前22步成功、後24–42步未執行。舊 fixture 的 render port 沒有真正的 lazy reference section，且仍要求反查完成後才開表單，與本批已授權的立即編輯行為相反。本次只改 fixture：載入實際 section HTML、loader、section updater／binding，保留模型／DOM-only 輸入、原始快照、single flight、關閉、modal、版本、身分／epoch／權限與離頁保護。44情境通過；三個 mutation 負例驗證 await-before-open、整表單重畫、刪除 late owner/request fence 都失敗。新負例加入既有 Equipment CI，未移除任何工作流程或放寬驗證。
+
+已在隔離分支整合 main `346c5eefcca7621c481802502cbae61f2821e91d`（#122）。四項人工衝突：CHANGELOG／HANDOFF保留兩份唯一紀錄；index保留process-ipqc-frequency1與quality各自cache tags；source helper依序套用quality→#122 main→#120 main的精確逆向。#122的runtime process-ipqc.js／process-authoring-v3.js與新main完全相同，原frequency/adoption歷史manifest未修改；只為新組合建立嚴格hash／位置／EOL逆向，未知內容依舊拒絕。新head的本地與CI結果以最終交付為準，423a930的舊綠燈不沿用。
+
+此次沒有新增整體速度優化、實站寫入、合併main或部署。原生瀏覽器仍需GitHub runner執行；fixture通過不是真人實站驗收。速度工作若整合共用routine-equipment.js／shared-draft-client.js／workflow與cache檔案，請逐段保留本批收據、輸入與引用保護，勿整檔覆蓋。
+
+
+補跑舊步驟25時，transfer-intent的83情境有5個AB未知Begin案例仍假設executeTransfer返回時display refresh已結束。現在AB分範圍衝突結果先呈現，refreshing期間會拒絕重點，故第二次GET尚未發生。fixture新增驗證：refreshing期間重點不讀回／不重送；獨立查詢結束後明確操作才第二次GET；Begin仍只1 POST、Apply仍0、未知marker原bytes保留。未刪原案例，未改runtime或自動重試。
