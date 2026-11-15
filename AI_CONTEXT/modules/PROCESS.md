@@ -1,3 +1,7 @@
+## 2026-11-15 — 明確採用 IPQC 新版及畫布切換後內容檢查
+
+A/B/C 保留舊關聯時提供「採用核准新版」，以新鮮 choices 與 PROCESS authority 驗證後只更新本機 tuple。保留選取、lazy detail 展開狀態及正確標準／檢具；完成方塊後仍須手動 Save。AB 歷史比較保留，C 仍按產品／工段，AB 不按方塊產品。filter 切換先 retire 舊 history watcher，避免正常 render 觸發舊 context 的 onBoundary；filter／line／stage 成功切換後重做內容檢查，未通過前不啟用送審。根因、精確 main 重現、測試及原生／實站限制見[本輪紀錄](../../docs/acceptance/process-ipqc-adopt-review-20261115.md)。
+
 ## 2026-11-14 — IPQC 關聯顯示一致性
 
 `process-ipqc.js` 用穩定 ID 保留勾選／占用，另依原 sourceVersionId 與 C productCodes 判定 selected／retained。版本更新不等於重複項目或產品失效；警示顯示原因及原／現行版本。checkbox 與 A/B 明確採用立即更新警示／計數／分組，不寫回來源或自動改歷史。後端 validation、advisory、權限及唯一占用不變。[隔離重現、驗證及現場限制](../../docs/acceptance/process-ipqc-assignment-consistency-20261114.md)。

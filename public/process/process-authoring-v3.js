@@ -155,15 +155,18 @@ function adopt(result,replace=true,preserveCanvas=false){assertHistoryCurrent();
  // Neither path grants a mutation or adopts another generation.
  function changeCanvasView({run,kind,key,label}){
   const displayEpoch=historyDisplayEpoch,c=transport,owner=identityStamp(),generation=flow()?.generation,contextEpoch=localContextEpoch;
-  const current=()=>historyCurrent(displayEpoch)&&!submitStateUnconfirmed&&enabled()&&state.view==='editor'&&ownFlow()&&permissions.view===true&&loadedStamp?.identity===host.ProcessSync?.identity&&sameStamp(owner,identityStamp())&&owner.identity===host.ProcessSync?.identity&&generation===flow()?.generation&&contextEpoch===localContextEpoch&&!host.ProcessSync?.requiresReload;
+  const current=(display=displayEpoch)=>historyCurrent(display)&&!submitStateUnconfirmed&&enabled()&&state.view==='editor'&&ownFlow()&&permissions.view===true&&loadedStamp?.identity===host.ProcessSync?.identity&&sameStamp(owner,identityStamp())&&owner.identity===host.ProcessSync?.identity&&generation===flow()?.generation&&contextEpoch===localContextEpoch&&!host.ProcessSync?.requiresReload;
   if(kind==='line'||kind==='stage'){
    const navigation=host.ProcessDeliveryNavigation;
    if(typeof run!=='function'||!current()||!navigation?.guardAction)return Promise.resolve({status:'blocked'});
-   return navigation.guardAction({key,label,run(){if(!current())throw Error('CANVAS_REVIEW_CHANGED');return run();}});
+   return navigation.guardAction({key,label,run(){if(!current())throw Error('CANVAS_REVIEW_CHANGED');retireHistory();const result=run();inspectLater();panel();return result;}});
   }
   const idle=()=>!!c&&!busy&&!loading&&!ownIntentPending()&&!departureOperation&&!modalOpen()&&!editorChanged()&&!host.ProcessEditorV2?.interacting?.()&&!host.ProcessEditorV2?.departure?.inspect?.().hasDialog&&!c.hasUnknown()&&!c.hasSyncFailures()&&!host.ProcessCanvasLocal?.pending?.()&&host.ProcessCanvasLocal?.isReady?.()===true&&c.isRuntimeCurrent?.()!==false&&c.isBeginRuntimeCurrent?.()!==false;
   if(typeof run!=='function'||!current()||!idle())return Promise.resolve({status:'blocked'});
-  return Promise.resolve().then(()=>{if(!current()||!idle())return {status:'blocked'};run();if(!current())throw Error('CANVAS_REVIEW_CHANGED');host.ProcessCanvasLocal?.update?.();return {status:'ready'};});
+  return Promise.resolve().then(()=>{if(!current()||!idle())return {status:'blocked'};
+   // Retire the source history watcher before rendering a different filter.
+   // Otherwise its expected context change invalidates the new display epoch.
+   retireHistory();const nextDisplay=historyDisplayEpoch;run();if(!current(nextDisplay))throw Error('CANVAS_REVIEW_CHANGED');host.ProcessCanvasLocal?.update?.();inspectLater();panel();return {status:'ready'};});
  }
  async function readyForEditor(){
   assertHistoryCurrent();

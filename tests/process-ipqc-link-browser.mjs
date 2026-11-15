@@ -51,6 +51,11 @@ try{
   await boot();await open('two');assert(await c.isChecked());assert.equal(await c.locator('..').locator('..').getAttribute('data-status'),'retained');
   assert.equal(await page.locator('[data-ipqc-count="selected"]').innerText(),'0');assert.equal(await page.locator('[data-ipqc-count="retained"]').innerText(),'1');assert.equal(await page.locator('[data-ipqc-warning][data-ipqc-reasons="version"]').count(),1);
   assert.equal(await page.locator('.process-ipqc-group').first().getAttribute('data-complete'),'false');await page.screenshot({path:out+'/'+line+'-retained-'+width+'.png',fullPage:true});
+  if(line==='C'){
+   const details=page.locator('.process-ipqc-item-details').first();await details.evaluate(el=>el.open=true);await details.locator('p').first().waitFor();
+   await page.locator('[data-ipqc-latest]').click();await page.waitForFunction(()=>document.querySelector('[data-ipqc-count="retained"]')?.textContent==='0');assert(await c.isChecked());assert.equal(await details.evaluate(el=>el.open),true);assert.equal(await page.locator('[data-ipqc-warning]').count(),0);assert.match(await page.locator('.pe-ipqc').innerText(),/Đã dùng nguồn mới/);await page.screenshot({path:out+'/C-direct-adopt-390.png',fullPage:true});
+   await page.locator('#apply-operation').click();await page.locator('#process-operation-dialog').waitFor({state:'detached'});await save();await boot();await open('two');assert(await c.isChecked());assert.equal(await page.locator('[data-ipqc-warning]').count(),0);report.assertions.push('C: explicit approved-latest button adopts without remove/reselect; expanded details, atomic Save and full browser reload preserve one selected tuple PASS');
+  }
   if(line==='A'){
    // Publish another real approved version after the current panel already captured v2.
    const detail=page.locator('.process-ipqc-item-details').first();await detail.evaluate(el=>el.open=true);await detail.locator('p').first().waitFor();const oldText=await detail.innerText(),url=f.endpoint('AB'),itemId=report.sources.find(s=>s.source==='AB').itemId;
