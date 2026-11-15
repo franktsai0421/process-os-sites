@@ -92,3 +92,5 @@ jobs:
         run: node scripts/entry-performance/source-eol.test.cjs
       - name: Actual full controller retained-link state
         run: node --test tests/process-ipqc-assignment-state.test.mjs
+      - name: Actual adoption details while approved source changes
+        run: node --test tests/process-ipqc-source-adopt.test.mjs
