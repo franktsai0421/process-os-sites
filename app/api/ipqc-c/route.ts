@@ -1,7 +1,7 @@
 import {ipqcCFinalReviewAllowed} from '@/lib/ipqc-c-access';
 import {restoreEffects} from '@/lib/draft-restore-access';
 import { env } from 'cloudflare:workers';
-import { readState, identity, can, sameOrigin, encodeValues, parse, maintenanceCredential, responseHeaders as headers } from '@/lib/process-state';
+import { readState, identity, can, createIpqcReadPermissionPhase, sameOrigin, encodeValues, parse, maintenanceCredential, responseHeaders as headers } from '@/lib/process-state';
 import { activeIpqc, checkedIpqcRule, checkedIpqcSnapshot, copyIpqc, nextErrorCode, nextItemCode,
   openIpqc, parseIpqcControl, submitIpqcErrors,submitIpqcIssues, type IpqcError,
   type IpqcItem, type IpqcSnapshot } from '@/lib/ipqc-c';
@@ -63,9 +63,9 @@ const clean = (value: unknown) => typeof value === 'string' ? value : '';
 export async function GET(request: Request) {
   try {
     const caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
-    const state = await readState({modelKey:KEY,deferHistory:true,deferDependencyHistory:true,...(!localHost(request)?{keys:readKeys}:{})});
-    const actor = await identity(request, state);
-    if (!actor || !(await can(request, state, 'ipqc-c.view')))
+    const state = await readState({aggregateReadAhead:true,modelKey:KEY,deferHistory:true,deferDependencyHistory:true,...(!localHost(request)?{keys:readKeys}:{})});
+    const phase=await createIpqcReadPermissionPhase(request,state),actor=phase.actor;
+    if (!actor || !phase.allowed('ipqc-c.view'))
       return reply({ error: '沒有查看 IPQC-C 的權限' }, 403);
     const equipment = parse(state.values.routineEquipmentControl, null) as EquipmentControl | null;
     const effective = equipment?.versions?.find(v => v.id === equipment.activeVersionId && v.status === 'approved');
@@ -77,10 +77,11 @@ export async function GET(request: Request) {
       categoryId:groups.find(g => g.id === item.groupId)?.categoryId || '',
       subcategoryId:groups.find(g => g.id === item.groupId)?.subcategoryId || '',
       available:item.enabled !== false }));
-    const body={ revision: state.revision, control: publicIpqcWorkflow(parseIpqcControl(state.values[KEY],state.recordStorage?.models.get(KEY)),await can(request,state,'approval.compare'),caseMetadata),
+    const body={ revision: state.revision, control: publicIpqcWorkflow(parseIpqcControl(state.values[KEY],state.recordStorage?.models.get(KEY)),phase.allowed('approval.compare'),caseMetadata),
       catalog: catalog(state.values), equipmentGroups: groups, equipment:equipmentChoices,
       equipmentCategories:tree.categories, equipmentSubcategories:tree.subcategories,
       ...(localHost(request) && actor.role === 'admin' ? { historicalCodes: historicCodes(state.values) } : {}) };
+    if(!await phase.current())return reply({error:'沒有查看 IPQC-C 的權限'},403);
     return state.recordStorage&&!caseMetadata?recordJSONResponse(body,env.STATE_ARCHIVE,headers):reply(body);
   } catch (error) {
     console.error('[ipqc-c] load failed', error);

@@ -1,3 +1,7 @@
+## 2026-11-14 — Independent IPQC operation-speed candidate
+
+Branch `perf/ipqc-operation-speed-20261114` starts at main `c178ae2`, separate from #115/#117. Request-local permission evaluation and bounded full-read scheduling retain UNKNOWN/original receipts, CAS, final approval and all draft boundaries. [Current evidence and remaining CI/hosted acceptance](docs/acceptance/ipqc-operation-speed-20261114.md). No merge/deployment or existing QA/browser/data mutation. Earlier checkpoints below remain historical.
+
 ## 2026-11-14 — IPQC 關聯顯示一致性候選
 
 獨立 main8bfc036 checkout／`fix/process-ipqc-assignment-consistency-20261114`。完整追查比對身分與原版本條件，重現 A/B/C 已選取＋舊版本警示及明確重選後警示殘留；保留歷史與所有後端防護。IPQC 速度工作區和 AB/C runtime 不變。[本輪根因、隔離證據及未驗證項](docs/acceptance/process-ipqc-assignment-consistency-20261114.md)。Windows 第31步舊 stale 擷取載具已定向接回完整現行警示函式；原 guards、負例及全套 gates 保留，前置 Linux／Windows checks 以同一 PR 最新 head 為準。無合併、部署或真資料操作。

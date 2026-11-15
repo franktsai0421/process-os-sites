@@ -13,8 +13,9 @@ const files=['app/api/ipqc-c/workflow/route.ts','lib/versioned-shared-workflow.t
   if(file==='app/api/ipqc-c/workflow/route.ts'){
    const readIO=require('./ipqc-c-read-io-source-contract.cjs'),canonical=readIO.withoutWorkflowReadAhead(bytes);
    assert.deepEqual(Buffer.from(overrides[file]),withoutDurableBegin(canonical,file),'Direct Begin reconstruction equals complete canonical reconstruction');
-   const at=bytes.indexOf(readIO.after),prefix=bytes.subarray(0,at),suffix=bytes.subarray(at+readIO.after.length);assert(at>=0);
-   for(const unsafe of [Buffer.concat([prefix,suffix]),Buffer.concat([prefix,readIO.after,readIO.after,suffix]),Buffer.from(bytes.toString().replace("query.get('compact')==='1'","query.get('compact')!=='1'"))])assert.throws(()=>withoutDurableBegin(unsafe,file),/differs from pinned bytes/);
+   const reviewed=require('./ipqc-c-integration-source-contract.cjs').projectKnown(bytes,file);assert.equal(createHash('sha256').update(reviewed).digest('hex'),readIO.afterHash,'Current admitted source reconstructs the exact historical read-ahead input');
+   const at=reviewed.indexOf(readIO.after),prefix=reviewed.subarray(0,at),suffix=reviewed.subarray(at+readIO.after.length);assert(at>=0);
+   for(const unsafe of [Buffer.concat([prefix,suffix]),Buffer.concat([prefix,readIO.after,readIO.after,suffix]),Buffer.from(reviewed.toString().replace("query.get('compact')==='1'","query.get('compact')!=='1'"))]){assert.notDeepEqual(unsafe,reviewed);assert.throws(()=>withoutDurableBegin(unsafe,file),/differs from pinned bytes/);}
   }
   assert.throws(()=>withoutDurableBegin(Buffer.concat([bytes,Buffer.from('\n// unknown change')]),file),/differs from pinned bytes/);
   assert.throws(()=>withoutDurableBegin(Buffer.from(bytes.toString().replace('receipt.actorId!==actor.id','false')),file),/differs from pinned bytes/);

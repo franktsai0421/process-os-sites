@@ -1,0 +1,938 @@
+{
+  "comparison": {
+    "before": {
+      "medianMs": 6.100715900000068,
+      "samples": [
+        9.078391499999999,
+        5.687680200000068,
+        4.632772099999966,
+        6.100715900000068,
+        7.961410100000103
+      ]
+    },
+    "after": {
+      "medianMs": 2.5558272999998737,
+      "samples": [
+        3.652201199999945,
+        1.8049222999999983,
+        1.5927263000001404,
+        2.704141400000117,
+        2.5558272999998737
+      ]
+    }
+  },
+  "rows": 1735,
+  "warmup": 1,
+  "measuredRounds": 3,
+  "summary": {
+    "open": {
+      "medianMs": 75.45,
+      "maxMs": 117.69,
+      "get": 4,
+      "put": 0,
+      "expandedBytes": 2342352,
+      "wireBytes": 2342352,
+      "requests": 1
+    },
+    "local-save": {
+      "medianMs": 244.84,
+      "maxMs": 273.56,
+      "get": 5,
+      "put": 2,
+      "expandedBytes": 2407551,
+      "wireBytes": 959790,
+      "requests": 1
+    },
+    "permission-read": {
+      "medianMs": 19.45,
+      "maxMs": 25.36,
+      "get": 1,
+      "put": 0,
+      "expandedBytes": 215,
+      "wireBytes": 215,
+      "requests": 1
+    },
+    "terminal-read": {
+      "medianMs": 26.36,
+      "maxMs": 39.85,
+      "get": 5,
+      "put": 0,
+      "expandedBytes": 490613,
+      "wireBytes": 490613,
+      "requests": 1
+    },
+    "save-no-local": {
+      "medianMs": 249.97,
+      "maxMs": 266.86,
+      "get": 11,
+      "put": 1,
+      "expandedBytes": 2407550,
+      "wireBytes": 1450402,
+      "requests": 2
+    },
+    "submit": {
+      "medianMs": 275.67,
+      "maxMs": 311.65,
+      "get": 11,
+      "put": 1,
+      "expandedBytes": 2408203,
+      "wireBytes": 1451055,
+      "requests": 2
+    },
+    "review-read": {
+      "medianMs": 28.89,
+      "maxMs": 30.64,
+      "get": 5,
+      "put": 0,
+      "expandedBytes": 958489,
+      "wireBytes": 958489,
+      "requests": 1
+    },
+    "withdraw": {
+      "medianMs": 265.35,
+      "maxMs": 392.98,
+      "get": 11,
+      "put": 1,
+      "expandedBytes": 2408030,
+      "wireBytes": 1450912,
+      "requests": 2
+    },
+    "resubmit": {
+      "medianMs": 254.09,
+      "maxMs": 277.45,
+      "get": 11,
+      "put": 1,
+      "expandedBytes": 2408683,
+      "wireBytes": 1451535,
+      "requests": 2
+    },
+    "receipt-read": {
+      "medianMs": 21.48,
+      "maxMs": 122.56,
+      "get": 5,
+      "put": 0,
+      "expandedBytes": 246,
+      "wireBytes": 246,
+      "requests": 1
+    }
+  },
+  "samples": [
+    {
+      "round": 0,
+      "phase": "open",
+      "ms": 98.29,
+      "get": 4,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.11739399999987654,
+      "expandedBytes": 2342352,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c",
+          "serverMs": 36.58,
+          "wireBytes": 2342352
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "phase": "local-save",
+      "ms": 437.66,
+      "get": 5,
+      "put": 2,
+      "head": 0,
+      "storageMs": 0.35039800000095056,
+      "expandedBytes": 2407551,
+      "requests": [
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 414.21,
+          "wireBytes": 959790
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "phase": "permission-read",
+      "ms": 34.47,
+      "get": 1,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.027340000000094733,
+      "expandedBytes": 215,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 33.74,
+          "wireBytes": 215
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "phase": "terminal-read",
+      "ms": 46.4,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.07113400000071124,
+      "expandedBytes": 490613,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 38.3,
+          "wireBytes": 490613
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "phase": "save-no-local",
+      "ms": 402.94,
+      "get": 11,
+      "put": 1,
+      "head": 0,
+      "storageMs": 0.39503499999909764,
+      "expandedBytes": 2407550,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 56.8,
+          "wireBytes": 490613
+        },
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 311.91,
+          "wireBytes": 959789
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "phase": "submit",
+      "ms": 288.46,
+      "get": 11,
+      "put": 1,
+      "head": 0,
+      "storageMs": 0.19373900000027788,
+      "expandedBytes": 2408203,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 24.08,
+          "wireBytes": 490613
+        },
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 236.57,
+          "wireBytes": 960442
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "phase": "review-read",
+      "ms": 56.13,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.16433199999983117,
+      "expandedBytes": 958489,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 48.36,
+          "wireBytes": 958489
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "phase": "withdraw",
+      "ms": 237.34,
+      "get": 11,
+      "put": 1,
+      "head": 0,
+      "storageMs": 0.2767380000009325,
+      "expandedBytes": 2408030,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 40.58,
+          "wireBytes": 490643
+        },
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 168.01,
+          "wireBytes": 960269
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "phase": "resubmit",
+      "ms": 239.99,
+      "get": 11,
+      "put": 1,
+      "head": 0,
+      "storageMs": 0.23772200000075827,
+      "expandedBytes": 2408683,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 28.76,
+          "wireBytes": 490613
+        },
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 184.83,
+          "wireBytes": 960922
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "phase": "receipt-read",
+      "ms": 27.14,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.08443499999975757,
+      "expandedBytes": 246,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 26.62,
+          "wireBytes": 246
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "phase": "open",
+      "ms": 75.45,
+      "get": 4,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.10894200000029741,
+      "expandedBytes": 2342352,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c",
+          "serverMs": 17.32,
+          "wireBytes": 2342352
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "phase": "local-save",
+      "ms": 230.16,
+      "get": 5,
+      "put": 2,
+      "head": 0,
+      "storageMs": 0.3003720000001522,
+      "expandedBytes": 2407551,
+      "requests": [
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 204.72,
+          "wireBytes": 959790
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "phase": "permission-read",
+      "ms": 18.63,
+      "get": 1,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.03047500000002401,
+      "expandedBytes": 215,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 18.2,
+          "wireBytes": 215
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "phase": "terminal-read",
+      "ms": 26.26,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.06845199999861507,
+      "expandedBytes": 490613,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 22.42,
+          "wireBytes": 490613
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "phase": "save-no-local",
+      "ms": 266.86,
+      "get": 11,
+      "put": 1,
+      "head": 0,
+      "storageMs": 0.24835800000255404,
+      "expandedBytes": 2407550,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 30.71,
+          "wireBytes": 490613
+        },
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 202.36,
+          "wireBytes": 959789
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "phase": "submit",
+      "ms": 275.67,
+      "get": 11,
+      "put": 1,
+      "head": 0,
+      "storageMs": 0.22378000000026077,
+      "expandedBytes": 2408203,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 23.5,
+          "wireBytes": 490613
+        },
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 223.13,
+          "wireBytes": 960442
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "phase": "review-read",
+      "ms": 26.77,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.08236200000101235,
+      "expandedBytes": 958489,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 19.6,
+          "wireBytes": 958489
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "phase": "withdraw",
+      "ms": 225.24,
+      "get": 11,
+      "put": 1,
+      "head": 0,
+      "storageMs": 0.23434699999961595,
+      "expandedBytes": 2408030,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 33.35,
+          "wireBytes": 490643
+        },
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 163.01,
+          "wireBytes": 960269
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "phase": "resubmit",
+      "ms": 254.09,
+      "get": 11,
+      "put": 1,
+      "head": 0,
+      "storageMs": 0.3386290000016743,
+      "expandedBytes": 2408683,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 23.69,
+          "wireBytes": 490613
+        },
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 201.07,
+          "wireBytes": 960922
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "phase": "receipt-read",
+      "ms": 122.56,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.2890580000002956,
+      "expandedBytes": 246,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 120.55,
+          "wireBytes": 246
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "phase": "open",
+      "ms": 117.69,
+      "get": 4,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.12589500000012777,
+      "expandedBytes": 2342352,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c",
+          "serverMs": 23.68,
+          "wireBytes": 2342352
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "phase": "local-save",
+      "ms": 273.56,
+      "get": 5,
+      "put": 2,
+      "head": 0,
+      "storageMs": 0.3685639999994237,
+      "expandedBytes": 2407551,
+      "requests": [
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 245.64,
+          "wireBytes": 959790
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "phase": "permission-read",
+      "ms": 25.36,
+      "get": 1,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.039719000000332016,
+      "expandedBytes": 215,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 24.93,
+          "wireBytes": 215
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "phase": "terminal-read",
+      "ms": 26.36,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.08227199999964796,
+      "expandedBytes": 490613,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 22.37,
+          "wireBytes": 490613
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "phase": "save-no-local",
+      "ms": 249.97,
+      "get": 11,
+      "put": 1,
+      "head": 0,
+      "storageMs": 0.2546069999989413,
+      "expandedBytes": 2407550,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 32.46,
+          "wireBytes": 490613
+        },
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 178.13,
+          "wireBytes": 959789
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "phase": "submit",
+      "ms": 311.65,
+      "get": 11,
+      "put": 1,
+      "head": 0,
+      "storageMs": 0.3225369999991017,
+      "expandedBytes": 2408203,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 33.79,
+          "wireBytes": 490613
+        },
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 241.27,
+          "wireBytes": 960442
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "phase": "review-read",
+      "ms": 28.89,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.07825599999887345,
+      "expandedBytes": 958489,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 21.55,
+          "wireBytes": 958489
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "phase": "withdraw",
+      "ms": 265.35,
+      "get": 11,
+      "put": 1,
+      "head": 0,
+      "storageMs": 0.19058100000074774,
+      "expandedBytes": 2408030,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 33.59,
+          "wireBytes": 490643
+        },
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 201.06,
+          "wireBytes": 960269
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "phase": "resubmit",
+      "ms": 246.1,
+      "get": 11,
+      "put": 1,
+      "head": 0,
+      "storageMs": 0.21505700000307115,
+      "expandedBytes": 2408683,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 24.15,
+          "wireBytes": 490613
+        },
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 194.63,
+          "wireBytes": 960922
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "phase": "receipt-read",
+      "ms": 21.45,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.0708649999996851,
+      "expandedBytes": 246,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 20.93,
+          "wireBytes": 246
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "phase": "open",
+      "ms": 27.32,
+      "get": 4,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.038066999999500695,
+      "expandedBytes": 2342352,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c",
+          "serverMs": 11.09,
+          "wireBytes": 2342352
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "phase": "local-save",
+      "ms": 244.84,
+      "get": 5,
+      "put": 2,
+      "head": 0,
+      "storageMs": 0.28439800000069226,
+      "expandedBytes": 2407551,
+      "requests": [
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 211.4,
+          "wireBytes": 959790
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "phase": "permission-read",
+      "ms": 19.45,
+      "get": 1,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.035592999999607855,
+      "expandedBytes": 215,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 19.03,
+          "wireBytes": 215
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "phase": "terminal-read",
+      "ms": 39.85,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.07685300000048301,
+      "expandedBytes": 490613,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 35.36,
+          "wireBytes": 490613
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "phase": "save-no-local",
+      "ms": 248.6,
+      "get": 11,
+      "put": 1,
+      "head": 0,
+      "storageMs": 0.2828079999999318,
+      "expandedBytes": 2407550,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 20.15,
+          "wireBytes": 490613
+        },
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 190.65,
+          "wireBytes": 959789
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "phase": "submit",
+      "ms": 273.67,
+      "get": 11,
+      "put": 1,
+      "head": 0,
+      "storageMs": 0.5484179999994012,
+      "expandedBytes": 2408203,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 29.74,
+          "wireBytes": 490613
+        },
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 215.43,
+          "wireBytes": 960442
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "phase": "review-read",
+      "ms": 30.64,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.1691209999999046,
+      "expandedBytes": 958489,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 20.6,
+          "wireBytes": 958489
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "phase": "withdraw",
+      "ms": 392.98,
+      "get": 11,
+      "put": 1,
+      "head": 0,
+      "storageMs": 0.31013700000130484,
+      "expandedBytes": 2408030,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 31.78,
+          "wireBytes": 490643
+        },
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 296.57,
+          "wireBytes": 960269
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "phase": "resubmit",
+      "ms": 277.45,
+      "get": 11,
+      "put": 1,
+      "head": 0,
+      "storageMs": 0.3601909999997588,
+      "expandedBytes": 2408683,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 43.24,
+          "wireBytes": 490613
+        },
+        {
+          "method": "POST",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 204.96,
+          "wireBytes": 960922
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "phase": "receipt-read",
+      "ms": 21.48,
+      "get": 5,
+      "put": 0,
+      "head": 0,
+      "storageMs": 0.08090899999842804,
+      "expandedBytes": 246,
+      "requests": [
+        {
+          "method": "GET",
+          "endpoint": "ipqc-c/workflow",
+          "serverMs": 21.11,
+          "wireBytes": 246
+        }
+      ]
+    }
+  ],
+  "limits": "Actual in-process API handlers and SQLite; storage is in-memory R2, no remote I/O latency. command helper includes prerequisite workflow GET for save-no-local/submit/withdraw/resubmit. Expanded JSON bytes are not wire bytes. No UI, image decoding, browser scheduling, network, hosted cold start or CUA time measured."
+}

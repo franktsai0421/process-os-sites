@@ -1,3 +1,7 @@
+## 2026-11-14 — IPQC operation speed (isolated candidate)
+
+Exact IPQC page/workflow authorization phases reuse evaluation only inside the same request/selected state, with fresh session fences and per-CAS reconstruction. C retains exact platform final-approval cells. The existing bounded aggregate scheduler now also serves C reads/writes and scoped A/B Apply/restore/lifecycle writes; every selected object, integrity check, CAS, receipt and required readback remains. Client drafts, polling/deadlines and UNKNOWN recovery are unchanged. [Evidence, stage benchmark and limits](../../docs/acceptance/ipqc-operation-speed-20261114.md). No schema, live-data change or deployment.
+
 ## 2026-11-14 — 製程 IPQC 來源與反向引用候選
 
 僅已核准 active version 的啟用未刪除子項可新建連接。A/B 按線別／類別／工段，產品欄位只作參考；C 按有效所選產品／工段，不增加產品路線門檻。來源改動保留舊版本 tuple 並標示；品質核准不核准製程。既有逆向引用讀取維持持久 PROCESS 版本／工作草稿，不查未完成表單。見[本輪矩陣](../../docs/acceptance/process-ipqc-link-rules-20261114.md)。

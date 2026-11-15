@@ -1,3 +1,7 @@
+## 2026-11-14 — IPQC request-local authorization and required-read scheduling
+
+Independent speed candidate reduces repeated C session verification and overlaps bounded required aggregate reads for A/B and C without changing operation, draft, permission or persistence semantics. [Actual-handler baseline parity, measurements and validation limits](../docs/acceptance/ipqc-operation-speed-20261114.md). Draft PR only; no merge, deployment or live business data change.
+
 ## 2026-11-14 — Windows IPQC retention 載具接線
 
 第31步舊 stale regex 在候選0筆匹配，改為執行現行完整警示函式；保留歷史 first-match／collision／checkbox guard 與零請求，補來源接線／語意負例和 LF/CRLF。同一原命令提早在 Linux／Windows 執行，原全套 gates 不變，產品程式及資料未改。[根因與界線](../docs/acceptance/process-ipqc-assignment-consistency-20261114.md#windows-integrated-entry-載具相容修正)。
