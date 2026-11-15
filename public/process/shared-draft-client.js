@@ -418,6 +418,16 @@
     // Cache resets and later grants must not revive the earlier departure decision.
     const gateControls=(revoked=false)=>{if(access?.view===false)departureCoverage=null;if(!access||!gates)return;let changedElement=null;for(const [permission,selector]of Object.entries(gates))if(access[permission]===false)document.querySelectorAll?.(selector).forEach(element=>{if(!element.disabled)changedElement=element;element.disabled=true;element.setAttribute('aria-disabled','true');});if(revoked&&changedElement&&!permissionNotice?.isConnected){const root=changedElement.closest('#data-content,#fixture')||document.querySelector('#data-content');if(root){permissionNotice=document.createElement('p');permissionNotice.className='master-edit-note';permissionNotice.setAttribute('role','alert');permissionNotice.textContent=document.documentElement.lang==='vi'?'Quyền thao tác đã thay đổi; giữ đầu vào hiện tại. Tải lại và kiểm tra quyền trước khi tiếp tục.':'操作權限已變更；保留目前輸入，請重新載入核對權限後繼續。';root.prepend(permissionNotice);}}};
     const clientId=crypto.randomUUID(),syncFailures=new Map(),preparedFlights=new Map();let sequence=0,tail=Promise.resolve(),unknown=null,queued=0,beginPending=null,retryPending=null,recoveryInvalid=false,conditionalRead=null,unknownOwner=null;
+    let acknowledgedOutcome=null;const outcomeListeners=new Set();
+    function confirmedOperation(){
+      try{assertOwner();const known=acknowledgedOutcome;if(!known||known.record!==beginRecord&&known.record!==boundedRecord)return null;
+        return {action:known.action,operationId:known.receipt.operationId,generation:known.receipt.generation,revision:known.receipt.revision};
+      }catch{return null;}
+    }
+    function observeConfirmedOperation(record,action,result){
+      acknowledgedOutcome={record,action,receipt:JSON.parse(JSON.stringify(result.receipt))};
+      for(const listener of outcomeListeners)try{listener();}catch{/* Presentation cannot settle a write or bypass readback. */}
+    }
     const assertOwner=()=>{if(!beginRuntimeCurrent())throw Error('BEGIN_OWNER_CHANGED');if(window.ProcessSync&&window.ProcessSync.identity?.id!==actorId)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(!externalCurrent())throw Error(externalCanvas?'CANVAS_TRANSPORT_OWNER_CHANGED':'BOUNDED_TRANSPORT_OWNER_CHANGED');if(recoveryInvalid)throw Error('RECOVERY_RECORD_INVALID');};
     // New mutation admission only; late authoritative ACK/receipt bookkeeping stays unchanged.
     const assertMutationAdmission=()=>{assertOwner();if(window.ProcessSync?.requiresReload)throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');
@@ -442,7 +452,7 @@
     }
     function beginMarker(){try{return !beginInvalid&&beginRecord&&sessionStorage.getItem(beginKey)===beginRaw?beginRaw:null;}catch{return null;}}
     function assertBegin(record){assertOwner();if(window.ProcessSync?.requiresReload||clientPagehideGeneration!==transportPagehideGeneration||record!==beginRecord||beginMarker()===null)throw Error('BEGIN_RECOVERY_CONTEXT_CHANGED');}
-    function clearBegin(record){assertBegin(record);sessionStorage.removeItem(beginKey);if(sessionStorage.getItem(beginKey)!==null)throw Error('BEGIN_RECOVERY_CLEANUP_FAILED');beginRecord=null;beginRaw=null;departureCoverage=null;}
+    function clearBegin(record){assertBegin(record);sessionStorage.removeItem(beginKey);if(sessionStorage.getItem(beginKey)!==null)throw Error('BEGIN_RECOVERY_CLEANUP_FAILED');beginRecord=null;beginRaw=null;departureCoverage=null;if(acknowledgedOutcome?.record===record)acknowledgedOutcome=null;}
     function beginControl(result){
       const projected=beginPath==='/api/ipqc-c/workflow'&&!result?.control,control=projected?result:result?.control,flow=control?.workflow;
       if(!control||!Number.isSafeInteger(result.revision)||result.revision<0||result.permissions?.view!==true||access?.view!==true)throw Error('BEGIN_AUTHORITY_READ_REQUIRED');
@@ -455,6 +465,7 @@
     function captureBeginBasis(result){const control=beginControl(result);if(beginPath==='/api/ipqc-c/workflow'&&!result.control){if((control.workflow?.generation??null)!==result.beginBasis.generation)throw Error('INVALID_BEGIN_BASIS');return JSON.parse(JSON.stringify(result.beginBasis));}const open=control.versions.find(v=>['draft','pending','pending-test'].includes(v.status));const basis={generation:control.workflow?.generation??null,activeVersionId:control.activeVersionId??null,openVersionId:open?.id??null,openVersionStatus:open?.status??null,openVersionRevision:open?.revision??null};if(!validBeginBasis(basis))throw Error('INVALID_BEGIN_BASIS');return JSON.parse(JSON.stringify(basis));}
     async function finishBegin(record,result){
       assertBegin(record);if(result?.operationKind!=='begin-v1')throw Error('INVALID_BEGIN_RECEIPT');confirmedReceipt(result,record.operationId);
+      if(equipmentLocalSave||boundedScope==='ipqc-c')observeConfirmedOperation(record,'begin',result);
       const fresh=await request(endpoint,undefined,{requireAcceptedAccess:true});assertBegin(record);const control=beginControl(fresh),flow=control.workflow;
       if(masterLocalBegin&&flow?.generation!==result.receipt.generation)throw Error('BEGIN_GENERATION_CHANGED');
       if(!flow||flow.generation===result.receipt.generation&&flow.revision<result.receipt.revision)throw Error('BEGIN_READBACK_BEHIND');
@@ -707,6 +718,7 @@
       assertOwner();if(!record||record!==boundedRecord)throw Error('RECOVERY_RECORD_CHANGED');
       if(sessionStorage.getItem(record.key)!==boundedSentinel)throw Error('RECOVERY_RECORD_CHANGED');
       sessionStorage.removeItem(record.key);if(sessionStorage.getItem(record.key)!==null)throw Error('RECOVERY_REMOVE_NOT_VERIFIED');
+      if(acknowledgedOutcome?.record===record)acknowledgedOutcome=null;
       boundedRecord=null;unknown=null;unknownOwner=null;
       let next;try{next=boundedDiscover()[0];}catch(error){recoveryInvalid=true;throw error;}if(next){boundedRecord=next;unknown={operationId:next.operationId,generation:next.generation,action:next.action};unknownOwner=externalOwner;}
     }
@@ -822,6 +834,7 @@
       const receipt=result?.receipt,review=['withdraw','approve','return'].includes(record.action);
       confirmedReceipt(result,record.operationId,review?undefined:record.generation,record.action);
       if(receipt.revision<record.beforeRevision||!receipt.unchanged&&receipt.revision<=record.beforeRevision||review&&(receipt.unchanged||receipt.generation===record.generation||receipt.caseId!==null)||record.action==='approve'&&receipt.savedId!==null||record.action==='submit'&&(receipt.unchanged||receipt.savedId!==record.savedId||!boundedText(receipt.caseId))||record.action==='save'&&!boundedText(receipt.savedId))throw Error('INVALID_OPERATION_RECEIPT');
+      if(boundedScope==='iqc')observeConfirmedOperation(record,record.action,result);
       // Only a selected BOM Apply's exact original POST can finish against its
       // CAS authority. Receipt lookups, Save and all other scopes still GET.
       const postProof=originalPost&&boundedPostAuthorities.get(result);
@@ -1223,6 +1236,7 @@
       // Internal one-way cached-client upgrade; no downgrade or queue replacement.
       useAccessResultGuard(){if(!accessGuard){accessGuard=true;accessEpoch++;}return client;},
       useStateRevision(){conditionalState=true;return client;},
+      confirmedOperation,watchOperationOutcome(listener){if(typeof listener!=='function')throw Error('OUTCOME_LISTENER_REQUIRED');outcomeListeners.add(listener);return()=>outcomeListeners.delete(listener);},
       requestProgress:()=>[...requestProgress.values()].map(value=>({...value})),
       stopMasterWait(){if(!masterExplicitIO)return false;const waits=[...masterWaits];for(const wait of waits)wait.stop();return waits.length>0;},
       masterReferences(kind,id,options){if(!masterExplicitIO||!processLocalSave)throw Error('PROCESS_REFERENCE_SCOPE_REQUIRED');return request('/api/master/references?scope=PROCESS&kind='+encodeURIComponent(kind)+'&id='+encodeURIComponent(id),undefined,options);},

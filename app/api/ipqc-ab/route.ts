@@ -111,6 +111,8 @@ export async function GET(request: Request) {
     const query=new URL(request.url).searchParams,equipmentOnly=query.get('catalog')==='equipment',deferred=query.get('equipment')==='deferred';
     if(query.has('catalog')&&(query.getAll('catalog').length!==1||!equipmentOnly||[...query.keys()].some(key=>key!=='catalog'))||query.has('equipment')&&(query.getAll('equipment').length!==1||!deferred||[...query.keys()].some(key=>!['equipment','caseMetadata','localLineage'].includes(key))))return reply({error:'INVALID_READ_QUERY'},400);
     if(query.has('localLineage')&&(query.getAll('localLineage').length!==1||query.get('localLineage')!=='1'||equipmentOnly||[...query.keys()].some(key=>!['localLineage','caseMetadata','equipment'].includes(key))))return reply({error:'INVALID_READ_QUERY'},400);
+    const referenceEquipment=query.get('references');
+    if(query.has('references')&&(query.getAll('references').length!==1||!referenceEquipment||referenceEquipment.length>256||[...query.keys()].some(key=>key!=='references')))return reply({error:'INVALID_READ_QUERY'},400);
     const caseMetadata=query.get('caseMetadata')==='1';
     const identityKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
     const keys=equipmentOnly?[...identityKeys,'routineEquipmentControl']:[...identityKeys,KEY,'masterDataControl',...(deferred?[]:['routineEquipmentControl'])];
@@ -125,9 +127,27 @@ export async function GET(request: Request) {
     if(localLineage){const current=await identity(request,state);if(!current||current.id!==actor.id)return reply({error:'ACCOUNT_CHANGED_REOPEN_REQUIRED'},403);if(!await stateRevisionIsCurrent(state))return reply({error:'MODULE_CHANGED_RECONFIRM'},409);}
     for(const [key,scope]of Object.entries(control.scopes))control.scopes[key]=visibleSharedControl(scope as AbSharedScope,history,caseMetadata);
     const moduleControl=(control as AbModuleRoot).moduleDraft;if(moduleControl)(control as AbModuleRoot).moduleDraft=visibleSharedControl(moduleControl,history,caseMetadata);
+    if(referenceEquipment){
+      // This reader needs stable relationships, not entire standard/photo bodies
+      // repeated through active/working/saved/cases. Validate each historical
+      // immutable snapshot serially, retain summaries only, and keep the same
+      // visible versions and SHA/missing-object failure policy as the full GET.
+      const scopes:Record<string,unknown>={};
+      for(const [key,scope]of Object.entries(control.scopes)){
+        const versions=[];
+        for(const version of scope.versions){
+          const snapshot=(isImmutableRecordBody(version.snapshot)?JSON.parse(await readImmutableRecord(env.STATE_ARCHIVE,version.snapshot.__immutableBody)):version.snapshot) as AbSnapshot;
+          if(!Array.isArray(snapshot?.errors)||!Array.isArray(snapshot?.items))throw Error('IPQC_AB_REFERENCE_SNAPSHOT_INVALID');
+          versions.push({id:version.id,number:version.number,status:version.status,snapshot:{items:snapshot.items.filter(item=>!item.deleted&&item.equipmentId===referenceEquipment).map(item=>({id:item.id,code:item.code,standard:item.standard,equipmentId:item.equipmentId,isEnabled:item.isEnabled}))}});
+        }
+        scopes[key]={line:scope.line,group:scope.group,activeVersionId:scope.activeVersionId,versions};
+      }
+      if(!await phase.current())return reply({error:'沒有查看 IPQC-AB 權限'},403);
+      return reply({revision:state.revision,equipmentReferenceProjection:'ipqc-ab-equipment-v1',control:{scopes}});
+    }
     const body={ revision:state.revision, control, catalog,...(localLineage?{localLineage}:{}), ...(deferred?{equipmentDeferred:true}:{equipment}) };
     if(!await phase.current())return reply({error:'沒有查看 IPQC-AB 權限'},403);
-    return state.recordStorage&&!caseMetadata?recordJSONResponse(body,env.STATE_ARCHIVE,headers):reply(body);
+    return state.recordStorage?recordJSONResponse(body,env.STATE_ARCHIVE,headers,{boundedContainers:true}):reply(body);
   } catch (error) {
     console.error('[ipqc-ab] load failed',error);
     return reply({ error:'IPQC-AB 載入失敗；未以空資料覆蓋' },503);
