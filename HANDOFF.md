@@ -1,3 +1,7 @@
+## 2026-11-15 — 獨立檢具／模具速度候選
+
+`perf/tooling-equipment-speed-20261115` 自核實 main e040a7e 建立隔離 worktree；只補 bounded R2 讀取排程。保留原品質工作權限／回饋／反查／AB OOM 分工及 #120 製程採用新版範圍。[根因、全步驟前後量測、測試及整合風險](docs/acceptance/tooling-equipment-speed-20261115/README.md)。不合併、部署或改真資料。
+
 ## 2026-11-14 — Independent IPQC operation-speed candidate
 
 Branch `perf/ipqc-operation-speed-20261114` starts at main `c178ae2`, separate from #115/#117. Request-local permission evaluation and bounded full-read scheduling retain UNKNOWN/original receipts, CAS, final approval and all draft boundaries. [Current evidence and remaining CI/hosted acceptance](docs/acceptance/ipqc-operation-speed-20261114.md). No merge/deployment or existing QA/browser/data mutation. Earlier checkpoints below remain historical.

@@ -1,3 +1,7 @@
+## 2026-11-15 — Inventory R2 read scheduling candidate
+
+Measured sequential aggregate waits in Tooling/equipment reads and lifecycle writes; opt into existing bounded scheduling while preserving complete records, ordered validation, receipts/CAS and original destructive paths. Three-pair synthetic before/after evidence and limits: [record](../docs/acceptance/tooling-equipment-speed-20261115/README.md). Independent speed draft only; no deployment/live-data action.
+
 ## 2026-11-14 — IPQC request-local authorization and required-read scheduling
 
 Independent speed candidate reduces repeated C session verification and overlaps bounded required aggregate reads for A/B and C without changing operation, draft, permission or persistence semantics. [Actual-handler baseline parity, measurements and validation limits](../docs/acceptance/ipqc-operation-speed-20261114.md). Draft PR only; no merge, deployment or live business data change.

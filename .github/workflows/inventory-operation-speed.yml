@@ -1,0 +1,34 @@
+name: Inventory operation speed
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  inventory-speed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node --test --test-concurrency=1 tests/inventory-read-ahead.test.mjs tests/inventory-speed-source.test.cjs tests/fqc-read-ahead.test.mjs tests/ipqc-operation-speed-source.test.cjs tests/ipqc-operation-speed-joint-source.test.cjs tests/ipqc-operation-speed-integration-source.test.cjs
+      - run: node scripts/benchmark-tooling-equipment-speed.cjs > inventory-speed-lifecycle.json
+        env:
+          SPEED_ROUNDS: '1'
+          SPEED_IO_MS: '0'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: inventory-speed-lifecycle-${{ github.sha }}
+          path: inventory-speed-lifecycle.json
+          if-no-files-found: error

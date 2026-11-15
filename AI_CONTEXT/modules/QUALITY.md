@@ -430,3 +430,7 @@ Frank's latest statement confirms retaining unsaved changes and pending photos a
 
 ### 2026-11-12 C product-local unapplied forms
 IPQC C product filtering now retains an unapplied editor in RAM under its original product and stage, including pending photo objects. Returning to that product restores it only in the same version/generation and current actor/edit context. Product browsing never applies, uploads or saves it. Leaving the module (or the existing scope-discard action) clears retained forms and unapplied object URLs; no durable recovery is added. This is local implementation, not hosted or physical-device acceptance.
+
+## 2026-11-15 — 檢具／模具 R2 讀取排程候選
+
+兩個 inventory workflow 以 exact route/key/scope 選用既有上限五個 aggregate GET 預讀；body 解碼及 hash／原錯誤順序不變，完整依賴與 CAS 不變。移除／新增 patches、還原、import、混合 Begin envelope 保留原排程；檢具畫面 GET 與 Tooling IQC 唯讀來源亦採 bounded 預讀。權限 phase、反查、回饋與刪除由獨立品質工作負責，沒有帶入其未合併內容。[隔離量測、回歸與分工界線](../../docs/acceptance/tooling-equipment-speed-20261115/README.md)。不是 Diem／測試站效能驗收。
