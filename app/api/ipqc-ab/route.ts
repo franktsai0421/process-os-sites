@@ -147,7 +147,8 @@ export async function GET(request: Request) {
     }
     const body={ revision:state.revision, control, catalog,...(localLineage?{localLineage}:{}), ...(deferred?{equipmentDeferred:true}:{equipment}) };
     if(!await phase.current())return reply({error:'沒有查看 IPQC-AB 權限'},403);
-    return state.recordStorage?recordJSONResponse(body,env.STATE_ARCHIVE,headers,{boundedContainers:true}):reply(body);
+    if(state.recordStorage){const response=recordJSONResponse(body,env.STATE_ARCHIVE,headers,{boundedContainers:true});if(caseMetadata)response.headers.set('Content-Type',headers['Content-Type']);return response;}
+    return reply(body);
   } catch (error) {
     console.error('[ipqc-ab] load failed',error);
     return reply({ error:'IPQC-AB 載入失敗；未以空資料覆蓋' },503);

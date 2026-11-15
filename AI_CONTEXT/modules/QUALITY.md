@@ -440,3 +440,5 @@ Frank's latest statement confirms retaining unsaved changes and pending photos a
 IPQC C product filtering now retains an unapplied editor in RAM under its original product and stage, including pending photo objects. Returning to that product restores it only in the same version/generation and current actor/edit context. Product browsing never applies, uploads or saves it. Leaving the module (or the existing scope-discard action) clears retained forms and unapplied object URLs; no durable recovery is added. This is local implementation, not hosted or physical-device acceptance.
 
 C Begin 補充：合格原收據後的 full readback 顯示已確認／讀回中，不等同 marker 清除；保留 GET-only 原收據恢復與全部 barrier，兩語系真 handler fixture 見 `quality-c-begin-feedback.test.mjs`。
+
+AB整份Submit：MODULE_CHANGED_RECONFIRM只在精確原POST拒絕證明下結束marker並要求重新讀取／人工再確認；receipt404不是未寫入證明。舊未知保留鎖與GET-only入口，不盲重送。設備照片完成表單仍為本地未存，Save回執／必要讀回完成才顯示持久化。

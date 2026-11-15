@@ -10,7 +10,7 @@ void test('bounded AB response matches complete JSON including repeated live bod
  const payload={control:{versions:[{snapshot:body},{snapshot:ref(raw)}],workflow:{active:{content:body},working:body,saved:{content:body}}},permissions:{view:true},omitted:undefined};
  const bucket={get:async()=>({text:async()=>raw})},response=recordJSONResponse(payload,bucket,{'Cache-Control':'no-store'},{boundedContainers:true}),reader=response.body.getReader(),parts=[];let max=0;
  for(;;){const next=await reader.read();if(next.done)break;max=Math.max(max,next.value.length);parts.push(Buffer.from(next.value));}
- assert(max<=64*1024);assert(parts.length>50);assert.equal(response.headers.get('Cache-Control'),'no-store');
+ assert(max<=64*1024);assert(parts.length>50);assert.equal(response.headers.get('Cache-Control'),'no-store');assert.equal(response.headers.get('Content-Type'),'application/json');
  const actual=JSON.parse(Buffer.concat(parts).toString()),expected=JSON.parse(JSON.stringify(payload));expected.control.versions[1].snapshot=JSON.parse(raw);assert.deepEqual(actual,expected);
 });
 for(const mode of ['missing','corrupt'])void test(`AB stream propagates ${mode} immutable history and never returns truncated JSON as success`,async()=>{

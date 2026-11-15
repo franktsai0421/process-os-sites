@@ -82,3 +82,21 @@ Frank 在原對話明確同意將本批功能修復上傳 `franktsai0421/process
 補充 C V50：伺服器 Begin POST200 且新版本確實建立，但原頁曾顯示未知。原共用 C Begin 已有 GET-only 收據恢復，卻沒有接入本批新增的合格收據呈現。現僅擴展 `boundedScope==='ipqc-c'` 的 Begin 原收據觀察，C header／read-blocked 呈現「收據已確認、草稿／權限讀回中」；活躍請求不標未知失敗，私有 marker、鎖、完整讀回、原收據校驗與清除條件均不變。觀察只更新 header，不重繪表單，且校驗原 client／mount。
 
 新增 `quality-c-begin-feedback.test.mjs`：兩語系執行真 C handler、共用 transport 及完整 C page，延遲／503／偽 HTTP200 收據六種，保留 typed input、原操作只一 POST、同頁 GET-only 恢復，真正未知仍阻擋。這是隔離 fixture，沒有對 V50 重送或實站寫入。新增共同檔案 `public/process/ipqc-c.js` 僅此呈現；主頁 shared client／C cache tags 升至 quality-root3。
+
+## PR #123 首輪 CI 修正
+
+遠端 `92dbe97d9007b0ec72849d966335e321c117027d` 的 PROCESS／AB-C local-save、Process IPQC link 及 FQC matrix 首輪 CI 失敗，原始 log 均指向兩個遺漏的嚴格 cache tag 預期：`navigation-adapters.test.mjs` 與 `test-fqc-matrix-layout.mjs` 仍要求舊 FQC 等資產版本。修正為本批實際新版字串，保留一檔一筆、順序及精確版本比對；沒有刪斷言。新增兩檔到精確 quality→main 逆向，讓 #120 及更早來源 pins／負例保持不變。程式 runtime 未變；另跑失敗原命令及 source proof。最新 head／CI 以最終交付為準，不沿用首輪 SHA 綠燈。
+
+同輪 IPQC operation-speed 的 Linux／Windows 真 handler 配對發現 AB bounded full GET 的 Content-Type 從原 `application/json; charset=utf-8` 變成共用 stream 的 `application/json`。僅 AB caseMetadata=1 保留原 reply charset，非 metadata 串流及其他 route 的既有 header 不變；保留原整份 body／header 配對比對，容量回歸也新增串流既有 content-type 斷言。不是擴充泛用速度工作。
+
+續跑 CI 還發現：Quality C joint 的窄函式 fixture 未載入 `writeShared` 新增的 `updateEquipmentLocalStatus`，造成 ReferenceError，現載入真正呈現函式及其內容比較依賴，送審／競態斷言不變；Process platform 的精確 timer inventory 尚未登錄刪除 action 的單次45s AbortController deadline。僅新增該 call 的精確 hash／用途，保留全清單對比，不允許未知 timer 或背景輪詢，deadline／取消／finally清理另由實際刪除fixture覆蓋。兩檔納入新exact inverse，舊 manifests不變。
+
+## AB V29 Submit 衝突與照片狀態補充
+
+Diem 的 AB V29 Submit 原409 MODULE_CHANGED_RECONFIRM 是 module adapter 的 stateRevision pre-CAS 保護；原 client 只將 AB local Save 的此碼視為已知拒絕，Submit 未列入，因此保留UNKNOWN，404原收據也無法解鎖。現僅對精確 module Submit、savedId／expectedRevision／input.stateRevision 齊全且無額外moduleAction／patches／guards的**原POST**，沿既有flight／actor／原command／V4 requestId證明判為未寫入，保留草稿、顯示須重新讀取／確認，絕不自動重送。缺requestId、偽fetch狀態或receipt GET上的409仍未知。
+
+新增 `quality-ab-submit-conflict.test.mjs`：兩語系真AB handler＋shared client＋完整AB controller，驗原衝突不寫入且只一次POST、明確第二次確認才能送審；proxy／lost ACK／receipt-only反例、重載及404保留原marker與草稿，查原操作入口可用。共用header layout另由原生CI檢查，測試僅隔離該呈現port。已有舊未知操作若僅剩404、沒有原回應證明，**本候選不推測未寫入或清除鎖**；入口說明404不能判定，仍須原操作收據／獨立診斷，沒有自動重送實站V29。
+
+Diem檢具照片完成表單後頁首矛盾，已由本批hasLocalDraftInput（含pendingPhotos）及live status處理。追加 `quality-equipment-photo-status.test.mjs` 雙語完整設備事件／client／kernel／adapter驗：選圖／完成表單0 PUT、0新增POST、已存photoId不變且顯示本地未存；明確Save才1 PUT＋1 POST，photoId寫入saved後才顯示持久化。照片I/O是合成，不能取代原生檔案／實站重載驗收。
+
+新增共用檔案注意：權限工作若改 `navigation-adapters.test.mjs` 須保留本批tags與自身權限斷言；速度工作若改timer清單須逐筆保留此明確使用者刪除action單次deadline，不能整檔覆蓋。未修改帳號／ACL功能或製程方塊功能。

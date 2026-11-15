@@ -1,6 +1,348 @@
 {
   "base": "c6ac41a6a996ac88e1b68370b371aed400773e34",
   "files": {
+    "public/process/ipqc-ab.js": {
+      "beforeHash": "9b3b8379b74319d27bee050313f817d37f62e39873053ae60efc4fb2358d91e6",
+      "beforeNormalizedHash": "cd3e5a6c98d30243b940ef99d9b894e05b2c3fb335eb03e0fca108c0d6bf68d8",
+      "afterNormalizedHash": "4a54a68a06eaf000bf6d0a4c19e7aa97e044043c8cc2b1c0686c229d25b6d39d",
+      "beforeCRLFRanges": [
+        [
+          0,
+          2
+        ],
+        [
+          9,
+          13
+        ],
+        [
+          14,
+          24
+        ],
+        [
+          25,
+          26
+        ],
+        [
+          29,
+          41
+        ],
+        [
+          42,
+          50
+        ],
+        [
+          52,
+          76
+        ],
+        [
+          77,
+          78
+        ],
+        [
+          79,
+          84
+        ],
+        [
+          85,
+          86
+        ],
+        [
+          87,
+          90
+        ],
+        [
+          91,
+          104
+        ],
+        [
+          106,
+          124
+        ],
+        [
+          126,
+          195
+        ],
+        [
+          197,
+          238
+        ],
+        [
+          240,
+          339
+        ],
+        [
+          341,
+          343
+        ],
+        [
+          344,
+          351
+        ],
+        [
+          352,
+          373
+        ],
+        [
+          374,
+          377
+        ],
+        [
+          379,
+          381
+        ],
+        [
+          382,
+          393
+        ],
+        [
+          397,
+          411
+        ],
+        [
+          412,
+          438
+        ],
+        [
+          829,
+          831
+        ],
+        [
+          837,
+          861
+        ],
+        [
+          863,
+          864
+        ],
+        [
+          865,
+          869
+        ],
+        [
+          870,
+          884
+        ],
+        [
+          885,
+          887
+        ],
+        [
+          891,
+          898
+        ],
+        [
+          899,
+          919
+        ],
+        [
+          921,
+          924
+        ],
+        [
+          925,
+          926
+        ],
+        [
+          927,
+          931
+        ],
+        [
+          932,
+          935
+        ],
+        [
+          936,
+          987
+        ],
+        [
+          988,
+          1024
+        ],
+        [
+          1042,
+          1049
+        ],
+        [
+          1050,
+          1051
+        ],
+        [
+          1057,
+          1064
+        ],
+        [
+          1065,
+          1067
+        ],
+        [
+          1070,
+          1102
+        ],
+        [
+          1106,
+          1113
+        ],
+        [
+          1134,
+          1135
+        ],
+        [
+          1138,
+          1139
+        ],
+        [
+          1141,
+          1142
+        ],
+        [
+          1149,
+          1156
+        ],
+        [
+          1158,
+          1163
+        ],
+        [
+          1164,
+          1165
+        ],
+        [
+          1171,
+          1172
+        ],
+        [
+          1179,
+          1180
+        ],
+        [
+          1181,
+          1182
+        ],
+        [
+          1185,
+          1191
+        ],
+        [
+          1192,
+          1195
+        ],
+        [
+          1196,
+          1204
+        ],
+        [
+          1207,
+          1217
+        ],
+        [
+          1219,
+          1225
+        ],
+        [
+          1226,
+          1231
+        ],
+        [
+          1232,
+          1233
+        ],
+        [
+          1236,
+          1288
+        ],
+        [
+          1290,
+          1307
+        ],
+        [
+          1334,
+          1339
+        ],
+        [
+          1340,
+          1350
+        ]
+      ],
+      "rules": [
+        {
+          "offset": 88999,
+          "before": "    }catch(error){if(owns())message=error.message;}\n",
+          "after": "    }catch(error){if(owns())message=error.message==='OPERATION_NOT_FOUND'?t('尚未查得原操作收據，不能據此判定未寫入；草稿與鎖定保留，請稍後再次查證，不要重送。','Chưa tìm thấy biên nhận gốc; chưa thể kết luận chưa ghi. Giữ bản nháp và khóa, kiểm tra lại sau, không gửi lại.'):error.message;}\n"
+        },
+        {
+          "offset": 109831,
+          "before": "    }catch(error){if(mutationCurrent(owner,false))message=acknowledged?t(action==='save'?'已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。':'操作已由伺服器確認，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Thao tác đã được máy chủ xác nhận nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):error.message;return null;}\n",
+          "after": "    }catch(error){if(mutationCurrent(owner,false)){const rejected=pendingOperations.get(client),knownConflict=action==='submit'&&error.message==='MODULE_CHANGED_RECONFIRM'&&rejected&&client.isConfirmedRejection(error,rejected)&&!client.hasUnknown();if(knownConflict){pendingOperations.delete(client);message=t('伺服器資料已變動，本次送審未寫入；已存草稿保留。請重新讀取並再次確認後送審。','Dữ liệu máy chủ đã thay đổi; lần gửi duyệt này chưa ghi. Giữ bản nháp đã lưu; đọc lại và xác nhận trước khi gửi duyệt.');}else message=acknowledged?t(action==='save'?'已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。':'操作已由伺服器確認，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Thao tác đã được máy chủ xác nhận nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):error.message;}return null;}\n"
+        }
+      ]
+    },
+    "tests/quality-submission-fences.test.mjs": {
+      "beforeHash": "776aa49d40059a0f057b690bdbcdf2ceab274eab5b5267bddb7ce1154bc784d4",
+      "beforeNormalizedHash": "776aa49d40059a0f057b690bdbcdf2ceab274eab5b5267bddb7ce1154bc784d4",
+      "afterNormalizedHash": "f9cd0c27061cac6c8ef44029de882ec177d66751bb7e7d3b58c9a10e97f359f5",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 4804,
+          "before": "",
+          "after": "  // Load the real presentation dependencies added by writeShared; safety assertions remain unchanged.\n  f.load(part('routine-equipment.js','  function equipmentContentEqual(','  // Insert ACKs')+part('routine-equipment.js','  function updateEquipmentLocalStatus()','  function bind()'));\n"
+        }
+      ]
+    },
+    "tests/fixtures/browser-timer-inventory.json": {
+      "beforeHash": "efc72382cd9daf68b0ed3cad214450e6da0d5bb26d4ce857198947efa8d2aadb",
+      "beforeNormalizedHash": "efc72382cd9daf68b0ed3cad214450e6da0d5bb26d4ce857198947efa8d2aadb",
+      "afterNormalizedHash": "c9a0e8afe0611bf249c916dbebe5c043b7a48d7fce83e73db4bbb847782e427b",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 13528,
+          "before": "",
+          "after": "  },\n  {\n    \"file\": \"public/process/routine-equipment.js\",\n    \"line\": 1621,\n    \"kind\": \"setTimeout\",\n    \"hash\": \"8253062d572a3063053ac8b7622e68eefddad41f3bd116555efcda958529bc6b\",\n    \"purpose\": \"Single 45-second deadline for an explicit equipment delete-reference preflight; aborts only that action, clears in finally, never repeats or resends a write.\"\n"
+        }
+      ]
+    },
+    "tests/navigation-adapters.test.mjs": {
+      "beforeHash": "a2f020a47d28768b75966441e52194e8ea6c8b5e34a919eeabcbd6293e9e7d3a",
+      "beforeNormalizedHash": "a2f020a47d28768b75966441e52194e8ea6c8b5e34a919eeabcbd6293e9e7d3a",
+      "afterNormalizedHash": "5150974659296914d50c8b9db2d737b80f050ed523a39e6c2119e52789fd7d32",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 16939,
+          "before": "  'fqc-master.js':'20261112-quality-integration1',\n  'ipqc-ab.js':'20261113-ipqc-silent3',\n  'ipqc-c.js':'20261113-ipqc-silent3',\n  'iqc-master.js':'20261112-quality-integration1',\n",
+          "after": "  'fqc-master.js':'20261115-quality-root1',\n  'ipqc-ab.js':'20261115-quality-root4',\n  'ipqc-c.js':'20261115-quality-root3',\n  'iqc-master.js':'20261115-quality-root2',\n"
+        },
+        {
+          "offset": 17401,
+          "before": "  'routine-equipment.js':'20261113-equipment-integration2',\n",
+          "after": "  'routine-equipment.js':'20261115-quality-root2',\n"
+        },
+        {
+          "offset": 17560,
+          "before": "  'shared-draft-client.js':'20261114-lines-flow-review1',\n",
+          "after": "  'shared-draft-client.js':'20261115-quality-root4',\n"
+        },
+        {
+          "offset": 18197,
+          "before": "  'version-draft-ui.js':'20261113-submit-outcome1',\n",
+          "after": "  'version-draft-ui.js':'20261115-quality-root1',\n"
+        }
+      ]
+    },
+    "scripts/test-fqc-matrix-layout.mjs": {
+      "beforeHash": "c5606146704e97cefc3b93b5d586011ac06cb0165c3f3efcb0dac360daf5f736",
+      "beforeNormalizedHash": "c5606146704e97cefc3b93b5d586011ac06cb0165c3f3efcb0dac360daf5f736",
+      "afterNormalizedHash": "ebb545b9dba3586c90e498ac1c9ac55ede795dd7e4c1823756a0931bd31c45a3",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 12329,
+          "before": "  const expected={'fqc-master.js':'20261112-quality-integration1','fqc-master.css':'20261104-single-save1'};\n",
+          "after": "  const expected={'fqc-master.js':'20261115-quality-root1','fqc-master.css':'20261104-single-save1'};\n"
+        }
+      ]
+    },
     "public/process/ipqc-c.js": {
       "beforeHash": "f929cbdf6bc1b64670f7fee307ae92011f190e04d8b165ac0cff359bc52dc8d6",
       "beforeNormalizedHash": "f929cbdf6bc1b64670f7fee307ae92011f190e04d8b165ac0cff359bc52dc8d6",
@@ -107,20 +449,20 @@
     "tests/equipment-submit-source.test.cjs": {
       "beforeHash": "2297b2d89b8d34dc408efec4cdaa598266ae87c13ed2b2ad308bb0f48f72cada",
       "beforeNormalizedHash": "2297b2d89b8d34dc408efec4cdaa598266ae87c13ed2b2ad308bb0f48f72cada",
-      "afterNormalizedHash": "68f413a7ea3e7ac974f18a34ef37cca8106358987f4ff51aa72c46a62ce52b4a",
+      "afterNormalizedHash": "dbb8465c53658f76e6d4cc02ea6209387ff3ba5094977e1d4931ddb6fb4fb8df",
       "beforeCRLFRanges": [],
       "rules": [
         {
           "offset": 3147,
           "before": " assert.equal(index.split('shared-draft-client.js?v=20261114-lines-flow-review1').length,2);\n",
-          "after": " assert.equal(index.split('shared-draft-client.js?v=20261115-quality-root3').length,2);\n"
+          "after": " assert.equal(index.split('shared-draft-client.js?v=20261115-quality-root4').length,2);\n"
         }
       ]
     },
     "app/api/ipqc-ab/route.ts": {
       "beforeHash": "eb917f5fd2fb384cf52bc26f8151db3f21f05930aa2dd895b88b08ebc015553c",
       "beforeNormalizedHash": "eb917f5fd2fb384cf52bc26f8151db3f21f05930aa2dd895b88b08ebc015553c",
-      "afterNormalizedHash": "5edab4d6ba79cd3d3eeb4d6d54d98635de9a736b1d3cbaa30f5d48cbb3f7a295",
+      "afterNormalizedHash": "59699ea0795faee6e38ebcce89a73c9dc545c0b73d37734322b59d267e434c0b",
       "beforeCRLFRanges": [],
       "rules": [
         {
@@ -136,7 +478,7 @@
         {
           "offset": 12362,
           "before": "    return state.recordStorage&&!caseMetadata?recordJSONResponse(body,env.STATE_ARCHIVE,headers):reply(body);\n",
-          "after": "    return state.recordStorage?recordJSONResponse(body,env.STATE_ARCHIVE,headers,{boundedContainers:true}):reply(body);\n"
+          "after": "    if(state.recordStorage){const response=recordJSONResponse(body,env.STATE_ARCHIVE,headers,{boundedContainers:true});if(caseMetadata)response.headers.set('Content-Type',headers['Content-Type']);return response;}\n    return reply(body);\n"
         }
       ]
     },
@@ -901,7 +1243,7 @@
     "public/process/shared-draft-client.js": {
       "beforeHash": "bb5966ab7fb2184dda458d86317a9b7f04e32f36e31aae30729327ef7455752e",
       "beforeNormalizedHash": "bb5966ab7fb2184dda458d86317a9b7f04e32f36e31aae30729327ef7455752e",
-      "afterNormalizedHash": "a8c78668e6d040b63f53c184bda90456b035c110e69732d4480579c042eb0c6c",
+      "afterNormalizedHash": "327b12022fd5e55d61b91d6aaaff767fd52775f4fc7356bf2744369ecc7ac149",
       "beforeCRLFRanges": [],
       "rules": [
         {
@@ -925,12 +1267,17 @@
           "after": "      if(acknowledgedOutcome?.record===record)acknowledgedOutcome=null;\n"
         },
         {
-          "offset": 107325,
+          "offset": 93553,
+          "before": "",
+          "after": "      // Exact module Submit basis refusal is thrown before adapter.apply/CAS.\n      // Only this original POST proof may settle it; a receipt 404 never can.\n      if(abModule&&action==='submit'&&command.moduleAction===undefined&&command.patches===undefined&&command.guards===undefined&&boundedText(command.savedId)&&boundedInteger(command.expectedRevision)&&Number.isSafeInteger(command.input?.stateRevision)&&command.input.stateRevision>0&&error.status===409&&code==='MODULE_CHANGED_RECONFIRM')return true;\n"
+        },
+        {
+          "offset": 107834,
           "before": "",
           "after": "      if(boundedScope==='iqc')observeConfirmedOperation(record,record.action,result);\n"
         },
         {
-          "offset": 152525,
+          "offset": 153034,
           "before": "",
           "after": "      confirmedOperation,watchOperationOutcome(listener){if(typeof listener!=='function')throw Error('OUTCOME_LISTENER_REQUIRED');outcomeListeners.add(listener);return()=>outcomeListeners.delete(listener);},\n"
         }
@@ -1951,13 +2298,13 @@
     "public/process/index.html": {
       "beforeHash": "fc4a31cb170a8b5f9a927eecbc8590e9f5fcfe4b47a8caca91b6dbbc430ba973",
       "beforeNormalizedHash": "fc4a31cb170a8b5f9a927eecbc8590e9f5fcfe4b47a8caca91b6dbbc430ba973",
-      "afterNormalizedHash": "93bd68bdc682e2cc857b33e481f76441b19bf5ca0000354e4d06159242cc7966",
+      "afterNormalizedHash": "15dc211a03e4d3d54e6fb4a886df43df808af9b50a442c906de859912424b294",
       "beforeCRLFRanges": [],
       "rules": [
         {
           "offset": 6897,
           "before": "    <script data-process-src=\"shared-draft-client.js?v=20261114-lines-flow-review1\"></script>\n",
-          "after": "    <script data-process-src=\"shared-draft-client.js?v=20261115-quality-root3\"></script>\n"
+          "after": "    <script data-process-src=\"shared-draft-client.js?v=20261115-quality-root4\"></script>\n"
         },
         {
           "offset": 7265,
@@ -1971,15 +2318,15 @@
         },
         {
           "offset": 9955,
-          "before": "    <script data-process-src=\"ipqc-c.js?v=20261113-ipqc-silent3\"></script>\n",
-          "after": "    <script data-process-src=\"ipqc-c.js?v=20261115-quality-root3\"></script>\n"
+          "before": "    <script data-process-src=\"ipqc-c.js?v=20261113-ipqc-silent3\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261113-ipqc-silent3\"></script>\n",
+          "after": "    <script data-process-src=\"ipqc-c.js?v=20261115-quality-root3\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261115-quality-root4\"></script>\n"
         }
       ]
     },
     "tests/shared-draft-receipt-recovery.test.mjs": {
       "beforeHash": "473abb71c991c70a12b204ee04b817e567f90cf4140ceab9a96538ff4125b05c",
       "beforeNormalizedHash": "473abb71c991c70a12b204ee04b817e567f90cf4140ceab9a96538ff4125b05c",
-      "afterNormalizedHash": "639d8591418727a44e68fd6b51a062042ef736888db6bb1c7fab2e16e89d44dc",
+      "afterNormalizedHash": "8a4339f77266090c696704e2807c4da917c3ec4051e9abcfb3c7bd8b6519a2fc",
       "beforeCRLFRanges": [],
       "rules": [
         {
@@ -1990,7 +2337,7 @@
         {
           "offset": 14840,
           "before": "  'shared-draft-client.js':'20261114-lines-flow-review1',\n",
-          "after": "  'shared-draft-client.js':'20261115-quality-root3',\n"
+          "after": "  'shared-draft-client.js':'20261115-quality-root4',\n"
         },
         {
           "offset": 15057,
@@ -1998,16 +2345,16 @@
           "after": "  'fqc-master.js':'20261115-quality-root1',\n  'iqc-master.js':'20261115-quality-root2',\n  'ipqc-c.js':'20261115-quality-root3',\n"
         },
         {
-          "offset": 15349,
-          "before": "  'routine-equipment.js':'20261113-equipment-integration2',\n",
-          "after": "  'routine-equipment.js':'20261115-quality-root2',\n"
+          "offset": 15309,
+          "before": "  'ipqc-ab.js':'20261113-ipqc-silent3',\n  'routine-equipment.js':'20261113-equipment-integration2',\n",
+          "after": "  'ipqc-ab.js':'20261115-quality-root4',\n  'routine-equipment.js':'20261115-quality-root2',\n"
         }
       ]
     },
     "AI_CONTEXT/modules/QUALITY.md": {
       "beforeHash": "669196bc81592c9f820f1fa9e80f30bac68d2458b4c9a2991d9558dfaf32119f",
       "beforeNormalizedHash": "669196bc81592c9f820f1fa9e80f30bac68d2458b4c9a2991d9558dfaf32119f",
-      "afterNormalizedHash": "7cbf7235264a167d4892a629b6f84021908680a40125176fa1d1212f7b4c126d",
+      "afterNormalizedHash": "26506f5038ae343b75701d5d79767d1eb65c0ffdf909ac80854cff1ef5930142",
       "beforeCRLFRanges": [],
       "rules": [
         {
@@ -2018,7 +2365,7 @@
         {
           "offset": 91628,
           "before": "",
-          "after": "\nC Begin 補充：合格原收據後的 full readback 顯示已確認／讀回中，不等同 marker 清除；保留 GET-only 原收據恢復與全部 barrier，兩語系真 handler fixture 見 `quality-c-begin-feedback.test.mjs`。\n"
+          "after": "\nC Begin 補充：合格原收據後的 full readback 顯示已確認／讀回中，不等同 marker 清除；保留 GET-only 原收據恢復與全部 barrier，兩語系真 handler fixture 見 `quality-c-begin-feedback.test.mjs`。\n\nAB整份Submit：MODULE_CHANGED_RECONFIRM只在精確原POST拒絕證明下結束marker並要求重新讀取／人工再確認；receipt404不是未寫入證明。舊未知保留鎖與GET-only入口，不盲重送。設備照片完成表單仍為本地未存，Save回執／必要讀回完成才顯示持久化。\n"
         }
       ]
     },
