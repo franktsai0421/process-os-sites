@@ -1,3 +1,11 @@
+## 2026-11-15 — 網頁實測根因修復候選
+
+檢具移轉以合格的原操作回應／收據先呈現結果，關聯刷新獨立顯示；刷新中鎖住舊選取的重複確認，失敗不改已確認結果。檢具頁首區分本地未套用、共用未存、處理中、已持久化、讀取失敗與結果未知；未知操作 UI 僅查原收據。新增類別的本地代碼為暫編，伺服器依歷史保留號碼分配正式碼並回報差異，不重編既有資料。
+
+IPQC AB `GET ?references=<equipmentId>` 為關聯專用精簡投影，僅回傳原可見版本中符合 stable equipmentId 的項目摘要；保留原讀取依賴、權限、歷史 SHA／格式錯誤。完整 records GET 使用有界 JSON 容器序列化；單份 immutable 原件仍先完整驗 SHA。檢具／模具工作流採用逐請求權限 phase，每個讀取／CAS 重試重新建立，保留回傳前、immutable 寫入後的 session 核對。
+
+FQC「未設定→按批次」會同步顯示預設 AQL 欄與驗證訊息。共用操作紀錄的歷史 GET 失敗／409 過期，以唯讀查詢狀態呈現並提供明確重查，不使用「結果未知／同步失敗」描述寫入。[根因、測量、回歸與尚未實站驗收](../../docs/acceptance/quality-root-causes-20261115.md)。
+
 ## 2026-11-14 — IPQC operation speed (isolated candidate)
 
 Exact IPQC page/workflow authorization phases reuse evaluation only inside the same request/selected state, with fresh session fences and per-CAS reconstruction. C retains exact platform final-approval cells. The existing bounded aggregate scheduler now also serves C reads/writes and scoped A/B Apply/restore/lifecycle writes; every selected object, integrity check, CAS, receipt and required readback remains. Client drafts, polling/deadlines and UNKNOWN recovery are unchanged. [Evidence, stage benchmark and limits](../../docs/acceptance/ipqc-operation-speed-20261114.md). No schema, live-data change or deployment.
@@ -430,3 +438,7 @@ Frank's latest statement confirms retaining unsaved changes and pending photos a
 
 ### 2026-11-12 C product-local unapplied forms
 IPQC C product filtering now retains an unapplied editor in RAM under its original product and stage, including pending photo objects. Returning to that product restores it only in the same version/generation and current actor/edit context. Product browsing never applies, uploads or saves it. Leaving the module (or the existing scope-discard action) clears retained forms and unapplied object URLs; no durable recovery is added. This is local implementation, not hosted or physical-device acceptance.
+
+C Begin 補充：合格原收據後的 full readback 顯示已確認／讀回中，不等同 marker 清除；保留 GET-only 原收據恢復與全部 barrier，兩語系真 handler fixture 見 `quality-c-begin-feedback.test.mjs`。
+
+AB整份Submit：MODULE_CHANGED_RECONFIRM只在精確原POST拒絕證明下結束marker並要求重新讀取／人工再確認；receipt404不是未寫入證明。舊未知保留鎖與GET-only入口，不盲重送。設備照片完成表單仍為本地未存，Save回執／必要讀回完成才顯示持久化。

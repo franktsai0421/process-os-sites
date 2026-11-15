@@ -4,7 +4,8 @@ const assert=require('node:assert/strict'),{createHash}=require('node:crypto');
 const contracts=require('./quality-main-source-contracts.json');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 function restoreParent(bytes,file,target){
- assert(Buffer.isBuffer(bytes),'Joint proof requires raw Buffer bytes');
+ assert(Buffer.isBuffer(bytes),'Joint proof requires raw Buffer bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);
+ bytes=require('./process-platform-adopt-source-contract.cjs').projectKnown(bytes,file);
  bytes=require('./lines-flow-source-contract.cjs').projectKnown(bytes,file);
  bytes=require('./password-outcome-source-contract.cjs').projectKnown(bytes,file);
  bytes=require('./process-submit-outcome-source-contract.cjs').projectKnown(bytes,file);
@@ -19,7 +20,8 @@ function restoreParent(bytes,file,target){
  assert.equal(result.length,c.beforeLength,'Joint proof parent length');assert.equal(hash(result),c.beforeHash,'Joint proof parent bytes');return result;
 }
 function projectKnown(bytes,file,target){
- assert(Buffer.isBuffer(bytes),'Joint proof requires raw Buffer bytes');
+ assert(Buffer.isBuffer(bytes),'Joint proof requires raw Buffer bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);
+ bytes=require('./process-platform-adopt-source-contract.cjs').projectKnown(bytes,file);
  bytes=require('./lines-flow-source-contract.cjs').projectKnown(bytes,file);
  bytes=require('./password-outcome-source-contract.cjs').projectKnown(bytes,file);
  bytes=require('./process-submit-outcome-source-contract.cjs').projectKnown(bytes,file);

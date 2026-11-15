@@ -698,7 +698,7 @@
       if(localBeginReceipt&&control.moduleDraft?.workflow?.generation!==localBeginReceipt.generation)throw Error('DRAFT_GENERATION_CHANGED');
       if(localSent?.confirmed){if(JSON.stringify(localSaveScopes())!==localSent.snapshot)throw Error('LOCAL_BATCH_RECONFIRM');clearLocalEditing();pin.modal=null;pin.setSent(null);pin.refresh();if(await load(false,null,null,pin)===false||!owns())return;}
       message=rejected?t('原操作已確認未寫入；保留本機修改，請更正後再次存取。','Đã xác nhận thao tác gốc chưa ghi; giữ thay đổi cục bộ, sửa rồi lưu lại.'):t('原操作已核對；未自動再次存取。','Đã kiểm tra thao tác gốc; không tự lưu lại.');
-    }catch(error){if(owns())message=error.message;}
+    }catch(error){if(owns())message=error.message==='OPERATION_NOT_FOUND'?t('尚未查得原操作收據，不能據此判定未寫入；草稿與鎖定保留，請稍後再次查證，不要重送。','Chưa tìm thấy biên nhận gốc; chưa thể kết luận chưa ghi. Giữ bản nháp và khóa, kiểm tra lại sau, không gửi lại.'):error.message;}
     finally{pin.finish();}
   }
   // Bound photo I/O only. A failed batch drains both active requests before
@@ -856,7 +856,7 @@
       const operation=client.prepare(commandGeneration,commandAction,fields);pendingOperations.set(client,operation);result=await client.sendPrepared(operation);check();if(pendingOperations.get(client)===operation)pendingOperations.delete(client);acknowledged=true;lastCommandAcknowledgement={actor:owner.actor,epoch:owner.epoch,action,result};
       captureBatchInput(owner.modal);retainInputBase();if(await load(false,owner)===false)return null;
       if(!mutationCurrent(owner,false))return null;owner.generation=scope()?.workflow?.generation||null;check();message=hasPrivateInput()?batchNotice():'';toast(hasPrivateInput()?batchNotice():t('IPQC-AB 整份操作已完成','Đã hoàn tất thao tác toàn bộ IPQC-AB'));return result;
-    }catch(error){if(mutationCurrent(owner,false))message=acknowledged?t(action==='save'?'已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。':'操作已由伺服器確認，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Thao tác đã được máy chủ xác nhận nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):error.message;return null;}
+    }catch(error){if(mutationCurrent(owner,false)){const rejected=pendingOperations.get(client),knownConflict=action==='submit'&&error.message==='MODULE_CHANGED_RECONFIRM'&&rejected&&client.isConfirmedRejection(error,rejected)&&!client.hasUnknown();if(knownConflict){pendingOperations.delete(client);message=t('伺服器資料已變動，本次送審未寫入；已存草稿保留。請重新讀取並再次確認後送審。','Dữ liệu máy chủ đã thay đổi; lần gửi duyệt này chưa ghi. Giữ bản nháp đã lưu; đọc lại và xác nhận trước khi gửi duyệt.');}else message=acknowledged?t(action==='save'?'已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。':'操作已由伺服器確認，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Thao tác đã được máy chủ xác nhận nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):error.message;}return null;}
     finally{if(activeMutation===owner&&owner.attempt===mutationSequence){activeMutation=null;busy=false;if(inputOwnerCurrent(owner)&&modal===owner.modal){draw();drawReview();restoreView();}}}
   }
   async function save(action = 'save') {

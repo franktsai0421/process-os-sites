@@ -2224,6 +2224,9 @@
       const val = ruleCadenceSelect.value;
       batchSubwrap.style.display = val === 'batch' ? '' : 'none';
       timeSubwrap.style.display = val === 'time' ? '' : 'none';
+      // The selected defaults may never have emitted a change event.
+      batchKindSelect.onchange();
+      timeFreqSelect.onchange();
       clearModalErrors(overlay);
     });
 
