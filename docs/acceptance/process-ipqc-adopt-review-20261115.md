@@ -15,7 +15,7 @@ AB 仍按線別／產品類別／工段，不依方塊產品篩選；C 仍按方
 
 ## 與並行工作交接
 
-另一品質工作現有 `1d27fd317a5e64a989e5bdfbc9af5c839cb11eba` 的核心是 equipment/FQC、AB response、版本 history feedback。本工作未搬入其未提交內容或提交。已知共同檔案為 `public/process/index.html`、`scripts/ipqc-speed-assignment-source-contract.cjs`；若後續整合應逐行保留各自快取 tag 及精確新來源投影，不整檔覆寫。原使用者分工後將製程送審項正式轉交本工作，本 PR 同時包含上述兩項製程修復。
+另一品質工作現有 `1d27fd317a5e64a989e5bdfbc9af5c839cb11eba` 的核心是 equipment/FQC、AB response、版本 history feedback。本工作未搬入其未提交內容或提交。已知共同檔案為 `public/process/index.html`、`scripts/ipqc-speed-assignment-source-contract.cjs`；文件另共用 `AI_CONTEXT/CHANGELOG.md`、`HANDOFF.md`；若後續整合應逐行保留各自快取 tag 及精確新來源投影，不整檔覆寫。原使用者分工後將製程送審項正式轉交本工作，本 PR 同時包含上述兩項製程修復。
 
 ## 驗證與界線
 
@@ -41,3 +41,8 @@ AB 仍按線別／產品類別／工段，不依方塊產品篩選；C 仍按方
 - `test-authoring-save-validation-ui.cjs` 30、`entry-performance/source-eol.test.cjs` 96、`test-process-ipqc-c-query.cjs` 24 群組 PASS。
 - `test-authoring-ipqc-assignment-reuse.cjs`、`test-authoring-ipqc-read-reuse.cjs`、`entry-performance/ipqc-index-semantics.cjs` PASS；讀取重用載具包含 17 對、34 GET、9 規則負例，全部零寫入。
 - 這些 local PASS 不取代 PR 精確 head 的 CI／原生 runner 結果。未全面重跑無關 FQC、模具、檢具、備份還原或其他模組瀏覽器；它們沒有本輪產品修改。未進行正式資料或員工資料包遷移。
+
+
+### 首輪 CI 的來源鏈適配
+
+`ba6cba2ed11c7780052ad5767465937dd1acb139` 的 Process IPQC link rules（Linux 原生及 Windows）與 Process review recovery（桌面／手機尺寸）均已成功。IPQC operation speed 的來源測試發現兩處尚未適配：新 inverse 在 wrong target 之前執行，破壞「未知 target 原樣返回」反例；另舊完整 runtime 斷言未先經過已固定的新 successor inverse。只調整 helper 的 target 先驗證順序、把已核對完整 inverse 接入原 byte-equality 斷言；歷史 manifests、全部反例、獨立父系範圍枚舉與產品程式不變。新 head 的實際 CI 另列於 PR／交付，不把前身 PASS 當成新 head PASS。

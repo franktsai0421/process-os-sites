@@ -293,13 +293,13 @@
     "scripts/ipqc-speed-assignment-source-contract.cjs": {
       "beforeHash": "025441e91f1038773cc248bc8f3eb505f478e0d342c0fbc454b35b41cbc5e552",
       "beforeNormalizedHash": "025441e91f1038773cc248bc8f3eb505f478e0d342c0fbc454b35b41cbc5e552",
-      "afterHash": "4c00728883ffe4a23b15063fa08258426700e948abe35557a8fa5acb92a77ef3",
+      "afterHash": "3b7d9698748017ea78b0410f5fc7fc8bdb1cf7e338055f02a7b260114fe68ffe",
       "beforeCRLF": [],
       "rules": [
         {
           "offset": 444,
           "before": "function restore(bytes,file,target){assert(Buffer.isBuffer(bytes),'IPQC assignment/speed proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null,p=c&&c.parents[target];assert(p,'IPQC assignment/speed wrong path/target');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'IPQC assignment/speed unknown source');for(const r of [...p.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'IPQC assignment/speed positioned span');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),p.normalizedHash);const lines=out.toString().split('\\n');for(const i of p.crlf)lines[i]+='\\r';out=Buffer.from(lines.join('\\n'));assert.equal(hash(out),p.hash,'IPQC assignment/speed exact parent');return out;}\nfunction projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'IPQC assignment/speed proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&c.parents[target]&&hash(normalized(bytes))===c.afterHash?restore(bytes,file,target):bytes;}\n",
-          "after": "function restore(bytes,file,target){assert(Buffer.isBuffer(bytes),'IPQC assignment/speed proof requires raw Buffer');bytes=require('./process-platform-adopt-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null,p=c&&c.parents[target];assert(p,'IPQC assignment/speed wrong path/target');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'IPQC assignment/speed unknown source');for(const r of [...p.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'IPQC assignment/speed positioned span');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),p.normalizedHash);const lines=out.toString().split('\\n');for(const i of p.crlf)lines[i]+='\\r';out=Buffer.from(lines.join('\\n'));assert.equal(hash(out),p.hash,'IPQC assignment/speed exact parent');return out;}\nfunction projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'IPQC assignment/speed proof requires raw Buffer');bytes=require('./process-platform-adopt-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&c.parents[target]&&hash(normalized(bytes))===c.afterHash?restore(bytes,file,target):bytes;}\n"
+          "after": "function restore(bytes,file,target){assert(Buffer.isBuffer(bytes),'IPQC assignment/speed proof requires raw Buffer');bytes=require('./process-platform-adopt-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null,p=c&&c.parents[target];assert(p,'IPQC assignment/speed wrong path/target');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'IPQC assignment/speed unknown source');for(const r of [...p.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'IPQC assignment/speed positioned span');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),p.normalizedHash);const lines=out.toString().split('\\n');for(const i of p.crlf)lines[i]+='\\r';out=Buffer.from(lines.join('\\n'));assert.equal(hash(out),p.hash,'IPQC assignment/speed exact parent');return out;}\nfunction projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'IPQC assignment/speed proof requires raw Buffer');if(!Object.hasOwn(contract.parents,target))return bytes;bytes=require('./process-platform-adopt-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&c.parents[target]&&hash(normalized(bytes))===c.afterHash?restore(bytes,file,target):bytes;}\n"
         }
       ]
     },
@@ -318,6 +318,19 @@
           "offset": 5942,
           "before": " vm.createContext(box);for(const name of ['shared-draft-client','canvas-recovery-store','canvas-local','version-draft-ui','canvas-approved-history','process-authoring-v3'])vm.runInContext(fs.readFileSync('public/process/'+name+'.js','utf8'),box,{filename:name+'.js'});\n",
           "after": " vm.createContext(box);for(const name of ['shared-draft-client','canvas-recovery-store','canvas-local','version-draft-ui','canvas-approved-history','process-authoring-v3'])vm.runInContext(name==='process-authoring-v3'&&authoringSource?authoringSource:fs.readFileSync('public/process/'+name+'.js','utf8'),box,{filename:name+'.js'});\n"
+        }
+      ]
+    },
+    "tests/ipqc-operation-speed-integration-source.test.cjs": {
+      "beforeHash": "6e8b06f164def78794fe42429be27fe7983780c95cf14191cd460456eab344c7",
+      "beforeNormalizedHash": "6e8b06f164def78794fe42429be27fe7983780c95cf14191cd460456eab344c7",
+      "afterHash": "0138e5e2c510fe0a6bb3f386a38bf8bbed67706aa2c77a94915fbbd7f84a4bec",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 2365,
+          "before": " for(const file of files)assert.deepEqual(normalized(fs.readFileSync(file)),normalized(git('show',commit+':'+file)),file+' retains full parent runtime; only checkout LF/CRLF normalization allowed');\n",
+          "after": " for(const file of files)assert.deepEqual(normalized(require('../scripts/process-platform-adopt-source-contract.cjs').projectKnown(fs.readFileSync(file),file)),normalized(git('show',commit+':'+file)),file+' retains full parent runtime through the exact reviewed adoption inverse; checkout LF/CRLF allowed');\n"
         }
       ]
     },
