@@ -9,7 +9,7 @@ const scripts=['shared-draft-client.js','local-draft-recovery.js','local-draft-r
 const f=await fixture('records-v1');let browser;const report={kind:'ISOLATED_NATIVE_MODULE_UI',assertions:[],errors:[],sources:[]};
 try{
  for(const source of ['AB','C']){const created=await f.create(source);await f.promote(created.url);report.sources.push({source,errorId:created.error.id,itemId:created.item.id});}
- await f.generatedMasterPages();report.masterSource='generated-page-v1-approved-owners (not an adoption/approval UI claim)';
+ await f.generatedMasterPages([],{staleCompatibility:false});report.masterSource='generated-page-v1-approved-owners (not an adoption/approval UI claim)';
  browser=await chromium.launch({headless:true,...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:{})});
  for(const {line,lang,width} of [{line:'A',lang:'zh',width:1440},{line:'C',lang:'vi',width:390}]){
   const context=await browser.newContext({viewport:{width,height:900}}),page=await context.newPage();let who='editor',hold=null,heldReady=null,loseSave=false,hideReceipt=false;const waits=[];
@@ -45,6 +45,24 @@ try{
    hideReceipt=false;await save();assert.equal(f.trace.filter(row=>row.url.startsWith('/api/process-authoring/workflow')&&row.method==='POST').length,posts+1,'explicit UNKNOWN recovery only reads the original receipt');assert.equal(await page.evaluate(()=>!!ProcessCanvasLocal.pending()),false);await boot();await open('two');assert.equal(await c.isChecked(),false);await page.locator('.process-ipqc-group').first().evaluate(el=>el.open=true);await c.check();await page.locator('#apply-operation').click();await page.locator('#process-operation-dialog').waitFor({state:'detached'});await save();report.assertions.push('C: committed checkbox Save with lost ACK/receipt404 stays UNKNOWN, original receipt resolves with zero POST replay, reload preserves result PASS');
   }
   await page.evaluate(()=>{const stage=state.editorLine==='C'?'TIEN':'A-CUT';ProcessOpenOperation(ensureCategoryEditor()[stage][0]);});const held=new Promise(resolve=>heldReady=resolve);hold=true;await page.locator('[data-tab="ipqc"]').click();await held;await page.waitForFunction(()=>document.querySelector('.pe-ipqc')?.textContent.includes('…'));await page.locator('[data-tab="basic"]').click();for(const resolve of waits.splice(0))resolve();await page.waitForTimeout(50);assert.equal(await page.locator('[data-ipqc-choice]').count(),0);await cancel();report.assertions.push(line+': late source response after tab change cannot paint another tab PASS');
+  // A new source item is created and approved through the actual signed routes.
+  // The previously assigned stable item is unchanged but belongs to a newer whole-source version.
+  const source=line==='C'?'C':'AB',extra=await f.create(source);await f.promote(extra.url);
+  await boot();await open('two');assert(await c.isChecked());assert.equal(await c.locator('..').locator('..').getAttribute('data-status'),'retained');
+  assert.equal(await page.locator('[data-ipqc-count="selected"]').innerText(),'0');assert.equal(await page.locator('[data-ipqc-count="retained"]').innerText(),'1');assert.equal(await page.locator('[data-ipqc-warning][data-ipqc-reasons="version"]').count(),1);
+  assert.equal(await page.locator('.process-ipqc-group').first().getAttribute('data-complete'),'false');await page.screenshot({path:out+'/'+line+'-retained-'+width+'.png',fullPage:true});
+  if(line==='A'){
+   // Publish another real approved version after the current panel already captured v2.
+   const detail=page.locator('.process-ipqc-item-details').first();await detail.evaluate(el=>el.open=true);await detail.locator('p').first().waitFor();const oldText=await detail.innerText(),url=f.endpoint('AB'),itemId=report.sources.find(s=>s.source==='AB').itemId;
+   assert.equal((await f.request(url,'POST',{action:'begin'})).status,200);const draft=(await f.request(url)).body.control.workflow.working.items.find(i=>i.id===itemId),path=['items',{id:itemId},'standard'];await f.command(url,'apply',{patches:[{op:'set',path,value:'Native newly approved V3 standard'}],guards:[{path,value:draft.standard}]});await f.promote(url);
+   await page.locator('[data-ipqc-compare]').first().click();await page.locator('[data-ipqc-adopt]').waitFor();assert.equal(await detail.innerText(),oldText,'comparison alone does not change captured details');await page.locator('[data-ipqc-adopt]').click();await page.waitForFunction(()=>document.querySelector('.process-ipqc-source-review')?.textContent.includes('已採用至目前表單'));
+   assert.equal(await detail.evaluate(el=>el.open),true);assert.match(await detail.innerText(),/Native newly approved V3 standard/);await detail.evaluate(el=>el.open=false);await detail.evaluate(el=>el.open=true);assert.match(await detail.innerText(),/Native newly approved V3 standard/);assert.equal(await detail.locator('p').count(),5);assert.equal(await page.locator('[data-ipqc-warning]').count(),0);await page.screenshot({path:out+'/A-adopted-v3-details-1440.png',fullPage:true});report.assertions.push('A: panel stays open across real v2→v3 approval; adoption refreshes expanded details without duplicate body or collapse PASS');
+  }
+  await c.uncheck();assert.equal(await page.locator('[data-ipqc-warning]').count(),0);await c.check();assert.equal(await page.locator('[data-ipqc-warning]').count(),0);assert.equal(await page.locator('[data-ipqc-count="retained"]').innerText(),'0');
+  const badge=page.locator('.process-ipqc-badge.selected').first();await badge.focus();await page.screenshot({path:out+'/'+line+'-reselected-'+width+'.png',fullPage:true});
+  const overflow=await page.locator('.pe-modal-body').evaluate(el=>el.scrollWidth>el.clientWidth+1);assert.equal(overflow,false,'source version text fits narrow/desktop modal');
+  await page.locator('#apply-operation').click();await page.locator('#process-operation-dialog').waitFor({state:'detached'});await save();await boot();await open('two');assert(await c.isChecked());assert.equal(await page.locator('[data-ipqc-warning]').count(),0);assert.equal(await page.locator('[data-ipqc-count="selected"]').innerText(),'1');await cancel();
+  report.assertions.push(line+': real newer source approval → retained historical pin → explicit reselect clears warning → atomic Save/reload current PASS');
   if(line==='C'){
    // Separate generated legacy edge case: a product moved category but retained its historical owner.
    const values=await f.values(),control=JSON.parse(values.processAuthoringControl),working=control.workflow.working,original=working.workspaces.find(w=>w.line==='C');
