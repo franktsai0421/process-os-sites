@@ -303,6 +303,24 @@
         }
       ]
     },
+    "scripts/test-process-ipqc-choice-dom.cjs": {
+      "beforeHash": "8289c1955e49102c0db6d3b0b83ba116dd73644ead86c012b98652b3eef7b451",
+      "beforeNormalizedHash": "8289c1955e49102c0db6d3b0b83ba116dd73644ead86c012b98652b3eef7b451",
+      "afterHash": "9520199d66091837adaced38528f5c9a98a1a2553a85be085df133e19619e767",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 4569,
+          "before": " wrapper.innerHTML=`<div data-ipqc-warnings aria-live=\"polite\"><div class=\"process-ipqc-warning\" role=\"status\" data-ipqc-warning=\"${k}\" data-ipqc-reasons=\"unavailable\"><p><span>${lang==='vi'?'Không còn trong nguồn được duyệt phù hợp với chuyền / nhóm / công đoạn / sản phẩm hiện tại':'現行核准來源已無符合線別／類別／工段／產品的項目'}</span></p><p><span>${lang==='vi'?'Liên kết cũ vẫn được giữ; chưa tự đổi sang nguồn hiện hành.':'原關聯仍保留；尚未自動改用現行來源。'}</span></p><code>retained-old</code><button type=\"button\" data-ipqc-remove=\"${k}\"><span>${lang==='vi'?'Bỏ liên kết':'移除關聯'}</span></button></div></div>`;\n",
+          "after": " wrapper.innerHTML=`<div data-ipqc-warnings aria-live=\"polite\"><div class=\"process-ipqc-warning\" role=\"status\" data-ipqc-warning=\"${k}\" data-ipqc-reasons=\"unavailable\"><p><span>${lang==='vi'?'Không còn trong nguồn được duyệt phù hợp với chuyền / nhóm / công đoạn / sản phẩm hiện tại':'現行核准來源已無符合線別／類別／工段／產品的項目'}</span></p><p><span>${lang==='vi'?'Liên kết cũ vẫn được giữ; chưa tự đổi sang nguồn hiện hành.':'原關聯仍保留；尚未自動改用現行來源。'}</span></p><p><span>${lang==='vi'?'Đã chọn ở bước này; liên kết đang dùng phiên bản cũ.':'本方塊已選取；目前保留原版本關聯。'}</span></p><code>retained-old</code><button type=\"button\" data-ipqc-remove=\"${k}\"><span>${lang==='vi'?'Bỏ liên kết':'移除關聯'}</span></button></div></div>`;\n"
+        },
+        {
+          "offset": 11176,
+          "before": "",
+          "after": " // Keep the new retained-selection notice an exact, independently asserted delta.\n // Missing, duplicated or changed text must not be normalized out of the DOM oracle.\n for(const lang of ['zh','vi'])for(const mutation of ['missing','duplicate','changed']){\n  const before=fixture('baseline',{lang}),after=fixture('candidate',{lang});await before.load();await after.load();\n  const warning=after.panel.querySelector('[data-ipqc-warning]'),notice=warning.querySelectorAll('p')[2];\n  assert.equal(notice.textContent,lang==='vi'?'Đã chọn ở bước này; liên kết đang dùng phiên bản cũ.':'本方塊已選取；目前保留原版本關聯。');\n  if(mutation==='missing')notice.remove();\n  if(mutation==='changed')notice.querySelector('span').textContent='UNREVIEWED NOTICE';\n  if(mutation==='duplicate'){const extra=new warning.constructor('p');extra.innerHTML=`<span>${lang==='vi'?'Đã chọn ở bước này; liên kết đang dùng phiên bản cũ.':'本方塊已選取；目前保留原版本關聯。'}</span>`;notice.after(extra);}\n  assert.throws(()=>alignReviewedRetainedWarning(before.panel,after.panel,lang),{code:'ERR_ASSERTION'},lang+' '+mutation+' retained notice must fail the full warning-tree equality');\n  checks.push(lang+' '+mutation+' retained-selection notice rejected by the exact DOM oracle');\n }\n"
+        }
+      ]
+    },
     "tests/canvas-approved-history-fixture.mjs": {
       "beforeHash": "9617634bf0b980ff1e66d0fb8e150223c8aedcffba06e78faf7352ee8d0765d5",
       "beforeNormalizedHash": "9617634bf0b980ff1e66d0fb8e150223c8aedcffba06e78faf7352ee8d0765d5",

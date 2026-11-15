@@ -46,3 +46,14 @@ AB 仍按線別／產品類別／工段，不依方塊產品篩選；C 仍按方
 ### 首輪 CI 的來源鏈適配
 
 `ba6cba2ed11c7780052ad5767465937dd1acb139` 的 Process IPQC link rules（Linux 原生及 Windows）與 Process review recovery（桌面／手機尺寸）均已成功。IPQC operation speed 的來源測試發現兩處尚未適配：新 inverse 在 wrong target 之前執行，破壞「未知 target 原樣返回」反例；另舊完整 runtime 斷言未先經過已固定的新 successor inverse。只調整 helper 的 target 先驗證順序、把已核對完整 inverse 接入原 byte-equality 斷言；歷史 manifests、全部反例、獨立父系範圍枚舉與產品程式不變。新 head 的實際 CI 另列於 PR／交付，不把前身 PASS 當成新 head PASS。
+
+
+### Local safety 第 19 步 DOM oracle 適配
+
+回報精確 head `12ea56b4744429bb988a93dbf486b652c2d59d80` 的 run `43688410584`／job `132733677399`，第 19 步 `Performance and departure integration contracts` 失敗，其餘 job 尚繼續。未使用 rerun、skip 或修改該 workflow；原 Windows job log 在調查時尚未釋出，不能以本機推論代替 Windows stack。
+
+從原 workflow 擷取九個 Node 命令與六項 baseline 路徑環境變數，以固定 `ca6647977a8680038444ce2c1ba4e80f2343cd0a` 的六份原始 Git blobs materialize 並驗 hash。原 Dot Linux／Node 24.22.1 按原順序重現：前七個子命令通過，第八個 `node scripts/test-process-ipqc-choice-dom.cjs` 在 `alignReviewedRetainedWarning` 全樹 deep-equality 失敗。實際 DOM 比舊 oracle 多出已核准需求新增的「本方塊已選取；目前保留原版本關聯」段落；沒有缺標準、照片、檢具或權限防護的觀察證據。
+
+只在既有獨立預期樹加入這個精確的中／越文段落，保留 49 項目的完整展開 DOM、勾選／占用／保留、照片／規則、錯誤及唯讀比對。另加兩語各三個負例：缺少、重複或改動此段落必須使完整 warning-tree equality 拒絕，不能把新內容普遍移除／忽略。固定 baseline、測量門檻、全部既有斷言及產品程式不變。
+
+修正後從同一 workflow 重新擷取並依序完成全部九個 Node 命令，exit code 皆為 0；其中 departure／performance 群組 451/451，DOM 14 項檢查（含六個新增負例）PASS，後續 choice-read PASS。本機為 Linux，不冒稱 Windows／原生或實站驗收。Windows 精確新 head 的結果另以 CI 查證。與另一檢具／模具工作的共用產品檔案完全不動；本增量只包含這份測試載具、它的精確來源 inverse 及本紀錄。既有 12ea head 的 lint／型別／build 與原生結果可作未變產品的證據，不能取代新 head 的完整 CI 結果。
