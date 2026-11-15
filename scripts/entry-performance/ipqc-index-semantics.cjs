@@ -33,7 +33,7 @@ function sourceParts(input){
 }
 function viewPorts(){
  const warnings={innerHTML:'',querySelectorAll(selector){assert.equal(selector,'[data-ipqc-remove]');return[];}};
- return{warnings,panel:{querySelector(selector){assert.equal(selector,'[data-ipqc-warnings]');return warnings;}},document:{documentElement:{lang:'zh'},querySelector(selector){assert.equal(selector,'#apply-operation');return{disabled:false};}},escapeHtml:value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;')};
+ return{mountLatestAdoptions(){assert(!warnings.innerHTML.includes('data-ipqc-latest'),'lookup fixture must not bypass a rendered adoption action');},warnings,panel:{querySelector(selector){assert.equal(selector,'[data-ipqc-warnings]');return warnings;}},document:{documentElement:{lang:'zh'},querySelector(selector){assert.equal(selector,'#apply-operation');return{disabled:false};}},escapeHtml:value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;')};
 }
 function actualSource(source){
  const p=sourceParts(source),ports=viewPorts();
@@ -77,7 +77,7 @@ assert.throws(()=>sourceParts(candidateSource+'\n'+parts.handler),/unique IPQC s
 function checkbox({selected=false,checked=true,current=true,canEdit=true,missing=false}={}){
  const original={source:'AB',scope:'A',itemId:'item',sourceVersionId:'original-version',productCodes:['original-product']},choice={...original,sourceVersionId:'new-source-version',productCodes:['new-product']},op={stageCode:'stage',ipqcAssignments:selected?[original]:[]},before=op.ipqcAssignments;
  let updates=0,events=0,requests=0;const article={dataset:{}},label={querySelector:()=>({outerHTML:''})},input={checked,dataset:{ipqcChoice:key(missing?{...choice,itemId:'missing'}:choice)},closest:selector=>selector==='article'?article:label};
- const ports=viewPorts();let renders=0;Object.defineProperty(ports.warnings,'innerHTML',{set(){renders++;}});
+ const ports=viewPorts();let renders=0,warningHTML='';Object.defineProperty(ports.warnings,'innerHTML',{get(){return warningHTML;},set(value){warningHTML=value;renders++;}});
  const box={...ports,window:{},state:{editorLine:'A',category:'SYN'},key,result:{choices:[choice]},op,input,ensureCategoryEditor:()=>({stage:[op]}),valid:()=>current,editor:{canEdit:()=>canEdit},badge:status=>status,updateOverview:()=>updates++,Event:class{constructor(type){this.type=type;}},panel:{querySelector:selector=>ports.panel.querySelector(selector),querySelectorAll:()=>[input],dispatchEvent(event){assert.equal(event.type,'input');events++;}},fetch(){requests++;throw Error('UNEXPECTED_REQUEST');}};
  vm.runInNewContext(parts.renderSource+parts.setup+parts.handler,box);input.onchange();return{op,original,before,updates,events,requests,renders,article};
 }

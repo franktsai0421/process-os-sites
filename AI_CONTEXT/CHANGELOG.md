@@ -1,3 +1,7 @@
+## 2026-11-15 — 製程 IPQC 明確採用及切換後送審驗證
+
+獨立 main e040a7e 修復候選：A/B/C 舊關聯明確採用核准新版，保留詳細區與唯一占用／權限／CAS；修復 filter 舊 history watcher 誤觸 CANVAS_REVIEW_CHANGED 及切換後未重新檢查的 disabled Submit。[根因、隔離證據、並行工作交接與未驗範圍](../docs/acceptance/process-ipqc-adopt-review-20261115.md)。無資料／schema／部署變更。
+
 ## 2026-11-14 — IPQC request-local authorization and required-read scheduling
 
 Independent speed candidate reduces repeated C session verification and overlaps bounded required aggregate reads for A/B and C without changing operation, draft, permission or persistence semantics. [Actual-handler baseline parity, measurements and validation limits](../docs/acceptance/ipqc-operation-speed-20261114.md). Draft PR only; no merge, deployment or live business data change.

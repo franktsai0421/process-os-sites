@@ -1,0 +1,405 @@
+{
+  "base": "e040a7e838133c0c9870850a49955cf045dbc02b",
+  "files": {
+    ".github/workflows/process-ipqc-link-rules.yml": {
+      "beforeHash": "b7758c74d67eae26c961ccbd89446c4e8ca337c9dbc5ea8a382251097b627a84",
+      "beforeNormalizedHash": "b7758c74d67eae26c961ccbd89446c4e8ca337c9dbc5ea8a382251097b627a84",
+      "afterHash": "e350549eb03aa0a4809627a1d8956c02a577e87404f54c16fed1bc2c4840b8e2",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 1919,
+          "before": "        run: node --test tests/process-ipqc-assignment-state.test.mjs tests/process-ipqc-link-rules.test.cjs tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-source-history-route.test.mjs tests/process-canvas-atomic-save-stack.test.mjs tests/canvas-pending-form-admission.test.mjs\n",
+          "after": "        run: node --test tests/process-ipqc-latest.test.mjs tests/process-inspection-view.test.mjs tests/process-platform-adopt-source.test.cjs tests/process-ipqc-assignment-state.test.mjs tests/process-ipqc-link-rules.test.cjs tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-source-history-route.test.mjs tests/process-canvas-atomic-save-stack.test.mjs tests/canvas-pending-form-admission.test.mjs\n"
+        },
+        {
+          "offset": 4897,
+          "before": "        run: node --test tests/process-ipqc-source-adopt.test.mjs\n",
+          "after": "        run: node --test tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-latest.test.mjs tests/process-inspection-view.test.mjs tests/process-platform-adopt-source.test.cjs\n"
+        }
+      ]
+    },
+    ".github/workflows/process-platform-integration.yml": {
+      "beforeHash": "5f2b6c7b31e0488d8aa554fb1e57a5a66a580bf8e85aa0194a69aaa0491d709f",
+      "beforeNormalizedHash": "5f2b6c7b31e0488d8aa554fb1e57a5a66a580bf8e85aa0194a69aaa0491d709f",
+      "afterHash": "63bb7fb6ab98253698b4fc33c375ced152baaacaea924d4b70679292baa6d62c",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 5705,
+          "before": "        run: node --test tests/process-ipqc-source-adopt.test.mjs\n",
+          "after": "        run: node --test tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-latest.test.mjs tests/process-inspection-view.test.mjs tests/process-platform-adopt-source.test.cjs\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/CHANGELOG.md": {
+      "beforeHash": "323c15513e5379ef82618a9ad8751f3a8a46313fa6710ea1a4f6ddf4a5dc8e59",
+      "beforeNormalizedHash": "323c15513e5379ef82618a9ad8751f3a8a46313fa6710ea1a4f6ddf4a5dc8e59",
+      "afterHash": "d404471000bdb9598cf5b6756882c7cd1d7347a98d8b4a43d97b872a8a83829a",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-15 — 製程 IPQC 明確採用及切換後送審驗證\n\n獨立 main e040a7e 修復候選：A/B/C 舊關聯明確採用核准新版，保留詳細區與唯一占用／權限／CAS；修復 filter 舊 history watcher 誤觸 CANVAS_REVIEW_CHANGED 及切換後未重新檢查的 disabled Submit。[根因、隔離證據、並行工作交接與未驗範圍](../docs/acceptance/process-ipqc-adopt-review-20261115.md)。無資料／schema／部署變更。\n\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/modules/PROCESS.md": {
+      "beforeHash": "61e13da06ebe7964414ab1010473ac137eafb51097a9c1d0c2b57197fd8a62ee",
+      "beforeNormalizedHash": "61e13da06ebe7964414ab1010473ac137eafb51097a9c1d0c2b57197fd8a62ee",
+      "afterHash": "8bcf20d2c944ae14668f70fe8c7bff1ff1d761b9f351148e006814c6339fbaff",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-15 — 明確採用 IPQC 新版及畫布切換後內容檢查\n\nA/B/C 保留舊關聯時提供「採用核准新版」，以新鮮 choices 與 PROCESS authority 驗證後只更新本機 tuple。保留選取、lazy detail 展開狀態及正確標準／檢具；完成方塊後仍須手動 Save。AB 歷史比較保留，C 仍按產品／工段，AB 不按方塊產品。filter 切換先 retire 舊 history watcher，避免正常 render 觸發舊 context 的 onBoundary；filter／line／stage 成功切換後重做內容檢查，未通過前不啟用送審。根因、精確 main 重現、測試及原生／實站限制見[本輪紀錄](../../docs/acceptance/process-ipqc-adopt-review-20261115.md)。\n\n"
+        }
+      ]
+    },
+    "HANDOFF.md": {
+      "beforeHash": "d7d41db7f466a3fe143cb3a0a48b5d9db6e539874283d431321347244ab0cf1c",
+      "beforeNormalizedHash": "d7d41db7f466a3fe143cb3a0a48b5d9db6e539874283d431321347244ab0cf1c",
+      "afterHash": "4b7975fa8b9cac9858b2736747e9f85a7dd4a22e423b33160eb006b85e8e72ff",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-15 — 獨立製程採用新版／送審修復候選\n\n`fix/process-ipqc-adopt-latest-20261115` 自最新已核對遠端 main e040a7e 建立獨立 worktree；A/B/C 明確採用核准新版，修復 filter history watcher 與檢查排程失效，保留所有 saved snapshot／權限／版本與占用防護。[本輪根因、測試、重疊檔案及交付界線](docs/acceptance/process-ipqc-adopt-review-20261115.md)。只提交 Draft PR，未合併、部署或修改測試站資料；另一品質工作仍獨立。\n\n"
+        }
+      ]
+    },
+    "public/process/index.html": {
+      "beforeHash": "88c4fa6c64453f67fbc0a1e9ad8c7f35677a2254ce8a796d9f34965b5ba61df5",
+      "beforeNormalizedHash": "88c4fa6c64453f67fbc0a1e9ad8c7f35677a2254ce8a796d9f34965b5ba61df5",
+      "afterHash": "fc4a31cb170a8b5f9a927eecbc8590e9f5fcfe4b47a8caca91b6dbbc430ba973",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 9028,
+          "before": "    <script data-process-src=\"process-authoring-v3.js?v=20261114-process-review1\"></script>\n",
+          "after": "    <script data-process-src=\"process-authoring-v3.js?v=20261115-canvas-inspection1\"></script>\n"
+        },
+        {
+          "offset": 9905,
+          "before": "    <script data-process-src=\"process-ipqc.js?v=20261115-ipqc-adopt-details1\"></script>\n",
+          "after": "    <script data-process-src=\"process-ipqc.js?v=20261115-ipqc-adopt1\"></script>\n"
+        }
+      ]
+    },
+    "public/process/process-authoring-v3.js": {
+      "beforeHash": "4444745e90cc00d47868d382ee22aab42f2e3bc6edd71bfba47bebe6536628f8",
+      "beforeNormalizedHash": "4444745e90cc00d47868d382ee22aab42f2e3bc6edd71bfba47bebe6536628f8",
+      "afterHash": "82f8ac63dbee9cb510501e8edf90bf45875ec4c71bb480d5106df07a882e8a17",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 26323,
+          "before": "  const current=()=>historyCurrent(displayEpoch)&&!submitStateUnconfirmed&&enabled()&&state.view==='editor'&&ownFlow()&&permissions.view===true&&loadedStamp?.identity===host.ProcessSync?.identity&&sameStamp(owner,identityStamp())&&owner.identity===host.ProcessSync?.identity&&generation===flow()?.generation&&contextEpoch===localContextEpoch&&!host.ProcessSync?.requiresReload;\n",
+          "after": "  const current=(display=displayEpoch)=>historyCurrent(display)&&!submitStateUnconfirmed&&enabled()&&state.view==='editor'&&ownFlow()&&permissions.view===true&&loadedStamp?.identity===host.ProcessSync?.identity&&sameStamp(owner,identityStamp())&&owner.identity===host.ProcessSync?.identity&&generation===flow()?.generation&&contextEpoch===localContextEpoch&&!host.ProcessSync?.requiresReload;\n"
+        },
+        {
+          "offset": 26917,
+          "before": "   return navigation.guardAction({key,label,run(){if(!current())throw Error('CANVAS_REVIEW_CHANGED');return run();}});\n",
+          "after": "   return navigation.guardAction({key,label,run(){if(!current())throw Error('CANVAS_REVIEW_CHANGED');retireHistory();const result=run();inspectLater();panel();return result;}});\n"
+        },
+        {
+          "offset": 27595,
+          "before": "  return Promise.resolve().then(()=>{if(!current()||!idle())return {status:'blocked'};run();if(!current())throw Error('CANVAS_REVIEW_CHANGED');host.ProcessCanvasLocal?.update?.();return {status:'ready'};});\n",
+          "after": "  return Promise.resolve().then(()=>{if(!current()||!idle())return {status:'blocked'};\n   // Retire the source history watcher before rendering a different filter.\n   // Otherwise its expected context change invalidates the new display epoch.\n   retireHistory();const nextDisplay=historyDisplayEpoch;run();if(!current(nextDisplay))throw Error('CANVAS_REVIEW_CHANGED');host.ProcessCanvasLocal?.update?.();inspectLater();panel();return {status:'ready'};});\n"
+        }
+      ]
+    },
+    "public/process/process-ipqc.js": {
+      "beforeHash": "cd1af08859ff13af79619d50129e13b983eacdec1b45c16a5fc0cdcf913a2991",
+      "beforeNormalizedHash": "5a67bf8e202c4616db0a4cf297275c86539ff8353966f499007bf6c917454307",
+      "afterHash": "061648400e95ff4bd05bc379571bfbd1bfa518c45321a03c10ae69a3a8c53921",
+      "beforeCRLF": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        12,
+        24,
+        25,
+        26,
+        27,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        39,
+        41,
+        44,
+        47,
+        48,
+        49,
+        58,
+        61,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        75,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191,
+        192,
+        193,
+        194,
+        195,
+        196,
+        197,
+        198,
+        199,
+        200,
+        201,
+        202,
+        203,
+        204,
+        205,
+        206,
+        207,
+        208,
+        209,
+        210,
+        211,
+        212,
+        213,
+        214,
+        215,
+        216,
+        217,
+        218,
+        219,
+        220,
+        221,
+        222,
+        223,
+        224,
+        225,
+        226,
+        227,
+        228,
+        229
+      ],
+      "rules": [
+        {
+          "offset": 3374,
+          "before": "      return `<div class=\"process-ipqc-warning\" role=\"status\" data-ipqc-warning=\"${h(key(a))}\" data-ipqc-reasons=\"${reasons.join(' ')}\">${reasons.map(reason=>`<p>${label(...descriptions[reason])}</p>`).join('')}<p>${label('Liên kết cũ vẫn được giữ; chưa tự đổi sang nguồn hiện hành.','原關聯仍保留；尚未自動改用現行來源。')}</p><code>${h(a.itemId)}</code>${reasons.includes('version')?`<p>${label('Phiên bản liên kết','關聯版本')} <code>${h(a.sourceVersionId)}</code>${label('Phiên bản hiện hành','現行版本')} <code>${h(c.sourceVersionId)}</code></p>`:''}<button type=\"button\" data-ipqc-remove=\"${h(key(a))}\" ${document.querySelector('#apply-operation')?.disabled?'disabled':''}>${label('Bỏ liên kết','移除關聯')}</button></div>`;\n",
+          "after": "      return `<div class=\"process-ipqc-warning\" role=\"status\" data-ipqc-warning=\"${h(key(a))}\" data-ipqc-reasons=\"${reasons.join(' ')}\">${reasons.map(reason=>`<p>${label(...descriptions[reason])}</p>`).join('')}<p>${label('Liên kết cũ vẫn được giữ; chưa tự đổi sang nguồn hiện hành.','原關聯仍保留；尚未自動改用現行來源。')}</p><p>${label('Đã chọn ở bước này; liên kết đang dùng phiên bản cũ.','本方塊已選取；目前保留原版本關聯。')}</p><code>${h(a.itemId)}</code>${reasons.includes('version')?`<p>${label('Phiên bản liên kết','關聯版本')} <code>${h(a.sourceVersionId)}</code>${label('Phiên bản hiện hành','現行版本')} <code>${h(c.sourceVersionId)}</code></p>`:''}${c&&editor?`<button type=\"button\" data-ipqc-latest=\"${h(key(a))}\" ${!editor.canEdit()?'disabled':''}>${label('Dùng nguồn mới đã duyệt','採用核准新版')}</button>`:''}<button type=\"button\" data-ipqc-remove=\"${h(key(a))}\" ${document.querySelector('#apply-operation')?.disabled?'disabled':''}>${label('Bỏ liên kết','移除關聯')}</button></div>`;\n"
+        },
+        {
+          "offset": 4517,
+          "before": "",
+          "after": "    mountLatestAdoptions(panel,op,byKey,editor,valid);\n"
+        },
+        {
+          "offset": 4953,
+          "before": "  const choiceRequests=new WeakMap(),referenceViews=new WeakMap();\n",
+          "after": "  const choiceRequests=new WeakMap(),referenceViews=new WeakMap(),adoptionRefreshers=new WeakMap();\n"
+        },
+        {
+          "offset": 18614,
+          "before": "",
+          "after": "      adoptionRefreshers.set(panel,refreshAdopted);\n"
+        },
+        {
+          "offset": 19594,
+          "before": "    if(!c||c.source!=='AB'||!['scope','itemId','sourceVersionId','code','errorId','errorCode','errorName','standard','description','inspection','frequency'].every(k=>typeof c[k]==='string')||!c.itemId||!c.sourceVersionId||!strings(c.productCodes)||!Array.isArray(c.rules)||!Array.isArray(c.photos)||c.photos.some(p=>!p||!['id','name','note'].every(k=>typeof p[k]==='string'))||c.rules.some(r=>!r||typeof r!=='object'||Array.isArray(r))||c.equipment!==null&&(!c.equipment||!['assetCode','pieceMark','name'].every(k=>typeof c.equipment[k]==='string')))throw Error('IPQC_SOURCE_UNAVAILABLE');\n",
+          "after": "    if(!c||!['AB','C'].includes(c.source)||!['scope','itemId','sourceVersionId','code','errorId','errorCode','errorName','standard','description','inspection','frequency'].every(k=>typeof c[k]==='string')||!c.itemId||!c.sourceVersionId||!strings(c.productCodes)||!Array.isArray(c.rules)||!Array.isArray(c.photos)||c.photos.some(p=>!p||!['id','name','note'].every(k=>typeof p[k]==='string'))||c.rules.some(r=>!r||typeof r!=='object'||Array.isArray(r))||c.equipment!==null&&(!c.equipment||!['assetCode','pieceMark','name'].every(k=>typeof c.equipment[k]==='string')))throw Error('IPQC_SOURCE_UNAVAILABLE');\n"
+        },
+        {
+          "offset": 20496,
+          "before": "    if(!Number.isSafeInteger(result?.revision)||result.revision<0||result.source!=='AB'||result.scope!==assignment.scope||!Array.isArray(result.choices)||result.reason)throw Error('IPQC_SOURCE_UNAVAILABLE');\n",
+          "after": "    if(!Number.isSafeInteger(result?.revision)||result.revision<0||result.source!==assignment.source||result.scope!==assignment.scope||!Array.isArray(result.choices)||result.reason)throw Error('IPQC_SOURCE_UNAVAILABLE');\n"
+        },
+        {
+          "offset": 23007,
+          "before": "    if(assignment.source!=='AB'||!['scope','itemId','sourceVersionId'].every(k=>typeof assignment[k]==='string'&&assignment[k])||state.view!=='editor'||!valid()||!editor.canEdit()||!identity?.id||!Number.isSafeInteger(epoch)||!Number.isSafeInteger(revision)||authority?.canView!==true||authority.canEdit!==true||authority.pending||authority.busy||window.ProcessCanvasLocal?.pending?.()||!flow?.generation||flow.scope!=='process:platform'||!Number.isSafeInteger(flow.revision)||assignment.scope!==state.editorLine+':'+state.category||!strings(assignment.productCodes))throw Error('IPQC_CONTEXT_CHANGED');\n",
+          "after": "    if(!['AB','C'].includes(assignment.source)||!['scope','itemId','sourceVersionId'].every(k=>typeof assignment[k]==='string'&&assignment[k])||state.view!=='editor'||!valid()||!editor.canEdit()||!identity?.id||!Number.isSafeInteger(epoch)||!Number.isSafeInteger(revision)||authority?.canView!==true||authority.canEdit!==true||authority.pending||authority.busy||window.ProcessCanvasLocal?.pending?.()||!flow?.generation||flow.scope!=='process:platform'||!Number.isSafeInteger(flow.revision)||assignment.scope!==(assignment.source==='C'?'C':state.editorLine+':'+state.category)||!strings(assignment.productCodes))throw Error('IPQC_CONTEXT_CHANGED');\n"
+        },
+        {
+          "offset": 26603,
+          "before": "",
+          "after": "  }\n  // Adoption needs the approved current projection and PROCESS edit authority.\n  // Historical quality-view permission is only required for the optional AB diff.\n  function mountLatestAdoptions(panel,op,byKey,editor,valid){\n    if(!editor)return;\n    for(const button of panel.querySelectorAll('[data-ipqc-latest]')){\n      const assignment=structuredClone((op.ipqcAssignments||[]).find(a=>key(a)===button.dataset.ipqcLatest)),shown=sourceProjection(byKey.get(button.dataset.ipqcLatest));\n      const message=document.createElement('p');message.setAttribute('role','status');button.after(message);let running=false;\n      button.onclick=async()=>{\n        if(running)return;running=true;button.disabled=true;\n        try{\n          const pin=sourcePin(panel,op,editor,valid,assignment),query=new URLSearchParams({mode:'choices',line:state.editorLine,category:state.category,stage:op.stageCode});(op.productCodes||[]).forEach(p=>query.append('product',p));\n          message.textContent=text('Đang kiểm tra nguồn và quyền hiện tại…','正在核對新版來源與目前權限…');\n          const candidates=await get(query);pin.check();const next=currentSource(candidates,assignment,op);if(!same(next,shown))throw Error('IPQC_SOURCE_CHANGED_RELOAD');\n          const fresh=await pin.api.readCanvasRecovery(pin.api.captureCanvasRecovery());pin.check();const flow=fresh?.control?.workflow;\n          if(fresh?.permissions?.view!==true||fresh.permissions.edit!==true||flow?.scope!=='process:platform'||flow.generation!==pin.generation||!Number.isSafeInteger(flow.revision)||flow.revision<pin.flowRevision||(flow.saved?.id??null)!==pin.savedId||flow.pendingId||!fresh.control.versions?.some(v=>v.status==='draft'))throw Error('IPQC_AUTHORITY_CHANGED');\n          const target=oneOperation(stageOperations(flow,pin.workspace,pin.stage),pin.id);\n          if(JSON.stringify(target.ipqcAssignments)!==pin.baseAssignments||JSON.stringify(target.productCodes)!==pin.baseProducts)throw Error('IPQC_SHARED_ASSIGNMENT_CHANGED');\n          const occupied=(content,project=false)=>(content?.workspaces||[]).some(w=>w.line===state.editorLine&&(assignment.source==='C'||w.category===state.category)&&(project?window.ProcessCanvasLocal.project(w.id,pin.stage,w.stages[pin.stage]||[]):w.stages[pin.stage]||[]).some(row=>(w.id!==pin.workspace||row.id!==pin.id)&&(row.ipqcAssignments||[]).some(a=>key(a)===key(assignment))));\n          const local=editor.operations();if(!Array.isArray(local)||occupied(flow.working,true)||occupied(flow.saved?.content)||local.some(row=>row.id!==pin.id&&(row.ipqcAssignments||[]).some(a=>key(a)===key(assignment))))throw Error('IPQC_ALREADY_ASSIGNED');\n          pin.check();op.ipqcAssignments=op.ipqcAssignments.map(a=>key(a)===key(assignment)?{...a,sourceVersionId:next.sourceVersionId,productCodes:[...next.productCodes]}:a);\n          panel.querySelector('[data-ipqc-warnings]').after(message);adoptionRefreshers.get(panel)(next);panel.dispatchEvent(new Event('input',{bubbles:true}));message.textContent=text('Đã dùng nguồn mới trên biểu mẫu; hoàn tất bước rồi lưu bản nháp.','已採用新版至目前表單；請完成方塊編輯後存取草稿。');\n        }catch(error){if(message.isConnected)message.textContent=text('Không áp dụng; giữ liên kết và đầu vào. Tải lại nguồn rồi thử lại.','未採用，關聯與輸入保留。請重新讀取來源後再試。')+' '+error.message;}\n        finally{running=false;if(button.isConnected)button.disabled=!valid()||!editor.canEdit();}\n      };\n    }\n"
+        }
+      ]
+    },
+    "scripts/entry-performance/ipqc-index-semantics.cjs": {
+      "beforeHash": "8c59e5fc507a12df519d59eae5d4e1d663ce5818ac65d16faa080247d13df7bd",
+      "beforeNormalizedHash": "8c59e5fc507a12df519d59eae5d4e1d663ce5818ac65d16faa080247d13df7bd",
+      "afterHash": "112dcaa8047d0bcccfbf755853dba56fe210d0ad436b40d860a636440c34ade5",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 5071,
+          "before": " return{warnings,panel:{querySelector(selector){assert.equal(selector,'[data-ipqc-warnings]');return warnings;}},document:{documentElement:{lang:'zh'},querySelector(selector){assert.equal(selector,'#apply-operation');return{disabled:false};}},escapeHtml:value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('\"','&quot;')};\n",
+          "after": " return{mountLatestAdoptions(){assert(!warnings.innerHTML.includes('data-ipqc-latest'),'lookup fixture must not bypass a rendered adoption action');},warnings,panel:{querySelector(selector){assert.equal(selector,'[data-ipqc-warnings]');return warnings;}},document:{documentElement:{lang:'zh'},querySelector(selector){assert.equal(selector,'#apply-operation');return{disabled:false};}},escapeHtml:value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('\"','&quot;')};\n"
+        },
+        {
+          "offset": 11061,
+          "before": " const ports=viewPorts();let renders=0;Object.defineProperty(ports.warnings,'innerHTML',{set(){renders++;}});\n",
+          "after": " const ports=viewPorts();let renders=0,warningHTML='';Object.defineProperty(ports.warnings,'innerHTML',{get(){return warningHTML;},set(value){warningHTML=value;renders++;}});\n"
+        }
+      ]
+    },
+    "scripts/ipqc-speed-assignment-source-contract.cjs": {
+      "beforeHash": "025441e91f1038773cc248bc8f3eb505f478e0d342c0fbc454b35b41cbc5e552",
+      "beforeNormalizedHash": "025441e91f1038773cc248bc8f3eb505f478e0d342c0fbc454b35b41cbc5e552",
+      "afterHash": "4c00728883ffe4a23b15063fa08258426700e948abe35557a8fa5acb92a77ef3",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 444,
+          "before": "function restore(bytes,file,target){assert(Buffer.isBuffer(bytes),'IPQC assignment/speed proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null,p=c&&c.parents[target];assert(p,'IPQC assignment/speed wrong path/target');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'IPQC assignment/speed unknown source');for(const r of [...p.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'IPQC assignment/speed positioned span');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),p.normalizedHash);const lines=out.toString().split('\\n');for(const i of p.crlf)lines[i]+='\\r';out=Buffer.from(lines.join('\\n'));assert.equal(hash(out),p.hash,'IPQC assignment/speed exact parent');return out;}\nfunction projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'IPQC assignment/speed proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&c.parents[target]&&hash(normalized(bytes))===c.afterHash?restore(bytes,file,target):bytes;}\n",
+          "after": "function restore(bytes,file,target){assert(Buffer.isBuffer(bytes),'IPQC assignment/speed proof requires raw Buffer');bytes=require('./process-platform-adopt-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null,p=c&&c.parents[target];assert(p,'IPQC assignment/speed wrong path/target');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'IPQC assignment/speed unknown source');for(const r of [...p.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'IPQC assignment/speed positioned span');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),p.normalizedHash);const lines=out.toString().split('\\n');for(const i of p.crlf)lines[i]+='\\r';out=Buffer.from(lines.join('\\n'));assert.equal(hash(out),p.hash,'IPQC assignment/speed exact parent');return out;}\nfunction projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'IPQC assignment/speed proof requires raw Buffer');bytes=require('./process-platform-adopt-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&c.parents[target]&&hash(normalized(bytes))===c.afterHash?restore(bytes,file,target):bytes;}\n"
+        }
+      ]
+    },
+    "tests/canvas-approved-history-fixture.mjs": {
+      "beforeHash": "9617634bf0b980ff1e66d0fb8e150223c8aedcffba06e78faf7352ee8d0765d5",
+      "beforeNormalizedHash": "9617634bf0b980ff1e66d0fb8e150223c8aedcffba06e78faf7352ee8d0765d5",
+      "afterHash": "84182e350f24e1fa62a16ef26d6460b1242bdb442f30b74bcc805c8ffaf24187",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 827,
+          "before": "export async function setup({lang='zh',inline=false,intercept,pending=false,cold=false,earlyGuards=false,user}={}){\n",
+          "after": "export async function setup({lang='zh',inline=false,intercept,pending=false,cold=false,earlyGuards=false,user,authoringSource}={}){\n"
+        },
+        {
+          "offset": 5942,
+          "before": " vm.createContext(box);for(const name of ['shared-draft-client','canvas-recovery-store','canvas-local','version-draft-ui','canvas-approved-history','process-authoring-v3'])vm.runInContext(fs.readFileSync('public/process/'+name+'.js','utf8'),box,{filename:name+'.js'});\n",
+          "after": " vm.createContext(box);for(const name of ['shared-draft-client','canvas-recovery-store','canvas-local','version-draft-ui','canvas-approved-history','process-authoring-v3'])vm.runInContext(name==='process-authoring-v3'&&authoringSource?authoringSource:fs.readFileSync('public/process/'+name+'.js','utf8'),box,{filename:name+'.js'});\n"
+        }
+      ]
+    },
+    "tests/navigation-adapters.test.mjs": {
+      "beforeHash": "a431d5a7ac39504c3e2afa5150dd5985e71bb113659698fae6b848e6771d9457",
+      "beforeNormalizedHash": "a431d5a7ac39504c3e2afa5150dd5985e71bb113659698fae6b848e6771d9457",
+      "afterHash": "a2f020a47d28768b75966441e52194e8ea6c8b5e34a919eeabcbd6293e9e7d3a",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 17285,
+          "before": "  'process-authoring-v3.js':'20261114-process-review1',\n",
+          "after": "  'process-authoring-v3.js':'20261115-canvas-inspection1',\n"
+        },
+        {
+          "offset": 17834,
+          "before": "  'process-ipqc.js':'20261115-ipqc-adopt-details1',\n",
+          "after": "  'process-ipqc.js':'20261115-ipqc-adopt1',\n"
+        }
+      ]
+    },
+    "tests/process-ipqc-link-browser.mjs": {
+      "beforeHash": "d168c7cc5b8364811cbffa823c3940dd2f7d5153d7614078e8c73d2fb47c060f",
+      "beforeNormalizedHash": "d168c7cc5b8364811cbffa823c3940dd2f7d5153d7614078e8c73d2fb47c060f",
+      "afterHash": "0c21da2ab066e75ec7d3b4949fbc5d8abfbdb3741861e5b4b7be881d8092d4c9",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 11285,
+          "before": "",
+          "after": "  if(line==='C'){\n   const details=page.locator('.process-ipqc-item-details').first();await details.evaluate(el=>el.open=true);await details.locator('p').first().waitFor();\n   await page.locator('[data-ipqc-latest]').click();await page.waitForFunction(()=>document.querySelector('[data-ipqc-count=\"retained\"]')?.textContent==='0');assert(await c.isChecked());assert.equal(await details.evaluate(el=>el.open),true);assert.equal(await page.locator('[data-ipqc-warning]').count(),0);assert.match(await page.locator('.pe-ipqc').innerText(),/Đã dùng nguồn mới/);await page.screenshot({path:out+'/C-direct-adopt-390.png',fullPage:true});\n   await page.locator('#apply-operation').click();await page.locator('#process-operation-dialog').waitFor({state:'detached'});await save();await boot();await open('two');assert(await c.isChecked());assert.equal(await page.locator('[data-ipqc-warning]').count(),0);report.assertions.push('C: explicit approved-latest button adopts without remove/reselect; expanded details, atomic Save and full browser reload preserve one selected tuple PASS');\n  }\n"
+        }
+      ]
+    },
+    "tests/process-ipqc-link-source.test.cjs": {
+      "beforeHash": "ec7be139b9863d51978f2dc76d90ec93f63d17c0886825b62db16bf80ead0def",
+      "beforeNormalizedHash": "ec7be139b9863d51978f2dc76d90ec93f63d17c0886825b62db16bf80ead0def",
+      "afterHash": "c1c5190c293b4d379ee06a660bf46b0d7f948f1ea7c109165e70340ac8cd96b1",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 1372,
+          "before": "for(const file of ['public/process/process-authoring-v3.js','public/process/shared-draft-client.js','public/process/master-data.js','public/process/master-page-editor.js','public/process/master-shared-client.js','public/process/page-draft-merge.js','public/process/app.js','lib/master-approved-pages.ts','lib/master-page-workflow.ts','lib/master-workflow.ts','lib/process-state.ts','scripts/process-review-source-contract.json','scripts/lines-flow-joint-source-contract.json','scripts/lines-flow-source-contract.json','scripts/password-outcome-source-contract.json','scripts/ipqc-save-recovery-source-contract.json'])void test('merged main master/review runtime or original manifest remains exact: '+file,()=>{const expected=git('show',proof.contract.base+':'+file),normalize=b=>Buffer.from(b.toString().replaceAll('\\r\\n','\\n'));const committed=git('show','HEAD:'+file);if(file==='lib/process-state.ts'){const exact=require('../scripts/ipqc-speed-joint-source-contract.cjs');assert(exact.restore(committed,file,'main117').equals(expected),'exact upstream authority code was not preserved');assert(normalize(fs.readFileSync(file)).equals(normalize(committed)),'checkout differs from committed authority source');}else{assert.equal(git('rev-parse','HEAD:'+file).toString(),git('rev-parse',proof.contract.base+':'+file).toString(),'committed main blob changed');assert(normalize(fs.readFileSync(file)).equals(normalize(expected)),'upstream code/worktree changed: '+file);}});\n",
+          "after": "for(const file of ['public/process/process-authoring-v3.js','public/process/shared-draft-client.js','public/process/master-data.js','public/process/master-page-editor.js','public/process/master-shared-client.js','public/process/page-draft-merge.js','public/process/app.js','lib/master-approved-pages.ts','lib/master-page-workflow.ts','lib/master-workflow.ts','lib/process-state.ts','scripts/process-review-source-contract.json','scripts/lines-flow-joint-source-contract.json','scripts/lines-flow-source-contract.json','scripts/password-outcome-source-contract.json','scripts/ipqc-save-recovery-source-contract.json'])void test('merged main master/review runtime or original manifest remains exact: '+file,()=>{const expected=git('show',proof.contract.base+':'+file),normalize=b=>Buffer.from(b.toString().replaceAll('\\r\\n','\\n'));const committed=git('show','HEAD:'+file);if(file==='public/process/process-authoring-v3.js'){const exact=require('../scripts/process-platform-adopt-source-contract.cjs');assert(exact.restore(committed,file).equals(expected),'exact main review code was not preserved');assert(normalize(fs.readFileSync(file)).equals(normalize(committed)),'checkout differs from committed review source');}else if(file==='lib/process-state.ts'){const exact=require('../scripts/ipqc-speed-joint-source-contract.cjs');assert(exact.restore(committed,file,'main117').equals(expected),'exact upstream authority code was not preserved');assert(normalize(fs.readFileSync(file)).equals(normalize(committed)),'checkout differs from committed authority source');}else{assert.equal(git('rev-parse','HEAD:'+file).toString(),git('rev-parse',proof.contract.base+':'+file).toString(),'committed main blob changed');assert(normalize(fs.readFileSync(file)).equals(normalize(expected)),'upstream code/worktree changed: '+file);}});\n"
+        }
+      ]
+    },
+    "tests/process-ipqc-source-adopt.test.mjs": {
+      "beforeHash": "088a39ec7c1691ea9604b107f341f8545625625ff5da4da31647612f94fffc6d",
+      "beforeNormalizedHash": "088a39ec7c1691ea9604b107f341f8545625625ff5da4da31647612f94fffc6d",
+      "afterHash": "3ecfcdb2382ffd6cb99dceecc42c8307053c7f48dec9ff948bf4ee5e38b1db71",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "// Actual IPQC, editor, authoring authority, canvas and transport in a synthetic DOM.\n// No browser/server/live records. Fetch is an isolated source/command port.\n",
+          "after": ""
+        },
+        {
+          "offset": 97,
+          "before": "import vm from 'node:vm';\nimport {createRequire} from 'node:module';\nimport {webcrypto} from 'node:crypto';\nimport {canvasDOM} from '../scripts/login-reentry-dom.mjs';\nimport * as owned from '../public/process/owned-draft-ledger.mjs';\nconst require=createRequire(import.meta.url),load=require('../scripts/ipqc-ab-import-harness.cjs')();\nconst {createSharedDraft}=load('lib/shared-draft.ts'),{processAuthoringAdapter}=load('lib/process-authoring-workflow.ts'),{ipqcChoices}=load('lib/process-ipqc.ts');\nconst copy=structuredClone,plain=v=>JSON.parse(JSON.stringify(v)),tick=()=>new Promise(setImmediate);\n",
+          "after": "const tick=()=>new Promise(setImmediate);\nimport {fixture} from './process-ipqc-adoption-fixture.mjs';\nconst copy=structuredClone,plain=v=>JSON.parse(JSON.stringify(v));\n"
+        },
+        {
+          "offset": 545,
+          "before": "const item={id:'item',code:'I',errorId:'error',standard:'Old standard',methodText:'Old method',sourceTool:'Tool',sourceMethod:'Method',sourceFrequency:'Each',equipmentSnapshot:null,rules:[],standardPhotos:[{id:'old-photo',name:'old',note:'old note'}],methodPhotos:[],productCodes:['P'],isEnabled:true,deleted:false};\nconst original=()=>({id:'one',number:'01',stageCode:stage,name:'Operation',editorType:'manual',mode:'human',productCodes:['P'],ipqcAssignments:[assignment()],nextIds:[],x:0,y:0,machineIds:[],instructionSteps:[],mediaItems:[],bomSelections:{}});\nconst storage=()=>{const data=new Map();return{data,get length(){return data.size;},key:i=>[...data.keys()][i]??null,getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k),clear(){throw Error('UNRELATED_CLEAR');}};};\nfunction lockManager(){const held=new Set();return{async request(name,options,fn){await Promise.resolve();if(held.has(name))return fn(null);held.add(name);try{return await fn({name});}finally{held.delete(name);}}};}\nasync function fixture({lang='zh',assignmentOverride,assignmentsOverride}={}){\n const dom=canvasDOM(),{document}=dom;document.documentElement.lang=lang;\n // This synthetic DOM has no bubbling; forward only the actual panel input to\n // its real dialog listeners, as a browser would. No product callbacks replaced.\n\n const localStorage=storage(),sessionStorage=storage(),calls=[],waits=[],timers=new Map();let timer=0,epoch=1,delivery=1,hold=null,historyStatus=200,processStatus=200,choicesStatus=200,lostPost=false,afterProcess=null;\n const versions=[{id:'old',status:'superseded',snapshot:{errors:[copy(error)],items:[copy(item)]}},{id:'new',status:'approved',snapshot:{errors:[copy(error)],items:[{...copy(item),standard:'New standard',methodText:'New method',standardPhotos:[{id:'new-photo',name:'new',note:'new note'}]}]}}];\n const quality={schemaVersion:1,scopes:{'A:SYN':{line:'A',group:'SYN',activeVersionId:'new',versions}},source:null,reservedErrorCodes:[],reservedItemCodes:[]};\n const master={active:{AB:{products:[{code:'P',line:'A',category:'SYN',stages:[stage]}],lines:[{code:'A',stages:[{code:stage}]}],categoryGroups:[{line:'A',name:'SYN',defaultStages:[stage]}]},C:{products:[],lines:[]},PROCESS:{}},versions:[]};\n const values=()=>({masterDataControl:JSON.stringify(master),ipqcABMasterControl:JSON.stringify(quality),bomOverrides:JSON.stringify({replaceAll:true,data:{}}),platformUsers:'[]'});\n const remote={activeVersionId:null,versions:[{id:'draft',status:'draft'}],workflow:createSharedDraft('process:platform',{workspaces:[{id:workspace,line:'A',category:'SYN',stages:{[stage]:[original(),{...original(),id:'two',number:'02',ipqcAssignments:[]}]}}]},null,'g1')};\n if(assignmentOverride)remote.workflow.working.workspaces[0].stages[stage][0].ipqcAssignments=[assignmentOverride];\n if(assignmentsOverride)remote.workflow.working.workspaces[0].stages[stage][0].ipqcAssignments=copy(assignmentsOverride);\n const permissions={view:true,edit:true,save:true,history:true,submit:true,create:true,delete:true};\n const response=(body,status=200)=>({ok:status>=200&&status<300,status,json:async()=>copy(body)});\n const payload=()=>({revision:remote.workflow.revision,control:copy(remote),permissions:copy(permissions)});\n const unbox=wire=>{if(!wire.commandWireVersion)return wire;const expand=v=>v&&typeof v==='object'?(Array.isArray(v)?v.map(expand):Object.hasOwn(v,'__commandMedia')?wire.media[v.__commandMedia]:Object.fromEntries(Object.entries(v).map(([k,x])=>[k,expand(x)]))):v;return expand(wire.command);};\n const respond=call=>{const u=new URL(call.url,'https://fixture.invalid'),q=u.searchParams;\n  if(call.method==='POST'){assert.equal(u.pathname,'/api/process-authoring/workflow');const command=unbox(JSON.parse(call.options.body).command),adapter=processAuthoringAdapter(command.source?.startsWith('canvas-v2:'));const ctx=adapter.context(remote,{values:values()},{actor:{id:'actor',name:'Synthetic',admin:true},at:'2026-10-31',id:()=>webcrypto.randomUUID(),allowed:()=>true});const result=adapter.apply(remote,command,ctx);remote.workflow=result.state;return response({...payload(),receipt:result.receipt});}\n  if(u.pathname==='/api/process-ipqc'){assert.equal(q.get('mode'),'choices');assert.equal(q.get('line'),'A');return response(choicesStatus===200?{revision:remote.workflow.revision,...ipqcChoices(values(),{line:q.get('line'),category:q.get('category')},q.get('stage'),q.getAll('product'))}:{error:'CHOICES_DENIED'},choicesStatus);}\n  if(u.pathname==='/api/ipqc-ab/workflow'){assert.equal(q.get('scope'),'A:SYN');assert(!q.has('module'));assert(q.has('versionId'));const version=versions.find(v=>v.id===q.get('versionId'));return response(historyStatus!==200?{error:'HISTORY_DENIED'}:version?{version}:{error:'VERSION_NOT_FOUND'},historyStatus!==200?historyStatus:version?200:404);}\n  assert.equal(u.pathname,'/api/process-authoring/workflow');if(q.has('operationId')){if(lostPost)return response({error:'OPERATION_NOT_FOUND'},404);const receipt=remote.workflow.receipts[q.get('operationId')];return response(receipt?{receipt:receipt.result}:{error:'OPERATION_NOT_FOUND'},receipt?200:404);}const result=response(processStatus===200?payload():{error:'FORBIDDEN'},processStatus);if(afterProcess){const callback=afterProcess;afterProcess=null;const json=result.json;result.json=async()=>{const body=await json();callback();return body;};}return result;\n };\n const events=new Map(),box={window:null,document,console,structuredClone,JSON,Map,Set,URL,URLSearchParams,Response,performance,crypto:webcrypto,AbortController,location:{origin:'https://fixture.invalid',pathname:'/process/'},localStorage,sessionStorage,navigator:{locks:lockManager()},Event:class{constructor(type,options){this.type=type;Object.assign(this,options);}},setInterval(){},setTimeout(fn){timers.set(++timer,fn);return timer;},clearTimeout:id=>timers.delete(id),queueMicrotask,addEventListener(name,fn){const list=events.get(name)||[];list.push(fn);events.set(name,list);},dispatchEvent(e){for(const fn of events.get(e.type)||[])fn(e);},ProcessSync:{identity:{id:'actor'},identityGeneration:()=>epoch,captureDelivery:()=>({epoch,delivery}),isCurrentDelivery:r=>r.epoch===epoch&&r.delivery===delivery,platformHeaders:()=>({})},ProcessOwnedDraft:{...owned,createOwnedDraftLedger:options=>owned.createOwnedDraftLedger({...options,recoveryStorage:sessionStorage})},state:{view:'editor',category:'SYN',editorLine:'A',editorByCategory:{},approvalTab:'master'},processMaster:{},escapeHtml:v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('\"','&quot;'),editorKey:()=>box.state.category+':'+box.state.editorLine,ensureCategoryEditor:()=>box.state.editorByCategory[box.editorKey()]||{},bindView(){},renderInspector(){},render(){},toast(){},editor:()=>'',currentUser:{id:'actor',role:'staff',lines:['A']},hasPermission:()=>true,operationWorkMediaItems:o=>o.mediaItems||[],operationProductMediaItems:()=>[],productsForCategory:()=>master.active.AB.products,routeFor:()=>({line:'A',stages:[stage]}),lineFor:()=>({stages:[{code:stage}]}),stageFor:()=>({code:stage,name:'Synthetic stage'}),categoryStageCodes:()=>[stage],requestAnimationFrame(){},fetch(url,options={}){const call={url:String(url),options,method:options.method||'GET'};calls.push(call);if(hold&&hold(call)){hold=null;return new Promise(resolve=>waits.push({call,resolve}));}const response=respond(call);if(lostPost&&call.method==='POST')return Promise.reject(Error('synthetic lost ACK'));return Promise.resolve(response);}};box.window=box;vm.createContext(box);\n for(const file of ['shared-draft-client.js','local-draft-recovery.js','local-draft-recovery-session.js','master-shared-client.js','editor-graph.js','canvas-recovery-store.js','canvas-local.js','process-authoring-v3.js','process-editor.js','process-ipqc.js'])vm.runInContext(fs.readFileSync('public/process/'+file,'utf8'),box,{filename:file});\n localStorage.setItem('processAuthoringControl','enabled');await box.ProcessAuthoringV3.load();box.ProcessCanvasLocal.accept(box.ProcessAuthoringV3.flow());await box.ProcessCanvasLocal.recoveryReady();box.ProcessEditorV2.workspace();assert.equal(box.ProcessEditorV2.currentCanvas().stage,stage);calls.length=0;\n const dialog=()=>document.querySelector('#process-operation-dialog'),panel=()=>dialog()?.querySelector('.pe-ipqc');\n const api={box,document,remote,quality,master,permissions,versions,calls,localStorage,sessionStorage,waits,lostPost:v=>lostPost=v,afterProcess:fn=>afterProcess=fn,dialog,panel,payload,historyStatus:v=>historyStatus=v,processStatus:v=>processStatus=v,choicesStatus:v=>choicesStatus=v,hold(fn){hold=fn;},release(){const wait=waits.shift();assert(wait);wait.resolve(respond(wait.call));},change(kind){if(kind==='owner')box.ProcessSync.identity={id:'other'};if(kind==='same-owner-object')box.ProcessSync.identity={id:'actor'};if(kind==='epoch')epoch++;if(kind==='delivery')delivery++;if(kind==='reload')box.ProcessSync.requiresReload=true;if(kind==='workspace')box.state.category='OTHER';if(kind==='view')box.state.view='data';if(kind==='local')box.ProcessAuthoringV3.updateLocalSaveState();},async open(){box.ProcessOpenOperation(box.ensureCategoryEditor()[stage][0]);dialog().querySelector('[data-tab=\"ipqc\"]').click();await tick();assert(panel()?.querySelector('[data-ipqc-compare]'),dialog()?.textContent);const p=panel(),dispatch=p.dispatchEvent;p.dispatchEvent=e=>{const result=dispatch(e);if(e.bubbles)dialog()?.dispatchEvent({...e,target:p});return result;};return panel();},async compare(){await panel().querySelector('[data-ipqc-compare]').click();await tick();},async adopt(){const button=panel().querySelector('[data-ipqc-adopt]');assert(button,panel().textContent);await button.click();await tick();},record(){return box.ProcessCanvasLocal.form(workspace,stage,'one');},async finish(){await dialog().querySelector('#apply-operation').click();await tick();},project(){return box.ProcessCanvasLocal.project(workspace,stage,box.ensureCategoryEditor()[stage])[0];},async cancel(){dialog().querySelector('[data-pe=\"cancel\"]').click();document.querySelector('.pe-close-confirm [data-pe=\"discard\"]')?.click();await tick();},posts(){return calls.filter(c=>c.method==='POST');}};\n return api;\n}\n\n",
+          "after": ""
+        }
+      ]
+    },
+    "tests/shared-draft-receipt-recovery.test.mjs": {
+      "beforeHash": "822c800dc40ae6767519af3c4f0142adcf8f5fcf41d2a5bb737ccca7868f46f3",
+      "beforeNormalizedHash": "822c800dc40ae6767519af3c4f0142adcf8f5fcf41d2a5bb737ccca7868f46f3",
+      "afterHash": "473abb71c991c70a12b204ee04b817e567f90cf4140ceab9a96538ff4125b05c",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 14900,
+          "before": "  'process-authoring-v3.js':'20261114-process-review1',\n  'process-ipqc.js':'20261115-ipqc-adopt-details1',\n",
+          "after": "  'process-authoring-v3.js':'20261115-canvas-inspection1',\n  'process-ipqc.js':'20261115-ipqc-adopt1',\n"
+        }
+      ]
+    }
+  }
+}

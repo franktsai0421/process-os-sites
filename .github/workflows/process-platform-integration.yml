@@ -89,7 +89,7 @@ jobs:
       - name: Role reuse and historical authorization projections
         run: node scripts/test-access-template-reuse.cjs
       - name: Existing IPQC source adoption and single atomic Save
-        run: node --test tests/process-ipqc-source-adopt.test.mjs
+        run: node --test tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-latest.test.mjs tests/process-inspection-view.test.mjs tests/process-platform-adopt-source.test.cjs
       - name: Same-page Canvas approved history and read-only actor fences
         run: node --test tests/canvas-approved-history.test.mjs tests/canvas-silent-handoff.test.mjs tests/process-scripts-build.test.mjs
       # Owner paused backup/restore rehearsals; retained snapshot test is not executed.

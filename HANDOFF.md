@@ -1,3 +1,7 @@
+## 2026-11-15 — 獨立製程採用新版／送審修復候選
+
+`fix/process-ipqc-adopt-latest-20261115` 自最新已核對遠端 main e040a7e 建立獨立 worktree；A/B/C 明確採用核准新版，修復 filter history watcher 與檢查排程失效，保留所有 saved snapshot／權限／版本與占用防護。[本輪根因、測試、重疊檔案及交付界線](docs/acceptance/process-ipqc-adopt-review-20261115.md)。只提交 Draft PR，未合併、部署或修改測試站資料；另一品質工作仍獨立。
+
 ## 2026-11-14 — Independent IPQC operation-speed candidate
 
 Branch `perf/ipqc-operation-speed-20261114` starts at main `c178ae2`, separate from #115/#117. Request-local permission evaluation and bounded full-read scheduling retain UNKNOWN/original receipts, CAS, final approval and all draft boundaries. [Current evidence and remaining CI/hosted acceptance](docs/acceptance/ipqc-operation-speed-20261114.md). No merge/deployment or existing QA/browser/data mutation. Earlier checkpoints below remain historical.
