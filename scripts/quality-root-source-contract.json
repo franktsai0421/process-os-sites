@@ -1,6 +1,19 @@
 {
   "base": "c6ac41a6a996ac88e1b68370b371aed400773e34",
   "files": {
+    "tests/account-page-entry.test.cjs": {
+      "beforeHash": "28572a6c95ec875868556f8db96984cb7f6110703f372099d9e162212325f456",
+      "beforeNormalizedHash": "28572a6c95ec875868556f8db96984cb7f6110703f372099d9e162212325f456",
+      "afterNormalizedHash": "f3d3809b2db4ce735bf5d924eab4a5b4885bed7ea6c32dbdbc07cf8f5f4cbed0",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 454,
+          "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261114-lines-flow-review1','master-page-editor.js':'20261114-lines-flow-review1','master-shared-client.js':'20261114-lines-flow-review1','page-draft-merge.js':'20261114-lines-flow-review1','master-data.js':'20261114-lines-flow-review1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261113-password-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
+          "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261115-quality-root4','master-page-editor.js':'20261114-lines-flow-review1','master-shared-client.js':'20261114-lines-flow-review1','page-draft-merge.js':'20261114-lines-flow-review1','master-data.js':'20261114-lines-flow-review1','version-draft-ui.js':'20261115-quality-root1','user-access.js':'20261113-password-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+        }
+      ]
+    },
     "public/process/ipqc-ab.js": {
       "beforeHash": "9b3b8379b74319d27bee050313f817d37f62e39873053ae60efc4fb2358d91e6",
       "beforeNormalizedHash": "cd3e5a6c98d30243b940ef99d9b894e05b2c3fb335eb03e0fca108c0d6bf68d8",

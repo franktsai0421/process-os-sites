@@ -100,3 +100,5 @@ Diem 的 AB V29 Submit 原409 MODULE_CHANGED_RECONFIRM 是 module adapter 的 st
 Diem檢具照片完成表單後頁首矛盾，已由本批hasLocalDraftInput（含pendingPhotos）及live status處理。追加 `quality-equipment-photo-status.test.mjs` 雙語完整設備事件／client／kernel／adapter驗：選圖／完成表單0 PUT、0新增POST、已存photoId不變且顯示本地未存；明確Save才1 PUT＋1 POST，photoId寫入saved後才顯示持久化。照片I/O是合成，不能取代原生檔案／實站重載驗收。
 
 新增共用檔案注意：權限工作若改 `navigation-adapters.test.mjs` 須保留本批tags與自身權限斷言；速度工作若改timer清單須逐筆保留此明確使用者刪除action單次deadline，不能整檔覆蓋。未修改帳號／ACL功能或製程方塊功能。
+
+新版 `98de5a3e` CI 的 Account permissions 已越過原 navigation 失敗，再於後段 `account-page-entry.test.cjs` 發現相同類型的冷啟動tag預期遺漏。只修shared client／version UI兩個精確tag，保留單筆、存在、載入順序與CSS獨立版本斷言；不改任何帳號或權限實作。該檔納入新exact inverse，且全面搜尋其餘可執行測試／腳本的舊資產tag（歷史manifest不改），沒有另一處未處理的直接舊tag斷言。
