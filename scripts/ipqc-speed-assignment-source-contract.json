@@ -1,0 +1,115 @@
+{
+  "parents": {
+    "assignment118": "c63e26150d14aca56510e54af35dab9058b81a16",
+    "speed119": "2d8fe57b689b95c6874baf7cee02e4411bd7b24d"
+  },
+  "files": {
+    "AI_CONTEXT/CHANGELOG.md": {
+      "afterHash": "323c15513e5379ef82618a9ad8751f3a8a46313fa6710ea1a4f6ddf4a5dc8e59",
+      "parents": {
+        "assignment118": {
+          "hash": "b43755eb8ed52fd80befc127ffdd51b3073460c956d63d0ed2bb8cad8d547757",
+          "normalizedHash": "b43755eb8ed52fd80befc127ffdd51b3073460c956d63d0ed2bb8cad8d547757",
+          "crlf": [],
+          "rules": [
+            {
+              "offset": 0,
+              "before": "",
+              "after": "## 2026-11-14 — IPQC request-local authorization and required-read scheduling\n\nIndependent speed candidate reduces repeated C session verification and overlaps bounded required aggregate reads for A/B and C without changing operation, draft, permission or persistence semantics. [Actual-handler baseline parity, measurements and validation limits](../docs/acceptance/ipqc-operation-speed-20261114.md). Draft PR only; no merge, deployment or live business data change.\n\n"
+            }
+          ]
+        },
+        "speed119": {
+          "hash": "f3ac20b6d99371911cddb7b48dc6b09e1bfb34a01cec24b9045ddb2aa3db0c49",
+          "normalizedHash": "f3ac20b6d99371911cddb7b48dc6b09e1bfb34a01cec24b9045ddb2aa3db0c49",
+          "crlf": [],
+          "rules": [
+            {
+              "offset": 470,
+              "before": "",
+              "after": "\n## 2026-11-14 — Windows IPQC retention 載具接線\n\n第31步舊 stale regex 在候選0筆匹配，改為執行現行完整警示函式；保留歷史 first-match／collision／checkbox guard 與零請求，補來源接線／語意負例和 LF/CRLF。同一原命令提早在 Linux／Windows 執行，原全套 gates 不變，產品程式及資料未改。[根因與界線](../docs/acceptance/process-ipqc-assignment-consistency-20261114.md#windows-integrated-entry-載具相容修正)。\n\n## 2026-11-14 — 製程 IPQC 舊關聯與現行選取一致性\n\n修正 A/B/C 同 ID 舊來源顯示綠色已選取、及明確重選後警示未更新的歧義；保留真失效、歷史及重複占用防護。獨立 main8bfc036 分支，只有隔離 fixture。[根因與驗證](../docs/acceptance/process-ipqc-assignment-consistency-20261114.md)。未合併、部署或操作真站資料。\n"
+            }
+          ]
+        }
+      }
+    },
+    "HANDOFF.md": {
+      "afterHash": "d7d41db7f466a3fe143cb3a0a48b5d9db6e539874283d431321347244ab0cf1c",
+      "parents": {
+        "assignment118": {
+          "hash": "f4d61c8a993c3753332adb522ec942ee0460d29ece6a38fbaffebb72d007e2c2",
+          "normalizedHash": "f4d61c8a993c3753332adb522ec942ee0460d29ece6a38fbaffebb72d007e2c2",
+          "crlf": [],
+          "rules": [
+            {
+              "offset": 0,
+              "before": "",
+              "after": "## 2026-11-14 — Independent IPQC operation-speed candidate\n\nBranch `perf/ipqc-operation-speed-20261114` starts at main `c178ae2`, separate from #115/#117. Request-local permission evaluation and bounded full-read scheduling retain UNKNOWN/original receipts, CAS, final approval and all draft boundaries. [Current evidence and remaining CI/hosted acceptance](docs/acceptance/ipqc-operation-speed-20261114.md). No merge/deployment or existing QA/browser/data mutation. Earlier checkpoints below remain historical.\n\n"
+            }
+          ]
+        },
+        "speed119": {
+          "hash": "44e71377fdde6621296a168be40e92389b0d53e80d23db8d1cadb06d5048d085",
+          "normalizedHash": "44e71377fdde6621296a168be40e92389b0d53e80d23db8d1cadb06d5048d085",
+          "crlf": [],
+          "rules": [
+            {
+              "offset": 514,
+              "before": "",
+              "after": "\n## 2026-11-14 — IPQC 關聯顯示一致性候選\n\n獨立 main8bfc036 checkout／`fix/process-ipqc-assignment-consistency-20261114`。完整追查比對身分與原版本條件，重現 A/B/C 已選取＋舊版本警示及明確重選後警示殘留；保留歷史與所有後端防護。IPQC 速度工作區和 AB/C runtime 不變。[本輪根因、隔離證據及未驗證項](docs/acceptance/process-ipqc-assignment-consistency-20261114.md)。Windows 第31步舊 stale 擷取載具已定向接回完整現行警示函式；原 guards、負例及全套 gates 保留，前置 Linux／Windows checks 以同一 PR 最新 head 為準。無合併、部署或真資料操作。\n"
+            }
+          ]
+        }
+      }
+    },
+    "scripts/process-ipqc-link-source-contract.cjs": {
+      "afterHash": "004e4feb9600907824bc8c737392a504e4cec7600af6d0ede1b9185e19ed7691",
+      "parents": {
+        "assignment118": {
+          "hash": "2b83a26668a1037af795a926d96b2dfe04a74760d3e5009765a258055f86b583",
+          "normalizedHash": "2b83a26668a1037af795a926d96b2dfe04a74760d3e5009765a258055f86b583",
+          "crlf": [],
+          "rules": [
+            {
+              "offset": 367,
+              "before": "",
+              "after": "function reviewedPredecessor(bytes,file){bytes=require('./ipqc-speed-assignment-source-contract.cjs').projectKnown(bytes,file,'assignment118');bytes=require('./process-ipqc-assignment-source-contract.cjs').projectKnown(bytes,file);return require('./ipqc-speed-joint-source-contract.cjs').projectKnown(bytes,file,'main117');}\n"
+            },
+            {
+              "offset": 722,
+              "before": " assert(Buffer.isBuffer(bytes),'IPQC link proof requires raw Buffer');bytes=require('./process-ipqc-assignment-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'IPQC link proof wrong path');bytes=normalized(bytes);assert.equal(hash(bytes),c.afterHash,'IPQC link successor differs');assert.equal(bytes.length,c.afterLength);\n",
+              "after": " assert(Buffer.isBuffer(bytes),'IPQC link proof requires raw Buffer');bytes=reviewedPredecessor(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'IPQC link proof wrong path');bytes=normalized(bytes);assert.equal(hash(bytes),c.afterHash,'IPQC link successor differs');assert.equal(bytes.length,c.afterLength);\n"
+            },
+            {
+              "offset": 1596,
+              "before": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'IPQC link proof requires raw Buffer');bytes=require('./process-ipqc-assignment-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n",
+              "after": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'IPQC link proof requires raw Buffer');bytes=reviewedPredecessor(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n"
+            }
+          ]
+        },
+        "speed119": {
+          "hash": "4eedfadd44ca5e906aee322963f4e29a0568c69db07c8837d4344cd237292053",
+          "normalizedHash": "4eedfadd44ca5e906aee322963f4e29a0568c69db07c8837d4344cd237292053",
+          "crlf": [],
+          "rules": [
+            {
+              "offset": 367,
+              "before": "",
+              "after": "function reviewedPredecessor(bytes,file){bytes=require('./ipqc-speed-assignment-source-contract.cjs').projectKnown(bytes,file,'assignment118');bytes=require('./process-ipqc-assignment-source-contract.cjs').projectKnown(bytes,file);return require('./ipqc-speed-joint-source-contract.cjs').projectKnown(bytes,file,'main117');}\n"
+            },
+            {
+              "offset": 722,
+              "before": " assert(Buffer.isBuffer(bytes),'IPQC link proof requires raw Buffer');bytes=require('./ipqc-speed-joint-source-contract.cjs').projectKnown(bytes,file,'main117');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'IPQC link proof wrong path');bytes=normalized(bytes);assert.equal(hash(bytes),c.afterHash,'IPQC link successor differs');assert.equal(bytes.length,c.afterLength);\n",
+              "after": " assert(Buffer.isBuffer(bytes),'IPQC link proof requires raw Buffer');bytes=reviewedPredecessor(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'IPQC link proof wrong path');bytes=normalized(bytes);assert.equal(hash(bytes),c.afterHash,'IPQC link successor differs');assert.equal(bytes.length,c.afterLength);\n"
+            },
+            {
+              "offset": 1596,
+              "before": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'IPQC link proof requires raw Buffer');bytes=require('./ipqc-speed-joint-source-contract.cjs').projectKnown(bytes,file,'main117');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n",
+              "after": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'IPQC link proof requires raw Buffer');bytes=reviewedPredecessor(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
