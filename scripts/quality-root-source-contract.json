@@ -1,9 +1,24 @@
 {
   "base": "346c5eefcca7621c481802502cbae61f2821e91d",
   "files": {
+    "scripts/ipqc-c-display-image-source-contract.cjs": {
+      "beforeHash": "c108abf26c7939beb1c09e3ec7a7765b5ec91ba34f5f904dab7a1991ed7b72ae",
+      "beforeNormalizedHash": "c108abf26c7939beb1c09e3ec7a7765b5ec91ba34f5f904dab7a1991ed7b72ae",
+      "afterHash": "a6b3e144a2a49d3c9431dec6041acbdf11565a90e83fa61d7c98e497ceba4a33",
+      "afterNormalizedHash": "a6b3e144a2a49d3c9431dec6041acbdf11565a90e83fa61d7c98e497ceba4a33",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 2594,
+          "before": "",
+          "after": " // Successor projections admit checkout EOL only at their own worktree boundary.\n // This pure inverse must verify the exact successor bytes before any projection.\n const qualityPin=require('./quality-root-source-contract.json').files['public/process/ipqc-c.js'];\n if(qualityPin&&hash(Buffer.from(source).toString('utf8').replaceAll('\\r\\n','\\n'))===qualityPin.afterNormalizedHash)assert.equal(hash(source),qualityPin.afterHash,'C display source differs from exact reviewed bytes');\n"
+        }
+      ]
+    },
     "scripts/test-routine-equipment-transfer-intent.cjs": {
       "beforeHash": "becb1f11cd675be52b414e8142e93a9bd8fc53459c93cf2d32920fe52c455616",
       "beforeNormalizedHash": "becb1f11cd675be52b414e8142e93a9bd8fc53459c93cf2d32920fe52c455616",
+      "afterHash": "18a2f1477462ea96db7a9d2829e1b02f8b3cff930c227bc9c88b06bc032a4662",
       "afterNormalizedHash": "18a2f1477462ea96db7a9d2829e1b02f8b3cff930c227bc9c88b06bc032a4662",
       "beforeCRLFRanges": [],
       "rules": [
@@ -17,6 +32,7 @@
     "tests/account-page-entry.test.cjs": {
       "beforeHash": "28572a6c95ec875868556f8db96984cb7f6110703f372099d9e162212325f456",
       "beforeNormalizedHash": "28572a6c95ec875868556f8db96984cb7f6110703f372099d9e162212325f456",
+      "afterHash": "f3d3809b2db4ce735bf5d924eab4a5b4885bed7ea6c32dbdbc07cf8f5f4cbed0",
       "afterNormalizedHash": "f3d3809b2db4ce735bf5d924eab4a5b4885bed7ea6c32dbdbc07cf8f5f4cbed0",
       "beforeCRLFRanges": [],
       "rules": [
@@ -30,6 +46,7 @@
     "public/process/ipqc-ab.js": {
       "beforeHash": "9b3b8379b74319d27bee050313f817d37f62e39873053ae60efc4fb2358d91e6",
       "beforeNormalizedHash": "cd3e5a6c98d30243b940ef99d9b894e05b2c3fb335eb03e0fca108c0d6bf68d8",
+      "afterHash": "4a54a68a06eaf000bf6d0a4c19e7aa97e044043c8cc2b1c0686c229d25b6d39d",
       "afterNormalizedHash": "4a54a68a06eaf000bf6d0a4c19e7aa97e044043c8cc2b1c0686c229d25b6d39d",
       "beforeCRLFRanges": [
         [
@@ -305,6 +322,7 @@
     "tests/quality-submission-fences.test.mjs": {
       "beforeHash": "776aa49d40059a0f057b690bdbcdf2ceab274eab5b5267bddb7ce1154bc784d4",
       "beforeNormalizedHash": "776aa49d40059a0f057b690bdbcdf2ceab274eab5b5267bddb7ce1154bc784d4",
+      "afterHash": "f9cd0c27061cac6c8ef44029de882ec177d66751bb7e7d3b58c9a10e97f359f5",
       "afterNormalizedHash": "f9cd0c27061cac6c8ef44029de882ec177d66751bb7e7d3b58c9a10e97f359f5",
       "beforeCRLFRanges": [],
       "rules": [
@@ -318,6 +336,7 @@
     "tests/fixtures/browser-timer-inventory.json": {
       "beforeHash": "efc72382cd9daf68b0ed3cad214450e6da0d5bb26d4ce857198947efa8d2aadb",
       "beforeNormalizedHash": "efc72382cd9daf68b0ed3cad214450e6da0d5bb26d4ce857198947efa8d2aadb",
+      "afterHash": "c9a0e8afe0611bf249c916dbebe5c043b7a48d7fce83e73db4bbb847782e427b",
       "afterNormalizedHash": "c9a0e8afe0611bf249c916dbebe5c043b7a48d7fce83e73db4bbb847782e427b",
       "beforeCRLFRanges": [],
       "rules": [
@@ -331,6 +350,7 @@
     "tests/navigation-adapters.test.mjs": {
       "beforeHash": "0c7cc66f2030aa900e8d8fde1334e309bd18b92b98270090842173762fcdccd4",
       "beforeNormalizedHash": "0c7cc66f2030aa900e8d8fde1334e309bd18b92b98270090842173762fcdccd4",
+      "afterHash": "f1e2b6a69d09d90cd361bd54c55b47bc7bfa828fe2fc61b3ce29aa99c3ad1ae5",
       "afterNormalizedHash": "f1e2b6a69d09d90cd361bd54c55b47bc7bfa828fe2fc61b3ce29aa99c3ad1ae5",
       "beforeCRLFRanges": [],
       "rules": [
@@ -359,6 +379,7 @@
     "scripts/test-fqc-matrix-layout.mjs": {
       "beforeHash": "c5606146704e97cefc3b93b5d586011ac06cb0165c3f3efcb0dac360daf5f736",
       "beforeNormalizedHash": "c5606146704e97cefc3b93b5d586011ac06cb0165c3f3efcb0dac360daf5f736",
+      "afterHash": "ebb545b9dba3586c90e498ac1c9ac55ede795dd7e4c1823756a0931bd31c45a3",
       "afterNormalizedHash": "ebb545b9dba3586c90e498ac1c9ac55ede795dd7e4c1823756a0931bd31c45a3",
       "beforeCRLFRanges": [],
       "rules": [
@@ -372,6 +393,7 @@
     "public/process/ipqc-c.js": {
       "beforeHash": "f929cbdf6bc1b64670f7fee307ae92011f190e04d8b165ac0cff359bc52dc8d6",
       "beforeNormalizedHash": "f929cbdf6bc1b64670f7fee307ae92011f190e04d8b165ac0cff359bc52dc8d6",
+      "afterHash": "90ce15c0a28a66ac542dabfb04a9b7ba02f06f601d25c14fc914fbe48aca981d",
       "afterNormalizedHash": "90ce15c0a28a66ac542dabfb04a9b7ba02f06f601d25c14fc914fbe48aca981d",
       "beforeCRLFRanges": [],
       "rules": [
@@ -400,6 +422,7 @@
     "scripts/quality-main-source-contract.cjs": {
       "beforeHash": "f1c7200a5568ead6fa51522bb12ff763180443581940804f59a42debf9f47169",
       "beforeNormalizedHash": "f1c7200a5568ead6fa51522bb12ff763180443581940804f59a42debf9f47169",
+      "afterHash": "0c5b49570f4ace91c4967b513da7592f7644ef97af6c56cc83558d73f15f0945",
       "afterNormalizedHash": "0c5b49570f4ace91c4967b513da7592f7644ef97af6c56cc83558d73f15f0945",
       "beforeCRLFRanges": [],
       "rules": [
@@ -418,6 +441,7 @@
     "scripts/ipqc-speed-assignment-source-contract.cjs": {
       "beforeHash": "3b7d9698748017ea78b0410f5fc7fc8bdb1cf7e338055f02a7b260114fe68ffe",
       "beforeNormalizedHash": "3b7d9698748017ea78b0410f5fc7fc8bdb1cf7e338055f02a7b260114fe68ffe",
+      "afterHash": "eaa84c75cb3cb7c6bc4943d7f5f63b5523c608a9acf527a0207e18a5de4b0c12",
       "afterNormalizedHash": "eaa84c75cb3cb7c6bc4943d7f5f63b5523c608a9acf527a0207e18a5de4b0c12",
       "beforeCRLFRanges": [],
       "rules": [
@@ -431,6 +455,7 @@
     "scripts/process-platform-adopt-source-contract.cjs": {
       "beforeHash": "8c343bac5b8083f6e9fca05ee1df769066e7967f194b0506edaa9ba3aec112d1",
       "beforeNormalizedHash": "8c343bac5b8083f6e9fca05ee1df769066e7967f194b0506edaa9ba3aec112d1",
+      "afterHash": "2552ddde05d348d6eabdd67b4771827807463394f99d2260a47d31db48e5eb31",
       "afterNormalizedHash": "2552ddde05d348d6eabdd67b4771827807463394f99d2260a47d31db48e5eb31",
       "beforeCRLFRanges": [],
       "rules": [
@@ -449,6 +474,7 @@
     "tests/ipqc-operation-speed-integration-source.test.cjs": {
       "beforeHash": "0138e5e2c510fe0a6bb3f386a38bf8bbed67706aa2c77a94915fbbd7f84a4bec",
       "beforeNormalizedHash": "0138e5e2c510fe0a6bb3f386a38bf8bbed67706aa2c77a94915fbbd7f84a4bec",
+      "afterHash": "e2da82d71dc7599f4aec505271a3eae319141a72a5e72fb1ff73a4d163525c85",
       "afterNormalizedHash": "e2da82d71dc7599f4aec505271a3eae319141a72a5e72fb1ff73a4d163525c85",
       "beforeCRLFRanges": [],
       "rules": [
@@ -462,6 +488,7 @@
     "tests/process-ipqc-link-source.test.cjs": {
       "beforeHash": "c1c5190c293b4d379ee06a660bf46b0d7f948f1ea7c109165e70340ac8cd96b1",
       "beforeNormalizedHash": "c1c5190c293b4d379ee06a660bf46b0d7f948f1ea7c109165e70340ac8cd96b1",
+      "afterHash": "3a7cef32d76d8fe0d276a699b015c0ee6e7160b6f4c7554d265e0495bf2f0ea3",
       "afterNormalizedHash": "3a7cef32d76d8fe0d276a699b015c0ee6e7160b6f4c7554d265e0495bf2f0ea3",
       "beforeCRLFRanges": [],
       "rules": [
@@ -475,6 +502,7 @@
     "tests/equipment-submit-source.test.cjs": {
       "beforeHash": "2297b2d89b8d34dc408efec4cdaa598266ae87c13ed2b2ad308bb0f48f72cada",
       "beforeNormalizedHash": "2297b2d89b8d34dc408efec4cdaa598266ae87c13ed2b2ad308bb0f48f72cada",
+      "afterHash": "dbb8465c53658f76e6d4cc02ea6209387ff3ba5094977e1d4931ddb6fb4fb8df",
       "afterNormalizedHash": "dbb8465c53658f76e6d4cc02ea6209387ff3ba5094977e1d4931ddb6fb4fb8df",
       "beforeCRLFRanges": [],
       "rules": [
@@ -488,6 +516,7 @@
     "app/api/ipqc-ab/route.ts": {
       "beforeHash": "eb917f5fd2fb384cf52bc26f8151db3f21f05930aa2dd895b88b08ebc015553c",
       "beforeNormalizedHash": "eb917f5fd2fb384cf52bc26f8151db3f21f05930aa2dd895b88b08ebc015553c",
+      "afterHash": "59699ea0795faee6e38ebcce89a73c9dc545c0b73d37734322b59d267e434c0b",
       "afterNormalizedHash": "59699ea0795faee6e38ebcce89a73c9dc545c0b73d37734322b59d267e434c0b",
       "beforeCRLFRanges": [],
       "rules": [
@@ -511,6 +540,7 @@
     "lib/process-state.ts": {
       "beforeHash": "aa790135602ef8eb5249be9b3bff46eed126ec01667b3fc2ff77c4ca163902af",
       "beforeNormalizedHash": "5d17fe420c404651d69820af38c2e3d4b7cf1e221a0adfa8d022ceeb22f20cf3",
+      "afterHash": "43c6c9da1ebb566f146ffb6a0d374b5cdbd3d9aa1daf6c6c9850f8bab38bfc6e",
       "afterNormalizedHash": "6067da5d5238d0ea53e29df65100a062ca541c96e482b1acb8f509d5ec6e4cf2",
       "beforeCRLFRanges": [
         [
@@ -545,6 +575,7 @@
     "lib/state-records-response.ts": {
       "beforeHash": "fab6d83c70e79c1ef0200c1dc3488414215cd032e999f68f5b80fad947949e33",
       "beforeNormalizedHash": "fab6d83c70e79c1ef0200c1dc3488414215cd032e999f68f5b80fad947949e33",
+      "afterHash": "e417c96cab5f365eeb8e33bcd3e506c1344d6734c1e62cb1e694f57485468de0",
       "afterNormalizedHash": "e417c96cab5f365eeb8e33bcd3e506c1344d6734c1e62cb1e694f57485468de0",
       "beforeCRLFRanges": [],
       "rules": [
@@ -578,6 +609,7 @@
     "lib/versioned-shared-workflow.ts": {
       "beforeHash": "a0f596779ff54c6575d1ce4ba0984d1835339a5733a9e5d463ef15161ed83a94",
       "beforeNormalizedHash": "1732103662b1f49566692026985d001e23a6f0b610c4a1cea833b320838c7914",
+      "afterHash": "52fb98ea7a42169d75e4172d633e048ec634ecb26f12f6439997023c5eea8f5e",
       "afterNormalizedHash": "95076db197439fd58018e4e349626bc590264d90ea0c06e4940b628aa5e7a5e2",
       "beforeCRLFRanges": [
         [
@@ -733,6 +765,7 @@
     "public/process/fqc-master.js": {
       "beforeHash": "f0532b181cbf878b6eeec857c3dbcd409ba907d84b49185853318e73ca89a40a",
       "beforeNormalizedHash": "f2ca590ec5d13f9bacbc34aa09fa27cef643525218aa32f3c93decbd14321ea4",
+      "afterHash": "7f0150fcfc0852245c05cd3cf1bd78479d6f81cc310cc6de3be424693364a228",
       "afterNormalizedHash": "4298ef4eb7c8b4c9109ef82f48be0ed5267bcd93869b864e5f4a81c3ea1f59f2",
       "beforeCRLFRanges": [
         [
@@ -1251,6 +1284,7 @@
     "public/process/iqc-master.js": {
       "beforeHash": "a4736bb08dcda78db2263165b50158643062bbe5033099d6a397661bd3ed88bd",
       "beforeNormalizedHash": "a4736bb08dcda78db2263165b50158643062bbe5033099d6a397661bd3ed88bd",
+      "afterHash": "4e8475c8d25b18b715f84b1c07eaa5058961d140c0f4750aefb5e75ed7d0a70d",
       "afterNormalizedHash": "4e8475c8d25b18b715f84b1c07eaa5058961d140c0f4750aefb5e75ed7d0a70d",
       "beforeCRLFRanges": [],
       "rules": [
@@ -1269,6 +1303,7 @@
     "public/process/shared-draft-client.js": {
       "beforeHash": "bb5966ab7fb2184dda458d86317a9b7f04e32f36e31aae30729327ef7455752e",
       "beforeNormalizedHash": "bb5966ab7fb2184dda458d86317a9b7f04e32f36e31aae30729327ef7455752e",
+      "afterHash": "327b12022fd5e55d61b91d6aaaff767fd52775f4fc7356bf2744369ecc7ac149",
       "afterNormalizedHash": "327b12022fd5e55d61b91d6aaaff767fd52775f4fc7356bf2744369ecc7ac149",
       "beforeCRLFRanges": [],
       "rules": [
@@ -1312,6 +1347,7 @@
     "public/process/routine-equipment.js": {
       "beforeHash": "c534748cef8c845f7352b36104334fc5b33938b7c4c72886f48077cb1b94887a",
       "beforeNormalizedHash": "3d546a6fe1fcb775c0e3279c1c7483b5d1bb1231b4ff888a2a4cd2f41ae59674",
+      "afterHash": "4a99201ea3813c93a21a81d7809ea876b342a93084c735d76a6cb87036715099",
       "afterNormalizedHash": "77197c15bc679faaabe04b1f3fcce212967e7e856b5f84ae8802aa5770bb3473",
       "beforeCRLFRanges": [
         [
@@ -2240,6 +2276,7 @@
     "public/process/version-draft-ui.js": {
       "beforeHash": "7202a92286949203ad74ac2170e53bfba0d937b1de08486a38b4928415f9b757",
       "beforeNormalizedHash": "13b8d71cb5cd5ffab3240a6db3a8e02b7355412864c92f0cc96bd356423a8a8f",
+      "afterHash": "aed712a971c2e5572b801c089163ef8da2c0e6ee80b0e1ecf7d203e20761e049",
       "afterNormalizedHash": "718876842fbe1f572b4484a6bd5bfb163bacb467b9c36ec50b7349aafbd2f948",
       "beforeCRLFRanges": [
         [
@@ -2324,6 +2361,7 @@
     "public/process/index.html": {
       "beforeHash": "58e88e0727809148be65767bea6e624b5a9cae22d2e5d59f441ca15d0c40a40f",
       "beforeNormalizedHash": "58e88e0727809148be65767bea6e624b5a9cae22d2e5d59f441ca15d0c40a40f",
+      "afterHash": "9b283d7dd999a78a66f1df81c9669649ae1817886ea13b4d2a46726a9cf514de",
       "afterNormalizedHash": "9b283d7dd999a78a66f1df81c9669649ae1817886ea13b4d2a46726a9cf514de",
       "beforeCRLFRanges": [],
       "rules": [
@@ -2352,6 +2390,7 @@
     "tests/shared-draft-receipt-recovery.test.mjs": {
       "beforeHash": "fe8b0d2dd11b6336bf0eeb14f3971845b0fc671bd1da21b05b5305686c16c632",
       "beforeNormalizedHash": "fe8b0d2dd11b6336bf0eeb14f3971845b0fc671bd1da21b05b5305686c16c632",
+      "afterHash": "2d72403c21a390a2647949137eee28cda63868b1cfaee348dbd9f9f7f239e073",
       "afterNormalizedHash": "2d72403c21a390a2647949137eee28cda63868b1cfaee348dbd9f9f7f239e073",
       "beforeCRLFRanges": [],
       "rules": [
@@ -2380,6 +2419,7 @@
     "AI_CONTEXT/modules/QUALITY.md": {
       "beforeHash": "669196bc81592c9f820f1fa9e80f30bac68d2458b4c9a2991d9558dfaf32119f",
       "beforeNormalizedHash": "669196bc81592c9f820f1fa9e80f30bac68d2458b4c9a2991d9558dfaf32119f",
+      "afterHash": "26506f5038ae343b75701d5d79767d1eb65c0ffdf909ac80854cff1ef5930142",
       "afterNormalizedHash": "26506f5038ae343b75701d5d79767d1eb65c0ffdf909ac80854cff1ef5930142",
       "beforeCRLFRanges": [],
       "rules": [
@@ -2398,6 +2438,7 @@
     "AI_CONTEXT/CHANGELOG.md": {
       "beforeHash": "1771f21f325856620dc81d9d290cc68cb43e4b1d8a03db07fd50a9f902009b1b",
       "beforeNormalizedHash": "1771f21f325856620dc81d9d290cc68cb43e4b1d8a03db07fd50a9f902009b1b",
+      "afterHash": "333b0ea9de823fd9f07e1e2e84a8fef29f49f9fe4e7dbdbb5bcb10694d2999d9",
       "afterNormalizedHash": "333b0ea9de823fd9f07e1e2e84a8fef29f49f9fe4e7dbdbb5bcb10694d2999d9",
       "beforeCRLFRanges": [],
       "rules": [
@@ -2411,6 +2452,7 @@
     "HANDOFF.md": {
       "beforeHash": "abaf46d1a88cbc8a00600a8e56d98c44bd178988d502b7edfc161205fb585782",
       "beforeNormalizedHash": "abaf46d1a88cbc8a00600a8e56d98c44bd178988d502b7edfc161205fb585782",
+      "afterHash": "9bb5272f3689f141125110c144de08f451e52633f2e993f264cbaf0a50067c78",
       "afterNormalizedHash": "9bb5272f3689f141125110c144de08f451e52633f2e993f264cbaf0a50067c78",
       "beforeCRLFRanges": [],
       "rules": [
@@ -2424,6 +2466,7 @@
     "scripts/test-routine-equipment-edit-open-race.mjs": {
       "beforeHash": "bdacf4de8f39c0585e4ef56dc4e77a48be1fae4b99fd24e61b6e0594bac243e9",
       "beforeNormalizedHash": "bdacf4de8f39c0585e4ef56dc4e77a48be1fae4b99fd24e61b6e0594bac243e9",
+      "afterHash": "1a690366f952bb08964a52e86270a8e96e761a4f8b4c9d586fa79263e21a22ad",
       "afterNormalizedHash": "1a690366f952bb08964a52e86270a8e96e761a4f8b4c9d586fa79263e21a22ad",
       "beforeCRLFRanges": [],
       "rules": [
@@ -2482,6 +2525,7 @@
     "scripts/process-ipqc-frequency-source-contract.cjs": {
       "beforeHash": "4ccaf5cfa506e59bd33c9eb49a6fea415faaa7e562c695e39b95f91036767b01",
       "beforeNormalizedHash": "4ccaf5cfa506e59bd33c9eb49a6fea415faaa7e562c695e39b95f91036767b01",
+      "afterHash": "b4b9e72c46bf4285a1e2a273555cba0b20a7184a398b9f1fe2fac9ea97f56b97",
       "afterNormalizedHash": "b4b9e72c46bf4285a1e2a273555cba0b20a7184a398b9f1fe2fac9ea97f56b97",
       "beforeCRLFRanges": [],
       "rules": [

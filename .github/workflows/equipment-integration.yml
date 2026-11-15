@@ -32,7 +32,7 @@ jobs:
       - run: node scripts/test-routine-equipment-four-module-transfer.cjs
       - run: node --test --test-concurrency=1 tests/equipment-sent-batch.test.mjs tests/equipment-sent-batch-insert-ack.test.mjs tests/equipment-fqc-transfer-save.test.mjs tests/equipment-transfer-setup-cleanup.test.mjs
       - name: Observed quality UI, capacity, readonly history and inventory authority regression
-        run: node --test --test-concurrency=1 tests/quality-root-source.test.cjs tests/quality-observed-ui.test.mjs tests/ipqc-ab-response-capacity.test.mjs tests/ipqc-ab-equipment-references.test.mjs tests/inventory-permission-phase.test.mjs tests/history-read-feedback.test.mjs tests/equipment-reference-actions.test.mjs tests/quality-ack-readback-status.test.mjs tests/quality-c-begin-feedback.test.mjs tests/quality-ab-submit-conflict.test.mjs tests/quality-equipment-photo-status.test.mjs tests/quality-edit-open-race-fixture.test.mjs
+        run: node --test --test-concurrency=1 tests/quality-root-source.test.cjs tests/quality-observed-ui.test.mjs tests/ipqc-ab-response-capacity.test.mjs tests/ipqc-ab-equipment-references.test.mjs tests/inventory-permission-phase.test.mjs tests/history-read-feedback.test.mjs tests/equipment-reference-actions.test.mjs tests/quality-ack-readback-status.test.mjs tests/quality-c-begin-feedback.test.mjs tests/quality-ab-submit-conflict.test.mjs tests/quality-equipment-photo-status.test.mjs tests/quality-edit-open-race-fixture.test.mjs tests/quality-pure-inverse-eol.test.cjs
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: node scripts/test-tooling-local-browser.cjs

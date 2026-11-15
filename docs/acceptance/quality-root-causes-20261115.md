@@ -114,3 +114,13 @@ Diem檢具照片完成表單後頁首矛盾，已由本批hasLocalDraftInput（�
 
 
 補跑舊步驟25時，transfer-intent的83情境有5個AB未知Begin案例仍假設executeTransfer返回時display refresh已結束。現在AB分範圍衝突結果先呈現，refreshing期間會拒絕重點，故第二次GET尚未發生。fixture新增驗證：refreshing期間重點不讀回／不重送；獨立查詢結束後明確操作才第二次GET；Begin仍只1 POST、Apply仍0、未知marker原bytes保留。未刪原案例，未改runtime或自動重試。
+
+
+## a6f13841 Local safety 第31步來源 EOL 邊界
+
+run43734705737／job132874671732完整原始日誌證明第31步的bounded-media-loading `C current-source policy uses exact HEAD bytes with CRLF checkout equivalence only` 失敗，具體是pure inverse未拒絕CRLF未知輸入。新quality successor投影可正規化checkout EOL，舊display inverse只對既有recovery successor驗raw hash，未涵蓋本批C successor，導致後續投影代為正規化；這是測試工具完整性邊界缺陷，不是產品照片或業務寫入失敗。
+
+保留原測試全部斷言及原歷史manifest，為quality contract補raw afterHash，並在pure display inverse任何投影前對已知quality successor驗精確raw hash。imagePolicySource仍先用可信HEAD做checkout EOL核對，再把原始HEAD bytes交給pure inverse；不能以自行替換HEAD、修改image URL／lazy hints、刪除spans或其他bytes取得通過。新增EOL／偽HEAD／hint漂移及移除新guard的mutation回歸到Equipment CI。只改測試工具、來源證據及文件，不改runtime或資料模型；新head CI與實站驗收仍須獨立完成。
+
+
+本機原bounded-media-loading 51/51與新三項控制通過；同失敗群組的14個可攜測試227/227通過。完整15檔原命令仍因Windows專用ci-integrated-exit需powershell.exe而在Linux不可用，未更改該測試或CI。繼續執行先前未跑的step31後段及32–34隔離命令；AB ack-deny native被Chromium Unix socket sandbox擋住，IQC content-issues／number-hint native缺既有headless-shell。這些均不是PASS，保留原日誌及Windows/native CI，不以替代品或skip改造門檻。step35–54 compiled/native驗證留待新head原CI，實站驗收仍未執行。
