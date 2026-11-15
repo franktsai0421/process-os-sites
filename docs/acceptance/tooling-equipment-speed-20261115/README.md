@@ -137,3 +137,47 @@ fixture 目錄，且 working tree 尚未 commit，使需要 committed HEAD 的�
 不使用原測試記錄、既有 UNKNOWN 或原中控連接器來補驗。
 
 最終產品範圍只有四檔：`lib/inventory-read-ahead.mjs`、`lib/versioned-shared-workflow.ts`、`app/api/tooling/iqc/route.ts`、`app/api/routine-equipment/route.ts`。無資料模型／schema／帳號或媒體格式異動。原生瀏覽器與實站速度仍須另驗。
+
+## 整合已合併 #120 的共同候選
+
+固定兩個真實公開來源：速度 `8f94d0f38e11fb1eb24df86044ae0103252d1dfe`；
+已合併 #120 的 main `c6ac41a6a996ac88e1b68370b371aed400773e34`。
+四個衝突為 CHANGELOG、HANDOFF、`ipqc-speed-assignment-source-contract.cjs`
+與其 integration-source test。文件逐段保留兩份新增資訊；共用 provider 保留
+wrong-target fence 並串接兩套 exact inverse。新增 `inventory-main-source-contract`
+只處理已 pin 全檔 hash 的共同來源，能各自還原兩個真實父版本；unknown／partial／
+wrong path／wrong target／byte drift 均不採用。兩份既有 manifests 完全不改。
+
+完整 main 產品增量三檔與原速度產品四檔都 byte-exact 保留；沒有改兩邊功能或校驗。
+原檢具功能工作、權限工作與後續 AQL 工作未納入。原 50ms／10ms 量測保留為舊
+候選證據；共同候選重新以 c6ac41a6 source archive 作 baseline，使用同一 fixture、
+三對交錯 50ms I/O、完整 response 消費，另保存新原始結果，不冒充實站成效。
+
+重現新 baseline：
+
+```bash
+SPEED_BASELINE_COMMIT=c6ac41a6a996ac88e1b68370b371aed400773e34 SPEED_PAIRS=3 SPEED_IO_MS=50 python scripts/compare-tooling-equipment-speed.py /path/to/main-c6ac41a6 /tmp/joint-paired.json
+```
+
+新 CI／回歸及量測結果將綁定共同候選另外記錄；原單支 PASS 不自動代表共同候選。
+
+共同候選本機回歸：完整 source／歷史防護 922/922 PASS；inventory 保存／衝突／權限、#120 明確採用新版／製程保存集中 310/310 PASS；TypeScript、guarded build PASS。新測試 tuple 型別推斷曾觸發 lint，改為具名物件枚舉後，全部原 49 個雙父版本 proof 重測 PASS；原斷言和 scope 清單未減少。全專案 lint 亦重驗。原輸出保留在 Dot `/tmp/inventory-joint-*.log`。
+
+### 共同候選速度重驗結果
+
+基準為已合併 #120 的 main `c6ac41a6a996ac88e1b68370b371aed400773e34`；after 為本機 `eb91adcc6b72723e9295f4cbc12e53ab3524539e`，三輪 runtime hashes 全同並核對最後來源。完整原始數據：[joint-paired-50ms.json](joint-paired-50ms.json)；精簡及 hashes：[joint-summary-50ms.json](joint-summary-50ms.json)。原 10ms／50ms 舊組保留，不以舊數據代替共同候選。
+
+同一 fixture／環境／50ms 每 I/O、三對交錯、無刪樣本；單位 ms。GET／CAS／wire bytes 範圍前後完全相同。
+
+| 步驟 | 模具寫入／讀取 前→後 | 模具刷新 前→後 | 檢具寫入／讀取 前→後 | 檢具實際畫面刷新 前→後 |
+| --- | ---: | ---: | ---: | ---: |
+| 初次讀取 | 2145 → 1842 | — | 797 → 646 | — |
+| 存草稿 | 2471 → 1715 | 2144 → 1797 | 2723 → 1979 | 925 → 769 |
+| 送審 request | 2505 → 1830 | 2119 → 1844 | 2718 → 2201 | 969 → 866 |
+| 撤回 | 2397 → 1752 | 2101 → 1815 | 2692 → 2234 | 924 → 790 |
+| 再送審 | 2535 → 1799 | 2112 → 1824 | 2759 → 2139 | 922 → 771 |
+| 合成 reviewer 核准 | 2306 → 1560 | 2027 → 1766 | 2402 → 1694 | 770 → 676 |
+
+檢具 workflow GET：2305 → 2253 ms（本組總時間僅小幅改善，沒有隱藏）；Tooling IQC 唯讀來源：577 → 329 ms，仍只有一個合成 IQC 產品，未驗收大型 catalog。
+
+這些是注入延遲的隔離結果；未量到原生確認視窗、真實站速度、照片解碼或 Diem 實站效果。共同候選沒有降低驗證或提早成功；schema／資料／帳號／權限無異動。

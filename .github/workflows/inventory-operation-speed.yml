@@ -22,7 +22,7 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: node --test --test-concurrency=1 tests/inventory-read-ahead.test.mjs tests/inventory-speed-source.test.cjs tests/fqc-read-ahead.test.mjs tests/ipqc-operation-speed-source.test.cjs tests/ipqc-operation-speed-joint-source.test.cjs tests/ipqc-operation-speed-integration-source.test.cjs
+      - run: node --test --test-concurrency=1 tests/inventory-read-ahead.test.mjs tests/inventory-speed-source.test.cjs tests/inventory-main-source.test.cjs tests/fqc-read-ahead.test.mjs tests/ipqc-operation-speed-source.test.cjs tests/ipqc-operation-speed-joint-source.test.cjs tests/ipqc-operation-speed-integration-source.test.cjs tests/process-platform-adopt-source.test.cjs tests/process-ipqc-latest.test.mjs tests/process-inspection-view.test.mjs
       - run: node scripts/benchmark-tooling-equipment-speed.cjs > inventory-speed-lifecycle.json
         env:
           SPEED_ROUNDS: '1'

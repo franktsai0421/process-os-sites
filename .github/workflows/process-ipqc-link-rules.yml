@@ -42,7 +42,7 @@ jobs:
       - name: Actual retention renderer, historical first-match and handler guards
         run: node scripts/entry-performance/ipqc-index-semantics.cjs
       - name: New source lifecycle, product/scope, races and saved release
-        run: node --test tests/process-ipqc-assignment-state.test.mjs tests/process-ipqc-link-rules.test.cjs tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-source-history-route.test.mjs tests/process-canvas-atomic-save-stack.test.mjs tests/canvas-pending-form-admission.test.mjs
+        run: node --test tests/process-ipqc-latest.test.mjs tests/process-inspection-view.test.mjs tests/process-platform-adopt-source.test.cjs tests/process-ipqc-assignment-state.test.mjs tests/process-ipqc-link-rules.test.cjs tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-source-history-route.test.mjs tests/process-canvas-atomic-save-stack.test.mjs tests/canvas-pending-form-admission.test.mjs
       - name: Actual validator paired decode and merged approved-page import binding
         run: node scripts/test-authoring-ipqc-assignment-reuse.cjs
       - name: Exact historical read reuse with explicit AB completeness delta
@@ -93,4 +93,4 @@ jobs:
       - name: Actual full controller retained-link state
         run: node --test tests/process-ipqc-assignment-state.test.mjs
       - name: Actual adoption details while approved source changes
-        run: node --test tests/process-ipqc-source-adopt.test.mjs
+        run: node --test tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-latest.test.mjs tests/process-inspection-view.test.mjs tests/process-platform-adopt-source.test.cjs

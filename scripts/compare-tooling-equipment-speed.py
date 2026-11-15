@@ -8,13 +8,16 @@ root=pathlib.Path(__file__).resolve().parents[1]
 baseline=pathlib.Path(sys.argv[1]).resolve()
 output=pathlib.Path(sys.argv[2]).resolve()
 pairs=int(os.environ.get('SPEED_PAIRS','3'))
+baseline_commit=os.environ.get('SPEED_BASELINE_COMMIT','e040a7e838133c0c9870850a49955cf045dbc02b')
+assert len(baseline_commit)==40 and all(c in '0123456789abcdef' for c in baseline_commit)
+assert subprocess.check_output(['git','cat-file','-t',baseline_commit],cwd=root,text=True).strip()=='commit'
 for file in ['lib/versioned-shared-workflow.ts','lib/process-state.ts','lib/state-records.ts','lib/tooling-workflow.ts','lib/equipment-workflow.ts','app/api/tooling/iqc/route.ts','app/api/routine-equipment/route.ts']:
-    assert (baseline/file).read_bytes()==subprocess.check_output(['git','show','e040a7e838133c0c9870850a49955cf045dbc02b:'+file],cwd=root), file+' baseline drift'
+    assert (baseline/file).read_bytes()==subprocess.check_output(['git','show',baseline_commit+':'+file],cwd=root), file+' baseline drift'
 runs=[]
 for pair in range(pairs):
     for mode in (['before','after'] if pair%2==0 else ['after','before']):
         source=baseline if mode=='before' else root
-        env={**os.environ,'SPEED_ROUNDS':'1','NODE_PATH':str(root/'node_modules'),'SPEED_SOURCE_COMMIT':'e040a7e838133c0c9870850a49955cf045dbc02b' if mode=='before' else subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()}
+        env={**os.environ,'SPEED_ROUNDS':'1','NODE_PATH':str(root/'node_modules'),'SPEED_SOURCE_COMMIT':baseline_commit if mode=='before' else subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()}
         p=subprocess.run(['node','scripts/benchmark-tooling-equipment-speed.cjs'],cwd=source,env=env,text=True,capture_output=True)
         if p.returncode:
             raise RuntimeError(f'{mode} pair={pair} failed: {p.stderr[-4000:]}')
@@ -33,4 +36,4 @@ for s in runs[0]['summary']:
     assert row['before']['wireBytesRange']==row['after']['wireBytesRange']
     row['improvementPercent']=(1-row['after']['medianMs']/row['before']['medianMs'])*100
     summary.append(row)
-output.write_text(json.dumps({'status':'PASS_SYNTHETIC_PAIRED_MEASUREMENT','baselineCommit':'e040a7e838133c0c9870850a49955cf045dbc02b','pairs':pairs,'order':'alternating before/after; no discarded warmup','summary':summary,'runs':runs},ensure_ascii=False,indent=2)+'\n')
+output.write_text(json.dumps({'status':'PASS_SYNTHETIC_PAIRED_MEASUREMENT','baselineCommit':baseline_commit,'pairs':pairs,'order':'alternating before/after; no discarded warmup','summary':summary,'runs':runs},ensure_ascii=False,indent=2)+'\n')

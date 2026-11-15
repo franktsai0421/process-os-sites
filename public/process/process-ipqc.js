@@ -19,12 +19,13 @@
     const warnings=panel.querySelector('[data-ipqc-warnings]');
     warnings.innerHTML=(op.ipqcAssignments||[]).map(a=>{const c=byKey.get(key(a)),reasons=referenceReasons(a,c);if(!reasons.length)return '';
       const descriptions={unavailable:['Không còn trong nguồn được duyệt phù hợp với chuyền / nhóm / công đoạn / sản phẩm hiện tại','現行核准來源已無符合線別／類別／工段／產品的項目'],version:['Phiên bản nguồn được duyệt đã cập nhật','核准來源版本已更新'],products:['Sản phẩm của liên kết khác với nguồn hiện hành','關聯適用產品與現行來源不同']};
-      return `<div class="process-ipqc-warning" role="status" data-ipqc-warning="${h(key(a))}" data-ipqc-reasons="${reasons.join(' ')}">${reasons.map(reason=>`<p>${label(...descriptions[reason])}</p>`).join('')}<p>${label('Liên kết cũ vẫn được giữ; chưa tự đổi sang nguồn hiện hành.','原關聯仍保留；尚未自動改用現行來源。')}</p><code>${h(a.itemId)}</code>${reasons.includes('version')?`<p>${label('Phiên bản liên kết','關聯版本')} <code>${h(a.sourceVersionId)}</code>${label('Phiên bản hiện hành','現行版本')} <code>${h(c.sourceVersionId)}</code></p>`:''}<button type="button" data-ipqc-remove="${h(key(a))}" ${document.querySelector('#apply-operation')?.disabled?'disabled':''}>${label('Bỏ liên kết','移除關聯')}</button></div>`;
+      return `<div class="process-ipqc-warning" role="status" data-ipqc-warning="${h(key(a))}" data-ipqc-reasons="${reasons.join(' ')}">${reasons.map(reason=>`<p>${label(...descriptions[reason])}</p>`).join('')}<p>${label('Liên kết cũ vẫn được giữ; chưa tự đổi sang nguồn hiện hành.','原關聯仍保留；尚未自動改用現行來源。')}</p><p>${label('Đã chọn ở bước này; liên kết đang dùng phiên bản cũ.','本方塊已選取；目前保留原版本關聯。')}</p><code>${h(a.itemId)}</code>${reasons.includes('version')?`<p>${label('Phiên bản liên kết','關聯版本')} <code>${h(a.sourceVersionId)}</code>${label('Phiên bản hiện hành','現行版本')} <code>${h(c.sourceVersionId)}</code></p>`:''}${c&&editor?`<button type="button" data-ipqc-latest="${h(key(a))}" ${!editor.canEdit()?'disabled':''}>${label('Dùng nguồn mới đã duyệt','採用核准新版')}</button>`:''}<button type="button" data-ipqc-remove="${h(key(a))}" ${document.querySelector('#apply-operation')?.disabled?'disabled':''}>${label('Bỏ liên kết','移除關聯')}</button></div>`;
     }).join('');
+    mountLatestAdoptions(panel,op,byKey,editor,valid);
     warnings.querySelectorAll('[data-ipqc-remove]').forEach(button=>button.onclick=()=>{if(!valid()||editor&&!editor.canEdit())return;op.ipqcAssignments=(op.ipqcAssignments||[]).filter(a=>key(a)!==button.dataset.ipqcRemove);panel.dispatchEvent(new Event('input',{bubbles:true}));void loadChoices(panel,op,editor);});
   }
   const key=a=>JSON.stringify([a.source,a.scope,a.itemId]);
-  const choiceRequests=new WeakMap(),referenceViews=new WeakMap();
+  const choiceRequests=new WeakMap(),referenceViews=new WeakMap(),adoptionRefreshers=new WeakMap();
   const currentIdentity=()=>window.ProcessSync?.identity||null;
   const messages={SOURCE_NOT_APPROVED:['Chưa có nguồn IPQC được duyệt','尚無核准的 IPQC 來源'],NO_PRODUCTS:['Chọn sản phẩm trong thông tin cơ bản','請先在基本資料選擇產品'],NO_MATCHING_ITEMS:['Không có hạng mục phù hợp','尚無檢查項目']};
   const readPause=window.createScopedReadPause('IPQC 製程引用 / Tham chiếu IPQC');
@@ -84,6 +85,7 @@
       panel.querySelectorAll('[data-ipqc-choice]').forEach(input=>input.onchange=()=>{if(!valid()||editor&&!editor.canEdit())return;const choice=choicesByKey.get(input.dataset.ipqcChoice);if(!choice||input.disabled||input.checked&&((op.ipqcAssignments||[]).some(a=>key(a)===key(choice))||owners.has(key(choice))&&owners.get(key(choice)).id!==op.id))return;op.ipqcAssignments=(op.ipqcAssignments||[]).filter(a=>key(a)!==key(choice));if(input.checked){op.ipqcAssignments.push({source:choice.source,scope:choice.scope,itemId:choice.itemId,sourceVersionId:choice.sourceVersionId,productCodes:[...choice.productCodes]});owners.set(key(choice),op);}else owners.delete(key(choice));const status=input.checked?'selected':'available';input.closest('article').dataset.status=status;input.closest('label').querySelector('.process-ipqc-badge').outerHTML=badge(status);updateOverview(panel,choices,op,owners);renderAssignmentWarnings(panel,op,choicesByKey,editor,valid);if(editor&&result.source==='AB')mountSourceComparisons(panel,op,editor,valid,query,refreshAdopted);panel.dispatchEvent(new Event('input',{bubbles:true}));});
 
       const refreshAdopted=next=>{const markup=choiceDetailsMarkup(next);for(const refresh of detailRefreshers.get(key(next))||[])refresh(markup);const index=choices.findIndex(c=>key(c)===key(next));if(index>=0)choices[index]=next;choicesByKey.set(key(next),next);for(const input of panel.querySelectorAll('[data-ipqc-choice]')){const c=choicesByKey.get(input.dataset.ipqcChoice),status=statusOf(c,op,owners);input.closest('article').dataset.status=status;input.closest('label').querySelector('.process-ipqc-badge').outerHTML=badge(status);}updateOverview(panel,choices,op,owners);renderAssignmentWarnings(panel,op,choicesByKey,editor,valid);mountSourceComparisons(panel,op,editor,valid,query,refreshAdopted);};
+      adoptionRefreshers.set(panel,refreshAdopted);
       if(editor&&result.source==='AB')mountSourceComparisons(panel,op,editor,valid,query,refreshAdopted);
     }catch(error){if(valid()){panel.innerHTML=`<p role="alert">${label('Không thể tải IPQC; liên kết cũ được giữ lại','IPQC 讀取失敗；既有關聯保留')}<small>${h(error.message)}</small></p><button type="button">${label('Thử lại','重試')}</button>`;panel.querySelector('button').onclick=()=>loadChoices(panel,op,editor);}}
   }
@@ -93,11 +95,11 @@
   const tuple=c=>({source:c.source,scope:c.scope,itemId:c.itemId,sourceVersionId:c.sourceVersionId,productCodes:[...c.productCodes]});
   const strings=value=>Array.isArray(value)&&value.every(v=>typeof v==='string');
   function sourceProjection(c){
-    if(!c||c.source!=='AB'||!['scope','itemId','sourceVersionId','code','errorId','errorCode','errorName','standard','description','inspection','frequency'].every(k=>typeof c[k]==='string')||!c.itemId||!c.sourceVersionId||!strings(c.productCodes)||!Array.isArray(c.rules)||!Array.isArray(c.photos)||c.photos.some(p=>!p||!['id','name','note'].every(k=>typeof p[k]==='string'))||c.rules.some(r=>!r||typeof r!=='object'||Array.isArray(r))||c.equipment!==null&&(!c.equipment||!['assetCode','pieceMark','name'].every(k=>typeof c.equipment[k]==='string')))throw Error('IPQC_SOURCE_UNAVAILABLE');
+    if(!c||!['AB','C'].includes(c.source)||!['scope','itemId','sourceVersionId','code','errorId','errorCode','errorName','standard','description','inspection','frequency'].every(k=>typeof c[k]==='string')||!c.itemId||!c.sourceVersionId||!strings(c.productCodes)||!Array.isArray(c.rules)||!Array.isArray(c.photos)||c.photos.some(p=>!p||!['id','name','note'].every(k=>typeof p[k]==='string'))||c.rules.some(r=>!r||typeof r!=='object'||Array.isArray(r))||c.equipment!==null&&(!c.equipment||!['assetCode','pieceMark','name'].every(k=>typeof c.equipment[k]==='string')))throw Error('IPQC_SOURCE_UNAVAILABLE');
     return {...tuple(c),code:c.code,errorId:c.errorId,errorCode:c.errorCode,errorName:c.errorName,standard:c.standard,description:c.description,inspection:c.inspection,equipment:c.equipment,rules:c.rules,frequency:c.frequency,photos:c.photos};
   }
   function currentSource(result,assignment,_op){
-    if(!Number.isSafeInteger(result?.revision)||result.revision<0||result.source!=='AB'||result.scope!==assignment.scope||!Array.isArray(result.choices)||result.reason)throw Error('IPQC_SOURCE_UNAVAILABLE');
+    if(!Number.isSafeInteger(result?.revision)||result.revision<0||result.source!==assignment.source||result.scope!==assignment.scope||!Array.isArray(result.choices)||result.reason)throw Error('IPQC_SOURCE_UNAVAILABLE');
     const matches=result.choices.filter(c=>c&&key(c)===key(assignment));if(matches.length!==1)throw Error('IPQC_SOURCE_UNAVAILABLE');const selected=sourceProjection(matches[0]);if(new Set(selected.productCodes).size!==selected.productCodes.length)throw Error('IPQC_SOURCE_UNAVAILABLE');return selected;
   }
   function historicalSource(body,assignment,op){
@@ -110,7 +112,7 @@
   function oneOperation(rows,id){const matches=rows.filter(row=>row?.id===id);if(matches.length!==1)throw Error('IPQC_CONTEXT_CHANGED');return matches[0];}
   function sourcePin(panel,op,editor,valid,assignment){
     const api=window.ProcessAuthoringV3,sync=window.ProcessSync,authority=api?.recoveryAuthority?.(),flow=api?.flow?.(),identity=currentIdentity(),epoch=sync?.identityGeneration?.(),delivery=sync?.captureDelivery?.(),revision=editor.localRevision(),stage=op.stageCode,id=op.id,workspace=editor.workspace;
-    if(assignment.source!=='AB'||!['scope','itemId','sourceVersionId'].every(k=>typeof assignment[k]==='string'&&assignment[k])||state.view!=='editor'||!valid()||!editor.canEdit()||!identity?.id||!Number.isSafeInteger(epoch)||!Number.isSafeInteger(revision)||authority?.canView!==true||authority.canEdit!==true||authority.pending||authority.busy||window.ProcessCanvasLocal?.pending?.()||!flow?.generation||flow.scope!=='process:platform'||!Number.isSafeInteger(flow.revision)||assignment.scope!==state.editorLine+':'+state.category||!strings(assignment.productCodes))throw Error('IPQC_CONTEXT_CHANGED');
+    if(!['AB','C'].includes(assignment.source)||!['scope','itemId','sourceVersionId'].every(k=>typeof assignment[k]==='string'&&assignment[k])||state.view!=='editor'||!valid()||!editor.canEdit()||!identity?.id||!Number.isSafeInteger(epoch)||!Number.isSafeInteger(revision)||authority?.canView!==true||authority.canEdit!==true||authority.pending||authority.busy||window.ProcessCanvasLocal?.pending?.()||!flow?.generation||flow.scope!=='process:platform'||!Number.isSafeInteger(flow.revision)||assignment.scope!==(assignment.source==='C'?'C':state.editorLine+':'+state.category)||!strings(assignment.productCodes))throw Error('IPQC_CONTEXT_CHANGED');
     const settled=()=>['clean','dirty'].includes(api.navigation?.departure?.inspect?.().state);if(!settled())throw Error('IPQC_PREVIOUS_OPERATION_UNKNOWN');
     const selected=(op.ipqcAssignments||[]).filter(a=>key(a)===key(assignment));if(selected.length!==1||!same(selected[0],assignment))throw Error('IPQC_SELECTION_CHANGED');
     const viewSignature=JSON.stringify(authority.currentView),original=JSON.stringify(op.ipqcAssignments),products=JSON.stringify(op.productCodes),base=oneOperation(stageOperations(flow,workspace,stage),id),baseAssignments=JSON.stringify(base.ipqcAssignments),baseProducts=JSON.stringify(base.productCodes),generation=flow.generation,flowRevision=flow.revision,savedId=flow.saved?.id??null;
@@ -122,6 +124,32 @@
     const equipment=c=>c.equipment?[c.equipment.assetCode,c.equipment.pieceMark,c.equipment.name].filter(Boolean).join(' · '):c.inspection;
     const fields=[['版本','Phiên bản',c=>c.sourceVersionId],['項目／錯誤','Hạng mục / lỗi',c=>[c.code,c.errorCode,c.errorName].join(' · ')],['檢查標準','Tiêu chuẩn',c=>c.standard],['檢查方式','Cách kiểm tra',c=>c.description],['分配適用產品','Sản phẩm phân công',c=>c.productCodes.join(' · ')],['檢具快照／方式','Bản chụp thiết bị / cách',equipment],['檢查頻率','Tần suất',frequency],['照片紀錄（不載入圖片）','Thông tin ảnh (không tải ảnh)',c=>c.photos.map(p=>[p.id,p.name,p.note].filter(Boolean).join(' · ')).join('\n')]];
     return `<div class="process-ipqc-diff">${[[text('Phiên bản được tham chiếu','原引用版本'),old],[text('Nguồn đã duyệt hiện hành','現行核准來源'),current]].map(([title,c])=>`<section><h4>${h(title)}</h4>${fields.map(([zh,vi,value])=>`<p data-changed="${value(old)!==value(current)}"><b>${h(text(vi,zh))}${value(old)!==value(current)?' · '+h(text('Đã thay đổi','有變更')):''}</b><span>${h(value(c)||'—')}</span></p>`).join('')}</section>`).join('')}</div>`;
+  }
+  // Adoption needs the approved current projection and PROCESS edit authority.
+  // Historical quality-view permission is only required for the optional AB diff.
+  function mountLatestAdoptions(panel,op,byKey,editor,valid){
+    if(!editor)return;
+    for(const button of panel.querySelectorAll('[data-ipqc-latest]')){
+      const assignment=structuredClone((op.ipqcAssignments||[]).find(a=>key(a)===button.dataset.ipqcLatest)),shown=sourceProjection(byKey.get(button.dataset.ipqcLatest));
+      const message=document.createElement('p');message.setAttribute('role','status');button.after(message);let running=false;
+      button.onclick=async()=>{
+        if(running)return;running=true;button.disabled=true;
+        try{
+          const pin=sourcePin(panel,op,editor,valid,assignment),query=new URLSearchParams({mode:'choices',line:state.editorLine,category:state.category,stage:op.stageCode});(op.productCodes||[]).forEach(p=>query.append('product',p));
+          message.textContent=text('Đang kiểm tra nguồn và quyền hiện tại…','正在核對新版來源與目前權限…');
+          const candidates=await get(query);pin.check();const next=currentSource(candidates,assignment,op);if(!same(next,shown))throw Error('IPQC_SOURCE_CHANGED_RELOAD');
+          const fresh=await pin.api.readCanvasRecovery(pin.api.captureCanvasRecovery());pin.check();const flow=fresh?.control?.workflow;
+          if(fresh?.permissions?.view!==true||fresh.permissions.edit!==true||flow?.scope!=='process:platform'||flow.generation!==pin.generation||!Number.isSafeInteger(flow.revision)||flow.revision<pin.flowRevision||(flow.saved?.id??null)!==pin.savedId||flow.pendingId||!fresh.control.versions?.some(v=>v.status==='draft'))throw Error('IPQC_AUTHORITY_CHANGED');
+          const target=oneOperation(stageOperations(flow,pin.workspace,pin.stage),pin.id);
+          if(JSON.stringify(target.ipqcAssignments)!==pin.baseAssignments||JSON.stringify(target.productCodes)!==pin.baseProducts)throw Error('IPQC_SHARED_ASSIGNMENT_CHANGED');
+          const occupied=(content,project=false)=>(content?.workspaces||[]).some(w=>w.line===state.editorLine&&(assignment.source==='C'||w.category===state.category)&&(project?window.ProcessCanvasLocal.project(w.id,pin.stage,w.stages[pin.stage]||[]):w.stages[pin.stage]||[]).some(row=>(w.id!==pin.workspace||row.id!==pin.id)&&(row.ipqcAssignments||[]).some(a=>key(a)===key(assignment))));
+          const local=editor.operations();if(!Array.isArray(local)||occupied(flow.working,true)||occupied(flow.saved?.content)||local.some(row=>row.id!==pin.id&&(row.ipqcAssignments||[]).some(a=>key(a)===key(assignment))))throw Error('IPQC_ALREADY_ASSIGNED');
+          pin.check();op.ipqcAssignments=op.ipqcAssignments.map(a=>key(a)===key(assignment)?{...a,sourceVersionId:next.sourceVersionId,productCodes:[...next.productCodes]}:a);
+          panel.querySelector('[data-ipqc-warnings]').after(message);adoptionRefreshers.get(panel)(next);panel.dispatchEvent(new Event('input',{bubbles:true}));message.textContent=text('Đã dùng nguồn mới trên biểu mẫu; hoàn tất bước rồi lưu bản nháp.','已採用新版至目前表單；請完成方塊編輯後存取草稿。');
+        }catch(error){if(message.isConnected)message.textContent=text('Không áp dụng; giữ liên kết và đầu vào. Tải lại nguồn rồi thử lại.','未採用，關聯與輸入保留。請重新讀取來源後再試。')+' '+error.message;}
+        finally{running=false;if(button.isConnected)button.disabled=!valid()||!editor.canEdit();}
+      };
+    }
   }
   function mountSourceComparisons(panel,op,editor,valid,query,onAdopt){
     for(const remove of panel.querySelectorAll('[data-ipqc-remove]')){

@@ -1,6 +1,13 @@
+## 2026-11-15 — #121 整合已合併 #120 的 main
+
+原速度 8f94d0f 與 main c6ac41a6 在同一 #121 分支逐段整合。四個文件／來源測試衝突保留雙方內容，原 manifests 不改，以獨立雙父版本 exact inverse 核對完整前身；產品檔分別 byte-exact 保留。共同候選需重跑適用回歸與以 c6ac41a6 為基準的速度量測。[共同證據與 CI 界線](docs/acceptance/tooling-equipment-speed-20261115/README.md#整合已合併-120-的共同候選)。不納入其他功能工作、不合併 PR、不部署或操作實站資料。
+
 ## 2026-11-15 — 獨立檢具／模具速度候選
 
 `perf/tooling-equipment-speed-20261115` 自核實 main e040a7e 建立隔離 worktree；只補 bounded R2 讀取排程。保留原品質工作權限／回饋／反查／AB OOM 分工及 #120 製程採用新版範圍。[根因、全步驟前後量測、測試及整合風險](docs/acceptance/tooling-equipment-speed-20261115/README.md)。不合併、部署或改真資料。
+## 2026-11-15 — 獨立製程採用新版／送審修復候選
+
+`fix/process-ipqc-adopt-latest-20261115` 自最新已核對遠端 main e040a7e 建立獨立 worktree；A/B/C 明確採用核准新版，修復 filter history watcher 與檢查排程失效，保留所有 saved snapshot／權限／版本與占用防護。[本輪根因、測試、重疊檔案及交付界線](docs/acceptance/process-ipqc-adopt-review-20261115.md)。只提交 Draft PR，未合併、部署或修改測試站資料；另一品質工作仍獨立。
 
 ## 2026-11-14 — Independent IPQC operation-speed candidate
 

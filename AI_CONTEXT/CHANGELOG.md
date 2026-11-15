@@ -1,6 +1,13 @@
+## 2026-11-15 — #121 整合已合併 #120 的 main
+
+原速度 8f94d0f 與 main c6ac41a6 在同一 #121 分支逐段整合。四個文件／來源測試衝突保留雙方內容，原 manifests 不改，以獨立雙父版本 exact inverse 核對完整前身；產品檔分別 byte-exact 保留。共同候選需重跑適用回歸與以 c6ac41a6 為基準的速度量測。[共同證據與 CI 界線](../docs/acceptance/tooling-equipment-speed-20261115/README.md#整合已合併-120-的共同候選)。不納入其他功能工作、不合併 PR、不部署或操作實站資料。
+
 ## 2026-11-15 — Inventory R2 read scheduling candidate
 
 Measured sequential aggregate waits in Tooling/equipment reads and lifecycle writes; opt into existing bounded scheduling while preserving complete records, ordered validation, receipts/CAS and original destructive paths. Three-pair synthetic before/after evidence and limits: [record](../docs/acceptance/tooling-equipment-speed-20261115/README.md). Independent speed draft only; no deployment/live-data action.
+## 2026-11-15 — 製程 IPQC 明確採用及切換後送審驗證
+
+獨立 main e040a7e 修復候選：A/B/C 舊關聯明確採用核准新版，保留詳細區與唯一占用／權限／CAS；修復 filter 舊 history watcher 誤觸 CANVAS_REVIEW_CHANGED 及切換後未重新檢查的 disabled Submit。[根因、隔離證據、並行工作交接與未驗範圍](../docs/acceptance/process-ipqc-adopt-review-20261115.md)。無資料／schema／部署變更。
 
 ## 2026-11-14 — IPQC request-local authorization and required-read scheduling
 
