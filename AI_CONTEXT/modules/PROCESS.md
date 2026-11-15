@@ -1,3 +1,7 @@
+## 2026-11-15 — IPQC 頻率 AQL 標籤顯示
+
+製程共用 `frequency()` 對 `kind/batchKind=aql` 且有 `aqlValue` 時，只輸出一次 `AQL <數值>`。C 先前把取樣方式與值各加一次 AQL；AB 的 `kind/value`、其他頻率及作者文字保留。適用詳細區、來源比較與既有唯讀 C 查詢；不改來源資料或保存語意。[單項驗證與界線](../../docs/acceptance/process-ipqc-frequency-20261115.md)。
+
 ## 2026-11-15 — 明確採用 IPQC 新版及畫布切換後內容檢查
 
 A/B/C 保留舊關聯時提供「採用核准新版」，以新鮮 choices 與 PROCESS authority 驗證後只更新本機 tuple。保留選取、lazy detail 展開狀態及正確標準／檢具；完成方塊後仍須手動 Save。AB 歷史比較保留，C 仍按產品／工段，AB 不按方塊產品。filter 切換先 retire 舊 history watcher，避免正常 render 觸發舊 context 的 onBoundary；filter／line／stage 成功切換後重做內容檢查，未通過前不啟用送審。根因、精確 main 重現、測試及原生／實站限制見[本輪紀錄](../../docs/acceptance/process-ipqc-adopt-review-20261115.md)。
