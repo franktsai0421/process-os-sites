@@ -250,3 +250,13 @@ NODE_PATH="$PWD/node_modules" node scripts/test-tooling-checks-paired.mjs /path/
 [驗證摘要](round2-validation.json)：本機合併 commit `3ebef058b3804e9a3079fa9cdc984ca88315f6b7` 完整 source 970/970 PASS，功能集合 918 項中 900 PASS、18 啟動失敗。900 包括新增 8 項權限／撤銷／inline、Save／Apply、送審／撤回／再送／核准、快速點擊、失敗原回執查詢、刷新及資料保留；原 paired 比較 PASS。lint／TypeScript／guarded build／來源邊界及 29 個變更檔安全掃描 PASS。
 
 18 項不列通過：7 項原生 Chromium 與 11 項 compiled UI。首次 runner 預設瀏覽器與 compiled 的 PROCESS_PROGRAM_COMMIT 設定未就緒；使用既有 `/usr/bin/chromium` 並補上精確 commit 後，原生及單項 compiled 診斷都明確遇到 `socket() failed: Operation not permitted`、SIGABRT。compiled 失敗 fixture 仍持有 runtime，記錄錯誤後中止；未改 flags、護欄或測試斷言以繞過。這是本機瀏覽器驗收阻擋，不是全功能 PASS；GitHub CI 的可執行測試也不能推成實站驗收。詳細原始 logs 留於 Dot `/tmp/inventory-round2-*.log`。文件與 evidence 更新後另跑受影響來源 proof，產品 runtime hashes 未變；精確 GitHub commit／CI 以 PR 當前 head 為準。
+
+## 2026-11-16 恢復與 main #123 整合
+
+11/16 環境換成較早工作區，原 worktree／tmp 不再存在。程式、三對速度與回歸摘要均從遠端證據 commit `a70ab7e288aa3ec65c95de170df746b0569c2e09`（tree `57c04f990ad08dedf2f2c3cf742e6a6725073d1f`）完整恢復。GitHub #121 分支仍為 cd17，未把舊 main 候選誤稱已發布。恢復隔離 worktree 合入 `a1775a8a342d58335edf96d199a9c42844227dc6`；七個內容衝突保留雙方，shared workflow 同時有 inventory read-ahead 與 #123 phase。
+
+首次提交被自動審查拒絕，未執行，原因為兩個 source 測試失敗及 CI 基準調整需獨立解釋。核實 C 原文：HEAD a70 尚為舊 hash f929cbdf；工作樹與真實 main a177 均為原 reviewed quality hash 90ce15c0，整檔無產品變更。純 inverse fixture 改固定該 genuine successor，不再隨 merge 前的 HEAD 移動；原 raw／normalized pin、EOL 拒絕與移除 guard 後重現 escape 的所有斷言保留。216/216 受影響 source proof PASS。
+
+CI 原 checks A/B 的 comparator 未改一個 byte：仍拒絕所有非 checks 綁定來源 SHA 差異，並逐項比較 response metadata／內容 hashes／I/O。#123 已改共用權限實作，繼續拿 cd17 全樹當 counterfactual 會把品質整合混入對照。新 CI 只在同一合併樹替換 checks 原路徑為 main a177 的真實原文；該原文 SHA-256 f1313c87... 與 cd17 完全相同。獨立本機同條件已通過 366／1000 筆各 14 步／端，未減少案例、斷言或引入較寬門檻。這是單 route 資料語意 A/B；全 PR 速度須另以最新 main 做成對計時，不能把 A/B 說成完整 main 基準。
+
+main 的 C、設備 UI、process-state 權限與 state-records-response 容量實作 byte-exact 保留。完整保存生命週期 27 分段 smoke PASS，lint／TypeScript PASS；後續完整合成樹驗證與 GitHub CI 另綁定最終 head。現場 11/16 的 IQC／製程／FQC／B／C Network 及 Worker 日誌視為單次線索，不相加成整體操作時間，不歸因純 DB／R2，不以空殼畫面當 readiness。

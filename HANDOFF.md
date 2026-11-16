@@ -1,3 +1,7 @@
+## 2026-11-16 — #121 恢復與最新品質 main 整合
+
+環境更換後，從已保存 a70ab7e2／tree 57c04f99 恢復同一速度工作，合入 main a1775a8a（#122／#123）。七個內容衝突逐段保留兩邊文件、來源 proof 與測試；shared workflow 自動合併已核對同時保留 inventory read-ahead 與 request-local inventory phase。原刪除／回饋／AB 修復均採 main，未重做或覆蓋。雙真實父版 inverse 保留所有原 manifests 與負控。之後另核查 IQC 與 bootstrap 的讀取成本，不把單次 Network／Worker 日誌直接歸因 DB/R2。[證據與限制](docs/acceptance/tooling-equipment-speed-20261115/README.md)。不合併 PR、不部署、不改實站資料。
+
 ## 2026-11-15 — #121 第二輪效能與 #122 整合
 
 保留已發布 cd17b877 的讀取排程及已合併 main 346c5eef 的 AQL 修復。Tooling checks 改為直接讀取原完整模型、原 IQC 與版本 fence，免除未使用的完整 workflow 回應和寫入按鈕權限計算；保留認證前置、選定資料及最終 session 撤銷檢查。實際 compact 客戶端與 checks 分開成對量測，舊非 compact 證據保留歷史界線。設備主要剩餘權限成本歸 #123，未抄入並行修復。[第二輪證據](docs/acceptance/tooling-equipment-speed-20261115/README.md#第二輪實際客戶端與完整性檢查)。不合併 PR、不部署、不操作實站資料。
@@ -9,6 +13,10 @@
 ## 2026-11-15 — 獨立檢具／模具速度候選
 
 `perf/tooling-equipment-speed-20261115` 自核實 main e040a7e 建立隔離 worktree；只補 bounded R2 讀取排程。保留原品質工作權限／回饋／反查／AB OOM 分工及 #120 製程採用新版範圍。[根因、全步驟前後量測、測試及整合風險](docs/acceptance/tooling-equipment-speed-20261115/README.md)。不合併、部署或改真資料。
+## 2026-11-15 — 網頁實測根因修復候選
+
+獨立 checkout／`fix/quality-save-read-root-causes-20261115`，基於已核對 #119 main e040a7e。涵蓋檢具／模具、FQC、IPQC AB 回應與 C 歷史查詢誤報；既有部署 checkout／服務與測試資料未動。[逐項根因、隔離測量與交付關卡](docs/acceptance/quality-root-causes-20261115.md)。無 merge／部署／帳號或正式資料操作；實站真人驗收另行。
+
 ## 2026-11-15 — 獨立 IPQC 頻率顯示候選
 
 `fix/process-ipqc-frequency-display-20261115` 從最新遠端 main c6ac41a6（已合併 #120）建立隔離 worktree，只修製程共用頻率中的重複 AQL 標籤。[本輪紀錄](docs/acceptance/process-ipqc-frequency-20261115.md)。資料模型、原資料與權限不變；不合併或部署，檢具／模具兩工作未搬入。

@@ -45,6 +45,8 @@ function tooling() {
 function equipment() {
   const f=fixture();
   Object.assign(f.box,{localBeginReceipt:null,pendingSaveBatch:null,formPendingPhoto:null});
+  // Load the real presentation dependencies added by writeShared; safety assertions remain unchanged.
+  f.load(part('routine-equipment.js','  function equipmentContentEqual(','  // Insert ACKs')+part('routine-equipment.js','  function updateEquipmentLocalStatus()','  function bind()'));
   f.load(part('routine-equipment.js','  let historyDisplayEpoch=','  let selectedVersionId =')+part('routine-equipment.js','  let equipmentSaveChoice =','  async function writeShared('));
   f.load(part('routine-equipment.js','  function hasLocalDraftInput(','  function sharedTransport()')+part('routine-equipment.js','  function snapshotChanges(','  const beginRecoveryKey')+part('routine-equipment.js','  function captureTransferOwner()','  function transferBusy(')+part('routine-equipment.js','  async function writeShared(','  // Preserve this unapplied drawer'));
   f.box.rememberInputOwner();assert.equal(f.box.inputOwnerCurrent(),true);

@@ -8,7 +8,7 @@ for(const file of Object.keys(p.contract.files))for(const [target,commit]of Obje
 });
 void test('round two retains AQL main runtime and existing inventory runtime without importing quality repair',()=>{
  const git=(...args)=>execFileSync('git',args);
- for(const file of ['public/process/index.html','public/process/process-ipqc.js'])assert.deepEqual(fs.readFileSync(file),git('show',p.contract.parents.main122+':'+file));
- for(const file of ['app/api/routine-equipment/route.ts','app/api/tooling/iqc/route.ts','lib/inventory-read-ahead.mjs','lib/versioned-shared-workflow.ts'])assert.deepEqual(fs.readFileSync(file),git('show',p.contract.parents.inventory121+':'+file));
+ for(const file of ['public/process/index.html','public/process/process-ipqc.js'])assert.deepEqual(require('../scripts/inventory-quality-source-contract.cjs').projectKnown(fs.readFileSync(file),file,'speedRound2'),git('show',p.contract.parents.main122+':'+file));
+ for(const file of ['app/api/routine-equipment/route.ts','app/api/tooling/iqc/route.ts','lib/inventory-read-ahead.mjs','lib/versioned-shared-workflow.ts'])assert.deepEqual(require('../scripts/inventory-quality-source-contract.cjs').projectKnown(fs.readFileSync(file),file,'speedRound2'),git('show',p.contract.parents.inventory121+':'+file));
  for(const file of ['scripts/inventory-main-source-contract.json','scripts/process-ipqc-frequency-source-contract.json'])assert.deepEqual(fs.readFileSync(file),git('show',p.contract.parents[file.includes('frequency')?'main122':'inventory121']+':'+file));
 });

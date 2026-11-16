@@ -132,7 +132,7 @@
     return error?.status===404?t('尚未找到原操作收據，仍無法確認是否寫入；請稍後再查詢，不要重送。','Chưa tìm thấy biên nhận gốc; chưa thể xác nhận đã ghi. Kiểm tra lại sau, không gửi lại.'):displayDraftError(error);
   }
   function operationStatus(){
-    return sharedClient?.hasUnknown()?`<section class="iqc-panel iqc-alert" role="alert" id="iqc-operation-status"><p>${t('上次操作結果不明，請查詢原操作結果；不會重新送出。','Kết quả thao tác trước chưa rõ; kiểm tra thao tác gốc, không gửi lại.')}</p><button type="button" class="button ghost" id="iqc-operation-check">${t('查詢結果','Kiểm tra kết quả')}</button><p data-iqc-operation-message></p></section>`:'';
+    return sharedClient?.hasUnknown()&&!ui.busy?`<section class="iqc-panel iqc-alert" role="alert" id="iqc-operation-status"><p>${sharedClient?.confirmedOperation?.()?t('原操作收據已確認；草稿／權限讀回尚未完成。請查原結果，不要重送。','Đã xác nhận biên nhận gốc; chưa đọc xong bản nháp / quyền. Kiểm tra kết quả gốc, không gửi lại.'):t('上次操作結果不明，請查詢原操作結果；不會重新送出。','Kết quả thao tác trước chưa rõ; kiểm tra thao tác gốc, không gửi lại.')}</p><button type="button" class="button ghost" id="iqc-operation-check">${t('查詢結果','Kiểm tra kết quả')}</button><p data-iqc-operation-message></p></section>`:'';
   }
   let operationCheck=null;
   async function checkOperation(owner){
@@ -770,7 +770,7 @@
       const partCode=item?.partCode||part?.code||error?.partCode;if(!partCode||!mayEdit())return;
       ui.search='';ui.supplier='';ui.category='';ui.partCode=partCode;ui.errorId=item?.errorId||error?.id||'';render();if(item)editItem(item.id);else if(part)editPart(partCode);else editError(error.id);
     }});
-    window.VersionDraftUI?.mount(root,{header:'.iqc-version',historyClient:transport,mountApprovedHistory,module:'IQC',scope:t('IQC 全庫','Toàn bộ IQC'),version:selected(),versions:control.versions,active:active(),flow:localSnapshot?{...control.workflow,working:localSnapshot}:control.workflow,busy:ui.busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#iqc-begin',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-shared-issue-kind="error"]',missing:'.iqc-pending,[data-shared-issue-kind="missing"]',checked:{missing:false},history:['.iqc-work-history','#iqc-case-history','[data-shared-issue-kind="warning"]'],status:['#iqc-shared-status']});
+    window.VersionDraftUI?.mount(root,{header:'.iqc-version',historyClient:transport,mountApprovedHistory,module:'IQC',scope:t('IQC 全庫','Toàn bộ IQC'),version:selected(),versions:control.versions,active:active(),flow:localSnapshot?{...control.workflow,working:localSnapshot}:control.workflow,busy:ui.busy,failed:!ui.busy&&sharedClient?.hasUnknown()&&!sharedClient?.confirmedOperation?.(),syncNotice:sharedClient?.confirmedOperation?.()?t('原操作收據已確認；核對草稿與權限中','Biên nhận gốc đã xác nhận; đang kiểm tra bản nháp và quyền'):'',actions:{begin:'#iqc-begin',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-shared-issue-kind="error"]',missing:'.iqc-pending,[data-shared-issue-kind="missing"]',checked:{missing:false},history:['.iqc-work-history','#iqc-case-history','[data-shared-issue-kind="warning"]'],status:['#iqc-shared-status']});
     window.scrollTo(0, pageScroll);
   }
   // Search updates only the results. Replacing a focused input on every keystroke
