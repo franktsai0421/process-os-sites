@@ -1,0 +1,114 @@
+{
+  "label": "candidate",
+  "model": "80 extra immutable synthetic aggregates, 16 KiB each; 10 ms per R2 get; 3 paired-condition runs/action",
+  "realData": false,
+  "rows": [
+    {
+      "action": "update-user",
+      "run": 0,
+      "status": 200,
+      "elapsedMs": 72.7,
+      "reads": 5,
+      "businessReads": 0,
+      "puts": 2
+    },
+    {
+      "action": "update-user",
+      "run": 1,
+      "status": 200,
+      "elapsedMs": 65.3,
+      "reads": 5,
+      "businessReads": 0,
+      "puts": 2
+    },
+    {
+      "action": "update-user",
+      "run": 2,
+      "status": 200,
+      "elapsedMs": 66.6,
+      "reads": 5,
+      "businessReads": 0,
+      "puts": 2
+    },
+    {
+      "action": "update-role",
+      "run": 0,
+      "status": 200,
+      "elapsedMs": 87,
+      "reads": 5,
+      "businessReads": 0,
+      "puts": 2
+    },
+    {
+      "action": "update-role",
+      "run": 1,
+      "status": 200,
+      "elapsedMs": 90.5,
+      "reads": 5,
+      "businessReads": 0,
+      "puts": 2
+    },
+    {
+      "action": "update-role",
+      "run": 2,
+      "status": 200,
+      "elapsedMs": 76.4,
+      "reads": 5,
+      "businessReads": 0,
+      "puts": 2
+    },
+    {
+      "action": "create-role",
+      "run": 0,
+      "status": 200,
+      "elapsedMs": 73.5,
+      "reads": 5,
+      "businessReads": 0,
+      "puts": 2
+    },
+    {
+      "action": "create-role",
+      "run": 1,
+      "status": 200,
+      "elapsedMs": 70.2,
+      "reads": 5,
+      "businessReads": 0,
+      "puts": 2
+    },
+    {
+      "action": "create-role",
+      "run": 2,
+      "status": 200,
+      "elapsedMs": 68.3,
+      "reads": 5,
+      "businessReads": 0,
+      "puts": 2
+    }
+  ],
+  "summary": {
+    "update-user": {
+      "medianMs": 66.6,
+      "minMs": 65.3,
+      "maxMs": 72.7,
+      "reads": 5,
+      "businessReads": 0,
+      "puts": 2
+    },
+    "update-role": {
+      "medianMs": 87,
+      "minMs": 76.4,
+      "maxMs": 90.5,
+      "reads": 5,
+      "businessReads": 0,
+      "puts": 2
+    },
+    "create-role": {
+      "medianMs": 70.2,
+      "minMs": 68.3,
+      "maxMs": 73.5,
+      "reads": 5,
+      "businessReads": 0,
+      "puts": 2
+    }
+  }
+}

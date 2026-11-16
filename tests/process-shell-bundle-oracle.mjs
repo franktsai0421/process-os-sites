@@ -1,4 +1,4 @@
-// Test-only reviewed inventory: main 9fbba823's 50 scripts plus seven #103 modules and one reviewed move.
+// Test-only reviewed inventory: main 9fbba823's 50 scripts plus seven #103 modules and the account receipt module and one reviewed move.
 // Do not infer expected membership/order from the builder's output.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -9,7 +9,7 @@ const baseline=[
 ];
 assert.equal(baseline.flat().length,50,'reviewed main inventory stays fixed');
 export const reviewedProcessBundleAdditions=Object.freeze([
- 'canvas-approved-history.js','page-draft-merge.js','master-page-transfer.js','master-page-approved-history.js','master-page-editor.js','routine-page-approved-history.js','routine-fqc-page.js',
+ 'canvas-approved-history.js','page-draft-merge.js','master-page-transfer.js','master-page-approved-history.js','master-page-editor.js','routine-page-approved-history.js','routine-fqc-page.js','account-write-receipt.js',
 ]);
 export const baselineProcessBundleGroups=Object.freeze(baseline.map(row=>Object.freeze([...row])));
 export const reviewedProcessBundleMoves=Object.freeze([Object.freeze({name:'version-draft-ui.js',fromBefore:'process-authoring-v3.js',toBefore:'master-data.js'})]);
@@ -18,7 +18,8 @@ for(const anchor of ['master-data.js','process-authoring-v3.js','version-draft-u
 assert.equal(groups[1][groups[1].indexOf('version-draft-ui.js')+1],'process-authoring-v3.js','reviewed original dependency location');
 groups[1].splice(groups[1].indexOf('version-draft-ui.js'),1);
 groups[1].splice(groups[1].indexOf('master-data.js'),0,'version-draft-ui.js',...reviewedProcessBundleAdditions.slice(0,5));
-groups[1].splice(groups[1].indexOf('routine-fqc.js'),0,...reviewedProcessBundleAdditions.slice(5));
+groups[1].splice(groups[1].indexOf('routine-fqc.js'),0,...reviewedProcessBundleAdditions.slice(5,7));
+groups[1].splice(groups[1].indexOf('user-access.js'),0,reviewedProcessBundleAdditions[7]);
 export const expectedProcessBundleGroups=Object.freeze(groups.map(row=>Object.freeze(row)));
 export function assertProcessScriptBundles(assets,readSource){
  assert.deepEqual(assets.map(asset=>asset.sources),expectedProcessBundleGroups,'exact reviewed bundle groups and source order');

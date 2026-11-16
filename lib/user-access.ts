@@ -15,11 +15,14 @@ export function effectiveAccess(user:AccessUser, values:Record<string,string>, r
   const primary=isPrimary(user);let control:Record<string,unknown>={};try{control=JSON.parse(values.processAccessControl||'{}');}catch{/* Invalid policy evidence cannot establish a grant. */}
   const {cells,draftReviewPolicyActive,reviewPolicy}=resolveAccountReview(user,roles,control);
   const legacyPermissions=primary?roleDefaults.admin.permissions:scope?.permissions||[];
+  const statusAliases=['status.viewAllLines','status.viewDetails','status.viewMedia'];
   const permissions=draftReviewPolicyActive?legacyPermissions.filter(key=>!['approval.approve','approval.submit','approval.withdraw','approval.reject'].includes(key)):legacyPermissions;
   if(draftReviewPolicyActive){if(cells['approval.approve'])permissions.push('approval.approve');for(const [op,alias]of [['submit','approval.submit'],['withdraw','approval.withdraw'],['return','approval.reject']])if(catalog.some(row=>row.ops.includes('submit')&&cells[row.id+'.'+op]))permissions.push(alias);}
 
+  const enabledPermissions=enabled?[...permissions].filter(key=>cells['status.view']||!statusAliases.includes(key)):[];
+  if(enabled&&cells['status.view'])for(const alias of statusAliases)if(!enabledPermissions.includes(alias))enabledPermissions.push(alias);
   return { role, enabled, primary, cells, ...(draftReviewPolicyActive?{draftReviewPolicyActive,reviewPolicy}:{}), inheritRole: user.inheritRole !== false,
-    lines: enabled ? ['A','B','C'] : [], views: enabled ? [...new Set(catalog.filter(row=>row.id!=='feedback'&&cells[row.id+'.view']).map(row=>row.view))] : [], permissions: enabled ? [...new Set([...permissions,...accessKeys.filter(key=>cells[key])])] : [] };
+    lines: enabled ? ['A','B','C'] : [], views: enabled ? [...new Set(catalog.filter(row=>row.id!=='feedback'&&cells[row.id+'.view']).map(row=>row.view))] : [], permissions: enabled ? [...new Set([...enabledPermissions,...accessKeys.filter(key=>cells[key])])] : [] };
 }
 import {templates,isPrimary,accessKeys,catalog} from '../public/process/access-policy.mjs';
 

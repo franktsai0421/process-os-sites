@@ -260,3 +260,31 @@ NODE_PATH="$PWD/node_modules" node scripts/test-tooling-checks-paired.mjs /path/
 CI 原 checks A/B 的 comparator 未改一個 byte：仍拒絕所有非 checks 綁定來源 SHA 差異，並逐項比較 response metadata／內容 hashes／I/O。#123 已改共用權限實作，繼續拿 cd17 全樹當 counterfactual 會把品質整合混入對照。新 CI 只在同一合併樹替換 checks 原路徑為 main a177 的真實原文；該原文 SHA-256 f1313c87... 與 cd17 完全相同。獨立本機同條件已通過 366／1000 筆各 14 步／端，未減少案例、斷言或引入較寬門檻。這是單 route 資料語意 A/B；全 PR 速度須另以最新 main 做成對計時，不能把 A/B 說成完整 main 基準。
 
 main 的 C、設備 UI、process-state 權限與 state-records-response 容量實作 byte-exact 保留。完整保存生命週期 27 分段 smoke PASS，lint／TypeScript PASS；後續完整合成樹驗證與 GitHub CI 另綁定最終 head。現場 11/16 的 IQC／製程／FQC／B／C Network 及 Worker 日誌視為單次線索，不相加成整體操作時間，不歸因純 DB／R2，不以空殼畫面當 readiness。
+
+## 整合後續已合併 #124
+
+174fb8a 的 11 CI 全部成功之後，main 又已合入 #124，核實為
+`64e44b2f72642bf3186afea89e7d786c9bcbcc91`。同一 #121 從已發布 174 開始整合，
+六個衝突為 CHANGELOG、HANDOFF、三份既有來源 adapter 及 accounts-process source test。
+兩邊文件、runtime 新增檔 inventoryReadAhead／account receipt helpers、所有原 assertions
+與 source manifests 均保留，沒有減少 fixture／hash／EOL／drift 負例。
+
+外層 inventory-quality proof 增加真實 accountMain=64e44b2 目標；原 speedRound2=a70ab7e2
+與 qualityMain=a1775a8a 目標不變。帳號 adapter 先投影共同來源到真實 accountMain，
+再執行原完整 inverse；品質／速度保留原對應投影。未知或修改 bytes 仍必須拒絕。
+main 的 43 檔新增／修改，除衝突文件與測試 composition 接點外，逐 bytes 核對 main。
+檢具／模具六個 runtime 檔逐 bytes 核對 174，沒有新增 IQC body 排程或混入未合併 #125／#126。
+
+本整合沒有新增速度宣稱；前述固定來源的原始合成數據與限制保留，不能用其他分支的 IQC
+實驗宣稱 #121 改善。新的共同 head 仍需獨立 source／功能／strict checks／lifecycle／build 與 CI，
+不能以 174 的綠燈代替。無 schema、資料、帳號、權限或實站配置變更；保持 Draft、不合併部署。
+
+共同來源新增單檔 inventory-account-adapter exact inverse：quality-root adapter 是 #123 才新增，
+在 a70 不存在，不能假裝可還原缺席前身。此額外 proof 固定還原真實 64e44b2，保留原三父版
+所有測試，另加 raw bytes／LF/CRLF／位置與 changed/missing/extra/unknown-path 負例。
+
+本機首次帳號功能測試漏加其要求的 VM flag，26 項因執行方式拒絕；補上原要求
+`--experimental-vm-modules` 後 26/26 PASS。帳號 integration source 曾因上述 quality adapter
+沒有獨立還原而失敗；補精確 proof 後帳號 source＋共同 byte-preservation 42/42 PASS。
+原速度／品質／權限來源集中 256/256 PASS；文件最終凍結後再核對共同來源與 committed HEAD。
+這些失敗均未以刪斷言、變更 expected 資料或放寬寫入保護解決。

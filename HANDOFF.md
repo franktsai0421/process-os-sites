@@ -1,3 +1,7 @@
+## 2026-11-16 #121 整合後續已合併 #124
+
+以已發布 174fb8a 與最新 main 64e44b2 為雙真實前身，保留檢具／模具速度與 #122／#123，並逐段保留 #124 帳號回執修正。僅整合最新 main；不包含另行研究的 IQC body 優化，不混入未合併 #125／#126。六個文件／source proof 衝突保留雙方原測試與 hash／EOL 負例；產品檔分別精確保留前身。[方法與交付界線](docs/acceptance/tooling-equipment-speed-20261115/README.md#整合後續已合併-124)。不合併 PR、不部署。
+
 ## 2026-11-16 — #121 恢復與最新品質 main 整合
 
 環境更換後，從已保存 a70ab7e2／tree 57c04f99 恢復同一速度工作，合入 main a1775a8a（#122／#123）。七個內容衝突逐段保留兩邊文件、來源 proof 與測試；shared workflow 自動合併已核對同時保留 inventory read-ahead 與 request-local inventory phase。原刪除／回饋／AB 修復均採 main，未重做或覆蓋。雙真實父版 inverse 保留所有原 manifests 與負控。之後另核查 IQC 與 bootstrap 的讀取成本，不把單次 Network／Worker 日誌直接歸因 DB/R2。[證據與限制](docs/acceptance/tooling-equipment-speed-20261115/README.md)。不合併 PR、不部署、不改實站資料。
@@ -13,6 +17,11 @@
 ## 2026-11-15 — 獨立檢具／模具速度候選
 
 `perf/tooling-equipment-speed-20261115` 自核實 main e040a7e 建立隔離 worktree；只補 bounded R2 讀取排程。保留原品質工作權限／回饋／反查／AB OOM 分工及 #120 製程採用新版範圍。[根因、全步驟前後量測、測試及整合風險](docs/acceptance/tooling-equipment-speed-20261115/README.md)。不合併、部署或改真資料。
+
+## 2026-11-15 — 角色與人員保存／原回執候選
+
+帳號專用 verified records overlay 移除不相關業務讀取；非密碼操作保留獨立 requestId/audit 回執直到 fresh readback，UNKNOWN 只查原操作、不重送，POST 可明確停止等候。status.view 導出明細/照片/影片舊只讀別名；管理員安全邊界、effective inheritance、角色例外、fresh auth/CAS 保留。沒有 live 帳號/資料/schema/政策採用/合併或部署。[根因、量測、完整權限對照與驗證界線](docs/acceptance/account-role-save-20261115/README.md)。
+
 ## 2026-11-15 — 網頁實測根因修復候選
 
 獨立 checkout／`fix/quality-save-read-root-causes-20261115`，基於已核對 #119 main e040a7e。涵蓋檢具／模具、FQC、IPQC AB 回應與 C 歷史查詢誤報；既有部署 checkout／服務與測試資料未動。[逐項根因、隔離測量與交付關卡](docs/acceptance/quality-root-causes-20261115.md)。無 merge／部署／帳號或正式資料操作；實站真人驗收另行。

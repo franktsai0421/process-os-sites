@@ -1,3 +1,7 @@
+## 2026-11-16 — #121 與已合併 #124 的共同候選
+
+保持原檢具／模具 runtime 及 main 帳號修正，六個文件／來源衝突逐段整合。來源 proof 新增真實 accountMain 目標，原 manifests／負控保留；未納入並行 IQC 優化。[整合證據](../docs/acceptance/tooling-equipment-speed-20261115/README.md#整合後續已合併-124)。未合併或部署。
+
 ## 2026-11-16 — #121 恢復與最新品質 main 整合
 
 環境更換後，從已保存 a70ab7e2／tree 57c04f99 恢復同一速度工作，合入 main a1775a8a（#122／#123）。七個內容衝突逐段保留兩邊文件、來源 proof 與測試；shared workflow 自動合併已核對同時保留 inventory read-ahead 與 request-local inventory phase。原刪除／回饋／AB 修復均採 main，未重做或覆蓋。雙真實父版 inverse 保留所有原 manifests 與負控。之後另核查 IQC 與 bootstrap 的讀取成本，不把單次 Network／Worker 日誌直接歸因 DB/R2。[證據與限制](../docs/acceptance/tooling-equipment-speed-20261115/README.md)。不合併 PR、不部署、不改實站資料。
@@ -13,6 +17,11 @@
 ## 2026-11-15 — Inventory R2 read scheduling candidate
 
 Measured sequential aggregate waits in Tooling/equipment reads and lifecycle writes; opt into existing bounded scheduling while preserving complete records, ordered validation, receipts/CAS and original destructive paths. Three-pair synthetic before/after evidence and limits: [record](../docs/acceptance/tooling-equipment-speed-20261115/README.md). Independent speed draft only; no deployment/live-data action.
+
+## 2026-11-15 — 角色與人員保存／原回執候選
+
+帳號專用 verified records overlay 移除不相關業務讀取；非密碼操作保留獨立 requestId/audit 回執直到 fresh readback，UNKNOWN 只查原操作、不重送，POST 可明確停止等候。status.view 導出明細/照片/影片舊只讀別名；管理員安全邊界、effective inheritance、角色例外、fresh auth/CAS 保留。沒有 live 帳號/資料/schema/政策採用/合併或部署。[根因、量測、完整權限對照與驗證界線](../docs/acceptance/account-role-save-20261115/README.md)。
+
 ## 2026-11-15 — 檢具／模具與品質頁實測修復候選
 
 獨立 main e040a7e 候選：移轉回應與查詢解耦、AQL 預設欄位、本地／已存／未知狀態及伺服器編碼提示；AB 關聯精簡投影與有界序列化；檢具／模具逐請求權限評估；唯讀歷史過期與寫入結果分開呈現。無資料遷移、實站寫入、權限變更或部署。[證據與限制](../docs/acceptance/quality-root-causes-20261115.md)。
