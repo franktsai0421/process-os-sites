@@ -795,6 +795,44 @@
           "after": "## 2026-11-16 — Independent quality/process speed candidate\n\nRequest-local IQC/process authority and existing bounded aggregate scheduling preserve full data/validation/CAS. Office >10s requests, exact paired synthetic tests, unresolved AB/C and payload limits: [evidence](../../docs/acceptance/quality-operation-speed-20261116/README.md). Draft only; no merge/deployment/live changes.\n\n"
         }
       ]
+    },
+    "scripts/test-authoring-ipqc-read-reuse.cjs": {
+      "afterNormalizedHash": "f015b3585857f8b415d03c6e6342d684d7bbef8d63a75e0ffaeb90f8dc678968",
+      "beforeNormalizedHash": "045b731a53d71a493c14b60cec1939cc162ee9f8314e05d630fbb3b06853ed90",
+      "beforeHash": "045b731a53d71a493c14b60cec1939cc162ee9f8314e05d630fbb3b06853ed90",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 1804,
+          "before": "const db=new DatabaseSync(':memory:'),objects=new Map(),metadata=new Map(),events=[];let mode='normal',targetKey='',measuring=false;const revocationAfter=Infinity;let revocationCounter=0;\n",
+          "after": "const db=new DatabaseSync(':memory:'),objects=new Map(),metadata=new Map(),events=[];let mode='normal',targetKey='',measuring=false;const consumed=[];const revocationAfter=Infinity;let revocationCounter=0;\n"
+        },
+        {
+          "offset": 3750,
+          "before": " async get(k){const event={kind:'R2',method:'get',key:k,bytes:0,fault:k===targetKey?mode:'none'};events.push(event);if(k===targetKey&&mode==='missing'){event.found=false;return null;}const b=objects.get(k);event.found=!!b;if(!b)return null;return{...metadata.get(k),text:async()=>{const raw=k===targetKey&&mode==='corrupt'?Buffer.from('{\"synthetic\":\"corrupt bytes\"}'):b;event.bytes+=raw.length;return raw.toString();},arrayBuffer:async()=>{event.bytes+=b.length;return b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength);}};},\n",
+          "after": " async get(k){const event={kind:'R2',method:'get',key:k,bytes:0,fault:k===targetKey?mode:'none'};events.push(event);if(k===targetKey&&mode==='missing'){event.found=false;return null;}const b=objects.get(k);event.found=!!b;if(!b)return null;return{...metadata.get(k),text:async()=>{const raw=k===targetKey&&mode==='corrupt'?Buffer.from('{\"synthetic\":\"corrupt bytes\"}'):b;event.bytes+=raw.length;consumed.push({key:k,bytes:raw.length,sha256:hash(raw)});return raw.toString();},arrayBuffer:async()=>{event.bytes+=b.length;return b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength);}};},\n"
+        },
+        {
+          "offset": 9323,
+          "before": "async function measure(name,handler=api,c=counters,query='contentIssues=1',who='editor',expected=200){const before=snap(),start=events.length;resetCounters(c);revocationCounter=0;measuring=true;const cpu=process.cpuUsage(),time=performance.now();try{const response=await handler.GET(new Request(endpoint+'?caseMetadata=1&channel=content&compact=1&'+query,{headers:who?sessions[who]:{}})),body=await response.json();for(const item of c.observedIssues)assert.equal(hash(JSON.stringify(item.issues)),item.hash,'wrapper mutated cached issues');const row={name,status:response.status,body,headers:Object.fromEntries(response.headers),metrics:metrics(events.slice(start)),validation:copy(c),instrumentedNodeWallMs:performance.now()-time,instrumentedNodeCpuMicros:process.cpuUsage(cpu),io:events.slice(start)};assert.equal(response.status,expected,name+':'+JSON.stringify(body));assert.deepEqual(snap(),before);assert.equal(row.metrics.sqlWrites,0);assert.equal(row.metrics.r2Writes,0);results.push(row);return row;}finally{measuring=false;}}\n",
+          "after": "async function measure(name,handler=api,c=counters,query='contentIssues=1',who='editor',expected=200){const before=snap(),start=events.length,readStart=consumed.length;resetCounters(c);revocationCounter=0;measuring=true;const cpu=process.cpuUsage(),time=performance.now();try{const response=await handler.GET(new Request(endpoint+'?caseMetadata=1&channel=content&compact=1&'+query,{headers:who?sessions[who]:{}})),body=await response.json();for(const item of c.observedIssues)assert.equal(hash(JSON.stringify(item.issues)),item.hash,'wrapper mutated cached issues');const row={name,status:response.status,body,headers:Object.fromEntries(response.headers),metrics:metrics(events.slice(start)),validation:copy(c),instrumentedNodeWallMs:performance.now()-time,instrumentedNodeCpuMicros:process.cpuUsage(cpu),io:events.slice(start),consumed:consumed.slice(readStart)};assert.equal(response.status,expected,name+':'+JSON.stringify(body));assert.deepEqual(snap(),before);assert.equal(row.metrics.sqlWrites,0);assert.equal(row.metrics.r2Writes,0);results.push(row);return row;}finally{measuring=false;}}\n"
+        },
+        {
+          "offset": 18435,
+          "before": " const candidateCounters={validations:[],bomFactories:0,bomLookups:0,bomKeyComparisons:0},candidateLoad=require('../tests/helpers/authoring-ipqc-loader.cjs')(source,env,candidateCounters),targetApi=candidateLoad('app/api/process-authoring/workflow/route.ts');\n",
+          "after": " const candidateCounters={validations:[],bomFactories:0,bomLookups:0,bomKeyComparisons:0},candidateLoad=require('../tests/helpers/authoring-ipqc-loader.cjs')(source,env,candidateCounters,{[routeKey]:require('./quality-operation-source-contract.cjs').restore(fs.readFileSync(routeKey),routeKey).toString()}),targetApi=candidateLoad('app/api/process-authoring/workflow/route.ts');\n"
+        },
+        {
+          "offset": 19061,
+          "before": "",
+          "after": " const optimizedCounters={validations:[],bomFactories:0,bomLookups:0,bomKeyComparisons:0},optimizedLoad=pathLoader(source,env,optimizedCounters),optimizedApi=optimizedLoad(routeKey);\n"
+        },
+        {
+          "offset": 19486,
+          "before": " async function pair(name,query='contentIssues=1',who='editor',expected=200){const before=await measure(name+' baseline',api,counters,query,who,expected),after=await measure(name+' candidate',targetApi,candidateCounters,query,who,expected);const qualificationDelta=assertRuleDTO(name,before.body,after.body);assert.deepEqual(after.headers,before.headers,name+' headers');assertReadClosureIO(name,before,after);pairs.push({name,qualificationDelta,before:results.indexOf(before),after:results.indexOf(after),parseBefore:summarize(before.validation),parseAfter:summarize(after.validation)});return{before,after};}\n",
+          "after": " async function pair(name,query='contentIssues=1',who='editor',expected=200){const before=await measure(name+' baseline',api,counters,query,who,expected),after=await measure(name+' candidate',targetApi,candidateCounters,query,who,expected);const qualificationDelta=assertRuleDTO(name,before.body,after.body);assert.deepEqual(after.headers,before.headers,name+' headers');assertReadClosureIO(name,before,after);\n // Keep the historical exact I/O assertion above intact. Independently prove\n // the current scheduler/permission phase against that exact intermediate.\n const optimized=await measure(name+' optimized',optimizedApi,optimizedCounters,query,who,expected);\n assert.deepEqual(optimized.body,after.body,name+' optimized complete DTO');\n assert.deepEqual(optimized.headers,after.headers,name+' optimized headers');\n assert.deepEqual(optimized.consumed,after.consumed,name+' exact consumed object bytes, SHA and error order');\n const revocation=e=>e.kind==='SQL'&&e.sql.includes('FROM process_revoked_sessions');\n assert.deepEqual(optimized.io.filter(e=>e.kind==='SQL'&&!revocation(e)),after.io.filter(e=>e.kind==='SQL'&&!revocation(e)),name+' unchanged non-session SQL');\n const expectedSessionReads=after.metrics.revocationReads===0?0:expected===403?1:2;\n assert.equal(optimized.metrics.revocationReads,expectedSessionReads,name+' explicit fresh authority fences');\n assert.equal(optimized.metrics.r2Bytes,after.metrics.r2Bytes,name+' complete bytes consumed');\n const readKeys=new Set(after.io.filter(e=>e.kind==='R2').map(e=>e.key));\n const manifest=JSON.parse(db.prepare('SELECT \"values\" AS raw FROM shared_state WHERE id=1').get().raw).__processRecords?.values||{};\n for(const key of ['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','processAuthoringControl','masterDataControl','bomOverrides','ipqcABMasterControl','ipqcCMasterControl'])if(manifest[key])readKeys.add(manifest[key].key);\n for(const event of optimized.io.filter(e=>e.kind==='R2'))assert(readKeys.has(event.key),name+' no unselected or unknown object fetched');\n pairs.push({name,qualificationDelta,before:results.indexOf(before),after:results.indexOf(after),parseBefore:summarize(before.validation),parseAfter:summarize(after.validation)});return{before,after};}\n"
+        }
+      ]
     }
   }
 }
