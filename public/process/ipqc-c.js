@@ -1293,7 +1293,13 @@
     cancelSaveChoice?.();const sequence=++mountSequence;busy=false;saveInputNotice=null;readQuarantinedDraft=null;clearProductForms();clearLocal();
     const current=()=>sequence===mountSequence&&host===element;
     host=element;navigationError=null; message=''; conflict=null; modal=null; caseHistory=null; host.innerHTML=`<section class="ipqcc-page"><p>${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</p></section>`;
-    try { await read(false,current,true);if(!current())return;draw(); } catch(error) {if(!current()||isReadSuperseded(error))return;navigationError=error;message=error.message; host.innerHTML=`<section class="ipqcc-page"><p role="alert">${h(displayDraftError(message))}</p><button type="button" class="button signal" id="ipqcc-load-retry">${t('Tải lại dữ liệu','重新載入資料')}</button></section>`;host.querySelector('#ipqcc-load-retry').onclick=()=>mount(element); }
+    try { await read(false,current,true);if(!current())return;draw();
+      // Re-entry may render while the same transport still owns an original
+      // operation. Observe its existing queue only; never read or replay here.
+      const transport=sharedClient,actor=identity(),epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.();
+      const settled=()=>{if(current()&&host?.isConnected&&transport===sharedClient&&actor===identity()&&epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)))syncWriteButtons();};
+      void transport.flush().then(settled,settled);
+    } catch(error) {if(!current()||isReadSuperseded(error))return;navigationError=error;message=error.message; host.innerHTML=`<section class="ipqcc-page"><p role="alert">${h(displayDraftError(message))}</p><button type="button" class="button signal" id="ipqcc-load-retry">${t('Tải lại dữ liệu','重新載入資料')}</button></section>`;host.querySelector('#ipqcc-load-retry').onclick=()=>mount(element); }
   }
   function pendingCount() { return control?.versions.filter(v=>v.status==='pending').length||0; }
   function reviewHTML() { if(readAccessBlocked())return `<section class="ipqcc-review">${readBlockedHTML()}</section>`;return `<section class="ipqcc-review"><h3>IPQC-C · ${t('Chờ duyệt','待審')}</h3><div class="ipqcc-review-body">${t('Đang tải…','載入中…')}</div></section>`; }

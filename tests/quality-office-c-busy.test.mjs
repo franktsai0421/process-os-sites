@@ -10,3 +10,7 @@ for(const lang of ['zh','vi']){
   const answer=gate(),entered=gate();c.box.VersionDraftUI.confirmSubmit=async()=>{entered.resolve();await answer.promise;return null;};const pending=c.api.writeShared('submit');await entered.promise;assert(c.buttons().every(b=>b.disabled));await c.api.writeShared('save');await c.api.writeShared('submit');assert.equal(c.posts().length,0);answer.resolve();await pending;assert(c.buttons().every(b=>!b.disabled));assert.deepEqual(c.f.snapshot(),before);
  });
 }
+
+for(const lang of ['zh','vi'])void test('C re-entry waits for the original transport and unlocks only its current allowed buttons '+lang,async t=>{
+ const c=await busyC(t,{lang}),task=c.api.writeShared('save');await c.started.promise;await c.box.IPQCCUI.mount(c.area);assert.equal(c.api.get().busy,false);assert(c.api.sharedTransport().hasUnknown());assert(c.buttons().every(b=>b.disabled));assert.equal(c.posts().length,1);c.held.resolve();await task;for(let i=0;i<100&&c.buttons().some(b=>b.disabled);i++)await new Promise(setImmediate);assert.equal(c.api.sharedTransport().hasUnknown(),false);assert(c.buttons().every(b=>!b.disabled));assert.equal(c.posts().length,1,'re-entry observes the original queue without another POST');
+});

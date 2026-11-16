@@ -18,3 +18,5 @@
 補充已核實測試語意：Office B新群組明確Save後V1、重載保留；25組送審V2、撤回V3成功。本PR修初始化顯示，不聲稱B保存／送審／撤回失敗。另C第二輪送審與撤回皆HTTP200成功；僅觀察處理中按鈕仍可點，沒有已證實重複資料。
 
 C處理中按鈕根因：writeShared原有同步busy鎖可擋第二次dispatch；但僅Save入口直接停用Save，已被共用header搬移的Submit沒有即時更新，Submit入口也未更新兩鍵。新增同一函式同步兩鍵disabled與aria-busy，並在共用header重掛／回執查詢開始／原owner finally依busy、UNKNOWN、未套用新輸入、草稿與原permission重新評估；不重新建表單、不重送、不清UNKNOWN。隔離實際C controller/client/header＋簽章handler覆蓋POST延遲、後續GET延遲、已寫入但回應丟失、GET原回執、送審取消與寫入前錯誤，中越文驗證兩鍵停用、重複Save/Submit零額外POST、輸入保留與安全恢復。原生390px／1280px另測真button搬移與click行為，CI結果須獨立核對。此為功能回饋，不宣稱實站速度提升。
+
+#125首輪CI `13b836e` 的C原生local-browser在既有「舊Save回應晚於同transport重入」斷言失敗（run43823450717，script239）：新頁於UNKNOWN時正確停用，但原請求結束不會重畫新mount，造成新頁永久停用。修正為mount完成後只觀察同transport既有flush promise，在同mount／actor／epoch／delivery／client仍成立時重新依當前權限同步兩鍵；不讀取、不寫入、不清marker。新增兩語系真controller/handler重入回歸，原native斷言不改，失敗後未跑項須由新CI重跑。

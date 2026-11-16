@@ -273,8 +273,8 @@
     "public/process/ipqc-c.js": {
       "beforeHash": "90ce15c0a28a66ac542dabfb04a9b7ba02f06f601d25c14fc914fbe48aca981d",
       "beforeNormalizedHash": "90ce15c0a28a66ac542dabfb04a9b7ba02f06f601d25c14fc914fbe48aca981d",
-      "afterHash": "569e681f7e82bda9e4a6aebd6f14c429cbbdabb26ef46932ec88ff04dee06370",
-      "afterNormalizedHash": "569e681f7e82bda9e4a6aebd6f14c429cbbdabb26ef46932ec88ff04dee06370",
+      "afterHash": "aac01a7a9f4d5ec320b4b6a89e947a161bbe2b486b012ed348f033be8254c6c7",
+      "afterNormalizedHash": "aac01a7a9f4d5ec320b4b6a89e947a161bbe2b486b012ed348f033be8254c6c7",
       "beforeCRLFRanges": [],
       "rules": [
         {
@@ -301,6 +301,11 @@
           "offset": 52122,
           "before": "    }}\n",
           "after": "    }if(sameActor())syncWriteButtons();}\n"
+        },
+        {
+          "offset": 140300,
+          "before": "    try { await read(false,current,true);if(!current())return;draw(); } catch(error) {if(!current()||isReadSuperseded(error))return;navigationError=error;message=error.message; host.innerHTML=`<section class=\"ipqcc-page\"><p role=\"alert\">${h(displayDraftError(message))}</p><button type=\"button\" class=\"button signal\" id=\"ipqcc-load-retry\">${t('Tải lại dữ liệu','重新載入資料')}</button></section>`;host.querySelector('#ipqcc-load-retry').onclick=()=>mount(element); }\n",
+          "after": "    try { await read(false,current,true);if(!current())return;draw();\n      // Re-entry may render while the same transport still owns an original\n      // operation. Observe its existing queue only; never read or replay here.\n      const transport=sharedClient,actor=identity(),epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.();\n      const settled=()=>{if(current()&&host?.isConnected&&transport===sharedClient&&actor===identity()&&epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)))syncWriteButtons();};\n      void transport.flush().then(settled,settled);\n    } catch(error) {if(!current()||isReadSuperseded(error))return;navigationError=error;message=error.message; host.innerHTML=`<section class=\"ipqcc-page\"><p role=\"alert\">${h(displayDraftError(message))}</p><button type=\"button\" class=\"button signal\" id=\"ipqcc-load-retry\">${t('Tải lại dữ liệu','重新載入資料')}</button></section>`;host.querySelector('#ipqcc-load-retry').onclick=()=>mount(element); }\n"
         }
       ]
     },
