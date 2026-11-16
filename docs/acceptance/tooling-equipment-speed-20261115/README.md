@@ -181,3 +181,72 @@ SPEED_BASELINE_COMMIT=c6ac41a6a996ac88e1b68370b371aed400773e34 SPEED_PAIRS=3 SPE
 檢具 workflow GET：2305 → 2253 ms（本組總時間僅小幅改善，沒有隱藏）；Tooling IQC 唯讀來源：577 → 329 ms，仍只有一個合成 IQC 產品，未驗收大型 catalog。
 
 這些是注入延遲的隔離結果；未量到原生確認視窗、真實站速度、照片解碼或 Diem 實站效果。共同候選沒有降低驗證或提早成功；schema／資料／帳號／權限無異動。
+
+## 第二輪實際客戶端與完整性檢查
+
+基準是已發布 #121 `cd17b8774ee80a9a9cfe68c1b30c90eecc625f64`，候選同時整合已合併 #122 的 main `346c5eefcca7621c481802502cbae61f2821e91d`。三個合併衝突為 CHANGELOG、HANDOFF、process-platform-adopt-source-contract，逐段保留雙方；新增精確雙父 inverse 與漂移拒絕測試，原 manifests／斷言保留。AQL 兩個產品檔 byte-exact 同 main；既有四個速度產品檔 byte-exact 同 cd17。
+
+前輪基準 workflow URL 未加 compact，而 shared client 會加入 `compact=1`。前輪數字保留為非 compact 相容路徑的歷史證據，不能直接代表目前客戶端總等待。這輪使用實際 compact workflow、原設備 page GET，並新增 Tooling checks 等待。
+
+根因：`/api/tooling/checks` 原本內呼完整 workflow GET，計算所有寫入按鈕權限、序列化整份 workflow 後解析，只取 working/saved；checks 的 URL 不符合 workflow 的 read-ahead/並行權限 opt-in。診斷顯示每次 32 SQL、25 can。改為同一授權前置與選定 snapshot，使用原完整 prepared model、parseTooling、toolingChecksInput、原 IQC handler、歷史來源及問題函式；末端保留全域 revision 409，另核對 session 撤銷。沒有略讀任何 R2 body、放寬驗證、隱藏等待、改成功條件或改刪除。新檢查為 11 SQL、3 can；R2 GET 數、CAS（0）、回應 byte 數不變。
+
+Node v24.22.1／Dot Linux，真 TypeScript handlers 與 session revocation SQL，記憶體 SQLite／Map R2。366 模具、119 檢具，各 20 歷史版本、8 無關 aggregate、1 個 IQC part；photos 0、速度 fixture 無轉移。每個 DB/R2 I/O 注入固定 50ms，三組交替 before/after，無丟棄暖身。已控制 Begin，設定與 Begin 排除；read 是 Begin 後讀取，非完整登入／開編輯計時。Save 包含 guarded local edit＋原子 Save，未另假設獨立 Apply 請求。讀取、每個寫入、刷新、checks、IQC 分開量測，整個回應均消費完。
+
+測量期間候選 HEAD 尚為 cd17，after 為未提交合併樹；每輪 runtime hash 全同，測量後逐檔核對候選實際 bytes，最終 commit 綁定同來源。精確 hashes／摘要：[round2-summary-50ms.json](round2-summary-50ms.json)，原始三對：[round2-paired-50ms.json](round2-paired-50ms.json)。以下為中位數 ms，相對已發布 #121 的新增效果，不重複計入第一輪收益。
+
+| 模組／分段 | 前 | 後 | 改善 % |
+| --- | ---: | ---: | ---: |
+| 模具 read | 1845 | 1744 | 5.5 |
+| 模具 open-checks-ready | 2414 | 1025 | 57.5 |
+| 模具 save-write | 1783 | 1724 | 3.3 |
+| 模具 save-refresh | 1786 | 1826 | -2.3 |
+| 模具 save-checks-ready | 2487 | 1064 | 57.2 |
+| 模具 submit-write | 1872 | 1834 | 2.0 |
+| 模具 submit-refresh | 1806 | 1822 | -0.9 |
+| 模具 submit-checks-ready | 2455 | 1048 | 57.3 |
+| 模具 withdraw-write | 1727 | 1762 | -2.0 |
+| 模具 withdraw-refresh | 1803 | 1791 | 0.7 |
+| 模具 resubmit-write | 1808 | 1784 | 1.3 |
+| 模具 resubmit-refresh | 1926 | 1845 | 4.2 |
+| 模具 confirm-review-write | 1538 | 1534 | 0.2 |
+| 模具 confirm-review-refresh | 1753 | 1757 | -0.2 |
+| 模具 relation-load | 315 | 307 | 2.7 |
+| 檢具 read | 646 | 641 | 0.7 |
+| 檢具 save-write | 1958 | 1894 | 3.3 |
+| 檢具 save-refresh | 772 | 770 | 0.2 |
+| 檢具 submit-write | 1906 | 1966 | -3.2 |
+| 檢具 submit-refresh | 767 | 772 | -0.6 |
+| 檢具 withdraw-write | 1931 | 1887 | 2.3 |
+| 檢具 withdraw-refresh | 769 | 783 | -1.8 |
+| 檢具 resubmit-write | 1980 | 1930 | 2.5 |
+| 檢具 resubmit-refresh | 773 | 771 | 0.2 |
+| 檢具 confirm-review-write | 1704 | 1633 | 4.2 |
+| 檢具 confirm-review-refresh | 618 | 614 | 0.6 |
+| 檢具 workflow-read | 2031 | 2069 | -1.9 |
+
+未變更的寫入／主要讀取只有測量波動，不能把小差值宣稱為新增收益。這輪可重現的主要收益在模具 checks，就緒時間不等於寫入耗時；UI 本來在主要 readiness 後非同步載入 advisory，不能相加成畫面被阻塞的總延遲。檢具開啟編輯的引用／FQC-IQC transfer 及主要 API 反覆權限成本仍由獨立 #123 的 request-local phase 與功能修復處理，本輪不抄入或重做。
+
+### 資料與故障回歸
+
+[嚴格成對 handler 結果](round2-checks-contract.json)：366／1000 模具，各 2196／6000 轉移，14 步／端／規模。working/active/問題及完整 checks metadata hashes、I/O 逐項一致；涵蓋未保存、修改、saved 相同／不同、無登入、無關 aggregate 損毀、目標損毀、IQC 損毀與 revision 漂移；所有 checks 零寫入。原 paired 比較斷言完全未改。新增實際 handler 權限／跨請求撤權、前置撤銷、模型／IQC 載入中撤銷、global revision、legacy inline 測試。
+
+### 整合及未驗範圍
+
+#123 當時 head `a6f13841ca910e9a026baabf1ede9bfb4dbc2d27`，仍獨立；共同檔案包含 CHANGELOG、HANDOFF、lib/versioned-shared-workflow.ts、scripts/process-ipqc-frequency-source-contract.cjs、scripts/process-platform-adopt-source-contract.cjs。須保留 #121 原 bounded opt-in 與 #123 phase，不可用整檔覆蓋；來源 proof hooks 需精確整合並重驗。新 checks route 未與 #123 重疊；共同權限函式仍須在後續整合時重驗。
+
+未跑真實 Site／Diem 帳號／原生確認視窗／實體裝置／照片解碼網路／部署後速度／Worker OOM 實站驗收。照片 640×360 的現場敘述不是本輪精確基準；未操作該記錄。FQC/IQC 反查、檢具編輯、AB OOM、刪除功能修復均未納入；schema、資料、帳號、ACL、D1/R2 及部署未改。程式測試不能代表 Diem 實站驗收。
+
+重現：git archive cd17 到獨立 baseline，複製相同 scripts/benchmark-inventory-round2.cjs，再執行：
+
+```sh
+SPEED_BASELINE_COMMIT=cd17b8774ee80a9a9cfe68c1b30c90eecc625f64 SPEED_BENCHMARK_SCRIPT=benchmark-inventory-round2.cjs SPEED_PAIRS=3 SPEED_IO_MS=50 python scripts/compare-tooling-equipment-speed.py /path/to/cd17 /tmp/round2.json
+NODE_PATH="$PWD/node_modules" node scripts/test-tooling-checks-paired.mjs /path/to/cd17
+```
+
+測試與 CI 最終結果隨本輪 commit／PR 更新，未完成的 CI 不稱 PASS。
+
+### 第二輪本機完成結果
+
+[驗證摘要](round2-validation.json)：本機合併 commit `3ebef058b3804e9a3079fa9cdc984ca88315f6b7` 完整 source 970/970 PASS，功能集合 918 項中 900 PASS、18 啟動失敗。900 包括新增 8 項權限／撤銷／inline、Save／Apply、送審／撤回／再送／核准、快速點擊、失敗原回執查詢、刷新及資料保留；原 paired 比較 PASS。lint／TypeScript／guarded build／來源邊界及 29 個變更檔安全掃描 PASS。
+
+18 項不列通過：7 項原生 Chromium 與 11 項 compiled UI。首次 runner 預設瀏覽器與 compiled 的 PROCESS_PROGRAM_COMMIT 設定未就緒；使用既有 `/usr/bin/chromium` 並補上精確 commit 後，原生及單項 compiled 診斷都明確遇到 `socket() failed: Operation not permitted`、SIGABRT。compiled 失敗 fixture 仍持有 runtime，記錄錯誤後中止；未改 flags、護欄或測試斷言以繞過。這是本機瀏覽器驗收阻擋，不是全功能 PASS；GitHub CI 的可執行測試也不能推成實站驗收。詳細原始 logs 留於 Dot `/tmp/inventory-round2-*.log`。文件與 evidence 更新後另跑受影響來源 proof，產品 runtime hashes 未變；精確 GitHub commit／CI 以 PR 當前 head 為準。

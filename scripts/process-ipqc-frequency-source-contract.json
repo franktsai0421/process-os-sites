@@ -1,0 +1,243 @@
+{
+  "base": "c6ac41a6a996ac88e1b68370b371aed400773e34",
+  "files": {
+    ".github/workflows/process-ipqc-link-rules.yml": {
+      "beforeHash": "e350549eb03aa0a4809627a1d8956c02a577e87404f54c16fed1bc2c4840b8e2",
+      "beforeNormalizedHash": "e350549eb03aa0a4809627a1d8956c02a577e87404f54c16fed1bc2c4840b8e2",
+      "afterHash": "3185881d0c9207e55627a8eed9c04d76419ff2436b11af2e1cf485f51538a6fb",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 1919,
+          "before": "        run: node --test tests/process-ipqc-latest.test.mjs tests/process-inspection-view.test.mjs tests/process-platform-adopt-source.test.cjs tests/process-ipqc-assignment-state.test.mjs tests/process-ipqc-link-rules.test.cjs tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-source-history-route.test.mjs tests/process-canvas-atomic-save-stack.test.mjs tests/canvas-pending-form-admission.test.mjs\n",
+          "after": "        run: node --test tests/process-ipqc-frequency.test.mjs tests/process-ipqc-frequency-source.test.cjs tests/process-ipqc-latest.test.mjs tests/process-inspection-view.test.mjs tests/process-platform-adopt-source.test.cjs tests/process-ipqc-assignment-state.test.mjs tests/process-ipqc-link-rules.test.cjs tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-source-history-route.test.mjs tests/process-canvas-atomic-save-stack.test.mjs tests/canvas-pending-form-admission.test.mjs\n"
+        },
+        {
+          "offset": 4980,
+          "before": "        run: node --test tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-latest.test.mjs tests/process-inspection-view.test.mjs tests/process-platform-adopt-source.test.cjs\n",
+          "after": "        run: node --test tests/process-ipqc-frequency.test.mjs tests/process-ipqc-frequency-source.test.cjs tests/process-ipqc-source-adopt.test.mjs tests/process-ipqc-latest.test.mjs tests/process-inspection-view.test.mjs tests/process-platform-adopt-source.test.cjs\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/CHANGELOG.md": {
+      "beforeHash": "d404471000bdb9598cf5b6756882c7cd1d7347a98d8b4a43d97b872a8a83829a",
+      "beforeNormalizedHash": "d404471000bdb9598cf5b6756882c7cd1d7347a98d8b4a43d97b872a8a83829a",
+      "afterHash": "1771f21f325856620dc81d9d290cc68cb43e4b1d8a03db07fd50a9f902009b1b",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-15 — 製程 IPQC 頻率顯示修正候選\n\n獨立 main c6ac41a6 分支修正 C 的 AQL 重複前綴，AB／其他頻率內容保留，中越文與唯讀 DOM 補測。[根因、測試及 CI 界線](../docs/acceptance/process-ipqc-frequency-20261115.md)。不改資料、權限或檢具／模具功能與速度工作，不合併或部署。\n\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/modules/PROCESS.md": {
+      "beforeHash": "8bcf20d2c944ae14668f70fe8c7bff1ff1d761b9f351148e006814c6339fbaff",
+      "beforeNormalizedHash": "8bcf20d2c944ae14668f70fe8c7bff1ff1d761b9f351148e006814c6339fbaff",
+      "afterHash": "0e47b3b2a863fae438f92c522508b52628db6bcc7b8296c493bb70c3566745da",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-15 — IPQC 頻率 AQL 標籤顯示\n\n製程共用 `frequency()` 對 `kind/batchKind=aql` 且有 `aqlValue` 時，只輸出一次 `AQL <數值>`。C 先前把取樣方式與值各加一次 AQL；AB 的 `kind/value`、其他頻率及作者文字保留。適用詳細區、來源比較與既有唯讀 C 查詢；不改來源資料或保存語意。[單項驗證與界線](../../docs/acceptance/process-ipqc-frequency-20261115.md)。\n\n"
+        }
+      ]
+    },
+    "HANDOFF.md": {
+      "beforeHash": "4b7975fa8b9cac9858b2736747e9f85a7dd4a22e423b33160eb006b85e8e72ff",
+      "beforeNormalizedHash": "4b7975fa8b9cac9858b2736747e9f85a7dd4a22e423b33160eb006b85e8e72ff",
+      "afterHash": "abaf46d1a88cbc8a00600a8e56d98c44bd178988d502b7edfc161205fb585782",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-15 — 獨立 IPQC 頻率顯示候選\n\n`fix/process-ipqc-frequency-display-20261115` 從最新遠端 main c6ac41a6（已合併 #120）建立隔離 worktree，只修製程共用頻率中的重複 AQL 標籤。[本輪紀錄](docs/acceptance/process-ipqc-frequency-20261115.md)。資料模型、原資料與權限不變；不合併或部署，檢具／模具兩工作未搬入。\n\n"
+        }
+      ]
+    },
+    "public/process/index.html": {
+      "beforeHash": "fc4a31cb170a8b5f9a927eecbc8590e9f5fcfe4b47a8caca91b6dbbc430ba973",
+      "beforeNormalizedHash": "fc4a31cb170a8b5f9a927eecbc8590e9f5fcfe4b47a8caca91b6dbbc430ba973",
+      "afterHash": "58e88e0727809148be65767bea6e624b5a9cae22d2e5d59f441ca15d0c40a40f",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 9905,
+          "before": "    <script data-process-src=\"process-ipqc.js?v=20261115-ipqc-adopt1\"></script>\n",
+          "after": "    <script data-process-src=\"process-ipqc.js?v=20261115-ipqc-frequency1\"></script>\n"
+        }
+      ]
+    },
+    "public/process/process-ipqc.js": {
+      "beforeHash": "7950992c1b5ceb0a5e6376b63e96dd7844f3f684b97b3091591b80b84c6ac73c",
+      "beforeNormalizedHash": "061648400e95ff4bd05bc379571bfbd1bfa518c45321a03c10ae69a3a8c53921",
+      "afterHash": "b626ed5482acaccfce4c6e15103d022f3f09620466b037fbb9bee0d632e2af3b",
+      "beforeCRLF": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        12,
+        25,
+        26,
+        28,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        40,
+        42,
+        45,
+        48,
+        49,
+        50,
+        59,
+        62,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        76,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191,
+        192,
+        193,
+        194,
+        195,
+        196,
+        197,
+        198,
+        199,
+        200,
+        201,
+        202,
+        203,
+        204,
+        205,
+        206,
+        207,
+        208,
+        209,
+        210,
+        211,
+        212,
+        213,
+        214,
+        215,
+        216,
+        217,
+        218,
+        219,
+        220,
+        221,
+        222,
+        223,
+        224,
+        225,
+        226,
+        227,
+        228,
+        229,
+        230,
+        231,
+        232,
+        233,
+        234,
+        235,
+        236,
+        237,
+        238,
+        239,
+        240,
+        241,
+        242,
+        243,
+        244,
+        245,
+        246,
+        247,
+        248,
+        249,
+        250,
+        251,
+        252,
+        253,
+        254,
+        255,
+        256,
+        257
+      ],
+      "rules": [
+        {
+          "offset": 6970,
+          "before": "    return item.rules?.length?item.rules.map(r=>[localized(names[r.cadence]||r.cadence),localized(names[r.kind||r.batchKind||r.timeFrequency]||r.kind||r.batchKind||r.timeFrequency||''),r.name,r.value,r.aqlValue&&'AQL '+r.aqlValue,r.fixedCount,r.batchQuantity,r.customBatchText,r.customBatchValue,r.customTimeText].filter(Boolean).join(' · ')).join(' / '):localized(item.frequency||'Chưa thiết lập / 未設定');\n",
+          "after": "    return item.rules?.length?item.rules.map(r=>{\n      const kind=r.kind||r.batchKind||r.timeFrequency||'',aql=kind==='aql'&&!!r.aqlValue;\n      return [localized(names[r.cadence]||r.cadence),aql?'AQL '+r.aqlValue:localized(names[kind]||kind),r.name,r.value,!aql&&r.aqlValue&&'AQL '+r.aqlValue,r.fixedCount,r.batchQuantity,r.customBatchText,r.customBatchValue,r.customTimeText].filter(Boolean).join(' · ');\n    }).join(' / '):localized(item.frequency||'Chưa thiết lập / 未設定');\n"
+        }
+      ]
+    },
+    "scripts/process-platform-adopt-source-contract.cjs": {
+      "beforeHash": "916012acd1d729c4abdafbf32f1c983f63a5310c616313c5c0630c75123c57de",
+      "beforeNormalizedHash": "916012acd1d729c4abdafbf32f1c983f63a5310c616313c5c0630c75123c57de",
+      "afterHash": "8c343bac5b8083f6e9fca05ee1df769066e7967f194b0506edaa9ba3aec112d1",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 394,
+          "before": " assert(Buffer.isBuffer(bytes),'Platform adoption proof requires raw bytes');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Platform adoption wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Platform adoption successor drift');\n",
+          "after": " assert(Buffer.isBuffer(bytes),'Platform adoption proof requires raw bytes');bytes=require('./process-ipqc-frequency-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Platform adoption wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Platform adoption successor drift');\n"
+        },
+        {
+          "offset": 1290,
+          "before": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Platform adoption proof requires raw bytes');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n",
+          "after": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Platform adoption proof requires raw bytes');bytes=require('./process-ipqc-frequency-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n"
+        }
+      ]
+    },
+    "tests/navigation-adapters.test.mjs": {
+      "beforeHash": "a2f020a47d28768b75966441e52194e8ea6c8b5e34a919eeabcbd6293e9e7d3a",
+      "beforeNormalizedHash": "a2f020a47d28768b75966441e52194e8ea6c8b5e34a919eeabcbd6293e9e7d3a",
+      "afterHash": "0c7cc66f2030aa900e8d8fde1334e309bd18b92b98270090842173762fcdccd4",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 17834,
+          "before": "  'process-ipqc.js':'20261115-ipqc-adopt1',\n",
+          "after": "  'process-ipqc.js':'20261115-ipqc-frequency1',\n"
+        }
+      ]
+    },
+    "tests/shared-draft-receipt-recovery.test.mjs": {
+      "beforeHash": "473abb71c991c70a12b204ee04b817e567f90cf4140ceab9a96538ff4125b05c",
+      "beforeNormalizedHash": "473abb71c991c70a12b204ee04b817e567f90cf4140ceab9a96538ff4125b05c",
+      "afterHash": "fe8b0d2dd11b6336bf0eeb14f3971845b0fc671bd1da21b05b5305686c16c632",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 14959,
+          "before": "  'process-ipqc.js':'20261115-ipqc-adopt1',\n",
+          "after": "  'process-ipqc.js':'20261115-ipqc-frequency1',\n"
+        }
+      ]
+    }
+  }
+}

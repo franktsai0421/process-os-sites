@@ -22,13 +22,20 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: node --test --test-concurrency=1 tests/inventory-read-ahead.test.mjs tests/inventory-speed-source.test.cjs tests/inventory-main-source.test.cjs tests/fqc-read-ahead.test.mjs tests/ipqc-operation-speed-source.test.cjs tests/ipqc-operation-speed-joint-source.test.cjs tests/ipqc-operation-speed-integration-source.test.cjs tests/process-platform-adopt-source.test.cjs tests/process-ipqc-latest.test.mjs tests/process-inspection-view.test.mjs
-      - run: node scripts/benchmark-tooling-equipment-speed.cjs > inventory-speed-lifecycle.json
+      - run: node --test --test-concurrency=1 tests/inventory-read-ahead.test.mjs tests/inventory-speed-source.test.cjs tests/inventory-main-source.test.cjs tests/inventory-round2-source.test.cjs tests/tooling-checks-read-fences.test.cjs tests/fqc-read-ahead.test.mjs tests/ipqc-operation-speed-source.test.cjs tests/ipqc-operation-speed-joint-source.test.cjs tests/ipqc-operation-speed-integration-source.test.cjs tests/process-platform-adopt-source.test.cjs tests/process-ipqc-latest.test.mjs tests/process-inspection-view.test.mjs
+      - name: Compare exact tooling checks contracts with published inventory head
+        run: |
+          baseline_dir="$(mktemp -d)"
+          git archive cd17b8774ee80a9a9cfe68c1b30c90eecc625f64 | tar -x -C "$baseline_dir"
+          NODE_PATH="$GITHUB_WORKSPACE/node_modules" node scripts/test-tooling-checks-paired.mjs "$baseline_dir" > tooling-checks-paired.json
+      - run: node scripts/benchmark-inventory-round2.cjs > inventory-speed-lifecycle.json
         env:
           SPEED_ROUNDS: '1'
           SPEED_IO_MS: '0'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: inventory-speed-lifecycle-${{ github.sha }}
-          path: inventory-speed-lifecycle.json
+          path: |
+            inventory-speed-lifecycle.json
+            tooling-checks-paired.json
           if-no-files-found: error
