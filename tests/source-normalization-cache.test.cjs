@@ -13,6 +13,14 @@ void test('four-entry LRU is bounded and larger/shared inputs retain complete un
  const large=Buffer.alloc(1024*1024+1,0x80),before=f.hashes();assert.deepEqual(f.cache.bytes(large),normalize(large));assert.equal(f.cache.hash(large),digest(normalize(large)));assert.equal(f.hashes(),before+2,'size cap is cache admission only');
  const shared=Buffer.from(new SharedArrayBuffer(8));shared.fill(65);const start=f.hashes();f.cache.hash(shared);f.cache.hash(shared);assert.equal(f.hashes(),start+2);shared[0]=66;assert.equal(f.cache.hash(shared),digest(normalize(shared)));
 });
+void test('whole backing-store mutation cannot poison private snapshots or cached bytes',()=>{
+ const script=`const assert=require('node:assert/strict'),crypto=require('node:crypto'),create=require('./scripts/source-normalization-cache.cjs');
+ const hash=b=>crypto.createHash('sha256').update(Buffer.from(b.toString('utf8').replaceAll('\\r\\n','\\n'))).digest('hex');
+ const c=create(),raw=Buffer.from('small pooled source proof');c.hash(raw);const out=c.bytes(raw);assert.notEqual(out.buffer,raw.buffer);Buffer.from(out.buffer).fill(0);assert.equal(c.hash(raw),hash(raw));assert.deepEqual(c.bytes(raw),Buffer.from('small pooled source proof'));
+ const second=create(),input=Buffer.from('source backing store');second.hash(input);Buffer.from(input.buffer).fill(0);assert.equal(second.hash(input),hash(input));assert.deepEqual(second.bytes(input),Buffer.from(input.toString('utf8').replaceAll('\\r\\n','\\n')));`;
+ // Isolate deliberate slab mutation from every other test and Node buffer user.
+ const result=require('node:child_process').spawnSync(process.execPath,['-e',script],{cwd:process.cwd(),encoding:'utf8'});assert.equal(result.status,0,result.stderr);
+});
 function original(){const cjs={exports:{}};vm.runInNewContext(execFileSync('git',['show','ea137c7dd8d608d216d45ab29b033fc5f782ff5d:scripts/inventory-quality-source-contract.cjs']).toString(),{Buffer,module:cjs,require:createRequire(path.resolve('scripts/inventory-quality-source-contract.cjs'))});return cjs.exports;}
 void test('cached composition matches genuine original outputs, errors, EOL and warmed mutable-buffer rejection',()=>{
  const before=original(),after=require('../scripts/inventory-quality-source-contract.cjs');

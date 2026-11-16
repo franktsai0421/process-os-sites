@@ -87,3 +87,20 @@ Quality C 三個原命令總計 595.10 秒（約9分55秒），所有命令／as
 新增測試 fixture 曾因局部變數 module 觸發 Next lint；改名 cjs 後 lint／非增量TypeScript通過，
 沒有停用 lint 規則或移除測試。相對 ea137 無任何既有JSON修改／刪除或產品來源變更。
 獨立 IQC 候選、實站資料、帳號、權限、D1/R2、部署均未操作。
+
+## 小 Buffer backing-store 隔離補強
+
+bd6724a8 的 Quality C CI 已成功完成原時限內的整個 job；但額外審查發現初版快取的
+Buffer.from 小型複本可能仍共享 Node slab。獨立程序重現：改動返回值的整個 ArrayBuffer
+同時改掉原輸入與私有 snapshot，導致舊 digest 重用（freshDigestMatches=false）。
+這是新增快取自身需要修正的隔離缺口，不能用前一版 CI 成功掩蓋。
+
+私有 raw snapshot、normalized bytes 與返回值均改成獨立 unpooled backing store；不只是建立
+另一個 Buffer view。新負例在子程序中污染整個返回 backing store 及整個原輸入 backing store，
+避免污染測試框架的其他 pooled Buffers；必須保持 fresh SHA 與原 normalized bytes 正確。
+6/6 測試、lint、TypeScript通過。[重現摘要](pool-repro.json)。
+
+補強後重做三對相同 profile，全部原呼叫數及父版輸出仍相同：known 1226→289ms、
+mutant restore 1146→241ms、mutant admission 995→237ms。[全部原始資料](unpooled-paired.json)。
+前一輪 paired.json 原樣保留；不是刪去不利樣本。補強版本再以本機原 Quality C 命令及
+精確新 head CI 驗證；前一版已完成結果不代替它。所有原 manifests、原 Quality C 命令及時限不變。
