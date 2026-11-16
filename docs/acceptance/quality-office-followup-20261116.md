@@ -20,3 +20,5 @@
 C處理中按鈕根因：writeShared原有同步busy鎖可擋第二次dispatch；但僅Save入口直接停用Save，已被共用header搬移的Submit沒有即時更新，Submit入口也未更新兩鍵。新增同一函式同步兩鍵disabled與aria-busy，並在共用header重掛／回執查詢開始／原owner finally依busy、UNKNOWN、未套用新輸入、草稿與原permission重新評估；不重新建表單、不重送、不清UNKNOWN。隔離實際C controller/client/header＋簽章handler覆蓋POST延遲、後續GET延遲、已寫入但回應丟失、GET原回執、送審取消與寫入前錯誤，中越文驗證兩鍵停用、重複Save/Submit零額外POST、輸入保留與安全恢復。原生390px／1280px另測真button搬移與click行為，CI結果須獨立核對。此為功能回饋，不宣稱實站速度提升。
 
 #125首輪CI `13b836e` 的C原生local-browser在既有「舊Save回應晚於同transport重入」斷言失敗（run43823450717，script239）：新頁於UNKNOWN時正確停用，但原請求結束不會重畫新mount，造成新頁永久停用。修正為mount完成後只觀察同transport既有flush promise，在同mount／actor／epoch／delivery／client仍成立時重新依當前權限同步兩鍵；不讀取、不寫入、不清marker。新增兩語系真controller/handler重入回歸，原native斷言不改，失敗後未跑項須由新CI重跑。
+
+首輪Equipment run43823450784：FQC新增預設AQL及AB初始化／明確Save／重載的390px中文、1280px越文4個原生案例通過；2個新增C案例於結束後enabled斷言失敗。查證為native測試port將簽章fixture的Origin http://fixture原樣送到synthetic.invalid，真handler依原same-origin規則拒403而非成功Save。修正port令Origin等於攔截請求origin，另斷言真POST必須200，再驗按鈕恢復；不改產品或伺服器Origin保護。新CI須確認修正後兩個C原生案例，舊4項不是新SHA全綠證據。
