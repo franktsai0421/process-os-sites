@@ -1,0 +1,530 @@
+{
+  "base": "a1775a8a342d58335edf96d199a9c42844227dc6",
+  "baseTree": "543ab5b4cb3eecbbfce60b963aed186fc84572e0",
+  "accountParent": "07ee2330876b0a87663894494a5ed309eb2f3a21",
+  "files": {
+    "app/api/user-access/route.ts": {
+      "beforeHash": "b12a705ca1741c50b6e2fbd03468a5f3504fb5c430ac1a66afc4a423f92703d7",
+      "afterHash": "ad9b445a3db229d220e396551c27968b648c0a7fe2649013a14a7f24baeef867",
+      "rules": [
+        {
+          "offset": 258,
+          "before": "import {readState,identity,sameOrigin,encodeValues,stateRevisionIsCurrent,responseHeaders as headers,parse,sessionCookie} from '@/lib/process-state';\n",
+          "after": "import {identity,sameOrigin,encodeValues,stateRevisionIsCurrent,responseHeaders as headers,parse,sessionCookie} from '@/lib/process-state';\n"
+        },
+        {
+          "offset": 565,
+          "before": "",
+          "after": "import {readAccountState,encodeAccountState,accountStateIsSelected} from '@/lib/account-state';\n"
+        },
+        {
+          "offset": 5242,
+          "before": "export async function GET(request:Request){try{const state=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl']}),id=(await identity(request,state))?.id;if(!id)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers});let capabilities=pageCapabilities(state.values);if(state.recordStorage){try{const selected=await readState({keys:['masterDataControl'],projectValue:(_key,raw)=>JSON.stringify({pageCapabilities:pageCapabilities({masterDataControl:raw})})});capabilities=selected.revision===state.revision?parse(selected.values.masterDataControl,{}).pageCapabilities||{lines:false}:{lines:false};}catch{capabilities={lines:false};}}return Response.json(projection(state,id,capabilities),{headers});}catch{return Response.json({error:'FORBIDDEN'},{status:403,headers});}}\n",
+          "after": "// A receipt is evidence of the original committed operation, never permission to replay.\nfunction operationReceipt(state:any,actorId:string,requestId:string){\n const entry=parse(state.values.processAccessControl,{}).audit?.find((item:any)=>item.requestId===requestId&&item.actor?.id===actorId);\n if(!entry)return {requestId,committed:false};\n const roles=entry.action.endsWith('role'),current=roles?roleTemplates(state.values)[entry.target]:parse(state.values.platformUsers,[]).find((u:any)=>u.id===entry.target);\n const target=roles?current||null:current?safe(current):null;\n const canonical=(value:any):string=>JSON.stringify(value,(_key,item)=>item&&typeof item==='object'&&!Array.isArray(item)?Object.fromEntries(Object.keys(item).sort().map(key=>[key,item[key]])):item);\n return {requestId,committed:true,action:entry.action,id:entry.target,revision:entry.revision,targetUnchanged:canonical(target)===canonical(entry.after)};\n}\nexport async function GET(request:Request){try{const state=await readAccountState(),id=(await identity(request,state))?.id;if(!id)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers});const requestId=new URL(request.url).searchParams.get('requestId');if(requestId&&!/^account_[a-f0-9-]{36}$/.test(requestId))return Response.json({error:'INVALID_INPUT'},{status:400,headers});return Response.json({...projection(state,id),...(requestId?{operation:operationReceipt(state,id,requestId)}:{})},{headers});}catch{return Response.json({error:'FORBIDDEN'},{status:403,headers});}}\n"
+        },
+        {
+          "offset": 9671,
+          "before": "",
+          "after": " let commitIssued=false;\n"
+        },
+        {
+          "offset": 9824,
+          "before": "  const allowedFields=['action','baseRevision','id','name','role','enabled','changes','password','confirmation','oldPassword','description','access','confirmFinalApproval'];if(Object.keys(body).some(k=>!allowedFields.includes(k)))throw Error('INVALID_INPUT');\n  const state=body.action==='password'?await readPasswordState():await readState({deferHistory:true,deferDependencyHistory:true}),signed=await identity(request,state);if(!signed)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers});\n",
+          "after": "  const allowedFields=['action','baseRevision','id','name','role','enabled','changes','password','confirmation','oldPassword','description','access','confirmFinalApproval','requestId'];if(Object.keys(body).some(k=>!allowedFields.includes(k)))throw Error('INVALID_INPUT');\n  const state=body.action==='password'?await readPasswordState():await readAccountState(),signed=await identity(request,state);if(!signed)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers});\n"
+        },
+        {
+          "offset": 10841,
+          "before": "",
+          "after": "  if(own(body,'requestId')&&(body.action==='password'||typeof body.requestId!=='string'||!/^account_[a-f0-9-]{36}$/.test(body.requestId)))throw Error('INVALID_INPUT');\n  if(body.requestId){const receipt=operationReceipt(state,actor.id,body.requestId);if(receipt.committed)throw Error('REVISION_CHANGED');}\n"
+        },
+        {
+          "offset": 16762,
+          "before": "  if(!changed){assertEffectiveReviewChoices(values,body);return Response.json(projection(state,actor.id),{headers});}\n",
+          "after": "  if(!changed&&!body.requestId){assertEffectiveReviewChoices(values,body);return Response.json(projection(state,actor.id),{headers});}\n"
+        },
+        {
+          "offset": 17217,
+          "before": "  audit.audit.push({id:crypto.randomUUID(),at:now,actor:{id:actor.id,name:actor.name,role:actor.role},action:body.action,target:id,before,after,...(confirmFinalApproval?{approvalConfirmation:{schemaVersion:1,permission:'approval.approve',granted:true,subjectKind:body.action.endsWith('role')?'role':'user',subjectId:id}}:{})});values.processAccessControl=JSON.stringify(audit);\n",
+          "after": "  audit.audit.push({id:crypto.randomUUID(),at:now,actor:{id:actor.id,name:actor.name,role:actor.role},action:body.action,target:id,before,after,...(body.requestId?{requestId:body.requestId,revision:state.revision+1}:{}),...(confirmFinalApproval?{approvalConfirmation:{schemaVersion:1,permission:'approval.approve',granted:true,subjectKind:body.action.endsWith('role')?'role':'user',subjectId:id}}:{})});values.processAccessControl=JSON.stringify(audit);\n"
+        },
+        {
+          "offset": 18325,
+          "before": "  const result=await env.DB.prepare('UPDATE shared_state SET revision=?,\"values\"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,await (passwordStateIsSelected(state)?encodePasswordState(values,state):encodeValues(values,state)),now,state.revision).run();if(!result.meta.changes)throw Error('REVISION_CHANGED');\n  return Response.json({...projection({revision:state.revision+1,values},actor.id),ok:true,relogin:passwordOwn||users.find((u:any)=>u.id===actor.id)?.authEpoch!==parse(state.values.platformUsers,[]).find((u:any)=>u.id===actor.id)?.authEpoch},{headers:{...headers,...(passwordOwn?{'Set-Cookie':sessionCookie(request,'')}: {})}});\n }catch(error){const message=(error as Error).message,known=new Set(['REVIEW_PERMISSION_DERIVED','FORBIDDEN','INVALID_CELLS','EDIT_DEPENDENCY_REQUIRED','VIEW_DEPENDENCY_REQUIRED','INVALID_INPUT','INVALID_USER','ACCOUNT_EXISTS','INVALID_ROLE','GRANT_EXCEEDS_ACTOR','ACCOUNT_NOT_FOUND','OLD_PASSWORD_INCORRECT','USE_STATUS_ACTION','DEFAULT_ROLE_PROTECTED','ROLE_ASSIGNED','ROLE_EXISTS','INVALID_ACTION','REVISION_CHANGED','PRIMARY_BINDING_MISMATCH','PASSWORD_LENGTH','PASSWORD_MISMATCH','PASSWORD_SERVICE_UNAVAILABLE']);const code=known.has(message)?message:'SERVER_ERROR',status=code==='FORBIDDEN'?403:code==='ACCOUNT_NOT_FOUND'?404:code==='REVISION_CHANGED'?409:(code==='PRIMARY_BINDING_MISMATCH'||code==='PASSWORD_SERVICE_UNAVAILABLE')?503:code==='SERVER_ERROR'?500:400;return Response.json({error:code},{status,headers});}\n",
+          "after": "  const encoded=await (passwordStateIsSelected(state)?encodePasswordState(values,state):accountStateIsSelected(state)?encodeAccountState(values,state,body.action,id):encodeValues(values,state));\n  commitIssued=true;const result=await env.DB.prepare('UPDATE shared_state SET revision=?,\"values\"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,encoded,now,state.revision).run();if(!result.meta.changes)throw Error('REVISION_CHANGED');\n  return Response.json({...projection({revision:state.revision+1,values},actor.id),ok:true,...(body.requestId?{operation:operationReceipt({revision:state.revision+1,values},actor.id,body.requestId)}:{}),relogin:passwordOwn||users.find((u:any)=>u.id===actor.id)?.authEpoch!==parse(state.values.platformUsers,[]).find((u:any)=>u.id===actor.id)?.authEpoch},{headers:{...headers,...(passwordOwn?{'Set-Cookie':sessionCookie(request,'')}: {})}});\n }catch(error){const message=(error as Error).message,known=new Set(['REVIEW_PERMISSION_DERIVED','FORBIDDEN','INVALID_CELLS','EDIT_DEPENDENCY_REQUIRED','VIEW_DEPENDENCY_REQUIRED','INVALID_INPUT','INVALID_USER','ACCOUNT_EXISTS','INVALID_ROLE','GRANT_EXCEEDS_ACTOR','ACCOUNT_NOT_FOUND','OLD_PASSWORD_INCORRECT','USE_STATUS_ACTION','DEFAULT_ROLE_PROTECTED','ROLE_ASSIGNED','ROLE_EXISTS','INVALID_ACTION','REVISION_CHANGED','PRIMARY_BINDING_MISMATCH','PASSWORD_LENGTH','PASSWORD_MISMATCH','PASSWORD_SERVICE_UNAVAILABLE']);const code=known.has(message)?message:!commitIssued&&body.action!=='password'?'ACCOUNT_PREWRITE_UNAVAILABLE':'SERVER_ERROR',status=code==='FORBIDDEN'?403:code==='ACCOUNT_NOT_FOUND'?404:code==='REVISION_CHANGED'?409:(code==='PRIMARY_BINDING_MISMATCH'||code==='PASSWORD_SERVICE_UNAVAILABLE'||code==='ACCOUNT_PREWRITE_UNAVAILABLE')?503:code==='SERVER_ERROR'?500:400;return Response.json({error:code},{status,headers});}\n"
+        }
+      ]
+    },
+    "lib/user-access.ts": {
+      "beforeHash": "badd9f0a8d649eb8a4c1e05129d48e604dc7e02ade872132f3bcab5a11fba397",
+      "afterHash": "2bcec3ae01b4c5e7e179f907669e14ac347d528ea63ef4be993a2b807386ba4d",
+      "rules": [
+        {
+          "offset": 2399,
+          "before": "",
+          "after": "  const statusAliases=['status.viewAllLines','status.viewDetails','status.viewMedia'];\n"
+        },
+        {
+          "offset": 2982,
+          "before": "",
+          "after": "  const enabledPermissions=enabled?[...permissions].filter(key=>cells['status.view']||!statusAliases.includes(key)):[];\n  if(enabled&&cells['status.view'])for(const alias of statusAliases)if(!enabledPermissions.includes(alias))enabledPermissions.push(alias);\n"
+        },
+        {
+          "offset": 3396,
+          "before": "    lines: enabled ? ['A','B','C'] : [], views: enabled ? [...new Set(catalog.filter(row=>row.id!=='feedback'&&cells[row.id+'.view']).map(row=>row.view))] : [], permissions: enabled ? [...new Set([...permissions,...accessKeys.filter(key=>cells[key])])] : [] };\n",
+          "after": "    lines: enabled ? ['A','B','C'] : [], views: enabled ? [...new Set(catalog.filter(row=>row.id!=='feedback'&&cells[row.id+'.view']).map(row=>row.view))] : [], permissions: enabled ? [...new Set([...enabledPermissions,...accessKeys.filter(key=>cells[key])])] : [] };\n"
+        }
+      ]
+    },
+    "public/process/user-access.js": {
+      "beforeHash": "59dcce04b68c04335914ed9ff47d10c3d2f206344900f8f8be1a3b0614b24886",
+      "afterHash": "50fe5cee000d45f519c3f8e3287f667434cfd6e05f5934235ce477d86b85da50",
+      "rules": [
+        {
+          "offset": 1045,
+          "before": " const labels={REVIEW_PERMISSION_DERIVED:['此權限仍由平台核准或舊模組審核來源決定，這次未儲存；請先核對來源轉換。','Quyền này còn suy ra từ duyệt nền tảng hoặc nguồn duyệt mô-đun cũ; chưa lưu. Hãy đối chiếu chuyển đổi nguồn trước.'],REVIEW_POLICY_RELOAD_REQUIRED:['權限政策尚未載入，請重新載入頁面後再確認；本次尚未送出。','Chính sách quyền chưa tải; tải lại trang rồi xác nhận. Chưa gửi thay đổi.'],PASSWORD_SERVICE_UNAVAILABLE:['密碼服務暫時無法使用，這次未儲存；請稍後重試。','Dịch vụ mật khẩu tạm thời không khả dụng, chưa lưu; thử lại sau.'],PREWRITE_READ_UNAVAILABLE:['尚未送出這次變更：無法完成最新資料核對，輸入已保留，請稍後再確認。','Chưa gửi thay đổi: không thể đối chiếu dữ liệu mới nhất. Nội dung được giữ; hãy xác nhận lại sau.'],DIALOG_CLOSED:['視窗已關閉，這次變更未送出。','Hộp thoại đã đóng; thay đổi này chưa được gửi.'],ACTOR_CHANGED:['目前身分資料或權限已更新；輸入保留，請關閉後重新開啟核對。','Thông tin hoặc quyền của bạn đã đổi. Nội dung được giữ; đóng rồi mở lại để đối chiếu.'],ACCOUNT_NOT_FOUND:['此帳號已不存在或已刪除，請重新讀取清單核對。','Tài khoản không còn hoặc đã bị xóa; hãy đọc lại danh sách để kiểm tra.'],INVALID_CELLS:['權限設定格式不正確，請重新開啟並核對設定。','Định dạng quyền không hợp lệ; hãy mở lại và kiểm tra thiết lập.'],INVALID_INPUT:['輸入資料格式不正確，請核對表單內容。','Định dạng dữ liệu không hợp lệ; hãy kiểm tra biểu mẫu.'],USE_STATUS_ACTION:['請從更多操作使用停用或重新啟用功能。','Dùng chức năng vô hiệu hóa hoặc kích hoạt lại trong Thao tác khác.'],EDIT_DEPENDENCY_REQUIRED:['缺少必要權限；請展開下方摘要查看需要補勾的項目。新增／刪除／還原需要編輯，FQC 另需 AB 與檢具查看。','Thiếu quyền cần thiết; xem chi tiết điều kiện bên dưới. Thêm/xóa/khôi phục cần Sửa; FQC cần Xem AB và thiết bị.'],WRITE_IN_PROGRESS:['正在保存，請稍候','Đang lưu, vui lòng chờ'],TARGET_CHANGED:['此帳號或角色已被他人修改。輸入仍保留，請關閉並重新開啟核對，不可直接覆蓋。','Tài khoản hoặc vai trò đã đổi. Nội dung vẫn được giữ; đóng và mở lại để đối chiếu, không ghi đè.'],READ_VERIFIED:['已重新讀取且對象未變，請核對輸入後再確認。','Đã đọc lại, đối tượng chưa đổi. Kiểm tra nội dung trước khi xác nhận.'],WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED:['寫入結果尚未確認，請勿重送。請重新載入並核對帳號狀態；密碼變更請重新登入確認。','Chưa xác nhận kết quả ghi. Không gửi lại. Tải lại và kiểm tra tài khoản; đăng nhập lại để xác minh đổi mật khẩu.'],LOGIN_REQUIRED:['請重新登入','Vui lòng đăng nhập lại'],FORBIDDEN:['沒有此操作權限','Không có quyền thao tác'],REVISION_CHANGED:['資料已更新；輸入保留，請重新載入後核對','Dữ liệu đã thay đổi; nội dung được giữ. Tải lại và kiểm tra'],VIEW_DEPENDENCY_REQUIRED:['操作權限需要同列的查看權限；請確認勾選','Quyền thao tác cần quyền Xem cùng dòng; hãy kiểm tra'],GRANT_EXCEEDS_ACTOR:['新帳號的權限不可超過您的權限','Quyền tài khoản mới không được vượt quyền của bạn'],PASSWORD_MISMATCH:['兩次密碼不一致','Hai mật khẩu không khớp'],PASSWORD_LENGTH:['密碼需要 8–200 個字元','Mật khẩu cần 8–200 ký tự'],OLD_PASSWORD_INCORRECT:['原密碼不正確','Mật khẩu cũ không đúng'],ACCOUNT_EXISTS:['此帳號代碼已存在或已保留，請使用其他代碼。','Mã tài khoản đã tồn tại hoặc được giữ lại; hãy dùng mã khác.'],INVALID_USER:['請確認帳號及姓名','Kiểm tra tài khoản và tên'],INVALID_ROLE:['請確認角色代碼及名稱','Kiểm tra mã và tên vai trò'],ROLE_EXISTS:['角色名稱重複或為保留名稱','Tên vai trò trùng hoặc được bảo lưu'],ROLE_ASSIGNED:['仍有帳號使用此角色，請先重新指派','Vẫn có tài khoản dùng vai trò này; hãy chuyển vai trò trước'],DEFAULT_ROLE_PROTECTED:['預設角色不可刪除','Không thể xóa vai trò mặc định'],PRIMARY_BINDING_MISMATCH:['主要管理員綁定不符，請由本機維護確認','Liên kết quản trị viên chính không khớp; cần kiểm tra tại máy'],MAINTENANCE:['系統維護中，請稍後重試','Hệ thống đang bảo trì; thử lại sau'],NETWORK_ERROR:['連線失敗；輸入已保留，請重試','Mất kết nối; nội dung được giữ, hãy thử lại']};\n",
+          "after": " const labels={ACCOUNT_PREWRITE_UNAVAILABLE:['尚未開始寫入：保存前置服務暫時無法使用，輸入已保留，可稍後再確認。','Chưa bắt đầu ghi: dịch vụ chuẩn bị tạm thời không khả dụng. Nội dung được giữ; hãy xác nhận lại sau.'],ACCOUNT_RECEIPT_STORAGE_UNAVAILABLE:['無法保留操作查證紀錄，這次未送出；請確認瀏覽器儲存空間後再試。','Không thể giữ thông tin đối chiếu; chưa gửi. Kiểm tra bộ nhớ trình duyệt rồi thử lại.'],WAIT_STOPPED:['已停止等候；若已送出，伺服器仍可能完成。請只重新讀取核對，不要重送。','Đã dừng chờ; nếu đã gửi, máy chủ vẫn có thể hoàn tất. Chỉ đọc lại để đối chiếu, không gửi lại.'],REVIEW_PERMISSION_DERIVED:['此權限仍由平台核准或舊模組審核來源決定，這次未儲存；請先核對來源轉換。','Quyền này còn suy ra từ duyệt nền tảng hoặc nguồn duyệt mô-đun cũ; chưa lưu. Hãy đối chiếu chuyển đổi nguồn trước.'],REVIEW_POLICY_RELOAD_REQUIRED:['權限政策尚未載入，請重新載入頁面後再確認；本次尚未送出。','Chính sách quyền chưa tải; tải lại trang rồi xác nhận. Chưa gửi thay đổi.'],PASSWORD_SERVICE_UNAVAILABLE:['密碼服務暫時無法使用，這次未儲存；請稍後重試。','Dịch vụ mật khẩu tạm thời không khả dụng, chưa lưu; thử lại sau.'],PREWRITE_READ_UNAVAILABLE:['尚未送出這次變更：無法完成最新資料核對，輸入已保留，請稍後再確認。','Chưa gửi thay đổi: không thể đối chiếu dữ liệu mới nhất. Nội dung được giữ; hãy xác nhận lại sau.'],DIALOG_CLOSED:['視窗已關閉，這次變更未送出。','Hộp thoại đã đóng; thay đổi này chưa được gửi.'],ACTOR_CHANGED:['目前身分資料或權限已更新；輸入保留，請關閉後重新開啟核對。','Thông tin hoặc quyền của bạn đã đổi. Nội dung được giữ; đóng rồi mở lại để đối chiếu.'],ACCOUNT_NOT_FOUND:['此帳號已不存在或已刪除，請重新讀取清單核對。','Tài khoản không còn hoặc đã bị xóa; hãy đọc lại danh sách để kiểm tra.'],INVALID_CELLS:['權限設定格式不正確，請重新開啟並核對設定。','Định dạng quyền không hợp lệ; hãy mở lại và kiểm tra thiết lập.'],INVALID_INPUT:['輸入資料格式不正確，請核對表單內容。','Định dạng dữ liệu không hợp lệ; hãy kiểm tra biểu mẫu.'],USE_STATUS_ACTION:['請從更多操作使用停用或重新啟用功能。','Dùng chức năng vô hiệu hóa hoặc kích hoạt lại trong Thao tác khác.'],EDIT_DEPENDENCY_REQUIRED:['缺少必要權限；請展開下方摘要查看需要補勾的項目。新增／刪除／還原需要編輯，FQC 另需 AB 與檢具查看。','Thiếu quyền cần thiết; xem chi tiết điều kiện bên dưới. Thêm/xóa/khôi phục cần Sửa; FQC cần Xem AB và thiết bị.'],WRITE_IN_PROGRESS:['正在保存，請稍候','Đang lưu, vui lòng chờ'],TARGET_CHANGED:['此帳號或角色已被他人修改。輸入仍保留，請關閉並重新開啟核對，不可直接覆蓋。','Tài khoản hoặc vai trò đã đổi. Nội dung vẫn được giữ; đóng và mở lại để đối chiếu, không ghi đè.'],READ_VERIFIED:['已重新讀取且對象未變，請核對輸入後再確認。','Đã đọc lại, đối tượng chưa đổi. Kiểm tra nội dung trước khi xác nhận.'],WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED:['寫入結果尚未確認，請勿重送。請重新載入並核對帳號狀態；密碼變更請重新登入確認。','Chưa xác nhận kết quả ghi. Không gửi lại. Tải lại và kiểm tra tài khoản; đăng nhập lại để xác minh đổi mật khẩu.'],LOGIN_REQUIRED:['請重新登入','Vui lòng đăng nhập lại'],FORBIDDEN:['沒有此操作權限','Không có quyền thao tác'],REVISION_CHANGED:['資料已更新；輸入保留，請重新載入後核對','Dữ liệu đã thay đổi; nội dung được giữ. Tải lại và kiểm tra'],VIEW_DEPENDENCY_REQUIRED:['操作權限需要同列的查看權限；請確認勾選','Quyền thao tác cần quyền Xem cùng dòng; hãy kiểm tra'],GRANT_EXCEEDS_ACTOR:['新帳號的權限不可超過您的權限','Quyền tài khoản mới không được vượt quyền của bạn'],PASSWORD_MISMATCH:['兩次密碼不一致','Hai mật khẩu không khớp'],PASSWORD_LENGTH:['密碼需要 8–200 個字元','Mật khẩu cần 8–200 ký tự'],OLD_PASSWORD_INCORRECT:['原密碼不正確','Mật khẩu cũ không đúng'],ACCOUNT_EXISTS:['此帳號代碼已存在或已保留，請使用其他代碼。','Mã tài khoản đã tồn tại hoặc được giữ lại; hãy dùng mã khác.'],INVALID_USER:['請確認帳號及姓名','Kiểm tra tài khoản và tên'],INVALID_ROLE:['請確認角色代碼及名稱','Kiểm tra mã và tên vai trò'],ROLE_EXISTS:['角色名稱重複或為保留名稱','Tên vai trò trùng hoặc được bảo lưu'],ROLE_ASSIGNED:['仍有帳號使用此角色，請先重新指派','Vẫn có tài khoản dùng vai trò này; hãy chuyển vai trò trước'],DEFAULT_ROLE_PROTECTED:['預設角色不可刪除','Không thể xóa vai trò mặc định'],PRIMARY_BINDING_MISMATCH:['主要管理員綁定不符，請由本機維護確認','Liên kết quản trị viên chính không khớp; cần kiểm tra tại máy'],MAINTENANCE:['系統維護中，請稍後重試','Hệ thống đang bảo trì; thử lại sau'],NETWORK_ERROR:['連線失敗；輸入已保留，請重試','Mất kết nối; nội dung được giữ, hãy thử lại']};\n"
+        },
+        {
+          "offset": 9924,
+          "before": " // Deadlines bound account reads and ordinary writes. A password write waits for its terminal response; an uncertain POST is never replayed.\n async function requestValue(options={},fresh=false,waitForPassword=false){const initial=!fresh&&options.method!=='POST'&&window.ProcessUserAccessInitialRead?.take();if(initial)return initial;const controller=new AbortController(),timer=options.method==='POST'&&waitForPassword?null:setTimeout(()=>controller.abort(),options.method==='POST'?15000:45000);try{const response=await fetch('/api/user-access',{...options,signal:controller.signal});return {response,value:await response.json()};}finally{clearTimeout(timer);}}\n",
+          "after": " // Reads are bounded. POST waits for its terminal response or an explicit stop;\n // stopping the wait never asserts that the server cancelled the write.\n async function requestValue(options={},fresh=false,_waitForPassword=false){const initial=!fresh&&options.method!=='POST'&&window.ProcessUserAccessInitialRead?.take();if(initial)return initial;const controller=new AbortController(),stop=()=>controller.abort(),timer=options.method==='POST'?null:setTimeout(stop,45000);options.signal?.addEventListener('abort',stop,{once:true});if(options.signal?.aborted)stop();try{const response=await fetch(options.accountURL||'/api/user-access',{...options,signal:controller.signal});return {response,value:await response.json()};}finally{clearTimeout(timer);options.signal?.removeEventListener('abort',stop);}}\n"
+        },
+        {
+          "offset": 10956,
+          "before": " async function load(fresh=false){if(writing)throw Error('WRITE_IN_PROGRESS');if(!fresh&&loading&&sameIdentity(loadingStamp)&&loadingEpoch===writeEpoch)return loading;const owner=identityStamp(),epoch=writeEpoch;if(!owner.id)throw Error('LOGIN_REQUIRED');if(model&&!sameIdentity(modelStamp))model=null;const request=(async()=>{const {response,value}=await requestValue({headers:window.ProcessSync.platformHeaders()},fresh);if(!sameIdentity(owner))throw Error('STALE_IDENTITY_RESPONSE');if(epoch!==writeEpoch)throw Error('STALE_ACCESS_RESPONSE');if(!response.ok){if(response.status===401)expireSession();throw Error(value.error||'NETWORK_ERROR');}if(!value?.actor||value.actor.id!==owner.id||!Number.isSafeInteger(value.revision))throw Error('INVALID_READ_ACK');if(model&&sameIdentity(modelStamp)&&value.revision<model.revision)return model;model=value;modelStamp=owner;emitIdentity(value.actor);return value;})().finally(()=>{if(loading===request){loading=null;loadingStamp=null;}});loading=request;loadingStamp=owner;loadingEpoch=epoch;return request;}\n async function send(payload){if(writing)throw Error('WRITE_IN_PROGRESS');writing++;writeEpoch++;try{return await sendOwned(payload);}finally{writing--;}}\n async function sendOwned(payload){const owner=identityStamp();if(!sameIdentity(modelStamp)||model?.actor.id!==owner.id)throw Error('LOGIN_REQUIRED');if(writeUncertain)throw Error('WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED');let result;writeUncertain=true;\n try{result=await requestValue({method:'POST',headers:window.ProcessSync.platformHeaders(),body:JSON.stringify({...payload,baseRevision:model.revision})},false,payload.action==='password');}catch{if(!sameIdentity(owner))throw Error('STALE_IDENTITY_RESPONSE');throw Error('WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED');}\n const {response,value}=result;if(!sameIdentity(owner))throw Error('STALE_IDENTITY_RESPONSE');if(!response.ok){const passwordUnavailable=response.status===503&&value.error==='PASSWORD_SERVICE_UNAVAILABLE';if(response.status>=400&&response.status<500||passwordUnavailable)writeUncertain=false;if(response.status===401)expireSession();throw Error(passwordUnavailable?'PASSWORD_SERVICE_UNAVAILABLE':response.status>=500?'WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED':value.error||'NETWORK_ERROR');}if(!value?.actor||value.actor.id!==owner.id||!Number.isSafeInteger(value.revision))throw Error('WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED');model=value;modelStamp=owner;writeUncertain=false;emitIdentity(value.actor);if(value.relogin){accountToast(t('權限或密碼已更新，請重新登入','Quyền hoặc mật khẩu đã đổi; vui lòng đăng nhập lại'));expireSession();}return value;}\n",
+          "after": " async function load(fresh=false,signal){if(writing)throw Error('WRITE_IN_PROGRESS');if(!fresh&&loading&&sameIdentity(loadingStamp)&&loadingEpoch===writeEpoch)return loading;const owner=identityStamp(),epoch=writeEpoch;if(!owner.id)throw Error('LOGIN_REQUIRED');if(model&&!sameIdentity(modelStamp))model=null;const request=(async()=>{const pending=window.ProcessAccountWriteReceipt?.pending(owner.id);if(pending)writeUncertain=true;const {response,value}=await requestValue({headers:window.ProcessSync.platformHeaders(),signal,...(pending?{accountURL:'/api/user-access?requestId='+encodeURIComponent(pending.requestId)}:{})},fresh||!!pending);if(!sameIdentity(owner))throw Error('STALE_IDENTITY_RESPONSE');if(epoch!==writeEpoch)throw Error('STALE_ACCESS_RESPONSE');if(!response.ok){if(response.status===401)expireSession();throw Error(value.error||'NETWORK_ERROR');}if(!value?.actor||value.actor.id!==owner.id||!Number.isSafeInteger(value.revision))throw Error('INVALID_READ_ACK');if(model&&sameIdentity(modelStamp)&&value.revision<model.revision){if(fresh||pending)throw Error('STALE_ACCESS_RESPONSE');return model;}if(window.ProcessAccountWriteReceipt?.noteActor(owner.id))writeUncertain=!!pending;model=value;modelStamp=owner;if(pending){writeUncertain=true;if(value.operation?.requestId===pending.requestId&&value.operation.committed===true&&value.operation.action===pending.action&&value.operation.id===pending.id&&Number.isSafeInteger(value.operation.revision)&&value.operation.revision>pending.baseRevision&&value.operation.revision<=value.revision){window.ProcessAccountWriteReceipt.clear(owner.id,pending.requestId);writeUncertain=!!window.ProcessAccountWriteReceipt.pending(owner.id);if(value.operation.targetUnchanged===true)rememberResultNotice(owner,{id:pending.id,action:pending.action});}}emitIdentity(value.actor);return value;})().finally(()=>{if(loading===request){loading=null;loadingStamp=null;}});loading=request;loadingStamp=owner;loadingEpoch=epoch;return request;}\n async function send(payload,signal){if(writing)throw Error('WRITE_IN_PROGRESS');writing++;writeEpoch++;try{return await sendOwned(payload,signal);}finally{writing--;}}\n async function sendOwned(payload,signal){const owner=identityStamp();if(!sameIdentity(modelStamp)||model?.actor.id!==owner.id)throw Error('LOGIN_REQUIRED');if(writeUncertain)throw Error('WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED');let result;const receipt=payload.action==='password'?null:window.ProcessAccountWriteReceipt?.begin(owner.id,payload,model.revision);writeUncertain=true;\n try{result=await requestValue({method:'POST',headers:window.ProcessSync.platformHeaders(),body:JSON.stringify({...payload,baseRevision:model.revision,...(receipt?{requestId:receipt.requestId}:{})}),signal},false,payload.action==='password');}catch{if(!sameIdentity(owner))throw Error('STALE_IDENTITY_RESPONSE');throw Error('WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED');}\n const {response,value}=result;if(!sameIdentity(owner))throw Error('STALE_IDENTITY_RESPONSE');if(!response.ok){const passwordUnavailable=response.status===503&&value.error==='PASSWORD_SERVICE_UNAVAILABLE',accountUnavailable=response.status===503&&value.error==='ACCOUNT_PREWRITE_UNAVAILABLE',maintenance=response.status===503&&value.error==='MAINTENANCE';if(response.status>=400&&response.status<500||passwordUnavailable||accountUnavailable||maintenance){if(receipt)window.ProcessAccountWriteReceipt.clear(owner.id,receipt.requestId);writeUncertain=false;}if(response.status===401)expireSession();throw Error(passwordUnavailable?'PASSWORD_SERVICE_UNAVAILABLE':accountUnavailable?'ACCOUNT_PREWRITE_UNAVAILABLE':maintenance?'MAINTENANCE':response.status>=500?'WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED':value.error||'NETWORK_ERROR');}if(!value?.actor||value.actor.id!==owner.id||!Number.isSafeInteger(value.revision))throw Error('WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED');if(receipt&&!(value.operation?.requestId===receipt.requestId&&value.operation.committed===true&&value.operation.action===receipt.action&&value.operation.id===receipt.id&&value.operation.revision===value.revision&&value.operation.revision>receipt.baseRevision&&value.operation.targetUnchanged===true))throw Error('WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED');model=value;modelStamp=owner;writeUncertain=false;emitIdentity(value.actor);if(value.relogin){accountToast(t('權限或密碼已更新，請重新登入','Quyền hoặc mật khẩu đã đổi; vui lòng đăng nhập lại'));expireSession();}return value;}\n"
+        },
+        {
+          "offset": 19581,
+          "before": " function content(){if(model&&!sameIdentity(modelStamp))model=null;if(!model)return `<section class=\"ua-page\" data-i18n-skip=\"true\" aria-live=\"polite\">${t('載入帳號中…','Đang tải tài khoản…')}</section>`;const manager=model.actor.role==='admin';return `<section class=\"ua-page\" data-i18n-skip=\"true\"><header><h2>${t('使用者與權限','Tài khoản và phân quyền')}</h2>${button(t('修改我的密碼','Đổi mật khẩu của tôi'),'id=\"ua-header-password\"',model.actor.authMode==='demo')}${model.actor.primary?`<span class=\"ua-primary\">${t('主要管理員','Quản trị viên chính')}</span>`:''}</header>${resultNoticeHTML()}${manager?`<nav class=\"ua-tabs\">${button(t('使用者設定','Thiết lập tài khoản'),`data-ua-page=\"users\" aria-pressed=\"${page==='users'}\"`)}${button(t('角色範本','Mẫu vai trò'),`data-ua-page=\"roles\" aria-pressed=\"${page==='roles'}\"`)}</nav>`:''}${manager?(page==='roles'?rolePage():`<div class=\"ua-filters\"><label>${t('搜尋','Tìm')}<input id=\"ua-search\" type=\"search\" placeholder=\"${t('姓名、帳號或角色','Tên, tài khoản hoặc vai trò')}\" value=\"${h(query)}\"></label><label>${t('角色','Vai trò')}<select id=\"ua-role-filter\"><option value=\"\">${t('全部','Tất cả')}</option>${roleOptions(roleFilter)}</select></label><label>${t('狀態','Trạng thái')}<select id=\"ua-status-filter\"><option value=\"\">${t('全部','Tất cả')}</option><option value=\"enabled\" ${statusFilter==='enabled'?'selected':''}>${t('啟用中','Đang hoạt động')}</option><option value=\"disabled\" ${statusFilter==='disabled'?'selected':''}>${t('已停用','Đã vô hiệu hóa')}</option></select></label>${button(t('清除篩選','Xóa bộ lọc'),'id=\"ua-clear\"')}${model.canCreate?button(t('新增使用者','Thêm tài khoản'),'id=\"ua-new-user\"'):''}</div><p id=\"ua-count\" class=\"ua-count\" role=\"status\">${countLabel()}</p><div class=\"ua-users-wrap\"><table class=\"ua-users\"><thead><tr>${[t('帳號','Tài khoản'),t('姓名','Tên'),t('角色與範圍','Vai trò và phạm vi'),t('狀態','Trạng thái'),t('操作','Thao tác')].map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody id=\"ua-rows\">${userRows()}</tbody></table></div><nav id=\"ua-pagination\" class=\"ua-pagination\" aria-label=\"${t('使用者清單分頁','Phân trang tài khoản')}\">${userPager()}</nav>`):`<article class=\"ua-own\"><h3>${h(model.actor.name)}</h3><p>${h(model.actor.id)} · ${h(roleName(model.actor.role))}</p>${button(t('修改密碼','Đổi mật khẩu'),'id=\"ua-own-password\"',model.actor.authMode==='demo')}</article>${ownPermissions()}`}<div id=\"ua-panel\"></div></section>`;}\n",
+          "after": " function content(){if(model&&!sameIdentity(modelStamp))model=null;if(!model)return `<section class=\"ua-page\" data-i18n-skip=\"true\" aria-live=\"polite\">${t('載入帳號中…','Đang tải tài khoản…')}</section>`;const manager=model.actor.role==='admin';return `<section class=\"ua-page\" data-i18n-skip=\"true\"><header><h2>${t('使用者與權限','Tài khoản và phân quyền')}</h2>${button(t('修改我的密碼','Đổi mật khẩu của tôi'),'id=\"ua-header-password\"',model.actor.authMode==='demo')}${model.actor.primary?`<span class=\"ua-primary\">${t('主要管理員','Quản trị viên chính')}</span>`:''}</header>${resultNoticeHTML()}${writeUncertain?`<p class=\"ua-notice\" role=\"status\">${h(message('WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED'))} ${button(t('重新讀取核對（不寫入）','Đọc lại để đối chiếu (không ghi)'),'data-ua-receipt-refresh')}</p>`:''}${manager?`<nav class=\"ua-tabs\">${button(t('使用者設定','Thiết lập tài khoản'),`data-ua-page=\"users\" aria-pressed=\"${page==='users'}\"`)}${button(t('角色範本','Mẫu vai trò'),`data-ua-page=\"roles\" aria-pressed=\"${page==='roles'}\"`)}</nav>`:''}${manager?(page==='roles'?rolePage():`<div class=\"ua-filters\"><label>${t('搜尋','Tìm')}<input id=\"ua-search\" type=\"search\" placeholder=\"${t('姓名、帳號或角色','Tên, tài khoản hoặc vai trò')}\" value=\"${h(query)}\"></label><label>${t('角色','Vai trò')}<select id=\"ua-role-filter\"><option value=\"\">${t('全部','Tất cả')}</option>${roleOptions(roleFilter)}</select></label><label>${t('狀態','Trạng thái')}<select id=\"ua-status-filter\"><option value=\"\">${t('全部','Tất cả')}</option><option value=\"enabled\" ${statusFilter==='enabled'?'selected':''}>${t('啟用中','Đang hoạt động')}</option><option value=\"disabled\" ${statusFilter==='disabled'?'selected':''}>${t('已停用','Đã vô hiệu hóa')}</option></select></label>${button(t('清除篩選','Xóa bộ lọc'),'id=\"ua-clear\"')}${model.canCreate?button(t('新增使用者','Thêm tài khoản'),'id=\"ua-new-user\"'):''}</div><p id=\"ua-count\" class=\"ua-count\" role=\"status\">${countLabel()}</p><div class=\"ua-users-wrap\"><table class=\"ua-users\"><thead><tr>${[t('帳號','Tài khoản'),t('姓名','Tên'),t('角色與範圍','Vai trò và phạm vi'),t('狀態','Trạng thái'),t('操作','Thao tác')].map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody id=\"ua-rows\">${userRows()}</tbody></table></div><nav id=\"ua-pagination\" class=\"ua-pagination\" aria-label=\"${t('使用者清單分頁','Phân trang tài khoản')}\">${userPager()}</nav>`):`<article class=\"ua-own\"><h3>${h(model.actor.name)}</h3><p>${h(model.actor.id)} · ${h(roleName(model.actor.role))}</p>${button(t('修改密碼','Đổi mật khẩu'),'id=\"ua-own-password\"',model.actor.authMode==='demo')}</article>${ownPermissions()}`}<div id=\"ua-panel\"></div></section>`;}\n"
+        },
+        {
+          "offset": 35643,
+          "before": "  const target=(value,payload)=>JSON.stringify((payload.action.endsWith('role')?value.roles:value.users)?.find(item=>item.id===String(payload.id||'').trim().toLowerCase())??null);\n",
+          "after": "  const target=(value,payload)=>groupJSON((payload.action.endsWith('role')?value.roles:value.users)?.find(item=>item.id===String(payload.id||'').trim().toLowerCase())??null);\n"
+        },
+        {
+          "offset": 41480,
+          "before": "   let payload,acknowledged,committed=false;\n",
+          "after": "   let payload,acknowledged,committed=false;const waitController=new AbortController();let stopButton;\n"
+        },
+        {
+          "offset": 42143,
+          "before": "    try{await load(true);}catch(error){if(['LOGIN_REQUIRED','FORBIDDEN','STALE_IDENTITY_RESPONSE','STALE_ACCESS_RESPONSE'].includes(error.message))throw error;throw Error('PREWRITE_READ_UNAVAILABLE');}\n",
+          "after": "    stopButton=document.createElement('button');stopButton.type='button';stopButton.className='button ghost';stopButton.setAttribute('data-ua-stop-wait','');stopButton.textContent=t('停止等候','Dừng chờ');stopButton.onclick=()=>{stopButton.disabled=true;waitController.abort();};d.querySelector('.ua-progress')?.after?.(stopButton);\n    try{await load(true,waitController.signal);}catch(error){if(waitController.signal.aborted)throw Error('WAIT_STOPPED');if(['LOGIN_REQUIRED','FORBIDDEN','STALE_IDENTITY_RESPONSE','STALE_ACCESS_RESPONSE'].includes(error.message))throw error;throw Error('PREWRITE_READ_UNAVAILABLE');}\n    if(waitController.signal.aborted)throw Error('WAIT_STOPPED');\n"
+        },
+        {
+          "offset": 43196,
+          "before": "",
+          "after": "    if(waitController.signal.aborted)throw Error('WAIT_STOPPED');\n"
+        },
+        {
+          "offset": 43339,
+          "before": "    const result=await send(payload);committed=true;\n",
+          "after": "    const result=await send(payload,waitController.signal);committed=true;\n"
+        },
+        {
+          "offset": 43582,
+          "before": "     acknowledged=returned;await load(true);\n",
+          "after": "     acknowledged=returned;await load(true,waitController.signal);\n"
+        },
+        {
+          "offset": 44774,
+          "before": "       await load(true);if(!sameIdentity(owner))throw Error('LOGIN_REQUIRED');\n       if(committed&&acknowledged!==undefined&&target(model,payload)===acknowledged){delete d.dataset.dirty;d.close();rememberResultNotice(owner,payload);paint();accountToast(t('已重新讀取確認保存結果','Đã đọc lại và xác nhận kết quả lưu'));}\n",
+          "after": "       const original=window.ProcessAccountWriteReceipt?.pending(owner.id);await load(true);if(!sameIdentity(owner))throw Error('LOGIN_REQUIRED');\n       const recovered=!writeUncertain&&original&&model.operation?.requestId===original.requestId&&model.operation.committed===true&&model.operation.targetUnchanged===true&&model.operation.action===payload.action&&model.operation.id===String(payload.id||'').trim().toLowerCase();\n       if(recovered){delete d.dataset.dirty;d.close();rememberResultNotice(owner,payload);paint();accountToast(t('已查得原操作回執並重新讀取確認','Đã tìm thấy biên nhận gốc và đọc lại xác nhận'));}\n       else if(committed&&acknowledged!==undefined&&target(model,payload)===acknowledged){delete d.dataset.dirty;d.close();rememberResultNotice(owner,payload);paint();accountToast(t('已重新讀取確認保存結果','Đã đọc lại và xác nhận kết quả lưu'));}\n"
+        },
+        {
+          "offset": 46330,
+          "before": "    progress('');delete d.dataset.saving;d.ariaBusy='false';form.removeAttribute('aria-busy');controls.forEach(c=>c.disabled=previous.get(c));\n",
+          "after": "    stopButton?.remove?.();progress('');delete d.dataset.saving;d.ariaBusy='false';form.removeAttribute('aria-busy');controls.forEach(c=>c.disabled=previous.get(c));\n"
+        },
+        {
+          "offset": 63891,
+          "before": " function bind(){const root=document.querySelector('.ua-page');if(!root)return;root.onclick=event=>{const b=event.target.closest('button');if(!b||b.disabled)return;if(b.hasAttribute('data-ua-prev')||b.hasAttribute('data-ua-next')){userPage+=b.hasAttribute('data-ua-next')?1:-1;refreshRows(root,false);root.querySelector('[data-ua-view]')?.focus({preventScroll:true});}else if(b.id==='ua-clear'){query='';roleFilter='';statusFilter='';root.querySelector('#ua-search').value='';root.querySelector('#ua-search').dispatchEvent(new Event('input',{bubbles:true}));root.querySelector('#ua-role-filter').value='';root.querySelector('#ua-status-filter').value='';refreshRows(root);root.querySelector('#ua-search').focus();}else if(b.dataset.uaPage){page=b.dataset.uaPage;paint();}else if(b.dataset.uaRole){selectedRole=b.dataset.uaRole;paint();}else if(b.dataset.uaView)editUser(model.users.find(u=>u.id===b.dataset.uaView));else if(b.dataset.uaMore)more(model.users.find(u=>u.id===b.dataset.uaMore));else if(b.id==='ua-new-user')editUser();else if(b.id==='ua-own-password'||b.id==='ua-header-password')password(model.actor);else if(b.id==='ua-new-role')editRole();else if(b.dataset.uaEditRole)editRole(model.roles.find(r=>r.id===b.dataset.uaEditRole));else if(b.dataset.uaDeleteRole){const role=model.roles.find(r=>r.id===b.dataset.uaDeleteRole),d=dialog(t('刪除角色','Xóa vai trò'),`<p>${h(role.name)}</p>`);submit(d,()=>({action:'delete-role',id:role.id}));}};\n",
+          "after": " function bind(){const root=document.querySelector('.ua-page');if(!root)return;root.onclick=event=>{const b=event.target.closest('button');if(!b||b.disabled)return;if(b.hasAttribute('data-ua-receipt-refresh')){b.disabled=true;load(true).then(paint).catch(error=>{accountToast(message(error.message));b.disabled=false;});}else if(b.hasAttribute('data-ua-prev')||b.hasAttribute('data-ua-next')){userPage+=b.hasAttribute('data-ua-next')?1:-1;refreshRows(root,false);root.querySelector('[data-ua-view]')?.focus({preventScroll:true});}else if(b.id==='ua-clear'){query='';roleFilter='';statusFilter='';root.querySelector('#ua-search').value='';root.querySelector('#ua-search').dispatchEvent(new Event('input',{bubbles:true}));root.querySelector('#ua-role-filter').value='';root.querySelector('#ua-status-filter').value='';refreshRows(root);root.querySelector('#ua-search').focus();}else if(b.dataset.uaPage){page=b.dataset.uaPage;paint();}else if(b.dataset.uaRole){selectedRole=b.dataset.uaRole;paint();}else if(b.dataset.uaView)editUser(model.users.find(u=>u.id===b.dataset.uaView));else if(b.dataset.uaMore)more(model.users.find(u=>u.id===b.dataset.uaMore));else if(b.id==='ua-new-user')editUser();else if(b.id==='ua-own-password'||b.id==='ua-header-password')password(model.actor);else if(b.id==='ua-new-role')editRole();else if(b.dataset.uaEditRole)editRole(model.roles.find(r=>r.id===b.dataset.uaEditRole));else if(b.dataset.uaDeleteRole){const role=model.roles.find(r=>r.id===b.dataset.uaDeleteRole),d=dialog(t('刪除角色','Xóa vai trò'),`<p>${h(role.name)}</p>`);submit(d,()=>({action:'delete-role',id:role.id}));}};\n"
+        }
+      ]
+    },
+    "public/process/index.html": {
+      "beforeHash": "9b283d7dd999a78a66f1df81c9669649ae1817886ea13b4d2a46726a9cf514de",
+      "afterHash": "d9434d5d6e51efc989548b7f9b6976e6af1f690588b7cac6e4e367a83e43a113",
+      "rules": [
+        {
+          "offset": 11146,
+          "before": "    <script data-process-src=\"user-access.js?v=20261113-password-outcome1\"></script>\n",
+          "after": "    <script data-process-src=\"account-write-receipt.js?v=20261115-account-outcome1\"></script>\n    <script data-process-src=\"user-access.js?v=20261115-account-outcome1\"></script>\n"
+        }
+      ]
+    },
+    "tests/navigation-adapters.test.mjs": {
+      "beforeHash": "f1e2b6a69d09d90cd361bd54c55b47bc7bfa828fe2fc61b3ce29aa99c3ad1ae5",
+      "afterHash": "7c0cf8bb90182853edae2fd5808fc0e20ab0b59ea020e2f1c0fd4b7d012ab8f7",
+      "rules": [
+        {
+          "offset": 8875,
+          "before": "const accountRequest=part(accountSource,' async function requestValue(options={},fresh=false,waitForPassword=false){','\\n function expireSession()');\nconst accountSend=part(accountSource,' async function send(payload){','\\n function paint()');\nassert(accountRequest.startsWith(' async function requestValue(')&&accountRequest.includes('finally{clearTimeout(timer);}'));\n",
+          "after": "const accountRequest=part(accountSource,' async function requestValue(','\\n function expireSession()');\nconst accountSend=part(accountSource,' async function send(','\\n function paint()');\nassert(accountRequest.startsWith(' async function requestValue(')&&accountRequest.includes('finally{clearTimeout(timer);')&&accountRequest.includes(\"options.signal?.removeEventListener('abort',stop)\"));\n"
+        },
+        {
+          "offset": 17733,
+          "before": "  'user-access.js':'20261113-password-outcome1',\n",
+          "after": "  'user-access.js':'20261115-account-outcome1',\n"
+        }
+      ]
+    },
+    "tests/account-page-entry.test.cjs": {
+      "beforeHash": "f3d3809b2db4ce735bf5d924eab4a5b4885bed7ea6c32dbdbc07cf8f5f4cbed0",
+      "afterHash": "b861a6312ead1b23272bbd29be2faae80d9b3fbf3b68629b02b616cec3a24458",
+      "rules": [
+        {
+          "offset": 454,
+          "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261115-quality-root4','master-page-editor.js':'20261114-lines-flow-review1','master-shared-client.js':'20261114-lines-flow-review1','page-draft-merge.js':'20261114-lines-flow-review1','master-data.js':'20261114-lines-flow-review1','version-draft-ui.js':'20261115-quality-root1','user-access.js':'20261113-password-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
+          "after": " assert.equal(scripts.filter(url=>url==='account-write-receipt.js?v=20261115-account-outcome1').length,1);assert(scripts.findIndex(url=>url.startsWith('account-write-receipt.js?'))<scripts.findIndex(url=>url.startsWith('user-access.js?')));\n const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261115-quality-root4','master-page-editor.js':'20261114-lines-flow-review1','master-shared-client.js':'20261114-lines-flow-review1','page-draft-merge.js':'20261114-lines-flow-review1','master-data.js':'20261114-lines-flow-review1','version-draft-ui.js':'20261115-quality-root1','user-access.js':'20261115-account-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/CHANGELOG.md": {
+      "beforeHash": "333b0ea9de823fd9f07e1e2e84a8fef29f49f9fe4e7dbdbb5bcb10694d2999d9",
+      "afterHash": "d0ab9d51f0441b6a5d4a706aa13d113230e2338482558209b984f256c69fc99d",
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "\n## 2026-11-15 — 角色與人員保存／原回執候選\n\n帳號專用 verified records overlay 移除不相關業務讀取；非密碼操作保留獨立 requestId/audit 回執直到 fresh readback，UNKNOWN 只查原操作、不重送，POST 可明確停止等候。status.view 導出明細/照片/影片舊只讀別名；管理員安全邊界、effective inheritance、角色例外、fresh auth/CAS 保留。沒有 live 帳號/資料/schema/政策採用/合併或部署。[根因、量測、完整權限對照與驗證界線](../docs/acceptance/account-role-save-20261115/README.md)。\n\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/modules/MASTER_DATA.md": {
+      "beforeHash": "eb3f4fef397d8214be3cbac6ae68455eb56231c1c8af60869a03b839c526dddc",
+      "afterHash": "da66de4c511f243f051fd1c9f8cbceb7ce1ed5d50dd7816ab2b5b98439c24322",
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "\n## 2026-11-15 — 角色與人員保存／原回執候選\n\n帳號專用 verified records overlay 移除不相關業務讀取；非密碼操作保留獨立 requestId/audit 回執直到 fresh readback，UNKNOWN 只查原操作、不重送，POST 可明確停止等候。status.view 導出明細/照片/影片舊只讀別名；管理員安全邊界、effective inheritance、角色例外、fresh auth/CAS 保留。沒有 live 帳號/資料/schema/政策採用/合併或部署。[根因、量測、完整權限對照與驗證界線](../../docs/acceptance/account-role-save-20261115/README.md)。\n\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/DATA_MODEL.md": {
+      "beforeHash": "432cc8b00820d33c5b24b2c9e4aa1a92b28d85d96c5566782f33dbe4e05657c4",
+      "afterHash": "4d86e4edc02f5a8573cce4db66b7d7664b5040d258828f71044dc0b862474631",
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-15 帳號操作回執\n\n既有 processAccessControl.audit 的非密碼帳號/角色操作可增加 optional requestId、revision；與同次帳號/角色 CAS 原子保存。只讀查證依最新 actor 與原 requestId，回傳原操作是否已 commit 及目前 raw target 是否仍等於原 after，不暴露 credential。account-only overlay 保留其他 records/allocations/legacy refs，generic partial writer 仍禁止；無 SQL/schema/migration/binding 新增或實帳回填。詳見[驗證與限制](../docs/acceptance/account-role-save-20261115/README.md)。\n\n"
+        }
+      ]
+    },
+    "HANDOFF.md": {
+      "beforeHash": "9bb5272f3689f141125110c144de08f451e52633f2e993f264cbaf0a50067c78",
+      "afterHash": "031056cd95e4e7dd3666b420fe2cf2db88ea11116de19bf966b7f762b3c0085a",
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "\n## 2026-11-15 — 角色與人員保存／原回執候選\n\n帳號專用 verified records overlay 移除不相關業務讀取；非密碼操作保留獨立 requestId/audit 回執直到 fresh readback，UNKNOWN 只查原操作、不重送，POST 可明確停止等候。status.view 導出明細/照片/影片舊只讀別名；管理員安全邊界、effective inheritance、角色例外、fresh auth/CAS 保留。沒有 live 帳號/資料/schema/政策採用/合併或部署。[根因、量測、完整權限對照與驗證界線](docs/acceptance/account-role-save-20261115/README.md)。\n\n"
+        }
+      ]
+    },
+    "scripts/process-platform-adopt-source-contract.cjs": {
+      "beforeHash": "2552ddde05d348d6eabdd67b4771827807463394f99d2260a47d31db48e5eb31",
+      "afterHash": "b4f9f452efc435663efd5b9032667544488a21e7f66f8269c40a150c97febffd",
+      "rules": [
+        {
+          "offset": 364,
+          "before": "function restore(bytes,file){\n",
+          "after": "function restore(bytes,file){bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);\n"
+        },
+        {
+          "offset": 1447,
+          "before": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Platform adoption proof requires raw bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);bytes=require('./process-ipqc-frequency-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n",
+          "after": "function projectKnown(bytes,file){bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);assert(Buffer.isBuffer(bytes),'Platform adoption proof requires raw bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);bytes=require('./process-ipqc-frequency-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n"
+        }
+      ]
+    },
+    "scripts/quality-root-source-contract.cjs": {
+      "beforeHash": "dbd853704faf3d4f5014f4fb95ce2163f546d291047ffd564f65c1a1f4193475",
+      "afterHash": "2089479479b1e4c4343a80b1ed286c2e70bf6b459c2b049a22decb404510a8d7",
+      "rules": [
+        {
+          "offset": 438,
+          "before": "function restore(bytes,file){\n",
+          "after": "function restore(bytes,file){bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);\n"
+        },
+        {
+          "offset": 1420,
+          "before": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n",
+          "after": "function projectKnown(bytes,file){bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n"
+        }
+      ]
+    },
+    "scripts/process-ipqc-frequency-source-contract.cjs": {
+      "beforeHash": "b4b9e72c46bf4285a1e2a273555cba0b20a7184a398b9f1fe2fac9ea97f56b97",
+      "afterHash": "704458238da167ac7399fcf4b0ad3ce29c7805a234e168d755380478449faaf8",
+      "rules": [
+        {
+          "offset": 364,
+          "before": "function restore(bytes,file){\n",
+          "after": "function restore(bytes,file){bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);\n"
+        },
+        {
+          "offset": 1360,
+          "before": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Frequency display proof requires raw bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n",
+          "after": "function projectKnown(bytes,file){bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);assert(Buffer.isBuffer(bytes),'Frequency display proof requires raw bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n"
+        }
+      ]
+    },
+    ".github/workflows/account-permissions.yml": {
+      "beforeHash": "bfa9bee2dca2dbeb300f375f71e4a892e4a97e346ed3010cb2490f3bdfbebc6a",
+      "afterHash": "e5ddbd109a9449edd98da63a1579a3d69d156d98d266c2be73492455f017af43",
+      "rules": [
+        {
+          "offset": 612,
+          "before": "",
+          "after": "      - 'lib/account-state.ts'\n      - 'public/process/account-write-receipt.js'\n      - 'scripts/account-outcome-source-contract.*'\n      - 'scripts/account-outcome-main-source-contract.*'\n"
+        },
+        {
+          "offset": 2956,
+          "before": "",
+          "after": "      - name: Account role save receipts, isolated storage faults and retained source proof\n        run: node --experimental-vm-modules --test tests/account-role-outcome.test.mjs tests/account-role-transport.test.mjs tests/account-role-source.test.cjs tests/account-status-view.test.mjs\n"
+        },
+        {
+          "offset": 8400,
+          "before": "",
+          "after": "      - name: Role and user saves, stopped waits and lost acknowledgements in compiled Chromium\n        run: node --experimental-vm-modules tests/account-role-browser.mjs\n"
+        }
+      ]
+    },
+    "scripts/test-access-template-reuse.cjs": {
+      "beforeHash": "c6f1ca2d039ad3d1de89a282d327bd5ed43905a2930bfadc32a586a01f90dbd9",
+      "afterHash": "bdfc10b46c0ea4505f56986da58c56eed242a4193f325076f3c8d6c7ce86112d",
+      "rules": [
+        {
+          "offset": 2478,
+          "before": "",
+          "after": " // Status view now explicitly includes A/B/C details and media. Preserve every\n // historical legacy permission's position and adjust only these three aliases.\n if(before.value?.enabled){\n  const aliases=['status.viewAllLines','status.viewDetails','status.viewMedia'];\n  const roles=prior.roleTemplates(state),scope=user.inheritRole!==false?roles[user.role]:user;\n  const legacy=before.value.primary?prior.roleDefaults.admin.permissions:scope?.permissions||[];\n  const prefix=[...legacy].filter(key=>before.value.cells['status.view']||!aliases.includes(key));\n  if(before.value.cells['status.view'])for(const alias of aliases)if(!prefix.includes(alias))prefix.push(alias);\n  const keys=require('../public/process/access-policy.mjs').accessKeys;\n  before.value.permissions=[...new Set([...prefix,...keys.filter(key=>before.value.cells[key])])];\n }\n"
+        },
+        {
+          "offset": 3436,
+          "before": "check('T1 primary/secondary/custom/default/disabled/deleted/demo and overrides retain results except the explicit feedback-only data alias',()=>{\n",
+          "after": "check('T1 primary/secondary/custom/default/disabled/deleted/demo and overrides retain results except explicit feedback data and status view aliases',()=>{\n"
+        },
+        {
+          "offset": 8840,
+          "before": "console.log(JSON.stringify({status:'PASS',groups:checks.length,checks,comparisons,oldParseCount,newParseCount,network:false,limits:['Pure local computation work only, not measured live bottleneck','No caching between calls or skipping identity/revocation checks','Reuse comparison shares current policy and isolates only feedback-derived data removal; exact main/PR44 layers prove source, not pre-PR44 policy equivalence']}));\n",
+          "after": "console.log(JSON.stringify({status:'PASS',groups:checks.length,checks,comparisons,oldParseCount,newParseCount,network:false,limits:['Pure local computation work only, not measured live bottleneck','No caching between calls or skipping identity/revocation checks','Reuse comparison shares current policy and isolates explicit feedback data removal and status view aliases; exact main/PR44 layers prove source, not pre-PR44 policy equivalence']}));\n"
+        }
+      ]
+    },
+    "tests/account-conflict-groups.test.mjs": {
+      "beforeHash": "0b81cd75f050e13c439fd500f5023c16423ce744fcfe55cb4ef6e829516cb6c7",
+      "afterHash": "99c50f3226300827624dc83908f55277b2dba3247a40ec6d41e0c53bea24442f",
+      "rules": [
+        {
+          "offset": 2882,
+          "before": " const owner={},ctx={P,structuredClone,JSON,Error,console,model:copy(remote),modelStamp:owner,writeUncertain:false,identityStamp:()=>owner,sameIdentity:value=>value===owner,active:()=>true,h:String,t:(zh,vi)=>language==='vi'?vi:zh,document:{createElement:()=>new Node(),querySelector:()=>null,activeElement:null},window:{},roleOptions:()=>ctx.model.roles.map(role=>'<option value=\"'+role.id+'\">'+role.name+'</option>').join(''),roleName:id=>id,permissionLabel:key=>key,button:()=>'',matrix:()=>'',bindSearch(){},setIndeterminate(){},fields:()=>Object.fromEntries(ctx.model.roles.map(row=>[row.id,row])),dialog:()=>dialog,reviewChanges:(_dialog,draft)=>{currentDraft=draft;},syncCells:()=>{},message:code=>code,accountToast(){},paint(){},async load(){reads++;if(readHook)await readHook();ctx.model=copy(remote);return ctx.model;},async send(payload){assert.equal(ctx.model.revision,remote.revision,'must use latest revision');posts.push(copy(payload));const target=payload.action==='update-role'?remote.roles[0]:remote.users[0];assert(target);if(payload.name!==undefined)target.name=payload.name;if(payload.description!==undefined)target.description=payload.description;if(payload.role)target.role=payload.role;const key=payload.action==='update-role'?'access':'accessOverrides';target[key]||={};for(const [cell,value]of Object.entries(payload.changes||payload.access||{})){if(value===null)delete target[key][cell];else target[key][cell]=value;}remote.revision++;return copy(remote);}};\n",
+          "after": " const owner={},ctx={AbortController,P,structuredClone,JSON,Error,console,model:copy(remote),modelStamp:owner,writeUncertain:false,identityStamp:()=>owner,sameIdentity:value=>value===owner,active:()=>true,h:String,t:(zh,vi)=>language==='vi'?vi:zh,document:{createElement:()=>new Node(),querySelector:()=>null,activeElement:null},window:{},roleOptions:()=>ctx.model.roles.map(role=>'<option value=\"'+role.id+'\">'+role.name+'</option>').join(''),roleName:id=>id,permissionLabel:key=>key,button:()=>'',matrix:()=>'',bindSearch(){},setIndeterminate(){},fields:()=>Object.fromEntries(ctx.model.roles.map(row=>[row.id,row])),dialog:()=>dialog,reviewChanges:(_dialog,draft)=>{currentDraft=draft;},syncCells:()=>{},message:code=>code,accountToast(){},paint(){},async load(){reads++;if(readHook)await readHook();ctx.model=copy(remote);return ctx.model;},async send(payload){assert.equal(ctx.model.revision,remote.revision,'must use latest revision');posts.push(copy(payload));const target=payload.action==='update-role'?remote.roles[0]:remote.users[0];assert(target);if(payload.name!==undefined)target.name=payload.name;if(payload.description!==undefined)target.description=payload.description;if(payload.role)target.role=payload.role;const key=payload.action==='update-role'?'access':'accessOverrides';target[key]||={};for(const [cell,value]of Object.entries(payload.changes||payload.access||{})){if(value===null)delete target[key][cell];else target[key][cell]=value;}remote.revision++;return copy(remote);}};\n"
+        }
+      ]
+    },
+    "tests/account-dialog-feedback.test.mjs": {
+      "beforeHash": "02b061bf819ac50d9b1e0fa3e2fa012bb0855c38c1393b836462bc1720e83e38",
+      "afterHash": "1ed0cbde843528791597b93ad2d4aac7d95d5201a1fac4943f061cbb642fa94e",
+      "rules": [
+        {
+          "offset": 1370,
+          "before": " const ctx={JSON,structuredClone,Error,model:structuredClone(initial),modelStamp:owner,writeUncertain:false,identityStamp:()=>owner,sameIdentity:x=>x===owner,active:()=>true,h:s=>String(s).replaceAll('<','&lt;'),t:(zh,vi)=>language==='vi'?vi:zh,message:code=>code,toast(){},accountToast(){},paint(){},document:{querySelector:selector=>selector==='.ua-dialog[data-saving]'&&dialog.dataset.saving?dialog:selector==='.ua-dialog[data-dirty]'&&dialog.dataset.dirty?dialog:null,querySelectorAll:()=>[dialog],createElement:()=>({setAttribute(){}})},async send(){posts++;if(hold)await hold;if(mode==='rejected')throw Error('FORBIDDEN');if(mode.startsWith('rejected:'))throw Error(mode.slice(9));if(mode==='unknown'){ctx.writeUncertain=true;throw Error('WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED');}ctx.model={actor,users:[],roles:[],[key]:action.startsWith('delete-')||mode==='missing-target'?[]:[{...target,name:'After'}]};return ctx.model;},async load(){reads++;if(readHold&&posts===0)await readHold;if(posts===0){if(mode==='prewrite-down')throw Error('SYNTHETIC_READ_DOWN');if(mode==='prewrite-actor')ctx.model={...ctx.model,actor:{...actor,name:'New actor metadata'}};if(mode==='prewrite-target')ctx.model={...ctx.model,[key]:[{...target,name:'Peer changed'}]};if(mode==='prewrite-closed')dialog.open=false;}if(mode==='read-failed'&&posts>0)throw Error('SYNTHETIC_READ_FAILED');if(mode==='changed'&&posts>0)ctx.model={...ctx.model,[key]:[{...target,name:'External'}]};return ctx.model;}};\n",
+          "after": " const ctx={AbortController,window:{},JSON,structuredClone,Error,model:structuredClone(initial),modelStamp:owner,writeUncertain:false,identityStamp:()=>owner,sameIdentity:x=>x===owner,active:()=>true,h:s=>String(s).replaceAll('<','&lt;'),t:(zh,vi)=>language==='vi'?vi:zh,message:code=>code,toast(){},accountToast(){},paint(){},document:{querySelector:selector=>selector==='.ua-dialog[data-saving]'&&dialog.dataset.saving?dialog:selector==='.ua-dialog[data-dirty]'&&dialog.dataset.dirty?dialog:null,querySelectorAll:()=>[dialog],createElement:()=>({setAttribute(){}})},async send(){posts++;if(hold)await hold;if(mode==='rejected')throw Error('FORBIDDEN');if(mode.startsWith('rejected:'))throw Error(mode.slice(9));if(mode==='unknown'){ctx.writeUncertain=true;throw Error('WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED');}ctx.model={actor,users:[],roles:[],[key]:action.startsWith('delete-')||mode==='missing-target'?[]:[{...target,name:'After'}]};return ctx.model;},async load(){reads++;if(readHold&&posts===0)await readHold;if(posts===0){if(mode==='prewrite-down')throw Error('SYNTHETIC_READ_DOWN');if(mode==='prewrite-actor')ctx.model={...ctx.model,actor:{...actor,name:'New actor metadata'}};if(mode==='prewrite-target')ctx.model={...ctx.model,[key]:[{...target,name:'Peer changed'}]};if(mode==='prewrite-closed')dialog.open=false;}if(mode==='read-failed'&&posts>0)throw Error('SYNTHETIC_READ_FAILED');if(mode==='changed'&&posts>0)ctx.model={...ctx.model,[key]:[{...target,name:'External'}]};return ctx.model;}};\n"
+        },
+        {
+          "offset": 7164,
+          "before": " const start=source.indexOf(' function password('),code=source.slice(start,source.indexOf(' function editUser(',start));for(const language of ['zh','vi'])for(const self of [true,false]){let title,markup;const ctx={model:{actor:{id:'synthetic-manager'}},t:(zh,vi)=>language==='vi'?vi:zh,dialog:(a,b)=>{title=a;markup=b;return{};},credentialNotice:()=>'',submit(){}};vm.createContext(ctx);vm.runInContext(code,ctx);ctx.password({id:self?'synthetic-manager':'synthetic-target'});assert.match(title,language==='vi'?(self?/Đổi/:/Đặt lại/):(self?/修改/:/重設/));assert.equal(markup.includes('name=\"oldPassword\"'),self);}\n",
+          "after": " const start=source.indexOf(' function password('),code=source.slice(start,source.indexOf(' function editUser(',start));for(const language of ['zh','vi'])for(const self of [true,false]){let title,markup;const ctx={AbortController,window:{},model:{actor:{id:'synthetic-manager'}},t:(zh,vi)=>language==='vi'?vi:zh,dialog:(a,b)=>{title=a;markup=b;return{};},credentialNotice:()=>'',submit(){}};vm.createContext(ctx);vm.runInContext(code,ctx);ctx.password({id:self?'synthetic-manager':'synthetic-target'});assert.match(title,language==='vi'?(self?/Đổi/:/Đặt lại/):(self?/修改/:/重設/));assert.equal(markup.includes('name=\"oldPassword\"'),self);}\n"
+        },
+        {
+          "offset": 7938,
+          "before": " const labels=source.slice(source.indexOf(' const labels='),source.indexOf(' const roleName=')),summary=source.slice(source.indexOf(' function otherSummary('),source.indexOf(' function matrix('));for(const language of ['zh','vi']){const ctx={t:(zh,vi)=>language==='vi'?vi:zh,primaryOps:['view'],operationLabel:x=>x};vm.createContext(ctx);vm.runInContext(labels+summary+';this.translate=message;',ctx);for(const code of ['ACCOUNT_NOT_FOUND','INVALID_CELLS','INVALID_INPUT','USE_STATUS_ACTION']){const text=ctx.translate(code);assert.doesNotMatch(text,/無法完成操作|Không thể hoàn tất;/);if(language==='vi')assert.doesNotMatch(text,/[\\u3400-\\u9fff]/);}const text=ctx.otherSummary({id:'synthetic',ops:['view','edit','submit']},{cells:{'synthetic.edit':true,'synthetic.submit':true}});assert.equal(text,language==='vi'?'edit, submit':'edit、submit');}\n",
+          "after": " const labels=source.slice(source.indexOf(' const labels='),source.indexOf(' const roleName=')),summary=source.slice(source.indexOf(' function otherSummary('),source.indexOf(' function matrix('));for(const language of ['zh','vi']){const ctx={AbortController,window:{},t:(zh,vi)=>language==='vi'?vi:zh,primaryOps:['view'],operationLabel:x=>x};vm.createContext(ctx);vm.runInContext(labels+summary+';this.translate=message;',ctx);for(const code of ['ACCOUNT_NOT_FOUND','INVALID_CELLS','INVALID_INPUT','USE_STATUS_ACTION']){const text=ctx.translate(code);assert.doesNotMatch(text,/無法完成操作|Không thể hoàn tất;/);if(language==='vi')assert.doesNotMatch(text,/[\\u3400-\\u9fff]/);}const text=ctx.otherSummary({id:'synthetic',ops:['view','edit','submit']},{cells:{'synthetic.edit':true,'synthetic.submit':true}});assert.equal(text,language==='vi'?'edit, submit':'edit、submit');}\n"
+        },
+        {
+          "offset": 13417,
+          "before": " const language=source.match(/^ const vi=.*$/m)[0],toastStart=source.indexOf(' function accountToast('),toast=source.slice(toastStart,source.indexOf(' // Deadlines bound',toastStart));let lang='vi-VN',reads=0;const node={textContent:'',replaceChildren(child){this.child=child;}},ctx={document:{documentElement:{get lang(){return lang;}},querySelector:()=>node,createElement:()=>({dataset:{}})},localStorage:{getItem(){reads++;return'zh';}},toast:text=>node.textContent=text};vm.createContext(ctx);vm.runInContext(language+toast+';this.text=t;',ctx);assert.equal(ctx.text('中文','Tiếng Việt'),'Tiếng Việt');lang='zh-Hant';assert.equal(ctx.text('中文','Tiếng Việt'),'中文');assert.equal(reads,0);ctx.accountToast('Tiếng Việt');assert.equal(node.child.dataset.i18nSkip,'true');assert.equal(node.child.textContent,'Tiếng Việt');assert.equal(node.dataset,undefined);\n",
+          "after": " const language=source.match(/^ const vi=.*$/m)[0],toastStart=source.indexOf(' function accountToast('),toast=source.slice(toastStart,source.indexOf(' // Reads are bounded',toastStart));let lang='vi-VN',reads=0;const node={textContent:'',replaceChildren(child){this.child=child;}},ctx={document:{documentElement:{get lang(){return lang;}},querySelector:()=>node,createElement:()=>({dataset:{}})},localStorage:{getItem(){reads++;return'zh';}},toast:text=>node.textContent=text};vm.createContext(ctx);vm.runInContext(language+toast+';this.text=t;',ctx);assert.equal(ctx.text('中文','Tiếng Việt'),'Tiếng Việt');lang='zh-Hant';assert.equal(ctx.text('中文','Tiếng Việt'),'中文');assert.equal(reads,0);ctx.accountToast('Tiếng Việt');assert.equal(node.child.dataset.i18nSkip,'true');assert.equal(node.child.textContent,'Tiếng Việt');assert.equal(node.dataset,undefined);\n"
+        }
+      ]
+    },
+    "tests/account-password-transport.test.mjs": {
+      "beforeHash": "b73f00c0492b035f8e1fbc18c2b2431a2ae28b3039fd9596331b7c2f4f21c016",
+      "afterHash": "ddd4271ea6b1c8f4dea5033e6625497035e0043125674262bbdfa8a90b96b2e4",
+      "rules": [
+        {
+          "offset": 6106,
+          "before": "void test('ordinary account writes and reads retain their former deadlines',async t=>{\n const f=await passwordFixture();t.after(()=>f.close());const c=controller(f,{holdHeaders:true});await c.seed();const writing=c.ctx.send({action:'update-user',id:'legacy',name:'Synthetic'});assert.equal([...c.timers.values()][0].at,15000);c.tick(15000);await assert.rejects(writing,/WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED/);assert.equal(c.effects.fetch,1);c.releaseHeaders();const d=controller(f,{holdHeaders:true});await d.seed();const reading=d.ctx.load(true);assert.equal([...d.timers.values()][0].at,45000);d.tick(45000);await assert.rejects(reading,/SYNTHETIC_ABORT/);d.releaseHeaders();\n",
+          "after": "void test('ordinary account writes also wait beyond 15s while reads retain a bounded deadline',async t=>{\n const f=await passwordFixture();t.after(()=>f.close());const c=controller(f,{holdHeaders:true});await c.seed();const writing=c.ctx.send({action:'update-user',id:'legacy',name:'Synthetic'});assert.equal(c.timers.size,0);c.tick(16000);assert.equal(c.ctx.writing(),1);c.releaseHeaders();assert.equal((await writing).ok,true);assert.equal(c.effects.fetch,1);const d=controller(f,{holdHeaders:true});await d.seed();const reading=d.ctx.load(true);assert.equal([...d.timers.values()][0].at,45000);d.tick(45000);await assert.rejects(reading,/SYNTHETIC_ABORT/);d.releaseHeaders();\n"
+        }
+      ]
+    },
+    "tests/account-result-notice.test.mjs": {
+      "beforeHash": "506cf93508dd1f205bc4617e80c4a116e64cc291bc015068faf6830cf3f6a8e7",
+      "afterHash": "beed61435b94cdc118e4b002fa4b064001b7e9012a9b5cf8d3326c4e0d422bc4",
+      "rules": [
+        {
+          "offset": 905,
+          "before": " const ctx={structuredClone,Error,JSON,model:{revision:1,actor,users:[target]},modelStamp:owner,writing:0,writeUncertain:false,page:'users',state:{view:'data',dataTab:'users'},identityStamp:()=>owner,sameIdentity:stamp=>stamp===owner,active:()=>active,h:String,t:(zh,vi)=>language==='vi'?vi:zh,roleName:()=> 'STAFF',ownPermissions:()=>'',button:label=>'<button>'+label+'</button>',message:code=>code,toast(){},accountToast(){},paint(){events.paints++;},setTimeout(){throw Error('Result must not auto-dismiss');},document:{querySelector:s=>s==='[data-ua-result]'?{remove(){events.noticesRemoved++;}}:null,createElement:()=>({setAttribute(){}})},async send(){\n",
+          "after": " const ctx={AbortController,window:{},structuredClone,Error,JSON,model:{revision:1,actor,users:[target]},modelStamp:owner,writing:0,writeUncertain:false,page:'users',state:{view:'data',dataTab:'users'},identityStamp:()=>owner,sameIdentity:stamp=>stamp===owner,active:()=>active,h:String,t:(zh,vi)=>language==='vi'?vi:zh,roleName:()=> 'STAFF',ownPermissions:()=>'',button:label=>'<button>'+label+'</button>',message:code=>code,toast(){},accountToast(){},paint(){events.paints++;},setTimeout(){throw Error('Result must not auto-dismiss');},document:{querySelector:s=>s==='[data-ua-result]'?{remove(){events.noticesRemoved++;}}:null,createElement:()=>({setAttribute(){}})},async send(){\n"
+        }
+      ]
+    },
+    "tests/accounts-process-integration-source.test.mjs": {
+      "beforeHash": "acf9cb9e06ed4be48ba22a69566c7fcf9439eb29d4bd9f937fcdc1e81f23b2da",
+      "afterHash": "1d77deed25b3781dcef195b466acff1f1b025174205890ab7c3c7c7c3465eb42",
+      "rules": [
+        {
+          "offset": 1998,
+          "before": "void test('reviewed account/process runtime union retains every installed file with the three pinned quality helpers and exact catalog/password helpers',()=>{\n",
+          "after": "void test('reviewed account/process runtime union retains every installed file with the three pinned quality helpers and exact catalog/password/account helpers',()=>{\n"
+        },
+        {
+          "offset": 3178,
+          "before": " assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\\n'),[...files,...additions,catalogAddition,helper].sort());\n",
+          "after": " const account=createRequire(import.meta.url)('../scripts/account-outcome-source-contract.cjs'),accountHelpers=['lib/account-state.ts','public/process/account-write-receipt.js'];\n assert.deepEqual(Object.keys(account.contract.runtime).sort(),accountHelpers);\n for(const file of accountHelpers){assert.equal(git('ls-tree',account.contract.base,'--',file).length,0);account.assertRuntime(git('show','HEAD:'+file),file);account.assertRuntime(fs.readFileSync(file),file);}\n assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\\n'),[...files,...additions,catalogAddition,helper,...accountHelpers].sort());\n"
+        }
+      ]
+    },
+    "tests/password-outcome-fixture.mjs": {
+      "beforeHash": "103e884cf4d8a2c925774eb05bf2a31c1ed41ca6987e46fd2cfe0a95b0b93177",
+      "afterHash": "a4153cbe8319e6af80468260e5c130905c7478df60a4a5b21c90b4f749766ef1",
+      "rules": [
+        {
+          "offset": 4282,
+          "before": " return{db,objects,source,core,records,pw,users,values,secret,cookies,warnings,snapshot,post,get,sign,request,fault(value){failure=value;},beforeCAS(fn){beforeCAS=fn;},io:()=>({gets:[...gets],puts}),resetIO(){gets=[];puts=0;},close(){db.close();}};\n",
+          "after": " return{env,db,objects,source,core,records,pw,users,values,secret,cookies,warnings,snapshot,post,get,sign,request,fault(value){failure=value;},beforeCAS(fn){beforeCAS=fn;},io:()=>({gets:[...gets],puts}),resetIO(){gets=[];puts=0;},close(){db.close();}};\n"
+        }
+      ]
+    },
+    "tests/process-scripts-build.test.mjs": {
+      "beforeHash": "e099dfea1c9cf581533805ed33c6d1c55093f9994e21d55b2d8d65424f5ae06f",
+      "afterHash": "d75787bf077decc7958420cda345431b9b79663955ac5c6289d2c3eadb36d8ae",
+      "rules": [
+        {
+          "offset": 823,
+          "before": "  assert.equal(result.assets.reduce((n,a)=>n+a.sources.length,0), 57);\n",
+          "after": "  assert.equal(result.assets.reduce((n,a)=>n+a.sources.length,0), 58);\n"
+        },
+        {
+          "offset": 1492,
+          "before": "  // The two independent Routine page assets account for 55 -> 57. Keep\n",
+          "after": "  // Routine page assets account for 55 -> 57; account receipts add the 58th. Keep\n"
+        },
+        {
+          "offset": 2186,
+          "before": "",
+          "after": "  const accountAsset=result.assets.find(asset=>asset.sources.includes('user-access.js'));\n  assert.equal(accountAsset.sources.filter(name=>name==='account-write-receipt.js').length,1);\n  assert(accountAsset.sources.indexOf('account-write-receipt.js')<accountAsset.sources.indexOf('user-access.js'));\n"
+        }
+      ]
+    },
+    "tests/process-shell-bundle-oracle.mjs": {
+      "beforeHash": "73ce129ce4561dd9356ac67e2f84d1d26928eb41c667987a78e39e92133c7f45",
+      "afterHash": "e0ba85cd7d9b9d3c5499365348fd1a364577bad1fe696d6916cff52b654a6a57",
+      "rules": [
+        {
+          "offset": 0,
+          "before": "// Test-only reviewed inventory: main 9fbba823's 50 scripts plus seven #103 modules and one reviewed move.\n",
+          "after": "// Test-only reviewed inventory: main 9fbba823's 50 scripts plus seven #103 modules and the account receipt module and one reviewed move.\n"
+        },
+        {
+          "offset": 1594,
+          "before": " 'canvas-approved-history.js','page-draft-merge.js','master-page-transfer.js','master-page-approved-history.js','master-page-editor.js','routine-page-approved-history.js','routine-fqc-page.js',\n",
+          "after": " 'canvas-approved-history.js','page-draft-merge.js','master-page-transfer.js','master-page-approved-history.js','master-page-editor.js','routine-page-approved-history.js','routine-fqc-page.js','account-write-receipt.js',\n"
+        },
+        {
+          "offset": 2613,
+          "before": "groups[1].splice(groups[1].indexOf('routine-fqc.js'),0,...reviewedProcessBundleAdditions.slice(5));\n",
+          "after": "groups[1].splice(groups[1].indexOf('routine-fqc.js'),0,...reviewedProcessBundleAdditions.slice(5,7));\ngroups[1].splice(groups[1].indexOf('user-access.js'),0,reviewedProcessBundleAdditions[7]);\n"
+        }
+      ]
+    },
+    "tests/process-shell-bundle-oracle.test.mjs": {
+      "beforeHash": "180755fd8bf5776e4128a8e3d947dbbc6975c6bf8d419a743fa6404784b70214",
+      "afterHash": "d37b43b1d829177a2fe212be0994e914f690820fb8a598e3230b04c4adca867f",
+      "rules": [
+        {
+          "offset": 1047,
+          "before": " assert.deepEqual(reviewedProcessBundleAdditions,['canvas-approved-history.js','page-draft-merge.js','master-page-transfer.js','master-page-approved-history.js','master-page-editor.js','routine-page-approved-history.js','routine-fqc-page.js']);\n",
+          "after": " assert.deepEqual(reviewedProcessBundleAdditions,['canvas-approved-history.js','page-draft-merge.js','master-page-transfer.js','master-page-approved-history.js','master-page-editor.js','routine-page-approved-history.js','routine-fqc-page.js','account-write-receipt.js']);\n"
+        },
+        {
+          "offset": 7976,
+          "before": " assert.equal(expectedProcessBundleGroups.flat().length,57);\n",
+          "after": " assert.equal(expectedProcessBundleGroups.flat().length,58);\n"
+        },
+        {
+          "offset": 8920,
+          "before": "void test('restoring the obsolete VersionDraftUI location is rejected even with all 57 modules',()=>{\n",
+          "after": "void test('restoring the obsolete VersionDraftUI location is rejected even with all 58 modules',()=>{\n"
+        },
+        {
+          "offset": 9200,
+          "before": " assert.equal(assets.flatMap(asset=>asset.sources).length,57);assert.throws(()=>assertProcessScriptBundles(assets,read),{code:'ERR_ASSERTION'});\n",
+          "after": " assert.equal(assets.flatMap(asset=>asset.sources).length,58);assert.throws(()=>assertProcessScriptBundles(assets,read),{code:'ERR_ASSERTION'});\n"
+        }
+      ]
+    },
+    "tests/quality-shell-bundle-oracle.test.mjs": {
+      "beforeHash": "5b5fef2dbf60d502f37dfc015950b291883fd4eaf7d346965e255e7eb6a54f8d",
+      "afterHash": "93dd6af744244a1a7877f8993fc4bd373b81e85eac3e413ec4202e235a2eb0d1",
+      "rules": [
+        {
+          "offset": 713,
+          "before": "void test('reviewed main50 plus seven named quality and PROCESS modules produces the independently ordered current bundles',()=>{\n",
+          "after": "void test('reviewed main50 plus seven quality/PROCESS modules and the account receipt module produces the independently ordered current bundles',()=>{\n"
+        },
+        {
+          "offset": 951,
+          "before": " assert.deepEqual(reviewedProcessBundleAdditions,['canvas-approved-history.js','page-draft-merge.js','master-page-transfer.js','master-page-approved-history.js','master-page-editor.js','routine-page-approved-history.js','routine-fqc-page.js']);\n",
+          "after": " assert.deepEqual(reviewedProcessBundleAdditions,['canvas-approved-history.js','page-draft-merge.js','master-page-transfer.js','master-page-approved-history.js','master-page-editor.js','routine-page-approved-history.js','routine-fqc-page.js','account-write-receipt.js']);\n"
+        }
+      ]
+    },
+    "tests/fixtures/browser-timer-inventory.json": {
+      "beforeHash": "c9a0e8afe0611bf249c916dbebe5c043b7a48d7fce83e73db4bbb847782e427b",
+      "afterHash": "e2b11457cdd877e1b2e027d704232dd0295667b3b166d4799809d9e2803d0e0b",
+      "rules": [
+        {
+          "offset": 8434,
+          "before": "    \"line\": 18,\n",
+          "after": "    \"line\": 27,\n"
+        },
+        {
+          "offset": 8476,
+          "before": "    \"hash\": \"c4acefcdf58e25f315084be953bcbb04f86a77974f1b88310b3b8286eac55ab9\",\n    \"purpose\": \"Deadline for one explicit/initial request or resource load.\"\n",
+          "after": "    \"hash\": \"81120a9b291bd51b85b48ad4c489464c92b63270b1bec9c6d6dbd5e775e96fd9\",\n    \"purpose\": \"45-second deadline for one explicit/initial read; writes wait for terminal response or explicit stop. No recurring reader.\"\n"
+        }
+      ]
+    },
+    "tests/process-ipqc-frequency-source.test.cjs": {
+      "beforeHash": "2c3289909109bae463bea8830e3f104d9612ed4ea07c642990804411c02de345",
+      "afterHash": "f737a848f9a4d76a534d2827d9a3b0f54f45a111e7f24095cefd09bd585cadb9",
+      "rules": [
+        {
+          "offset": 589,
+          "before": " for(const bad of [bytes.subarray(1),Buffer.concat([bytes,Buffer.from(' ')]),Buffer.from(bytes.map((v,i)=>i===Math.floor(bytes.length/2)?v^1:v))]){assert.throws(()=>p.restore(bad,file));assert(p.projectKnown(bad,file).equals(bad));}assert.throws(()=>p.restore(bytes,'wrong/path'));assert(p.projectKnown(bytes,'wrong/path').equals(bytes));\n",
+          "after": " const lf=p.normalized(bytes); // Mutate semantic LF bytes: dropping only CR from CRLF is not drift.\n for(const bad of [lf.subarray(1),Buffer.concat([lf,Buffer.from(' ')]),Buffer.from(lf.map((v,i)=>i===Math.floor(lf.length/2)?v^1:v))]){assert.notEqual(p.hash(p.normalized(bad)),p.hash(lf),'negative must change normalized content');assert.throws(()=>p.restore(bad,file));assert(p.projectKnown(bad,file).equals(bad));}assert.throws(()=>p.restore(bytes,'wrong/path'));assert(p.projectKnown(bytes,'wrong/path').equals(bytes));\n"
+        }
+      ]
+    },
+    "tests/process-platform-adopt-source.test.cjs": {
+      "beforeHash": "f15ef43880c4e9042d216e6af8063f44cc58edb350dab1ee6abe9e535b300620",
+      "afterHash": "9cdc1ccd592f98e68c058560fda68e7008e66f45888efa03d7fe3d1fcf28d63d",
+      "rules": [
+        {
+          "offset": 651,
+          "before": " for(const altered of [Buffer.concat([bytes,Buffer.from(' ')]),bytes.subarray(1),Buffer.from(bytes.map((v,i)=>i===Math.floor(bytes.length/2)?v^1:v))]){assert.throws(()=>p.restore(altered,file));assert(p.projectKnown(altered,file).equals(altered));}assert.throws(()=>p.restore(bytes,'wrong/path'));\n",
+          "after": " const lf=p.normalized(bytes); // Mutate semantic LF bytes: dropping only CR from CRLF is not drift.\n for(const altered of [lf.subarray(1),Buffer.concat([lf,Buffer.from(' ')]),Buffer.from(lf.map((v,i)=>i===Math.floor(lf.length/2)?v^1:v))]){assert.notEqual(p.hash(p.normalized(altered)),p.hash(lf),'negative must change normalized content');assert.throws(()=>p.restore(altered,file));assert(p.projectKnown(altered,file).equals(altered));}assert.throws(()=>p.restore(bytes,'wrong/path'));\n"
+        }
+      ]
+    }
+  }
+}

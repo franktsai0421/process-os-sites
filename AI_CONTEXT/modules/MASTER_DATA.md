@@ -1,4 +1,9 @@
 
+## 2026-11-15 — 角色與人員保存／原回執候選
+
+帳號專用 verified records overlay 移除不相關業務讀取；非密碼操作保留獨立 requestId/audit 回執直到 fresh readback，UNKNOWN 只查原操作、不重送，POST 可明確停止等候。status.view 導出明細/照片/影片舊只讀別名；管理員安全邊界、effective inheritance、角色例外、fresh auth/CAS 保留。沒有 live 帳號/資料/schema/政策採用/合併或部署。[根因、量測、完整權限對照與驗證界線](../../docs/acceptance/account-role-save-20261115/README.md)。
+
+
 ## 2026-11-14 — 兩頁明確等待及停止
 
 已安裝 LINES／PROCESS 的 canonical 按鈕讀寫與 PROCESS 引用查詢取消前端固定 45 秒 abort；單次進度提示不輪詢。停止等候不取消伺服器工作，已送原 ID／generation／marker 保留，404／晚到／錯誤回執不得當成功或失敗，只查原回執；CAS／授權不變。未採用 page-v1 的 LINES 仍唯讀，舊 linkedProcess 案件須有權人撤回／退回後分別送審，未遷移或操作實站。詳細來源、測試及平台未驗限制見既有 lines-flow 驗收紀錄。

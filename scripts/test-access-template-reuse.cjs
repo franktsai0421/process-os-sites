@@ -15,10 +15,21 @@ function same(user,state){
  // The historical implementation derives generic data access from feedback alone.
  // Reverse only that newly forbidden alias; every other result field stays exact.
  if(before.value?.enabled&&before.value.cells['feedback.view']&&!require('../public/process/access-policy.mjs').catalog.some(row=>row.id!=='feedback'&&row.view==='data'&&before.value.cells[row.id+'.view']))before.value.views=before.value.views.filter(view=>view!=='data');
+ // Status view now explicitly includes A/B/C details and media. Preserve every
+ // historical legacy permission's position and adjust only these three aliases.
+ if(before.value?.enabled){
+  const aliases=['status.viewAllLines','status.viewDetails','status.viewMedia'];
+  const roles=prior.roleTemplates(state),scope=user.inheritRole!==false?roles[user.role]:user;
+  const legacy=before.value.primary?prior.roleDefaults.admin.permissions:scope?.permissions||[];
+  const prefix=[...legacy].filter(key=>before.value.cells['status.view']||!aliases.includes(key));
+  if(before.value.cells['status.view'])for(const alias of aliases)if(!prefix.includes(alias))prefix.push(alias);
+  const keys=require('../public/process/access-policy.mjs').accessKeys;
+  before.value.permissions=[...new Set([...prefix,...keys.filter(key=>before.value.cells[key])])];
+ }
  assert.deepEqual(after,before);
 }
 function check(name,fn){fn();checks.push(name);console.log('PASS '+name);}
-check('T1 primary/secondary/custom/default/disabled/deleted/demo and overrides retain results except the explicit feedback-only data alias',()=>{
+check('T1 primary/secondary/custom/default/disabled/deleted/demo and overrides retain results except explicit feedback data and status view aliases',()=>{
  for(const user of users)for(const state of [values,{}, {processCustomRoles:custom,processRoleTemplateOverrides:{}}, {processCustomRoles:'invalid-json',processRoleTemplateOverrides:'invalid-json'}, {processCustomRoles:'[]',processRoleTemplateOverrides:'{}'}])same(user,state);
  assert.equal(current.effectiveAccess(users[0],values).primary,true);assert.equal(current.effectiveAccess(users[1],values).primary,false);assert.equal(current.effectiveAccess(users[8],values).primary,false);
  const limited=current.effectiveAccess(users.at(-1),values);assert.equal(limited.cells['users.edit'],false);assert.equal(limited.cells['feedback.exchange'],false);
@@ -63,4 +74,4 @@ check('T5 exact reuse plus pinned PR44, AB-phase and FQC-phase deltas; outside-s
  assert.deepEqual(lf(fs.readFileSync(policy)),lf(committedPolicy));
  for(const [file,bytes]of [['lib/user-access.ts',now],[policy,committedPolicy]])assertAccessTemplateContract(file,bytes);
 });
-console.log(JSON.stringify({status:'PASS',groups:checks.length,checks,comparisons,oldParseCount,newParseCount,network:false,limits:['Pure local computation work only, not measured live bottleneck','No caching between calls or skipping identity/revocation checks','Reuse comparison shares current policy and isolates only feedback-derived data removal; exact main/PR44 layers prove source, not pre-PR44 policy equivalence']}));
+console.log(JSON.stringify({status:'PASS',groups:checks.length,checks,comparisons,oldParseCount,newParseCount,network:false,limits:['Pure local computation work only, not measured live bottleneck','No caching between calls or skipping identity/revocation checks','Reuse comparison shares current policy and isolates explicit feedback data removal and status view aliases; exact main/PR44 layers prove source, not pre-PR44 policy equivalence']}));

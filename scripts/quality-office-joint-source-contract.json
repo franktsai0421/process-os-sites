@@ -1,0 +1,259 @@
+{
+  "parents": {
+    "office": {
+      "sha": "1be9cb637bb789b6065cd46bb40532f6f759baa7",
+      "files": {
+        "AI_CONTEXT/CHANGELOG.md": {
+          "beforeHash": "218fa1a59afab2a89f7dee5000ebf12f0e5443e2c76691168eb8d08d8b967ca1",
+          "beforeNormalizedHash": "218fa1a59afab2a89f7dee5000ebf12f0e5443e2c76691168eb8d08d8b967ca1",
+          "afterHash": "72b7aca6497242755d92f9585214dbe9a244514e865e2a75742f8a72f3f586b7",
+          "afterNormalizedHash": "72b7aca6497242755d92f9585214dbe9a244514e865e2a75742f8a72f3f586b7",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 632,
+              "before": "",
+              "after": "\n## 2026-11-15 — 角色與人員保存／原回執候選\n\n帳號專用 verified records overlay 移除不相關業務讀取；非密碼操作保留獨立 requestId/audit 回執直到 fresh readback，UNKNOWN 只查原操作、不重送，POST 可明確停止等候。status.view 導出明細/照片/影片舊只讀別名；管理員安全邊界、effective inheritance、角色例外、fresh auth/CAS 保留。沒有 live 帳號/資料/schema/政策採用/合併或部署。[根因、量測、完整權限對照與驗證界線](../docs/acceptance/account-role-save-20261115/README.md)。\n"
+            }
+          ]
+        },
+        "HANDOFF.md": {
+          "beforeHash": "caf1df9ac67c3908d9c1fb5b0cb7ccc6bf9f7eb9f7e4ed614893030bd4156113",
+          "beforeNormalizedHash": "caf1df9ac67c3908d9c1fb5b0cb7ccc6bf9f7eb9f7e4ed614893030bd4156113",
+          "afterHash": "2abb615eb6fe1561b68628ee72cf258a2a1ed0a91650590795bdefa8e6414f38",
+          "afterNormalizedHash": "2abb615eb6fe1561b68628ee72cf258a2a1ed0a91650590795bdefa8e6414f38",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 798,
+              "before": "",
+              "after": "\n## 2026-11-15 — 角色與人員保存／原回執候選\n\n帳號專用 verified records overlay 移除不相關業務讀取；非密碼操作保留獨立 requestId/audit 回執直到 fresh readback，UNKNOWN 只查原操作、不重送，POST 可明確停止等候。status.view 導出明細/照片/影片舊只讀別名；管理員安全邊界、effective inheritance、角色例外、fresh auth/CAS 保留。沒有 live 帳號/資料/schema/政策採用/合併或部署。[根因、量測、完整權限對照與驗證界線](docs/acceptance/account-role-save-20261115/README.md)。\n"
+            }
+          ]
+        },
+        "public/process/index.html": {
+          "beforeHash": "64928ebc03ae492edfb05be2355c2c13fa2c005822f3697498e92fe8537f9de9",
+          "beforeNormalizedHash": "64928ebc03ae492edfb05be2355c2c13fa2c005822f3697498e92fe8537f9de9",
+          "afterHash": "c4f1601ecf9ed2f34773f4205498a05879f30593c10a8a9010eb31245b40527b",
+          "afterNormalizedHash": "c4f1601ecf9ed2f34773f4205498a05879f30593c10a8a9010eb31245b40527b",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 11152,
+              "before": "    <script data-process-src=\"user-access.js?v=20261113-password-outcome1\"></script>\n",
+              "after": "    <script data-process-src=\"account-write-receipt.js?v=20261115-account-outcome1\"></script>\n    <script data-process-src=\"user-access.js?v=20261115-account-outcome1\"></script>\n"
+            }
+          ]
+        },
+        "tests/navigation-adapters.test.mjs": {
+          "beforeHash": "9c36aa9c5e5bdc633188062f5c95e481952015dec4e0921b156e3bdf14e12935",
+          "beforeNormalizedHash": "9c36aa9c5e5bdc633188062f5c95e481952015dec4e0921b156e3bdf14e12935",
+          "afterHash": "8e1ba195f353cc4facb4c870208ca5135ce7426cf66c8bdd50c1ea6ba9cf2202",
+          "afterNormalizedHash": "8e1ba195f353cc4facb4c870208ca5135ce7426cf66c8bdd50c1ea6ba9cf2202",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 8875,
+              "before": "const accountRequest=part(accountSource,' async function requestValue(options={},fresh=false,waitForPassword=false){','\\n function expireSession()');\nconst accountSend=part(accountSource,' async function send(payload){','\\n function paint()');\nassert(accountRequest.startsWith(' async function requestValue(')&&accountRequest.includes('finally{clearTimeout(timer);}'));\n",
+              "after": "const accountRequest=part(accountSource,' async function requestValue(','\\n function expireSession()');\nconst accountSend=part(accountSource,' async function send(','\\n function paint()');\nassert(accountRequest.startsWith(' async function requestValue(')&&accountRequest.includes('finally{clearTimeout(timer);')&&accountRequest.includes(\"options.signal?.removeEventListener('abort',stop)\"));\n"
+            },
+            {
+              "offset": 17737,
+              "before": "  'user-access.js':'20261113-password-outcome1',\n",
+              "after": "  'user-access.js':'20261115-account-outcome1',\n"
+            }
+          ]
+        },
+        "tests/account-page-entry.test.cjs": {
+          "beforeHash": "a98c22125f03fffeb7fb54a6907f0377e68f001189c1fa8f6075b183379b0374",
+          "beforeNormalizedHash": "a98c22125f03fffeb7fb54a6907f0377e68f001189c1fa8f6075b183379b0374",
+          "afterHash": "b284898e0d4762dba3fc35e78565e72d28d496a235221bf701ae2370f8cfa1d3",
+          "afterNormalizedHash": "b284898e0d4762dba3fc35e78565e72d28d496a235221bf701ae2370f8cfa1d3",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 454,
+              "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261115-quality-root4','master-page-editor.js':'20261114-lines-flow-review1','master-shared-client.js':'20261114-lines-flow-review1','page-draft-merge.js':'20261114-lines-flow-review1','master-data.js':'20261114-lines-flow-review1','version-draft-ui.js':'20261116-quality-office1','user-access.js':'20261113-password-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
+              "after": " assert.equal(scripts.filter(url=>url==='account-write-receipt.js?v=20261115-account-outcome1').length,1);assert(scripts.findIndex(url=>url.startsWith('account-write-receipt.js?'))<scripts.findIndex(url=>url.startsWith('user-access.js?')));\n const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261115-quality-root4','master-page-editor.js':'20261114-lines-flow-review1','master-shared-client.js':'20261114-lines-flow-review1','page-draft-merge.js':'20261114-lines-flow-review1','master-data.js':'20261114-lines-flow-review1','version-draft-ui.js':'20261116-quality-office1','user-access.js':'20261115-account-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+            }
+          ]
+        },
+        "scripts/quality-root-source-contract.cjs": {
+          "beforeHash": "e1d6b346c1b9ab160513829d5e992f7519b1d112009134d6913c06c911ea2173",
+          "beforeNormalizedHash": "e1d6b346c1b9ab160513829d5e992f7519b1d112009134d6913c06c911ea2173",
+          "afterHash": "1f7213ab97bec620e3f54eeb2f4c70649f2883f4c30cc89424e5cbf31a61d13a",
+          "afterNormalizedHash": "1f7213ab97bec620e3f54eeb2f4c70649f2883f4c30cc89424e5cbf31a61d13a",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 468,
+              "before": " assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./quality-office-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Quality root proof wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterNormalizedHash,'Quality root pinned source');\n",
+              "after": " assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./quality-office-source-contract.cjs').projectKnown(bytes,file);bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Quality root proof wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterNormalizedHash,'Quality root pinned source');\n"
+            },
+            {
+              "offset": 1499,
+              "before": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./quality-office-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n",
+              "after": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./quality-office-source-contract.cjs').projectKnown(bytes,file);bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n"
+            }
+          ]
+        },
+        "scripts/quality-office-source-contract.cjs": {
+          "beforeHash": "a187075f76f804b2acfd4169e7a85927b97ed34af09913755a3a2d8bc8dd771e",
+          "beforeNormalizedHash": "a187075f76f804b2acfd4169e7a85927b97ed34af09913755a3a2d8bc8dd771e",
+          "afterHash": "fcdfec6de983e142d2f14a3c62a130419902b8b352849b43305c0f8431ebef72",
+          "afterNormalizedHash": "fcdfec6de983e142d2f14a3c62a130419902b8b352849b43305c0f8431ebef72",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 470,
+              "before": " assert(Buffer.isBuffer(bytes),'Quality office proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Quality office proof wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterNormalizedHash,'Quality office pinned source');\n",
+              "after": " assert(Buffer.isBuffer(bytes),'Quality office proof requires raw Buffer');bytes=require('./quality-office-joint-source-contract.cjs').projectKnown(bytes,file,'office');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Quality office proof wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterNormalizedHash,'Quality office pinned source');\n"
+            },
+            {
+              "offset": 1448,
+              "before": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Quality office proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n",
+              "after": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Quality office proof requires raw Buffer');bytes=require('./quality-office-joint-source-contract.cjs').projectKnown(bytes,file,'office');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n"
+            }
+          ]
+        },
+        "tests/quality-office-source.test.cjs": {
+          "beforeHash": "7ed0e928815f31898690ef813d622d2188b23e7d9901e552ec6b4bb691481359",
+          "beforeNormalizedHash": "7ed0e928815f31898690ef813d622d2188b23e7d9901e552ec6b4bb691481359",
+          "afterHash": "7085682c28695ef8870cd443e7695e74fb807a52054441ac9e7889962c15e02f",
+          "afterNormalizedHash": "7085682c28695ef8870cd443e7695e74fb807a52054441ac9e7889962c15e02f",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 338,
+              "before": " const bytes=fs.readFileSync(file),before=execFileSync('git',['show',proof.contract.base+':'+file]);assert.deepEqual(proof.restore(bytes,file),before);assert.deepEqual(proof.restore(Buffer.from(bytes.toString().replaceAll('\\r\\n','\\n').replaceAll('\\n','\\r\\n')),file),before);assert.equal(proof.hash(execFileSync('git',['show','HEAD:'+file])),c.afterHash,'candidate must be committed before source acceptance');\n",
+              "after": " const bytes=fs.readFileSync(file),before=execFileSync('git',['show',proof.contract.base+':'+file]);assert.deepEqual(proof.restore(bytes,file),before);assert.deepEqual(proof.restore(Buffer.from(bytes.toString().replaceAll('\\r\\n','\\n').replaceAll('\\n','\\r\\n')),file),before);assert.equal(proof.hash(require('../scripts/quality-office-joint-source-contract.cjs').projectKnown(execFileSync('git',['show','HEAD:'+file]),file,'office')),c.afterHash,'candidate must be committed before source acceptance');\n"
+            }
+          ]
+        }
+      }
+    },
+    "main": {
+      "sha": "64e44b2f72642bf3186afea89e7d786c9bcbcc91",
+      "files": {
+        "AI_CONTEXT/CHANGELOG.md": {
+          "beforeHash": "d0ab9d51f0441b6a5d4a706aa13d113230e2338482558209b984f256c69fc99d",
+          "beforeNormalizedHash": "d0ab9d51f0441b6a5d4a706aa13d113230e2338482558209b984f256c69fc99d",
+          "afterHash": "72b7aca6497242755d92f9585214dbe9a244514e865e2a75742f8a72f3f586b7",
+          "afterNormalizedHash": "72b7aca6497242755d92f9585214dbe9a244514e865e2a75742f8a72f3f586b7",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 0,
+              "before": "",
+              "after": "## 2026-11-16 — AB範圍版本與FQC新增回歸候選\n\n以已合併#123的main a1775a8建立獨立功能分支，修正AB本機草稿Vundefined與全模組快照誤認；補FQC新增預設AQL回歸，不重複速度優化。無schema／資料／ACL／合併或部署。[隔離根因與驗證界線](../docs/acceptance/quality-office-followup-20261116.md)。\nC另同步處理中Save／Submit按鈕狀態，保留既有busy防重送與原回執／權限保護；取消及明確錯誤後恢復，UNKNOWN須先查證。B保存重載、送審、撤回與C第二輪送審／撤回已被測試者證實成功，本次不誤列失敗。\n"
+            }
+          ]
+        },
+        "HANDOFF.md": {
+          "beforeHash": "031056cd95e4e7dd3666b420fe2cf2db88ea11116de19bf966b7f762b3c0085a",
+          "beforeNormalizedHash": "031056cd95e4e7dd3666b420fe2cf2db88ea11116de19bf966b7f762b3c0085a",
+          "afterHash": "2abb615eb6fe1561b68628ee72cf258a2a1ed0a91650590795bdefa8e6414f38",
+          "afterNormalizedHash": "2abb615eb6fe1561b68628ee72cf258a2a1ed0a91650590795bdefa8e6414f38",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 0,
+              "before": "",
+              "after": "## 2026-11-16 — 辦公室Chrome功能續修\n\n獨立clone／fix/quality-office-fqc-ab-20261116，自最新main a1775a8（#123已合併）開始；與速度工作分開。AB provisional版本與模組儲存資訊分開顯示；FQC新增入口回歸擴至中越文與未碰取樣選單的原生預設。[根因、測試及未確認實站條件](docs/acceptance/quality-office-followup-20261116.md)。未操作Diem／業務草稿、帳號、實站API、合併或部署；公開靜態資產GET403，無法驗實際部署版本。\nC另同步處理中Save／Submit按鈕狀態，保留既有busy防重送與原回執／權限保護；取消及明確錯誤後恢復，UNKNOWN須先查證。B保存重載、送審、撤回與C第二輪送審／撤回已被測試者證實成功，本次不誤列失敗。\n"
+            }
+          ]
+        },
+        "public/process/index.html": {
+          "beforeHash": "d9434d5d6e51efc989548b7f9b6976e6af1f690588b7cac6e4e367a83e43a113",
+          "beforeNormalizedHash": "d9434d5d6e51efc989548b7f9b6976e6af1f690588b7cac6e4e367a83e43a113",
+          "afterHash": "c4f1601ecf9ed2f34773f4205498a05879f30593c10a8a9010eb31245b40527b",
+          "afterNormalizedHash": "c4f1601ecf9ed2f34773f4205498a05879f30593c10a8a9010eb31245b40527b",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 7265,
+              "before": "    <script data-process-src=\"version-draft-ui.js?v=20261115-quality-root1\"></script>\n",
+              "after": "    <script data-process-src=\"version-draft-ui.js?v=20261116-quality-office1\"></script>\n"
+            },
+            {
+              "offset": 9961,
+              "before": "    <script data-process-src=\"ipqc-c.js?v=20261115-quality-root3\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261115-quality-root4\"></script>\n",
+              "after": "    <script data-process-src=\"ipqc-c.js?v=20261116-quality-office1\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261116-quality-office1\"></script>\n"
+            }
+          ]
+        },
+        "tests/navigation-adapters.test.mjs": {
+          "beforeHash": "7c0cf8bb90182853edae2fd5808fc0e20ab0b59ea020e2f1c0fd4b7d012ab8f7",
+          "beforeNormalizedHash": "7c0cf8bb90182853edae2fd5808fc0e20ab0b59ea020e2f1c0fd4b7d012ab8f7",
+          "afterHash": "8e1ba195f353cc4facb4c870208ca5135ce7426cf66c8bdd50c1ea6ba9cf2202",
+          "afterNormalizedHash": "8e1ba195f353cc4facb4c870208ca5135ce7426cf66c8bdd50c1ea6ba9cf2202",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 17005,
+              "before": "  'ipqc-ab.js':'20261115-quality-root4',\n  'ipqc-c.js':'20261115-quality-root3',\n",
+              "after": "  'ipqc-ab.js':'20261116-quality-office1',\n  'ipqc-c.js':'20261116-quality-office1',\n"
+            },
+            {
+              "offset": 18226,
+              "before": "  'version-draft-ui.js':'20261115-quality-root1',\n",
+              "after": "  'version-draft-ui.js':'20261116-quality-office1',\n"
+            }
+          ]
+        },
+        "tests/account-page-entry.test.cjs": {
+          "beforeHash": "b861a6312ead1b23272bbd29be2faae80d9b3fbf3b68629b02b616cec3a24458",
+          "beforeNormalizedHash": "b861a6312ead1b23272bbd29be2faae80d9b3fbf3b68629b02b616cec3a24458",
+          "afterHash": "b284898e0d4762dba3fc35e78565e72d28d496a235221bf701ae2370f8cfa1d3",
+          "afterNormalizedHash": "b284898e0d4762dba3fc35e78565e72d28d496a235221bf701ae2370f8cfa1d3",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 695,
+              "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261115-quality-root4','master-page-editor.js':'20261114-lines-flow-review1','master-shared-client.js':'20261114-lines-flow-review1','page-draft-merge.js':'20261114-lines-flow-review1','master-data.js':'20261114-lines-flow-review1','version-draft-ui.js':'20261115-quality-root1','user-access.js':'20261115-account-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
+              "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261115-quality-root4','master-page-editor.js':'20261114-lines-flow-review1','master-shared-client.js':'20261114-lines-flow-review1','page-draft-merge.js':'20261114-lines-flow-review1','master-data.js':'20261114-lines-flow-review1','version-draft-ui.js':'20261116-quality-office1','user-access.js':'20261115-account-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+            }
+          ]
+        },
+        "scripts/quality-root-source-contract.cjs": {
+          "beforeHash": "2089479479b1e4c4343a80b1ed286c2e70bf6b459c2b049a22decb404510a8d7",
+          "beforeNormalizedHash": "2089479479b1e4c4343a80b1ed286c2e70bf6b459c2b049a22decb404510a8d7",
+          "afterHash": "1f7213ab97bec620e3f54eeb2f4c70649f2883f4c30cc89424e5cbf31a61d13a",
+          "afterNormalizedHash": "1f7213ab97bec620e3f54eeb2f4c70649f2883f4c30cc89424e5cbf31a61d13a",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 438,
+              "before": "function restore(bytes,file){bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);\n assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Quality root proof wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterNormalizedHash,'Quality root pinned source');\n",
+              "after": "function restore(bytes,file){\n assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./quality-office-source-contract.cjs').projectKnown(bytes,file);bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Quality root proof wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterNormalizedHash,'Quality root pinned source');\n"
+            },
+            {
+              "offset": 1499,
+              "before": "function projectKnown(bytes,file){bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n",
+              "after": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./quality-office-source-contract.cjs').projectKnown(bytes,file);bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n"
+            }
+          ]
+        },
+        "scripts/account-outcome-source-contract.cjs": {
+          "beforeHash": "fb641092be63affe77a5a331baabd0324c34f4311fd8ed8baa2dfa38e20ea6c8",
+          "beforeNormalizedHash": "fb641092be63affe77a5a331baabd0324c34f4311fd8ed8baa2dfa38e20ea6c8",
+          "afterHash": "98fd35aa0f604acbaa7f1b436161b4842059d57fe730d66223b16bd5a58d0977",
+          "afterNormalizedHash": "98fd35aa0f604acbaa7f1b436161b4842059d57fe730d66223b16bd5a58d0977",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 423,
+              "before": "function inverse(bytes,file,source){assert(Buffer.isBuffer(bytes),'Account outcome requires raw Buffer');const c=Object.hasOwn(source.files,file)?source.files[file]:null;assert(c,'Account outcome wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Account outcome successor differs');for(const r of [...c.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'Account outcome span differs');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),c.beforeHash,'Account outcome predecessor differs');return out;}\n",
+              "after": "function inverse(bytes,file,source){assert(Buffer.isBuffer(bytes),'Account outcome requires raw Buffer');bytes=require('./quality-office-joint-source-contract.cjs').projectKnown(bytes,file,'main');const c=Object.hasOwn(source.files,file)?source.files[file]:null;assert(c,'Account outcome wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Account outcome successor differs');for(const r of [...c.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'Account outcome span differs');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),c.beforeHash,'Account outcome predecessor differs');return out;}\n"
+            },
+            {
+              "offset": 1322,
+              "before": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Account outcome requires raw Buffer');for(const source of [integration,contract]){const c=Object.hasOwn(source.files,file)?source.files[file]:null;if(c&&hash(normalized(bytes))===c.afterHash)return inverse(bytes,file,source);}return bytes;}\n",
+              "after": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Account outcome requires raw Buffer');bytes=require('./quality-office-joint-source-contract.cjs').projectKnown(bytes,file,'main');for(const source of [integration,contract]){const c=Object.hasOwn(source.files,file)?source.files[file]:null;if(c&&hash(normalized(bytes))===c.afterHash)return inverse(bytes,file,source);}return bytes;}\n"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

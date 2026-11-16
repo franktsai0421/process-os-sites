@@ -24,3 +24,9 @@ C處理中按鈕根因：writeShared原有同步busy鎖可擋第二次dispatch�
 首輪Equipment run43823450784：FQC新增預設AQL及AB初始化／明確Save／重載的390px中文、1280px越文4個原生案例通過；2個新增C案例於結束後enabled斷言失敗。查證為native測試port將簽章fixture的Origin http://fixture原樣送到synthetic.invalid，真handler依原same-origin規則拒403而非成功Save。修正port令Origin等於攔截請求origin，另斷言真POST必須200，再驗按鈕恢復；不改產品或伺服器Origin保護。新CI須確認修正後兩個C原生案例，舊4項不是新SHA全綠證據。
 
 `2ec1a80` C local Save run43824791452已通過原script239重入斷言，於283舊測試按Save來查UNKNOWN而停止：新的明確UI會停用Save/Submit，並保留既有「查證操作結果」按鈕。調整原native測試使用真查證按鈕，新增UNKNOWN兩鍵停用、GET恢復後兩鍵可用斷言，原receipt marker／只有一次POST／保存內容與後續歷史／兩尺寸檢查全保留；不是把UNKNOWN當成功或移除測試。此為預期入口契約更新，產品不再改。
+
+## #125 整合已合併 #124 main（本輪）
+
+原head 1be9cb637bb789b6065cd46bb40532f6f759baa7、main 64e44b2f72642bf3186afea89e7d786c9bcbcc91。四處衝突：CHANGELOG/HANDOFF並列保留兩份紀錄；帳號冷啟動測試保留receipt helper安裝順序、account-outcome tags及quality-office header tag；quality-root來源入口接續兩套exact投影。index/nav自動合併後逐項核對雙方tags。AB/C/共用header產品程式保留#125，user-access/backend保留main #124原bytes，沒有搬入未合併#121/#126。
+
+原office/account所有歷史JSON pins不改。新增精確joint層，僅已知共同候選按hash/固定byte offset/EOL回復各自真Git parent，再執行原證明；未知bytes仍拒絕。新負例及整合後所有source回歸須重新執行，舊15綠不是本輪CI或實站驗收。原FQC Office版本仍待核實，已成功的B/C保存/送審/撤回不改列失敗。不操作帳號、業務資料、部署或備份；本輪結果以最終head/CI/審查回報為準。
