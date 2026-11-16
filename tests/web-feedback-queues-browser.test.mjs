@@ -5,7 +5,7 @@ import {chromium} from 'playwright';
 import {createFeedbackFixture} from './web-feedback-native-fixture.mjs';
 import {screenshotBoard,screenshotFailureKind} from './web-feedback-screenshot.mjs';
 
-const passed=[],errors=[],requests=[];let fixture,browser,stage='setup';
+const passed=[],errors=[],requests=[];let fixture,browser,diagnosticPage,stage='setup';
 const out='.sites-runtime/feedback-queues';fs.mkdirSync(out,{recursive:true});
 async function check(name,run){stage=name;await run();passed.push(name);console.log('PASS '+name);}
 try {
@@ -18,7 +18,7 @@ try {
     page.on('request',r=>{const url=new URL(r.url());if(url.pathname.startsWith('/api/'))requests.push({path:url.pathname,action:url.searchParams.get('action'),method:r.method()});});
     await page.goto(fixture.origin+'/login?view=data&dataTab=web-feedback');await page.locator('#id').fill(id);await page.locator('#password').fill(fixture.password);await page.locator('.site-entry-submit').click();await page.locator('.wf-row').first().waitFor();await page.evaluate(()=>{document.documentElement.lang='zh';window.WebFeedback.routeChanged();});return {context,page};
   }
-  const owner=await login('frank'),{page}=owner;
+  const owner=await login('frank'),{page}=owner;diagnosticPage=page;
   const call=(context,action,data)=>data===undefined?context.request.get(fixture.origin+'/api/web-feedback?action='+action,{maxRetries:1}):context.request.post(fixture.origin+'/api/web-feedback?action='+action,{data,headers:{Origin:fixture.origin}});
   const guards={'shared-draft-unknown-synthetic':'{"operationId":"unchanged-original","unknown":true}', 'shared-draft-receipt-only-v1:synthetic':'receipt-only-v1','synthetic-operation-identity':'retain-original-generation'};
   await page.evaluate(values=>{for(const [key,value]of Object.entries(values))sessionStorage.setItem(key,value);},guards);
@@ -96,5 +96,9 @@ try {
   // Never print Playwright's request log: it can contain even synthetic cookies.
   const site=String(error?.stack||'').match(/web-feedback-queues-browser\.test\.mjs:(\d+):(\d+)/);
   const failure={status:'FAIL',stage,errorKind:screenshotFailureKind(error),errorName:['AssertionError','TimeoutError','Error'].includes(error?.name)?error.name:'OTHER',location:site?{line:Number(site[1]),column:Number(site[2])}:null,passed};
+  // Synthetic-only geometry: no DOM text, URLs, storage, cookies or request logs.
+  // Preserve the original failure and never repeat an interaction or assertion.
+  if(diagnosticPage)try{failure.geometry=await diagnosticPage.evaluate(()=>({viewport:{width:innerWidth,height:innerHeight,scrollX,scrollY},targets:['.wf-admin','#data-content','.wf-board-body','.wf-access-controls','[data-queue-tab=access]'].map(selector=>({selector,nodes:[...document.querySelectorAll(selector)].map(node=>{const r=node.getBoundingClientRect(),s=getComputedStyle(node);return{connected:node.isConnected,hidden:node.hidden,rect:{x:r.x,y:r.y,width:r.width,height:r.height},display:s.display,visibility:s.visibility,overflow:s.overflow};})}))}));}catch{failure.geometryUnavailable=true;}
+  failure.programCommit=fixture?.programCommit;failure.browser=browser?.version();
   fs.writeFileSync(out+'/result.json',JSON.stringify(failure,null,2));console.error(JSON.stringify(failure));process.exitCode=1;
 } finally {await browser?.close();await fixture?.close();}
