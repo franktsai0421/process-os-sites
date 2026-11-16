@@ -67,3 +67,6 @@ Draft #124 建立時 base 已到 `a1775a8a342d58335edf96d199a9c42844227dc6`，�
 - shell bundle 的獨立 oracle 原固定 main50＋7；新增 receipt helper 需精確成為第58個、在 user-access 前載入。原固定 main50、順序、私有來源排除、缺漏／重複／移位、失敗不可發 receipt 的負例均保留，並覆蓋新 helper。新增 main inverse 僅對真 main 已存在的變更檔案逐一保存完整 hash/span；歷史 JSON 不變。
 
 補正後本機已重跑：103 項 focused proof/bundle、342 項 source/joint/bundle、294 項 adoption/joint/source、71 項 quality/submission、26 項 role/outcome/transport/status 與34項速度來源檢查均通過（群組重疊，不能相加當唯一案例數）；114 組權限結果及三組原 bounded-read commands 亦通過。lint/type 已通過。完整 SHA/tree、後續 compiled 與 CI 結果以同一 PR 最新交付紀錄為準。所有檢查皆為隔離 fixture；不代表 Frank 實站或實體手機驗收。
+
+
+其後 `549601f7` 的 CI：LINES 與 PROCESS review 轉為通過，compiled Begin/process lifecycle 也通過。IPQC link/PROCESS source gate 揭露 timer inventory 尚未更新；只更正 user-access 的單筆精確 closure hash/行號/用途，GET 45秒上限、POST terminal/手動停止維持，沒有加入背景排程。Windows 文件前綴為空行時，原 `subarray(1)` 只刪 CR 而不改 normalized bytes；負例改為先 normalize 再實際改內容，新增 hash 不同的斷言，原 restore throws/projectKnown 原樣保留。78 項原來源/背景/帳號來源測試、67項 CRLF 注入模擬通過；未把這個中間 CI head 宣稱全部通過。

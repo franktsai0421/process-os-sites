@@ -487,6 +487,44 @@
           "after": " assert.deepEqual(reviewedProcessBundleAdditions,['canvas-approved-history.js','page-draft-merge.js','master-page-transfer.js','master-page-approved-history.js','master-page-editor.js','routine-page-approved-history.js','routine-fqc-page.js','account-write-receipt.js']);\n"
         }
       ]
+    },
+    "tests/fixtures/browser-timer-inventory.json": {
+      "beforeHash": "c9a0e8afe0611bf249c916dbebe5c043b7a48d7fce83e73db4bbb847782e427b",
+      "afterHash": "e2b11457cdd877e1b2e027d704232dd0295667b3b166d4799809d9e2803d0e0b",
+      "rules": [
+        {
+          "offset": 8434,
+          "before": "    \"line\": 18,\n",
+          "after": "    \"line\": 27,\n"
+        },
+        {
+          "offset": 8476,
+          "before": "    \"hash\": \"c4acefcdf58e25f315084be953bcbb04f86a77974f1b88310b3b8286eac55ab9\",\n    \"purpose\": \"Deadline for one explicit/initial request or resource load.\"\n",
+          "after": "    \"hash\": \"81120a9b291bd51b85b48ad4c489464c92b63270b1bec9c6d6dbd5e775e96fd9\",\n    \"purpose\": \"45-second deadline for one explicit/initial read; writes wait for terminal response or explicit stop. No recurring reader.\"\n"
+        }
+      ]
+    },
+    "tests/process-ipqc-frequency-source.test.cjs": {
+      "beforeHash": "2c3289909109bae463bea8830e3f104d9612ed4ea07c642990804411c02de345",
+      "afterHash": "f737a848f9a4d76a534d2827d9a3b0f54f45a111e7f24095cefd09bd585cadb9",
+      "rules": [
+        {
+          "offset": 589,
+          "before": " for(const bad of [bytes.subarray(1),Buffer.concat([bytes,Buffer.from(' ')]),Buffer.from(bytes.map((v,i)=>i===Math.floor(bytes.length/2)?v^1:v))]){assert.throws(()=>p.restore(bad,file));assert(p.projectKnown(bad,file).equals(bad));}assert.throws(()=>p.restore(bytes,'wrong/path'));assert(p.projectKnown(bytes,'wrong/path').equals(bytes));\n",
+          "after": " const lf=p.normalized(bytes); // Mutate semantic LF bytes: dropping only CR from CRLF is not drift.\n for(const bad of [lf.subarray(1),Buffer.concat([lf,Buffer.from(' ')]),Buffer.from(lf.map((v,i)=>i===Math.floor(lf.length/2)?v^1:v))]){assert.notEqual(p.hash(p.normalized(bad)),p.hash(lf),'negative must change normalized content');assert.throws(()=>p.restore(bad,file));assert(p.projectKnown(bad,file).equals(bad));}assert.throws(()=>p.restore(bytes,'wrong/path'));assert(p.projectKnown(bytes,'wrong/path').equals(bytes));\n"
+        }
+      ]
+    },
+    "tests/process-platform-adopt-source.test.cjs": {
+      "beforeHash": "f15ef43880c4e9042d216e6af8063f44cc58edb350dab1ee6abe9e535b300620",
+      "afterHash": "9cdc1ccd592f98e68c058560fda68e7008e66f45888efa03d7fe3d1fcf28d63d",
+      "rules": [
+        {
+          "offset": 651,
+          "before": " for(const altered of [Buffer.concat([bytes,Buffer.from(' ')]),bytes.subarray(1),Buffer.from(bytes.map((v,i)=>i===Math.floor(bytes.length/2)?v^1:v))]){assert.throws(()=>p.restore(altered,file));assert(p.projectKnown(altered,file).equals(altered));}assert.throws(()=>p.restore(bytes,'wrong/path'));\n",
+          "after": " const lf=p.normalized(bytes); // Mutate semantic LF bytes: dropping only CR from CRLF is not drift.\n for(const altered of [lf.subarray(1),Buffer.concat([lf,Buffer.from(' ')]),Buffer.from(lf.map((v,i)=>i===Math.floor(lf.length/2)?v^1:v))]){assert.notEqual(p.hash(p.normalized(altered)),p.hash(lf),'negative must change normalized content');assert.throws(()=>p.restore(altered,file));assert(p.projectKnown(altered,file).equals(altered));}assert.throws(()=>p.restore(bytes,'wrong/path'));\n"
+        }
+      ]
     }
   }
 }

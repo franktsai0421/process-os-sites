@@ -211,10 +211,10 @@
   },
   {
     "file": "public/process/user-access.js",
-    "line": 18,
+    "line": 27,
     "kind": "setTimeout",
-    "hash": "c4acefcdf58e25f315084be953bcbb04f86a77974f1b88310b3b8286eac55ab9",
-    "purpose": "Deadline for one explicit/initial request or resource load."
+    "hash": "81120a9b291bd51b85b48ad4c489464c92b63270b1bec9c6d6dbd5e775e96fd9",
+    "purpose": "45-second deadline for one explicit/initial read; writes wait for terminal response or explicit stop. No recurring reader."
   },
   {
     "file": "public/process/version-workflow.js",
