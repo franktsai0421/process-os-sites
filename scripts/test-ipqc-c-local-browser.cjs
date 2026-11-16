@@ -280,7 +280,9 @@ if(profile){
  await page.evaluate(()=>IPQCCUI.mount(document.querySelector('main')));await page.locator('#ipqcc-save').waitFor();
  assert.equal(await page.evaluate(()=>__localTest.state().unknown),true);
  assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1,'returning does not auto-resend');
- await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>!__localTest.state().busy&&!__localTest.state().unknown);
+ assert.equal(await page.locator('#ipqcc-save').isDisabled(),true,'UNKNOWN cannot dispatch another Save');assert.equal(await page.locator('#ipqcc-submit').isDisabled(),true,'UNKNOWN cannot dispatch Submit');
+ await page.locator('#ipqcc-check-operation').click();await page.waitForFunction(()=>!__localTest.state().busy&&!__localTest.state().unknown);
+ assert.equal(await page.locator('#ipqcc-save').isDisabled(),false,'original receipt recovery restores current allowed Save');assert.equal(await page.locator('#ipqcc-submit').isDisabled(),false,'original receipt recovery restores current allowed Submit');
  assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1,'lost ACK checks receipt without resending');
  }
  await page.evaluate(()=>__localTest.edit());await page.locator('input[name="name"]').fill('Abandoned');assert.equal(await page.evaluate(()=>IPQCCUI.navigation.departure.inspect().state),'clean');await page.evaluate(()=>IPQCCUI.navigation.departure.closeClean());assert.equal(await page.locator('#ipqcc-editor').count(),1,'departure closes model; navigation replaces DOM');

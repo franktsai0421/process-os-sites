@@ -369,6 +369,20 @@
           "after": " if(kind==='c'){const a=source.indexOf('  function syncWriteButtons(){'),b=source.indexOf('  function mountVersionState(){',a);assert(a>=0&&b>a,'actual C button presentation dependency');vm.runInContext(source.slice(a,b),context);}\n"
         }
       ]
+    },
+    "scripts/test-ipqc-c-local-browser.cjs": {
+      "beforeHash": "45de552dcedf8dccaad1faf470e0bef926a8320f5114d09dd7e3c5222eada9f9",
+      "beforeNormalizedHash": "45de552dcedf8dccaad1faf470e0bef926a8320f5114d09dd7e3c5222eada9f9",
+      "afterHash": "133f26ee195222773c42cf300879f5ace04bdbb699f9fddb3b1bbb9e49d80b71",
+      "afterNormalizedHash": "133f26ee195222773c42cf300879f5ace04bdbb699f9fddb3b1bbb9e49d80b71",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 44180,
+          "before": " await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>!__localTest.state().busy&&!__localTest.state().unknown);\n",
+          "after": " assert.equal(await page.locator('#ipqcc-save').isDisabled(),true,'UNKNOWN cannot dispatch another Save');assert.equal(await page.locator('#ipqcc-submit').isDisabled(),true,'UNKNOWN cannot dispatch Submit');\n await page.locator('#ipqcc-check-operation').click();await page.waitForFunction(()=>!__localTest.state().busy&&!__localTest.state().unknown);\n assert.equal(await page.locator('#ipqcc-save').isDisabled(),false,'original receipt recovery restores current allowed Save');assert.equal(await page.locator('#ipqcc-submit').isDisabled(),false,'original receipt recovery restores current allowed Submit');\n"
+        }
+      ]
     }
   }
 }

@@ -22,3 +22,5 @@ C處理中按鈕根因：writeShared原有同步busy鎖可擋第二次dispatch�
 #125首輪CI `13b836e` 的C原生local-browser在既有「舊Save回應晚於同transport重入」斷言失敗（run43823450717，script239）：新頁於UNKNOWN時正確停用，但原請求結束不會重畫新mount，造成新頁永久停用。修正為mount完成後只觀察同transport既有flush promise，在同mount／actor／epoch／delivery／client仍成立時重新依當前權限同步兩鍵；不讀取、不寫入、不清marker。新增兩語系真controller/handler重入回歸，原native斷言不改，失敗後未跑項須由新CI重跑。
 
 首輪Equipment run43823450784：FQC新增預設AQL及AB初始化／明確Save／重載的390px中文、1280px越文4個原生案例通過；2個新增C案例於結束後enabled斷言失敗。查證為native測試port將簽章fixture的Origin http://fixture原樣送到synthetic.invalid，真handler依原same-origin規則拒403而非成功Save。修正port令Origin等於攔截請求origin，另斷言真POST必須200，再驗按鈕恢復；不改產品或伺服器Origin保護。新CI須確認修正後兩個C原生案例，舊4項不是新SHA全綠證據。
+
+`2ec1a80` C local Save run43824791452已通過原script239重入斷言，於283舊測試按Save來查UNKNOWN而停止：新的明確UI會停用Save/Submit，並保留既有「查證操作結果」按鈕。調整原native測試使用真查證按鈕，新增UNKNOWN兩鍵停用、GET恢復後兩鍵可用斷言，原receipt marker／只有一次POST／保存內容與後續歷史／兩尺寸檢查全保留；不是把UNKNOWN當成功或移除測試。此為預期入口契約更新，產品不再改。
