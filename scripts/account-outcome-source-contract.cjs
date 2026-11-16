@@ -5,4 +5,5 @@ function inverse(bytes,file,source){assert(Buffer.isBuffer(bytes),'Account outco
 function restore(bytes,file){return inverse(bytes,file,contract);}
 function restoreMain(bytes,file){return inverse(bytes,file,integration);}
 function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Account outcome requires raw Buffer');for(const source of [integration,contract]){const c=Object.hasOwn(source.files,file)?source.files[file]:null;if(c&&hash(normalized(bytes))===c.afterHash)return inverse(bytes,file,source);}return bytes;}
-module.exports=Object.freeze({contract,integration,hash,restore,restoreMain,projectKnown});
+function assertRuntime(bytes,file){assert(Buffer.isBuffer(bytes),'Account runtime requires raw Buffer');assert(Object.hasOwn(contract.runtime,file),'Account runtime wrong path');assert.equal(hash(normalized(bytes)),contract.runtime[file],'Account runtime differs');return true;}
+module.exports=Object.freeze({contract,integration,hash,restore,restoreMain,projectKnown,assertRuntime});

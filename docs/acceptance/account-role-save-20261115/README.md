@@ -56,3 +56,14 @@ Draft #124 建立時 base 已到 `a1775a8a342d58335edf96d199a9c42844227dc6`，�
 這不是把尚未合併的速度或品質辦公室 dirty 工作混入。最新共同候選的完整 SHA、CI、測試結果與未驗項以 PR 最新回報為準；這裡不預先宣稱通過，也不合併 PR、部署或操作任何實站帳號/資料。
 
 前置失敗另作確定性區分：只有非密碼操作、且還沒有呼叫 D1 UPDATE 時，服務異常才回 `503 ACCOUNT_PREWRITE_UNAVAILABLE`；client 只釋放這個精確碼/狀態與既有維護/密碼服務前置拒絕，保留輸入供稍後明確確認。已發出 DB request 的失敗、lost ACK、錯誤回執及無原回執仍為 UNKNOWN。這避免 R2 準備失敗在根本未寫入時留下持久未知鎖，沒有用全體 5xx 當作失敗，也沒有清掉真正未知操作。
+
+
+### 整合回歸補正（同一 Draft #124）
+
+首個共同 head `743885bfc7af5a96185bb7aaba679c2105e1ae66` 的 CI 揭露三種整合差異，沒有將該 head 宣稱為 CI 通過：
+
+- `status.view` 的三個舊只讀別名曾移到 legacy permission 尾端，破壞原精確順序。保留既有位置，只追加缺少的別名；未授查看仍全部移除。114 組歷史等價比較明列僅 feedback/status 的預期差異，其他 cells、欄位、順序及 malformed throws 仍精確比較。
+- 原精確 runtime union 缺新增的兩個 account helper。只加入固定的兩個路徑與原不可變 manifest 雜湊；同時驗 committed/working bytes、LF/CRLF、錯誤路徑、非 Buffer 與 byte drift。沒有改成任意檔案白名單。
+- shell bundle 的獨立 oracle 原固定 main50＋7；新增 receipt helper 需精確成為第58個、在 user-access 前載入。原固定 main50、順序、私有來源排除、缺漏／重複／移位、失敗不可發 receipt 的負例均保留，並覆蓋新 helper。新增 main inverse 僅對真 main 已存在的變更檔案逐一保存完整 hash/span；歷史 JSON 不變。
+
+補正後本機已重跑：103 項 focused proof/bundle、342 項 source/joint/bundle、294 項 adoption/joint/source、71 項 quality/submission、26 項 role/outcome/transport/status 與34項速度來源檢查均通過（群組重疊，不能相加當唯一案例數）；114 組權限結果及三組原 bounded-read commands 亦通過。lint/type 已通過。完整 SHA/tree、後續 compiled 與 CI 結果以同一 PR 最新交付紀錄為準。所有檢查皆為隔離 fixture；不代表 Frank 實站或實體手機驗收。
