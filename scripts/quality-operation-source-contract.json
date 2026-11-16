@@ -765,7 +765,7 @@
       ]
     },
     "HANDOFF.md": {
-      "afterNormalizedHash": "73620fdec0bef17e97067aa239f1cabf888a020572ac71cfddf524d5b89104d9",
+      "afterNormalizedHash": "c86be60b25e29448c1920f268cf98ede9c482618d924aa43c20b6592aa1149f3",
       "beforeNormalizedHash": "9bb5272f3689f141125110c144de08f451e52633f2e993f264cbaf0a50067c78",
       "beforeHash": "9bb5272f3689f141125110c144de08f451e52633f2e993f264cbaf0a50067c78",
       "beforeCRLF": [],
@@ -773,12 +773,12 @@
         {
           "offset": 0,
           "before": "",
-          "after": "## 2026-11-16 — Independent quality/process speed candidate\n\nRequest-local IQC/process authority and existing bounded aggregate scheduling preserve full data/validation/CAS. Office >10s requests, exact paired synthetic tests, unresolved AB/C and payload limits: [evidence](docs/acceptance/quality-operation-speed-20261116/README.md). Draft only; no merge/deployment/live changes.\n\n"
+          "after": "## 2026-11-16 — Independent quality/process speed candidate\n\nRequest-local IQC/process authority, rolling bounded reads, validated FQC local Save scheduling, editor bootstrap deferral and optional AB/C readback compaction preserve validation/CAS/history. Office request mapping, paired synthetic metrics, compiled Chrome readiness and live limitations: [evidence](docs/acceptance/quality-operation-speed-20261116/README.md). Draft only; no merge/deployment/live changes.\n\n"
         }
       ]
     },
     "AI_CONTEXT/CHANGELOG.md": {
-      "afterNormalizedHash": "74931e2e40eec199e3c51015ca880e08fe09530238ded4078d68843eee32aecd",
+      "afterNormalizedHash": "970c0d1bd1d61bf95c26a67ae8d3558a1e8de150a7bf945f18c08a9d7eab3558",
       "beforeNormalizedHash": "333b0ea9de823fd9f07e1e2e84a8fef29f49f9fe4e7dbdbb5bcb10694d2999d9",
       "beforeHash": "333b0ea9de823fd9f07e1e2e84a8fef29f49f9fe4e7dbdbb5bcb10694d2999d9",
       "beforeCRLF": [],
@@ -786,7 +786,7 @@
         {
           "offset": 0,
           "before": "",
-          "after": "## 2026-11-16 — Independent quality/process speed candidate\n\nRequest-local IQC/process authority and existing bounded aggregate scheduling preserve full data/validation/CAS. Office >10s requests, exact paired synthetic tests, unresolved AB/C and payload limits: [evidence](../docs/acceptance/quality-operation-speed-20261116/README.md). Draft only; no merge/deployment/live changes.\n\n"
+          "after": "## 2026-11-16 — Independent quality/process speed candidate\n\nRequest-local IQC/process authority, rolling bounded reads, validated FQC local Save scheduling, editor bootstrap deferral and optional AB/C readback compaction preserve validation/CAS/history. Office request mapping, paired synthetic metrics, compiled Chrome readiness and live limitations: [evidence](../docs/acceptance/quality-operation-speed-20261116/README.md). Draft only; no merge/deployment/live changes.\n\n"
         }
       ]
     },
@@ -873,7 +873,7 @@
       ]
     },
     "public/process/index.html": {
-      "afterNormalizedHash": "248bc182ee6b1fec3db28c2eefa6d5726aff03454e3e710792c6a8c96117a598",
+      "afterNormalizedHash": "8dd47e33fd37f317ad192b1c44a7991271c14118a8cd92dee8bf10562ce24a2e",
       "beforeNormalizedHash": "9b283d7dd999a78a66f1df81c9669649ae1817886ea13b4d2a46726a9cf514de",
       "beforeHash": "9b283d7dd999a78a66f1df81c9669649ae1817886ea13b4d2a46726a9cf514de",
       "beforeCRLF": [],
@@ -882,15 +882,25 @@
           "offset": 1395,
           "before": "    <script src=\"shared-state.js?v=20261106-access-offline1\"></script>\n",
           "after": "    <script src=\"shared-state.js?v=20261116-authoring-workflow1\"></script>\n"
+        },
+        {
+          "offset": 9963,
+          "before": "    <script data-process-src=\"ipqc-c.js?v=20261115-quality-root3\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261115-quality-root4\"></script>\n",
+          "after": "    <script data-process-src=\"quality-read-wire.js?v=20261116-quality-read1\"></script>\n    <script data-process-src=\"ipqc-c.js?v=20261116-quality-read1\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261116-quality-read1\"></script>\n"
         }
       ]
     },
     "tests/navigation-adapters.test.mjs": {
-      "afterNormalizedHash": "044bb34ada7fd2b3468911edc31a48c53dcb41cd19b9cfa8dd4bf01e6654b079",
+      "afterNormalizedHash": "42e1040f410f1ee6c4c2bc8ea9d24f6929412b0843e25736991f470b168caa9d",
       "beforeNormalizedHash": "f1e2b6a69d09d90cd361bd54c55b47bc7bfa828fe2fc61b3ce29aa99c3ad1ae5",
       "beforeHash": "f1e2b6a69d09d90cd361bd54c55b47bc7bfa828fe2fc61b3ce29aa99c3ad1ae5",
       "beforeCRLF": [],
       "rules": [
+        {
+          "offset": 16983,
+          "before": "  'ipqc-ab.js':'20261115-quality-root4',\n  'ipqc-c.js':'20261115-quality-root3',\n",
+          "after": "  'ipqc-ab.js':'20261116-quality-read1',\n  'ipqc-c.js':'20261116-quality-read1',\n"
+        },
         {
           "offset": 17613,
           "before": "  'shared-state.js':'20261106-access-offline1',\n",
@@ -941,6 +951,68 @@
           "offset": 21221,
           "before": "",
           "after": "\nvoid test('rolling admission starts the sixth GET before a slow fifth GET completes without consuming later text',async()=>{\n const f=setup(Array.from({length:8},(_,i)=>JSON.stringify({i})));let releaseFifth,atFourth;\n const fifth=new Promise(resolve=>{releaseFifth=resolve;}),fourthText=new Promise(resolve=>{atFourth=resolve;});\n const get=f.bucket.get.bind(f.bucket);\n f.bucket.get=async key=>{if(key===f.entries[4][1].key)await fifth;const object=await get(key);const text=object.text.bind(object);object.text=async()=>{const raw=await text();if(key===f.entries[3][1].key)atFourth();return raw;};return object;};\n const decoding=records.decodeRecordValues(f.bucket,f.envelope,{aggregateReadAhead:true});\n try{await fourthText;assert(f.events.some(([kind,key])=>kind==='get'&&key===f.entries[5][1].key),'sixth GET must be admitted before waiting on the fifth');assert(!f.events.some(([kind,key])=>kind==='text'&&key===f.entries[5][1].key),'later text still waits for fifth');}\n finally{releaseFifth();await decoding;}\n assert.deepEqual(f.events.filter(([kind])=>kind==='text').map(([,key])=>key),f.entries.map(([,r])=>r.key));\n});\n\nvoid test('FQC local Save schedules full selected state and still fails on an unrelated required body',async()=>{\n for(const missing of [false,true]){\n  const f=await fixture();try{\n   const begun=await f.realm().client.begin();await f.mutate(values=>{values.processAccessControl=JSON.stringify({audit:[]});values.toolingMasterControl=JSON.stringify({versions:[{id:'unrelated',snapshot:{note:'retained body'}}]});});\n   const before=f.db.prepare('SELECT * FROM shared_state').get(),refs=JSON.parse(before.values).__processRecords.values,body=JSON.parse(f.objects.get(refs.toolingMasterControl.key)).versions[0].snapshot.__immutableBody;\n   if(missing)f.objects.delete(body.key);\n   const trace=[],get=f.env.STATE_ARCHIVE.get.bind(f.env.STATE_ARCHIVE);f.env.STATE_ARCHIVE.get=async key=>{trace.push(['get',key]);const o=await get(key);return o&&{...o,text:()=>{trace.push(['text',key]);return o.text();}};};\n   const response=await f.call('/api/fqc/workflow?caseMetadata=1',{method:'POST',body:JSON.stringify({command:{action:'save',moduleAction:'save-local-v1',operationId:'local-save-scheduling',clientId:'local-save-client',sequence:1,generation:begun.control.workflow.generation,patches:[{op:'set',path:['items',{id:'item'},'description'],value:'Changed'}],guards:[{path:['items',{id:'item'},'description'],value:'Synthetic description'}],input:{matrixCells:[]}}})});\n   assert.equal(response.status,missing?500:200);assert(trace.some(([kind,key])=>kind==='get'&&key===body.key));\n   assert(trace.findIndex(([kind,key])=>kind==='get'&&key===refs.processAccessControl.key)<trace.findIndex(([kind,key])=>kind==='text'&&key===refs.processRoleTemplateOverrides.key));\n   if(missing)assert.deepEqual(f.db.prepare('SELECT * FROM shared_state').get(),before);\n   else{const state=await f.state();assert.equal(state.workflow.saved.content.items[0].description,'Changed');}\n  }finally{f.close();}\n }\n});\n"
+        }
+      ]
+    },
+    "app/api/ipqc-ab/route.ts": {
+      "afterNormalizedHash": "205460812c0bb8ac65bfde9e7ba85c74fbdf16d94b779b0c276133d0bcff40af",
+      "beforeNormalizedHash": "59699ea0795faee6e38ebcce89a73c9dc545c0b73d37734322b59d267e434c0b",
+      "beforeHash": "59699ea0795faee6e38ebcce89a73c9dc545c0b73d37734322b59d267e434c0b",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "import {qualityReadPayload} from '@/lib/quality-read-wire';\n"
+        },
+        {
+          "offset": 12422,
+          "before": "    if(state.recordStorage){const response=recordJSONResponse(body,env.STATE_ARCHIVE,headers,{boundedContainers:true});if(caseMetadata)response.headers.set('Content-Type',headers['Content-Type']);return response;}\n    return reply(body);\n",
+          "after": "    const delivered=qualityReadPayload(body,'AB',caseMetadata&&request.headers.get('X-Process-Quality-Read')==='compact-v1');\n    if(state.recordStorage){const response=recordJSONResponse(delivered,env.STATE_ARCHIVE,headers,{boundedContainers:true});if(caseMetadata)response.headers.set('Content-Type',headers['Content-Type']);return response;}\n    return reply(delivered);\n"
+        }
+      ]
+    },
+    "app/api/ipqc-c/route.ts": {
+      "afterNormalizedHash": "135d081708acfac9973a355f8f5bf4c896b837364541586c5bc94465cd5e0f8b",
+      "beforeNormalizedHash": "187bed2d2225643910745e866c97445b612b03410c3641d678d8d76a1f7e0a1a",
+      "beforeHash": "187bed2d2225643910745e866c97445b612b03410c3641d678d8d76a1f7e0a1a",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "import {qualityReadPayload} from '@/lib/quality-read-wire';\n"
+        },
+        {
+          "offset": 6106,
+          "before": "    return state.recordStorage&&!caseMetadata?recordJSONResponse(body,env.STATE_ARCHIVE,headers):reply(body);\n",
+          "after": "    return state.recordStorage&&!caseMetadata?recordJSONResponse(body,env.STATE_ARCHIVE,headers):reply(qualityReadPayload(body,'C',caseMetadata&&request.headers.get('X-Process-Quality-Read')==='compact-v1'));\n"
+        }
+      ]
+    },
+    "public/process/ipqc-ab.js": {
+      "afterNormalizedHash": "3eb0b4430a2a753effa7eb3908aedc42d65d24e213a0795772ff8046e6ec4313",
+      "beforeNormalizedHash": "4a54a68a06eaf000bf6d0a4c19e7aa97e044043c8cc2b1c0686c229d25b6d39d",
+      "beforeHash": "4a54a68a06eaf000bf6d0a4c19e7aa97e044043c8cc2b1c0686c229d25b6d39d",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 41989,
+          "before": "      const response=await fetch(API+'?caseMetadata=1&equipment=deferred&localLineage=1',{headers:headers(),cache:'no-store'});\n      const body=await response.json().catch(()=>({}));\n",
+          "after": "      const response=await fetch(API+'?caseMetadata=1&equipment=deferred&localLineage=1',{headers:{...headers(),...(window.expandQualityReadPayload?{'X-Process-Quality-Read':'compact-v1'}:{})},cache:'no-store'});\n      const raw=await response.json().catch(()=>({})),body=window.expandQualityReadPayload?window.expandQualityReadPayload(raw):raw;\n"
+        }
+      ]
+    },
+    "public/process/ipqc-c.js": {
+      "afterNormalizedHash": "1f47eb9bff71ea4e8cdedf4783594c0a83bc8b618c7c6271baf25339456786ad",
+      "beforeNormalizedHash": "90ce15c0a28a66ac542dabfb04a9b7ba02f06f601d25c14fc914fbe48aca981d",
+      "beforeHash": "90ce15c0a28a66ac542dabfb04a9b7ba02f06f601d25c14fc914fbe48aca981d",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 58952,
+          "before": "      const response=await fetch(API+'?caseMetadata=1',{cache:'no-store',headers:headers()});\n      const value=await response.json().catch(()=>({}));\n",
+          "after": "      const response=await fetch(API+'?caseMetadata=1',{cache:'no-store',headers:{...headers(),...(window.expandQualityReadPayload?{'X-Process-Quality-Read':'compact-v1'}:{})}});\n      const raw=await response.json().catch(()=>({})),value=window.expandQualityReadPayload?window.expandQualityReadPayload(raw):raw;\n"
         }
       ]
     }

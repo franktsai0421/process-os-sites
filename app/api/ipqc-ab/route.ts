@@ -1,3 +1,4 @@
+import {qualityReadPayload} from '@/lib/quality-read-wire';
 import {abLocalLineage} from '@/lib/ipqc-ab-local-lineage';
 import {isImmutableRecordBody,readImmutableRecord} from '@/lib/state-records';
 import { env } from 'cloudflare:workers';
@@ -147,8 +148,9 @@ export async function GET(request: Request) {
     }
     const body={ revision:state.revision, control, catalog,...(localLineage?{localLineage}:{}), ...(deferred?{equipmentDeferred:true}:{equipment}) };
     if(!await phase.current())return reply({error:'沒有查看 IPQC-AB 權限'},403);
-    if(state.recordStorage){const response=recordJSONResponse(body,env.STATE_ARCHIVE,headers,{boundedContainers:true});if(caseMetadata)response.headers.set('Content-Type',headers['Content-Type']);return response;}
-    return reply(body);
+    const delivered=qualityReadPayload(body,'AB',caseMetadata&&request.headers.get('X-Process-Quality-Read')==='compact-v1');
+    if(state.recordStorage){const response=recordJSONResponse(delivered,env.STATE_ARCHIVE,headers,{boundedContainers:true});if(caseMetadata)response.headers.set('Content-Type',headers['Content-Type']);return response;}
+    return reply(delivered);
   } catch (error) {
     console.error('[ipqc-ab] load failed',error);
     return reply({ error:'IPQC-AB 載入失敗；未以空資料覆蓋' },503);

@@ -29,6 +29,15 @@ for (const test of cases) {
     const requirePort = id => {
       if (id === 'node:fs') return { ...fs, readFileSync };
       const actual = requireFixture(id);
+      if (transformProjection && test.name === 'identity' && id === '../abc-master-source-contract.cjs') {
+        return { ...actual, projectKnown(bytes, file) {
+          assert.equal(file, test.target);
+          const projected = actual.projectKnown(bytes, file);
+          const before = canonical(projected.toString()), after = transformProjection(before);
+          assert.notEqual(after, before, 'identity inverse mutation is effective');
+          return Buffer.from(after);
+        } };
+      }
       if (transformProjection && id === './background-check-source-contract.cjs') {
         assert.equal(test.name, 'panel', 'only the departure inverse input is injected');
         return { ...actual, projectKnown(bytes, file) {
@@ -83,34 +92,35 @@ for (const test of cases) {
   if(test.name==='identity'){
     assert.equal(lf.candidate,raw,'complete FQC and IPQC-C candidate remains unchanged');
     const proof=JSON.parse(fs.readFileSync(path.join(root,'scripts/entry-performance/fixtures/identity-prefetch-reverse.json'),'utf8'));
-    const at=raw.indexOf(proof.reviewedFqcRequiredTail.marker),prefix=raw.slice(0,at),tail=raw.slice(at);
+    const projected=canonical(createRequire(fixture)('../abc-master-source-contract.cjs').projectKnown(Buffer.from(raw),test.target).toString());
+    const at=projected.indexOf(proof.reviewedFqcRequiredTail.marker),prefix=projected.slice(0,at),tail=projected.slice(at);
     const corruptions=[
       ['missing tail',prefix],
-      ['changed tail',raw.replace('const fqcRequiredAuth=','const fqcRequiredAuthChanged=')],
-      ['duplicate tail',raw+tail],
-      ['extra suffix',raw+'\n// unreviewed suffix\n'],
-      ['changed original prefix',raw.replace("const prefix='state-records/v1/'","const prefix='state-records/v2/'")],
+      ['changed tail',projected.replace('const fqcRequiredAuth=','const fqcRequiredAuthChanged=')],
+      ['duplicate tail',projected+tail],
+      ['extra suffix',projected+'\n// unreviewed suffix\n'],
+      ['changed original prefix',projected.replace("const prefix='state-records/v1/'","const prefix='state-records/v2/'")],
       ['relocated tail',tail+prefix],
-      ['duplicated original inverse span',raw.replace(proof.spans[0].candidate,proof.spans[0].candidate+proof.spans[0].candidate)],
+      ['duplicated original inverse span',projected.replace(proof.spans[0].candidate,proof.spans[0].candidate+proof.spans[0].candidate)],
       ...[proof.ipqcCCreateMutationInverse].flatMap(row=>[
-        ['changed IPQC-C create inverse',raw.replace(row.candidate,row.candidate.replace('b.consumed=true;','b.consumed=false;'))],
-        ['missing IPQC-C create inverse',raw.replace(row.candidate,'')],
-        ['duplicate IPQC-C create inverse',raw.replace(row.candidate,row.candidate+row.candidate)],
-        ['relocated IPQC-C create inverse',row.candidate+raw.replace(row.candidate,'')],
-        ['gap before FQC tail',raw.replace(row.candidate,row.candidate+'// unexpected gap\n')],
+        ['changed IPQC-C create inverse',projected.replace(row.candidate,row.candidate.replace('b.consumed=true;','b.consumed=false;'))],
+        ['missing IPQC-C create inverse',projected.replace(row.candidate,'')],
+        ['duplicate IPQC-C create inverse',projected.replace(row.candidate,row.candidate+row.candidate)],
+        ['relocated IPQC-C create inverse',row.candidate+projected.replace(row.candidate,'')],
+        ['gap before FQC tail',projected.replace(row.candidate,row.candidate+'// unexpected gap\n')],
       ]),
       ...proof.fqcAggregateReadAheadInverse.spans.flatMap((row,index)=>[
-        ['changed read-ahead inverse '+index,raw.replace(row.candidate,row.candidate+'// unexpected drift\n')],
-        ['missing read-ahead inverse '+index,raw.replace(row.candidate,'')],
-        ['duplicate read-ahead inverse '+index,raw.replace(row.candidate,row.candidate+row.candidate)],
+        ['changed read-ahead inverse '+index,projected.replace(row.candidate,row.candidate+'// unexpected drift\n')],
+        ['missing read-ahead inverse '+index,projected.replace(row.candidate,'')],
+        ['duplicate read-ahead inverse '+index,projected.replace(row.candidate,row.candidate+row.candidate)],
       ]),
       ...proof.fqcAuthorityHydrationInverse.spans.flatMap((row,index)=>[
-        ['changed authority inverse '+index,raw.replace(row.candidate,row.candidate+'// unexpected authority drift\n')],
-        ['missing authority inverse '+index,raw.replace(row.candidate,'')],
-        ['duplicate authority inverse '+index,raw.replace(row.candidate,row.candidate+row.candidate)],
+        ['changed authority inverse '+index,projected.replace(row.candidate,row.candidate+'// unexpected authority drift\n')],
+        ['missing authority inverse '+index,projected.replace(row.candidate,'')],
+        ['duplicate authority inverse '+index,projected.replace(row.candidate,row.candidate+row.candidate)],
       ]),
     ];
-    for(const[name,source]of corruptions){assert.notEqual(source,raw,name+' mutation is effective');assert.throws(()=>execute(source),{code:'ERR_ASSERTION'},name+' must be rejected');}
+    for(const[name,source]of corruptions){assert.notEqual(source,projected,name+' mutation is effective');for(const eol of ['LF','CRLF'])assert.throws(()=>execute(eol==='LF'?raw:raw.replace(/\n/g,'\r\n'), before=>{assert.equal(before,projected);return eol==='LF'?source:source.replace(/\n/g,'\r\n');}),{code:'ERR_ASSERTION'},name+' '+eol+' must be rejected');}
     checks+=corruptions.length+1;
   }
   assert.throws(() => execute(raw.replace(test.marker, test.marker + ' changed')), { code: 'ERR_ASSERTION' }, test.name + ' changed source anchor is rejected');

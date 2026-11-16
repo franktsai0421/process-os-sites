@@ -1,0 +1,119 @@
+{
+  "status": "PASS_AUTHORING_REAL_READY",
+  "rows": [
+    {
+      "round": 1,
+      "versioned": false,
+      "readyAndPaintMs": 2750.797858,
+      "count": 1000,
+      "view": "editor",
+      "requests": [
+        {
+          "path": "/api/process-bootstrap",
+          "decodedBytes": 12691982,
+          "duration": 222.40000000000873
+        },
+        {
+          "path": "/api/process-authoring/workflow",
+          "decodedBytes": 12658836,
+          "duration": 143.40000000000873
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "versioned": true,
+      "readyAndPaintMs": 2461.15489,
+      "count": 1000,
+      "view": "editor",
+      "requests": [
+        {
+          "path": "/api/process-bootstrap",
+          "decodedBytes": 11976,
+          "duration": 30
+        },
+        {
+          "path": "/api/process-authoring/workflow",
+          "decodedBytes": 12658836,
+          "duration": 155.8000000000029
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "versioned": false,
+      "readyAndPaintMs": 2846.085918999999,
+      "count": 1000,
+      "view": "editor",
+      "requests": [
+        {
+          "path": "/api/process-bootstrap",
+          "decodedBytes": 12691982,
+          "duration": 221.39999999999418
+        },
+        {
+          "path": "/api/process-authoring/workflow",
+          "decodedBytes": 12658836,
+          "duration": 155.6999999999971
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "versioned": true,
+      "readyAndPaintMs": 2604.073002000001,
+      "count": 1000,
+      "view": "editor",
+      "requests": [
+        {
+          "path": "/api/process-bootstrap",
+          "decodedBytes": 11976,
+          "duration": 30.30000000000291
+        },
+        {
+          "path": "/api/process-authoring/workflow",
+          "decodedBytes": 12658836,
+          "duration": 165.10000000000582
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "versioned": false,
+      "readyAndPaintMs": 2672.6191290000006,
+      "count": 1000,
+      "view": "editor",
+      "requests": [
+        {
+          "path": "/api/process-bootstrap",
+          "decodedBytes": 12691982,
+          "duration": 202.90000000000873
+        },
+        {
+          "path": "/api/process-authoring/workflow",
+          "decodedBytes": 12658836,
+          "duration": 142.59999999999127
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "versioned": true,
+      "readyAndPaintMs": 2376.379723000002,
+      "count": 1000,
+      "view": "editor",
+      "requests": [
+        {
+          "path": "/api/process-bootstrap",
+          "decodedBytes": 11976,
+          "duration": 27.5
+        },
+        {
+          "path": "/api/process-authoring/workflow",
+          "decodedBytes": 12658836,
+          "duration": 137.20000000001164
+        }
+      ]
+    }
+  ]
+}

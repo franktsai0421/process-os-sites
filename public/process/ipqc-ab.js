@@ -349,8 +349,8 @@
     // Observe rejection immediately: a fast denial must close the old UI while data is pending.
     const permissionAttempt=hintedScope?transport(hintedScope).permissions({isCurrent:owns}).then(value=>({value}),error=>{deny(error);if(owns()&&accessBlocked){draw();drawReview();}return{error};}):null;
     try{
-      const response=await fetch(API+'?caseMetadata=1&equipment=deferred&localLineage=1',{headers:headers(),cache:'no-store'});
-      const body=await response.json().catch(()=>({}));
+      const response=await fetch(API+'?caseMetadata=1&equipment=deferred&localLineage=1',{headers:{...headers(),...(window.expandQualityReadPayload?{'X-Process-Quality-Read':'compact-v1'}:{})},cache:'no-store'});
+      const raw=await response.json().catch(()=>({})),body=window.expandQualityReadPayload?window.expandQualityReadPayload(raw):raw;
       if(!owns())return false;
       if(!response.ok||!body.control||!Number.isInteger(body.revision))throw Object.assign(Error(body.error||t('IPQC-AB 載入失敗','Không tải được IPQC-AB')),{status:response.status});
       if(!deliveryGate&&inputOwnerCurrent(localBatch?.owner||inputOwner())){captureBatchInput(mutationOwner?mutationOwner.modal:modal);retainInputBase();}

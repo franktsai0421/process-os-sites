@@ -526,8 +526,8 @@
     let body;
     try {
     const loadData=async()=>{
-      const response=await fetch(API+'?caseMetadata=1',{cache:'no-store',headers:headers()});
-      const value=await response.json().catch(()=>({}));
+      const response=await fetch(API+'?caseMetadata=1',{cache:'no-store',headers:{...headers(),...(window.expandQualityReadPayload?{'X-Process-Quality-Read':'compact-v1'}:{})}});
+      const raw=await response.json().catch(()=>({})),value=window.expandQualityReadPayload?window.expandQualityReadPayload(raw):raw;
       if(!owns())throw Error('IPQCC_READ_SUPERSEDED');
       if(!response.ok||!value.control||!Number.isInteger(value.revision))throw Object.assign(Error(value.error||t('Không tải được IPQC-C','IPQC-C 載入失敗')),{status:response.status});
       return value;

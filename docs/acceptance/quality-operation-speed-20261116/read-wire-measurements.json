@@ -1,0 +1,110 @@
+[
+  {
+    "module": "AB",
+    "actualSmall": {
+      "plainBytes": 2562,
+      "wireBytes": 2574
+    },
+    "syntheticTransport": {
+      "items": 1000,
+      "rows": [
+        {
+          "round": 1,
+          "enabled": false,
+          "bytes": 14827569,
+          "encodedMs": 98.68984599999999,
+          "decodeMs": 70.04082700000004
+        },
+        {
+          "round": 1,
+          "enabled": true,
+          "bytes": 4944155,
+          "encodedMs": 27.44296099999997,
+          "decodeMs": 175.176244
+        },
+        {
+          "round": 2,
+          "enabled": false,
+          "bytes": 14827569,
+          "encodedMs": 42.09841400000005,
+          "decodeMs": 52.596149000000196
+        },
+        {
+          "round": 2,
+          "enabled": true,
+          "bytes": 4944155,
+          "encodedMs": 13.83662900000013,
+          "decodeMs": 117.89298500000018
+        },
+        {
+          "round": 3,
+          "enabled": false,
+          "bytes": 14827569,
+          "encodedMs": 40.33589699999993,
+          "decodeMs": 53.092587000000094
+        },
+        {
+          "round": 3,
+          "enabled": true,
+          "bytes": 4944155,
+          "encodedMs": 13.608645000000251,
+          "decodeMs": 41.135181999999986
+        }
+      ]
+    }
+  },
+  {
+    "module": "C",
+    "actualSmall": {
+      "plainBytes": 1775,
+      "wireBytes": 1763
+    },
+    "syntheticTransport": {
+      "items": 1000,
+      "rows": [
+        {
+          "round": 1,
+          "enabled": false,
+          "bytes": 19780555,
+          "encodedMs": 17.357936999999765,
+          "decodeMs": 46.983478000000105
+        },
+        {
+          "round": 1,
+          "enabled": true,
+          "bytes": 4946342,
+          "encodedMs": 16.942430999999942,
+          "decodeMs": 77.85031000000026
+        },
+        {
+          "round": 2,
+          "enabled": false,
+          "bytes": 19780555,
+          "encodedMs": 20.896240999999918,
+          "decodeMs": 72.73873900000035
+        },
+        {
+          "round": 2,
+          "enabled": true,
+          "bytes": 4946342,
+          "encodedMs": 26.43865599999981,
+          "decodeMs": 139.7246299999997
+        },
+        {
+          "round": 3,
+          "enabled": false,
+          "bytes": 19780555,
+          "encodedMs": 42.63272899999993,
+          "decodeMs": 88.06054700000004
+        },
+        {
+          "round": 3,
+          "enabled": true,
+          "bytes": 4946342,
+          "encodedMs": 16.16543899999988,
+          "decodeMs": 80.50463600000012
+        }
+      ]
+    }
+  }
+]

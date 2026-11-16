@@ -1,6 +1,6 @@
 ## 2026-11-16 — Independent quality/process speed candidate
 
-Request-local IQC/process authority and existing bounded aggregate scheduling preserve full data/validation/CAS. Office >10s requests, exact paired synthetic tests, unresolved AB/C and payload limits: [evidence](docs/acceptance/quality-operation-speed-20261116/README.md). Draft only; no merge/deployment/live changes.
+Request-local IQC/process authority, rolling bounded reads, validated FQC local Save scheduling, editor bootstrap deferral and optional AB/C readback compaction preserve validation/CAS/history. Office request mapping, paired synthetic metrics, compiled Chrome readiness and live limitations: [evidence](docs/acceptance/quality-operation-speed-20261116/README.md). Draft only; no merge/deployment/live changes.
 
 ## 2026-11-15 — 網頁實測根因修復候選
 

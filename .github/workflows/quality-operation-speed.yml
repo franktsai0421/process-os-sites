@@ -27,7 +27,7 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run lint
       - run: npx tsc --noEmit --incremental false
-      - run: node --test --test-concurrency=1 tests/quality-operation-source.test.cjs tests/quality-operation-speed.test.cjs tests/quality-process-speed.test.cjs tests/quality-ipqc-profile.test.cjs tests/quality-authoring-bootstrap.test.cjs tests/authoring-readiness-render.test.mjs tests/fqc-read-ahead.test.mjs tests/iqc-local-atomic-save.test.cjs tests/process-canvas-atomic-save-http.test.mjs
+      - run: node --test --test-concurrency=1 tests/quality-operation-source.test.cjs tests/quality-operation-speed.test.cjs tests/quality-process-speed.test.cjs tests/quality-ipqc-profile.test.cjs tests/quality-read-wire.test.cjs tests/quality-authoring-bootstrap.test.cjs tests/authoring-readiness-render.test.mjs tests/fqc-read-ahead.test.mjs tests/iqc-local-atomic-save.test.cjs tests/process-canvas-atomic-save-http.test.mjs
         env:
           QUALITY_FIXTURE_DELAY_MS: '10'
           QUALITY_FIXTURE_PARTS: '1000'

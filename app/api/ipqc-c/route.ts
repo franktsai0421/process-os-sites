@@ -1,3 +1,4 @@
+import {qualityReadPayload} from '@/lib/quality-read-wire';
 import {ipqcCFinalReviewAllowed} from '@/lib/ipqc-c-access';
 import {restoreEffects} from '@/lib/draft-restore-access';
 import { env } from 'cloudflare:workers';
@@ -82,7 +83,7 @@ export async function GET(request: Request) {
       equipmentCategories:tree.categories, equipmentSubcategories:tree.subcategories,
       ...(localHost(request) && actor.role === 'admin' ? { historicalCodes: historicCodes(state.values) } : {}) };
     if(!await phase.current())return reply({error:'沒有查看 IPQC-C 的權限'},403);
-    return state.recordStorage&&!caseMetadata?recordJSONResponse(body,env.STATE_ARCHIVE,headers):reply(body);
+    return state.recordStorage&&!caseMetadata?recordJSONResponse(body,env.STATE_ARCHIVE,headers):reply(qualityReadPayload(body,'C',caseMetadata&&request.headers.get('X-Process-Quality-Read')==='compact-v1'));
   } catch (error) {
     console.error('[ipqc-c] load failed', error);
     return reply({ error: 'IPQC-C 載入失敗；沒有以空資料覆蓋既有資料' }, 503);
