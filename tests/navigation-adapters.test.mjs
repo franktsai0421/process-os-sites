@@ -73,9 +73,9 @@ for(const change of ['history-display','history-permission'])void test('actual I
  assert.equal(f.box.control,null);assert.equal(f.box.revision,null);
 });
 const accountSource=source('user-access.js');
-const accountRequest=part(accountSource,' async function requestValue(options={},fresh=false,waitForPassword=false){','\n function expireSession()');
-const accountSend=part(accountSource,' async function send(payload){','\n function paint()');
-assert(accountRequest.startsWith(' async function requestValue(')&&accountRequest.includes('finally{clearTimeout(timer);}'));
+const accountRequest=part(accountSource,' async function requestValue(','\n function expireSession()');
+const accountSend=part(accountSource,' async function send(','\n function paint()');
+assert(accountRequest.startsWith(' async function requestValue(')&&accountRequest.includes('finally{clearTimeout(timer);')&&accountRequest.includes("options.signal?.removeEventListener('abort',stop)"));
 assert(accountSend.includes('writeEpoch++')&&accountSend.includes('finally{writing--;}'));
 function accountBox(response){const box={writing:0,writeUncertain:false,writeEpoch:0,AbortController,setTimeout,clearTimeout,model:{actor:{id:'frank'},revision:1},modelStamp:{id:'frank'},identityStamp:()=>({id:'frank'}),sameIdentity:()=>true,fetch:async()=>response,window:{ProcessSync:{platformHeaders:()=>({})}},emitIdentity(){},calls:0};const fetch=box.fetch;box.fetch=async(...args)=>{box.calls++;return fetch(...args);};vm.createContext(box);vm.runInContext(accountRequest+accountSend,box);return box;}
 for(const kind of ['network','body','500'])void test('actual account '+kind+' lost acknowledgement stays guarded and cannot replay',async()=>{
@@ -150,7 +150,7 @@ void test('changed persistent-navigation executable references have coherent new
   'shared-draft-client.js':'20261114-lines-flow-review1',
   'shared-state.js':'20261106-access-offline1',
   'tooling.js':'20261113-equipment-integration2',
-  'user-access.js':'20261113-password-outcome1',
+  'user-access.js':'20261115-account-outcome1',
   'navigation-forms.js':'20261025-navigation2',
   'process-ipqc.js':'20261115-ipqc-adopt1',
   'data-safety-ui.js':'20261110-account-priority-candidate',

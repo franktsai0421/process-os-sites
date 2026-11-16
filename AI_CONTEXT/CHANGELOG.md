@@ -1,3 +1,8 @@
+
+## 2026-11-15 — 角色與人員保存／原回執候選
+
+帳號專用 verified records overlay 移除不相關業務讀取；非密碼操作保留獨立 requestId/audit 回執直到 fresh readback，UNKNOWN 只查原操作、不重送，POST 可明確停止等候。status.view 導出明細/照片/影片舊只讀別名；管理員安全邊界、effective inheritance、角色例外、fresh auth/CAS 保留。沒有 live 帳號/資料/schema/政策採用/合併或部署。[根因、量測、完整權限對照與驗證界線](../docs/acceptance/account-role-save-20261115/README.md)。
+
 ## 2026-11-15 — 製程 IPQC 明確採用及切換後送審驗證
 
 獨立 main e040a7e 修復候選：A/B/C 舊關聯明確採用核准新版，保留詳細區與唯一占用／權限／CAS；修復 filter 舊 history watcher 誤觸 CANVAS_REVIEW_CHANGED 及切換後未重新檢查的 disabled Submit。[根因、隔離證據、並行工作交接與未驗範圍](../docs/acceptance/process-ipqc-adopt-review-20261115.md)。無資料／schema／部署變更。

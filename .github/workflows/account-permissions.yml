@@ -15,6 +15,9 @@ on:
       - 'tests/password-outcome-fixture.mjs'
       - 'scripts/password-outcome-source-contract.*'
       - 'lib/user-access.ts'
+      - 'lib/account-state.ts'
+      - 'public/process/account-write-receipt.js'
+      - 'scripts/account-outcome-source-contract.*'
       - 'lib/web-feedback.ts'
       - 'public/process/web-feedback*'
       - 'tests/account-*.test.cjs'
@@ -70,6 +73,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run lint -- --format unix
       - run: node node_modules/typescript/bin/tsc --noEmit --incremental false
+      - name: Account role save receipts, isolated storage faults and retained source proof
+        run: node --experimental-vm-modules --test tests/account-role-outcome.test.mjs tests/account-role-transport.test.mjs tests/account-role-source.test.cjs tests/account-status-view.test.mjs
       - name: Actual account and role grouped conflicts with current authority
         run: node --test tests/account-conflict-groups.test.mjs tests/account-process-followup-source.test.cjs tests/accounts-process-inline-oracle.test.mjs
       - name: Isolated account API and UI source regression
@@ -129,6 +134,8 @@ jobs:
         run: node tests/user-permissions-native.test.mjs
       - name: Install isolated Chromium
         run: node node_modules/playwright/cli.js install --with-deps chromium
+      - name: Role and user saves, stopped waits and lost acknowledgements in compiled Chromium
+        run: node --experimental-vm-modules tests/account-role-browser.mjs
       - name: Password reset, own change and new login in compiled Chromium
         run: node --experimental-vm-modules tests/account-password-browser.mjs
       - name: Native lines-only approved page without workflow grants

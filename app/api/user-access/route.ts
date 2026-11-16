@@ -1,9 +1,10 @@
 import {publicAccountReviewContext} from '../../../public/process/account-review-preview.mjs';
 /* oxlint-disable typescript/no-explicit-any -- Existing shared-state JSON shapes are validated by the mutation guards. */
 import {env} from 'cloudflare:workers';
-import {readState,identity,sameOrigin,encodeValues,stateRevisionIsCurrent,responseHeaders as headers,parse,sessionCookie} from '@/lib/process-state';
+import {identity,sameOrigin,encodeValues,stateRevisionIsCurrent,responseHeaders as headers,parse,sessionCookie} from '@/lib/process-state';
 import {effectiveAccess,roleTemplates} from '@/lib/user-access';
 import {passwordHash,verifyPassword,validatePassword,passwordCredentialState} from '@/lib/passwords';
+import {readAccountState,encodeAccountState,accountStateIsSelected} from '@/lib/account-state';
 import {readPasswordState,encodePasswordState,passwordStateIsSelected} from '@/lib/password-state';
 import {catalog,columns,accessKeys,isPrimary,managementRight,editableCells,PRIMARY_ADMIN_ID,invalidDependencies,effectiveCells,roleEditable,newDependencyIssues} from '../../../public/process/access-policy.mjs';
 const safe=(user:any)=>{const {password:_password,passwordHash:_hash,...rest}=user;return rest;};
@@ -40,7 +41,16 @@ function projection(state:any,id:string,capabilities=pageCapabilities(state.valu
   users:users.filter((u:any)=>!u.deletedAt&&(manager?u.authMode!=='demo':u.id===actor.id)).map((u:any)=>{const rights=rightsFor(u);return {...safe(u),...rights,...(manager&&managementRight(actor,u,actor.id===u.id?'password-own':'password',access.cells)?{credentialState:passwordCredentialState(u)}:{}),configuredCells:u.enabled===false?effectiveAccess({...u,enabled:true},state.values,roles).cells:rights.cells,editable:editableFor(u),actions:Object.fromEntries(['view','edit','delete','status','password','password-own'].map(action=>[action,managementRight(actor,u,action,access.cells)]))};}),
   roles:manager?Object.entries(roles).map(([id,r]:[string,any])=>({...r,id,...(counts.get(id)||{assigned:0,formalCount:0})})):[],canCreate:manager&&access.cells['users.create'],canRoles:isPrimary(actor)};
 }
-export async function GET(request:Request){try{const state=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl']}),id=(await identity(request,state))?.id;if(!id)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers});let capabilities=pageCapabilities(state.values);if(state.recordStorage){try{const selected=await readState({keys:['masterDataControl'],projectValue:(_key,raw)=>JSON.stringify({pageCapabilities:pageCapabilities({masterDataControl:raw})})});capabilities=selected.revision===state.revision?parse(selected.values.masterDataControl,{}).pageCapabilities||{lines:false}:{lines:false};}catch{capabilities={lines:false};}}return Response.json(projection(state,id,capabilities),{headers});}catch{return Response.json({error:'FORBIDDEN'},{status:403,headers});}}
+// A receipt is evidence of the original committed operation, never permission to replay.
+function operationReceipt(state:any,actorId:string,requestId:string){
+ const entry=parse(state.values.processAccessControl,{}).audit?.find((item:any)=>item.requestId===requestId&&item.actor?.id===actorId);
+ if(!entry)return {requestId,committed:false};
+ const roles=entry.action.endsWith('role'),current=roles?roleTemplates(state.values)[entry.target]:parse(state.values.platformUsers,[]).find((u:any)=>u.id===entry.target);
+ const target=roles?current||null:current?safe(current):null;
+ const canonical=(value:any):string=>JSON.stringify(value,(_key,item)=>item&&typeof item==='object'&&!Array.isArray(item)?Object.fromEntries(Object.keys(item).sort().map(key=>[key,item[key]])):item);
+ return {requestId,committed:true,action:entry.action,id:entry.target,revision:entry.revision,targetUnchanged:canonical(target)===canonical(entry.after)};
+}
+export async function GET(request:Request){try{const state=await readAccountState(),id=(await identity(request,state))?.id;if(!id)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers});const requestId=new URL(request.url).searchParams.get('requestId');if(requestId&&!/^account_[a-f0-9-]{36}$/.test(requestId))return Response.json({error:'INVALID_INPUT'},{status:400,headers});return Response.json({...projection(state,id),...(requestId?{operation:operationReceipt(state,id,requestId)}:{})},{headers});}catch{return Response.json({error:'FORBIDDEN'},{status:403,headers});}}
 function cellChanges(input:any,allowed:Record<string,boolean>,prior:Record<string,boolean>){if(!input||typeof input!=='object'||Array.isArray(input))throw Error('INVALID_CELLS');const next={...prior};for(const [key,value]of Object.entries(input)){if(!accessKeys.includes(key)||![true,false,null].includes(value as any))throw Error('INVALID_CELLS');if(!allowed[key])denied();if(value===null)delete next[key];else next[key]=value as boolean;}return next;}
 function validUser(user:any,values:Record<string,string>,previous?:Record<string,boolean>){const candidate={...user,enabled:true,deletedAt:undefined},roles=roleTemplates(values),options=pageCapabilities(values);if(invalidDependencies(effectiveCells(candidate,roles),options).length||invalidDependencies(effectiveAccess(candidate,values,roles).cells,options).length)throw Error('VIEW_DEPENDENCY_REQUIRED');if(newDependencyIssues(effectiveAccess(candidate,values,roles).cells,previous,options).length)throw Error('EDIT_DEPENDENCY_REQUIRED');}
 function validateRoles(values:Record<string,string>,users:any[],roleId:string,prior:Record<string,string>){const roles=roleTemplates(values),sample={id:'role-check',role:roleId,enabled:true,inheritRole:true},options=pageCapabilities(values);if(invalidDependencies(effectiveCells(sample,roles),options).length)throw Error('VIEW_DEPENDENCY_REQUIRED');if(newDependencyIssues(effectiveCells(sample,roles),effectiveAccess(sample,prior).cells,options).length)throw Error('EDIT_DEPENDENCY_REQUIRED');for(const user of users.filter(u=>u.role===roleId&&!u.deletedAt))validUser(user,values,effectiveAccess({...user,enabled:true},prior).cells);}
@@ -55,11 +65,13 @@ function assertEffectiveReviewChoices(values:Record<string,string>,body:any){
 export async function POST(request:Request){if(!sameOrigin(request))return Response.json({error:'FORBIDDEN_ORIGIN'},{status:403,headers});let body:any;try{body=await request.json();}catch{return Response.json({error:'INVALID_INPUT'},{status:400,headers});}
  try{
   if(!body||Array.isArray(body)||typeof body!=='object'||JSON.stringify(body).length>100000)throw Error('INVALID_INPUT');
-  const allowedFields=['action','baseRevision','id','name','role','enabled','changes','password','confirmation','oldPassword','description','access','confirmFinalApproval'];if(Object.keys(body).some(k=>!allowedFields.includes(k)))throw Error('INVALID_INPUT');
-  const state=body.action==='password'?await readPasswordState():await readState({deferHistory:true,deferDependencyHistory:true}),signed=await identity(request,state);if(!signed)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers});
+  const allowedFields=['action','baseRevision','id','name','role','enabled','changes','password','confirmation','oldPassword','description','access','confirmFinalApproval','requestId'];if(Object.keys(body).some(k=>!allowedFields.includes(k)))throw Error('INVALID_INPUT');
+  const state=body.action==='password'?await readPasswordState():await readAccountState(),signed=await identity(request,state);if(!signed)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers});
   if(state.values.maintenanceMode==='1')return Response.json({error:'MAINTENANCE'},{status:503,headers});
   if(body.baseRevision!==state.revision)return Response.json({error:'REVISION_CHANGED',revision:state.revision},{status:409,headers});
   const {users,actor,access,roles}=actors(state,signed.id),values={...state.values},now=new Date().toISOString(),id=String(body.id||'').trim().toLowerCase(),target=users.find((u:any)=>u.id===id),roleControl=parse(values.processRoleTemplateOverrides,{}),custom=parse(values.processCustomRoles,[]);
+  if(own(body,'requestId')&&(body.action==='password'||typeof body.requestId!=='string'||!/^account_[a-f0-9-]{36}$/.test(body.requestId)))throw Error('INVALID_INPUT');
+  if(body.requestId){const receipt=operationReceipt(state,actor.id,body.requestId);if(receipt.committed)throw Error('REVISION_CHANGED');}
   const confirmFinalApproval=body.confirmFinalApproval===true;
   if(own(body,'confirmFinalApproval')){
    if(!confirmFinalApproval||!['create-user','update-user','create-role','update-role'].includes(body.action))throw Error('INVALID_INPUT');
@@ -104,11 +116,11 @@ export async function POST(request:Request){if(!sameOrigin(request))return Respo
    }
    values.processRoleTemplateOverrides=JSON.stringify(roleControl);if(body.action!=='delete-role')validateRoles(values,users,id,state.values);
   }else throw Error('INVALID_ACTION');
-  if(!changed){assertEffectiveReviewChoices(values,body);return Response.json(projection(state,actor.id),{headers});}
+  if(!changed&&!body.requestId){assertEffectiveReviewChoices(values,body);return Response.json(projection(state,actor.id),{headers});}
   values.platformUsers=JSON.stringify(users);
   const audit=parse(values.processAccessControl,{schemaVersion:2,primaryAdminId:PRIMARY_ADMIN_ID,audit:[]});if(audit.primaryAdminId!==PRIMARY_ADMIN_ID)throw Error('PRIMARY_BINDING_MISMATCH');
   // Never include credential fields, including hashes, in account audit records.
-  audit.audit.push({id:crypto.randomUUID(),at:now,actor:{id:actor.id,name:actor.name,role:actor.role},action:body.action,target:id,before,after,...(confirmFinalApproval?{approvalConfirmation:{schemaVersion:1,permission:'approval.approve',granted:true,subjectKind:body.action.endsWith('role')?'role':'user',subjectId:id}}:{})});values.processAccessControl=JSON.stringify(audit);
+  audit.audit.push({id:crypto.randomUUID(),at:now,actor:{id:actor.id,name:actor.name,role:actor.role},action:body.action,target:id,before,after,...(body.requestId?{requestId:body.requestId,revision:state.revision+1}:{}),...(confirmFinalApproval?{approvalConfirmation:{schemaVersion:1,permission:'approval.approve',granted:true,subjectKind:body.action.endsWith('role')?'role':'user',subjectId:id}}:{})});values.processAccessControl=JSON.stringify(audit);
   // The final-approval audit is itself part of effective authority. Compare
   // assigned users only after that exact proof is present in the candidate.
   if(['create-role','update-role','delete-role'].includes(body.action)){
@@ -120,7 +132,7 @@ export async function POST(request:Request){if(!sameOrigin(request))return Respo
   }
   assertEffectiveReviewChoices(values,body);
   if(!await stateRevisionIsCurrent(state))throw Error('REVISION_CHANGED');
-  const result=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,await (passwordStateIsSelected(state)?encodePasswordState(values,state):encodeValues(values,state)),now,state.revision).run();if(!result.meta.changes)throw Error('REVISION_CHANGED');
-  return Response.json({...projection({revision:state.revision+1,values},actor.id),ok:true,relogin:passwordOwn||users.find((u:any)=>u.id===actor.id)?.authEpoch!==parse(state.values.platformUsers,[]).find((u:any)=>u.id===actor.id)?.authEpoch},{headers:{...headers,...(passwordOwn?{'Set-Cookie':sessionCookie(request,'')}: {})}});
+  const result=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,await (passwordStateIsSelected(state)?encodePasswordState(values,state):accountStateIsSelected(state)?encodeAccountState(values,state,body.action,id):encodeValues(values,state)),now,state.revision).run();if(!result.meta.changes)throw Error('REVISION_CHANGED');
+  return Response.json({...projection({revision:state.revision+1,values},actor.id),ok:true,...(body.requestId?{operation:operationReceipt({revision:state.revision+1,values},actor.id,body.requestId)}:{}),relogin:passwordOwn||users.find((u:any)=>u.id===actor.id)?.authEpoch!==parse(state.values.platformUsers,[]).find((u:any)=>u.id===actor.id)?.authEpoch},{headers:{...headers,...(passwordOwn?{'Set-Cookie':sessionCookie(request,'')}: {})}});
  }catch(error){const message=(error as Error).message,known=new Set(['REVIEW_PERMISSION_DERIVED','FORBIDDEN','INVALID_CELLS','EDIT_DEPENDENCY_REQUIRED','VIEW_DEPENDENCY_REQUIRED','INVALID_INPUT','INVALID_USER','ACCOUNT_EXISTS','INVALID_ROLE','GRANT_EXCEEDS_ACTOR','ACCOUNT_NOT_FOUND','OLD_PASSWORD_INCORRECT','USE_STATUS_ACTION','DEFAULT_ROLE_PROTECTED','ROLE_ASSIGNED','ROLE_EXISTS','INVALID_ACTION','REVISION_CHANGED','PRIMARY_BINDING_MISMATCH','PASSWORD_LENGTH','PASSWORD_MISMATCH','PASSWORD_SERVICE_UNAVAILABLE']);const code=known.has(message)?message:'SERVER_ERROR',status=code==='FORBIDDEN'?403:code==='ACCOUNT_NOT_FOUND'?404:code==='REVISION_CHANGED'?409:(code==='PRIMARY_BINDING_MISMATCH'||code==='PASSWORD_SERVICE_UNAVAILABLE')?503:code==='SERVER_ERROR'?500:400;return Response.json({error:code},{status,headers});}
 }

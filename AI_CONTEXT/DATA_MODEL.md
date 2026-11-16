@@ -1,3 +1,7 @@
+## 2026-11-15 帳號操作回執
+
+既有 processAccessControl.audit 的非密碼帳號/角色操作可增加 optional requestId、revision；與同次帳號/角色 CAS 原子保存。只讀查證依最新 actor 與原 requestId，回傳原操作是否已 commit 及目前 raw target 是否仍等於原 after，不暴露 credential。account-only overlay 保留其他 records/allocations/legacy refs，generic partial writer 仍禁止；無 SQL/schema/migration/binding 新增或實帳回填。詳見[驗證與限制](../docs/acceptance/account-role-save-20261115/README.md)。
+
 ## 2026-11-14 — IPQC 關聯呈現，無資料遷移
 
 既有 source／scope／itemId 定位關聯，sourceVersionId 保留來源版本，C productCodes 保留適用產品。UI 新增 retained 顯示狀態及即時計算警示；不新增保存欄位、不重寫歷史、不自動升版。無 SQL、schema、R2 格式、權限或來源資料異動。[驗證與界線](../docs/acceptance/process-ipqc-assignment-consistency-20261114.md)。

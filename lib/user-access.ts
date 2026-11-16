@@ -15,7 +15,9 @@ export function effectiveAccess(user:AccessUser, values:Record<string,string>, r
   const primary=isPrimary(user);let control:Record<string,unknown>={};try{control=JSON.parse(values.processAccessControl||'{}');}catch{/* Invalid policy evidence cannot establish a grant. */}
   const {cells,draftReviewPolicyActive,reviewPolicy}=resolveAccountReview(user,roles,control);
   const legacyPermissions=primary?roleDefaults.admin.permissions:scope?.permissions||[];
-  const permissions=draftReviewPolicyActive?legacyPermissions.filter(key=>!['approval.approve','approval.submit','approval.withdraw','approval.reject'].includes(key)):legacyPermissions;
+  const statusAliases=['status.viewAllLines','status.viewDetails','status.viewMedia'];
+  const permissions=legacyPermissions.filter(key=>!statusAliases.includes(key)&&(!draftReviewPolicyActive||!['approval.approve','approval.submit','approval.withdraw','approval.reject'].includes(key)));
+  if(cells['status.view'])permissions.push(...statusAliases);
   if(draftReviewPolicyActive){if(cells['approval.approve'])permissions.push('approval.approve');for(const [op,alias]of [['submit','approval.submit'],['withdraw','approval.withdraw'],['return','approval.reject']])if(catalog.some(row=>row.ops.includes('submit')&&cells[row.id+'.'+op]))permissions.push(alias);}
 
   return { role, enabled, primary, cells, ...(draftReviewPolicyActive?{draftReviewPolicyActive,reviewPolicy}:{}), inheritRole: user.inheritRole !== false,
