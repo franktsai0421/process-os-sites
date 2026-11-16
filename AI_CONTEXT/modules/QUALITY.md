@@ -1,3 +1,7 @@
+## 2026-11-16 — Independent quality/process speed candidate
+
+Request-local IQC/process authority and existing bounded aggregate scheduling preserve full data/validation/CAS. Office >10s requests, exact paired synthetic tests, unresolved AB/C and payload limits: [evidence](../../docs/acceptance/quality-operation-speed-20261116/README.md). Draft only; no merge/deployment/live changes.
+
 ## 2026-11-15 — 網頁實測根因修復候選
 
 檢具移轉以合格的原操作回應／收據先呈現結果，關聯刷新獨立顯示；刷新中鎖住舊選取的重複確認，失敗不改已確認結果。檢具頁首區分本地未套用、共用未存、處理中、已持久化、讀取失敗與結果未知；未知操作 UI 僅查原收據。新增類別的本地代碼為暫編，伺服器依歷史保留號碼分配正式碼並回報差異，不重編既有資料。

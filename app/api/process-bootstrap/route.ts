@@ -33,7 +33,7 @@ export async function GET(request:Request){
       const {fqc:_deferred,...libraries}=root.libraries;
       return JSON.stringify({...root,libraries});
     };
-    const state=await readState({keys:plan.keys,effectiveOnly:true,deferHistory:true,deferDependencyHistory:true,...(reuseIdentity?{identityReadToken}:{}),...(plan.destination.module==='fqc'?{projectValue:projectFqc}:{})});
+    const state=await readState({aggregateReadAhead:true,keys:plan.keys,effectiveOnly:true,deferHistory:true,deferDependencyHistory:true,...(reuseIdentity?{identityReadToken}:{}),...(plan.destination.module==='fqc'?{projectValue:projectFqc}:{})});
     const reader=await companyReader(request,state);
     if(!reader||reader.actor.id!==before.actor.id)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers:responseHeaders});
     if(state.revision!==auth.revision)return Response.json({error:'BOOTSTRAP_REVISION_CHANGED'},{status:409,headers:responseHeaders});

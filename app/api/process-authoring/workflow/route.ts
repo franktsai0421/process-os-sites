@@ -2,15 +2,15 @@ import {processApprovedGET} from '@/lib/process-approved-history';
 import {processAuthoringAdapter} from '@/lib/process-authoring-workflow';
 import {versionedWorkflowRoute} from '@/lib/versioned-shared-workflow';
 import {workflowAccess} from '@/lib/versioned-shared-workflow';
-import {readState,identity,responseHeaders} from '@/lib/process-state';
+import {readState,identity,createProcessPermissionPhase,responseHeaders} from '@/lib/process-state';
 import {DraftConflict} from '@/lib/shared-draft';
 export async function GET(request:Request){
  const query=new URL(request.url).searchParams;
  if(query.has('approvedOnly'))return processApprovedGET(request);
  if(query.has('contentIssues')){
   try{
-   const state=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','processAuthoringControl','masterDataControl','bomOverrides','ipqcABMasterControl','ipqcCMasterControl'],modelKey:'processAuthoringControl',deferDependencyHistory:true,deferHistory:true,caseId:query.get('contentCaseId')}),actor=await identity(request,state),adapter=processAuthoringAdapter(),permissions=await adapter.access!(request,state,await workflowAccess(request,state));
-   if(!actor||!permissions.view||query.has('contentCaseId')&&!permissions.history)return Response.json({error:'FORBIDDEN'},{status:403,headers:responseHeaders});
+   const state=await readState({aggregateReadAhead:true,keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','processAuthoringControl','masterDataControl','bomOverrides','ipqcABMasterControl','ipqcCMasterControl'],modelKey:'processAuthoringControl',deferDependencyHistory:true,deferHistory:true,caseId:query.get('contentCaseId')}),phase=await createProcessPermissionPhase(request,state),actor=phase.actor,adapter=processAuthoringAdapter(),permissions=await adapter.access!(request,state,await workflowAccess(request,state,phase.allowed));
+   if(!actor||!permissions.view||query.has('contentCaseId')&&!permissions.history||!await phase.current())return Response.json({error:'FORBIDDEN'},{status:403,headers:responseHeaders});
    const control=adapter.parse(state.values.processAuthoringControl,state.recordStorage?.models.get('processAuthoringControl')),flow=control.workflow!;
    const context=adapter.context(control,state,{actor:{id:actor.id,name:actor.name,admin:actor.role==='admin'},at:new Date().toISOString(),id:()=>crypto.randomUUID(),allowed:p=>permissions[p]});
    // One decoded immutable body may back working, saved and an unfixed case.

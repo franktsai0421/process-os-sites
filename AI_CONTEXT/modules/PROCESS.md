@@ -1,3 +1,7 @@
+## 2026-11-16 — Independent quality/process speed candidate
+
+Request-local IQC/process authority and existing bounded aggregate scheduling preserve full data/validation/CAS. Office >10s requests, exact paired synthetic tests, unresolved AB/C and payload limits: [evidence](../../docs/acceptance/quality-operation-speed-20261116/README.md). Draft only; no merge/deployment/live changes.
+
 ## 2026-11-15 — IPQC 頻率 AQL 標籤顯示
 
 製程共用 `frequency()` 對 `kind/batchKind=aql` 且有 `aqlValue` 時，只輸出一次 `AQL <數值>`。C 先前把取樣方式與值各加一次 AQL；AB 的 `kind/value`、其他頻率及作者文字保留。適用詳細區、來源比較與既有唯讀 C 查詢；不改來源資料或保存語意。[單項驗證與界線](../../docs/acceptance/process-ipqc-frequency-20261115.md)。

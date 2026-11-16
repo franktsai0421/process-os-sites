@@ -110,7 +110,7 @@ void test('FQC GET rereads authority on its second snapshot and observes a later
     const response=await f.call('/api/fqc/workflow?caseMetadata=1&compact=1');assert.equal(response.status,503);assert.equal((await response.json()).error,'WORKFLOW_LOAD_FAILED');assert.equal(reads,2);assert(!f.events.some(e=>e.kind==='sql'));
   }finally{f.close();}
 });
-for(const path of ['/api/fqc/workflow?caseMetadata=1','/api/fqc/workflow?caseMetadata=1&scope=other','/api/iqc/workflow?caseMetadata=1'])void test(`route opt-in remains exact: ${path}`,async()=>{
+for(const path of ['/api/fqc/workflow?caseMetadata=1','/api/fqc/workflow?caseMetadata=1&scope=other','/api/iqc/workflow?caseMetadata=1','/api/iqc/workflow?caseMetadata=1&scope=other'])void test(`route opt-in remains exact: ${path}`,async()=>{
   const f=await fixture();try{
     await f.mutate(values=>{const users=JSON.parse(values.platformUsers);users[0].accessOverrides['iqc.view']=true;values.platformUsers=JSON.stringify(users);values.processAccessControl=JSON.stringify({audit:[]});});
     const refs=JSON.parse(f.db.prepare('SELECT "values" FROM shared_state').get().values).__processRecords.values;
@@ -121,7 +121,7 @@ for(const path of ['/api/fqc/workflow?caseMetadata=1','/api/fqc/workflow?caseMet
     const response=await route.GET(new Request('https://synthetic.invalid'+path,{headers:{cookie:f.cookies.editor}}));assert.equal(response.status,200);
     const overrideText=events.findIndex(([kind,key])=>kind==='text'&&key===refs.processRoleTemplateOverrides.key),accessGet=events.findIndex(([kind,key])=>kind==='get'&&key===refs.processAccessControl.key);
     assert(overrideText>=0&&accessGet>=0);
-    assert.equal(accessGet<overrideText,path==='/api/fqc/workflow?caseMetadata=1','only the exact FQC route overlaps this formerly serial pair');
+    assert.equal(accessGet<overrideText,['/api/fqc/workflow?caseMetadata=1','/api/iqc/workflow?caseMetadata=1'].includes(path),'only exact enrolled FQC/IQC routes overlap this formerly serial pair');
   }finally{f.close();}
 });
 for(const action of ['apply','save'])for(const missingBody of [false,true])void test(`Begin envelope with nested ${action} retains ordinary Begin reads and no command side effects; missing body=${missingBody}`,async()=>{

@@ -1,3 +1,7 @@
+## 2026-11-16 — Independent quality/process speed candidate
+
+Request-local IQC/process authority and existing bounded aggregate scheduling preserve full data/validation/CAS. Office >10s requests, exact paired synthetic tests, unresolved AB/C and payload limits: [evidence](docs/acceptance/quality-operation-speed-20261116/README.md). Draft only; no merge/deployment/live changes.
+
 ## 2026-11-15 — 網頁實測根因修復候選
 
 獨立 checkout／`fix/quality-save-read-root-causes-20261115`，基於已核對 #119 main e040a7e。涵蓋檢具／模具、FQC、IPQC AB 回應與 C 歷史查詢誤報；既有部署 checkout／服務與測試資料未動。[逐項根因、隔離測量與交付關卡](docs/acceptance/quality-root-causes-20261115.md)。無 merge／部署／帳號或正式資料操作；實站真人驗收另行。

@@ -281,7 +281,7 @@ export async function readFqcRecordMutation(bucket:Bucket,envelope:Envelope,revi
  const manifest=envelope?.__processRecords;
  if(!Number.isSafeInteger(revision)||revision<0||!object(envelope)||envelope.platformUsers!==undefined&&typeof envelope.platformUsers!=='string'||envelope.maintenanceMode!==undefined&&typeof envelope.maintenanceMode!=='string'||Object.keys(envelope).some(k=>!['__processRecords','platformUsers','maintenanceMode'].includes(k))||!object(manifest)||manifest.version!==1||Object.keys(manifest).some(k=>!['version','values','legacySources','allocations'].includes(k))||!object(manifest.values)||!object(manifest.legacySources)||!object(manifest.allocations)||!valid(manifest.allocations.qualityMasterControl)||!valid(manifest.values.qualityMasterControl))return null;
  const original=JSON.stringify(envelope);
- const selected=await decodeRecordValuesCore(bucket,envelope,{modelKey:'qualityMasterControl',deferDependencyHistory:true,deferHistory:true},new Set(fqcMutationKeys));
+ const selected=await decodeRecordValuesCore(bucket,envelope,{aggregateReadAhead:true,modelKey:'qualityMasterControl',deferDependencyHistory:true,deferHistory:true},new Set(fqcMutationKeys));
  // Noncanonical mirrors are handled by the ordinary full reader/encoder;
  // this overlay never silently repairs or retains a divergent auth mirror.
  if(envelope.platformUsers!==selected.values.platformUsers||envelope.maintenanceMode!==selected.values.maintenanceMode)return null;
@@ -311,7 +311,7 @@ export async function readProcessSaveRecordMutation(bucket:Bucket,envelope:Envel
  const manifest=envelope?.__processRecords;
  if(!Number.isSafeInteger(revision)||revision<0||!object(envelope)||envelope.platformUsers!==undefined&&typeof envelope.platformUsers!=='string'||envelope.maintenanceMode!==undefined&&typeof envelope.maintenanceMode!=='string'||Object.keys(envelope).some(k=>!['__processRecords','platformUsers','maintenanceMode'].includes(k))||!object(manifest)||manifest.version!==1||Object.keys(manifest).some(k=>!['version','values','legacySources','allocations'].includes(k))||!object(manifest.values)||!object(manifest.legacySources)||manifest.allocations!==undefined&&!object(manifest.allocations)||!valid(manifest.values.processAuthoringControl))return null;
  const original=JSON.stringify(envelope);
- const selected=await decodeRecordValuesCore(bucket,envelope,{modelKey:'processAuthoringControl',deferDependencyHistory:true,deferHistory:true},new Set(processSaveMutationKeys));
+ const selected=await decodeRecordValuesCore(bucket,envelope,{aggregateReadAhead:true,modelKey:'processAuthoringControl',deferDependencyHistory:true,deferHistory:true},new Set(processSaveMutationKeys));
  if(envelope.platformUsers!==selected.values.platformUsers||envelope.maintenanceMode!==selected.values.maintenanceMode)return null;
  const model=selected.recordStorage.models.get('processAuthoringControl');
  if(!object(model)||!Array.isArray(model.versions)||!object(model.workflow)||model.workflow.scope!=='process:platform'||model.workflow.schemaVersion!==3)return null;
@@ -339,7 +339,7 @@ export async function readProcessFlowRecordMutation(bucket:Bucket,envelope:Envel
  const manifest=envelope?.__processRecords;
  if(!Number.isSafeInteger(revision)||revision<0||!object(envelope)||envelope.platformUsers!==undefined&&typeof envelope.platformUsers!=='string'||envelope.maintenanceMode!==undefined&&typeof envelope.maintenanceMode!=='string'||Object.keys(envelope).some(k=>!['__processRecords','platformUsers','maintenanceMode'].includes(k))||!object(manifest)||manifest.version!==1||Object.keys(manifest).some(k=>!['version','values','legacySources','allocations'].includes(k))||!object(manifest.values)||!object(manifest.legacySources)||manifest.allocations!==undefined&&!object(manifest.allocations)||!valid(manifest.values.processAuthoringControl))return null;
  const original=JSON.stringify(envelope);
- const selected=await decodeRecordValuesCore(bucket,envelope,{modelKey:'processAuthoringControl',deferDependencyHistory:true,deferHistory:true,caseId},new Set(processFlowMutationKeys));
+ const selected=await decodeRecordValuesCore(bucket,envelope,{aggregateReadAhead:true,modelKey:'processAuthoringControl',deferDependencyHistory:true,deferHistory:true,caseId},new Set(processFlowMutationKeys));
  if(envelope.platformUsers!==selected.values.platformUsers||envelope.maintenanceMode!==selected.values.maintenanceMode)return null;
  const model=selected.recordStorage.models.get('processAuthoringControl');
  if(!object(model)||!Array.isArray(model.versions)||!object(model.workflow)||model.workflow.scope!=='process:platform'||model.workflow.schemaVersion!==3)return null;
@@ -372,7 +372,7 @@ export async function readFqcLifecycle8RecordMutation(bucket:Bucket,envelope:Env
  const manifest=envelope?.__processRecords;
  if(!Number.isSafeInteger(revision)||revision<0||!object(envelope)||envelope.platformUsers!==undefined&&typeof envelope.platformUsers!=='string'||envelope.maintenanceMode!==undefined&&typeof envelope.maintenanceMode!=='string'||Object.keys(envelope).some(k=>!['__processRecords','platformUsers','maintenanceMode'].includes(k))||!object(manifest)||manifest.version!==1||Object.keys(manifest).some(k=>!['version','values','legacySources','allocations'].includes(k))||!object(manifest.values)||!object(manifest.legacySources)||!object(manifest.allocations)||!valid(manifest.allocations.qualityMasterControl)||!valid(manifest.values.qualityMasterControl))return null;
  const original=JSON.stringify(envelope);
- const selected=await decodeRecordValuesCore(bucket,envelope,{modelKey:'qualityMasterControl',deferDependencyHistory:true,deferHistory:true,caseId:selection.caseId},new Set(fqcLifecycle8MutationKeys));
+ const selected=await decodeRecordValuesCore(bucket,envelope,{aggregateReadAhead:true,modelKey:'qualityMasterControl',deferDependencyHistory:true,deferHistory:true,caseId:selection.caseId},new Set(fqcLifecycle8MutationKeys));
  // Noncanonical mirrors are handled by the ordinary full reader/encoder;
  // this overlay never silently repairs or retains a divergent auth mirror.
  if(envelope.platformUsers!==selected.values.platformUsers||envelope.maintenanceMode!==selected.values.maintenanceMode)return null;
@@ -401,7 +401,7 @@ export async function readIpqcCSaveRecordMutation(bucket:Bucket,envelope:Envelop
  const manifest=envelope?.__processRecords;
  if(!Number.isSafeInteger(revision)||revision<0||!object(envelope)||envelope.platformUsers!==undefined&&typeof envelope.platformUsers!=='string'||envelope.maintenanceMode!==undefined&&typeof envelope.maintenanceMode!=='string'||Object.keys(envelope).some(k=>!['__processRecords','platformUsers','maintenanceMode'].includes(k))||!object(manifest)||manifest.version!==1||Object.keys(manifest).some(k=>!['version','values','legacySources','allocations'].includes(k))||!object(manifest.values)||!object(manifest.legacySources)||!object(manifest.allocations)||!valid(manifest.allocations.ipqcCMasterControl)||!valid(manifest.values.ipqcCMasterControl))return null;
  const original=JSON.stringify(envelope);
- const selected=await decodeRecordValuesCore(bucket,envelope,{modelKey:'ipqcCMasterControl',deferDependencyHistory:true,deferHistory:true,allocationKey:'ipqcCMasterControl'},new Set(ipqcCSaveMutationKeys));
+ const selected=await decodeRecordValuesCore(bucket,envelope,{aggregateReadAhead:true,modelKey:'ipqcCMasterControl',deferDependencyHistory:true,deferHistory:true,allocationKey:'ipqcCMasterControl'},new Set(ipqcCSaveMutationKeys));
  if(envelope.platformUsers!==selected.values.platformUsers||envelope.maintenanceMode!==selected.values.maintenanceMode)return null;
  const model=selected.recordStorage.models.get('ipqcCMasterControl');
  if(!object(model)||!Array.isArray(model.versions)||!object(model.workflow)||model.workflow.scope!=='ipqc-c'||model.workflow.schemaVersion!==3)return null;

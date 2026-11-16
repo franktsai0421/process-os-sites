@@ -294,6 +294,18 @@ export async function createInventoryPermissionPhase(request:Request,state:State
   if(!['/api/routine-equipment/workflow','/api/tooling/workflow'].includes(url.pathname)||url.searchParams.has('scope'))throw Error('INVALID_PERMISSION_PHASE');
   return createWorkflowPermissionPhase(request,state);
 }
+// IQC evaluates the same cells once per selected snapshot; the shared handler
+// retains fresh session checks before replies, encoding and CAS retries.
+export async function createIqcPermissionPhase(request:Request,state:State){
+  const url=new URL(request.url);
+  if(url.pathname!=='/api/iqc/workflow'||url.searchParams.has('scope'))throw Error('INVALID_PERMISSION_PHASE');
+  return createWorkflowPermissionPhase(request,state);
+}
+export async function createProcessPermissionPhase(request:Request,state:State){
+  const url=new URL(request.url);
+  if(url.pathname!=='/api/process-authoring/workflow'||url.searchParams.has('scope'))throw Error('INVALID_PERMISSION_PHASE');
+  return createWorkflowPermissionPhase(request,state);
+}
 async function createWorkflowPermissionPhase(request:Request,state:State){
   const keys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
   const auth=keys.map(key=>state.values[key]),revision=state.revision;

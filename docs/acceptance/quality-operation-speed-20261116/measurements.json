@@ -1,0 +1,1444 @@
+{
+  "base": "a1775a8a342d58335edf96d199a9c42844227dc6",
+  "environment": "Node 24.22.1, in-memory SQLite/Map R2, synthetic 10ms per R2 GET/session revocation SQL; no hosted data or browser",
+  "runtimeSha256": {
+    "lib/process-state.ts": "75f53349ae4e173ebae867450893dd648cc0a5bf1c649a88e167b966f6e92979",
+    "lib/versioned-shared-workflow.ts": "1288a26f79394f6f63d7ee12bd69782fa4b0e1e0360b0700b0a7a5b41b9d4f13",
+    "lib/state-records.ts": "54283142a92a6867c2b0bee6480b1227f4b170958efc27dabd52c96af58dccd4",
+    "app/api/process-bootstrap/route.ts": "313cef6965f4654620324a411cfad30dc17dc6867e4525c61c5babb154bf4ccd",
+    "app/api/process-authoring/workflow/route.ts": "a74f95eb242fc5701f8c75951fd2448e431b8a9f80fe159014d23a6d53e9df22"
+  },
+  "samples": [
+    {
+      "run": 1,
+      "kind": "iqc",
+      "logSha256": "8e7bed029f9bb8d13c507b8eec73b62c9d002ae92e514f7081f5cbb2058f060a",
+      "method": "same snapshot and command, fixed clock/UUID, handler preloaded, complete JSON consumed; synthetic delay per GET and revocation query",
+      "parts": 1000,
+      "delayMs": 10,
+      "report": [
+        {
+          "action": "save",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 551.049448,
+              "gets": 34,
+              "bytes": 118408,
+              "revocation": 14,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 221.70983800000022,
+              "gets": 34,
+              "bytes": 118408,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "action": "submit",
+          "round": 2,
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 557.8398110000003,
+              "gets": 35,
+              "bytes": 213669,
+              "revocation": 14,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 234.23094299999957,
+              "gets": 35,
+              "bytes": 213669,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "action": "withdraw",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 550.0955720000002,
+              "gets": 35,
+              "bytes": 215576,
+              "revocation": 14,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 221.3928019999994,
+              "gets": 35,
+              "bytes": 215576,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "action": "submit",
+          "round": 4,
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 548.5038139999997,
+              "gets": 35,
+              "bytes": 216784,
+              "revocation": 14,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 233.81970899999942,
+              "gets": 35,
+              "bytes": 216784,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "action": "approve",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 535.1487160000006,
+              "gets": 35,
+              "bytes": 218692,
+              "revocation": 14,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 228.86253599999873,
+              "gets": 35,
+              "bytes": 218692,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": 2,
+      "kind": "iqc",
+      "logSha256": "b221f1a3db0bc6c8f724481758a72c8893061d20aea05134a13c5e3bd780007b",
+      "method": "same snapshot and command, fixed clock/UUID, handler preloaded, complete JSON consumed; synthetic delay per GET and revocation query",
+      "parts": 1000,
+      "delayMs": 10,
+      "report": [
+        {
+          "action": "save",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 554.4599500000002,
+              "gets": 34,
+              "bytes": 118408,
+              "revocation": 14,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 254.16731700000037,
+              "gets": 34,
+              "bytes": 118408,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "action": "submit",
+          "round": 2,
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 559.3038509999997,
+              "gets": 35,
+              "bytes": 213669,
+              "revocation": 14,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 237.4529109999994,
+              "gets": 35,
+              "bytes": 213669,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "action": "withdraw",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 554.4796319999996,
+              "gets": 35,
+              "bytes": 215576,
+              "revocation": 14,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 231.66632899999968,
+              "gets": 35,
+              "bytes": 215576,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "action": "submit",
+          "round": 4,
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 580.0651369999996,
+              "gets": 35,
+              "bytes": 216784,
+              "revocation": 14,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 235.63333200000034,
+              "gets": 35,
+              "bytes": 216784,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "action": "approve",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 534.7625070000004,
+              "gets": 35,
+              "bytes": 218692,
+              "revocation": 14,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 231.1802970000008,
+              "gets": 35,
+              "bytes": 218692,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": 3,
+      "kind": "iqc",
+      "logSha256": "c4021602e9e04813a019a2575b4af21704fc8484d3d720adc64fab528a63e70d",
+      "method": "same snapshot and command, fixed clock/UUID, handler preloaded, complete JSON consumed; synthetic delay per GET and revocation query",
+      "parts": 1000,
+      "delayMs": 10,
+      "report": [
+        {
+          "action": "save",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 568.9224200000001,
+              "gets": 34,
+              "bytes": 118408,
+              "revocation": 14,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 231.7708130000001,
+              "gets": 34,
+              "bytes": 118408,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "action": "submit",
+          "round": 2,
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 561.5218140000002,
+              "gets": 35,
+              "bytes": 213669,
+              "revocation": 14,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 292.69609500000024,
+              "gets": 35,
+              "bytes": 213669,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "action": "withdraw",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 565.044543,
+              "gets": 35,
+              "bytes": 215576,
+              "revocation": 14,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 227.45492300000024,
+              "gets": 35,
+              "bytes": 215576,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "action": "submit",
+          "round": 4,
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 547.1062380000003,
+              "gets": 35,
+              "bytes": 216784,
+              "revocation": 14,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 228.23128299999917,
+              "gets": 35,
+              "bytes": 216784,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "action": "approve",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 575.6984700000012,
+              "gets": 35,
+              "bytes": 218692,
+              "revocation": 14,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 236.28343900000073,
+              "gets": 35,
+              "bytes": 218692,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": 1,
+      "kind": "process-fqc",
+      "logSha256": "fd354c791391c1f7a9102e1e3e7f789b5ef4cbff1d5949ddd356e169913fd7ff",
+      "moduleName": "fqc",
+      "size": 1000,
+      "delayMs": 10,
+      "method": "same initial snapshot/command/clock/UUID, complete DTO and persisted bytes equality; artificial GET/revocation latency",
+      "report": [
+        {
+          "label": "save",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 402.65358400000014,
+              "gets": 33,
+              "bytes": 24429,
+              "revocation": 5,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 439.9679510000001,
+              "gets": 33,
+              "bytes": 24429,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "label": "save readback",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 111.41067199999998,
+              "gets": 13,
+              "bytes": 18411,
+              "revocation": 4,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 110.37120800000002,
+              "gets": 13,
+              "bytes": 18411,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "submit",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 394.30884400000014,
+              "gets": 33,
+              "bytes": 17314,
+              "revocation": 5,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 184.885577,
+              "gets": 33,
+              "bytes": 17314,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "label": "submit readback",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 119.17443699999967,
+              "gets": 13,
+              "bytes": 20328,
+              "revocation": 4,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 111.76431500000035,
+              "gets": 13,
+              "bytes": 20328,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "withdraw",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 392.33069799999976,
+              "gets": 33,
+              "bytes": 19231,
+              "revocation": 5,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 180.8922139999995,
+              "gets": 33,
+              "bytes": 19231,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "label": "withdraw readback",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 112.20205799999985,
+              "gets": 13,
+              "bytes": 21541,
+              "revocation": 4,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 117.63371400000051,
+              "gets": 13,
+              "bytes": 21541,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": 1,
+      "kind": "process-fqc",
+      "logSha256": "fd354c791391c1f7a9102e1e3e7f789b5ef4cbff1d5949ddd356e169913fd7ff",
+      "moduleName": "process-authoring",
+      "size": 1000,
+      "delayMs": 10,
+      "method": "same initial snapshot/command/clock/UUID, complete DTO and persisted bytes equality; artificial GET/revocation latency",
+      "report": [
+        {
+          "label": "save",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 759.6972940000005,
+              "gets": 37,
+              "bytes": 145669,
+              "revocation": 13,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 475.84791199999927,
+              "gets": 37,
+              "bytes": 145669,
+              "revocation": 4,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "label": "save readback",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 419.5631400000002,
+              "gets": 13,
+              "bytes": 260531,
+              "revocation": 26,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 132.70733800000016,
+              "gets": 13,
+              "bytes": 260531,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "save contentIssues",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 356.54427100000066,
+              "gets": 13,
+              "bytes": 254308,
+              "revocation": 8,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 206.11016299999937,
+              "gets": 13,
+              "bytes": 254308,
+              "revocation": 2,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "submit",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 747.8131190000004,
+              "gets": 35,
+              "bytes": 260140,
+              "revocation": 13,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 465.21130599999924,
+              "gets": 35,
+              "bytes": 260140,
+              "revocation": 4,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "label": "submit readback",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 471.0633790000011,
+              "gets": 13,
+              "bytes": 540653,
+              "revocation": 26,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 184.05530299999918,
+              "gets": 13,
+              "bytes": 540653,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "submit contentIssues",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 364.9299580000006,
+              "gets": 13,
+              "bytes": 534430,
+              "revocation": 8,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 269.09386000000086,
+              "gets": 13,
+              "bytes": 534430,
+              "revocation": 2,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "withdraw",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 729.1662960000012,
+              "gets": 38,
+              "bytes": 549668,
+              "revocation": 13,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 342.835916,
+              "gets": 38,
+              "bytes": 549668,
+              "revocation": 4,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "label": "withdraw readback",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 482.26627500000177,
+              "gets": 13,
+              "bytes": 541861,
+              "revocation": 26,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 166.15132000000085,
+              "gets": 13,
+              "bytes": 541861,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "withdraw contentIssues",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 362.1750749999992,
+              "gets": 13,
+              "bytes": 535638,
+              "revocation": 8,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 247.36611300000004,
+              "gets": 13,
+              "bytes": 535638,
+              "revocation": 2,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "editor bootstrap",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 265.3509219999978,
+              "responseBytes": 11744,
+              "gets": 21,
+              "bytes": 306349,
+              "revocation": 4,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 199.46650000000227,
+              "responseBytes": 11744,
+              "gets": 21,
+              "bytes": 306349,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": 2,
+      "kind": "process-fqc",
+      "logSha256": "99d5c62e6a1861d31af1793a218544b601e2c900d9c74d9720ab08f1d4b153d6",
+      "moduleName": "fqc",
+      "size": 1000,
+      "delayMs": 10,
+      "method": "same initial snapshot/command/clock/UUID, complete DTO and persisted bytes equality; artificial GET/revocation latency",
+      "report": [
+        {
+          "label": "save",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 405.74315,
+              "gets": 33,
+              "bytes": 24429,
+              "revocation": 5,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 394.4524949999998,
+              "gets": 33,
+              "bytes": 24429,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "label": "save readback",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 114.60847600000034,
+              "gets": 13,
+              "bytes": 18411,
+              "revocation": 4,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 111.68234600000005,
+              "gets": 13,
+              "bytes": 18411,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "submit",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 392.8234620000003,
+              "gets": 33,
+              "bytes": 17314,
+              "revocation": 5,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 180.22157400000015,
+              "gets": 33,
+              "bytes": 17314,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "label": "submit readback",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 110.44268499999998,
+              "gets": 13,
+              "bytes": 20328,
+              "revocation": 4,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 108.26223100000061,
+              "gets": 13,
+              "bytes": 20328,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "withdraw",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 399.59553700000015,
+              "gets": 33,
+              "bytes": 19231,
+              "revocation": 5,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 187.45280400000047,
+              "gets": 33,
+              "bytes": 19231,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "label": "withdraw readback",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 115.9289549999994,
+              "gets": 13,
+              "bytes": 21541,
+              "revocation": 4,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 113.80830400000013,
+              "gets": 13,
+              "bytes": 21541,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": 2,
+      "kind": "process-fqc",
+      "logSha256": "99d5c62e6a1861d31af1793a218544b601e2c900d9c74d9720ab08f1d4b153d6",
+      "moduleName": "process-authoring",
+      "size": 1000,
+      "delayMs": 10,
+      "method": "same initial snapshot/command/clock/UUID, complete DTO and persisted bytes equality; artificial GET/revocation latency",
+      "report": [
+        {
+          "label": "save",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 789.9194629999993,
+              "gets": 37,
+              "bytes": 145669,
+              "revocation": 13,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 450.3620600000013,
+              "gets": 37,
+              "bytes": 145669,
+              "revocation": 4,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "label": "save readback",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 434.84244899999976,
+              "gets": 13,
+              "bytes": 260531,
+              "revocation": 26,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 124.82597100000021,
+              "gets": 13,
+              "bytes": 260531,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "save contentIssues",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 379.2704080000003,
+              "gets": 13,
+              "bytes": 254308,
+              "revocation": 8,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 321.13181200000145,
+              "gets": 13,
+              "bytes": 254308,
+              "revocation": 2,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "submit",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 750.6307510000006,
+              "gets": 35,
+              "bytes": 260140,
+              "revocation": 13,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 413.8669339999997,
+              "gets": 35,
+              "bytes": 260140,
+              "revocation": 4,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "label": "submit readback",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 479.64393800000107,
+              "gets": 13,
+              "bytes": 540653,
+              "revocation": 26,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 195.74650500000098,
+              "gets": 13,
+              "bytes": 540653,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "submit contentIssues",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 421.81049600000006,
+              "gets": 13,
+              "bytes": 534430,
+              "revocation": 8,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 304.8450270000012,
+              "gets": 13,
+              "bytes": 534430,
+              "revocation": 2,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "withdraw",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 713.1995910000005,
+              "gets": 38,
+              "bytes": 549668,
+              "revocation": 13,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 435.203462999998,
+              "gets": 38,
+              "bytes": 549668,
+              "revocation": 4,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "label": "withdraw readback",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 492.10605300000316,
+              "gets": 13,
+              "bytes": 541861,
+              "revocation": 26,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 165.31592699999965,
+              "gets": 13,
+              "bytes": 541861,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "withdraw contentIssues",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 420.21546399999716,
+              "gets": 13,
+              "bytes": 535638,
+              "revocation": 8,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 350.01879499999995,
+              "gets": 13,
+              "bytes": 535638,
+              "revocation": 2,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "editor bootstrap",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 256.4237039999971,
+              "responseBytes": 11744,
+              "gets": 21,
+              "bytes": 306349,
+              "revocation": 4,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 207.69758600000205,
+              "responseBytes": 11744,
+              "gets": 21,
+              "bytes": 306349,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": 3,
+      "kind": "process-fqc",
+      "logSha256": "34dfb8d6fc3accc1e74813b10df6e1a6c90959f06828de88569d0eb6f37d4fda",
+      "moduleName": "fqc",
+      "size": 1000,
+      "delayMs": 10,
+      "method": "same initial snapshot/command/clock/UUID, complete DTO and persisted bytes equality; artificial GET/revocation latency",
+      "report": [
+        {
+          "label": "save",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 408.88064499999996,
+              "gets": 33,
+              "bytes": 24429,
+              "revocation": 5,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 446.62432800000033,
+              "gets": 33,
+              "bytes": 24429,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "label": "save readback",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 112.04289500000004,
+              "gets": 13,
+              "bytes": 18411,
+              "revocation": 4,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 111.29738399999997,
+              "gets": 13,
+              "bytes": 18411,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "submit",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 400.6925680000004,
+              "gets": 33,
+              "bytes": 17314,
+              "revocation": 5,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 230.08140300000014,
+              "gets": 33,
+              "bytes": 17314,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "label": "submit readback",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 111.29155999999966,
+              "gets": 13,
+              "bytes": 20328,
+              "revocation": 4,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 116.8530380000002,
+              "gets": 13,
+              "bytes": 20328,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "withdraw",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 394.036787,
+              "gets": 33,
+              "bytes": 19231,
+              "revocation": 5,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 186.72703699999965,
+              "gets": 33,
+              "bytes": 19231,
+              "revocation": 5,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "label": "withdraw readback",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 111.9830380000003,
+              "gets": 13,
+              "bytes": 21541,
+              "revocation": 4,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 110.92997100000048,
+              "gets": 13,
+              "bytes": 21541,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": 3,
+      "kind": "process-fqc",
+      "logSha256": "34dfb8d6fc3accc1e74813b10df6e1a6c90959f06828de88569d0eb6f37d4fda",
+      "moduleName": "process-authoring",
+      "size": 1000,
+      "delayMs": 10,
+      "method": "same initial snapshot/command/clock/UUID, complete DTO and persisted bytes equality; artificial GET/revocation latency",
+      "report": [
+        {
+          "label": "save",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 784.2260460000007,
+              "gets": 37,
+              "bytes": 145669,
+              "revocation": 13,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 446.73490200000015,
+              "gets": 37,
+              "bytes": 145669,
+              "revocation": 4,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "label": "save readback",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 420.6032240000004,
+              "gets": 13,
+              "bytes": 260531,
+              "revocation": 26,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 122.77272599999924,
+              "gets": 13,
+              "bytes": 260531,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "save contentIssues",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 352.8479790000001,
+              "gets": 13,
+              "bytes": 254308,
+              "revocation": 8,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 240.63672199999928,
+              "gets": 13,
+              "bytes": 254308,
+              "revocation": 2,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "submit",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 790.527078000001,
+              "gets": 35,
+              "bytes": 260140,
+              "revocation": 13,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 453.46415999999954,
+              "gets": 35,
+              "bytes": 260140,
+              "revocation": 4,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "label": "submit readback",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 492.52750099999867,
+              "gets": 13,
+              "bytes": 540653,
+              "revocation": 26,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 189.1339169999992,
+              "gets": 13,
+              "bytes": 540653,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "submit contentIssues",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 410.085744,
+              "gets": 13,
+              "bytes": 534430,
+              "revocation": 8,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 299.46884000000136,
+              "gets": 13,
+              "bytes": 534430,
+              "revocation": 2,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "withdraw",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 684.0088619999988,
+              "gets": 38,
+              "bytes": 549668,
+              "revocation": 13,
+              "cas": 1
+            },
+            {
+              "source": "candidate",
+              "ms": 343.0374670000019,
+              "gets": 38,
+              "bytes": 549668,
+              "revocation": 4,
+              "cas": 1
+            }
+          ]
+        },
+        {
+          "label": "withdraw readback",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 462.36111900000105,
+              "gets": 13,
+              "bytes": 541861,
+              "revocation": 26,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 160.36128299999837,
+              "gets": 13,
+              "bytes": 541861,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "withdraw contentIssues",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 386.89198899999974,
+              "gets": 13,
+              "bytes": 535638,
+              "revocation": 8,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 252.92609299999822,
+              "gets": 13,
+              "bytes": 535638,
+              "revocation": 2,
+              "cas": 0
+            }
+          ]
+        },
+        {
+          "label": "editor bootstrap",
+          "measurements": [
+            {
+              "source": "a1775a8a342d58335edf96d199a9c42844227dc6",
+              "ms": 291.2212729999992,
+              "responseBytes": 11744,
+              "gets": 21,
+              "bytes": 306349,
+              "revocation": 4,
+              "cas": 0
+            },
+            {
+              "source": "candidate",
+              "ms": 196.2884550000017,
+              "responseBytes": 11744,
+              "gets": 21,
+              "bytes": 306349,
+              "revocation": 4,
+              "cas": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
