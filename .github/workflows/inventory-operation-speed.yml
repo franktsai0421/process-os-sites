@@ -23,6 +23,7 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - run: node --test --test-concurrency=1 tests/inventory-read-ahead.test.mjs tests/inventory-speed-source.test.cjs tests/inventory-main-source.test.cjs tests/inventory-round2-source.test.cjs tests/inventory-quality-source.test.cjs tests/inventory-account-main-source.test.cjs tests/account-role-source.test.cjs tests/quality-root-source.test.cjs tests/quality-pure-inverse-eol.test.cjs tests/inventory-permission-phase.test.mjs tests/tooling-checks-read-fences.test.cjs tests/fqc-read-ahead.test.mjs tests/ipqc-operation-speed-source.test.cjs tests/ipqc-operation-speed-joint-source.test.cjs tests/ipqc-operation-speed-integration-source.test.cjs tests/process-platform-adopt-source.test.cjs tests/process-ipqc-latest.test.mjs tests/process-inspection-view.test.mjs
+      - run: node --test tests/source-normalization-cache.test.cjs
       - name: Compare checks against genuine prior route on identical merged runtime
         run: |
           baseline_dir="$(mktemp -d)"
