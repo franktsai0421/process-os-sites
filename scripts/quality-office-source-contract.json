@@ -1,0 +1,369 @@
+{
+  "base": "a1775a8a342d58335edf96d199a9c42844227dc6",
+  "files": {
+    "public/process/ipqc-ab.js": {
+      "beforeHash": "4a54a68a06eaf000bf6d0a4c19e7aa97e044043c8cc2b1c0686c229d25b6d39d",
+      "beforeNormalizedHash": "4a54a68a06eaf000bf6d0a4c19e7aa97e044043c8cc2b1c0686c229d25b6d39d",
+      "afterHash": "7a59e4af9aaaf8816ef7abc8130da784c7725846e7335eb66b5d8f3156af6c84",
+      "afterNormalizedHash": "7a59e4af9aaaf8816ef7abc8130da784c7725846e7335eb66b5d8f3156af6c84",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 5039,
+          "before": "",
+          "after": "  const versionTitle = row => row?.unpersisted ? t('本機草稿 · 尚未存取','Bản nháp cục bộ · chưa lưu') : !row ? t('此群組尚無版本','Nhóm này chưa có phiên bản') : !Number.isSafeInteger(row.number)||row.number<1 ? t('版本編號未記錄','Chưa ghi nhận số phiên bản') : undefined;\n"
+        },
+        {
+          "offset": 54439,
+          "before": "      entry={scope:key(),generation:server?.workflow?.generation||null,baseId:server?.activeVersionId||null,base:clone(content),snapshot:clone(content),source:clone(control.source??null),lineageAnchor:lineageView?.groups?.[key()]?.anchor??null,originRevision:lineageView?.groups?.[key()]?.originRevision??null,originDigest:lineageView?.groups?.[key()]?.originDigest??null,owner:actor(),epoch:window.ProcessSync?.identityGeneration?.(),delivery:window.ProcessSync?.captureDelivery?.(),lifetime:mutationLifetime,host,version:{...(open||active()),id:open?.id||'local-'+key(),status:'draft',snapshot:clone(content)}};\n",
+          "after": "      entry={scope:key(),generation:server?.workflow?.generation||null,baseId:server?.activeVersionId||null,base:clone(content),snapshot:clone(content),source:clone(control.source??null),lineageAnchor:lineageView?.groups?.[key()]?.anchor??null,originRevision:lineageView?.groups?.[key()]?.originRevision??null,originDigest:lineageView?.groups?.[key()]?.originDigest??null,owner:actor(),epoch:window.ProcessSync?.identityGeneration?.(),delivery:window.ProcessSync?.captureDelivery?.(),lifetime:mutationLifetime,host,version:{...(open||active()),id:open?.id||'local-'+key(),status:'draft',unpersisted:!open,snapshot:clone(content)}};\n"
+        },
+        {
+          "offset": 117335,
+          "before": "        <h2>IPQC-AB · ${v?`V${v.number} · ${status(v.status)}`:t('尚無版本','Chưa có phiên bản')}</h2>\n        <p>${v?`${t('最後編輯','Người sửa cuối')}: ${h(lastEdit(v)?.actorName || v.creatorName)} · ${h(new Date(lastEdit(v)?.at || v.createdAt).toLocaleString())}`:''}\n",
+          "after": "        <h2>IPQC-AB · ${h(versionTitle(v)??`V${v.number} · ${status(v.status)}`)}</h2>\n        <p>${v&&!v.unpersisted?`${t('最後編輯','Người sửa cuối')}: ${h(lastEdit(v)?.actorName || v.creatorName)} · ${h(new Date(lastEdit(v)?.at || v.createdAt).toLocaleString())}`:''}\n"
+        },
+        {
+          "offset": 121093,
+          "before": "",
+          "after": "      ${!scope()?.versions.length?`<p class=\"ipqcab-card\" data-ab-empty-scope>${t('此群組尚無已存標準。開始修改只建立本機草稿，完成後請按「存取草稿」。','Nhóm này chưa có tiêu chuẩn đã lưu. Bắt đầu sửa chỉ tạo bản nháp cục bộ; hoàn tất rồi chọn “Lưu bản nháp”.')}</p>`:''}\n"
+        },
+        {
+          "offset": 145424,
+          "before": "    window.VersionDraftUI?.mount(host,{localUnsaved:localDirty()||hasLocalFilterForm()||!!modal&&!modal.readonly,header:'.ipqcab-version',historyClient:()=>moduleTransport(),mountApprovedHistory,module:'IPQC-AB',moduleActions:true,scope:t('全部 IPQC-AB 草稿；A／B 全部群組與工段','Tất cả bản nháp IPQC-AB; mọi nhóm và công đoạn A/B'),version:version(),versions:scope()?.versions,active:active(),flow:control?.moduleDraft?.workflow||scope()?.workflow,busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#ipqcab-begin',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-ab-issue-kind=\"error\"],[data-shared-issue-kind=\"error\"]',missing:'[data-ab-issue-kind=\"missing\"],[data-shared-issue-kind=\"missing\"]',checked:{missing:true},history:['[data-shared-issue-kind=\"warning\"]'],remove:['.ipqcab-history','#ab-case-history'],status:['#ipqcab-shared-status']});\n",
+          "after": "    window.VersionDraftUI?.mount(host,{localUnsaved:!!localEntry()?.version.unpersisted||localDirty()||hasLocalFilterForm()||!!modal&&!modal.readonly,versionTitle,savedMetadata:control?.moduleDraft?.workflow?.saved,savedLabel:()=>t('全模組已存快照：儲存者與時間','Bản chụp đã lưu toàn mô-đun: người lưu và thời gian'),header:'.ipqcab-version',historyClient:()=>moduleTransport(),mountApprovedHistory,module:'IPQC-AB',moduleActions:true,scope:t('全部 IPQC-AB 草稿；A／B 全部群組與工段','Tất cả bản nháp IPQC-AB; mọi nhóm và công đoạn A/B'),version:version(),versions:scope()?.versions,active:active(),flow:control?.moduleDraft?.workflow||scope()?.workflow,busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#ipqcab-begin',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-ab-issue-kind=\"error\"],[data-shared-issue-kind=\"error\"]',missing:'[data-ab-issue-kind=\"missing\"],[data-shared-issue-kind=\"missing\"]',checked:{errors:true,missing:true},history:['[data-shared-issue-kind=\"warning\"]'],remove:['.ipqcab-history','#ab-case-history'],status:['#ipqcab-shared-status']});\n"
+        }
+      ]
+    },
+    "public/process/version-draft-ui.js": {
+      "beforeHash": "aed712a971c2e5572b801c089163ef8da2c0e6ee80b0e1ecf7d203e20761e049",
+      "beforeNormalizedHash": "718876842fbe1f572b4484a6bd5bfb163bacb467b9c36ec50b7349aafbd2f948",
+      "afterHash": "510d289c80d385e104e734dd2ae0e318f643952b45bb598cba45dfeb1a7873fb",
+      "afterNormalizedHash": "dfce8779ae1d2e3ee6d5d3a4bae33779c0d2bc7e4f471c3ccad059dfcc4b595c",
+      "beforeCRLFRanges": [
+        [
+          0,
+          7
+        ],
+        [
+          8,
+          12
+        ],
+        [
+          14,
+          41
+        ],
+        [
+          121,
+          122
+        ],
+        [
+          123,
+          127
+        ],
+        [
+          128,
+          129
+        ],
+        [
+          130,
+          132
+        ],
+        [
+          133,
+          136
+        ],
+        [
+          137,
+          161
+        ],
+        [
+          162,
+          194
+        ],
+        [
+          195,
+          210
+        ],
+        [
+          215,
+          224
+        ],
+        [
+          226,
+          230
+        ],
+        [
+          231,
+          252
+        ],
+        [
+          331,
+          334
+        ],
+        [
+          377,
+          380
+        ],
+        [
+          382,
+          384
+        ]
+      ],
+      "rules": [
+        {
+          "offset": 28673,
+          "before": "    const v=model.version,flow=model.flow,versions=model.versions||[],pending=['pending','pending-test'].includes(v?.status),draft=versions.find(row=>row.status==='draft');\n",
+          "after": "    const v=model.version,flow=model.flow,versions=model.versions||[],versionTitle=()=>model.versionTitle?.(v)??`${number(v)} · ${t(v?.status||'unchecked')}`,savedLabel=()=>model.savedLabel?.()??t('savedBy'),pending=['pending','pending-test'].includes(v?.status),draft=versions.find(row=>row.status==='draft');\n"
+        },
+        {
+          "offset": 29571,
+          "before": "    const card=create('section','vd-card'),top=create('div','vd-top'),title=create('h3','',`${number(v)} · ${t(v?.status||'unchecked')}`),choice=create('label','vd-choice');choice.append(label(create('span','',t('menu')),'menu'));translations.push(()=>title.textContent=`${number(v)} · ${t(v?.status||'unchecked')}`);\n",
+          "after": "    const card=create('section','vd-card'),top=create('div','vd-top'),title=create('h3','',versionTitle()),choice=create('label','vd-choice');choice.append(label(create('span','',t('menu')),'menu'));translations.push(()=>title.textContent=versionTitle());\n"
+        },
+        {
+          "offset": 30656,
+          "before": "    const saver=saved?.actor?.name||saveEvent?.actorName||saveEvent?.actor||t('unknown'),at=saved?.at||saveEvent?.at;\n    const meta=create('div','vd-meta');meta.innerHTML=`<span>${t('active')}：${number(model.active)}</span><span data-vd-saver>${t('savedBy')}：${h(savedStamp(saver===t('unknown')?null:saver,at))}</span><span data-vd-sync>${t('sync')}：${model.failed?t(model.rejected?'rejected':'failed'):model.busy?t('syncing'):model.syncNotice?h(model.syncNotice):model.localUnsaved?t('localOnly'):flow?t(model.masterScope?'draftSynced':'synced'):t('unknown')}</span><span data-vd-saved>${t('saveState')}：${flow&&v?.status==='draft'?(!model.localUnsaved&&JSON.stringify(saved?.content??flow.active?.content)===JSON.stringify(flow.working)?t(saved?'saved':'unchanged'):t(model.masterScope?'draftUnsaved':'unsaved')):saved||saveEvent?t('saved'):t('unknown')}</span>`;\n",
+          "after": "    const recordedSave=saved||model.savedMetadata;\n    const saver=recordedSave?.actor?.name||saveEvent?.actorName||saveEvent?.actor||t('unknown'),at=recordedSave?.at||saveEvent?.at;\n    const meta=create('div','vd-meta');meta.innerHTML=`<span>${t('active')}：${number(model.active)}</span><span data-vd-saver>${h(savedLabel())}：${h(savedStamp(saver===t('unknown')?null:saver,at))}</span><span data-vd-sync>${t('sync')}：${model.failed?t(model.rejected?'rejected':'failed'):model.busy?t('syncing'):model.syncNotice?h(model.syncNotice):model.localUnsaved?t('localOnly'):flow?t(model.masterScope?'draftSynced':'synced'):t('unknown')}</span><span data-vd-saved>${t('saveState')}：${flow&&v?.status==='draft'?(!model.localUnsaved&&JSON.stringify(saved?.content??flow.active?.content)===JSON.stringify(flow.working)?t(saved?'saved':'unchanged'):t(model.masterScope?'draftUnsaved':'unsaved')):saved||saveEvent?t('saved'):t('unknown')}</span>`;\n"
+        },
+        {
+          "offset": 37202,
+          "before": "    shell.refreshLabels=()=>{const lang=document.documentElement.lang;if(lang===priorLanguage)return;const before=priorLanguage==='vi'?1:0,after=lang==='vi'?1:0;for(const area of [heading,meta]){const walker=document.createTreeWalker(area,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode())){for(const pair of Object.values(words))node.nodeValue=node.nodeValue.split(pair[before]).join(pair[after]);}}for(const refresh of translations)refresh();for(const option of select?.options||[]){const row=versions.find(item=>item.id===option.value);if(row)option.textContent=`${number(row)} · ${t(row.status)}`;}const recorded=saved||model.savedMetadata;const saverNode=meta.querySelector('[data-vd-saver]');if(saverNode)saverNode.textContent=t('savedBy')+'：'+savedStamp(recorded?.actor?.name||saveEvent?.actorName||saveEvent?.actor,recorded?.at||saveEvent?.at);shell.refreshHistoryLabels?.();priorLanguage=lang;};return shell;\n",
+          "after": "    shell.refreshLabels=()=>{const lang=document.documentElement.lang;if(lang===priorLanguage)return;const before=priorLanguage==='vi'?1:0,after=lang==='vi'?1:0;for(const area of [heading,meta]){const walker=document.createTreeWalker(area,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode())){for(const pair of Object.values(words))node.nodeValue=node.nodeValue.split(pair[before]).join(pair[after]);}}for(const refresh of translations)refresh();for(const option of select?.options||[]){const row=versions.find(item=>item.id===option.value);if(row)option.textContent=`${number(row)} · ${t(row.status)}`;}const recorded=saved||model.savedMetadata;const saverNode=meta.querySelector('[data-vd-saver]');if(saverNode)saverNode.textContent=savedLabel()+'：'+savedStamp(recorded?.actor?.name||saveEvent?.actorName||saveEvent?.actor,recorded?.at||saveEvent?.at);shell.refreshHistoryLabels?.();priorLanguage=lang;};return shell;\n"
+        }
+      ]
+    },
+    "public/process/index.html": {
+      "beforeHash": "9b283d7dd999a78a66f1df81c9669649ae1817886ea13b4d2a46726a9cf514de",
+      "beforeNormalizedHash": "9b283d7dd999a78a66f1df81c9669649ae1817886ea13b4d2a46726a9cf514de",
+      "afterHash": "64928ebc03ae492edfb05be2355c2c13fa2c005822f3697498e92fe8537f9de9",
+      "afterNormalizedHash": "64928ebc03ae492edfb05be2355c2c13fa2c005822f3697498e92fe8537f9de9",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 7265,
+          "before": "    <script data-process-src=\"version-draft-ui.js?v=20261115-quality-root1\"></script>\n",
+          "after": "    <script data-process-src=\"version-draft-ui.js?v=20261116-quality-office1\"></script>\n"
+        },
+        {
+          "offset": 9961,
+          "before": "    <script data-process-src=\"ipqc-c.js?v=20261115-quality-root3\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261115-quality-root4\"></script>\n",
+          "after": "    <script data-process-src=\"ipqc-c.js?v=20261116-quality-office1\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261116-quality-office1\"></script>\n"
+        }
+      ]
+    },
+    "tests/shared-draft-receipt-recovery.test.mjs": {
+      "beforeHash": "2d72403c21a390a2647949137eee28cda63868b1cfaee348dbd9f9f7f239e073",
+      "beforeNormalizedHash": "2d72403c21a390a2647949137eee28cda63868b1cfaee348dbd9f9f7f239e073",
+      "afterHash": "2043ffee332d4717a36962a6d58d11b7f5f7cf9e67a0b2e4ba0bebae059ab4ca",
+      "afterNormalizedHash": "2043ffee332d4717a36962a6d58d11b7f5f7cf9e67a0b2e4ba0bebae059ab4ca",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 14388,
+          "before": "  'version-draft-ui.js':'20261115-quality-root1',\n",
+          "after": "  'version-draft-ui.js':'20261116-quality-office1',\n"
+        },
+        {
+          "offset": 15151,
+          "before": "  'ipqc-c.js':'20261115-quality-root3',\n",
+          "after": "  'ipqc-c.js':'20261116-quality-office1',\n"
+        },
+        {
+          "offset": 15317,
+          "before": "  'ipqc-ab.js':'20261115-quality-root4',\n",
+          "after": "  'ipqc-ab.js':'20261116-quality-office1',\n"
+        }
+      ]
+    },
+    "tests/navigation-adapters.test.mjs": {
+      "beforeHash": "f1e2b6a69d09d90cd361bd54c55b47bc7bfa828fe2fc61b3ce29aa99c3ad1ae5",
+      "beforeNormalizedHash": "f1e2b6a69d09d90cd361bd54c55b47bc7bfa828fe2fc61b3ce29aa99c3ad1ae5",
+      "afterHash": "9c36aa9c5e5bdc633188062f5c95e481952015dec4e0921b156e3bdf14e12935",
+      "afterNormalizedHash": "9c36aa9c5e5bdc633188062f5c95e481952015dec4e0921b156e3bdf14e12935",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 16983,
+          "before": "  'ipqc-ab.js':'20261115-quality-root4',\n  'ipqc-c.js':'20261115-quality-root3',\n",
+          "after": "  'ipqc-ab.js':'20261116-quality-office1',\n  'ipqc-c.js':'20261116-quality-office1',\n"
+        },
+        {
+          "offset": 18205,
+          "before": "  'version-draft-ui.js':'20261115-quality-root1',\n",
+          "after": "  'version-draft-ui.js':'20261116-quality-office1',\n"
+        }
+      ]
+    },
+    "tests/account-page-entry.test.cjs": {
+      "beforeHash": "f3d3809b2db4ce735bf5d924eab4a5b4885bed7ea6c32dbdbc07cf8f5f4cbed0",
+      "beforeNormalizedHash": "f3d3809b2db4ce735bf5d924eab4a5b4885bed7ea6c32dbdbc07cf8f5f4cbed0",
+      "afterHash": "a98c22125f03fffeb7fb54a6907f0377e68f001189c1fa8f6075b183379b0374",
+      "afterNormalizedHash": "a98c22125f03fffeb7fb54a6907f0377e68f001189c1fa8f6075b183379b0374",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 454,
+          "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261115-quality-root4','master-page-editor.js':'20261114-lines-flow-review1','master-shared-client.js':'20261114-lines-flow-review1','page-draft-merge.js':'20261114-lines-flow-review1','master-data.js':'20261114-lines-flow-review1','version-draft-ui.js':'20261115-quality-root1','user-access.js':'20261113-password-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
+          "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261115-quality-root4','master-page-editor.js':'20261114-lines-flow-review1','master-shared-client.js':'20261114-lines-flow-review1','page-draft-merge.js':'20261114-lines-flow-review1','master-data.js':'20261114-lines-flow-review1','version-draft-ui.js':'20261116-quality-office1','user-access.js':'20261113-password-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/modules/QUALITY.md": {
+      "beforeHash": "26506f5038ae343b75701d5d79767d1eb65c0ffdf909ac80854cff1ef5930142",
+      "beforeNormalizedHash": "26506f5038ae343b75701d5d79767d1eb65c0ffdf909ac80854cff1ef5930142",
+      "afterHash": "6d18abd0f25531adc415789e85fb77610db13a7f887f219cd55c4b734be73375",
+      "afterNormalizedHash": "6d18abd0f25531adc415789e85fb77610db13a7f887f219cd55c4b734be73375",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-16 — 辦公室實測功能續修候選\n\nAB無既存群組草稿時的開始修改僅建立RAM草稿，不預分配伺服器版本號；頁首明示本機未存。全模組最後快照時間明確標示全模組，不把A的儲存回執當成B本機內容已存；既存B內容、版本與同模組篩選保留規則不變。空群組與讀取失敗分開呈現。FQC目前main已含頻率預設刷新，新增『新增項目』的中越文與原生預設回歸，未將尚無部署證據的實站現象宣稱已重現／修復。[證據與限制](../../docs/acceptance/quality-office-followup-20261116.md)。\nC另同步處理中Save／Submit按鈕狀態，保留既有busy防重送與原回執／權限保護；取消及明確錯誤後恢復，UNKNOWN須先查證。B保存重載、送審、撤回與C第二輪送審／撤回已被測試者證實成功，本次不誤列失敗。\n\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/CHANGELOG.md": {
+      "beforeHash": "333b0ea9de823fd9f07e1e2e84a8fef29f49f9fe4e7dbdbb5bcb10694d2999d9",
+      "beforeNormalizedHash": "333b0ea9de823fd9f07e1e2e84a8fef29f49f9fe4e7dbdbb5bcb10694d2999d9",
+      "afterHash": "218fa1a59afab2a89f7dee5000ebf12f0e5443e2c76691168eb8d08d8b967ca1",
+      "afterNormalizedHash": "218fa1a59afab2a89f7dee5000ebf12f0e5443e2c76691168eb8d08d8b967ca1",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-16 — AB範圍版本與FQC新增回歸候選\n\n以已合併#123的main a1775a8建立獨立功能分支，修正AB本機草稿Vundefined與全模組快照誤認；補FQC新增預設AQL回歸，不重複速度優化。無schema／資料／ACL／合併或部署。[隔離根因與驗證界線](../docs/acceptance/quality-office-followup-20261116.md)。\nC另同步處理中Save／Submit按鈕狀態，保留既有busy防重送與原回執／權限保護；取消及明確錯誤後恢復，UNKNOWN須先查證。B保存重載、送審、撤回與C第二輪送審／撤回已被測試者證實成功，本次不誤列失敗。\n\n"
+        }
+      ]
+    },
+    "HANDOFF.md": {
+      "beforeHash": "9bb5272f3689f141125110c144de08f451e52633f2e993f264cbaf0a50067c78",
+      "beforeNormalizedHash": "9bb5272f3689f141125110c144de08f451e52633f2e993f264cbaf0a50067c78",
+      "afterHash": "caf1df9ac67c3908d9c1fb5b0cb7ccc6bf9f7eb9f7e4ed614893030bd4156113",
+      "afterNormalizedHash": "caf1df9ac67c3908d9c1fb5b0cb7ccc6bf9f7eb9f7e4ed614893030bd4156113",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-16 — 辦公室Chrome功能續修\n\n獨立clone／fix/quality-office-fqc-ab-20261116，自最新main a1775a8（#123已合併）開始；與速度工作分開。AB provisional版本與模組儲存資訊分開顯示；FQC新增入口回歸擴至中越文與未碰取樣選單的原生預設。[根因、測試及未確認實站條件](docs/acceptance/quality-office-followup-20261116.md)。未操作Diem／業務草稿、帳號、實站API、合併或部署；公開靜態資產GET403，無法驗實際部署版本。\nC另同步處理中Save／Submit按鈕狀態，保留既有busy防重送與原回執／權限保護；取消及明確錯誤後恢復，UNKNOWN須先查證。B保存重載、送審、撤回與C第二輪送審／撤回已被測試者證實成功，本次不誤列失敗。\n\n"
+        }
+      ]
+    },
+    "scripts/quality-root-source-contract.cjs": {
+      "beforeHash": "dbd853704faf3d4f5014f4fb95ce2163f546d291047ffd564f65c1a1f4193475",
+      "beforeNormalizedHash": "dbd853704faf3d4f5014f4fb95ce2163f546d291047ffd564f65c1a1f4193475",
+      "afterHash": "e1d6b346c1b9ab160513829d5e992f7519b1d112009134d6913c06c911ea2173",
+      "afterNormalizedHash": "e1d6b346c1b9ab160513829d5e992f7519b1d112009134d6913c06c911ea2173",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 468,
+          "before": " assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Quality root proof wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterNormalizedHash,'Quality root pinned source');\n",
+          "after": " assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./quality-office-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Quality root proof wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterNormalizedHash,'Quality root pinned source');\n"
+        },
+        {
+          "offset": 1419,
+          "before": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n",
+          "after": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./quality-office-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n"
+        }
+      ]
+    },
+    "public/process/ipqc-c.js": {
+      "beforeHash": "90ce15c0a28a66ac542dabfb04a9b7ba02f06f601d25c14fc914fbe48aca981d",
+      "beforeNormalizedHash": "90ce15c0a28a66ac542dabfb04a9b7ba02f06f601d25c14fc914fbe48aca981d",
+      "afterHash": "569e681f7e82bda9e4a6aebd6f14c429cbbdabb26ef46932ec88ff04dee06370",
+      "afterNormalizedHash": "569e681f7e82bda9e4a6aebd6f14c429cbbdabb26ef46932ec88ff04dee06370",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 5900,
+          "before": "",
+          "after": "  function syncWriteButtons(){\n    const locked=busy||saveInputNoticePending()||sharedClient?.hasUnknown()===true;\n    for(const [id,operation]of [['#ipqcc-save','save'],['#ipqcc-submit','submit']]){\n      const button=host?.querySelector?.(id);if(!button)continue;\n      button.disabled=locked||!draftOpen()||!operationAllowed(operation);\n      if(busy)button.setAttribute('aria-busy','true');else button.removeAttribute('aria-busy');\n    }\n  }\n"
+        },
+        {
+          "offset": 7524,
+          "before": "",
+          "after": "    syncWriteButtons();\n"
+        },
+        {
+          "offset": 38884,
+          "before": "    if(busy)return;const query=captureOperationQuery(),recoveringBegin=query.client.hasUnknownBegin?.()===true;busy=true;\n",
+          "after": "    if(busy)return;const query=captureOperationQuery(),recoveringBegin=query.client.hasUnknownBegin?.()===true;busy=true;syncWriteButtons();\n"
+        },
+        {
+          "offset": 41120,
+          "before": "",
+          "after": "    syncWriteButtons();\n"
+        },
+        {
+          "offset": 52122,
+          "before": "    }}\n",
+          "after": "    }if(sameActor())syncWriteButtons();}\n"
+        }
+      ]
+    },
+    "scripts/ipqc-c-display-image-source-contract.cjs": {
+      "beforeHash": "a6b3e144a2a49d3c9431dec6041acbdf11565a90e83fa61d7c98e497ceba4a33",
+      "beforeNormalizedHash": "a6b3e144a2a49d3c9431dec6041acbdf11565a90e83fa61d7c98e497ceba4a33",
+      "afterHash": "61b19b725aebfecabb29d2c423fcdeb077d34aed1b77fba094f9eb767e9d2d6c",
+      "afterNormalizedHash": "61b19b725aebfecabb29d2c423fcdeb077d34aed1b77fba094f9eb767e9d2d6c",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 2759,
+          "before": "",
+          "after": " const officePin=require('./quality-office-source-contract.json').files['public/process/ipqc-c.js'];\n if(officePin&&hash(Buffer.from(source).toString('utf8').replaceAll('\\r\\n','\\n'))===officePin.afterNormalizedHash)assert.equal(hash(source),officePin.afterHash,'C display source differs from exact reviewed bytes');\n"
+        }
+      ]
+    },
+    "tests/quality-pure-inverse-eol.test.cjs": {
+      "beforeHash": "3baa5695368ca9f9c99e878c8111b97582cbb7f7aeffaa93e2f3aa6478f1d323",
+      "beforeNormalizedHash": "3baa5695368ca9f9c99e878c8111b97582cbb7f7aeffaa93e2f3aa6478f1d323",
+      "afterHash": "1f098c70616195a1c2c59a66a434c4f3abab3e1fc3a57472c0bc1fc4458cc193",
+      "afterNormalizedHash": "1f098c70616195a1c2c59a66a434c4f3abab3e1fc3a57472c0bc1fc4458cc193",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 373,
+          "before": "const file='public/process/ipqc-c.js',source=execFileSync('git',['show','HEAD:'+file]),text=source.toString(),pin=proof.contract.files[file],hash=x=>createHash('sha256').update(x).digest('hex');\n",
+          "after": "const file='public/process/ipqc-c.js',source=execFileSync('git',['show','HEAD:'+file]),text=source.toString(),pin=require('../scripts/quality-office-source-contract.cjs').contract.files[file]||proof.contract.files[file],hash=x=>createHash('sha256').update(x).digest('hex');\n"
+        },
+        {
+          "offset": 1921,
+          "before": " const path=require.resolve('../scripts/ipqc-c-display-image-source-contract.cjs'),actual=fs.readFileSync(path,'utf8'),line=\" if(qualityPin&&hash(Buffer.from(source).toString('utf8').replaceAll('\\\\r\\\\n','\\\\n'))===qualityPin.afterNormalizedHash)assert.equal(hash(source),qualityPin.afterHash,'C display source differs from exact reviewed bytes');\";\n",
+          "after": " const path=require.resolve('../scripts/ipqc-c-display-image-source-contract.cjs'),actual=fs.readFileSync(path,'utf8'),line=\" if(officePin&&hash(Buffer.from(source).toString('utf8').replaceAll('\\\\r\\\\n','\\\\n'))===officePin.afterNormalizedHash)assert.equal(hash(source),officePin.afterHash,'C display source differs from exact reviewed bytes');\";\n"
+        }
+      ]
+    },
+    "tests/module-begin-recovery.test.mjs": {
+      "beforeHash": "4e2b7a4ab0e3341fa3e96dbe0eefbeb06f4bb7b13a60bdbf1776285c986cdb87",
+      "beforeNormalizedHash": "4e2b7a4ab0e3341fa3e96dbe0eefbeb06f4bb7b13a60bdbf1776285c986cdb87",
+      "afterHash": "f59ce3046366c17b1f9cbd77dc8fed3449dd62e0585e575efaf5dc9a150c0581",
+      "afterNormalizedHash": "f59ce3046366c17b1f9cbd77dc8fed3449dd62e0585e575efaf5dc9a150c0581",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 493,
+          "before": "function run(code,c){c.window=c;c.host=c;vm.createContext(c);vm.runInContext(code,c);return c;}\n",
+          "after": "function run(code,c){c.window=c;c.host=c;vm.createContext(c);if(code.includes('syncWriteButtons();')){const helper=between(source('ipqc-c'),'  function syncWriteButtons(){','  function mountVersionState(){');if(!c.saveInputNoticePending){c.saveInputNotice=null;code=source('ipqc-c').split('\\n').find(line=>line.includes('  const saveInputNoticePending='))+'\\n'+code;}code=helper+code;}vm.runInContext(code,c);return c;}\n"
+        }
+      ]
+    },
+    "tests/quality-submit-confirmation-pins.test.cjs": {
+      "beforeHash": "b52c4ea36cfaaabe5ac6ba677b120efb7a999a690b1a6afdc9ec58cba5c27451",
+      "beforeNormalizedHash": "b52c4ea36cfaaabe5ac6ba677b120efb7a999a690b1a6afdc9ec58cba5c27451",
+      "afterHash": "396a71dc371f19e8441ef63cb92717e7000e1198caa31d63df25849e26d782d8",
+      "afterNormalizedHash": "396a71dc371f19e8441ef63cb92717e7000e1198caa31d63df25849e26d782d8",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 5957,
+          "before": "",
+          "after": " if(kind==='c'){const a=source.indexOf('  function syncWriteButtons(){'),b=source.indexOf('  function mountVersionState(){',a);assert(a>=0&&b>a,'actual C button presentation dependency');vm.runInContext(source.slice(a,b),context);}\n"
+        }
+      ]
+    }
+  }
+}

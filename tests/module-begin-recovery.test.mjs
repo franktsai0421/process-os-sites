@@ -7,7 +7,7 @@ const between=(s,start,end)=>s.slice(s.indexOf(start),s.indexOf(end,s.indexOf(st
 const copy=structuredClone;
 const receipt={generation:'original',operationId:'begin-op'};
 const recovered={receipt,control:{workflow:{generation:'original',working:{remote:true}}}};
-function run(code,c){c.window=c;c.host=c;vm.createContext(c);vm.runInContext(code,c);return c;}
+function run(code,c){c.window=c;c.host=c;vm.createContext(c);if(code.includes('syncWriteButtons();')){const helper=between(source('ipqc-c'),'  function syncWriteButtons(){','  function mountVersionState(){');if(!c.saveInputNoticePending){c.saveInputNotice=null;code=source('ipqc-c').split('\n').find(line=>line.includes('  const saveInputNoticePending='))+'\n'+code;}code=helper+code;}vm.runInContext(code,c);return c;}
 
 void test('FQC Begin recovery preserves original snapshot, baseline and matrix choices without Save',async()=>{
  const snapshot={items:[{id:'local'}]},base={items:[]},rows=new Map([['local',{codes:new Set(['P'])}]]),draft={snapshot};let unknown=true;

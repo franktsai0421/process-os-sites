@@ -59,7 +59,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
  const references=[...html.matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
  const versions={
   'process-editor.js':'20261114-ipqc-link1',
-  'version-draft-ui.js':'20261115-quality-root1',
+  'version-draft-ui.js':'20261116-quality-office1',
   'version-draft-ui.css':'20261112-quality-integration1',
   'canvas-approved-history.js':'20261110-account-pages1',
   'page-draft-merge.js':'20261114-lines-flow-review1',
@@ -73,11 +73,11 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
   'effective-version-notice.js':'20261109-explicit-checks1',
   'fqc-master.js':'20261115-quality-root1',
   'iqc-master.js':'20261115-quality-root2',
-  'ipqc-c.js':'20261115-quality-root3',
+  'ipqc-c.js':'20261116-quality-office1',
   'fqc-master.css':'20261104-single-save1',
   'tooling.js':'20261113-equipment-integration2',
   'tooling.css':'20261007-2',
-  'ipqc-ab.js':'20261115-quality-root4',
+  'ipqc-ab.js':'20261116-quality-office1',
   'routine-equipment.js':'20261115-quality-root2',
   'process-equipment.js':'20261105-process-local-save1',
   'app.js':'20261114-lines-flow-review1',

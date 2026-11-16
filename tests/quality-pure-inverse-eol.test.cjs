@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),{createHash}=require('node:crypto'),{createRequire}=require('node:module'),{execFileSync}=require('node:child_process');
 const proof=require('../scripts/quality-root-source-contract.cjs'),display=require('../scripts/ipqc-c-display-image-source-contract.cjs');
-const file='public/process/ipqc-c.js',source=execFileSync('git',['show','HEAD:'+file]),text=source.toString(),pin=proof.contract.files[file],hash=x=>createHash('sha256').update(x).digest('hex');
+const file='public/process/ipqc-c.js',source=execFileSync('git',['show','HEAD:'+file]),text=source.toString(),pin=require('../scripts/quality-office-source-contract.cjs').contract.files[file]||proof.contract.files[file],hash=x=>createHash('sha256').update(x).digest('hex');
 void test('quality successor has separate exact raw and normalized C pins',()=>{assert.equal(pin.afterHash,hash(source));assert.equal(pin.afterNormalizedHash,hash(text.replaceAll('\r\n','\n')));assert.equal(hash(fs.readFileSync(file,'utf8').replaceAll('\r\n','\n')),pin.afterNormalizedHash,'native checkout remains separately EOL-equivalent to committed bytes');});
 void test('pure C display inverse rejects equivalent EOL bytes; trusted HEAD checkout boundary admits them',()=>{
  const expected=display.withoutDisplay(source),lf=text.replaceAll('\r\n','\n'),crlf=lf.replaceAll('\n','\r\n');
@@ -8,6 +8,6 @@ void test('pure C display inverse rejects equivalent EOL bytes; trusted HEAD che
  for(const candidate of [crlf+' ',crlf.replace('loading="lazy"','loading="eager"'),crlf.replaceAll('\r\n','\r')])assert.throws(()=>display.imagePolicySource('ipqc-c.js',candidate,{headSource:source}),/worktree differs/);
 });
 void test('removing the new exact successor guard reproduces the original negative-control escape',()=>{
- const path=require.resolve('../scripts/ipqc-c-display-image-source-contract.cjs'),actual=fs.readFileSync(path,'utf8'),line=" if(qualityPin&&hash(Buffer.from(source).toString('utf8').replaceAll('\\r\\n','\\n'))===qualityPin.afterNormalizedHash)assert.equal(hash(source),qualityPin.afterHash,'C display source differs from exact reviewed bytes');";
+ const path=require.resolve('../scripts/ipqc-c-display-image-source-contract.cjs'),actual=fs.readFileSync(path,'utf8'),line=" if(officePin&&hash(Buffer.from(source).toString('utf8').replaceAll('\\r\\n','\\n'))===officePin.afterNormalizedHash)assert.equal(hash(source),officePin.afterHash,'C display source differs from exact reviewed bytes');";
  assert(actual.includes(line),'mutant must remove actual guard');const box={module:{exports:{}},require:createRequire(path),Buffer};vm.runInNewContext(actual.replace(line,''),box);const changed=text.replaceAll('\r\n','\n').replaceAll('\n','\r\n');assert.notEqual(changed,text);assert.equal(box.module.exports.withoutDisplay(changed),display.withoutDisplay(source),'old inverse wrongly accepted unknown EOL bytes');
 });

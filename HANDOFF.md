@@ -1,3 +1,8 @@
+## 2026-11-16 — 辦公室Chrome功能續修
+
+獨立clone／fix/quality-office-fqc-ab-20261116，自最新main a1775a8（#123已合併）開始；與速度工作分開。AB provisional版本與模組儲存資訊分開顯示；FQC新增入口回歸擴至中越文與未碰取樣選單的原生預設。[根因、測試及未確認實站條件](docs/acceptance/quality-office-followup-20261116.md)。未操作Diem／業務草稿、帳號、實站API、合併或部署；公開靜態資產GET403，無法驗實際部署版本。
+C另同步處理中Save／Submit按鈕狀態，保留既有busy防重送與原回執／權限保護；取消及明確錯誤後恢復，UNKNOWN須先查證。B保存重載、送審、撤回與C第二輪送審／撤回已被測試者證實成功，本次不誤列失敗。
+
 ## 2026-11-15 — 網頁實測根因修復候選
 
 獨立 checkout／`fix/quality-save-read-root-causes-20261115`，基於已核對 #119 main e040a7e。涵蓋檢具／模具、FQC、IPQC AB 回應與 C 歷史查詢誤報；既有部署 checkout／服務與測試資料未動。[逐項根因、隔離測量與交付關卡](docs/acceptance/quality-root-causes-20261115.md)。無 merge／部署／帳號或正式資料操作；實站真人驗收另行。
