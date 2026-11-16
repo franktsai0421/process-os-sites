@@ -150,12 +150,16 @@ function aggregateReadAhead(bucket:Bucket, entries:[string,Ref][], valid:(ref:un
       if (closed || !entries[index] || !valid(entries[index][1])) throw Error('Invalid immutable record reference');
       // At most five aggregate GETs/streams, and no speculative
       // text, SHA or JSON allocation for the next (possibly large) aggregate.
-      if (!pending.has(index)) {
-        const keys=new Set<string>();
+      {
+        // Refill a rolling window only after the caller finished consuming the
+        // preceding aggregate and its bodies. Keep current + pending streams
+        // within five; do not wait for a whole batch before starting later GETs.
+        const keys=new Set([...pending.keys()].map(i=>entries[i][1].key));
         // Stop at malformed or repeated refs: a later observation of the same
         // object cannot mask an earlier transient fault. No selected key is
         // skipped, and current text/body decoding still finishes in order.
-        for(let next=index;next<Math.min(index+5,entries.length);next++){
+        for(let next=index;next<entries.length&&pending.size<5;next++){
+          if(pending.has(next))continue;
           const ref=entries[next][1];
           if(!valid(ref)||keys.has(ref.key))break;
           keys.add(ref.key);start(next);

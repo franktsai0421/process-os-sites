@@ -14,7 +14,7 @@ function fixture(){
   const state={view:'editor',category:'TEST',editorLine:'A',approvalTab:'master',editorByCategory:{}};
   const c={structuredClone,console,JSON,Error,Promise,queueMicrotask,
     setInterval(){},setTimeout:fn=>{timers.set(++timerId,fn);return timerId;},clearTimeout:id=>timers.delete(id),
-    localStorage:{getItem:()=>enabled?'enabled':null},state,
+    localStorage:{getItem:()=>enabled?'{"activeVersionId":"approved","versions":[]}':null},state,
     document:{documentElement:{lang:'zh'},addEventListener(){},querySelector(selector){
       if(selector==='#inspector-form'&&interactions.modal)return{closest:()=>({})};
       if(selector==='.gesture-active'&&interactions.gesture)return{};

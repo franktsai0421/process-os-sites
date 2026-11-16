@@ -145,7 +145,7 @@
     if(api.requiresReload||!api.identity?.id)throw destinationError('LOGIN_REQUIRED',401);
     const qualityRead=++qualityReadSequence,qualityIdentity=api.identity,owner=api.captureDelivery(),query=new URLSearchParams();qualityAccessBasis=null;
     for(const key of ['system','view','dataTab'])if(typeof target[key]==='string'&&target[key])query.set(key,target[key]);
-    const response=await fetch('/api/process-bootstrap?'+query,{cache:'no-store',headers:{'X-Process-Media':'deferred-v1',...authHeaders()},signal:signal?AbortSignal.any([signal,AbortSignal.timeout(45000)]):AbortSignal.timeout(45000)});
+    const response=await fetch('/api/process-bootstrap?'+query,{cache:'no-store',headers:{'X-Process-Media':'deferred-v1','X-Process-Authoring':'workflow-v1',...authHeaders()},signal:signal?AbortSignal.any([signal,AbortSignal.timeout(45000)]):AbortSignal.timeout(45000)});
     const payload=await response.json().catch(()=>null);
     if(!api.isCurrentDelivery(owner)||signal?.aborted)throw destinationError('DELIVERY_SUPERSEDED',0);
     if(response.status===401){quarantinePending();identityEpoch++;api.identity=null;api.expired=true;api.loginRequired=true;invalidateDelivery();throw destinationError('LOGIN_REQUIRED',401);}
@@ -273,7 +273,7 @@
     const query=new URLSearchParams(location.search),intent=new URLSearchParams();
     for(const key of ['system','view','dataTab'])for(const value of query.getAll(key))intent.append(key,value);
     if(!intent.has('system')){const saved=sessionStorage.getItem('process-active-system');if(saved==='process'||saved==='quality')intent.set('system',saved);}
-    const request = await fetch('/api/process-bootstrap'+(intent.size?'?'+intent:''), { cache: 'no-store', headers: { 'X-Process-Media': 'deferred-v1', ...authHeaders() }, signal: AbortSignal.timeout(45000) });
+    const request = await fetch('/api/process-bootstrap'+(intent.size?'?'+intent:''), { cache: 'no-store', headers: { 'X-Process-Media': 'deferred-v1', 'X-Process-Authoring': 'workflow-v1', ...authHeaders() }, signal: AbortSignal.timeout(45000) });
     if(generation!==identityEpoch||route!==deliveryEpoch)return;
     if (request.status === 200) {
       const shared = await request.json();

@@ -1,3 +1,5 @@
+> Latest continuation: [implemented runtime fixes and current evidence](IMPLEMENTATION-2.md). Earlier unresolved findings below are historical; live acceptance remains pending.
+
 # 2026-11-16 quality/process operation speed — independent candidate
 
 Base: genuine remote main `a1775a8a342d58335edf96d199a9c42844227dc6`. Separate branch `perf/quality-operation-speed-20261116`; #121/#124/#125 were open Drafts when compared. No merge, publication, live diagnostic injection, data/schema/account/ACL/configuration change or prohibited connector use.

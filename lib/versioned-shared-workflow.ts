@@ -37,8 +37,15 @@ export type ModuleDraftCommand=DraftCommand & {moduleAction?:string;input?:Recor
 // Read scheduling only: this never grants a partial writer or selects fewer keys.
 // Unknown fields and mixed outer envelopes retain their original fault observations.
 const fqcMatrixReadAheadFields=new Set(['action','operationId','clientId','sequence','generation','moduleAction','input']);
+const fqcLocalSaveReadAheadFields=new Set(['action','operationId','clientId','sequence','generation','expectedRevision','reason','source','moduleAction','patches','guards','input']);
 function fqcAggregateReadAheadCommand(command:ModuleDraftCommand|undefined){
  const input=command?.input;
+ if(command?.action==='save'&&command.moduleAction==='save-local-v1'&&Object.keys(command).every(key=>fqcLocalSaveReadAheadFields.has(key))){
+  // The same full local-save syntax guard runs before any read in POST. This
+  // only opts its existing full-state reader into bounded GET scheduling.
+  try{assertFqcLocalSaveCommand(command);}catch{return false;}
+  return fqcRequiredDependencyCommand({action:'save',operationId:command.operationId,clientId:command.clientId,sequence:command.sequence,generation:command.generation,expectedRevision:command.expectedRevision,reason:command.reason,source:command.source});
+ }
  if(command?.action==='apply'&&command.moduleAction==='replace-matrix-v1'&&input&&typeof input==='object'&&!Array.isArray(input)&&Object.keys(input).every(key=>key==='items'||key==='products')&&Array.isArray(input.items)&&Array.isArray(input.products)&&Object.keys(command).every(key=>fqcMatrixReadAheadFields.has(key))){
   return fqcRequiredDependencyCommand({action:'apply',operationId:command.operationId,clientId:command.clientId,sequence:command.sequence,generation:command.generation,patches:[],input:command.input});
  }

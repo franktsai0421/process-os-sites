@@ -15,8 +15,8 @@ async function call(load,f,endpoint,method='GET',body,who='editor',query=''){con
 for(const moduleName of ['ipqc-ab','ipqc-c'])void test(moduleName+' current-main paired operation/readback profile',async t=>{
  const f=await setup(t,moduleName),query='?caseMetadata=1&compact=1'+(moduleName==='ipqc-ab'?'&module=1':'');let sequence=0;
  const get=f.env.STATE_ARCHIVE.get.bind(f.env.STATE_ARCHIVE),prepare=f.env.DB.prepare.bind(f.env.DB),report=[];let metrics,labels;
- const delay=Number(process.env.QUALITY_FIXTURE_DELAY_MS||0);
- f.env.STATE_ARCHIVE.get=async key=>{const label=labels.get(key)||'immutable-body';metrics.gets[label]=(metrics.gets[label]||0)+1;if(delay)await new Promise(r=>setTimeout(r,delay));const obj=await get(key);return obj&&{...obj,text:async()=>{const raw=await obj.text();metrics.bytes[label]=(metrics.bytes[label]||0)+Buffer.byteLength(raw);return raw;}};};
+ const delay=Number(process.env.QUALITY_FIXTURE_DELAY_MS||0),jitter=process.env.QUALITY_FIXTURE_JITTER==='1';
+ f.env.STATE_ARCHIVE.get=async key=>{const label=labels.get(key)||'immutable-body';metrics.gets[label]=(metrics.gets[label]||0)+1;if(delay)await new Promise(r=>setTimeout(r,delay*(jitter?1+parseInt(key.slice(-7,-5),16)%8:1)));const obj=await get(key);return obj&&{...obj,text:async()=>{const raw=await obj.text();metrics.bytes[label]=(metrics.bytes[label]||0)+Buffer.byteLength(raw);return raw;}};};
  f.env.DB.prepare=sql=>{const s=prepare(sql);if(sql.includes('FROM process_revoked_sessions')){const first=s.first.bind(s);s.first=async()=>{metrics.revocations++;if(delay)await new Promise(r=>setTimeout(r,delay));return first();};}return s;};
  function reset(){metrics={gets:{},bytes:{},revocations:0};labels=new Map();for(const [key,ref]of Object.entries(JSON.parse(snap(f).row.values).__processRecords?.values||{}))labels.set(ref.key,[labels.get(ref.key),key].filter(Boolean).join('|'));}reset();
  async function pair(action,command,actor='editor',endpoint=moduleName+'/workflow',readQuery=query){
@@ -34,5 +34,5 @@ for(const moduleName of ['ipqc-ab','ipqc-c'])void test(moduleName+' current-main
   }
   await pair(action,command);await pair(action+' workflow GET');await pair(action+' domain GET',undefined,'editor',moduleName,'?caseMetadata=1');await pair(action+' permissions GET',undefined,'editor',moduleName+'/workflow',query+'&permissions=1');
  }
- t.diagnostic(JSON.stringify({fixture:{normalCreatedErrors:1,unrelatedAggregates:20,unrelatedStringCharactersEach:9000,delayMs:delay},report}));
+ t.diagnostic(JSON.stringify({fixture:{normalCreatedErrors:1,unrelatedAggregates:20,unrelatedStringCharactersEach:9000,delayMs:delay,jitter},report}));
 });

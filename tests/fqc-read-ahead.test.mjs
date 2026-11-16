@@ -164,7 +164,7 @@ for(const action of ['apply','save','matrix'])void test(`ordinary ${action} with
     if(action==='save')assert.deepEqual(state.workflow.saved.content,state.workflow.working);else assert.equal(state.workflow.saved,null);
   }finally{f.close();}
 });
-for(const kind of ['save-unknown','outer-unknown','matrix-expectedRevision','matrix-patches','matrix-guards','matrix-unknown','matrix-id','matrix-input-null','matrix-input-empty','matrix-input-extra','matrix-input-array-field'])void test(`unrecognized ${kind} preserves serial fallback and fault observations`,async()=>{
+for(const kind of ['save-unknown','local-save-unknown','local-save-id','outer-unknown','matrix-expectedRevision','matrix-patches','matrix-guards','matrix-unknown','matrix-id','matrix-input-null','matrix-input-empty','matrix-input-extra','matrix-input-array-field'])void test(`unrecognized ${kind} preserves serial fallback and fault observations`,async()=>{
   const f=await fixture();try{
     const begun=await f.realm().client.begin();
     await f.mutate(values=>{values.processAccessControl=JSON.stringify({audit:[]});values.toolingMasterControl=JSON.stringify({versions:[{id:'unrelated',snapshot:{note:'unreadable body'}}]});values.sentinel='"untouched"';});
@@ -173,6 +173,7 @@ for(const kind of ['save-unknown','outer-unknown','matrix-expectedRevision','mat
     f.env.STATE_ARCHIVE.get=async key=>{trace.push(['get',key]);const object=await get(key);if(!object)return object;return{...object,text:()=>{trace.push(['text',key]);return object.text();}};};
     const command={action:'apply',operationId:'fallback-operation',clientId:'fixture-client',generation:begun.control.workflow.generation,sequence:1,moduleAction:'replace-matrix-v1',input:{items:[],products:[]}},body={command};
     if(kind==='save-unknown'){command.action='save';delete command.moduleAction;delete command.input;command.unknown=true;}
+    if(kind==='local-save-unknown'||kind==='local-save-id'){command.action='save';command.moduleAction='save-local-v1';command.patches=[];command.guards=[];command.input={matrixCells:[]};if(kind==='local-save-unknown')command.unknown=true;else command.operationId='bad';}
     if(kind==='outer-unknown')body.unknown=true;
     if(kind==='matrix-expectedRevision')command.expectedRevision=0;
     if(kind==='matrix-patches')command.patches=[];
@@ -192,4 +193,31 @@ for(const kind of ['save-unknown','outer-unknown','matrix-expectedRevision','mat
     }
     assert.deepEqual(traces[1],traces[0],'fallback reads exactly the ordinary serial failure prefix');
   }finally{f.close();}
+});
+
+void test('rolling admission starts the sixth GET before a slow fifth GET completes without consuming later text',async()=>{
+ const f=setup(Array.from({length:8},(_,i)=>JSON.stringify({i})));let releaseFifth,atFourth;
+ const fifth=new Promise(resolve=>{releaseFifth=resolve;}),fourthText=new Promise(resolve=>{atFourth=resolve;});
+ const get=f.bucket.get.bind(f.bucket);
+ f.bucket.get=async key=>{if(key===f.entries[4][1].key)await fifth;const object=await get(key);const text=object.text.bind(object);object.text=async()=>{const raw=await text();if(key===f.entries[3][1].key)atFourth();return raw;};return object;};
+ const decoding=records.decodeRecordValues(f.bucket,f.envelope,{aggregateReadAhead:true});
+ try{await fourthText;assert(f.events.some(([kind,key])=>kind==='get'&&key===f.entries[5][1].key),'sixth GET must be admitted before waiting on the fifth');assert(!f.events.some(([kind,key])=>kind==='text'&&key===f.entries[5][1].key),'later text still waits for fifth');}
+ finally{releaseFifth();await decoding;}
+ assert.deepEqual(f.events.filter(([kind])=>kind==='text').map(([,key])=>key),f.entries.map(([,r])=>r.key));
+});
+
+void test('FQC local Save schedules full selected state and still fails on an unrelated required body',async()=>{
+ for(const missing of [false,true]){
+  const f=await fixture();try{
+   const begun=await f.realm().client.begin();await f.mutate(values=>{values.processAccessControl=JSON.stringify({audit:[]});values.toolingMasterControl=JSON.stringify({versions:[{id:'unrelated',snapshot:{note:'retained body'}}]});});
+   const before=f.db.prepare('SELECT * FROM shared_state').get(),refs=JSON.parse(before.values).__processRecords.values,body=JSON.parse(f.objects.get(refs.toolingMasterControl.key)).versions[0].snapshot.__immutableBody;
+   if(missing)f.objects.delete(body.key);
+   const trace=[],get=f.env.STATE_ARCHIVE.get.bind(f.env.STATE_ARCHIVE);f.env.STATE_ARCHIVE.get=async key=>{trace.push(['get',key]);const o=await get(key);return o&&{...o,text:()=>{trace.push(['text',key]);return o.text();}};};
+   const response=await f.call('/api/fqc/workflow?caseMetadata=1',{method:'POST',body:JSON.stringify({command:{action:'save',moduleAction:'save-local-v1',operationId:'local-save-scheduling',clientId:'local-save-client',sequence:1,generation:begun.control.workflow.generation,patches:[{op:'set',path:['items',{id:'item'},'description'],value:'Changed'}],guards:[{path:['items',{id:'item'},'description'],value:'Synthetic description'}],input:{matrixCells:[]}}})});
+   assert.equal(response.status,missing?500:200);assert(trace.some(([kind,key])=>kind==='get'&&key===body.key));
+   assert(trace.findIndex(([kind,key])=>kind==='get'&&key===refs.processAccessControl.key)<trace.findIndex(([kind,key])=>kind==='text'&&key===refs.processRoleTemplateOverrides.key));
+   if(missing)assert.deepEqual(f.db.prepare('SELECT * FROM shared_state').get(),before);
+   else{const state=await f.state();assert.equal(state.workflow.saved.content.items[0].description,'Changed');}
+  }finally{f.close();}
+ }
 });

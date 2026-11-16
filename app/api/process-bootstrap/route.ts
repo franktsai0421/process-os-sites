@@ -33,7 +33,19 @@ export async function GET(request:Request){
       const {fqc:_deferred,...libraries}=root.libraries;
       return JSON.stringify({...root,libraries});
     };
-    const state=await readState({aggregateReadAhead:true,keys:plan.keys,effectiveOnly:true,deferHistory:true,deferDependencyHistory:true,...(reuseIdentity?{identityReadToken}:{}),...(plan.destination.module==='fqc'?{projectValue:projectFqc}:{})});
+    // Only the versioned editor client waits for the authoritative workflow
+    // before painting/enabling its canvas. Other destinations and old clients
+    // still receive the complete approved bootstrap projection.
+    const deferAuthoring=request.headers.get('X-Process-Authoring')==='workflow-v1'&&plan.destination.view==='editor';
+    const projectAuthoring=(key:string,raw:string)=>{
+      if(key!=='processAuthoringControl')return raw;
+      const root=JSON.parse(raw),flow=root?.workflow;
+      if(!root||Array.isArray(root)||!Array.isArray(root.versions)||flow?.schemaVersion!==3||flow.scope!=='process:platform'||typeof flow.generation!=='string'||!flow.generation||!Number.isSafeInteger(flow.revision)||flow.revision<0)return raw;
+      // Keep the adoption marker, not a substitute current/approved canvas.
+      // Its complete active, draft and review data come from the required GET.
+      return JSON.stringify({...root,versions:[]});
+    };
+    const state=await readState({aggregateReadAhead:true,keys:plan.keys,effectiveOnly:true,deferHistory:true,deferDependencyHistory:true,...(reuseIdentity?{identityReadToken}:{}),...(plan.destination.module==='fqc'?{projectValue:projectFqc}:deferAuthoring?{projectValue:projectAuthoring}:{})});
     const reader=await companyReader(request,state);
     if(!reader||reader.actor.id!==before.actor.id)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers:responseHeaders});
     if(state.revision!==auth.revision)return Response.json({error:'BOOTSTRAP_REVISION_CHANGED'},{status:409,headers:responseHeaders});

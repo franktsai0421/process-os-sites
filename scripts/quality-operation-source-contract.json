@@ -433,7 +433,7 @@
       ]
     },
     "lib/versioned-shared-workflow.ts": {
-      "afterNormalizedHash": "f5cc5bf4cb6a562a8a34a30eab3383e4c637e90c93552149d0124c16cfefff55",
+      "afterNormalizedHash": "b4b88bd5a6a384822c3a197724c30bbf6aaa313217a11ebbc906e3e097340730",
       "beforeNormalizedHash": "95076db197439fd58018e4e349626bc590264d90ea0c06e4940b628aa5e7a5e2",
       "beforeHash": "52fb98ea7a42169d75e4172d633e048ec634ecb26f12f6439997023c5eea8f5e",
       "beforeCRLF": [
@@ -664,57 +664,77 @@
           "after": "import { readState, identity, can, createMasterABPermissionPhase, createFqcPermissionPhase, createIpqcABPermissionPhase, createInventoryPermissionPhase, createIqcPermissionPhase, createProcessPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, responseHeaders, type State } from './process-state';\n"
         },
         {
-          "offset": 15895,
+          "offset": 4514,
+          "before": "",
+          "after": "const fqcLocalSaveReadAheadFields=new Set(['action','operationId','clientId','sequence','generation','expectedRevision','reason','source','moduleAction','patches','guards','input']);\n"
+        },
+        {
+          "offset": 4803,
+          "before": "",
+          "after": " if(command?.action==='save'&&command.moduleAction==='save-local-v1'&&Object.keys(command).every(key=>fqcLocalSaveReadAheadFields.has(key))){\n  // The same full local-save syntax guard runs before any read in POST. This\n  // only opts its existing full-state reader into bounded GET scheduling.\n  try{assertFqcLocalSaveCommand(command);}catch{return false;}\n  return fqcRequiredDependencyCommand({action:'save',operationId:command.operationId,clientId:command.clientId,sequence:command.sequence,generation:command.generation,expectedRevision:command.expectedRevision,reason:command.reason,source:command.source});\n }\n"
+        },
+        {
+          "offset": 16695,
           "before": "  const phaseFor=(request:Request,state:State)=>adapter.key==='masterDataControl'&&adapter.scope==='master:AB'&&new URL(request.url).pathname==='/api/master/workflow'&&new URL(request.url).searchParams.get('scope')==='AB'?createMasterABPermissionPhase(request,state):adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!new URL(request.url).searchParams.has('scope')?createFqcPermissionPhase(request,state):isIpqcAB(request)?ipqcABOwnerPhase(request,state):(adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment'&&new URL(request.url).pathname==='/api/routine-equipment/workflow'||adapter.key==='toolingMasterControl'&&adapter.scope==='tooling'&&new URL(request.url).pathname==='/api/tooling/workflow')?createInventoryPermissionPhase(request,state):null;\n",
           "after": "  const isQualityOperation=(request:Request)=>!new URL(request.url).searchParams.has('scope')&&(adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'&&new URL(request.url).pathname==='/api/iqc/workflow'||adapter.key==='processAuthoringControl'&&adapter.scope==='process:platform'&&new URL(request.url).pathname==='/api/process-authoring/workflow');\n  const phaseFor=(request:Request,state:State)=>adapter.key==='processAuthoringControl'&&adapter.scope==='process:platform'&&new URL(request.url).pathname==='/api/process-authoring/workflow'&&!new URL(request.url).searchParams.has('scope')?createProcessPermissionPhase(request,state):adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'&&new URL(request.url).pathname==='/api/iqc/workflow'&&!new URL(request.url).searchParams.has('scope')?createIqcPermissionPhase(request,state):adapter.key==='masterDataControl'&&adapter.scope==='master:AB'&&new URL(request.url).pathname==='/api/master/workflow'&&new URL(request.url).searchParams.get('scope')==='AB'?createMasterABPermissionPhase(request,state):adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!new URL(request.url).searchParams.has('scope')?createFqcPermissionPhase(request,state):isIpqcAB(request)?ipqcABOwnerPhase(request,state):(adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment'&&new URL(request.url).pathname==='/api/routine-equipment/workflow'||adapter.key==='toolingMasterControl'&&adapter.scope==='tooling'&&new URL(request.url).pathname==='/api/tooling/workflow')?createInventoryPermissionPhase(request,state):null;\n"
         },
         {
-          "offset": 19700,
+          "offset": 20500,
           "before": "      const fqcReadAhead=isIpqcAB(request)||adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!selectors.has('scope');\n",
           "after": "      const fqcReadAhead=isQualityOperation(request)||isIpqcAB(request)||adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!selectors.has('scope');\n"
         },
         {
-          "offset": 36242,
+          "offset": 37042,
           "before": "        const state=requiredState||mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({aggregateReadAhead:body.action===undefined&&Object.keys(body).every(key=>key==='command')&&(isIpqcAB(request)&&['apply','restore','save','submit','withdraw','approve','return'].includes(body.command?.action||'')||fqcAggregateReadAheadCommand(body.command)&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope')),deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=requiredPhase||await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);\n",
           "after": "        const state=requiredState||mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({aggregateReadAhead:body.action===undefined&&Object.keys(body).every(key=>key==='command')&&((isQualityOperation(request)||isIpqcAB(request))&&['apply','restore','save','submit','withdraw','approve','return'].includes(body.command?.action||'')||fqcAggregateReadAheadCommand(body.command)&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope')),deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=requiredPhase||await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);\n"
         }
       ]
     },
     "lib/state-records.ts": {
-      "afterNormalizedHash": "54283142a92a6867c2b0bee6480b1227f4b170958efc27dabd52c96af58dccd4",
+      "afterNormalizedHash": "2f09d0b885ef7d9a804593fad366560d7722351553d738557f97ef402ef5a86d",
       "beforeNormalizedHash": "9021ff077ea60b58382d93380f8080f7ea59fbf7e3d9d464b4069b5d672a55a7",
       "beforeHash": "9021ff077ea60b58382d93380f8080f7ea59fbf7e3d9d464b4069b5d672a55a7",
       "beforeCRLF": [],
       "rules": [
         {
-          "offset": 24994,
+          "offset": 13612,
+          "before": "      if (!pending.has(index)) {\n        const keys=new Set<string>();\n",
+          "after": "      {\n        // Refill a rolling window only after the caller finished consuming the\n        // preceding aggregate and its bodies. Keep current + pending streams\n        // within five; do not wait for a whole batch before starting later GETs.\n        const keys=new Set([...pending.keys()].map(i=>entries[i][1].key));\n"
+        },
+        {
+          "offset": 14167,
+          "before": "        for(let next=index;next<Math.min(index+5,entries.length);next++){\n",
+          "after": "        for(let next=index;next<entries.length&&pending.size<5;next++){\n          if(pending.has(next))continue;\n"
+        },
+        {
+          "offset": 25285,
           "before": " const selected=await decodeRecordValuesCore(bucket,envelope,{modelKey:'qualityMasterControl',deferDependencyHistory:true,deferHistory:true},new Set(fqcMutationKeys));\n",
           "after": " const selected=await decodeRecordValuesCore(bucket,envelope,{aggregateReadAhead:true,modelKey:'qualityMasterControl',deferDependencyHistory:true,deferHistory:true},new Set(fqcMutationKeys));\n"
         },
         {
-          "offset": 29485,
+          "offset": 29776,
           "before": " const selected=await decodeRecordValuesCore(bucket,envelope,{modelKey:'processAuthoringControl',deferDependencyHistory:true,deferHistory:true},new Set(processSaveMutationKeys));\n",
           "after": " const selected=await decodeRecordValuesCore(bucket,envelope,{aggregateReadAhead:true,modelKey:'processAuthoringControl',deferDependencyHistory:true,deferHistory:true},new Set(processSaveMutationKeys));\n"
         },
         {
-          "offset": 33708,
+          "offset": 33999,
           "before": " const selected=await decodeRecordValuesCore(bucket,envelope,{modelKey:'processAuthoringControl',deferDependencyHistory:true,deferHistory:true,caseId},new Set(processFlowMutationKeys));\n",
           "after": " const selected=await decodeRecordValuesCore(bucket,envelope,{aggregateReadAhead:true,modelKey:'processAuthoringControl',deferDependencyHistory:true,deferHistory:true,caseId},new Set(processFlowMutationKeys));\n"
         },
         {
-          "offset": 38694,
+          "offset": 38985,
           "before": " const selected=await decodeRecordValuesCore(bucket,envelope,{modelKey:'qualityMasterControl',deferDependencyHistory:true,deferHistory:true,caseId:selection.caseId},new Set(fqcLifecycle8MutationKeys));\n",
           "after": " const selected=await decodeRecordValuesCore(bucket,envelope,{aggregateReadAhead:true,modelKey:'qualityMasterControl',deferDependencyHistory:true,deferHistory:true,caseId:selection.caseId},new Set(fqcLifecycle8MutationKeys));\n"
         },
         {
-          "offset": 43359,
+          "offset": 43650,
           "before": " const selected=await decodeRecordValuesCore(bucket,envelope,{modelKey:'ipqcCMasterControl',deferDependencyHistory:true,deferHistory:true,allocationKey:'ipqcCMasterControl'},new Set(ipqcCSaveMutationKeys));\n",
           "after": " const selected=await decodeRecordValuesCore(bucket,envelope,{aggregateReadAhead:true,modelKey:'ipqcCMasterControl',deferDependencyHistory:true,deferHistory:true,allocationKey:'ipqcCMasterControl'},new Set(ipqcCSaveMutationKeys));\n"
         }
       ]
     },
     "app/api/process-bootstrap/route.ts": {
-      "afterNormalizedHash": "313cef6965f4654620324a411cfad30dc17dc6867e4525c61c5babb154bf4ccd",
+      "afterNormalizedHash": "5b528d878de2ddc5c33ae03d5452113cacb2000918334e10c38adebb69cef27a",
       "beforeNormalizedHash": "3d6f699f1647817c9605985eb023105e086fa0888af6e7a0ff2186bd811dd79c",
       "beforeHash": "3d6f699f1647817c9605985eb023105e086fa0888af6e7a0ff2186bd811dd79c",
       "beforeCRLF": [],
@@ -722,7 +742,7 @@
         {
           "offset": 2781,
           "before": "    const state=await readState({keys:plan.keys,effectiveOnly:true,deferHistory:true,deferDependencyHistory:true,...(reuseIdentity?{identityReadToken}:{}),...(plan.destination.module==='fqc'?{projectValue:projectFqc}:{})});\n",
-          "after": "    const state=await readState({aggregateReadAhead:true,keys:plan.keys,effectiveOnly:true,deferHistory:true,deferDependencyHistory:true,...(reuseIdentity?{identityReadToken}:{}),...(plan.destination.module==='fqc'?{projectValue:projectFqc}:{})});\n"
+          "after": "    // Only the versioned editor client waits for the authoritative workflow\n    // before painting/enabling its canvas. Other destinations and old clients\n    // still receive the complete approved bootstrap projection.\n    const deferAuthoring=request.headers.get('X-Process-Authoring')==='workflow-v1'&&plan.destination.view==='editor';\n    const projectAuthoring=(key:string,raw:string)=>{\n      if(key!=='processAuthoringControl')return raw;\n      const root=JSON.parse(raw),flow=root?.workflow;\n      if(!root||Array.isArray(root)||!Array.isArray(root.versions)||flow?.schemaVersion!==3||flow.scope!=='process:platform'||typeof flow.generation!=='string'||!flow.generation||!Number.isSafeInteger(flow.revision)||flow.revision<0)return raw;\n      // Keep the adoption marker, not a substitute current/approved canvas.\n      // Its complete active, draft and review data come from the required GET.\n      return JSON.stringify({...root,versions:[]});\n    };\n    const state=await readState({aggregateReadAhead:true,keys:plan.keys,effectiveOnly:true,deferHistory:true,deferDependencyHistory:true,...(reuseIdentity?{identityReadToken}:{}),...(plan.destination.module==='fqc'?{projectValue:projectFqc}:deferAuthoring?{projectValue:projectAuthoring}:{})});\n"
         }
       ]
     },
@@ -831,6 +851,96 @@
           "offset": 19486,
           "before": " async function pair(name,query='contentIssues=1',who='editor',expected=200){const before=await measure(name+' baseline',api,counters,query,who,expected),after=await measure(name+' candidate',targetApi,candidateCounters,query,who,expected);const qualificationDelta=assertRuleDTO(name,before.body,after.body);assert.deepEqual(after.headers,before.headers,name+' headers');assertReadClosureIO(name,before,after);pairs.push({name,qualificationDelta,before:results.indexOf(before),after:results.indexOf(after),parseBefore:summarize(before.validation),parseAfter:summarize(after.validation)});return{before,after};}\n",
           "after": " async function pair(name,query='contentIssues=1',who='editor',expected=200){const before=await measure(name+' baseline',api,counters,query,who,expected),after=await measure(name+' candidate',targetApi,candidateCounters,query,who,expected);const qualificationDelta=assertRuleDTO(name,before.body,after.body);assert.deepEqual(after.headers,before.headers,name+' headers');assertReadClosureIO(name,before,after);\n // Keep the historical exact I/O assertion above intact. Independently prove\n // the current scheduler/permission phase against that exact intermediate.\n const optimized=await measure(name+' optimized',optimizedApi,optimizedCounters,query,who,expected);\n assert.deepEqual(optimized.body,after.body,name+' optimized complete DTO');\n assert.deepEqual(optimized.headers,after.headers,name+' optimized headers');\n assert.deepEqual(optimized.consumed,after.consumed,name+' exact consumed object bytes, SHA and error order');\n const revocation=e=>e.kind==='SQL'&&e.sql.includes('FROM process_revoked_sessions');\n assert.deepEqual(optimized.io.filter(e=>e.kind==='SQL'&&!revocation(e)),after.io.filter(e=>e.kind==='SQL'&&!revocation(e)),name+' unchanged non-session SQL');\n const expectedSessionReads=after.metrics.revocationReads===0?0:expected===403?1:2;\n assert.equal(optimized.metrics.revocationReads,expectedSessionReads,name+' explicit fresh authority fences');\n assert.equal(optimized.metrics.r2Bytes,after.metrics.r2Bytes,name+' complete bytes consumed');\n const readKeys=new Set(after.io.filter(e=>e.kind==='R2').map(e=>e.key));\n const manifest=JSON.parse(db.prepare('SELECT \"values\" AS raw FROM shared_state WHERE id=1').get().raw).__processRecords?.values||{};\n for(const key of ['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','processAuthoringControl','masterDataControl','bomOverrides','ipqcABMasterControl','ipqcCMasterControl'])if(manifest[key])readKeys.add(manifest[key].key);\n for(const event of optimized.io.filter(e=>e.kind==='R2'))assert(readKeys.has(event.key),name+' no unselected or unknown object fetched');\n pairs.push({name,qualificationDelta,before:results.indexOf(before),after:results.indexOf(after),parseBefore:summarize(before.validation),parseAfter:summarize(after.validation)});return{before,after};}\n"
+        }
+      ]
+    },
+    "public/process/shared-state.js": {
+      "afterNormalizedHash": "b2ed62bf1c277c51b68c96dc66e2a51146b88a0e3be2a7a39c19f99b01d060bf",
+      "beforeNormalizedHash": "3d3472af02ed82629e5df7f8f0eb3aa70b9a8bcd11967fd666ad205e3be0e6b3",
+      "beforeHash": "3d3472af02ed82629e5df7f8f0eb3aa70b9a8bcd11967fd666ad205e3be0e6b3",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 9198,
+          "before": "    const response=await fetch('/api/process-bootstrap?'+query,{cache:'no-store',headers:{'X-Process-Media':'deferred-v1',...authHeaders()},signal:signal?AbortSignal.any([signal,AbortSignal.timeout(45000)]):AbortSignal.timeout(45000)});\n",
+          "after": "    const response=await fetch('/api/process-bootstrap?'+query,{cache:'no-store',headers:{'X-Process-Media':'deferred-v1','X-Process-Authoring':'workflow-v1',...authHeaders()},signal:signal?AbortSignal.any([signal,AbortSignal.timeout(45000)]):AbortSignal.timeout(45000)});\n"
+        },
+        {
+          "offset": 18303,
+          "before": "    const request = await fetch('/api/process-bootstrap'+(intent.size?'?'+intent:''), { cache: 'no-store', headers: { 'X-Process-Media': 'deferred-v1', ...authHeaders() }, signal: AbortSignal.timeout(45000) });\n",
+          "after": "    const request = await fetch('/api/process-bootstrap'+(intent.size?'?'+intent:''), { cache: 'no-store', headers: { 'X-Process-Media': 'deferred-v1', 'X-Process-Authoring': 'workflow-v1', ...authHeaders() }, signal: AbortSignal.timeout(45000) });\n"
+        }
+      ]
+    },
+    "public/process/index.html": {
+      "afterNormalizedHash": "248bc182ee6b1fec3db28c2eefa6d5726aff03454e3e710792c6a8c96117a598",
+      "beforeNormalizedHash": "9b283d7dd999a78a66f1df81c9669649ae1817886ea13b4d2a46726a9cf514de",
+      "beforeHash": "9b283d7dd999a78a66f1df81c9669649ae1817886ea13b4d2a46726a9cf514de",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 1395,
+          "before": "    <script src=\"shared-state.js?v=20261106-access-offline1\"></script>\n",
+          "after": "    <script src=\"shared-state.js?v=20261116-authoring-workflow1\"></script>\n"
+        }
+      ]
+    },
+    "tests/navigation-adapters.test.mjs": {
+      "afterNormalizedHash": "044bb34ada7fd2b3468911edc31a48c53dcb41cd19b9cfa8dd4bf01e6654b079",
+      "beforeNormalizedHash": "f1e2b6a69d09d90cd361bd54c55b47bc7bfa828fe2fc61b3ce29aa99c3ad1ae5",
+      "beforeHash": "f1e2b6a69d09d90cd361bd54c55b47bc7bfa828fe2fc61b3ce29aa99c3ad1ae5",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 17613,
+          "before": "  'shared-state.js':'20261106-access-offline1',\n",
+          "after": "  'shared-state.js':'20261116-authoring-workflow1',\n"
+        }
+      ]
+    },
+    "tests/authoring-readiness-render.test.mjs": {
+      "afterNormalizedHash": "cf45b6fdaac226974c2c70ed0699fc08c4e5da8eb7110677c1e00c9dc01ede30",
+      "beforeNormalizedHash": "d83fcc89c90904c82660e726afb94052d9a7063ec7cd9d799f24b9800b7fac12",
+      "beforeHash": "d83fcc89c90904c82660e726afb94052d9a7063ec7cd9d799f24b9800b7fac12",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 1122,
+          "before": "    localStorage:{getItem:()=>enabled?'enabled':null},state,\n",
+          "after": "    localStorage:{getItem:()=>enabled?'{\"activeVersionId\":\"approved\",\"versions\":[]}':null},state,\n"
+        }
+      ]
+    },
+    "tests/fqc-read-ahead.test.mjs": {
+      "afterNormalizedHash": "a4bd0ae67c15a4d478ad84d25e8b849c745ea90dd005ab31810d5c2775bbc760",
+      "beforeNormalizedHash": "65d83d80ba6721cd28af60cb33d4eb82dc06f1b3a4a58a91afc06c2dfc94d409",
+      "beforeHash": "65d83d80ba6721cd28af60cb33d4eb82dc06f1b3a4a58a91afc06c2dfc94d409",
+      "beforeCRLF": [],
+      "rules": [
+        {
+          "offset": 11571,
+          "before": "for(const path of ['/api/fqc/workflow?caseMetadata=1','/api/fqc/workflow?caseMetadata=1&scope=other','/api/iqc/workflow?caseMetadata=1'])void test(`route opt-in remains exact: ${path}`,async()=>{\n",
+          "after": "for(const path of ['/api/fqc/workflow?caseMetadata=1','/api/fqc/workflow?caseMetadata=1&scope=other','/api/iqc/workflow?caseMetadata=1','/api/iqc/workflow?caseMetadata=1&scope=other'])void test(`route opt-in remains exact: ${path}`,async()=>{\n"
+        },
+        {
+          "offset": 13035,
+          "before": "    assert.equal(accessGet<overrideText,path==='/api/fqc/workflow?caseMetadata=1','only the exact FQC route overlaps this formerly serial pair');\n",
+          "after": "    assert.equal(accessGet<overrideText,['/api/fqc/workflow?caseMetadata=1','/api/iqc/workflow?caseMetadata=1'].includes(path),'only exact enrolled FQC/IQC routes overlap this formerly serial pair');\n"
+        },
+        {
+          "offset": 18072,
+          "before": "for(const kind of ['save-unknown','outer-unknown','matrix-expectedRevision','matrix-patches','matrix-guards','matrix-unknown','matrix-id','matrix-input-null','matrix-input-empty','matrix-input-extra','matrix-input-array-field'])void test(`unrecognized ${kind} preserves serial fallback and fault observations`,async()=>{\n",
+          "after": "for(const kind of ['save-unknown','local-save-unknown','local-save-id','outer-unknown','matrix-expectedRevision','matrix-patches','matrix-guards','matrix-unknown','matrix-id','matrix-input-null','matrix-input-empty','matrix-input-extra','matrix-input-array-field'])void test(`unrecognized ${kind} preserves serial fallback and fault observations`,async()=>{\n"
+        },
+        {
+          "offset": 19641,
+          "before": "",
+          "after": "    if(kind==='local-save-unknown'||kind==='local-save-id'){command.action='save';command.moduleAction='save-local-v1';command.patches=[];command.guards=[];command.input={matrixCells:[]};if(kind==='local-save-unknown')command.unknown=true;else command.operationId='bad';}\n"
+        },
+        {
+          "offset": 21221,
+          "before": "",
+          "after": "\nvoid test('rolling admission starts the sixth GET before a slow fifth GET completes without consuming later text',async()=>{\n const f=setup(Array.from({length:8},(_,i)=>JSON.stringify({i})));let releaseFifth,atFourth;\n const fifth=new Promise(resolve=>{releaseFifth=resolve;}),fourthText=new Promise(resolve=>{atFourth=resolve;});\n const get=f.bucket.get.bind(f.bucket);\n f.bucket.get=async key=>{if(key===f.entries[4][1].key)await fifth;const object=await get(key);const text=object.text.bind(object);object.text=async()=>{const raw=await text();if(key===f.entries[3][1].key)atFourth();return raw;};return object;};\n const decoding=records.decodeRecordValues(f.bucket,f.envelope,{aggregateReadAhead:true});\n try{await fourthText;assert(f.events.some(([kind,key])=>kind==='get'&&key===f.entries[5][1].key),'sixth GET must be admitted before waiting on the fifth');assert(!f.events.some(([kind,key])=>kind==='text'&&key===f.entries[5][1].key),'later text still waits for fifth');}\n finally{releaseFifth();await decoding;}\n assert.deepEqual(f.events.filter(([kind])=>kind==='text').map(([,key])=>key),f.entries.map(([,r])=>r.key));\n});\n\nvoid test('FQC local Save schedules full selected state and still fails on an unrelated required body',async()=>{\n for(const missing of [false,true]){\n  const f=await fixture();try{\n   const begun=await f.realm().client.begin();await f.mutate(values=>{values.processAccessControl=JSON.stringify({audit:[]});values.toolingMasterControl=JSON.stringify({versions:[{id:'unrelated',snapshot:{note:'retained body'}}]});});\n   const before=f.db.prepare('SELECT * FROM shared_state').get(),refs=JSON.parse(before.values).__processRecords.values,body=JSON.parse(f.objects.get(refs.toolingMasterControl.key)).versions[0].snapshot.__immutableBody;\n   if(missing)f.objects.delete(body.key);\n   const trace=[],get=f.env.STATE_ARCHIVE.get.bind(f.env.STATE_ARCHIVE);f.env.STATE_ARCHIVE.get=async key=>{trace.push(['get',key]);const o=await get(key);return o&&{...o,text:()=>{trace.push(['text',key]);return o.text();}};};\n   const response=await f.call('/api/fqc/workflow?caseMetadata=1',{method:'POST',body:JSON.stringify({command:{action:'save',moduleAction:'save-local-v1',operationId:'local-save-scheduling',clientId:'local-save-client',sequence:1,generation:begun.control.workflow.generation,patches:[{op:'set',path:['items',{id:'item'},'description'],value:'Changed'}],guards:[{path:['items',{id:'item'},'description'],value:'Synthetic description'}],input:{matrixCells:[]}}})});\n   assert.equal(response.status,missing?500:200);assert(trace.some(([kind,key])=>kind==='get'&&key===body.key));\n   assert(trace.findIndex(([kind,key])=>kind==='get'&&key===refs.processAccessControl.key)<trace.findIndex(([kind,key])=>kind==='text'&&key===refs.processRoleTemplateOverrides.key));\n   if(missing)assert.deepEqual(f.db.prepare('SELECT * FROM shared_state').get(),before);\n   else{const state=await f.state();assert.equal(state.workflow.saved.content.items[0].description,'Changed');}\n  }finally{f.close();}\n }\n});\n"
         }
       ]
     }
