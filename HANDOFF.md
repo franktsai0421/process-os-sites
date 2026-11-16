@@ -3,6 +3,14 @@
 
 帳號專用 verified records overlay 移除不相關業務讀取；非密碼操作保留獨立 requestId/audit 回執直到 fresh readback，UNKNOWN 只查原操作、不重送，POST 可明確停止等候。status.view 導出明細/照片/影片舊只讀別名；管理員安全邊界、effective inheritance、角色例外、fresh auth/CAS 保留。沒有 live 帳號/資料/schema/政策採用/合併或部署。[根因、量測、完整權限對照與驗證界線](docs/acceptance/account-role-save-20261115/README.md)。
 
+## 2026-11-15 — 網頁實測根因修復候選
+
+獨立 checkout／`fix/quality-save-read-root-causes-20261115`，基於已核對 #119 main e040a7e。涵蓋檢具／模具、FQC、IPQC AB 回應與 C 歷史查詢誤報；既有部署 checkout／服務與測試資料未動。[逐項根因、隔離測量與交付關卡](docs/acceptance/quality-root-causes-20261115.md)。無 merge／部署／帳號或正式資料操作；實站真人驗收另行。
+
+## 2026-11-15 — 獨立 IPQC 頻率顯示候選
+
+`fix/process-ipqc-frequency-display-20261115` 從最新遠端 main c6ac41a6（已合併 #120）建立隔離 worktree，只修製程共用頻率中的重複 AQL 標籤。[本輪紀錄](docs/acceptance/process-ipqc-frequency-20261115.md)。資料模型、原資料與權限不變；不合併或部署，檢具／模具兩工作未搬入。
+
 ## 2026-11-15 — 獨立製程採用新版／送審修復候選
 
 `fix/process-ipqc-adopt-latest-20261115` 自最新已核對遠端 main e040a7e 建立獨立 worktree；A/B/C 明確採用核准新版，修復 filter history watcher 與檢查排程失效，保留所有 saved snapshot／權限／版本與占用防護。[本輪根因、測試、重疊檔案及交付界線](docs/acceptance/process-ipqc-adopt-review-20261115.md)。只提交 Draft PR，未合併、部署或修改測試站資料；另一品質工作仍獨立。

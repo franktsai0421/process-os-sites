@@ -18,6 +18,7 @@ on:
       - 'lib/account-state.ts'
       - 'public/process/account-write-receipt.js'
       - 'scripts/account-outcome-source-contract.*'
+      - 'scripts/account-outcome-main-source-contract.*'
       - 'lib/web-feedback.ts'
       - 'public/process/web-feedback*'
       - 'tests/account-*.test.cjs'

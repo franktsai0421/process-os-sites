@@ -287,6 +287,13 @@ export async function createIpqcCPermissionPhase(request:Request,state:State){
   const access=user?effectiveAccess(user,state.values):null;
   return Object.freeze({...phase,finalApprove:()=>phase.allowed('ipqc-c.view')&&!!access?.enabled&&access.cells['ipqc-c.view']===true&&access.cells['approval.view']===true&&access.cells['approval.approve']===true});
 }
+// Request-local evaluation for the two inventory workflows. Each read/state/CAS
+// attempt gets a new phase; current() still rereads session revocation at fences.
+export async function createInventoryPermissionPhase(request:Request,state:State){
+  const url=new URL(request.url);
+  if(!['/api/routine-equipment/workflow','/api/tooling/workflow'].includes(url.pathname)||url.searchParams.has('scope'))throw Error('INVALID_PERMISSION_PHASE');
+  return createWorkflowPermissionPhase(request,state);
+}
 async function createWorkflowPermissionPhase(request:Request,state:State){
   const keys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
   const auth=keys.map(key=>state.values[key]),revision=state.revision;

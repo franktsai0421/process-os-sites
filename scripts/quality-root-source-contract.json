@@ -1,0 +1,2545 @@
+{
+  "base": "346c5eefcca7621c481802502cbae61f2821e91d",
+  "files": {
+    "scripts/ipqc-c-display-image-source-contract.cjs": {
+      "beforeHash": "c108abf26c7939beb1c09e3ec7a7765b5ec91ba34f5f904dab7a1991ed7b72ae",
+      "beforeNormalizedHash": "c108abf26c7939beb1c09e3ec7a7765b5ec91ba34f5f904dab7a1991ed7b72ae",
+      "afterHash": "a6b3e144a2a49d3c9431dec6041acbdf11565a90e83fa61d7c98e497ceba4a33",
+      "afterNormalizedHash": "a6b3e144a2a49d3c9431dec6041acbdf11565a90e83fa61d7c98e497ceba4a33",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 2594,
+          "before": "",
+          "after": " // Successor projections admit checkout EOL only at their own worktree boundary.\n // This pure inverse must verify the exact successor bytes before any projection.\n const qualityPin=require('./quality-root-source-contract.json').files['public/process/ipqc-c.js'];\n if(qualityPin&&hash(Buffer.from(source).toString('utf8').replaceAll('\\r\\n','\\n'))===qualityPin.afterNormalizedHash)assert.equal(hash(source),qualityPin.afterHash,'C display source differs from exact reviewed bytes');\n"
+        }
+      ]
+    },
+    "scripts/test-routine-equipment-transfer-intent.cjs": {
+      "beforeHash": "becb1f11cd675be52b414e8142e93a9bd8fc53459c93cf2d32920fe52c455616",
+      "beforeNormalizedHash": "becb1f11cd675be52b414e8142e93a9bd8fc53459c93cf2d32920fe52c455616",
+      "afterHash": "18a2f1477462ea96db7a9d2829e1b02f8b3cff930c227bc9c88b06bc032a4662",
+      "afterNormalizedHash": "18a2f1477462ea96db7a9d2829e1b02f8b3cff930c227bc9c88b06bc032a4662",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 20623,
+          "before": "",
+          "after": "    if(moduleId==='ipqc-ab'){\n      assert.equal(f.test.dialog.refreshing,true,'AB conflict result paints before independent display refresh completes');\n      await f.execute();assert.equal(reads,1,'duplicate entry while display refresh is active cannot start recovery or resend');\n      await tick();assert.equal(f.test.dialog.refreshing,false,'settled independent display refresh restores explicit readonly recovery entry');\n    }\n"
+        }
+      ]
+    },
+    "tests/account-page-entry.test.cjs": {
+      "beforeHash": "28572a6c95ec875868556f8db96984cb7f6110703f372099d9e162212325f456",
+      "beforeNormalizedHash": "28572a6c95ec875868556f8db96984cb7f6110703f372099d9e162212325f456",
+      "afterHash": "f3d3809b2db4ce735bf5d924eab4a5b4885bed7ea6c32dbdbc07cf8f5f4cbed0",
+      "afterNormalizedHash": "f3d3809b2db4ce735bf5d924eab4a5b4885bed7ea6c32dbdbc07cf8f5f4cbed0",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 454,
+          "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261114-lines-flow-review1','master-page-editor.js':'20261114-lines-flow-review1','master-shared-client.js':'20261114-lines-flow-review1','page-draft-merge.js':'20261114-lines-flow-review1','master-data.js':'20261114-lines-flow-review1','version-draft-ui.js':'20261113-submit-outcome1','user-access.js':'20261113-password-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
+          "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261115-quality-root4','master-page-editor.js':'20261114-lines-flow-review1','master-shared-client.js':'20261114-lines-flow-review1','page-draft-merge.js':'20261114-lines-flow-review1','master-data.js':'20261114-lines-flow-review1','version-draft-ui.js':'20261115-quality-root1','user-access.js':'20261113-password-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+        }
+      ]
+    },
+    "public/process/ipqc-ab.js": {
+      "beforeHash": "9b3b8379b74319d27bee050313f817d37f62e39873053ae60efc4fb2358d91e6",
+      "beforeNormalizedHash": "cd3e5a6c98d30243b940ef99d9b894e05b2c3fb335eb03e0fca108c0d6bf68d8",
+      "afterHash": "4a54a68a06eaf000bf6d0a4c19e7aa97e044043c8cc2b1c0686c229d25b6d39d",
+      "afterNormalizedHash": "4a54a68a06eaf000bf6d0a4c19e7aa97e044043c8cc2b1c0686c229d25b6d39d",
+      "beforeCRLFRanges": [
+        [
+          0,
+          2
+        ],
+        [
+          9,
+          13
+        ],
+        [
+          14,
+          24
+        ],
+        [
+          25,
+          26
+        ],
+        [
+          29,
+          41
+        ],
+        [
+          42,
+          50
+        ],
+        [
+          52,
+          76
+        ],
+        [
+          77,
+          78
+        ],
+        [
+          79,
+          84
+        ],
+        [
+          85,
+          86
+        ],
+        [
+          87,
+          90
+        ],
+        [
+          91,
+          104
+        ],
+        [
+          106,
+          124
+        ],
+        [
+          126,
+          195
+        ],
+        [
+          197,
+          238
+        ],
+        [
+          240,
+          339
+        ],
+        [
+          341,
+          343
+        ],
+        [
+          344,
+          351
+        ],
+        [
+          352,
+          373
+        ],
+        [
+          374,
+          377
+        ],
+        [
+          379,
+          381
+        ],
+        [
+          382,
+          393
+        ],
+        [
+          397,
+          411
+        ],
+        [
+          412,
+          438
+        ],
+        [
+          829,
+          831
+        ],
+        [
+          837,
+          861
+        ],
+        [
+          863,
+          864
+        ],
+        [
+          865,
+          869
+        ],
+        [
+          870,
+          884
+        ],
+        [
+          885,
+          887
+        ],
+        [
+          891,
+          898
+        ],
+        [
+          899,
+          919
+        ],
+        [
+          921,
+          924
+        ],
+        [
+          925,
+          926
+        ],
+        [
+          927,
+          931
+        ],
+        [
+          932,
+          935
+        ],
+        [
+          936,
+          987
+        ],
+        [
+          988,
+          1024
+        ],
+        [
+          1042,
+          1049
+        ],
+        [
+          1050,
+          1051
+        ],
+        [
+          1057,
+          1064
+        ],
+        [
+          1065,
+          1067
+        ],
+        [
+          1070,
+          1102
+        ],
+        [
+          1106,
+          1113
+        ],
+        [
+          1134,
+          1135
+        ],
+        [
+          1138,
+          1139
+        ],
+        [
+          1141,
+          1142
+        ],
+        [
+          1149,
+          1156
+        ],
+        [
+          1158,
+          1163
+        ],
+        [
+          1164,
+          1165
+        ],
+        [
+          1171,
+          1172
+        ],
+        [
+          1179,
+          1180
+        ],
+        [
+          1181,
+          1182
+        ],
+        [
+          1185,
+          1191
+        ],
+        [
+          1192,
+          1195
+        ],
+        [
+          1196,
+          1204
+        ],
+        [
+          1207,
+          1217
+        ],
+        [
+          1219,
+          1225
+        ],
+        [
+          1226,
+          1231
+        ],
+        [
+          1232,
+          1233
+        ],
+        [
+          1236,
+          1288
+        ],
+        [
+          1290,
+          1307
+        ],
+        [
+          1334,
+          1339
+        ],
+        [
+          1340,
+          1350
+        ]
+      ],
+      "rules": [
+        {
+          "offset": 88999,
+          "before": "    }catch(error){if(owns())message=error.message;}\n",
+          "after": "    }catch(error){if(owns())message=error.message==='OPERATION_NOT_FOUND'?t('尚未查得原操作收據，不能據此判定未寫入；草稿與鎖定保留，請稍後再次查證，不要重送。','Chưa tìm thấy biên nhận gốc; chưa thể kết luận chưa ghi. Giữ bản nháp và khóa, kiểm tra lại sau, không gửi lại.'):error.message;}\n"
+        },
+        {
+          "offset": 109831,
+          "before": "    }catch(error){if(mutationCurrent(owner,false))message=acknowledged?t(action==='save'?'已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。':'操作已由伺服器確認，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Thao tác đã được máy chủ xác nhận nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):error.message;return null;}\n",
+          "after": "    }catch(error){if(mutationCurrent(owner,false)){const rejected=pendingOperations.get(client),knownConflict=action==='submit'&&error.message==='MODULE_CHANGED_RECONFIRM'&&rejected&&client.isConfirmedRejection(error,rejected)&&!client.hasUnknown();if(knownConflict){pendingOperations.delete(client);message=t('伺服器資料已變動，本次送審未寫入；已存草稿保留。請重新讀取並再次確認後送審。','Dữ liệu máy chủ đã thay đổi; lần gửi duyệt này chưa ghi. Giữ bản nháp đã lưu; đọc lại và xác nhận trước khi gửi duyệt.');}else message=acknowledged?t(action==='save'?'已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。':'操作已由伺服器確認，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Thao tác đã được máy chủ xác nhận nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):error.message;}return null;}\n"
+        }
+      ]
+    },
+    "tests/quality-submission-fences.test.mjs": {
+      "beforeHash": "776aa49d40059a0f057b690bdbcdf2ceab274eab5b5267bddb7ce1154bc784d4",
+      "beforeNormalizedHash": "776aa49d40059a0f057b690bdbcdf2ceab274eab5b5267bddb7ce1154bc784d4",
+      "afterHash": "f9cd0c27061cac6c8ef44029de882ec177d66751bb7e7d3b58c9a10e97f359f5",
+      "afterNormalizedHash": "f9cd0c27061cac6c8ef44029de882ec177d66751bb7e7d3b58c9a10e97f359f5",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 4804,
+          "before": "",
+          "after": "  // Load the real presentation dependencies added by writeShared; safety assertions remain unchanged.\n  f.load(part('routine-equipment.js','  function equipmentContentEqual(','  // Insert ACKs')+part('routine-equipment.js','  function updateEquipmentLocalStatus()','  function bind()'));\n"
+        }
+      ]
+    },
+    "tests/fixtures/browser-timer-inventory.json": {
+      "beforeHash": "efc72382cd9daf68b0ed3cad214450e6da0d5bb26d4ce857198947efa8d2aadb",
+      "beforeNormalizedHash": "efc72382cd9daf68b0ed3cad214450e6da0d5bb26d4ce857198947efa8d2aadb",
+      "afterHash": "c9a0e8afe0611bf249c916dbebe5c043b7a48d7fce83e73db4bbb847782e427b",
+      "afterNormalizedHash": "c9a0e8afe0611bf249c916dbebe5c043b7a48d7fce83e73db4bbb847782e427b",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 13528,
+          "before": "",
+          "after": "  },\n  {\n    \"file\": \"public/process/routine-equipment.js\",\n    \"line\": 1621,\n    \"kind\": \"setTimeout\",\n    \"hash\": \"8253062d572a3063053ac8b7622e68eefddad41f3bd116555efcda958529bc6b\",\n    \"purpose\": \"Single 45-second deadline for an explicit equipment delete-reference preflight; aborts only that action, clears in finally, never repeats or resends a write.\"\n"
+        }
+      ]
+    },
+    "tests/navigation-adapters.test.mjs": {
+      "beforeHash": "0c7cc66f2030aa900e8d8fde1334e309bd18b92b98270090842173762fcdccd4",
+      "beforeNormalizedHash": "0c7cc66f2030aa900e8d8fde1334e309bd18b92b98270090842173762fcdccd4",
+      "afterHash": "f1e2b6a69d09d90cd361bd54c55b47bc7bfa828fe2fc61b3ce29aa99c3ad1ae5",
+      "afterNormalizedHash": "f1e2b6a69d09d90cd361bd54c55b47bc7bfa828fe2fc61b3ce29aa99c3ad1ae5",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 16939,
+          "before": "  'fqc-master.js':'20261112-quality-integration1',\n  'ipqc-ab.js':'20261113-ipqc-silent3',\n  'ipqc-c.js':'20261113-ipqc-silent3',\n  'iqc-master.js':'20261112-quality-integration1',\n",
+          "after": "  'fqc-master.js':'20261115-quality-root1',\n  'ipqc-ab.js':'20261115-quality-root4',\n  'ipqc-c.js':'20261115-quality-root3',\n  'iqc-master.js':'20261115-quality-root2',\n"
+        },
+        {
+          "offset": 17401,
+          "before": "  'routine-equipment.js':'20261113-equipment-integration2',\n",
+          "after": "  'routine-equipment.js':'20261115-quality-root2',\n"
+        },
+        {
+          "offset": 17560,
+          "before": "  'shared-draft-client.js':'20261114-lines-flow-review1',\n",
+          "after": "  'shared-draft-client.js':'20261115-quality-root4',\n"
+        },
+        {
+          "offset": 18201,
+          "before": "  'version-draft-ui.js':'20261113-submit-outcome1',\n",
+          "after": "  'version-draft-ui.js':'20261115-quality-root1',\n"
+        }
+      ]
+    },
+    "scripts/test-fqc-matrix-layout.mjs": {
+      "beforeHash": "c5606146704e97cefc3b93b5d586011ac06cb0165c3f3efcb0dac360daf5f736",
+      "beforeNormalizedHash": "c5606146704e97cefc3b93b5d586011ac06cb0165c3f3efcb0dac360daf5f736",
+      "afterHash": "ebb545b9dba3586c90e498ac1c9ac55ede795dd7e4c1823756a0931bd31c45a3",
+      "afterNormalizedHash": "ebb545b9dba3586c90e498ac1c9ac55ede795dd7e4c1823756a0931bd31c45a3",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 12329,
+          "before": "  const expected={'fqc-master.js':'20261112-quality-integration1','fqc-master.css':'20261104-single-save1'};\n",
+          "after": "  const expected={'fqc-master.js':'20261115-quality-root1','fqc-master.css':'20261104-single-save1'};\n"
+        }
+      ]
+    },
+    "public/process/ipqc-c.js": {
+      "beforeHash": "f929cbdf6bc1b64670f7fee307ae92011f190e04d8b165ac0cff359bc52dc8d6",
+      "beforeNormalizedHash": "f929cbdf6bc1b64670f7fee307ae92011f190e04d8b165ac0cff359bc52dc8d6",
+      "afterHash": "90ce15c0a28a66ac542dabfb04a9b7ba02f06f601d25c14fc914fbe48aca981d",
+      "afterNormalizedHash": "90ce15c0a28a66ac542dabfb04a9b7ba02f06f601d25c14fc914fbe48aca981d",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 3478,
+          "before": "  const readBlockedHTML=()=>`<section class=\"ipqcc-page\" id=\"ipqcc-page\"><div class=\"ipqcc-message\" role=\"alert\">${sharedClient?.hasUnknown()?t('Kết quả thao tác mới nhất chưa xác định; không gửi lại.','最新操作結果尚未確認；請勿重送。'):readAckContext&&readAckContext.actor===identity()&&readAckContext.id===identity()?.id&&readAckContext.epoch===window.ProcessSync?.identityGeneration?.()?t('Thao tác đã được máy chủ xác nhận, nhưng đọc lại bị từ chối. Không gửi lại thao tác.','操作已由伺服器確認，但重新讀取遭拒；請勿重送操作。'):t('Đọc dữ liệu bị từ chối; dữ liệu riêng được giữ lại nhưng tạm khóa.','讀取資料遭拒；私有草稿保留但暫時隔離。')} ${t('Đọc lại dữ liệu và quyền để tiếp tục.','請重新讀取資料與權限後繼續。')} <button type=\"button\" id=\"ipqcc-read-retry\" class=\"button ghost\">${t('Đọc lại dữ liệu và quyền','重新讀取資料與權限')}</button></div></section>`;\n",
+          "after": "  const readBlockedHTML=()=>`<section class=\"ipqcc-page\" id=\"ipqcc-page\"><div class=\"ipqcc-message\" role=\"alert\">${sharedClient?.confirmedOperation?.()?t('Biên nhận gốc đã xác nhận; chưa đọc xong bản nháp / quyền. Không gửi lại.','原操作收據已確認；草稿／權限讀回尚未完成，請勿重送。'):sharedClient?.hasUnknown()?t('Kết quả thao tác mới nhất chưa xác định; không gửi lại.','最新操作結果尚未確認；請勿重送。'):readAckContext&&readAckContext.actor===identity()&&readAckContext.id===identity()?.id&&readAckContext.epoch===window.ProcessSync?.identityGeneration?.()?t('Thao tác đã được máy chủ xác nhận, nhưng đọc lại bị từ chối. Không gửi lại thao tác.','操作已由伺服器確認，但重新讀取遭拒；請勿重送操作。'):t('Đọc dữ liệu bị từ chối; dữ liệu riêng được giữ lại nhưng tạm khóa.','讀取資料遭拒；私有草稿保留但暫時隔離。')} ${t('Đọc lại dữ liệu và quyền để tiếp tục.','請重新讀取資料與權限後繼續。')} <button type=\"button\" id=\"ipqcc-read-retry\" class=\"button ghost\">${t('Đọc lại dữ liệu và quyền','重新讀取資料與權限')}</button></div></section>`;\n"
+        },
+        {
+          "offset": 5900,
+          "before": "",
+          "after": "  function mountVersionState(){\n    window.VersionDraftUI?.mount(host,{header:'.ipqcc-header',historyClient:approvedHistoryClient,historyVersionStatuses:['approved','superseded'],selectVersion:selectPageVersion,module:'IPQC-C',scope:t('Toàn bộ IPQC-C','IPQC-C 全庫'),version:version(),versions:control?.versions,active:control?.versions.find(v=>v.id===control.activeVersionId),flow:control?.workflow,localUnsaved:!!localChanges.length||!!modal?.dirty,busy,failed:!busy&&sharedClient?.hasUnknown()&&!sharedClient?.confirmedOperation?.(),syncNotice:sharedClient?.confirmedOperation?.()?t('Biên nhận gốc đã xác nhận; đang kiểm tra bản nháp và quyền','原操作收據已確認；核對草稿與權限中'):'',actions:{begin:'#ipqcc-begin',save:'#ipqcc-save',submit:'#ipqcc-submit',withdraw:'#ipqcc-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-shared-issue-kind=\"error\"]',missing:'.ipqcc-pending,[data-shared-issue-kind=\"missing\"]',checked:{missing:true},history:['.ipqcc-history','#ipqcc-case-history','[data-shared-issue-kind=\"warning\"]'],status:['#ipqcc-shared-status'],remove:['.ipqcc-meta']});\n  }\n"
+        },
+        {
+          "offset": 7213,
+          "before": "    if(sharedActor!==actor||sharedClient?.isRuntimeCurrent?.()===false){sharedActor=actor;sharedClient=window.createSharedDraftClient({durableBegin:true,endpoint:`${API}/workflow?caseMetadata=1`,externalDurableBounded:{scope:'IPQC-C'},allowUnknownDeparture:true,legacyArchive:true,actorId:actor,headers,guardAccessResults:true,permissionGates:{restore:'#ipqcc-case-restore',edit:'#ipqcc-begin,#ipqcc-case-restore,[data-ipqcc-add],#ipqcc-editor button[type=submit],[data-ipqcc-edit-item],[data-ipqcc-edit-error]',save:'#ipqcc-save',submit:'#ipqcc-submit',withdraw:'#ipqcc-withdraw,[data-ipqcc-review=\"withdraw\"]',approve:'[data-ipqcc-review=\"approve\"]',return:'[data-ipqcc-review=\"reject\"]',history:'#ipqcc-case-history',delete:'[data-ipqcc-delete-item],[data-ipqcc-delete-error]'}});}\n",
+          "after": "    if(sharedActor!==actor||sharedClient?.isRuntimeCurrent?.()===false){sharedActor=actor;sharedClient=window.createSharedDraftClient({durableBegin:true,endpoint:`${API}/workflow?caseMetadata=1`,externalDurableBounded:{scope:'IPQC-C'},allowUnknownDeparture:true,legacyArchive:true,actorId:actor,headers,guardAccessResults:true,permissionGates:{restore:'#ipqcc-case-restore',edit:'#ipqcc-begin,#ipqcc-case-restore,[data-ipqcc-add],#ipqcc-editor button[type=submit],[data-ipqcc-edit-item],[data-ipqcc-edit-error]',save:'#ipqcc-save',submit:'#ipqcc-submit',withdraw:'#ipqcc-withdraw,[data-ipqcc-review=\"withdraw\"]',approve:'[data-ipqcc-review=\"approve\"]',return:'[data-ipqcc-review=\"reject\"]',history:'#ipqcc-case-history',delete:'[data-ipqcc-delete-item],[data-ipqcc-delete-error]'}});const observed=sharedClient,ownerMount=mountSequence;observed.watchOperationOutcome?.(()=>{if(observed===sharedClient&&ownerMount===mountSequence&&host?.isConnected)mountVersionState();});}\n"
+        },
+        {
+          "offset": 103090,
+          "before": "    window.VersionDraftUI?.mount(host,{header:'.ipqcc-header',historyClient:approvedHistoryClient,historyVersionStatuses:['approved','superseded'],selectVersion:selectPageVersion,module:'IPQC-C',scope:t('Toàn bộ IPQC-C','IPQC-C 全庫'),version:version(),versions:control?.versions,active:control?.versions.find(v=>v.id===control.activeVersionId),flow:control?.workflow,localUnsaved:!!localChanges.length||!!modal?.dirty,busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#ipqcc-begin',save:'#ipqcc-save',submit:'#ipqcc-submit',withdraw:'#ipqcc-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-shared-issue-kind=\"error\"]',missing:'.ipqcc-pending,[data-shared-issue-kind=\"missing\"]',checked:{missing:true},history:['.ipqcc-history','#ipqcc-case-history','[data-shared-issue-kind=\"warning\"]'],status:['#ipqcc-shared-status'],remove:['.ipqcc-meta']});\n",
+          "after": "    mountVersionState();\n"
+        }
+      ]
+    },
+    "scripts/quality-main-source-contract.cjs": {
+      "beforeHash": "f1c7200a5568ead6fa51522bb12ff763180443581940804f59a42debf9f47169",
+      "beforeNormalizedHash": "f1c7200a5568ead6fa51522bb12ff763180443581940804f59a42debf9f47169",
+      "afterHash": "0c5b49570f4ace91c4967b513da7592f7644ef97af6c56cc83558d73f15f0945",
+      "afterNormalizedHash": "0c5b49570f4ace91c4967b513da7592f7644ef97af6c56cc83558d73f15f0945",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 423,
+          "before": " assert(Buffer.isBuffer(bytes),'Joint proof requires raw Buffer bytes');\n",
+          "after": " assert(Buffer.isBuffer(bytes),'Joint proof requires raw Buffer bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);\n bytes=require('./process-platform-adopt-source-contract.cjs').projectKnown(bytes,file);\n"
+        },
+        {
+          "offset": 1796,
+          "before": " assert(Buffer.isBuffer(bytes),'Joint proof requires raw Buffer bytes');\n",
+          "after": " assert(Buffer.isBuffer(bytes),'Joint proof requires raw Buffer bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);\n bytes=require('./process-platform-adopt-source-contract.cjs').projectKnown(bytes,file);\n"
+        }
+      ]
+    },
+    "scripts/ipqc-speed-assignment-source-contract.cjs": {
+      "beforeHash": "3b7d9698748017ea78b0410f5fc7fc8bdb1cf7e338055f02a7b260114fe68ffe",
+      "beforeNormalizedHash": "3b7d9698748017ea78b0410f5fc7fc8bdb1cf7e338055f02a7b260114fe68ffe",
+      "afterHash": "eaa84c75cb3cb7c6bc4943d7f5f63b5523c608a9acf527a0207e18a5de4b0c12",
+      "afterNormalizedHash": "eaa84c75cb3cb7c6bc4943d7f5f63b5523c608a9acf527a0207e18a5de4b0c12",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 444,
+          "before": "function restore(bytes,file,target){assert(Buffer.isBuffer(bytes),'IPQC assignment/speed proof requires raw Buffer');bytes=require('./process-platform-adopt-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null,p=c&&c.parents[target];assert(p,'IPQC assignment/speed wrong path/target');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'IPQC assignment/speed unknown source');for(const r of [...p.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'IPQC assignment/speed positioned span');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),p.normalizedHash);const lines=out.toString().split('\\n');for(const i of p.crlf)lines[i]+='\\r';out=Buffer.from(lines.join('\\n'));assert.equal(hash(out),p.hash,'IPQC assignment/speed exact parent');return out;}\nfunction projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'IPQC assignment/speed proof requires raw Buffer');if(!Object.hasOwn(contract.parents,target))return bytes;bytes=require('./process-platform-adopt-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&c.parents[target]&&hash(normalized(bytes))===c.afterHash?restore(bytes,file,target):bytes;}\n",
+          "after": "function restore(bytes,file,target){assert(Buffer.isBuffer(bytes),'IPQC assignment/speed proof requires raw Buffer');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);bytes=require('./process-platform-adopt-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null,p=c&&c.parents[target];assert(p,'IPQC assignment/speed wrong path/target');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'IPQC assignment/speed unknown source');for(const r of [...p.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'IPQC assignment/speed positioned span');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),p.normalizedHash);const lines=out.toString().split('\\n');for(const i of p.crlf)lines[i]+='\\r';out=Buffer.from(lines.join('\\n'));assert.equal(hash(out),p.hash,'IPQC assignment/speed exact parent');return out;}\nfunction projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'IPQC assignment/speed proof requires raw Buffer');if(!Object.hasOwn(contract.parents,target))return bytes;bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);bytes=require('./process-platform-adopt-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&c.parents[target]&&hash(normalized(bytes))===c.afterHash?restore(bytes,file,target):bytes;}\n"
+        }
+      ]
+    },
+    "scripts/process-platform-adopt-source-contract.cjs": {
+      "beforeHash": "8c343bac5b8083f6e9fca05ee1df769066e7967f194b0506edaa9ba3aec112d1",
+      "beforeNormalizedHash": "8c343bac5b8083f6e9fca05ee1df769066e7967f194b0506edaa9ba3aec112d1",
+      "afterHash": "2552ddde05d348d6eabdd67b4771827807463394f99d2260a47d31db48e5eb31",
+      "afterNormalizedHash": "2552ddde05d348d6eabdd67b4771827807463394f99d2260a47d31db48e5eb31",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 394,
+          "before": " assert(Buffer.isBuffer(bytes),'Platform adoption proof requires raw bytes');bytes=require('./process-ipqc-frequency-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Platform adoption wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Platform adoption successor drift');\n",
+          "after": " assert(Buffer.isBuffer(bytes),'Platform adoption proof requires raw bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);bytes=require('./process-ipqc-frequency-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Platform adoption wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Platform adoption successor drift');\n"
+        },
+        {
+          "offset": 1367,
+          "before": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Platform adoption proof requires raw bytes');bytes=require('./process-ipqc-frequency-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n",
+          "after": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Platform adoption proof requires raw bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);bytes=require('./process-ipqc-frequency-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n"
+        }
+      ]
+    },
+    "tests/ipqc-operation-speed-integration-source.test.cjs": {
+      "beforeHash": "0138e5e2c510fe0a6bb3f386a38bf8bbed67706aa2c77a94915fbbd7f84a4bec",
+      "beforeNormalizedHash": "0138e5e2c510fe0a6bb3f386a38bf8bbed67706aa2c77a94915fbbd7f84a4bec",
+      "afterHash": "e2da82d71dc7599f4aec505271a3eae319141a72a5e72fb1ff73a4d163525c85",
+      "afterNormalizedHash": "e2da82d71dc7599f4aec505271a3eae319141a72a5e72fb1ff73a4d163525c85",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 2365,
+          "before": " for(const file of files)assert.deepEqual(normalized(require('../scripts/process-platform-adopt-source-contract.cjs').projectKnown(fs.readFileSync(file),file)),normalized(git('show',commit+':'+file)),file+' retains full parent runtime through the exact reviewed adoption inverse; checkout LF/CRLF allowed');\n",
+          "after": " for(const file of files)assert.deepEqual(normalized(require('../scripts/process-platform-adopt-source-contract.cjs').projectKnown(require('../scripts/quality-root-source-contract.cjs').projectKnown(fs.readFileSync(file),file),file)),normalized(git('show',commit+':'+file)),file+' retains full parent runtime through the exact reviewed adoption inverse; checkout LF/CRLF allowed');\n"
+        }
+      ]
+    },
+    "tests/process-ipqc-link-source.test.cjs": {
+      "beforeHash": "c1c5190c293b4d379ee06a660bf46b0d7f948f1ea7c109165e70340ac8cd96b1",
+      "beforeNormalizedHash": "c1c5190c293b4d379ee06a660bf46b0d7f948f1ea7c109165e70340ac8cd96b1",
+      "afterHash": "3a7cef32d76d8fe0d276a699b015c0ee6e7160b6f4c7554d265e0495bf2f0ea3",
+      "afterNormalizedHash": "3a7cef32d76d8fe0d276a699b015c0ee6e7160b6f4c7554d265e0495bf2f0ea3",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 1372,
+          "before": "for(const file of ['public/process/process-authoring-v3.js','public/process/shared-draft-client.js','public/process/master-data.js','public/process/master-page-editor.js','public/process/master-shared-client.js','public/process/page-draft-merge.js','public/process/app.js','lib/master-approved-pages.ts','lib/master-page-workflow.ts','lib/master-workflow.ts','lib/process-state.ts','scripts/process-review-source-contract.json','scripts/lines-flow-joint-source-contract.json','scripts/lines-flow-source-contract.json','scripts/password-outcome-source-contract.json','scripts/ipqc-save-recovery-source-contract.json'])void test('merged main master/review runtime or original manifest remains exact: '+file,()=>{const expected=git('show',proof.contract.base+':'+file),normalize=b=>Buffer.from(b.toString().replaceAll('\\r\\n','\\n'));const committed=git('show','HEAD:'+file);if(file==='public/process/process-authoring-v3.js'){const exact=require('../scripts/process-platform-adopt-source-contract.cjs');assert(exact.restore(committed,file).equals(expected),'exact main review code was not preserved');assert(normalize(fs.readFileSync(file)).equals(normalize(committed)),'checkout differs from committed review source');}else if(file==='lib/process-state.ts'){const exact=require('../scripts/ipqc-speed-joint-source-contract.cjs');assert(exact.restore(committed,file,'main117').equals(expected),'exact upstream authority code was not preserved');assert(normalize(fs.readFileSync(file)).equals(normalize(committed)),'checkout differs from committed authority source');}else{assert.equal(git('rev-parse','HEAD:'+file).toString(),git('rev-parse',proof.contract.base+':'+file).toString(),'committed main blob changed');assert(normalize(fs.readFileSync(file)).equals(normalize(expected)),'upstream code/worktree changed: '+file);}});\n",
+          "after": "for(const file of ['public/process/process-authoring-v3.js','public/process/shared-draft-client.js','public/process/master-data.js','public/process/master-page-editor.js','public/process/master-shared-client.js','public/process/page-draft-merge.js','public/process/app.js','lib/master-approved-pages.ts','lib/master-page-workflow.ts','lib/master-workflow.ts','lib/process-state.ts','scripts/process-review-source-contract.json','scripts/lines-flow-joint-source-contract.json','scripts/lines-flow-source-contract.json','scripts/password-outcome-source-contract.json','scripts/ipqc-save-recovery-source-contract.json'])void test('merged main master/review runtime or original manifest remains exact: '+file,()=>{const expected=git('show',proof.contract.base+':'+file),normalize=b=>Buffer.from(b.toString().replaceAll('\\r\\n','\\n'));const committed=git('show','HEAD:'+file);if(file==='public/process/process-authoring-v3.js'){const exact=require('../scripts/process-platform-adopt-source-contract.cjs');assert(exact.restore(committed,file).equals(expected),'exact main review code was not preserved');assert(normalize(fs.readFileSync(file)).equals(normalize(committed)),'checkout differs from committed review source');}else if(file==='lib/process-state.ts'){const exact=require('../scripts/ipqc-speed-joint-source-contract.cjs');assert(exact.restore(committed,file,'main117').equals(expected),'exact upstream authority code was not preserved');assert(normalize(fs.readFileSync(file)).equals(normalize(committed)),'checkout differs from committed authority source');}else if(file==='public/process/shared-draft-client.js'){const retained=require('../scripts/quality-root-source-contract.cjs').projectKnown(committed,file);assert(normalize(retained).equals(normalize(expected)),'exact upstream shared client was not preserved');assert(normalize(fs.readFileSync(file)).equals(normalize(committed)),'checkout differs from committed client');}else{assert.equal(git('rev-parse','HEAD:'+file).toString(),git('rev-parse',proof.contract.base+':'+file).toString(),'committed main blob changed');assert(normalize(fs.readFileSync(file)).equals(normalize(expected)),'upstream code/worktree changed: '+file);}});\n"
+        }
+      ]
+    },
+    "tests/equipment-submit-source.test.cjs": {
+      "beforeHash": "2297b2d89b8d34dc408efec4cdaa598266ae87c13ed2b2ad308bb0f48f72cada",
+      "beforeNormalizedHash": "2297b2d89b8d34dc408efec4cdaa598266ae87c13ed2b2ad308bb0f48f72cada",
+      "afterHash": "dbb8465c53658f76e6d4cc02ea6209387ff3ba5094977e1d4931ddb6fb4fb8df",
+      "afterNormalizedHash": "dbb8465c53658f76e6d4cc02ea6209387ff3ba5094977e1d4931ddb6fb4fb8df",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 3147,
+          "before": " assert.equal(index.split('shared-draft-client.js?v=20261114-lines-flow-review1').length,2);\n",
+          "after": " assert.equal(index.split('shared-draft-client.js?v=20261115-quality-root4').length,2);\n"
+        }
+      ]
+    },
+    "app/api/ipqc-ab/route.ts": {
+      "beforeHash": "eb917f5fd2fb384cf52bc26f8151db3f21f05930aa2dd895b88b08ebc015553c",
+      "beforeNormalizedHash": "eb917f5fd2fb384cf52bc26f8151db3f21f05930aa2dd895b88b08ebc015553c",
+      "afterHash": "59699ea0795faee6e38ebcce89a73c9dc545c0b73d37734322b59d267e434c0b",
+      "afterNormalizedHash": "59699ea0795faee6e38ebcce89a73c9dc545c0b73d37734322b59d267e434c0b",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 7985,
+          "before": "",
+          "after": "    const referenceEquipment=query.get('references');\n    if(query.has('references')&&(query.getAll('references').length!==1||!referenceEquipment||referenceEquipment.length>256||[...query.keys()].some(key=>key!=='references')))return reply({error:'INVALID_READ_QUERY'},400);\n"
+        },
+        {
+          "offset": 10639,
+          "before": "",
+          "after": "    if(referenceEquipment){\n      // This reader needs stable relationships, not entire standard/photo bodies\n      // repeated through active/working/saved/cases. Validate each historical\n      // immutable snapshot serially, retain summaries only, and keep the same\n      // visible versions and SHA/missing-object failure policy as the full GET.\n      const scopes:Record<string,unknown>={};\n      for(const [key,scope]of Object.entries(control.scopes)){\n        const versions=[];\n        for(const version of scope.versions){\n          const snapshot=(isImmutableRecordBody(version.snapshot)?JSON.parse(await readImmutableRecord(env.STATE_ARCHIVE,version.snapshot.__immutableBody)):version.snapshot) as AbSnapshot;\n          if(!Array.isArray(snapshot?.errors)||!Array.isArray(snapshot?.items))throw Error('IPQC_AB_REFERENCE_SNAPSHOT_INVALID');\n          versions.push({id:version.id,number:version.number,status:version.status,snapshot:{items:snapshot.items.filter(item=>!item.deleted&&item.equipmentId===referenceEquipment).map(item=>({id:item.id,code:item.code,standard:item.standard,equipmentId:item.equipmentId,isEnabled:item.isEnabled}))}});\n        }\n        scopes[key]={line:scope.line,group:scope.group,activeVersionId:scope.activeVersionId,versions};\n      }\n      if(!await phase.current())return reply({error:'沒有查看 IPQC-AB 權限'},403);\n      return reply({revision:state.revision,equipmentReferenceProjection:'ipqc-ab-equipment-v1',control:{scopes}});\n    }\n"
+        },
+        {
+          "offset": 12362,
+          "before": "    return state.recordStorage&&!caseMetadata?recordJSONResponse(body,env.STATE_ARCHIVE,headers):reply(body);\n",
+          "after": "    if(state.recordStorage){const response=recordJSONResponse(body,env.STATE_ARCHIVE,headers,{boundedContainers:true});if(caseMetadata)response.headers.set('Content-Type',headers['Content-Type']);return response;}\n    return reply(body);\n"
+        }
+      ]
+    },
+    "lib/process-state.ts": {
+      "beforeHash": "aa790135602ef8eb5249be9b3bff46eed126ec01667b3fc2ff77c4ca163902af",
+      "beforeNormalizedHash": "5d17fe420c404651d69820af38c2e3d4b7cf1e221a0adfa8d022ceeb22f20cf3",
+      "afterHash": "43c6c9da1ebb566f146ffb6a0d374b5cdbd3d9aa1daf6c6c9850f8bab38bfc6e",
+      "afterNormalizedHash": "6067da5d5238d0ea53e29df65100a062ca541c96e482b1acb8f509d5ec6e4cf2",
+      "beforeCRLFRanges": [
+        [
+          1,
+          139
+        ],
+        [
+          140,
+          242
+        ],
+        [
+          243,
+          270
+        ],
+        [
+          289,
+          333
+        ],
+        [
+          343,
+          449
+        ]
+      ],
+      "rules": [
+        {
+          "offset": 19289,
+          "before": "",
+          "after": "// Request-local evaluation for the two inventory workflows. Each read/state/CAS\n// attempt gets a new phase; current() still rereads session revocation at fences.\nexport async function createInventoryPermissionPhase(request:Request,state:State){\n  const url=new URL(request.url);\n  if(!['/api/routine-equipment/workflow','/api/tooling/workflow'].includes(url.pathname)||url.searchParams.has('scope'))throw Error('INVALID_PERMISSION_PHASE');\n  return createWorkflowPermissionPhase(request,state);\n}\n"
+        }
+      ]
+    },
+    "lib/state-records-response.ts": {
+      "beforeHash": "fab6d83c70e79c1ef0200c1dc3488414215cd032e999f68f5b80fad947949e33",
+      "beforeNormalizedHash": "fab6d83c70e79c1ef0200c1dc3488414215cd032e999f68f5b80fad947949e33",
+      "afterHash": "e417c96cab5f365eeb8e33bcd3e506c1344d6734c1e62cb1e694f57485468de0",
+      "afterNormalizedHash": "e417c96cab5f365eeb8e33bcd3e506c1344d6734c1e62cb1e694f57485468de0",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 369,
+          "before": "export function recordJSONResponse(payload:unknown,bucket:Bucket,headers:HeadersInit){\n",
+          "after": "export function recordJSONResponse(payload:unknown,bucket:Bucket,headers:HeadersInit,options:{boundedContainers?:boolean}={}){\n"
+        },
+        {
+          "offset": 1015,
+          "before": "  if(!containsRef(value)){yield JSON.stringify(value)??'null';return;}\n",
+          "after": "  if(!value||typeof value!=='object'||!options.boundedContainers&&!containsRef(value)){yield JSON.stringify(value)??'null';return;}\n"
+        },
+        {
+          "offset": 1506,
+          "before": " const encoder=new TextEncoder(),iterator=fragments(payload),jsonHeaders=new Headers(headers);jsonHeaders.set('Content-Type','application/json');let bytes:Uint8Array|null=null,offset=0;\n",
+          "after": " const encoder=new TextEncoder(),iterator=fragments(payload),jsonHeaders=new Headers(headers);jsonHeaders.set('Content-Type','application/json');let bytes:Uint8Array|null=null,offset=0,text:string|null=null,textOffset=0;\n // AB's live bodies can repeat in active/working/saved projections. Bound both\n // the combined text and UTF-8 allocation instead of stringifying a whole tree.\n async function nextBytes(){\n  if(text===null||textOffset>=text.length){\n   text='';textOffset=0;\n   while(text.length<32*1024){const next=await iterator.next();if(next.done)break;text+=next.value;}\n   if(!text.length)return null;\n  }\n  let end=Math.min(text.length,textOffset+32*1024);\n  // Do not split a UTF-16 surrogate pair before encoding.\n  if(end<text.length&&text.charCodeAt(end-1)>=0xd800&&text.charCodeAt(end-1)<=0xdbff)end--;\n  const next=encoder.encode(text.slice(textOffset,end));textOffset=end;return next;\n }\n"
+        },
+        {
+          "offset": 2494,
+          "before": "   if(!bytes||offset>=bytes.length){const next=await iterator.next();if(next.done){controller.close();return;}bytes=encoder.encode(next.value);offset=0;}\n",
+          "after": "   if(!bytes||offset>=bytes.length){if(options.boundedContainers){bytes=await nextBytes();if(!bytes){text=null;controller.close();return;}}else{const next=await iterator.next();if(next.done){controller.close();return;}bytes=encoder.encode(next.value);}offset=0;}\n"
+        },
+        {
+          "offset": 2867,
+          "before": "  }catch(error){bytes=null;await iterator.return(undefined);controller.error(error);}},async cancel(){bytes=null;await iterator.return(undefined);}}),{headers:jsonHeaders});\n",
+          "after": "  }catch(error){bytes=null;text=null;await iterator.return(undefined);controller.error(error);}},async cancel(){bytes=null;text=null;await iterator.return(undefined);}}),{headers:jsonHeaders});\n"
+        }
+      ]
+    },
+    "lib/versioned-shared-workflow.ts": {
+      "beforeHash": "a0f596779ff54c6575d1ce4ba0984d1835339a5733a9e5d463ef15161ed83a94",
+      "beforeNormalizedHash": "1732103662b1f49566692026985d001e23a6f0b610c4a1cea833b320838c7914",
+      "afterHash": "52fb98ea7a42169d75e4172d633e048ec634ecb26f12f6439997023c5eea8f5e",
+      "afterNormalizedHash": "95076db197439fd58018e4e349626bc590264d90ea0c06e4940b628aa5e7a5e2",
+      "beforeCRLFRanges": [
+        [
+          11,
+          12
+        ],
+        [
+          13,
+          18
+        ],
+        [
+          20,
+          36
+        ],
+        [
+          46,
+          50
+        ],
+        [
+          60,
+          72
+        ],
+        [
+          73,
+          74
+        ],
+        [
+          75,
+          149
+        ],
+        [
+          151,
+          155
+        ],
+        [
+          163,
+          166
+        ],
+        [
+          167,
+          170
+        ],
+        [
+          171,
+          176
+        ],
+        [
+          178,
+          180
+        ],
+        [
+          181,
+          191
+        ],
+        [
+          192,
+          200
+        ],
+        [
+          218,
+          225
+        ],
+        [
+          236,
+          249
+        ],
+        [
+          251,
+          258
+        ],
+        [
+          268,
+          269
+        ],
+        [
+          299,
+          300
+        ],
+        [
+          301,
+          303
+        ],
+        [
+          304,
+          305
+        ],
+        [
+          306,
+          313
+        ],
+        [
+          315,
+          316
+        ],
+        [
+          317,
+          319
+        ],
+        [
+          322,
+          329
+        ],
+        [
+          330,
+          331
+        ],
+        [
+          333,
+          335
+        ],
+        [
+          336,
+          338
+        ],
+        [
+          339,
+          341
+        ],
+        [
+          344,
+          350
+        ],
+        [
+          351,
+          355
+        ],
+        [
+          359,
+          360
+        ],
+        [
+          362,
+          364
+        ],
+        [
+          366,
+          368
+        ]
+      ],
+      "rules": [
+        {
+          "offset": 1062,
+          "before": "import { readState, identity, can, createMasterABPermissionPhase, createFqcPermissionPhase, createIpqcABPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, responseHeaders, type State } from './process-state';\n",
+          "after": "import { readState, identity, can, createMasterABPermissionPhase, createFqcPermissionPhase, createIpqcABPermissionPhase, createInventoryPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, responseHeaders, type State } from './process-state';\n"
+        },
+        {
+          "offset": 15839,
+          "before": "  const phaseFor=(request:Request,state:State)=>adapter.key==='masterDataControl'&&adapter.scope==='master:AB'&&new URL(request.url).pathname==='/api/master/workflow'&&new URL(request.url).searchParams.get('scope')==='AB'?createMasterABPermissionPhase(request,state):adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!new URL(request.url).searchParams.has('scope')?createFqcPermissionPhase(request,state):isIpqcAB(request)?ipqcABOwnerPhase(request,state):null;\n",
+          "after": "  const phaseFor=(request:Request,state:State)=>adapter.key==='masterDataControl'&&adapter.scope==='master:AB'&&new URL(request.url).pathname==='/api/master/workflow'&&new URL(request.url).searchParams.get('scope')==='AB'?createMasterABPermissionPhase(request,state):adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!new URL(request.url).searchParams.has('scope')?createFqcPermissionPhase(request,state):isIpqcAB(request)?ipqcABOwnerPhase(request,state):(adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment'&&new URL(request.url).pathname==='/api/routine-equipment/workflow'||adapter.key==='toolingMasterControl'&&adapter.scope==='tooling'&&new URL(request.url).pathname==='/api/tooling/workflow')?createInventoryPermissionPhase(request,state):null;\n"
+        }
+      ]
+    },
+    "public/process/fqc-master.js": {
+      "beforeHash": "f0532b181cbf878b6eeec857c3dbcd409ba907d84b49185853318e73ca89a40a",
+      "beforeNormalizedHash": "f2ca590ec5d13f9bacbc34aa09fa27cef643525218aa32f3c93decbd14321ea4",
+      "afterHash": "7f0150fcfc0852245c05cd3cf1bd78479d6f81cc310cc6de3be424693364a228",
+      "afterNormalizedHash": "4298ef4eb7c8b4c9109ef82f48be0ed5267bcd93869b864e5f4a81c3ea1f59f2",
+      "beforeCRLFRanges": [
+        [
+          0,
+          1
+        ],
+        [
+          15,
+          29
+        ],
+        [
+          398,
+          400
+        ],
+        [
+          402,
+          409
+        ],
+        [
+          634,
+          639
+        ],
+        [
+          645,
+          647
+        ],
+        [
+          651,
+          652
+        ],
+        [
+          653,
+          663
+        ],
+        [
+          664,
+          665
+        ],
+        [
+          666,
+          667
+        ],
+        [
+          668,
+          672
+        ],
+        [
+          673,
+          706
+        ],
+        [
+          707,
+          741
+        ],
+        [
+          742,
+          746
+        ],
+        [
+          747,
+          756
+        ],
+        [
+          757,
+          821
+        ],
+        [
+          822,
+          824
+        ],
+        [
+          833,
+          863
+        ],
+        [
+          865,
+          870
+        ],
+        [
+          879,
+          1158
+        ],
+        [
+          1171,
+          1172
+        ],
+        [
+          1173,
+          1178
+        ],
+        [
+          1180,
+          1197
+        ],
+        [
+          1199,
+          1300
+        ],
+        [
+          1301,
+          1302
+        ],
+        [
+          1303,
+          1331
+        ],
+        [
+          1335,
+          1344
+        ],
+        [
+          1348,
+          1352
+        ],
+        [
+          1374,
+          1380
+        ],
+        [
+          1393,
+          1400
+        ],
+        [
+          1401,
+          1402
+        ],
+        [
+          1403,
+          1417
+        ],
+        [
+          1418,
+          1419
+        ],
+        [
+          1434,
+          1435
+        ],
+        [
+          1436,
+          1438
+        ],
+        [
+          1439,
+          1441
+        ],
+        [
+          1442,
+          1444
+        ],
+        [
+          1445,
+          1498
+        ],
+        [
+          1610,
+          1642
+        ],
+        [
+          1643,
+          1644
+        ],
+        [
+          1645,
+          1650
+        ],
+        [
+          1651,
+          1652
+        ],
+        [
+          1653,
+          1654
+        ],
+        [
+          1655,
+          1661
+        ],
+        [
+          1662,
+          1664
+        ],
+        [
+          1666,
+          1686
+        ],
+        [
+          1687,
+          1738
+        ],
+        [
+          1740,
+          1742
+        ],
+        [
+          1743,
+          1808
+        ],
+        [
+          1809,
+          1881
+        ],
+        [
+          1882,
+          1888
+        ],
+        [
+          1889,
+          1892
+        ],
+        [
+          1893,
+          1899
+        ],
+        [
+          1900,
+          1901
+        ],
+        [
+          1902,
+          1906
+        ],
+        [
+          1907,
+          1908
+        ],
+        [
+          1909,
+          1911
+        ],
+        [
+          1912,
+          1913
+        ],
+        [
+          1914,
+          1916
+        ],
+        [
+          1917,
+          1980
+        ],
+        [
+          1981,
+          2046
+        ],
+        [
+          2047,
+          2055
+        ],
+        [
+          2057,
+          2206
+        ],
+        [
+          2207,
+          2208
+        ],
+        [
+          2209,
+          2222
+        ],
+        [
+          2223,
+          2227
+        ],
+        [
+          2228,
+          2229
+        ],
+        [
+          2230,
+          2236
+        ],
+        [
+          2237,
+          2238
+        ],
+        [
+          2239,
+          2241
+        ],
+        [
+          2242,
+          2280
+        ],
+        [
+          2281,
+          2283
+        ],
+        [
+          2284,
+          2286
+        ],
+        [
+          2287,
+          2291
+        ],
+        [
+          2292,
+          2294
+        ],
+        [
+          2295,
+          2302
+        ],
+        [
+          2303,
+          2305
+        ],
+        [
+          2306,
+          2313
+        ],
+        [
+          2314,
+          2316
+        ],
+        [
+          2317,
+          2320
+        ],
+        [
+          2321,
+          2326
+        ],
+        [
+          2328,
+          2336
+        ],
+        [
+          2337,
+          2338
+        ],
+        [
+          2339,
+          2341
+        ],
+        [
+          2342,
+          2345
+        ],
+        [
+          2346,
+          2351
+        ],
+        [
+          2352,
+          2358
+        ],
+        [
+          2360,
+          2366
+        ],
+        [
+          2368,
+          2372
+        ],
+        [
+          2373,
+          2377
+        ],
+        [
+          2378,
+          2384
+        ],
+        [
+          2385,
+          2387
+        ],
+        [
+          2389,
+          2531
+        ],
+        [
+          2532,
+          2570
+        ],
+        [
+          2571,
+          2573
+        ],
+        [
+          2575,
+          2577
+        ],
+        [
+          2579,
+          2581
+        ],
+        [
+          2583,
+          2585
+        ],
+        [
+          2586,
+          2618
+        ],
+        [
+          2619,
+          2685
+        ],
+        [
+          2686,
+          2690
+        ],
+        [
+          2691,
+          2712
+        ],
+        [
+          2713,
+          2719
+        ],
+        [
+          2720,
+          2723
+        ],
+        [
+          2724,
+          2726
+        ],
+        [
+          2727,
+          2729
+        ],
+        [
+          2730,
+          2731
+        ],
+        [
+          2732,
+          2734
+        ],
+        [
+          2735,
+          2737
+        ],
+        [
+          2738,
+          2741
+        ],
+        [
+          2742,
+          2744
+        ],
+        [
+          2746,
+          2782
+        ],
+        [
+          2783,
+          2820
+        ],
+        [
+          2821,
+          2841
+        ],
+        [
+          2843,
+          2859
+        ],
+        [
+          2860,
+          2865
+        ],
+        [
+          2866,
+          2868
+        ],
+        [
+          2878,
+          2883
+        ],
+        [
+          2885,
+          2891
+        ],
+        [
+          2893,
+          2977
+        ],
+        [
+          2978,
+          2979
+        ],
+        [
+          2992,
+          3042
+        ],
+        [
+          3043,
+          3051
+        ],
+        [
+          3052,
+          3073
+        ],
+        [
+          3074,
+          3080
+        ],
+        [
+          3081,
+          3113
+        ]
+      ],
+      "rules": [
+        {
+          "offset": 201241,
+          "before": "",
+          "after": "      // The selected defaults may never have emitted a change event.\n      batchKindSelect.onchange();\n      timeFreqSelect.onchange();\n"
+        }
+      ]
+    },
+    "public/process/iqc-master.js": {
+      "beforeHash": "a4736bb08dcda78db2263165b50158643062bbe5033099d6a397661bd3ed88bd",
+      "beforeNormalizedHash": "a4736bb08dcda78db2263165b50158643062bbe5033099d6a397661bd3ed88bd",
+      "afterHash": "4e8475c8d25b18b715f84b1c07eaa5058961d140c0f4750aefb5e75ed7d0a70d",
+      "afterNormalizedHash": "4e8475c8d25b18b715f84b1c07eaa5058961d140c0f4750aefb5e75ed7d0a70d",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 17488,
+          "before": "    return sharedClient?.hasUnknown()?`<section class=\"iqc-panel iqc-alert\" role=\"alert\" id=\"iqc-operation-status\"><p>${t('上次操作結果不明，請查詢原操作結果；不會重新送出。','Kết quả thao tác trước chưa rõ; kiểm tra thao tác gốc, không gửi lại.')}</p><button type=\"button\" class=\"button ghost\" id=\"iqc-operation-check\">${t('查詢結果','Kiểm tra kết quả')}</button><p data-iqc-operation-message></p></section>`:'';\n",
+          "after": "    return sharedClient?.hasUnknown()&&!ui.busy?`<section class=\"iqc-panel iqc-alert\" role=\"alert\" id=\"iqc-operation-status\"><p>${sharedClient?.confirmedOperation?.()?t('原操作收據已確認；草稿／權限讀回尚未完成。請查原結果，不要重送。','Đã xác nhận biên nhận gốc; chưa đọc xong bản nháp / quyền. Kiểm tra kết quả gốc, không gửi lại.'):t('上次操作結果不明，請查詢原操作結果；不會重新送出。','Kết quả thao tác trước chưa rõ; kiểm tra thao tác gốc, không gửi lại.')}</p><button type=\"button\" class=\"button ghost\" id=\"iqc-operation-check\">${t('查詢結果','Kiểm tra kết quả')}</button><p data-iqc-operation-message></p></section>`:'';\n"
+        },
+        {
+          "offset": 111047,
+          "before": "    window.VersionDraftUI?.mount(root,{header:'.iqc-version',historyClient:transport,mountApprovedHistory,module:'IQC',scope:t('IQC 全庫','Toàn bộ IQC'),version:selected(),versions:control.versions,active:active(),flow:localSnapshot?{...control.workflow,working:localSnapshot}:control.workflow,busy:ui.busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#iqc-begin',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-shared-issue-kind=\"error\"]',missing:'.iqc-pending,[data-shared-issue-kind=\"missing\"]',checked:{missing:false},history:['.iqc-work-history','#iqc-case-history','[data-shared-issue-kind=\"warning\"]'],status:['#iqc-shared-status']});\n",
+          "after": "    window.VersionDraftUI?.mount(root,{header:'.iqc-version',historyClient:transport,mountApprovedHistory,module:'IQC',scope:t('IQC 全庫','Toàn bộ IQC'),version:selected(),versions:control.versions,active:active(),flow:localSnapshot?{...control.workflow,working:localSnapshot}:control.workflow,busy:ui.busy,failed:!ui.busy&&sharedClient?.hasUnknown()&&!sharedClient?.confirmedOperation?.(),syncNotice:sharedClient?.confirmedOperation?.()?t('原操作收據已確認；核對草稿與權限中','Biên nhận gốc đã xác nhận; đang kiểm tra bản nháp và quyền'):'',actions:{begin:'#iqc-begin',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-shared-issue-kind=\"error\"]',missing:'.iqc-pending,[data-shared-issue-kind=\"missing\"]',checked:{missing:false},history:['.iqc-work-history','#iqc-case-history','[data-shared-issue-kind=\"warning\"]'],status:['#iqc-shared-status']});\n"
+        }
+      ]
+    },
+    "public/process/shared-draft-client.js": {
+      "beforeHash": "bb5966ab7fb2184dda458d86317a9b7f04e32f36e31aae30729327ef7455752e",
+      "beforeNormalizedHash": "bb5966ab7fb2184dda458d86317a9b7f04e32f36e31aae30729327ef7455752e",
+      "afterHash": "327b12022fd5e55d61b91d6aaaff767fd52775f4fc7356bf2744369ecc7ac149",
+      "afterNormalizedHash": "327b12022fd5e55d61b91d6aaaff767fd52775f4fc7356bf2744369ecc7ac149",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 50815,
+          "before": "",
+          "after": "    let acknowledgedOutcome=null;const outcomeListeners=new Set();\n    function confirmedOperation(){\n      try{assertOwner();const known=acknowledgedOutcome;if(!known||known.record!==beginRecord&&known.record!==boundedRecord)return null;\n        return {action:known.action,operationId:known.receipt.operationId,generation:known.receipt.generation,revision:known.receipt.revision};\n      }catch{return null;}\n    }\n    function observeConfirmedOperation(record,action,result){\n      acknowledgedOutcome={record,action,receipt:JSON.parse(JSON.stringify(result.receipt))};\n      for(const listener of outcomeListeners)try{listener();}catch{/* Presentation cannot settle a write or bypass readback. */}\n    }\n"
+        },
+        {
+          "offset": 55296,
+          "before": "    function clearBegin(record){assertBegin(record);sessionStorage.removeItem(beginKey);if(sessionStorage.getItem(beginKey)!==null)throw Error('BEGIN_RECOVERY_CLEANUP_FAILED');beginRecord=null;beginRaw=null;departureCoverage=null;}\n",
+          "after": "    function clearBegin(record){assertBegin(record);sessionStorage.removeItem(beginKey);if(sessionStorage.getItem(beginKey)!==null)throw Error('BEGIN_RECOVERY_CLEANUP_FAILED');beginRecord=null;beginRaw=null;departureCoverage=null;if(acknowledgedOutcome?.record===record)acknowledgedOutcome=null;}\n"
+        },
+        {
+          "offset": 57431,
+          "before": "",
+          "after": "      if(equipmentLocalSave||boundedScope==='ipqc-c')observeConfirmedOperation(record,'begin',result);\n"
+        },
+        {
+          "offset": 90884,
+          "before": "",
+          "after": "      if(acknowledgedOutcome?.record===record)acknowledgedOutcome=null;\n"
+        },
+        {
+          "offset": 93553,
+          "before": "",
+          "after": "      // Exact module Submit basis refusal is thrown before adapter.apply/CAS.\n      // Only this original POST proof may settle it; a receipt 404 never can.\n      if(abModule&&action==='submit'&&command.moduleAction===undefined&&command.patches===undefined&&command.guards===undefined&&boundedText(command.savedId)&&boundedInteger(command.expectedRevision)&&Number.isSafeInteger(command.input?.stateRevision)&&command.input.stateRevision>0&&error.status===409&&code==='MODULE_CHANGED_RECONFIRM')return true;\n"
+        },
+        {
+          "offset": 107834,
+          "before": "",
+          "after": "      if(boundedScope==='iqc')observeConfirmedOperation(record,record.action,result);\n"
+        },
+        {
+          "offset": 153034,
+          "before": "",
+          "after": "      confirmedOperation,watchOperationOutcome(listener){if(typeof listener!=='function')throw Error('OUTCOME_LISTENER_REQUIRED');outcomeListeners.add(listener);return()=>outcomeListeners.delete(listener);},\n"
+        }
+      ]
+    },
+    "public/process/routine-equipment.js": {
+      "beforeHash": "c534748cef8c845f7352b36104334fc5b33938b7c4c72886f48077cb1b94887a",
+      "beforeNormalizedHash": "3d546a6fe1fcb775c0e3279c1c7483b5d1bb1231b4ff888a2a4cd2f41ae59674",
+      "afterHash": "4a99201ea3813c93a21a81d7809ea876b342a93084c735d76a6cb87036715099",
+      "afterNormalizedHash": "77197c15bc679faaabe04b1f3fcce212967e7e856b5f84ae8802aa5770bb3473",
+      "beforeCRLFRanges": [
+        [
+          0,
+          39
+        ],
+        [
+          43,
+          47
+        ],
+        [
+          48,
+          50
+        ],
+        [
+          58,
+          60
+        ],
+        [
+          67,
+          69
+        ],
+        [
+          77,
+          78
+        ],
+        [
+          315,
+          316
+        ],
+        [
+          340,
+          344
+        ],
+        [
+          390,
+          391
+        ],
+        [
+          396,
+          398
+        ],
+        [
+          399,
+          400
+        ],
+        [
+          440,
+          441
+        ],
+        [
+          445,
+          453
+        ],
+        [
+          454,
+          456
+        ],
+        [
+          457,
+          458
+        ],
+        [
+          581,
+          670
+        ],
+        [
+          671,
+          697
+        ],
+        [
+          700,
+          701
+        ],
+        [
+          704,
+          709
+        ],
+        [
+          723,
+          724
+        ],
+        [
+          726,
+          730
+        ],
+        [
+          733,
+          737
+        ],
+        [
+          738,
+          767
+        ],
+        [
+          775,
+          776
+        ],
+        [
+          795,
+          798
+        ],
+        [
+          799,
+          1050
+        ],
+        [
+          1051,
+          1154
+        ],
+        [
+          1157,
+          1158
+        ],
+        [
+          1159,
+          1328
+        ],
+        [
+          1331,
+          1370
+        ],
+        [
+          1371,
+          1479
+        ],
+        [
+          1481,
+          1520
+        ],
+        [
+          1526,
+          1547
+        ],
+        [
+          1548,
+          1551
+        ],
+        [
+          1552,
+          1554
+        ],
+        [
+          1555,
+          1558
+        ],
+        [
+          1559,
+          1561
+        ],
+        [
+          1567,
+          1698
+        ],
+        [
+          1699,
+          1810
+        ],
+        [
+          1812,
+          1874
+        ],
+        [
+          1875,
+          1950
+        ],
+        [
+          1951,
+          2055
+        ],
+        [
+          2056,
+          2058
+        ],
+        [
+          2061,
+          2065
+        ],
+        [
+          2067,
+          2075
+        ],
+        [
+          2076,
+          2091
+        ],
+        [
+          2103,
+          2123
+        ],
+        [
+          2124,
+          2146
+        ],
+        [
+          2147,
+          2152
+        ],
+        [
+          2153,
+          2176
+        ],
+        [
+          2177,
+          2182
+        ],
+        [
+          2183,
+          2207
+        ],
+        [
+          2208,
+          2230
+        ],
+        [
+          2231,
+          2252
+        ],
+        [
+          2259,
+          2261
+        ],
+        [
+          2275,
+          2438
+        ],
+        [
+          2439,
+          2441
+        ],
+        [
+          2443,
+          2445
+        ],
+        [
+          2446,
+          2448
+        ],
+        [
+          2462,
+          2479
+        ],
+        [
+          2480,
+          2498
+        ],
+        [
+          2501,
+          2502
+        ],
+        [
+          2503,
+          2505
+        ],
+        [
+          2506,
+          2513
+        ],
+        [
+          2514,
+          2519
+        ],
+        [
+          2775,
+          2777
+        ],
+        [
+          2785,
+          2787
+        ],
+        [
+          2790,
+          2792
+        ],
+        [
+          2793,
+          2794
+        ],
+        [
+          2796,
+          2802
+        ],
+        [
+          2804,
+          2805
+        ],
+        [
+          2806,
+          2812
+        ],
+        [
+          2826,
+          2827
+        ],
+        [
+          2832,
+          2833
+        ],
+        [
+          2844,
+          2848
+        ],
+        [
+          2849,
+          2850
+        ],
+        [
+          2851,
+          2852
+        ],
+        [
+          2859,
+          2861
+        ],
+        [
+          2863,
+          2864
+        ],
+        [
+          2866,
+          2867
+        ],
+        [
+          2868,
+          2871
+        ],
+        [
+          2872,
+          2877
+        ],
+        [
+          2878,
+          2883
+        ],
+        [
+          2888,
+          2892
+        ],
+        [
+          2893,
+          2894
+        ],
+        [
+          2895,
+          2900
+        ],
+        [
+          2901,
+          2911
+        ],
+        [
+          2913,
+          2917
+        ],
+        [
+          2918,
+          2960
+        ],
+        [
+          2961,
+          2964
+        ],
+        [
+          2965,
+          3001
+        ],
+        [
+          3002,
+          3003
+        ],
+        [
+          3005,
+          3028
+        ],
+        [
+          3029,
+          3053
+        ],
+        [
+          3055,
+          3068
+        ],
+        [
+          3069,
+          3261
+        ],
+        [
+          3263,
+          3265
+        ],
+        [
+          3267,
+          3278
+        ],
+        [
+          3280,
+          3282
+        ],
+        [
+          3284,
+          3286
+        ],
+        [
+          3288,
+          3290
+        ],
+        [
+          3292,
+          3299
+        ],
+        [
+          3312,
+          3313
+        ],
+        [
+          3314,
+          3315
+        ],
+        [
+          3317,
+          3322
+        ],
+        [
+          3323,
+          3326
+        ],
+        [
+          3328,
+          3331
+        ],
+        [
+          3332,
+          3359
+        ],
+        [
+          3360,
+          3424
+        ],
+        [
+          3426,
+          3428
+        ],
+        [
+          3429,
+          3432
+        ],
+        [
+          3433,
+          3437
+        ],
+        [
+          3442,
+          3443
+        ],
+        [
+          3444,
+          3457
+        ],
+        [
+          3458,
+          3460
+        ],
+        [
+          3463,
+          3465
+        ],
+        [
+          3466,
+          3475
+        ],
+        [
+          3477,
+          3479
+        ],
+        [
+          3481,
+          3493
+        ],
+        [
+          3497,
+          3500
+        ],
+        [
+          3505,
+          3506
+        ],
+        [
+          3508,
+          3517
+        ],
+        [
+          3519,
+          3526
+        ],
+        [
+          3527,
+          3529
+        ],
+        [
+          3532,
+          3533
+        ],
+        [
+          3534,
+          3536
+        ],
+        [
+          3539,
+          3540
+        ],
+        [
+          3541,
+          3542
+        ],
+        [
+          3544,
+          3547
+        ],
+        [
+          3548,
+          3549
+        ],
+        [
+          3551,
+          3553
+        ],
+        [
+          3554,
+          3556
+        ],
+        [
+          3558,
+          3562
+        ],
+        [
+          3563,
+          3565
+        ],
+        [
+          3569,
+          3573
+        ],
+        [
+          3574,
+          3582
+        ],
+        [
+          3585,
+          3589
+        ],
+        [
+          3593,
+          3598
+        ],
+        [
+          3599,
+          3602
+        ],
+        [
+          3603,
+          3608
+        ],
+        [
+          3609,
+          3612
+        ],
+        [
+          3615,
+          3616
+        ],
+        [
+          3618,
+          3625
+        ],
+        [
+          3626,
+          3629
+        ],
+        [
+          3630,
+          3632
+        ],
+        [
+          3633,
+          3638
+        ],
+        [
+          3639,
+          3640
+        ],
+        [
+          3641,
+          3644
+        ],
+        [
+          3645,
+          3655
+        ],
+        [
+          3656,
+          3658
+        ],
+        [
+          3659,
+          3664
+        ],
+        [
+          3665,
+          3666
+        ],
+        [
+          3667,
+          3671
+        ],
+        [
+          3672,
+          3673
+        ],
+        [
+          3674,
+          3678
+        ],
+        [
+          3679,
+          3680
+        ],
+        [
+          3681,
+          3683
+        ],
+        [
+          3684,
+          3686
+        ],
+        [
+          3689,
+          3690
+        ],
+        [
+          3691,
+          3693
+        ],
+        [
+          3694,
+          3695
+        ],
+        [
+          3696,
+          3749
+        ],
+        [
+          3750,
+          3751
+        ],
+        [
+          3752,
+          3753
+        ],
+        [
+          3754,
+          3795
+        ],
+        [
+          3796,
+          3799
+        ],
+        [
+          3800,
+          3802
+        ],
+        [
+          3803,
+          3806
+        ],
+        [
+          3807,
+          3814
+        ],
+        [
+          3815,
+          3818
+        ],
+        [
+          3819,
+          3820
+        ],
+        [
+          3821,
+          3822
+        ],
+        [
+          3823,
+          3824
+        ],
+        [
+          3825,
+          3832
+        ],
+        [
+          3833,
+          3834
+        ],
+        [
+          3835,
+          3839
+        ],
+        [
+          3840,
+          3841
+        ],
+        [
+          3842,
+          3849
+        ],
+        [
+          3850,
+          3862
+        ],
+        [
+          3865,
+          3866
+        ],
+        [
+          3867,
+          3868
+        ],
+        [
+          3869,
+          3876
+        ],
+        [
+          3877,
+          3878
+        ],
+        [
+          3882,
+          3886
+        ],
+        [
+          3887,
+          3902
+        ],
+        [
+          3903,
+          3995
+        ],
+        [
+          3996,
+          4006
+        ],
+        [
+          4019,
+          4020
+        ],
+        [
+          4021,
+          4022
+        ],
+        [
+          4033,
+          4045
+        ],
+        [
+          4046,
+          4055
+        ]
+      ],
+      "rules": [
+        {
+          "offset": 3171,
+          "before": "",
+          "after": "  let referenceAction=null;\n"
+        },
+        {
+          "offset": 5019,
+          "before": "  function sharedTransport(){const id=identity()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(!inputOwnerCurrent()&&hasLocalDraftInput())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(!inputOwner)rememberInputOwner();if(sharedActor!==id||sharedClient?.isBeginRuntimeCurrent?.()===false){sharedActor=id;sharedClient=window.createSharedDraftClient({endpoint:api+'/workflow?caseMetadata=1',durableBegin:true,equipmentLocalSave:true,allowUnknownDeparture:true,guardAccessResults:true,legacyArchive:true,conditionalState:true,actorId:id,headers,permissionGates:{create:'#routine-add,#routine-add-submit,[data-node-add]',edit:'#routine-add,#routine-begin,#routine-form-apply,#routine-add-submit,[data-equipment-edit],[data-node-add],[data-node-edit],#routine-dialog-confirm,[data-issue-result],[data-issue-resolve]',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw,[data-routine-review=\"withdraw\"]',approve:'[data-routine-review=\"approve\"]',return:'[data-routine-review=\"reject\"]',history:'#routine-case-history',delete:'#routine-delete,[data-equipment-delete],[data-node-delete]'}});}return sharedClient;}\n",
+          "after": "  function sharedTransport(){const id=identity()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(!inputOwnerCurrent()&&hasLocalDraftInput())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(!inputOwner)rememberInputOwner();if(sharedActor!==id||sharedClient?.isBeginRuntimeCurrent?.()===false){sharedActor=id;sharedClient=window.createSharedDraftClient({endpoint:api+'/workflow?caseMetadata=1',durableBegin:true,equipmentLocalSave:true,allowUnknownDeparture:true,guardAccessResults:true,legacyArchive:true,conditionalState:true,actorId:id,headers,permissionGates:{create:'#routine-add,#routine-add-submit,[data-node-add]',edit:'#routine-add,#routine-begin,#routine-form-apply,#routine-add-submit,[data-equipment-edit],[data-node-add],[data-node-edit],#routine-dialog-confirm,[data-issue-result],[data-issue-resolve]',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw,[data-routine-review=\"withdraw\"]',approve:'[data-routine-review=\"approve\"]',return:'[data-routine-review=\"reject\"]',history:'#routine-case-history',delete:'#routine-delete,[data-equipment-delete],[data-node-delete]'}});sharedClient.watchOperationOutcome?.(()=>updateEquipmentLocalStatus());}return sharedClient;}\n"
+        },
+        {
+          "offset": 37279,
+          "before": "    writeShared.attempt=attempt;busy=true;readIntent++;\n",
+          "after": "    writeShared.attempt=attempt;busy=true;readIntent++;updateEquipmentLocalStatus();\n"
+        },
+        {
+          "offset": 49920,
+          "before": "",
+          "after": "      if(action==='save'){const allocations=detail.patches.filter(p=>p.op==='insert'&&p.path[0]==='categories'&&p.value.code).map(p=>{const row=confirmed.control.workflow.working.categories.find(r=>r.id===p.value.id);return row&&row.code!==p.value.code?p.value.code+' → '+row.code:null;}).filter(Boolean);if(allocations.length)message+=' · '+t('伺服器分配編碼','Mã do máy chủ cấp')+': '+allocations.join('、');}\n"
+        },
+        {
+          "offset": 102735,
+          "before": "        <span data-i18n-skip=\"true\"><b>${h(title)}</b>${kind !== 'subcategory' ? `<small>${h(item.code || item.id)}</small>` : ''}</span>\n",
+          "after": "        <span data-i18n-skip=\"true\"><b>${h(title)}</b>${kind !== 'subcategory' ? `<small>${h(item.code || item.id)}${kind === 'category' && working?.categories.some(row=>row.id===item.id) && !syncBase?.categories.some(row=>row.id===item.id) ? ' · '+t('暫編；存取時由伺服器分配','Mã tạm; máy chủ cấp khi lưu') : ''}</small>` : ''}</span>\n"
+        },
+        {
+          "offset": 134583,
+          "before": "    if (!editable() || !permitted('master.delete')) return;\n",
+          "after": "    if (!editable() || !permitted('master.delete') || referenceAction) return;\n"
+        },
+        {
+          "offset": 135230,
+          "before": "",
+          "after": "    const owner=captureTransferOwner(),before=JSON.stringify(item),action={id,owner,controller:new AbortController()};\n    referenceAction=action;\n    const timer=setTimeout(()=>action.controller.abort(),45000);\n    message=t('正在檢查四個品質模組的引用；檢查完成前不會刪除。','Đang kiểm tra tham chiếu bốn mô-đun; chưa xóa trước khi kiểm tra xong.');\n    render();\n"
+        },
+        {
+          "offset": 135817,
+          "before": "      refs = await queryAllQualityReferences(id, { strict: true });\n",
+          "after": "      refs = await queryAllQualityReferences(id, { strict: true, signal:action.controller.signal });\n      if(referenceAction===action)message=t('引用檢查已完成；尚未刪除。','Đã kiểm tra tham chiếu; chưa xóa.');\n"
+        },
+        {
+          "offset": 136064,
+          "before": "      if (sameContext()) {\n",
+          "after": "      if (sameContext()&&referenceAction===action&&transferOwnerCurrent(owner)) {\n"
+        },
+        {
+          "offset": 136391,
+          "before": "        render();\n",
+          "after": ""
+        },
+        {
+          "offset": 136413,
+          "before": "    }\n    if (!sameContext()) return;\n",
+          "after": "    } finally {clearTimeout(timer);if(referenceAction===action){referenceAction=null;if(sameContext()&&transferOwnerCurrent(owner))render();}}\n    if (!sameContext()||action.controller.signal.aborted||!transferOwnerCurrent(owner)||JSON.stringify(item)!==before) return;\n"
+        },
+        {
+          "offset": 137188,
+          "before": "",
+          "after": "      message=t('品質標準仍有引用；未刪除。','Tiêu chuẩn vẫn tham chiếu; chưa xóa.');render();\n"
+        },
+        {
+          "offset": 140930,
+          "before": "    await loadEquipmentReferences(id, { renderAfter: false });\n",
+          "after": "    // Reference sections load independently after the editor is painted.\n"
+        },
+        {
+          "offset": 158926,
+          "before": "        const url=spec.url+(kind==='planned'?'?sourceId='+encodeURIComponent(session.id):'');\n",
+          "after": "        const url=spec.url+(kind==='planned'?'?sourceId='+encodeURIComponent(session.id):kind==='ipqcAB'?'?references='+encodeURIComponent(session.id):'');\n"
+        },
+        {
+          "offset": 165802,
+          "before": "  async function queryAllQualityReferences(eqId, { strict = false } = {}) {\n",
+          "after": "  async function queryAllQualityReferences(eqId, { strict = false, signal } = {}) {\n"
+        },
+        {
+          "offset": 166377,
+          "before": "    const urls = ['/api/iqc', '/api/ipqc-c', '/api/ipqc-ab', `/api/quality-equipment-replacement?sourceId=${encodeURIComponent(eqId)}`];\n",
+          "after": "    const abReferencesURL='/api/ipqc-ab?references='+encodeURIComponent(eqId);\n    const urls = ['/api/iqc', '/api/ipqc-c', abReferencesURL, `/api/quality-equipment-replacement?sourceId=${encodeURIComponent(eqId)}`];\n"
+        },
+        {
+          "offset": 166900,
+          "before": "      if (!displayReads) return fetch(url);\n",
+          "after": "      if (!displayReads) return fetch(url,{cache:'no-store',headers:headers(),signal:signal||AbortSignal.timeout(45000)});\n"
+        },
+        {
+          "offset": 172385,
+          "before": "      const res = await readReference('/api/ipqc-ab');\n",
+          "after": "      const res = await readReference(abReferencesURL);\n"
+        },
+        {
+          "offset": 214285,
+          "before": "    if (!dialog || transferBusy(dialog) || !transferOwnerCurrent(dialog.owner)) return;\n",
+          "after": "    if (!dialog || transferBusy(dialog) || dialog.refreshing || !transferOwnerCurrent(dialog.owner)) return;\n"
+        },
+        {
+          "offset": 228202,
+          "before": "      if(!['fqc','iqc'].includes(moduleId))await window.ProcessSync?.refresh?.();\n      if (!owns()) return;\n",
+          "after": "      // The qualified command/receipt above settles the write. Refresh failures\n      // describe stale display data and must never turn that receipt into failure.\n"
+        },
+        {
+          "offset": 228435,
+          "before": "      await loadEquipmentReferences(dialog.sourceId, { renderAfter: false });\n      await loadTransferPreview();\n",
+          "after": "      dialog.refreshing = true;\n      dialog.refreshError = '';\n      render();\n      void (async () => {\n        try {\n          if(!['fqc','iqc'].includes(moduleId))await window.ProcessSync?.refresh?.();\n          if (!owns()) return;\n          await Promise.all([loadEquipmentReferences(dialog.sourceId), loadTransferPreview()]);\n        } catch (error) {\n          if (owns()) dialog.refreshError = error.message || 'REFERENCE_REFRESH_FAILED';\n        } finally {\n          if (owns()) { dialog.refreshing = false; render(); }\n        }\n      })();\n"
+        },
+        {
+          "offset": 229498,
+          "before": "    const inFlight = transferBusy();\n",
+          "after": "    const inFlight = transferBusy() || transferDialog.refreshing;\n"
+        },
+        {
+          "offset": 233035,
+          "before": "            ${transferDialog.previewError ? `<p role=\"alert\">${h(transferDialog.previewError)}</p>` : ''}\n",
+          "after": "            ${transferDialog.refreshing ? `<p role=\"status\">${t('移轉結果已確認；關聯資料更新中…','Đã xác nhận kết quả chuyển; đang cập nhật tham chiếu…')}</p>` : ''}${transferDialog.refreshError ? `<p role=\"alert\">${t('移轉結果已確認；關聯更新失敗，請關閉後重開以核對。','Đã xác nhận kết quả chuyển; lỗi cập nhật tham chiếu, đóng rồi mở lại để kiểm tra.')} ${h(transferDialog.refreshError)}</p>` : ''}${transferDialog.previewError ? `<p role=\"alert\">${h(transferDialog.previewError)}</p>` : ''}\n"
+        },
+        {
+          "offset": 267440,
+          "before": "",
+          "after": "      <p id=\"routine-operation-outcome\" role=\"status\" hidden></p>\n"
+        },
+        {
+          "offset": 267643,
+          "before": "",
+          "after": "      ${referenceAction?`<p role=\"status\">${t('引用檢查中；未刪除任何資料','Đang kiểm tra tham chiếu; chưa xóa dữ liệu')} <button type=\"button\" id=\"routine-reference-cancel\">${t('取消檢查','Hủy kiểm tra')}</button></p>`:''}\n"
+        },
+        {
+          "offset": 275204,
+          "before": "    if(control.workflow){const flow=control.workflow,panel=document.createElement('section');panel.className='routine-card';panel.id='routine-shared-status';panel.setAttribute('role','status');panel.innerHTML=`<b>${t('共用範圍：檢具全庫','Phạm vi chung: toàn bộ thiết bị')}</b><p>${flow.pendingId?t('待審鎖定','Khóa chờ duyệt'):!flow.saved||JSON.stringify(flow.saved.content)!==JSON.stringify(flow.working)?t('已同步 · 尚未手動儲存','Đã đồng bộ · chưa lưu thủ công'):t('已儲存','Đã lưu')}</p>${flow.saved?`<p>${t('儲存者','Người lưu')}: ${h(flow.saved.actor.name)} · ${h(flow.saved.at)}</p>`:''}`;host.querySelector('#routine-page')?.prepend(panel);\n      if(sharedClient?.hasUnknown())for(const [label,method]of [[t('查詢上次操作','Kiểm tra thao tác trước'),'resolveUnknown'],[t('重試同一操作','Thử lại cùng thao tác'),'retryUnknown']]){const b=document.createElement('button');b.textContent=label;b.onclick=guardWorking(b,async()=>{try{await sharedTransport()[method]();await read();render();}catch(e){failed(e);}});panel.append(b);}\n",
+          "after": "    if(control.workflow){const flow=control.workflow,panel=document.createElement('section');panel.className='routine-card';panel.id='routine-shared-status';panel.setAttribute('role','status');panel.innerHTML=`<b>${t('共用範圍：檢具全庫','Phạm vi chung: toàn bộ thiết bị')}</b><p>${sharedClient?.hasUnknown()?t('結果未知；請查詢原操作收據','Kết quả chưa rõ; kiểm tra biên nhận gốc'):busy?t('儲存中…','Đang lưu…'):readUnavailable?t('讀取失敗；請重新核對','Lỗi đọc; hãy kiểm tra lại'):hasLocalDraftInput()?t('本地未套用／未儲存','Chưa áp dụng / lưu dữ liệu cục bộ'):flow.pendingId?t('待審鎖定','Khóa chờ duyệt'):!flow.saved||JSON.stringify(flow.saved.content)!==JSON.stringify(flow.working)?t('已同步 · 尚未手動儲存','Đã đồng bộ · chưa lưu thủ công'):t('已儲存','Đã lưu')}</p>${flow.saved?`<p>${t('儲存者','Người lưu')}: ${h(flow.saved.actor.name)} · ${h(flow.saved.at)}</p>`:''}`;host.querySelector('#routine-page')?.prepend(panel);\n      if(sharedClient?.hasUnknown())for(const [label,method]of [[t('查詢上次操作','Kiểm tra thao tác trước'),'resolveUnknown']]){const b=document.createElement('button');b.textContent=label;b.onclick=guardWorking(b,async()=>{try{await sharedTransport()[method]();await read();render();}catch(e){failed(e);}});panel.append(b);}\n"
+        },
+        {
+          "offset": 276720,
+          "before": "    window.VersionDraftUI?.mount(host,{header:'.routine-version',historyClient:sharedTransport,mountApprovedHistory,module:t('檢具與測試設備','Dưỡng kiểm và thiết bị đo'),scope:t('檢具全庫','Toàn bộ thiết bị'),version,versions:control.versions,active:active(),flow:control.workflow,busy,failed:readUnavailable||sharedClient?.hasUnknown(),actions:{begin:'#routine-begin',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-routine-issue-kind=\"error\"]',missing:'.routine-issues-card,[data-routine-issue-kind=\"missing\"]',history:['.routine-history-card','[data-routine-issue-kind=\"warning\"]'],status:['#routine-shared-status'],remove:['.routine-top','#routine-case-history']});\n",
+          "after": "    window.VersionDraftUI?.mount(host,{header:'.routine-version',historyClient:sharedTransport,mountApprovedHistory,module:t('檢具與測試設備','Dưỡng kiểm và thiết bị đo'),scope:t('檢具全庫','Toàn bộ thiết bị'),version,versions:control.versions,active:active(),flow:control.workflow,busy,localUnsaved:hasLocalDraftInput(),failed:readUnavailable||!busy&&sharedClient?.hasUnknown()&&!sharedClient?.confirmedOperation?.(),actions:{begin:'#routine-begin',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-routine-issue-kind=\"error\"]',missing:'.routine-issues-card,[data-routine-issue-kind=\"missing\"]',history:['.routine-history-card','[data-routine-issue-kind=\"warning\"]'],status:['#routine-shared-status'],remove:['.routine-top','#routine-case-history']});\n    updateEquipmentLocalStatus();\n  }\n\n  function updateEquipmentLocalStatus() {\n    const confirmed=sharedClient?.confirmedOperation?.(),outcome=host?.querySelector('#routine-operation-outcome');\n    if(outcome){outcome.hidden=!confirmed;outcome.textContent=confirmed?t('原操作收據已確認；正在核對草稿與權限，請勿重送','Đã xác nhận biên nhận gốc; đang kiểm tra bản nháp và quyền, không gửi lại'):'';}\n    const flow=control?.workflow;if(!flow)return;\n    const state=confirmed?t('原操作收據已確認；正在核對草稿與權限，請勿重送','Đã xác nhận biên nhận gốc; đang kiểm tra bản nháp và quyền, không gửi lại'):busy?t('儲存／處理中…','Đang lưu / xử lý…'):\n      sharedClient?.hasUnknown()?t('結果未知；請查詢原操作收據','Kết quả chưa rõ; kiểm tra biên nhận gốc'):\n      readUnavailable||sharedClient?.hasSyncFailures?.()?t('同步失敗；請重新核對','Lỗi đồng bộ; hãy kiểm tra lại'):\n      hasLocalDraftInput()?t('本地編輯／未套用未儲存','Đang sửa cục bộ / chưa áp dụng hoặc lưu'):\n      !flow.saved||!equipmentContentEqual(flow.saved.content,flow.working)?t('已套用至共用草稿；尚未儲存','Đã áp dụng vào bản nháp chung; chưa lưu'):\n      t('已持久化至伺服器','Đã lưu bền vững trên máy chủ');\n    for(const selector of ['[data-vd-saved]','[data-vd-sync]','#routine-shared-status > p']){const node=host?.querySelector(selector);if(node)node.textContent=state;}\n"
+        },
+        {
+          "offset": 279245,
+          "before": "",
+          "after": "    root.querySelector('#routine-reference-cancel')?.addEventListener('click',guardWorking(root.querySelector('#routine-reference-cancel'),()=>{const action=referenceAction;if(!action)return;action.controller.abort();referenceAction=null;message=t('已取消引用檢查；資料保留，未刪除。','Đã hủy kiểm tra tham chiếu; giữ dữ liệu, chưa xóa.');render();}));\n"
+        },
+        {
+          "offset": 293553,
+          "before": "          input.oninput = guardWorking(input,() => { item[input.dataset.field] = input.value; });\n",
+          "after": "          input.oninput = guardWorking(input,() => { item[input.dataset.field] = input.value; updateEquipmentLocalStatus(); });\n"
+        },
+        {
+          "offset": 293963,
+          "before": "",
+          "after": "          updateEquipmentLocalStatus();\n"
+        },
+        {
+          "offset": 324512,
+          "before": "  });},requiresSave:()=>false,saveForDeparture:()=>saveDraft('save'),canLeave:()=>!(busy&&!equipmentSaveComparison)&&!transferBusy(),error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;retireEquipmentSaveComparison();equipmentSaveChoice?.();viewDialog?.references?.closeDetail?.();equipmentEditRequest++;writeShared.attempt=null;busy=false;equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;localBeginReceipt=null;pendingSaveBatch=null;inputOwner=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},\n",
+          "after": "  });},requiresSave:()=>false,saveForDeparture:()=>saveDraft('save'),canLeave:()=>!(busy&&!equipmentSaveComparison)&&!transferBusy(),error:()=>navigationError,reset(){referenceAction?.controller.abort();referenceAction=null;historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;retireEquipmentSaveComparison();equipmentSaveChoice?.();viewDialog?.references?.closeDetail?.();equipmentEditRequest++;writeShared.attempt=null;busy=false;equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;localBeginReceipt=null;pendingSaveBatch=null;inputOwner=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},\n"
+        }
+      ]
+    },
+    "public/process/version-draft-ui.js": {
+      "beforeHash": "7202a92286949203ad74ac2170e53bfba0d937b1de08486a38b4928415f9b757",
+      "beforeNormalizedHash": "13b8d71cb5cd5ffab3240a6db3a8e02b7355412864c92f0cc96bd356423a8a8f",
+      "afterHash": "aed712a971c2e5572b801c089163ef8da2c0e6ee80b0e1ecf7d203e20761e049",
+      "afterNormalizedHash": "718876842fbe1f572b4484a6bd5bfb163bacb467b9c36ec50b7349aafbd2f948",
+      "beforeCRLFRanges": [
+        [
+          0,
+          7
+        ],
+        [
+          8,
+          12
+        ],
+        [
+          13,
+          40
+        ],
+        [
+          120,
+          121
+        ],
+        [
+          122,
+          126
+        ],
+        [
+          127,
+          130
+        ],
+        [
+          131,
+          159
+        ],
+        [
+          160,
+          192
+        ],
+        [
+          193,
+          208
+        ],
+        [
+          213,
+          222
+        ],
+        [
+          224,
+          228
+        ],
+        [
+          229,
+          250
+        ],
+        [
+          329,
+          332
+        ],
+        [
+          375,
+          378
+        ],
+        [
+          380,
+          382
+        ]
+      ],
+      "rules": [
+        {
+          "offset": 2543,
+          "before": "",
+          "after": "    historyUnavailable:['歷史查詢失敗；儲存狀態以原操作收據為準','Lỗi tra cứu lịch sử; trạng thái lưu theo biên nhận thao tác gốc'], historySuperseded:['歷史查詢期間版本已更新；請重新讀取歷史，儲存狀態以原操作收據為準','Phiên bản đổi khi đọc lịch sử; đọc lại lịch sử, trạng thái lưu theo biên nhận gốc'], retryHistory:['重新讀取歷史','Đọc lại lịch sử'],\n"
+        },
+        {
+          "offset": 24069,
+          "before": "",
+          "after": "    const retry=create('button','button ghost',t('retryHistory'));retry.type='button';retry.dataset.vdHistoryRetry='true';retry.hidden=true;retry.onclick=()=>void load();log.append(retry);\n"
+        },
+        {
+          "offset": 26286,
+          "before": "    async function load(kind,nextCursors){if(loading)return;loading=true;updateControls();const requested={...cursors,...(kind?{[kind]:nextCursors}:{})};try{notice.textContent=t('history')+' · '+t('syncing');const data=await client.uiHistory({uiVersionId:model.version?.id||'',versionBefore:requested.versions.at(-1),saveBefore:requested.saves.at(-1)});if(!shell.isConnected)return;if(kind)cursors[kind]=requested[kind];for(const key of kind?[kind]:['versions','saves'])paint(key,data[key]);if(data.selectedSave&&!['draft','pending','pending-test'].includes(model.version?.status)){shell.querySelector('[data-vd-saver]').textContent=t('savedBy')+'：'+(data.selectedSave.actor?.name||t('unknown'))+' · '+date(data.selectedSave.at);shell.querySelector('[data-vd-saved]').textContent=t('saveState')+'：'+t('saved');}model.savedMetadata=data.selectedSave;notice.textContent='';shell.dataset.historyLoaded='true';}catch(error){notice.textContent=t('history')+' · '+t('failed')+' · '+error.message;}finally{loading=false;updateControls();}}\n",
+          "after": "    async function load(kind,nextCursors){if(loading||!shell.isConnected)return;loading=true;retry.hidden=true;updateControls();const requested={...cursors,...(kind?{[kind]:nextCursors}:{})};try{notice.textContent=t('history')+' · '+t('syncing');const data=await client.uiHistory({uiVersionId:model.version?.id||'',versionBefore:requested.versions.at(-1),saveBefore:requested.saves.at(-1)});if(!shell.isConnected)return;if(kind)cursors[kind]=requested[kind];for(const key of kind?[kind]:['versions','saves'])paint(key,data[key]);if(data.selectedSave&&!['draft','pending','pending-test'].includes(model.version?.status)){shell.querySelector('[data-vd-saver]').textContent=t('savedBy')+'：'+(data.selectedSave.actor?.name||t('unknown'))+' · '+date(data.selectedSave.at);shell.querySelector('[data-vd-saved]').textContent=t('saveState')+'：'+t('saved');}model.savedMetadata=data.selectedSave;notice.textContent='';shell.dataset.historyLoaded='true';}catch(error){if(shell.isConnected){notice.textContent=t(error.message==='APPROVED_HISTORY_SUPERSEDED'?'historySuperseded':'historyUnavailable')+' · '+error.message;retry.hidden=false;}}finally{loading=false;updateControls();}}\n"
+        }
+      ]
+    },
+    "public/process/index.html": {
+      "beforeHash": "58e88e0727809148be65767bea6e624b5a9cae22d2e5d59f441ca15d0c40a40f",
+      "beforeNormalizedHash": "58e88e0727809148be65767bea6e624b5a9cae22d2e5d59f441ca15d0c40a40f",
+      "afterHash": "9b283d7dd999a78a66f1df81c9669649ae1817886ea13b4d2a46726a9cf514de",
+      "afterNormalizedHash": "9b283d7dd999a78a66f1df81c9669649ae1817886ea13b4d2a46726a9cf514de",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 6897,
+          "before": "    <script data-process-src=\"shared-draft-client.js?v=20261114-lines-flow-review1\"></script>\n",
+          "after": "    <script data-process-src=\"shared-draft-client.js?v=20261115-quality-root4\"></script>\n"
+        },
+        {
+          "offset": 7265,
+          "before": "    <script data-process-src=\"version-draft-ui.js?v=20261113-submit-outcome1\"></script>\n",
+          "after": "    <script data-process-src=\"version-draft-ui.js?v=20261115-quality-root1\"></script>\n"
+        },
+        {
+          "offset": 9297,
+          "before": "    <script data-process-src=\"fqc-master.js?v=20261112-quality-integration1\"></script>\n    <script data-process-src=\"iqc-master.js?v=20261112-quality-integration1\"></script>\n    <script data-process-src=\"routine-equipment.js?v=20261113-equipment-integration2\"></script>\n",
+          "after": "    <script data-process-src=\"fqc-master.js?v=20261115-quality-root1\"></script>\n    <script data-process-src=\"iqc-master.js?v=20261115-quality-root2\"></script>\n    <script data-process-src=\"routine-equipment.js?v=20261115-quality-root2\"></script>\n"
+        },
+        {
+          "offset": 9959,
+          "before": "    <script data-process-src=\"ipqc-c.js?v=20261113-ipqc-silent3\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261113-ipqc-silent3\"></script>\n",
+          "after": "    <script data-process-src=\"ipqc-c.js?v=20261115-quality-root3\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261115-quality-root4\"></script>\n"
+        }
+      ]
+    },
+    "tests/shared-draft-receipt-recovery.test.mjs": {
+      "beforeHash": "fe8b0d2dd11b6336bf0eeb14f3971845b0fc671bd1da21b05b5305686c16c632",
+      "beforeNormalizedHash": "fe8b0d2dd11b6336bf0eeb14f3971845b0fc671bd1da21b05b5305686c16c632",
+      "afterHash": "2d72403c21a390a2647949137eee28cda63868b1cfaee348dbd9f9f7f239e073",
+      "afterNormalizedHash": "2d72403c21a390a2647949137eee28cda63868b1cfaee348dbd9f9f7f239e073",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 14388,
+          "before": "  'version-draft-ui.js':'20261113-submit-outcome1',\n",
+          "after": "  'version-draft-ui.js':'20261115-quality-root1',\n"
+        },
+        {
+          "offset": 14840,
+          "before": "  'shared-draft-client.js':'20261114-lines-flow-review1',\n",
+          "after": "  'shared-draft-client.js':'20261115-quality-root4',\n"
+        },
+        {
+          "offset": 15061,
+          "before": "  'fqc-master.js':'20261112-quality-integration1',\n",
+          "after": "  'fqc-master.js':'20261115-quality-root1',\n  'iqc-master.js':'20261115-quality-root2',\n  'ipqc-c.js':'20261115-quality-root3',\n"
+        },
+        {
+          "offset": 15313,
+          "before": "  'ipqc-ab.js':'20261113-ipqc-silent3',\n  'routine-equipment.js':'20261113-equipment-integration2',\n",
+          "after": "  'ipqc-ab.js':'20261115-quality-root4',\n  'routine-equipment.js':'20261115-quality-root2',\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/modules/QUALITY.md": {
+      "beforeHash": "669196bc81592c9f820f1fa9e80f30bac68d2458b4c9a2991d9558dfaf32119f",
+      "beforeNormalizedHash": "669196bc81592c9f820f1fa9e80f30bac68d2458b4c9a2991d9558dfaf32119f",
+      "afterHash": "26506f5038ae343b75701d5d79767d1eb65c0ffdf909ac80854cff1ef5930142",
+      "afterNormalizedHash": "26506f5038ae343b75701d5d79767d1eb65c0ffdf909ac80854cff1ef5930142",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-15 — 網頁實測根因修復候選\n\n檢具移轉以合格的原操作回應／收據先呈現結果，關聯刷新獨立顯示；刷新中鎖住舊選取的重複確認，失敗不改已確認結果。檢具頁首區分本地未套用、共用未存、處理中、已持久化、讀取失敗與結果未知；未知操作 UI 僅查原收據。新增類別的本地代碼為暫編，伺服器依歷史保留號碼分配正式碼並回報差異，不重編既有資料。\n\nIPQC AB `GET ?references=<equipmentId>` 為關聯專用精簡投影，僅回傳原可見版本中符合 stable equipmentId 的項目摘要；保留原讀取依賴、權限、歷史 SHA／格式錯誤。完整 records GET 使用有界 JSON 容器序列化；單份 immutable 原件仍先完整驗 SHA。檢具／模具工作流採用逐請求權限 phase，每個讀取／CAS 重試重新建立，保留回傳前、immutable 寫入後的 session 核對。\n\nFQC「未設定→按批次」會同步顯示預設 AQL 欄與驗證訊息。共用操作紀錄的歷史 GET 失敗／409 過期，以唯讀查詢狀態呈現並提供明確重查，不使用「結果未知／同步失敗」描述寫入。[根因、測量、回歸與尚未實站驗收](../../docs/acceptance/quality-root-causes-20261115.md)。\n\n"
+        },
+        {
+          "offset": 91628,
+          "before": "",
+          "after": "\nC Begin 補充：合格原收據後的 full readback 顯示已確認／讀回中，不等同 marker 清除；保留 GET-only 原收據恢復與全部 barrier，兩語系真 handler fixture 見 `quality-c-begin-feedback.test.mjs`。\n\nAB整份Submit：MODULE_CHANGED_RECONFIRM只在精確原POST拒絕證明下結束marker並要求重新讀取／人工再確認；receipt404不是未寫入證明。舊未知保留鎖與GET-only入口，不盲重送。設備照片完成表單仍為本地未存，Save回執／必要讀回完成才顯示持久化。\n"
+        }
+      ]
+    },
+    "AI_CONTEXT/CHANGELOG.md": {
+      "beforeHash": "1771f21f325856620dc81d9d290cc68cb43e4b1d8a03db07fd50a9f902009b1b",
+      "beforeNormalizedHash": "1771f21f325856620dc81d9d290cc68cb43e4b1d8a03db07fd50a9f902009b1b",
+      "afterHash": "333b0ea9de823fd9f07e1e2e84a8fef29f49f9fe4e7dbdbb5bcb10694d2999d9",
+      "afterNormalizedHash": "333b0ea9de823fd9f07e1e2e84a8fef29f49f9fe4e7dbdbb5bcb10694d2999d9",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-15 — 檢具／模具與品質頁實測修復候選\n\n獨立 main e040a7e 候選：移轉回應與查詢解耦、AQL 預設欄位、本地／已存／未知狀態及伺服器編碼提示；AB 關聯精簡投影與有界序列化；檢具／模具逐請求權限評估；唯讀歷史過期與寫入結果分開呈現。無資料遷移、實站寫入、權限變更或部署。[證據與限制](../docs/acceptance/quality-root-causes-20261115.md)。\n\n"
+        }
+      ]
+    },
+    "HANDOFF.md": {
+      "beforeHash": "abaf46d1a88cbc8a00600a8e56d98c44bd178988d502b7edfc161205fb585782",
+      "beforeNormalizedHash": "abaf46d1a88cbc8a00600a8e56d98c44bd178988d502b7edfc161205fb585782",
+      "afterHash": "9bb5272f3689f141125110c144de08f451e52633f2e993f264cbaf0a50067c78",
+      "afterNormalizedHash": "9bb5272f3689f141125110c144de08f451e52633f2e993f264cbaf0a50067c78",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 0,
+          "before": "",
+          "after": "## 2026-11-15 — 網頁實測根因修復候選\n\n獨立 checkout／`fix/quality-save-read-root-causes-20261115`，基於已核對 #119 main e040a7e。涵蓋檢具／模具、FQC、IPQC AB 回應與 C 歷史查詢誤報；既有部署 checkout／服務與測試資料未動。[逐項根因、隔離測量與交付關卡](docs/acceptance/quality-root-causes-20261115.md)。無 merge／部署／帳號或正式資料操作；實站真人驗收另行。\n\n"
+        }
+      ]
+    },
+    "scripts/test-routine-equipment-edit-open-race.mjs": {
+      "beforeHash": "bdacf4de8f39c0585e4ef56dc4e77a48be1fae4b99fd24e61b6e0594bac243e9",
+      "beforeNormalizedHash": "bdacf4de8f39c0585e4ef56dc4e77a48be1fae4b99fd24e61b6e0594bac243e9",
+      "afterHash": "1a690366f952bb08964a52e86270a8e96e761a4f8b4c9d586fa79263e21a22ad",
+      "afterNormalizedHash": "1a690366f952bb08964a52e86270a8e96e761a4f8b4c9d586fa79263e21a22ad",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 2443,
+          "before": " const names=['historyAllowsMutation','guardWorking',...ownerNames,...transferRecoveryNames,'viewReferenceKinds','clone','displayName','isFormDirty','routineTabIsActive','captureTransferOwner','transferOwnerCurrent','loadEquipmentReferences','openEditEquipment','closeForm','tryCloseForm','openAddEquipmentDialog','cancelAdd','locateEquipment','mount','openNodeDialog','openTransferModal','cancelNodeDialog','newViewReferences'];\n",
+          "after": " const names=['historyAllowsMutation','guardWorking',...ownerNames,...transferRecoveryNames,'viewReferenceKinds','clone','displayName','isFormDirty','routineTabIsActive','captureTransferOwner','transferOwnerCurrent','renderRefItems','equipmentReferencesSectionHTML','bindReferenceActions','updateEquipmentReferenceSections','loadEquipmentReferences','openEditEquipment','closeForm','tryCloseForm','openAddEquipmentDialog','cancelAdd','locateEquipment','mount','openNodeDialog','openTransferModal','cancelNodeDialog','newViewReferences'];\n"
+        },
+        {
+          "offset": 3244,
+          "before": "  const server={equipment:[{id:'eq',name:'Fixture Tên',notes:'Original notes',groupId:'grp'},{id:'eq2',name:'Fixture 2',notes:'Second original',groupId:'grp'}],groups:[{id:'grp',categoryId:'cat',subcategoryId:'sub'}],categories:[{id:'cat'}],subcategories:[{id:'sub',categoryId:'cat'}],issues:[]},pending=[],renders=[],notes={value:'Original notes'},name={value:'Fixture Tên'};\n  const page={isConnected:true,dataset:{activeTab:'quality-routine-equipment'},querySelector:s=>s==='#routine-editor [data-field=\"name\"]'?name:s==='#routine-editor [data-field=\"notes\"]'?notes:['#routine-version-select','#routine-dialog-close','#routine-view-close','#routine-transfer-close'].includes(s)?{isConnected:true}:null};\n",
+          "after": "  const server={equipment:[{id:'eq',name:'Fixture Tên',notes:'Original notes',groupId:'grp'},{id:'eq2',name:'Fixture 2',notes:'Second original',groupId:'grp'}],groups:[{id:'grp',categoryId:'cat',subcategoryId:'sub'}],categories:[{id:'cat'}],subcategories:[{id:'sub',categoryId:'cat'}],issues:[]},pending=[],renders=[],sectionUpdates=[],notes={value:'Original notes'},name={value:'Fixture Tên'};\n  let section=null;const page={querySelectorAll:selector=>selector==='[data-routine-reference-id]'&&section?[section]:[],isConnected:true,dataset:{activeTab:'quality-routine-equipment'},querySelector:s=>s==='#routine-editor [data-field=\"name\"]'?name:s==='#routine-editor [data-field=\"notes\"]'?notes:['#routine-version-select','#routine-dialog-close','#routine-view-close','#routine-transfer-close'].includes(s)?{isConnected:true}:null};\n"
+        },
+        {
+          "offset": 4108,
+          "before": "  const context={approvedHistoryView:null,historyDisplayEpoch:0,root:page,sessionStorage:{getItem:()=>null},inputOwner:null,reviewHost:null,actor:'staff',epoch:1,revision:1,allowed:true,equipmentEditRequest:0,host:page,content:page,controlActor:'staff',working:clone(server),selectedVersionId:'draft',selectedCategory:'cat',selectedSubcategory:'sub',selectedGroup:'grp',editingEquipmentId:'',selectedEquipmentId:'',addingEquipment:false,newEquipmentForm:null,newEquipmentOwner:null,formSnapshot:null,nodeDialog:null,viewDialog:null,transferDialog:null,syncBase:null,syncGeneration:'g',control:{workflow:{generation:'g'}},equipmentRefCache:new Map(),equipmentRefReads:new Map(),identity:()=>{let value=identities.get(context.actor);if(!value){value={id:context.actor};identities.set(context.actor,value);}return value;},editable:()=>context.allowed,visible:()=>context.working,selected:()=>({id:context.selectedVersionId,status:'draft',snapshot:server}),queryAllQualityReferences:id=>new Promise(resolve=>pending.push({id,resolve})),updateEquipmentReferenceSections(){throw Error('UNEXPECTED_SECTION_UPDATE');},open:()=>({id:'draft',status:'draft',snapshot:server}),snapshotOf:v=>clone(v.snapshot),document:{querySelector:()=>context.content},window:{ProcessSync:{identityGeneration:()=>context.epoch,captureDelivery:()=>({epoch:context.epoch}),isCurrentDelivery:o=>o.epoch===context.epoch,requiresReload:false}},t:zh=>zh,confirmCalls:0,confirmAnswer:false,confirm(){context.confirmCalls++;return context.confirmAnswer;},structure:data=>data,search:'',matchingRows:rows=>rows,requestAnimationFrame(){},clearTimeout(){},sharedPoll:null,isDirty:()=>true,pendingPhotos:new Map(),message:'',pollShared(){context.polls++;},polls:0,submitProblems:[],problemSnapshot:null,openErrors:false,equipmentPage:1,syncAddFormFromDOM(){},alert(){throw Error('UNEXPECTED_ALERT');},read(){throw Error('UNEXPECTED_READ');},loadTransferPreview(){context.previewCalls++;},previewCalls:0};\n  context.render=()=>{renders.push({editingEquipmentId:context.editingEquipmentId,snapshotNotes:context.formSnapshot?.notes});context.item=context.working.equipment.find(r=>r.id===context.editingEquipmentId);if(context.item){notes.value=context.item.notes;name.value=context.item.name;}};\n",
+          "after": "  const context={approvedHistoryView:null,historyDisplayEpoch:0,root:page,sessionStorage:{getItem:()=>null},inputOwner:null,reviewHost:null,actor:'staff',epoch:1,revision:1,allowed:true,equipmentEditRequest:0,host:page,content:page,controlActor:'staff',working:clone(server),selectedVersionId:'draft',selectedCategory:'cat',selectedSubcategory:'sub',selectedGroup:'grp',editingEquipmentId:'',selectedEquipmentId:'',addingEquipment:false,newEquipmentForm:null,newEquipmentOwner:null,formSnapshot:null,nodeDialog:null,viewDialog:null,transferDialog:null,syncBase:null,syncGeneration:'g',control:{workflow:{generation:'g'}},equipmentRefCache:new Map(),equipmentRefReads:new Map(),identity:()=>{let value=identities.get(context.actor);if(!value){value={id:context.actor};identities.set(context.actor,value);}return value;},editable:()=>context.allowed,visible:()=>context.working,selected:()=>({id:context.selectedVersionId,status:'draft',snapshot:server}),queryAllQualityReferences:id=>new Promise(resolve=>pending.push({id,resolve})),sharedClient:null,formPendingPhoto:null,h:String,open:()=>({id:'draft',status:'draft',snapshot:server}),snapshotOf:v=>clone(v.snapshot),document:{querySelector:()=>context.content},window:{ProcessSync:{identityGeneration:()=>context.epoch,captureDelivery:()=>({epoch:context.epoch}),isCurrentDelivery:o=>o.epoch===context.epoch,requiresReload:false}},t:zh=>zh,confirmCalls:0,confirmAnswer:false,confirm(){context.confirmCalls++;return context.confirmAnswer;},structure:data=>data,search:'',matchingRows:rows=>rows,requestAnimationFrame(){},clearTimeout(){},sharedPoll:null,isDirty:()=>true,pendingPhotos:new Map(),message:'',pollShared(){context.polls++;},polls:0,submitProblems:[],problemSnapshot:null,openErrors:false,equipmentPage:1,syncAddFormFromDOM(){},alert(){throw Error('UNEXPECTED_ALERT');},read(){throw Error('UNEXPECTED_READ');},loadTransferPreview(){context.previewCalls++;},previewCalls:0};\n  context.render=()=>{renders.push({editingEquipmentId:context.editingEquipmentId,snapshotNotes:context.formSnapshot?.notes});context.item=context.working.equipment.find(r=>r.id===context.editingEquipmentId);section=null;if(context.item){notes.value=context.item.notes;name.value=context.item.name;context.actualSection(context.item.id,'edit');section={dataset:{routineReferenceId:context.item.id,referenceMode:'edit'},set outerHTML(html){sectionUpdates.push({id:this.dataset.routineReferenceId,html});}};}};\n"
+        },
+        {
+          "offset": 6728,
+          "before": "  vm.runInContext(names.map(n=>decls.get(n)).join('\\n')+'\\nglobalThis.actualOpen=openEditEquipment;globalThis.actualClose=tryCloseForm;globalThis.actualDirty=isFormDirty;globalThis.actualAdd=openAddEquipmentDialog;globalThis.actualCancelAdd=cancelAdd;globalThis.actualLocate=locateEquipment;globalThis.actualMount=mount;globalThis.actualSelectVersion='+callbacks.get('version')+';globalThis.actualBindNode='+callbacks.get('node')+';globalThis.actualOpenNode=openNodeDialog;globalThis.actualTransfer=openTransferModal;'+[...callbacks].filter(([key])=>!['version','node'].includes(key)).map(([key,code])=>'globalThis.callback_'+key+'='+code+';').join(''),sandbox,{timeout:1000});\n  return{context,pending,renders,notes,page,async settle(index){assert.ok(pending[index],'Expected deferred reference request '+index);pending[index].resolve({fqc:{active:[],draft:[]},iqc:{active:[],draft:[]},ipqcC:{active:[],draft:[]},ipqcAB:{active:[],draft:[]}});await Promise.resolve();await Promise.resolve();},markModelAndDOM(){const row=context.working.equipment.find(r=>r.id===context.editingEquipmentId);row.notes='LOCAL MEMORY MARKER';notes.value='LOCAL MEMORY MARKER';},markDOMOnly(){notes.value='DOM ONLY LOCAL MARKER';}};\n",
+          "after": "  vm.runInContext(names.map(n=>decls.get(n)).join('\\n')+'\\nglobalThis.actualSection=equipmentReferencesSectionHTML;globalThis.actualLoad=loadEquipmentReferences;globalThis.actualOpen=openEditEquipment;globalThis.actualClose=tryCloseForm;globalThis.actualDirty=isFormDirty;globalThis.actualAdd=openAddEquipmentDialog;globalThis.actualCancelAdd=cancelAdd;globalThis.actualLocate=locateEquipment;globalThis.actualMount=mount;globalThis.actualSelectVersion='+callbacks.get('version')+';globalThis.actualBindNode='+callbacks.get('node')+';globalThis.actualOpenNode=openNodeDialog;globalThis.actualTransfer=openTransferModal;'+[...callbacks].filter(([key])=>!['version','node'].includes(key)).map(([key,code])=>'globalThis.callback_'+key+'='+code+';').join(''),sandbox,{timeout:1000});\n  return{context,pending,renders,sectionUpdates,notes,page,async settle(index){assert.ok(pending[index],'Expected deferred reference request '+index);pending[index].resolve(Object.fromEntries(['fqc','iqc','ipqcC','ipqcAB'].map(key=>[key,{active:[],pending:[],draft:[],superseded:[]}])));for(let n=0;n<8;n++)await Promise.resolve();},markModelAndDOM(){const row=context.working.equipment.find(r=>r.id===context.editingEquipmentId);row.notes='LOCAL MEMORY MARKER';notes.value='LOCAL MEMORY MARKER';},markDOMOnly(){notes.value='DOM ONLY LOCAL MARKER';}};\n"
+        },
+        {
+          "offset": 8535,
+          "before": " await check('references must settle before a form opens; successful current request opens once',async()=>{const f=fixture(),p=f.context.actualOpen('eq');assert.equal(f.pending.length,1);assert.equal(f.context.editingEquipmentId,'');assert.equal(f.renders.length,0);await f.settle(0);await p;assert.equal(f.context.editingEquipmentId,'eq');assert.equal(f.renders.length,1);assert.equal(f.context.formSnapshot.notes,'Original notes');});\n await check('same-equipment reads are single flight but latest edit intent owns the result',async()=>{const f=fixture(),a=f.context.actualOpen('eq'),b=f.context.actualOpen('eq');assert.equal(f.pending.length,1);await f.settle(0);await Promise.all([a,b]);assert.equal(f.context.editingEquipmentId,'eq');assert.equal(f.renders.length,1);});\n await check('older completion cannot open before the latest requested item references settle',async()=>{const f=fixture(),a=f.context.actualOpen('eq'),b=f.context.actualOpen('eq2');await f.settle(0);await a;assert.equal(f.context.editingEquipmentId,'','stale first request must not open');await f.settle(1);await b;assert.equal(f.context.editingEquipmentId,'eq2');assert.equal(f.renders.length,1);});\n await check('older completion cannot reopen after actual clean close',async()=>{const f=fixture(),a=f.context.actualOpen('eq2'),b=f.context.actualOpen('eq');await f.settle(1);await b;f.context.actualClose();assert.equal(f.context.confirmCalls,0);assert.equal(f.context.editingEquipmentId,'');const count=f.renders.length;await f.settle(0);await a;assert.equal(f.context.editingEquipmentId,'','late open after clean close');assert.equal(f.renders.length,count);});\n await check('model plus DOM changes: confirm=false plus late completion preserves marker and original snapshot',async()=>{const f=fixture(),a=f.context.actualOpen('eq2'),b=f.context.actualOpen('eq');await f.settle(1);await b;f.markModelAndDOM();assert.equal(f.context.actualDirty(),true);const count=f.renders.length;f.context.actualClose();assert.equal(f.context.confirmCalls,1);assert.equal(f.renders.length,count);await f.settle(0);await a;assert.equal(f.notes.value,'LOCAL MEMORY MARKER');assert.equal(f.context.working.equipment[0].notes,'LOCAL MEMORY MARKER');assert.equal(f.context.formSnapshot.notes,'Original notes','late completion must not rebase original snapshot');assert.equal(f.context.actualDirty(),true);assert.equal(f.renders.length,count);});\n await check('new edit call while an existing form is dirty cannot rebase it',async()=>{const f=fixture(),a=f.context.actualOpen('eq');await f.settle(0);await a;f.markModelAndDOM();const p=f.context.actualOpen('eq');assert.equal(f.pending.length,1,'existing editor must not admit another reference/open continuation');await p;assert.equal(f.context.formSnapshot.notes,'Original notes');assert.equal(f.context.actualDirty(),true);});\n await check('after await use latest current item rather than before-await object',async()=>{const f=fixture(),p=f.context.actualOpen('eq');f.context.working=clone(f.context.working);f.context.working.equipment[0].notes='New current shared value';await f.settle(0);await p;assert.equal(f.context.editingEquipmentId,'eq');assert.equal(f.context.formSnapshot.notes,'New current shared value','fresh item after await');assert.equal(f.context.actualDirty(),false);});\n await check('removed item cannot be opened from stale pre-await object',async()=>{const f=fixture(),p=f.context.actualOpen('eq');f.context.working.equipment=f.context.working.equipment.filter(r=>r.id!=='eq');await f.settle(0);await p;assert.equal(f.context.editingEquipmentId,'');assert.equal(f.renders.length,0);});\n for(const mode of ['actor','epoch-same-actor','control-owner','inactive-page','replaced-host','version','sync-generation','workflow-generation','permission'])await check('post-await refusal: '+mode,async()=>{const f=fixture(),p=f.context.actualOpen('eq');if(mode==='actor')f.context.actor='other';if(mode==='epoch-same-actor')f.context.epoch++;if(mode==='control-owner')f.context.controlActor='other';if(mode==='inactive-page')f.page.dataset.activeTab='elsewhere';if(mode==='replaced-host')f.context.host={...f.page};if(mode==='version')f.context.selectedVersionId='different';if(mode==='sync-generation')f.context.syncGeneration='new';if(mode==='workflow-generation')f.context.control.workflow.generation='new';if(mode==='permission')f.context.allowed=false;await f.settle(0);await p;assert.equal(f.context.editingEquipmentId,'','invalid context must not mutate editor state');assert.equal(f.renders.length,0);if(mode==='actor')assert.equal(f.context.equipmentRefCache.size,0);});\n",
+          "after": " await check('editor paints immediately; late references update only their section and preserve DOM input',async()=>{const f=fixture(),opened=f.context.actualOpen('eq');assert.equal(f.pending.length,1);assert.equal(f.context.editingEquipmentId,'eq');assert.equal(f.renders.length,1);await opened;f.markDOMOnly();await f.settle(0);assert.equal(f.renders.length,1);assert.equal(f.sectionUpdates.length,1);assert.equal(f.notes.value,'DOM ONLY LOCAL MARKER');assert.equal(f.context.formSnapshot.notes,'Original notes');assert.equal(f.context.actualDirty(),true);});\n await check('same-equipment reads are single flight; repeated edit cannot rebase an open form',async()=>{const f=fixture();await f.context.actualOpen('eq');f.markDOMOnly();await f.context.actualOpen('eq');const read=f.context.actualLoad('eq');assert.equal(f.pending.length,1);await f.settle(0);await read;assert.equal(f.renders.length,1);assert.equal(f.notes.value,'DOM ONLY LOCAL MARKER');});\n await check('older reference completion cannot paint a later editor',async()=>{const f=fixture();await f.context.actualOpen('eq');f.context.actualClose();await f.context.actualOpen('eq2');const count=f.renders.length;await f.settle(0);assert.equal(f.context.equipmentRefCache.has('eq'),false);assert.equal(f.sectionUpdates.length,0);assert.equal(f.context.editingEquipmentId,'eq2');await f.settle(1);assert.equal(f.sectionUpdates.length,1);assert.equal(f.sectionUpdates[0].id,'eq2');assert.equal(f.renders.length,count);});\n await check('older completion cannot reopen after actual clean close',async()=>{const f=fixture();await f.context.actualOpen('eq');f.context.actualClose();assert.equal(f.context.confirmCalls,0);const count=f.renders.length;await f.settle(0);assert.equal(f.context.editingEquipmentId,'');assert.equal(f.renders.length,count);assert.equal(f.sectionUpdates.length,0);assert.equal(f.context.equipmentRefCache.size,0);});\n await check('model plus DOM changes and canceled close retain original snapshot after references',async()=>{const f=fixture();await f.context.actualOpen('eq');f.markModelAndDOM();const count=f.renders.length;f.context.actualClose();assert.equal(f.context.confirmCalls,1);await f.settle(0);assert.equal(f.notes.value,'LOCAL MEMORY MARKER');assert.equal(f.context.working.equipment[0].notes,'LOCAL MEMORY MARKER');assert.equal(f.context.formSnapshot.notes,'Original notes');assert.equal(f.context.actualDirty(),true);assert.equal(f.renders.length,count);});\n await check('new edit call while an existing form is dirty cannot rebase it',async()=>{const f=fixture();await f.context.actualOpen('eq');f.markModelAndDOM();await f.context.actualOpen('eq');assert.equal(f.pending.length,1);await f.settle(0);assert.equal(f.context.formSnapshot.notes,'Original notes');assert.equal(f.context.actualDirty(),true);});\n await check('late references never rebase an editor onto replaced shared model',async()=>{const f=fixture();await f.context.actualOpen('eq');f.markDOMOnly();f.context.working=clone(f.context.working);f.context.working.equipment[0].notes='New current shared value';await f.settle(0);assert.equal(f.context.formSnapshot.notes,'Original notes');assert.equal(f.notes.value,'DOM ONLY LOCAL MARKER');assert.equal(f.context.working.equipment[0].notes,'New current shared value');assert.equal(f.renders.length,1);});\n await check('missing item is refused before opening or querying; late references cannot resurrect removed data',async()=>{const f=fixture();await f.context.actualOpen('missing');assert.equal(f.pending.length,0);await f.context.actualOpen('eq');f.context.working.equipment=f.context.working.equipment.filter(r=>r.id!=='eq');const count=f.renders.length;await f.settle(0);assert.equal(f.context.working.equipment.some(r=>r.id==='eq'),false);assert.equal(f.renders.length,count);});\n for(const mode of ['actor','epoch-same-actor','control-owner','inactive-page','replaced-host','version','sync-generation','workflow-generation','permission'])await check('late references cannot repaint editor after context changes: '+mode,async()=>{const f=fixture();await f.context.actualOpen('eq');f.markDOMOnly();const count=f.renders.length;if(mode==='actor')f.context.actor='other';if(mode==='epoch-same-actor')f.context.epoch++;if(mode==='control-owner')f.context.controlActor='other';if(mode==='inactive-page')f.page.dataset.activeTab='elsewhere';if(mode==='replaced-host')f.context.host={...f.page};if(mode==='version')f.context.selectedVersionId='different';if(mode==='sync-generation')f.context.syncGeneration='new';if(mode==='workflow-generation')f.context.control.workflow.generation='new';if(mode==='permission')f.context.allowed=false;await f.settle(0);assert.equal(f.renders.length,count);assert.equal(f.notes.value,'DOM ONLY LOCAL MARKER');assert.equal(f.context.formSnapshot.notes,'Original notes');if(!['permission','sync-generation'].includes(mode)){assert.equal(f.context.equipmentRefCache.size,0);assert.equal(f.sectionUpdates.length,0);}});\n for(const mode of ['permission','inactive-page'])await check('invalid initial context refuses edit: '+mode,async()=>{const f=fixture();if(mode==='permission')f.context.allowed=false;else f.page.dataset.activeTab='elsewhere';await f.context.actualOpen('eq');assert.equal(f.context.editingEquipmentId,'');assert.equal(f.pending.length,0);assert.equal(f.renders.length,0);});\n"
+        },
+        {
+          "offset": 14289,
+          "before": " await check('actual hierarchy selection invalidates pending request even same group',async()=>{const f=fixture(),p=f.context.actualOpen('eq'),button={isConnected:true,dataset:{nodeSelect:'group',id:'grp'}};f.context.actualBindNode(button);button.onclick();const count=f.renders.length;await f.settle(0);await p;assert.equal(f.context.editingEquipmentId,'');assert.equal(f.renders.length,count);});\n await check('actual add then clean add cancel invalidates pending edit',async()=>{const f=fixture(),p=f.context.actualOpen('eq');f.context.actualAdd();assert.equal(f.context.addingEquipment,true);f.context.actualCancelAdd();assert.equal(f.context.addingEquipment,false);assert.equal(f.context.confirmCalls,0);const count=f.renders.length;await f.settle(0);await p;assert.equal(f.context.editingEquipmentId,'');assert.equal(f.renders.length,count);});\n",
+          "after": " await check('actual hierarchy selection invalidates pending request even same group',async()=>{const f=fixture(),p=f.context.actualOpen('eq'),button={isConnected:true,dataset:{nodeSelect:'group',id:'grp'}};f.context.actualBindNode(button);button.onclick();const count=f.renders.length;await f.settle(0);await p;assert.equal(f.context.editingEquipmentId,'eq','hierarchy filter preserves the RAM editor');assert.equal(f.renders.length,count);});\n await check('actual add then clean add cancel invalidates pending edit',async()=>{const f=fixture(),p=f.context.actualOpen('eq');f.context.actualClose();f.context.actualAdd();assert.equal(f.context.addingEquipment,true);f.context.actualCancelAdd();assert.equal(f.context.addingEquipment,false);assert.equal(f.context.confirmCalls,0);const count=f.renders.length;await f.settle(0);await p;assert.equal(f.context.editingEquipmentId,'');assert.equal(f.renders.length,count);});\n"
+        },
+        {
+          "offset": 15583,
+          "before": " await check('actual remount preserve branch invalidates earlier lifecycle request',async()=>{const f=fixture(),p=f.context.actualOpen('eq');f.page.dataset.activeTab='elsewhere';f.page.dataset.activeTab='quality-routine-equipment';await f.context.actualMount(f.page);assert.equal(f.context.polls,0,'Preserved-input remount cannot schedule a background read');const count=f.renders.length;await f.settle(0);await p;assert.equal(f.context.editingEquipmentId,'');assert.equal(f.renders.length,count);});\n await check('DOM-only local notes: canceled close and late earlier open preserve DOM, original model/snapshot and dirty',async()=>{const f=fixture(),a=f.context.actualOpen('eq2'),b=f.context.actualOpen('eq');await f.settle(1);await b;f.markDOMOnly();assert.equal(f.context.working.equipment[0].notes,'Original notes','DOM-only fixture keeps working unchanged');assert.equal(f.context.formSnapshot.notes,'Original notes');assert.equal(f.context.actualDirty(),true);const count=f.renders.length;f.context.actualClose();assert.equal(f.context.confirmCalls,1);assert.equal(f.notes.value,'DOM ONLY LOCAL MARKER');assert.equal(f.renders.length,count);await f.settle(0);await a;assert.equal(f.notes.value,'DOM ONLY LOCAL MARKER','late equipment edit must not render away DOM-only input');assert.equal(f.context.working.equipment[0].notes,'Original notes');assert.equal(f.context.formSnapshot.notes,'Original notes');assert.equal(f.context.actualDirty(),true);assert.equal(f.renders.length,count);},'dom-only');\n",
+          "after": " await check('actual remount preserve branch invalidates earlier lifecycle request',async()=>{const f=fixture(),p=f.context.actualOpen('eq');f.page.dataset.activeTab='elsewhere';f.page.dataset.activeTab='quality-routine-equipment';await f.context.actualMount(f.page);assert.equal(f.context.polls,0,'Preserved-input remount cannot schedule a background read');const count=f.renders.length;await f.settle(0);await p;assert.equal(f.context.editingEquipmentId,'eq');assert.equal(f.renders.length,count);assert.equal(f.sectionUpdates.length,0);});\n await check('DOM-only canceled close preserves input and original model during late section refresh',async()=>{const f=fixture();await f.context.actualOpen('eq');f.markDOMOnly();const count=f.renders.length;f.context.actualClose();assert.equal(f.context.confirmCalls,1);await f.settle(0);assert.equal(f.notes.value,'DOM ONLY LOCAL MARKER');assert.equal(f.context.working.equipment[0].notes,'Original notes');assert.equal(f.context.formSnapshot.notes,'Original notes');assert.equal(f.context.actualDirty(),true);assert.equal(f.renders.length,count);assert.equal(f.sectionUpdates.length,1);},'dom-only');\n"
+        },
+        {
+          "offset": 17514,
+          "before": " for(const mode of ['add','edit'])for(const closeBeforeSettle of [false,true])await check('actual node '+mode+(closeBeforeSettle?' then close':' remains open')+' refuses late equipment edit',async()=>{const f=fixture(),p=f.context.actualOpen('eq');invokeNode(f,mode);assert.equal(f.context.nodeDialog.kind,'group');assert.equal(f.context.nodeDialog.id,mode==='add'?'':'grp');assert.equal(f.context.nodeDialog.prior?.id,mode==='add'?undefined:'grp');const dialog=f.context.nodeDialog;if(closeBeforeSettle)f.context.callback_nodeClose();const count=f.renders.length;await f.settle(0);await p;assert.equal(f.context.editingEquipmentId,'','late edit cannot take over node intent');assert.equal(f.renders.length,count);assert.equal(f.context.nodeDialog,closeBeforeSettle?null:dialog);},'node-modal');\n",
+          "after": " for(const mode of ['add','edit'])for(const closeBeforeSettle of [false,true])await check('actual node '+mode+(closeBeforeSettle?' then close':' remains open')+' refuses late equipment edit',async()=>{const f=fixture(),p=f.context.actualOpen('eq');f.context.actualClose();invokeNode(f,mode);assert.equal(f.context.nodeDialog.kind,'group');assert.equal(f.context.nodeDialog.id,mode==='add'?'':'grp');assert.equal(f.context.nodeDialog.prior?.id,mode==='add'?undefined:'grp');const dialog=f.context.nodeDialog;if(closeBeforeSettle)f.context.callback_nodeClose();const count=f.renders.length;await f.settle(0);await p;assert.equal(f.context.editingEquipmentId,'','late edit cannot take over node intent');assert.equal(f.renders.length,count);assert.equal(f.context.nodeDialog,closeBeforeSettle?null:dialog);},'node-modal');\n"
+        },
+        {
+          "offset": 20024,
+          "before": " for(const closeBeforeSettle of [false,true])await check('actual node view '+(closeBeforeSettle?'closed':'open')+' refuses late equipment edit',async()=>{const f=fixture(),p=f.context.actualOpen('eq');invokeNodeView(f);assert.equal(f.context.viewDialog.kind,'group');const dialog=f.context.viewDialog;if(closeBeforeSettle)f.context.callback_viewClose();const count=f.renders.length;await f.settle(0);await p;assert.equal(f.context.editingEquipmentId,'');assert.equal(f.context.viewDialog,closeBeforeSettle?null:dialog);assert.equal(f.renders.length,count);},'other-modal');\n await check('actual immediate equipment view invalidates older edit without starting reference reads',async()=>{const f=fixture(),p=f.context.actualOpen('eq'),view=invokeEquipmentView(f);assert.equal(f.pending.length,1,'only the original edit reference request exists');assert.equal(f.context.viewDialog.data.id,'eq2');await f.settle(0);await p;await view;assert.equal(f.context.editingEquipmentId,'');assert.equal(f.context.viewDialog.data.id,'eq2');},'other-modal');\n await check('actual immediate equipment view closed before old edit settles does not reopen editor',async()=>{const f=fixture(),p=f.context.actualOpen('eq');await invokeEquipmentView(f);assert.equal(f.context.viewDialog.data.id,'eq2');f.context.callback_viewClose();const count=f.renders.length;await f.settle(0);await p;assert.equal(f.context.editingEquipmentId,'');assert.equal(f.context.viewDialog,null);assert.equal(f.renders.length,count);},'other-modal');\n for(const closeBeforeSettle of [false,true])await check('actual transfer intent '+(closeBeforeSettle?'closed':'open')+' refuses late equipment edit',async()=>{const f=fixture(),p=f.context.actualOpen('eq');f.context.actualTransfer('eq2');assert.equal(f.context.transferDialog.sourceId,'eq2');assert.equal(f.context.previewCalls,1,'unchanged preview still requested exactly once at bounded boundary');const dialog=f.context.transferDialog;if(closeBeforeSettle)f.context.callback_transferClose();const count=f.renders.length;await f.settle(0);await p;assert.equal(f.context.editingEquipmentId,'');assert.equal(f.context.transferDialog,closeBeforeSettle?null:dialog);assert.equal(f.renders.length,count);},'other-modal');\n",
+          "after": " for(const closeBeforeSettle of [false,true])await check('actual node view '+(closeBeforeSettle?'closed':'open')+' refuses late equipment edit',async()=>{const f=fixture(),p=f.context.actualOpen('eq');f.context.actualClose();invokeNodeView(f);assert.equal(f.context.viewDialog.kind,'group');const dialog=f.context.viewDialog;if(closeBeforeSettle)f.context.callback_viewClose();const count=f.renders.length;await f.settle(0);await p;assert.equal(f.context.editingEquipmentId,'');assert.equal(f.context.viewDialog,closeBeforeSettle?null:dialog);assert.equal(f.renders.length,count);},'other-modal');\n await check('actual immediate equipment view invalidates older edit without starting reference reads',async()=>{const f=fixture(),p=f.context.actualOpen('eq');f.context.actualClose();const view=invokeEquipmentView(f);assert.equal(f.pending.length,1,'only the original edit reference request exists');assert.equal(f.context.viewDialog.data.id,'eq2');await f.settle(0);await p;await view;assert.equal(f.context.editingEquipmentId,'');assert.equal(f.context.viewDialog.data.id,'eq2');},'other-modal');\n await check('actual immediate equipment view closed before old edit settles does not reopen editor',async()=>{const f=fixture(),p=f.context.actualOpen('eq');f.context.actualClose();await invokeEquipmentView(f);assert.equal(f.context.viewDialog.data.id,'eq2');f.context.callback_viewClose();const count=f.renders.length;await f.settle(0);await p;assert.equal(f.context.editingEquipmentId,'');assert.equal(f.context.viewDialog,null);assert.equal(f.renders.length,count);},'other-modal');\n for(const closeBeforeSettle of [false,true])await check('actual transfer intent '+(closeBeforeSettle?'closed':'open')+' refuses late equipment edit',async()=>{const f=fixture(),p=f.context.actualOpen('eq');f.context.actualClose();f.context.actualTransfer('eq2');assert.equal(f.context.transferDialog.sourceId,'eq2');assert.equal(f.context.previewCalls,1,'unchanged preview still requested exactly once at bounded boundary');const dialog=f.context.transferDialog;if(closeBeforeSettle)f.context.callback_transferClose();const count=f.renders.length;await f.settle(0);await p;assert.equal(f.context.editingEquipmentId,'');assert.equal(f.context.transferDialog,closeBeforeSettle?null:dialog);assert.equal(f.renders.length,count);},'other-modal');\n"
+        },
+        {
+          "offset": 23836,
+          "before": " return{cases:results.length,passed:results.filter(r=>r.status==='PASS').length,failed:results.filter(r=>r.status==='FAIL').length,results,actualFunctions:names,actualCallbacks:['version selection','hierarchy selection','node add/edit/close','node view/equipment view/view close','transfer close'],qualification:'Actual extracted async open/reference loader/dirty/close/add/cancel/locate/mount and actual version/node callbacks. Deferred in-memory query and bounded plain DOM/render/identity/permission/model/timer boundaries. No native GUI, API, SDK, network, OS or business writes. Does not prove H25 marker loss cause.'};\n",
+          "after": " return{cases:results.length,passed:results.filter(r=>r.status==='PASS').length,failed:results.filter(r=>r.status==='FAIL').length,results,actualFunctions:names,actualCallbacks:['version selection','hierarchy selection','node add/edit/close','node view/equipment view/view close','transfer close'],qualification:'Actual extracted immediate editor, lazy reference section/loader/updater, dirty/close/add/cancel/locate/mount and actual version/node callbacks. Deferred in-memory query and bounded plain DOM/render/identity/permission/model/timer boundaries. No native GUI, API, SDK, network, OS or business writes. Does not prove H25 marker loss cause.'};\n"
+        }
+      ]
+    },
+    "scripts/process-ipqc-frequency-source-contract.cjs": {
+      "beforeHash": "4ccaf5cfa506e59bd33c9eb49a6fea415faaa7e562c695e39b95f91036767b01",
+      "beforeNormalizedHash": "4ccaf5cfa506e59bd33c9eb49a6fea415faaa7e562c695e39b95f91036767b01",
+      "afterHash": "b4b9e72c46bf4285a1e2a273555cba0b20a7184a398b9f1fe2fac9ea97f56b97",
+      "afterNormalizedHash": "b4b9e72c46bf4285a1e2a273555cba0b20a7184a398b9f1fe2fac9ea97f56b97",
+      "beforeCRLFRanges": [],
+      "rules": [
+        {
+          "offset": 394,
+          "before": " assert(Buffer.isBuffer(bytes),'Frequency display proof requires raw bytes');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Frequency display wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Frequency display successor drift');\n",
+          "after": " assert(Buffer.isBuffer(bytes),'Frequency display proof requires raw bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Frequency display wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Frequency display successor drift');\n"
+        },
+        {
+          "offset": 1280,
+          "before": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Frequency display proof requires raw bytes');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n",
+          "after": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Frequency display proof requires raw bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n"
+        }
+      ]
+    }
+  }
+}

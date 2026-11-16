@@ -156,6 +156,11 @@ if (require.main === module) (async () => {
       return raw(url,options);
     };
     await f.execute(); assert.equal(begin,1);assert.equal(commands,0);assert.equal(f.storage.size,1);
+    if(moduleId==='ipqc-ab'){
+      assert.equal(f.test.dialog.refreshing,true,'AB conflict result paints before independent display refresh completes');
+      await f.execute();assert.equal(reads,1,'duplicate entry while display refresh is active cannot start recovery or resend');
+      await tick();assert.equal(f.test.dialog.refreshing,false,'settled independent display refresh restores explicit readonly recovery entry');
+    }
     await f.execute(); assert.equal(begin,1);assert.equal(commands,0);assert.equal(reads,2);
     assert.equal(f.storage.size,1,'a matching projection cannot settle an unidentified Begin');
     assert.match(f.test.dialog.moduleMessages[uiKey(moduleId)],/尚未確認/);

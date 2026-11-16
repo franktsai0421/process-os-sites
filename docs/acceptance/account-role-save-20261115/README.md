@@ -44,3 +44,15 @@
 ## 共同檔案與整合風險
 
 未 cherry-pick 或覆蓋品質本機 `a03ee5b3`、速度 `8f94d0f3` 或製程 AQL 工程。主要 shared files：`public/process/index.html`、`AI_CONTEXT/modules/MASTER_DATA.md`、`AI_CONTEXT/DATA_MODEL.md`、`AI_CONTEXT/CHANGELOG.md`、`HANDOFF.md`、`scripts/process-platform-adopt-source-contract.cjs`；`lib/user-access.ts` 也可能被權限/效能工作共用。逐 hunk 合併並保留各自 cache tag、exact-source inverse 與 immutable manifest，不能整份選 ours/theirs。品質/檢具 route 和 state-records/process-state 共用底層未改動。本分支不合併、不部署。
+
+## 2026-11-16 — Draft #124 與已合併 main 的共同候選
+
+同一審查流程在收到新的明確要求與既有上傳授權後允許一次重試；公開提交 `07ee2330876b0a87663894494a5ed309eb2f3a21` 的 tree 為 `b22873c7f5cc06815e390018b1d5179ab44faf86`，和原本機 `7e7b5202` 完全相同。原 11/15 worktree 消失後，先保全 31 檔並逐檔核對 blob SHA，再從這個公開分支恢復同一隔離路徑；不是重建或連線原工作站。
+
+Draft #124 建立時 base 已到 `a1775a8a342d58335edf96d199a9c42844227dc6`，有四個共用檔案衝突，因而沒有 CI。僅在修復工作分支整合該已合併 main：CHANGELOG/HANDOFF 各自新增內容均保留；index 與冷啟動測試保留最新品質/AQL cache tags 及 account receipt→user-access 順序；source-proof chain 先移除本次精確整合差異，再沿原品質/頻率鏈核對。原 account-outcome、quality-root、frequency JSON manifest 均不改，新增 account-outcome-main manifest 以完整位元組逆向證明真 main；既有負例與實際 runtime 測試保留。
+
+一般 POST 不再以 15 秒宣判 UNKNOWN；停止等候不取消後端。回執 revision 必須對應原 base 且不超過新鮮 GET，重用已 commit requestId 即使換 payload 也拒絕；過期 fresh GET 不能用 ACK cache 冒充成功。原操作 pending marker 只在有效回執／回讀後清除。這些最終讀回負例已在原候選補測，整合後將重新核對最新提交。
+
+這不是把尚未合併的速度或品質辦公室 dirty 工作混入。最新共同候選的完整 SHA、CI、測試結果與未驗項以 PR 最新回報為準；這裡不預先宣稱通過，也不合併 PR、部署或操作任何實站帳號/資料。
+
+前置失敗另作確定性區分：只有非密碼操作、且還沒有呼叫 D1 UPDATE 時，服務異常才回 `503 ACCOUNT_PREWRITE_UNAVAILABLE`；client 只釋放這個精確碼/狀態與既有維護/密碼服務前置拒絕，保留輸入供稍後明確確認。已發出 DB request 的失敗、lost ACK、錯誤回執及無原回執仍為 UNKNOWN。這避免 R2 準備失敗在根本未寫入時留下持久未知鎖，沒有用全體 5xx 當作失敗，也沒有清掉真正未知操作。

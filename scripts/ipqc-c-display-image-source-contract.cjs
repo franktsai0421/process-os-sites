@@ -27,6 +27,10 @@ const rules=[
 const hash=source=>createHash('sha256').update(source).digest('hex');
 const hasDisplay=source=>source.includes('equipmentForDisplay(')||source.includes('equipmentDetailHTML(');
 function withoutDisplay(source){
+ // Successor projections admit checkout EOL only at their own worktree boundary.
+ // This pure inverse must verify the exact successor bytes before any projection.
+ const qualityPin=require('./quality-root-source-contract.json').files['public/process/ipqc-c.js'];
+ if(qualityPin&&hash(Buffer.from(source).toString('utf8').replaceAll('\r\n','\n'))===qualityPin.afterNormalizedHash)assert.equal(hash(source),qualityPin.afterHash,'C display source differs from exact reviewed bytes');
  // A pure inverse never gains checkout normalization from a successor projection.
  const recovery=require('./ipqc-save-recovery-source-contract.cjs'),pin=recovery.contract.files['public/process/ipqc-c.js'];
  if(pin&&hash(Buffer.from(source).toString('utf8').replaceAll('\r\n','\n'))===pin.afterNormalizedHash)assert.equal(hash(source),pin.afterHash,'C display source differs from exact reviewed bytes');
