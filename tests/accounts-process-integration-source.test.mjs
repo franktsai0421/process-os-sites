@@ -24,7 +24,7 @@ void test('every shared identical change and the three latest process-only regre
  assert.deepEqual(unique,['tests/equipment-transfer-compiled.test.mjs','tests/equipment-transfer-setup-cleanup.test.mjs','tests/shared-draft-tab-attribution.test.mjs']);
  for(const file of unique)assert.deepEqual(published(git('show','HEAD:'+file),file),git('show',manifest.sources.pr104.commit+':'+file),file);
 });
-void test('reviewed account/process runtime union retains every installed file with the three pinned quality helpers and exact catalog/password helpers',()=>{
+void test('reviewed account/process runtime union retains every installed file with the three pinned quality helpers and exact catalog/password/account helpers',()=>{
  const files=git('ls-tree','-r','--name-only',manifest.sources.pr103.commit,'--','app','lib','public').toString().trim().split('\n');
  const additions=['lib/ipqc-ab-local-lineage.ts','lib/ipqc-c-access.ts','lib/iqc-local-save.ts'],catalogAddition='lib/master-catalog-handoff.ts';
  assert.equal(git('ls-tree',manifest.sources.pr103.commit,'--',catalogAddition).length,0);
@@ -34,7 +34,10 @@ void test('reviewed account/process runtime union retains every installed file w
  assert.equal(git('ls-tree',password.contract.base,'--',helper).length,0,'Password helper is absent from genuine main');
  assert.equal(git('rev-parse','HEAD:'+helper).toString().trim(),password.contract.runtime.blob);
  password.assertRuntime(git('show','HEAD:'+helper),helper);password.assertRuntime(fs.readFileSync(helper),helper);
- assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\n'),[...files,...additions,catalogAddition,helper].sort());
+ const account=createRequire(import.meta.url)('../scripts/account-outcome-source-contract.cjs'),accountHelpers=['lib/account-state.ts','public/process/account-write-receipt.js'];
+ assert.deepEqual(Object.keys(account.contract.runtime).sort(),accountHelpers);
+ for(const file of accountHelpers){assert.equal(git('ls-tree',account.contract.base,'--',file).length,0);account.assertRuntime(git('show','HEAD:'+file),file);account.assertRuntime(fs.readFileSync(file),file);}
+ assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\n'),[...files,...additions,catalogAddition,helper,...accountHelpers].sort());
  for(const file of additions)assert.deepEqual(createRequire(import.meta.url)('../scripts/quality-main-source-contract.cjs').projectKnown(git('show','HEAD:'+file),file,'quality'),git('show','0850a46732ce4d468a2238450d83c3f2f8fb3d07:'+file),file);
  // Preserve exact quality-parent bytes; C return semantics have an independently tested narrow inverse.
  for(const file of files)assert.deepEqual(published(git('show','HEAD:'+file),file),git('show',manifest.sources.pr103.commit+':'+file),file);

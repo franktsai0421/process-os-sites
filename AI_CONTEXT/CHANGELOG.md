@@ -1,3 +1,8 @@
+
+## 2026-11-15 — 角色與人員保存／原回執候選
+
+帳號專用 verified records overlay 移除不相關業務讀取；非密碼操作保留獨立 requestId/audit 回執直到 fresh readback，UNKNOWN 只查原操作、不重送，POST 可明確停止等候。status.view 導出明細/照片/影片舊只讀別名；管理員安全邊界、effective inheritance、角色例外、fresh auth/CAS 保留。沒有 live 帳號/資料/schema/政策採用/合併或部署。[根因、量測、完整權限對照與驗證界線](../docs/acceptance/account-role-save-20261115/README.md)。
+
 ## 2026-11-15 — 檢具／模具與品質頁實測修復候選
 
 獨立 main e040a7e 候選：移轉回應與查詢解耦、AQL 預設欄位、本地／已存／未知狀態及伺服器編碼提示；AB 關聯精簡投影與有界序列化；檢具／模具逐請求權限評估；唯讀歷史過期與寫入結果分開呈現。無資料遷移、實站寫入、權限變更或部署。[證據與限制](../docs/acceptance/quality-root-causes-20261115.md)。

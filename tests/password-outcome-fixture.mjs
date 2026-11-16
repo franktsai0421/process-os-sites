@@ -20,5 +20,5 @@ export async function passwordFixture(format='records'){
  const get=actor=>route.GET(request(actor,'GET'));
  async function sign(id,password=secret){return login.POST(new Request('https://synthetic.invalid/api/platform-login',{method:'POST',headers:{Origin:'https://synthetic.invalid','Content-Type':'application/json'},body:JSON.stringify({id,password})}));}
  gets=[];puts=0;
- return{db,objects,source,core,records,pw,users,values,secret,cookies,warnings,snapshot,post,get,sign,request,fault(value){failure=value;},beforeCAS(fn){beforeCAS=fn;},io:()=>({gets:[...gets],puts}),resetIO(){gets=[];puts=0;},close(){db.close();}};
+ return{env,db,objects,source,core,records,pw,users,values,secret,cookies,warnings,snapshot,post,get,sign,request,fault(value){failure=value;},beforeCAS(fn){beforeCAS=fn;},io:()=>({gets:[...gets],puts}),resetIO(){gets=[];puts=0;},close(){db.close();}};
 }
