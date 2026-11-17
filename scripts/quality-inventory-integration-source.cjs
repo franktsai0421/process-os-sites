@@ -1,0 +1,6 @@
+// Test-only dual-parent integration proof. Unknown source is never repaired.
+const assert=require('node:assert/strict'),{createHash}=require('node:crypto');
+const contract=require('./quality-inventory-integration-source.json'),hash=b=>createHash('sha256').update(b).digest('hex'),norm=b=>Buffer.from(b.toString().replaceAll('\r\n','\n'));
+function restore(bytes,file,target){assert(Buffer.isBuffer(bytes),'integration requires raw Buffer');const c=contract.targets[target]?.files[file];assert(c,'integration wrong path/target');let out=norm(bytes);assert.equal(hash(out),c.afterHash,'integration source drift');for(const r of [...c.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span));out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),c.beforeNormalizedHash);const lines=out.toString().split('\n');for(const i of c.beforeCRLF)lines[i]+='\r';out=Buffer.from(lines.join('\n'));assert.equal(hash(out),c.beforeHash);return out;}
+function projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'integration requires raw Buffer');const c=contract.targets[target]?.files[file];return c&&hash(norm(bytes))===c.afterHash?restore(bytes,file,target):bytes;}
+module.exports={contract,restore,projectKnown};

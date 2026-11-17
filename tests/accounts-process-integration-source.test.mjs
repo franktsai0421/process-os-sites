@@ -34,13 +34,16 @@ void test('reviewed account/process runtime union retains every installed file w
  assert.equal(git('ls-tree',password.contract.base,'--',helper).length,0,'Password helper is absent from genuine main');
  assert.equal(git('rev-parse','HEAD:'+helper).toString().trim(),password.contract.runtime.blob);
  password.assertRuntime(git('show','HEAD:'+helper),helper);password.assertRuntime(fs.readFileSync(helper),helper);
+ const inventoryHelper='lib/inventory-read-ahead.mjs';
+ assert.equal(git('ls-tree',manifest.sources.pr103.commit,'--',inventoryHelper).length,0);
+ assert.equal(hash(git('show','HEAD:'+inventoryHelper)),'edec4965f468106bc29c14a81f79c256d251f03a1ebe636f6fb16792c7a27413');
  const account=createRequire(import.meta.url)('../scripts/account-outcome-source-contract.cjs'),accountHelpers=['lib/account-state.ts','public/process/account-write-receipt.js'];
  assert.deepEqual(Object.keys(account.contract.runtime).sort(),accountHelpers);
  for(const file of accountHelpers){assert.equal(git('ls-tree',account.contract.base,'--',file).length,0);account.assertRuntime(git('show','HEAD:'+file),file);account.assertRuntime(fs.readFileSync(file),file);}
  const qualityHelpers=['lib/quality-read-wire.ts','public/process/quality-read-wire.js'],qualityParent='18336433e6bcb0efd18ab1a153d48d4002717ee1';
  git('merge-base','--is-ancestor',qualityParent,'HEAD');
  for(const file of qualityHelpers){assert.equal(git('ls-tree','a1775a8a342d58335edf96d199a9c42844227dc6','--',file).length,0);assert.deepEqual(git('show','HEAD:'+file),git('show',qualityParent+':'+file));assert.deepEqual(fs.readFileSync(file),git('show',qualityParent+':'+file));}
- assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\n'),[...files,...additions,catalogAddition,helper,...accountHelpers,...qualityHelpers].sort());
+ assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\n'),[...files,...additions,catalogAddition,helper,inventoryHelper,...accountHelpers,...qualityHelpers].sort());
  for(const file of additions)assert.deepEqual(createRequire(import.meta.url)('../scripts/quality-main-source-contract.cjs').projectKnown(git('show','HEAD:'+file),file,'quality'),git('show','0850a46732ce4d468a2238450d83c3f2f8fb3d07:'+file),file);
  // Preserve exact quality-parent bytes; C return semantics have an independently tested narrow inverse.
  for(const file of files)assert.deepEqual(published(git('show','HEAD:'+file),file),git('show',manifest.sources.pr103.commit+':'+file),file);

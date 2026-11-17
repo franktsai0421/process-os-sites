@@ -1,0 +1,650 @@
+{
+  "baselineCommit": "ea137c7dd8d608d216d45ab29b033fc5f782ff5d",
+  "status": "PASS_PROOF_OUTCOME_AND_INVOCATION_PARITY",
+  "summary": [
+    {
+      "name": "known",
+      "before": {
+        "n": 3,
+        "medianMs": 1225.985076
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 288.536598
+      }
+    },
+    {
+      "name": "mutant-restore",
+      "before": {
+        "n": 3,
+        "medianMs": 1146.3441930000001
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 240.972937
+      }
+    },
+    {
+      "name": "mutant-admission",
+      "before": {
+        "n": 3,
+        "medianMs": 994.837031
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 236.66396099999997
+      }
+    }
+  ],
+  "runs": [
+    {
+      "pair": 0,
+      "mode": "before",
+      "node": "v24.22.1",
+      "sourceHashes": {
+        "scripts/inventory-quality-source-contract.cjs": "633ed85ff4a031d22645e64f268b5997af75a9e8529831ae895bca4a29e54935",
+        "scripts/inventory-account-adapter-source-contract.cjs": "2d76fc124ae76d31b3c47f2458bb39dda1956e8fcc46a78059e562282a97a02a",
+        "scripts/account-outcome-source-contract.cjs": "cbed592d1f252bbaea1a40dc96dce42c692e2e07cfc19f41f7b4eb000494a368",
+        "scripts/quality-root-source-contract.cjs": "370ceadb85f3482b0371cc0bb24602fe32bb131cd16b1dd4d9175146de81145b",
+        "scripts/process-ipqc-frequency-source-contract.cjs": "5a53c892aa69350792e3c2469de1eef3c85e25e589e6b092ed4e7773320a52e3",
+        "scripts/process-platform-adopt-source-contract.cjs": "0b646f27446837996ca918384afe59c36504ed66fecaac83471047d3574d8d7d",
+        "scripts/lines-flow-source-contract.cjs": "509adf12827e75c2ba79e879dee17fdb9821adbd5fffba18a8ade9f88125be12",
+        "scripts/password-outcome-source-contract.cjs": "c9c85d5779bfb0719a5a79da6154d40ff252d162c41b6155008b91f8df68b268",
+        "scripts/process-submit-outcome-source-contract.cjs": "3c119fe1e5e7b3ed07485661350096c2d2438f88aa77fb850d71ea828681099b",
+        "scripts/equipment-integration-source-contract.cjs": "3dfa9eb74b6528fd993b730e3812ed90623fa34f1c2e32c303952e93b998e087",
+        "scripts/quality-main-source-contract.cjs": "0c5b49570f4ace91c4967b513da7592f7644ef97af6c56cc83558d73f15f0945",
+        "scripts/inventory-quality-source-contract.json": "f2b8a5b8cd0328f37bcfe0f9aad53afaf7125db7ab262dbeb9202087c5919078",
+        "scripts/inventory-account-adapter-source-contract.json": "a2058b6fbcda8bf33a929c0743c5babe07cbc5072bd3d17c064e891393661f39",
+        "public/process/fqc-master.js": "7f0150fcfc0852245c05cd3cf1bd78479d6f81cc310cc6de3be424693364a228"
+      },
+      "steps": [
+        {
+          "name": "known",
+          "ms": 1357.25352,
+          "resultHash": "f8a6969cb108d3d25b8e842d7d1bb1a97fff9203fb42fb4a0878994156dc5528"
+        },
+        {
+          "name": "mutant-restore",
+          "ms": 1146.3441930000001,
+          "resultHash": null
+        },
+        {
+          "name": "mutant-admission",
+          "ms": 994.837031,
+          "resultHash": null
+        }
+      ],
+      "stats": [
+        {
+          "name": "inventory-quality.projectKnown",
+          "calls": 1913,
+          "ms": 2631.4745130000088
+        },
+        {
+          "name": "quality-main.restoreParent",
+          "calls": 2,
+          "ms": 2503.025458
+        },
+        {
+          "name": "process-platform-adopt.projectKnown",
+          "calls": 174,
+          "ms": 2435.5181509999993
+        },
+        {
+          "name": "quality-root.projectKnown",
+          "calls": 522,
+          "ms": 2182.914607999996
+        },
+        {
+          "name": "equipment-integration.projectKnown",
+          "calls": 3,
+          "ms": 1490.78102
+        },
+        {
+          "name": "process-submit-outcome.projectKnown",
+          "calls": 3,
+          "ms": 1327.1791630000005
+        },
+        {
+          "name": "process-ipqc-frequency.projectKnown",
+          "calls": 174,
+          "ms": 1240.6856599999992
+        },
+        {
+          "name": "account-outcome.projectKnown",
+          "calls": 871,
+          "ms": 1193.2242760000022
+        },
+        {
+          "name": "password-outcome.projectKnown",
+          "calls": 9,
+          "ms": 1172.5378599999997
+        },
+        {
+          "name": "quality-main.projectKnown",
+          "calls": 1,
+          "ms": 994.809749
+        },
+        {
+          "name": "lines-flow.projectKnown",
+          "calls": 15,
+          "ms": 819.5322479999995
+        },
+        {
+          "name": "inventory-account-adapter.projectKnown",
+          "calls": 871,
+          "ms": 0.9266690000021356
+        }
+      ],
+      "limits": "Fresh process, same known/negative calls and original proof methods. Inclusive nested times must not be summed. No business workflow or hosted-site timing."
+    },
+    {
+      "pair": 0,
+      "mode": "after",
+      "node": "v24.22.1",
+      "sourceHashes": {
+        "scripts/inventory-quality-source-contract.cjs": "616ee25666434f88bf20593d572fa3598810ac3f824a9d3cf3cbf914abca0b7b",
+        "scripts/inventory-account-adapter-source-contract.cjs": "2d76fc124ae76d31b3c47f2458bb39dda1956e8fcc46a78059e562282a97a02a",
+        "scripts/account-outcome-source-contract.cjs": "cbed592d1f252bbaea1a40dc96dce42c692e2e07cfc19f41f7b4eb000494a368",
+        "scripts/quality-root-source-contract.cjs": "370ceadb85f3482b0371cc0bb24602fe32bb131cd16b1dd4d9175146de81145b",
+        "scripts/process-ipqc-frequency-source-contract.cjs": "5a53c892aa69350792e3c2469de1eef3c85e25e589e6b092ed4e7773320a52e3",
+        "scripts/process-platform-adopt-source-contract.cjs": "0b646f27446837996ca918384afe59c36504ed66fecaac83471047d3574d8d7d",
+        "scripts/lines-flow-source-contract.cjs": "509adf12827e75c2ba79e879dee17fdb9821adbd5fffba18a8ade9f88125be12",
+        "scripts/password-outcome-source-contract.cjs": "c9c85d5779bfb0719a5a79da6154d40ff252d162c41b6155008b91f8df68b268",
+        "scripts/process-submit-outcome-source-contract.cjs": "3c119fe1e5e7b3ed07485661350096c2d2438f88aa77fb850d71ea828681099b",
+        "scripts/equipment-integration-source-contract.cjs": "3dfa9eb74b6528fd993b730e3812ed90623fa34f1c2e32c303952e93b998e087",
+        "scripts/quality-main-source-contract.cjs": "0c5b49570f4ace91c4967b513da7592f7644ef97af6c56cc83558d73f15f0945",
+        "scripts/inventory-quality-source-contract.json": "f2b8a5b8cd0328f37bcfe0f9aad53afaf7125db7ab262dbeb9202087c5919078",
+        "scripts/inventory-account-adapter-source-contract.json": "a2058b6fbcda8bf33a929c0743c5babe07cbc5072bd3d17c064e891393661f39",
+        "public/process/fqc-master.js": "7f0150fcfc0852245c05cd3cf1bd78479d6f81cc310cc6de3be424693364a228",
+        "scripts/source-normalization-cache.cjs": "a81c6662a3c2706a3a910d19b6cba7afa0550a6a879d0193c6871e7760064570"
+      },
+      "steps": [
+        {
+          "name": "known",
+          "ms": 277.080155,
+          "resultHash": "f8a6969cb108d3d25b8e842d7d1bb1a97fff9203fb42fb4a0878994156dc5528"
+        },
+        {
+          "name": "mutant-restore",
+          "ms": 240.972937,
+          "resultHash": null
+        },
+        {
+          "name": "mutant-admission",
+          "ms": 357.106907,
+          "resultHash": null
+        }
+      ],
+      "stats": [
+        {
+          "name": "quality-root.projectKnown",
+          "calls": 522,
+          "ms": 784.0308310000013
+        },
+        {
+          "name": "process-platform-adopt.projectKnown",
+          "calls": 174,
+          "ms": 550.5161680000007
+        },
+        {
+          "name": "quality-main.restoreParent",
+          "calls": 2,
+          "ms": 517.5996170000001
+        },
+        {
+          "name": "process-submit-outcome.projectKnown",
+          "calls": 3,
+          "ms": 406.00696099999993
+        },
+        {
+          "name": "quality-main.projectKnown",
+          "calls": 1,
+          "ms": 357.056771
+        },
+        {
+          "name": "equipment-integration.projectKnown",
+          "calls": 3,
+          "ms": 299.8139359999999
+        },
+        {
+          "name": "process-ipqc-frequency.projectKnown",
+          "calls": 174,
+          "ms": 290.5827389999997
+        },
+        {
+          "name": "lines-flow.projectKnown",
+          "calls": 15,
+          "ms": 288.4219559999999
+        },
+        {
+          "name": "password-outcome.projectKnown",
+          "calls": 9,
+          "ms": 221.36979000000008
+        },
+        {
+          "name": "inventory-quality.projectKnown",
+          "calls": 1913,
+          "ms": 40.32038900000116
+        },
+        {
+          "name": "account-outcome.projectKnown",
+          "calls": 871,
+          "ms": 20.154368999999463
+        },
+        {
+          "name": "inventory-account-adapter.projectKnown",
+          "calls": 871,
+          "ms": 0.47282700000044997
+        }
+      ],
+      "limits": "Fresh process, same known/negative calls and original proof methods. Inclusive nested times must not be summed. No business workflow or hosted-site timing."
+    },
+    {
+      "pair": 1,
+      "mode": "after",
+      "node": "v24.22.1",
+      "sourceHashes": {
+        "scripts/inventory-quality-source-contract.cjs": "616ee25666434f88bf20593d572fa3598810ac3f824a9d3cf3cbf914abca0b7b",
+        "scripts/inventory-account-adapter-source-contract.cjs": "2d76fc124ae76d31b3c47f2458bb39dda1956e8fcc46a78059e562282a97a02a",
+        "scripts/account-outcome-source-contract.cjs": "cbed592d1f252bbaea1a40dc96dce42c692e2e07cfc19f41f7b4eb000494a368",
+        "scripts/quality-root-source-contract.cjs": "370ceadb85f3482b0371cc0bb24602fe32bb131cd16b1dd4d9175146de81145b",
+        "scripts/process-ipqc-frequency-source-contract.cjs": "5a53c892aa69350792e3c2469de1eef3c85e25e589e6b092ed4e7773320a52e3",
+        "scripts/process-platform-adopt-source-contract.cjs": "0b646f27446837996ca918384afe59c36504ed66fecaac83471047d3574d8d7d",
+        "scripts/lines-flow-source-contract.cjs": "509adf12827e75c2ba79e879dee17fdb9821adbd5fffba18a8ade9f88125be12",
+        "scripts/password-outcome-source-contract.cjs": "c9c85d5779bfb0719a5a79da6154d40ff252d162c41b6155008b91f8df68b268",
+        "scripts/process-submit-outcome-source-contract.cjs": "3c119fe1e5e7b3ed07485661350096c2d2438f88aa77fb850d71ea828681099b",
+        "scripts/equipment-integration-source-contract.cjs": "3dfa9eb74b6528fd993b730e3812ed90623fa34f1c2e32c303952e93b998e087",
+        "scripts/quality-main-source-contract.cjs": "0c5b49570f4ace91c4967b513da7592f7644ef97af6c56cc83558d73f15f0945",
+        "scripts/inventory-quality-source-contract.json": "f2b8a5b8cd0328f37bcfe0f9aad53afaf7125db7ab262dbeb9202087c5919078",
+        "scripts/inventory-account-adapter-source-contract.json": "a2058b6fbcda8bf33a929c0743c5babe07cbc5072bd3d17c064e891393661f39",
+        "public/process/fqc-master.js": "7f0150fcfc0852245c05cd3cf1bd78479d6f81cc310cc6de3be424693364a228",
+        "scripts/source-normalization-cache.cjs": "a81c6662a3c2706a3a910d19b6cba7afa0550a6a879d0193c6871e7760064570"
+      },
+      "steps": [
+        {
+          "name": "known",
+          "ms": 296.174448,
+          "resultHash": "f8a6969cb108d3d25b8e842d7d1bb1a97fff9203fb42fb4a0878994156dc5528"
+        },
+        {
+          "name": "mutant-restore",
+          "ms": 223.391125,
+          "resultHash": null
+        },
+        {
+          "name": "mutant-admission",
+          "ms": 217.26874799999996,
+          "resultHash": null
+        }
+      ],
+      "stats": [
+        {
+          "name": "quality-root.projectKnown",
+          "calls": 522,
+          "ms": 680.1980829999992
+        },
+        {
+          "name": "quality-main.restoreParent",
+          "calls": 2,
+          "ms": 519.181562
+        },
+        {
+          "name": "process-platform-adopt.projectKnown",
+          "calls": 174,
+          "ms": 457.1476470000008
+        },
+        {
+          "name": "equipment-integration.projectKnown",
+          "calls": 3,
+          "ms": 283.45580500000005
+        },
+        {
+          "name": "process-submit-outcome.projectKnown",
+          "calls": 3,
+          "ms": 280.60481000000004
+        },
+        {
+          "name": "process-ipqc-frequency.projectKnown",
+          "calls": 174,
+          "ms": 227.10029299999945
+        },
+        {
+          "name": "quality-main.projectKnown",
+          "calls": 1,
+          "ms": 217.24434100000008
+        },
+        {
+          "name": "password-outcome.projectKnown",
+          "calls": 9,
+          "ms": 209.23421399999992
+        },
+        {
+          "name": "lines-flow.projectKnown",
+          "calls": 15,
+          "ms": 187.42328599999993
+        },
+        {
+          "name": "inventory-quality.projectKnown",
+          "calls": 1913,
+          "ms": 35.0078759999993
+        },
+        {
+          "name": "account-outcome.projectKnown",
+          "calls": 871,
+          "ms": 24.30394599999937
+        },
+        {
+          "name": "inventory-account-adapter.projectKnown",
+          "calls": 871,
+          "ms": 0.6534919999996021
+        }
+      ],
+      "limits": "Fresh process, same known/negative calls and original proof methods. Inclusive nested times must not be summed. No business workflow or hosted-site timing."
+    },
+    {
+      "pair": 1,
+      "mode": "before",
+      "node": "v24.22.1",
+      "sourceHashes": {
+        "scripts/inventory-quality-source-contract.cjs": "633ed85ff4a031d22645e64f268b5997af75a9e8529831ae895bca4a29e54935",
+        "scripts/inventory-account-adapter-source-contract.cjs": "2d76fc124ae76d31b3c47f2458bb39dda1956e8fcc46a78059e562282a97a02a",
+        "scripts/account-outcome-source-contract.cjs": "cbed592d1f252bbaea1a40dc96dce42c692e2e07cfc19f41f7b4eb000494a368",
+        "scripts/quality-root-source-contract.cjs": "370ceadb85f3482b0371cc0bb24602fe32bb131cd16b1dd4d9175146de81145b",
+        "scripts/process-ipqc-frequency-source-contract.cjs": "5a53c892aa69350792e3c2469de1eef3c85e25e589e6b092ed4e7773320a52e3",
+        "scripts/process-platform-adopt-source-contract.cjs": "0b646f27446837996ca918384afe59c36504ed66fecaac83471047d3574d8d7d",
+        "scripts/lines-flow-source-contract.cjs": "509adf12827e75c2ba79e879dee17fdb9821adbd5fffba18a8ade9f88125be12",
+        "scripts/password-outcome-source-contract.cjs": "c9c85d5779bfb0719a5a79da6154d40ff252d162c41b6155008b91f8df68b268",
+        "scripts/process-submit-outcome-source-contract.cjs": "3c119fe1e5e7b3ed07485661350096c2d2438f88aa77fb850d71ea828681099b",
+        "scripts/equipment-integration-source-contract.cjs": "3dfa9eb74b6528fd993b730e3812ed90623fa34f1c2e32c303952e93b998e087",
+        "scripts/quality-main-source-contract.cjs": "0c5b49570f4ace91c4967b513da7592f7644ef97af6c56cc83558d73f15f0945",
+        "scripts/inventory-quality-source-contract.json": "f2b8a5b8cd0328f37bcfe0f9aad53afaf7125db7ab262dbeb9202087c5919078",
+        "scripts/inventory-account-adapter-source-contract.json": "a2058b6fbcda8bf33a929c0743c5babe07cbc5072bd3d17c064e891393661f39",
+        "public/process/fqc-master.js": "7f0150fcfc0852245c05cd3cf1bd78479d6f81cc310cc6de3be424693364a228"
+      },
+      "steps": [
+        {
+          "name": "known",
+          "ms": 1225.985076,
+          "resultHash": "f8a6969cb108d3d25b8e842d7d1bb1a97fff9203fb42fb4a0878994156dc5528"
+        },
+        {
+          "name": "mutant-restore",
+          "ms": 1024.9133789999998,
+          "resultHash": null
+        },
+        {
+          "name": "mutant-admission",
+          "ms": 1125.616962,
+          "resultHash": null
+        }
+      ],
+      "stats": [
+        {
+          "name": "inventory-quality.projectKnown",
+          "calls": 1913,
+          "ms": 2572.696177000002
+        },
+        {
+          "name": "process-platform-adopt.projectKnown",
+          "calls": 174,
+          "ms": 2373.707949999997
+        },
+        {
+          "name": "quality-main.restoreParent",
+          "calls": 2,
+          "ms": 2250.531341
+        },
+        {
+          "name": "quality-root.projectKnown",
+          "calls": 522,
+          "ms": 2143.5740560000004
+        },
+        {
+          "name": "equipment-integration.projectKnown",
+          "calls": 3,
+          "ms": 1570.8898880000002
+        },
+        {
+          "name": "process-submit-outcome.projectKnown",
+          "calls": 3,
+          "ms": 1229.2192029999997
+        },
+        {
+          "name": "account-outcome.projectKnown",
+          "calls": 871,
+          "ms": 1196.6013169999958
+        },
+        {
+          "name": "process-ipqc-frequency.projectKnown",
+          "calls": 174,
+          "ms": 1181.1222149999994
+        },
+        {
+          "name": "quality-main.projectKnown",
+          "calls": 1,
+          "ms": 1125.5348680000002
+        },
+        {
+          "name": "password-outcome.projectKnown",
+          "calls": 9,
+          "ms": 1120.9492770000004
+        },
+        {
+          "name": "lines-flow.projectKnown",
+          "calls": 15,
+          "ms": 805.2741359999999
+        },
+        {
+          "name": "inventory-account-adapter.projectKnown",
+          "calls": 871,
+          "ms": 1.2838859999986312
+        }
+      ],
+      "limits": "Fresh process, same known/negative calls and original proof methods. Inclusive nested times must not be summed. No business workflow or hosted-site timing."
+    },
+    {
+      "pair": 2,
+      "mode": "before",
+      "node": "v24.22.1",
+      "sourceHashes": {
+        "scripts/inventory-quality-source-contract.cjs": "633ed85ff4a031d22645e64f268b5997af75a9e8529831ae895bca4a29e54935",
+        "scripts/inventory-account-adapter-source-contract.cjs": "2d76fc124ae76d31b3c47f2458bb39dda1956e8fcc46a78059e562282a97a02a",
+        "scripts/account-outcome-source-contract.cjs": "cbed592d1f252bbaea1a40dc96dce42c692e2e07cfc19f41f7b4eb000494a368",
+        "scripts/quality-root-source-contract.cjs": "370ceadb85f3482b0371cc0bb24602fe32bb131cd16b1dd4d9175146de81145b",
+        "scripts/process-ipqc-frequency-source-contract.cjs": "5a53c892aa69350792e3c2469de1eef3c85e25e589e6b092ed4e7773320a52e3",
+        "scripts/process-platform-adopt-source-contract.cjs": "0b646f27446837996ca918384afe59c36504ed66fecaac83471047d3574d8d7d",
+        "scripts/lines-flow-source-contract.cjs": "509adf12827e75c2ba79e879dee17fdb9821adbd5fffba18a8ade9f88125be12",
+        "scripts/password-outcome-source-contract.cjs": "c9c85d5779bfb0719a5a79da6154d40ff252d162c41b6155008b91f8df68b268",
+        "scripts/process-submit-outcome-source-contract.cjs": "3c119fe1e5e7b3ed07485661350096c2d2438f88aa77fb850d71ea828681099b",
+        "scripts/equipment-integration-source-contract.cjs": "3dfa9eb74b6528fd993b730e3812ed90623fa34f1c2e32c303952e93b998e087",
+        "scripts/quality-main-source-contract.cjs": "0c5b49570f4ace91c4967b513da7592f7644ef97af6c56cc83558d73f15f0945",
+        "scripts/inventory-quality-source-contract.json": "f2b8a5b8cd0328f37bcfe0f9aad53afaf7125db7ab262dbeb9202087c5919078",
+        "scripts/inventory-account-adapter-source-contract.json": "a2058b6fbcda8bf33a929c0743c5babe07cbc5072bd3d17c064e891393661f39",
+        "public/process/fqc-master.js": "7f0150fcfc0852245c05cd3cf1bd78479d6f81cc310cc6de3be424693364a228"
+      },
+      "steps": [
+        {
+          "name": "known",
+          "ms": 1151.113169,
+          "resultHash": "f8a6969cb108d3d25b8e842d7d1bb1a97fff9203fb42fb4a0878994156dc5528"
+        },
+        {
+          "name": "mutant-restore",
+          "ms": 1207.2600550000002,
+          "resultHash": null
+        },
+        {
+          "name": "mutant-admission",
+          "ms": 971.9585620000003,
+          "resultHash": null
+        }
+      ],
+      "stats": [
+        {
+          "name": "inventory-quality.projectKnown",
+          "calls": 1913,
+          "ms": 2536.0118730000045
+        },
+        {
+          "name": "quality-main.restoreParent",
+          "calls": 2,
+          "ms": 2358.015875
+        },
+        {
+          "name": "process-platform-adopt.projectKnown",
+          "calls": 174,
+          "ms": 2354.054958000003
+        },
+        {
+          "name": "quality-root.projectKnown",
+          "calls": 522,
+          "ms": 2094.811804
+        },
+        {
+          "name": "process-submit-outcome.projectKnown",
+          "calls": 3,
+          "ms": 1459.5199719999996
+        },
+        {
+          "name": "equipment-integration.projectKnown",
+          "calls": 3,
+          "ms": 1290.6774640000003
+        },
+        {
+          "name": "process-ipqc-frequency.projectKnown",
+          "calls": 174,
+          "ms": 1229.703365000001
+        },
+        {
+          "name": "account-outcome.projectKnown",
+          "calls": 871,
+          "ms": 1178.2584480000105
+        },
+        {
+          "name": "lines-flow.projectKnown",
+          "calls": 15,
+          "ms": 1012.830945
+        },
+        {
+          "name": "quality-main.projectKnown",
+          "calls": 1,
+          "ms": 971.9340550000002
+        },
+        {
+          "name": "password-outcome.projectKnown",
+          "calls": 9,
+          "ms": 944.2803779999999
+        },
+        {
+          "name": "inventory-account-adapter.projectKnown",
+          "calls": 871,
+          "ms": 4.285396000002251
+        }
+      ],
+      "limits": "Fresh process, same known/negative calls and original proof methods. Inclusive nested times must not be summed. No business workflow or hosted-site timing."
+    },
+    {
+      "pair": 2,
+      "mode": "after",
+      "node": "v24.22.1",
+      "sourceHashes": {
+        "scripts/inventory-quality-source-contract.cjs": "616ee25666434f88bf20593d572fa3598810ac3f824a9d3cf3cbf914abca0b7b",
+        "scripts/inventory-account-adapter-source-contract.cjs": "2d76fc124ae76d31b3c47f2458bb39dda1956e8fcc46a78059e562282a97a02a",
+        "scripts/account-outcome-source-contract.cjs": "cbed592d1f252bbaea1a40dc96dce42c692e2e07cfc19f41f7b4eb000494a368",
+        "scripts/quality-root-source-contract.cjs": "370ceadb85f3482b0371cc0bb24602fe32bb131cd16b1dd4d9175146de81145b",
+        "scripts/process-ipqc-frequency-source-contract.cjs": "5a53c892aa69350792e3c2469de1eef3c85e25e589e6b092ed4e7773320a52e3",
+        "scripts/process-platform-adopt-source-contract.cjs": "0b646f27446837996ca918384afe59c36504ed66fecaac83471047d3574d8d7d",
+        "scripts/lines-flow-source-contract.cjs": "509adf12827e75c2ba79e879dee17fdb9821adbd5fffba18a8ade9f88125be12",
+        "scripts/password-outcome-source-contract.cjs": "c9c85d5779bfb0719a5a79da6154d40ff252d162c41b6155008b91f8df68b268",
+        "scripts/process-submit-outcome-source-contract.cjs": "3c119fe1e5e7b3ed07485661350096c2d2438f88aa77fb850d71ea828681099b",
+        "scripts/equipment-integration-source-contract.cjs": "3dfa9eb74b6528fd993b730e3812ed90623fa34f1c2e32c303952e93b998e087",
+        "scripts/quality-main-source-contract.cjs": "0c5b49570f4ace91c4967b513da7592f7644ef97af6c56cc83558d73f15f0945",
+        "scripts/inventory-quality-source-contract.json": "f2b8a5b8cd0328f37bcfe0f9aad53afaf7125db7ab262dbeb9202087c5919078",
+        "scripts/inventory-account-adapter-source-contract.json": "a2058b6fbcda8bf33a929c0743c5babe07cbc5072bd3d17c064e891393661f39",
+        "public/process/fqc-master.js": "7f0150fcfc0852245c05cd3cf1bd78479d6f81cc310cc6de3be424693364a228",
+        "scripts/source-normalization-cache.cjs": "a81c6662a3c2706a3a910d19b6cba7afa0550a6a879d0193c6871e7760064570"
+      },
+      "steps": [
+        {
+          "name": "known",
+          "ms": 288.536598,
+          "resultHash": "f8a6969cb108d3d25b8e842d7d1bb1a97fff9203fb42fb4a0878994156dc5528"
+        },
+        {
+          "name": "mutant-restore",
+          "ms": 322.86641899999995,
+          "resultHash": null
+        },
+        {
+          "name": "mutant-admission",
+          "ms": 236.66396099999997,
+          "resultHash": null
+        }
+      ],
+      "stats": [
+        {
+          "name": "quality-root.projectKnown",
+          "calls": 522,
+          "ms": 772.0804710000009
+        },
+        {
+          "name": "quality-main.restoreParent",
+          "calls": 2,
+          "ms": 611.003127
+        },
+        {
+          "name": "process-platform-adopt.projectKnown",
+          "calls": 174,
+          "ms": 531.4902219999997
+        },
+        {
+          "name": "equipment-integration.projectKnown",
+          "calls": 3,
+          "ms": 317.38710300000014
+        },
+        {
+          "name": "password-outcome.projectKnown",
+          "calls": 9,
+          "ms": 310.2540979999999
+        },
+        {
+          "name": "process-submit-outcome.projectKnown",
+          "calls": 3,
+          "ms": 298.1394849999999
+        },
+        {
+          "name": "process-ipqc-frequency.projectKnown",
+          "calls": 174,
+          "ms": 260.62357199999985
+        },
+        {
+          "name": "quality-main.projectKnown",
+          "calls": 1,
+          "ms": 236.640936
+        },
+        {
+          "name": "lines-flow.projectKnown",
+          "calls": 15,
+          "ms": 188.65114499999993
+        },
+        {
+          "name": "inventory-quality.projectKnown",
+          "calls": 1913,
+          "ms": 38.96515400000139
+        },
+        {
+          "name": "account-outcome.projectKnown",
+          "calls": 871,
+          "ms": 22.534143999999785
+        },
+        {
+          "name": "inventory-account-adapter.projectKnown",
+          "calls": 871,
+          "ms": 0.927208000000121
+        }
+      ],
+      "limits": "Fresh process, same known/negative calls and original proof methods. Inclusive nested times must not be summed. No business workflow or hosted-site timing."
+    }
+  ]
+}

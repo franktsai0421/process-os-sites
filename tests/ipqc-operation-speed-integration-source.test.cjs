@@ -14,5 +14,5 @@ const preserved={
 for(const [target,files]of Object.entries(preserved))void test('complete changed runtime from '+target+' remains intact',()=>{
  const commit=proof.contract.parents[target],base='8bfc03679b0e53889c604e110ad843a2fc7b3ae5';
  assert.deepEqual(git('diff','--name-only',base,commit,'--','lib','app','public').toString().trim().split('\n').sort(),[...files].sort(),'independently enumerated parent runtime scope');
- for(const file of files)assert.deepEqual(normalized(require('../scripts/process-platform-adopt-source-contract.cjs').projectKnown(require('../scripts/quality-root-source-contract.cjs').projectKnown(fs.readFileSync(file),file),file)),normalized(git('show',commit+':'+file)),file+' retains full parent runtime through the exact reviewed adoption inverse; checkout LF/CRLF allowed');
+ for(const file of files)assert.deepEqual(normalized(require('../scripts/process-platform-adopt-source-contract.cjs').projectKnown(require('../scripts/inventory-speed-source-contract.cjs').projectKnown(require('../scripts/quality-root-source-contract.cjs').projectKnown(fs.readFileSync(file),file),file),file)),normalized(git('show',commit+':'+file)),file+' retains full parent runtime; both exact inventory/adoption inverses then checkout LF/CRLF normalization allowed');
 });

@@ -2,6 +2,25 @@
 
 Request-local IQC/process authority, rolling bounded reads, validated FQC local Save scheduling, editor bootstrap deferral and optional AB/C readback compaction preserve validation/CAS/history. Office request mapping, paired synthetic metrics, compiled Chrome readiness and live limitations: [evidence](../docs/acceptance/quality-operation-speed-20261116/README.md). Draft only; no merge/deployment/live changes.
 
+## 2026-11-16 — #121 與已合併 #124 的共同候選
+
+保持原檢具／模具 runtime 及 main 帳號修正，六個文件／來源衝突逐段整合。來源 proof 新增真實 accountMain 目標，原 manifests／負控保留；未納入並行 IQC 優化。[整合證據](../docs/acceptance/tooling-equipment-speed-20261115/README.md#整合後續已合併-124)。未合併或部署。
+
+## 2026-11-16 — #121 恢復與最新品質 main 整合
+
+環境更換後，從已保存 a70ab7e2／tree 57c04f99 恢復同一速度工作，合入 main a1775a8a（#122／#123）。七個內容衝突逐段保留兩邊文件、來源 proof 與測試；shared workflow 自動合併已核對同時保留 inventory read-ahead 與 request-local inventory phase。原刪除／回饋／AB 修復均採 main，未重做或覆蓋。雙真實父版 inverse 保留所有原 manifests 與負控。之後另核查 IQC 與 bootstrap 的讀取成本，不把單次 Network／Worker 日誌直接歸因 DB/R2。[證據與限制](../docs/acceptance/tooling-equipment-speed-20261115/README.md)。不合併 PR、不部署、不改實站資料。
+
+## 2026-11-15 — #121 第二輪效能與 #122 整合
+
+保留已發布 cd17b877 的讀取排程及已合併 main 346c5eef 的 AQL 修復。Tooling checks 改為直接讀取原完整模型、原 IQC 與版本 fence，免除未使用的完整 workflow 回應和寫入按鈕權限計算；保留認證前置、選定資料及最終 session 撤銷檢查。實際 compact 客戶端與 checks 分開成對量測，舊非 compact 證據保留歷史界線。設備主要剩餘權限成本歸 #123，未抄入並行修復。[第二輪證據](../docs/acceptance/tooling-equipment-speed-20261115/README.md#第二輪實際客戶端與完整性檢查)。不合併 PR、不部署、不操作實站資料。
+
+## 2026-11-15 — #121 整合已合併 #120 的 main
+
+原速度 8f94d0f 與 main c6ac41a6 在同一 #121 分支逐段整合。四個文件／來源測試衝突保留雙方內容，原 manifests 不改，以獨立雙父版本 exact inverse 核對完整前身；產品檔分別 byte-exact 保留。共同候選需重跑適用回歸與以 c6ac41a6 為基準的速度量測。[共同證據與 CI 界線](../docs/acceptance/tooling-equipment-speed-20261115/README.md#整合已合併-120-的共同候選)。不納入其他功能工作、不合併 PR、不部署或操作實站資料。
+
+## 2026-11-15 — Inventory R2 read scheduling candidate
+
+Measured sequential aggregate waits in Tooling/equipment reads and lifecycle writes; opt into existing bounded scheduling while preserving complete records, ordered validation, receipts/CAS and original destructive paths. Three-pair synthetic before/after evidence and limits: [record](../docs/acceptance/tooling-equipment-speed-20261115/README.md). Independent speed draft only; no deployment/live-data action.
 
 ## 2026-11-15 — 角色與人員保存／原回執候選
 

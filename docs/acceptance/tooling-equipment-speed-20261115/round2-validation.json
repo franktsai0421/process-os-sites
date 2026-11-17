@@ -1,0 +1,28 @@
+{
+  "localSourceCommit": "3ebef058b3804e9a3079fa9cdc984ca88315f6b7",
+  "sourceTests": {
+    "pass": 970,
+    "fail": 0
+  },
+  "functional": {
+    "pass": 900,
+    "fail": 18,
+    "failureClassification": "7 browser startup + 11 compiled startup without initial PROCESS_PROGRAM_COMMIT. No product assertion failure observed in 900 completed cases. Configured Chromium rerun still blocked by socket EPERM/SIGABRT. Configured compiled diagnostic confirmed same Chromium socket EPERM after Worker setup; failed-fixture runtime kept event loop open and was interrupted after recording failure. Browser/compiled acceptance remains NOT AVAILABLE."
+  },
+  "pairedContract": "PASS 366/1000 tools and 2196/6000 transfers, 14 steps per side/scale; exact response and I/O parity",
+  "newReadFenceTests": {
+    "pass": 8,
+    "includedInFunctional": true
+  },
+  "lint": "PASS",
+  "typescript": "PASS",
+  "guardedBuild": "PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK",
+  "sourceBoundary": "PASS",
+  "changedFileSafetyScan": {
+    "files": 29,
+    "findings": []
+  },
+  "liveAcceptance": "NOT_RUN",
+  "deploy": "NOT_RUN",
+  "schemaOrDataChange": false
+}
