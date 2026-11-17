@@ -2,6 +2,11 @@
 
 Request-local IQC/process authority, rolling bounded reads, validated FQC local Save scheduling, editor bootstrap deferral and optional AB/C readback compaction preserve validation/CAS/history. Office request mapping, paired synthetic metrics, compiled Chrome readiness and live limitations: [evidence](docs/acceptance/quality-operation-speed-20261116/README.md). Draft only; no merge/deployment/live changes.
 
+
+## 2026-11-15 — 角色與人員保存／原回執候選
+
+帳號專用 verified records overlay 移除不相關業務讀取；非密碼操作保留獨立 requestId/audit 回執直到 fresh readback，UNKNOWN 只查原操作、不重送，POST 可明確停止等候。status.view 導出明細/照片/影片舊只讀別名；管理員安全邊界、effective inheritance、角色例外、fresh auth/CAS 保留。沒有 live 帳號/資料/schema/政策採用/合併或部署。[根因、量測、完整權限對照與驗證界線](docs/acceptance/account-role-save-20261115/README.md)。
+
 ## 2026-11-15 — 網頁實測根因修復候選
 
 獨立 checkout／`fix/quality-save-read-root-causes-20261115`，基於已核對 #119 main e040a7e。涵蓋檢具／模具、FQC、IPQC AB 回應與 C 歷史查詢誤報；既有部署 checkout／服務與測試資料未動。[逐項根因、隔離測量與交付關卡](docs/acceptance/quality-root-causes-20261115.md)。無 merge／部署／帳號或正式資料操作；實站真人驗收另行。

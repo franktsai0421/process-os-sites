@@ -1,0 +1,321 @@
+{
+  "targets": {
+    "quality": {
+      "commit": "18336433e6bcb0efd18ab1a153d48d4002717ee1",
+      "files": {
+        "HANDOFF.md": {
+          "afterHash": "2dfeba6852539ab0f64ec3a0d12c653a98ea40e2a3e94a270c283262a2a57f3d",
+          "beforeHash": "c86be60b25e29448c1920f268cf98ede9c482618d924aa43c20b6592aa1149f3",
+          "beforeNormalizedHash": "c86be60b25e29448c1920f268cf98ede9c482618d924aa43c20b6592aa1149f3",
+          "beforeCRLF": [],
+          "rules": [
+            {
+              "offset": 473,
+              "before": "",
+              "after": "\n\n## 2026-11-15 — 角色與人員保存／原回執候選\n\n帳號專用 verified records overlay 移除不相關業務讀取；非密碼操作保留獨立 requestId/audit 回執直到 fresh readback，UNKNOWN 只查原操作、不重送，POST 可明確停止等候。status.view 導出明細/照片/影片舊只讀別名；管理員安全邊界、effective inheritance、角色例外、fresh auth/CAS 保留。沒有 live 帳號/資料/schema/政策採用/合併或部署。[根因、量測、完整權限對照與驗證界線](docs/acceptance/account-role-save-20261115/README.md)。\n"
+            }
+          ]
+        },
+        "AI_CONTEXT/CHANGELOG.md": {
+          "afterHash": "02d5096c748aeba0f00e19873e49206fdb04504c064602d1658cfcb4c9470005",
+          "beforeHash": "970c0d1bd1d61bf95c26a67ae8d3558a1e8de150a7bf945f18c08a9d7eab3558",
+          "beforeNormalizedHash": "970c0d1bd1d61bf95c26a67ae8d3558a1e8de150a7bf945f18c08a9d7eab3558",
+          "beforeCRLF": [],
+          "rules": [
+            {
+              "offset": 476,
+              "before": "",
+              "after": "\n\n## 2026-11-15 — 角色與人員保存／原回執候選\n\n帳號專用 verified records overlay 移除不相關業務讀取；非密碼操作保留獨立 requestId/audit 回執直到 fresh readback，UNKNOWN 只查原操作、不重送，POST 可明確停止等候。status.view 導出明細/照片/影片舊只讀別名；管理員安全邊界、effective inheritance、角色例外、fresh auth/CAS 保留。沒有 live 帳號/資料/schema/政策採用/合併或部署。[根因、量測、完整權限對照與驗證界線](../docs/acceptance/account-role-save-20261115/README.md)。\n"
+            }
+          ]
+        },
+        "public/process/index.html": {
+          "afterHash": "6e871da3cc55aa436b6e38f4e49cb3d4d891dd3fdc81f98a4f44a8a90e22d891",
+          "beforeHash": "8dd47e33fd37f317ad192b1c44a7991271c14118a8cd92dee8bf10562ce24a2e",
+          "beforeNormalizedHash": "8dd47e33fd37f317ad192b1c44a7991271c14118a8cd92dee8bf10562ce24a2e",
+          "beforeCRLF": [],
+          "rules": [
+            {
+              "offset": 11237,
+              "before": "    <script data-process-src=\"user-access.js?v=20261113-password-outcome1\"></script>\n",
+              "after": "    <script data-process-src=\"account-write-receipt.js?v=20261115-account-outcome1\"></script>\n    <script data-process-src=\"user-access.js?v=20261115-account-outcome1\"></script>\n"
+            }
+          ]
+        },
+        "tests/navigation-adapters.test.mjs": {
+          "afterHash": "4ff7d26934b0c90d25f43c55a8a95ad67a955d8113406939de43bc105f0dc5cf",
+          "beforeHash": "42e1040f410f1ee6c4c2bc8ea9d24f6929412b0843e25736991f470b168caa9d",
+          "beforeNormalizedHash": "42e1040f410f1ee6c4c2bc8ea9d24f6929412b0843e25736991f470b168caa9d",
+          "beforeCRLF": [],
+          "rules": [
+            {
+              "offset": 8875,
+              "before": "const accountRequest=part(accountSource,' async function requestValue(options={},fresh=false,waitForPassword=false){','\\n function expireSession()');\nconst accountSend=part(accountSource,' async function send(payload){','\\n function paint()');\nassert(accountRequest.startsWith(' async function requestValue(')&&accountRequest.includes('finally{clearTimeout(timer);}'));\n",
+              "after": "const accountRequest=part(accountSource,' async function requestValue(','\\n function expireSession()');\nconst accountSend=part(accountSource,' async function send(','\\n function paint()');\nassert(accountRequest.startsWith(' async function requestValue(')&&accountRequest.includes('finally{clearTimeout(timer);')&&accountRequest.includes(\"options.signal?.removeEventListener('abort',stop)\"));\n"
+            },
+            {
+              "offset": 17737,
+              "before": "  'user-access.js':'20261113-password-outcome1',\n",
+              "after": "  'user-access.js':'20261115-account-outcome1',\n"
+            }
+          ]
+        },
+        "scripts/quality-root-source-contract.cjs": {
+          "afterHash": "a9ba685c8b8877ba430d1f6492afc14186ba1f1d80a0636572f15107113f798e",
+          "beforeHash": "19925fa07e5826de2317611a3b19554c7a6317a4679cc45fbe0c00a70e9570a3",
+          "beforeNormalizedHash": "19925fa07e5826de2317611a3b19554c7a6317a4679cc45fbe0c00a70e9570a3",
+          "beforeCRLF": [],
+          "rules": [
+            {
+              "offset": 438,
+              "before": "function restore(bytes,file){\n assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./quality-operation-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Quality root proof wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterNormalizedHash,'Quality root pinned source');\n",
+              "after": "function restore(bytes,file){bytes=require('./quality-operation-source-contract.cjs').projectKnown(bytes,file);bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);\n assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Quality root proof wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterNormalizedHash,'Quality root pinned source');\n"
+            },
+            {
+              "offset": 1502,
+              "before": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./quality-operation-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n",
+              "after": "function projectKnown(bytes,file){bytes=require('./quality-operation-source-contract.cjs').projectKnown(bytes,file);bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n"
+            }
+          ]
+        },
+        "tests/accounts-process-integration-source.test.mjs": {
+          "afterHash": "f8a592202ee2ffeeb374a747a9c69fb4057942261ce5fbef726ebd08d5939b58",
+          "beforeHash": "acf9cb9e06ed4be48ba22a69566c7fcf9439eb29d4bd9f937fcdc1e81f23b2da",
+          "beforeNormalizedHash": "acf9cb9e06ed4be48ba22a69566c7fcf9439eb29d4bd9f937fcdc1e81f23b2da",
+          "beforeCRLF": [],
+          "rules": [
+            {
+              "offset": 1998,
+              "before": "void test('reviewed account/process runtime union retains every installed file with the three pinned quality helpers and exact catalog/password helpers',()=>{\n",
+              "after": "void test('reviewed account/process runtime union retains every installed file with the three pinned quality helpers and exact catalog/password/account helpers',()=>{\n"
+            },
+            {
+              "offset": 3178,
+              "before": " assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\\n'),[...files,...additions,catalogAddition,helper].sort());\n",
+              "after": " const account=createRequire(import.meta.url)('../scripts/account-outcome-source-contract.cjs'),accountHelpers=['lib/account-state.ts','public/process/account-write-receipt.js'];\n assert.deepEqual(Object.keys(account.contract.runtime).sort(),accountHelpers);\n for(const file of accountHelpers){assert.equal(git('ls-tree',account.contract.base,'--',file).length,0);account.assertRuntime(git('show','HEAD:'+file),file);account.assertRuntime(fs.readFileSync(file),file);}\n const qualityHelpers=['lib/quality-read-wire.ts','public/process/quality-read-wire.js'],qualityParent='18336433e6bcb0efd18ab1a153d48d4002717ee1';\n git('merge-base','--is-ancestor',qualityParent,'HEAD');\n for(const file of qualityHelpers){assert.equal(git('ls-tree','a1775a8a342d58335edf96d199a9c42844227dc6','--',file).length,0);assert.deepEqual(git('show','HEAD:'+file),git('show',qualityParent+':'+file));assert.deepEqual(fs.readFileSync(file),git('show',qualityParent+':'+file));}\n assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\\n'),[...files,...additions,catalogAddition,helper,...accountHelpers,...qualityHelpers].sort());\n"
+            }
+          ]
+        },
+        "scripts/entry-performance/source-eol.test.cjs": {
+          "afterHash": "4151a535ab89c5eee736c3c0c0b7e572ac2a207e28e1ca443aeb8d58883a7160",
+          "beforeHash": "4151a535ab89c5eee736c3c0c0b7e572ac2a207e28e1ca443aeb8d58883a7160",
+          "beforeNormalizedHash": "4151a535ab89c5eee736c3c0c0b7e572ac2a207e28e1ca443aeb8d58883a7160",
+          "beforeCRLF": [],
+          "rules": []
+        },
+        "scripts/test-authoring-contentissues-readscope.cjs": {
+          "afterHash": "a735fc9aa4272238f641db6c5f6ec7af7cc92da512f4c1470f9755a40902b8da",
+          "beforeHash": "11602ecac03b10e409d7ae5a9a2a8195ddcb94ee79384a26f9ff3ab40f9ee370",
+          "beforeNormalizedHash": "11602ecac03b10e409d7ae5a9a2a8195ddcb94ee79384a26f9ff3ab40f9ee370",
+          "beforeCRLF": [],
+          "rules": [
+            {
+              "offset": 3731,
+              "before": " async get(k){const event={kind:'R2',method:'get',key:k,bytes:0,fault:k===targetKey?mode:'none'};events.push(event);if(k===targetKey&&mode==='missing'){event.found=false;return null;}const b=objects.get(k);event.found=!!b;if(!b)return null;return{...metadata.get(k),text:async()=>{const raw=k===targetKey&&mode==='corrupt'?Buffer.from('{\"synthetic\":\"corrupt bytes\"}'):b;event.bytes+=raw.length;return raw.toString();},arrayBuffer:async()=>{event.bytes+=b.length;return b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength);}};},\n",
+              "after": " async get(k){const event={kind:'R2',method:'get',key:k,bytes:0,fault:k===targetKey?mode:'none'};events.push(event);if(k===targetKey&&mode==='missing'){event.found=false;return null;}const b=objects.get(k);event.found=!!b;if(!b)return null;return{...metadata.get(k),text:async()=>{const raw=k===targetKey&&mode==='corrupt'?Buffer.from('{\"synthetic\":\"corrupt bytes\"}'):b;event.bytes+=raw.length;events.push({kind:'consumed',key:k,bytes:raw.length,sha256:hash(raw)});return raw.toString();},arrayBuffer:async()=>{event.bytes+=b.length;return b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength);}};},\n"
+            },
+            {
+              "offset": 13528,
+              "before": "const candidateCounters={validations:[],bomFactories:0,bomLookups:0,bomKeyComparisons:0},candidateLoad=pathLoader(source,env,candidateCounters),targetApi=candidateLoad(routeKey),stateModule=load('lib/process-state.ts');\n",
+              "after": "const candidateCounters={validations:[],bomFactories:0,bomLookups:0,bomKeyComparisons:0},candidateLoad=pathLoader(source,env,candidateCounters,{[routeKey]:require('./quality-operation-source-contract.cjs').restore(fs.readFileSync(path.join(source,routeKey)),routeKey).toString()}),targetApi=candidateLoad(routeKey),stateModule=load('lib/process-state.ts');\n"
+            },
+            {
+              "offset": 13987,
+              "before": "assert.equal(candidateCounters.routeBinding.overrideUsed,false);assert.notEqual(candidateCounters.routeBinding.sha256,counters.routeBinding.sha256,'actually distinct baseline/candidate route');\n",
+              "after": "assert.equal(candidateCounters.routeBinding.overrideUsed,true);assert.equal(candidateCounters.routeBinding.sha256,hash(cp.execFileSync('git',['show','a1775a8a342d58335edf96d199a9c42844227dc6:'+routeKey])));assert.notEqual(candidateCounters.routeBinding.sha256,counters.routeBinding.sha256,'actually distinct baseline/candidate route');\n"
+            },
+            {
+              "offset": 15853,
+              "before": "",
+              "after": "const currentCounters={validations:[],bomFactories:0,bomLookups:0,bomKeyComparisons:0},currentApi=pathLoader(source,env,currentCounters)(routeKey);\n"
+            },
+            {
+              "offset": 16919,
+              "before": "",
+              "after": " // Original strict pair remains intact; separately exercise the actual current\n // permission phase and scheduler against the genuine historical intermediate.\n const current=await measure(name+' current',currentApi,currentCounters,query,who,afterStatus);\n assert.deepEqual(current.body,after.body,name+' current complete DTO');assert.deepEqual(current.headers,after.headers);\n assert.deepEqual(current.io.filter(e=>e.kind==='consumed'),after.io.filter(e=>e.kind==='consumed'),name+' exact body bytes and consumption order');\n const nonSession=e=>e.kind==='SQL'&&!e.sql.includes('FROM process_revoked_sessions');\n assert.deepEqual(current.io.filter(nonSession),after.io.filter(nonSession),name+' non-session SQL');\n const sessionReads=after.metrics.revocationReads===0?0:revocationAfter===1?2:afterStatus===403?1:2;\n assert.equal(current.metrics.revocationReads,sessionReads,name+' initial identity and fresh permission fence');\n assert.equal(current.validation.validations.length,after.validation.validations.length);assert.equal(current.validation.bomKeyComparisons,after.validation.bomKeyComparisons);\n\n"
+            }
+          ]
+        }
+      }
+    },
+    "account": {
+      "commit": "64e44b2f72642bf3186afea89e7d786c9bcbcc91",
+      "files": {
+        "HANDOFF.md": {
+          "afterHash": "2dfeba6852539ab0f64ec3a0d12c653a98ea40e2a3e94a270c283262a2a57f3d",
+          "beforeHash": "031056cd95e4e7dd3666b420fe2cf2db88ea11116de19bf966b7f762b3c0085a",
+          "beforeNormalizedHash": "031056cd95e4e7dd3666b420fe2cf2db88ea11116de19bf966b7f762b3c0085a",
+          "beforeCRLF": [],
+          "rules": [
+            {
+              "offset": 0,
+              "before": "",
+              "after": "## 2026-11-16 — Independent quality/process speed candidate\n\nRequest-local IQC/process authority, rolling bounded reads, validated FQC local Save scheduling, editor bootstrap deferral and optional AB/C readback compaction preserve validation/CAS/history. Office request mapping, paired synthetic metrics, compiled Chrome readiness and live limitations: [evidence](docs/acceptance/quality-operation-speed-20261116/README.md). Draft only; no merge/deployment/live changes.\n\n"
+            }
+          ]
+        },
+        "AI_CONTEXT/CHANGELOG.md": {
+          "afterHash": "02d5096c748aeba0f00e19873e49206fdb04504c064602d1658cfcb4c9470005",
+          "beforeHash": "d0ab9d51f0441b6a5d4a706aa13d113230e2338482558209b984f256c69fc99d",
+          "beforeNormalizedHash": "d0ab9d51f0441b6a5d4a706aa13d113230e2338482558209b984f256c69fc99d",
+          "beforeCRLF": [],
+          "rules": [
+            {
+              "offset": 0,
+              "before": "",
+              "after": "## 2026-11-16 — Independent quality/process speed candidate\n\nRequest-local IQC/process authority, rolling bounded reads, validated FQC local Save scheduling, editor bootstrap deferral and optional AB/C readback compaction preserve validation/CAS/history. Office request mapping, paired synthetic metrics, compiled Chrome readiness and live limitations: [evidence](../docs/acceptance/quality-operation-speed-20261116/README.md). Draft only; no merge/deployment/live changes.\n\n"
+            }
+          ]
+        },
+        "public/process/index.html": {
+          "afterHash": "6e871da3cc55aa436b6e38f4e49cb3d4d891dd3fdc81f98a4f44a8a90e22d891",
+          "beforeHash": "d9434d5d6e51efc989548b7f9b6976e6af1f690588b7cac6e4e367a83e43a113",
+          "beforeNormalizedHash": "d9434d5d6e51efc989548b7f9b6976e6af1f690588b7cac6e4e367a83e43a113",
+          "beforeCRLF": [],
+          "rules": [
+            {
+              "offset": 1395,
+              "before": "    <script src=\"shared-state.js?v=20261106-access-offline1\"></script>\n",
+              "after": "    <script src=\"shared-state.js?v=20261116-authoring-workflow1\"></script>\n"
+            },
+            {
+              "offset": 9963,
+              "before": "    <script data-process-src=\"ipqc-c.js?v=20261115-quality-root3\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261115-quality-root4\"></script>\n",
+              "after": "    <script data-process-src=\"quality-read-wire.js?v=20261116-quality-read1\"></script>\n    <script data-process-src=\"ipqc-c.js?v=20261116-quality-read1\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261116-quality-read1\"></script>\n"
+            }
+          ]
+        },
+        "tests/navigation-adapters.test.mjs": {
+          "afterHash": "4ff7d26934b0c90d25f43c55a8a95ad67a955d8113406939de43bc105f0dc5cf",
+          "beforeHash": "7c0cf8bb90182853edae2fd5808fc0e20ab0b59ea020e2f1c0fd4b7d012ab8f7",
+          "beforeNormalizedHash": "7c0cf8bb90182853edae2fd5808fc0e20ab0b59ea020e2f1c0fd4b7d012ab8f7",
+          "beforeCRLF": [],
+          "rules": [
+            {
+              "offset": 17005,
+              "before": "  'ipqc-ab.js':'20261115-quality-root4',\n  'ipqc-c.js':'20261115-quality-root3',\n",
+              "after": "  'ipqc-ab.js':'20261116-quality-read1',\n  'ipqc-c.js':'20261116-quality-read1',\n"
+            },
+            {
+              "offset": 17635,
+              "before": "  'shared-state.js':'20261106-access-offline1',\n",
+              "after": "  'shared-state.js':'20261116-authoring-workflow1',\n"
+            }
+          ]
+        },
+        "scripts/quality-root-source-contract.cjs": {
+          "afterHash": "a9ba685c8b8877ba430d1f6492afc14186ba1f1d80a0636572f15107113f798e",
+          "beforeHash": "2089479479b1e4c4343a80b1ed286c2e70bf6b459c2b049a22decb404510a8d7",
+          "beforeNormalizedHash": "2089479479b1e4c4343a80b1ed286c2e70bf6b459c2b049a22decb404510a8d7",
+          "beforeCRLF": [],
+          "rules": [
+            {
+              "offset": 438,
+              "before": "function restore(bytes,file){bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);\n",
+              "after": "function restore(bytes,file){bytes=require('./quality-operation-source-contract.cjs').projectKnown(bytes,file);bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);\n"
+            },
+            {
+              "offset": 1502,
+              "before": "function projectKnown(bytes,file){bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n",
+              "after": "function projectKnown(bytes,file){bytes=require('./quality-operation-source-contract.cjs').projectKnown(bytes,file);bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n"
+            }
+          ]
+        },
+        "tests/accounts-process-integration-source.test.mjs": {
+          "afterHash": "f8a592202ee2ffeeb374a747a9c69fb4057942261ce5fbef726ebd08d5939b58",
+          "beforeHash": "1d77deed25b3781dcef195b466acff1f1b025174205890ab7c3c7c7c3465eb42",
+          "beforeNormalizedHash": "1d77deed25b3781dcef195b466acff1f1b025174205890ab7c3c7c7c3465eb42",
+          "beforeCRLF": [],
+          "rules": [
+            {
+              "offset": 3647,
+              "before": " assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\\n'),[...files,...additions,catalogAddition,helper,...accountHelpers].sort());\n",
+              "after": " const qualityHelpers=['lib/quality-read-wire.ts','public/process/quality-read-wire.js'],qualityParent='18336433e6bcb0efd18ab1a153d48d4002717ee1';\n git('merge-base','--is-ancestor',qualityParent,'HEAD');\n for(const file of qualityHelpers){assert.equal(git('ls-tree','a1775a8a342d58335edf96d199a9c42844227dc6','--',file).length,0);assert.deepEqual(git('show','HEAD:'+file),git('show',qualityParent+':'+file));assert.deepEqual(fs.readFileSync(file),git('show',qualityParent+':'+file));}\n assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\\n'),[...files,...additions,catalogAddition,helper,...accountHelpers,...qualityHelpers].sort());\n"
+            }
+          ]
+        },
+        "scripts/entry-performance/source-eol.test.cjs": {
+          "afterHash": "4151a535ab89c5eee736c3c0c0b7e572ac2a207e28e1ca443aeb8d58883a7160",
+          "beforeHash": "120b903eec234f50dd80aedab4a5ab2e813cf8dda2f94a28e212ea0d46c32b97",
+          "beforeNormalizedHash": "120b903eec234f50dd80aedab4a5ab2e813cf8dda2f94a28e212ea0d46c32b97",
+          "beforeCRLF": [],
+          "rules": [
+            {
+              "offset": 2841,
+              "before": "",
+              "after": "      if (transformProjection && test.name === 'identity' && id === '../abc-master-source-contract.cjs') {\n        return { ...actual, projectKnown(bytes, file) {\n          assert.equal(file, test.target);\n          const projected = actual.projectKnown(bytes, file);\n          const before = canonical(projected.toString()), after = transformProjection(before);\n          assert.notEqual(after, before, 'identity inverse mutation is effective');\n          return Buffer.from(after);\n        } };\n      }\n"
+            },
+            {
+              "offset": 7568,
+              "before": "    const at=raw.indexOf(proof.reviewedFqcRequiredTail.marker),prefix=raw.slice(0,at),tail=raw.slice(at);\n",
+              "after": "    const projected=canonical(createRequire(fixture)('../abc-master-source-contract.cjs').projectKnown(Buffer.from(raw),test.target).toString());\n    const at=projected.indexOf(proof.reviewedFqcRequiredTail.marker),prefix=projected.slice(0,at),tail=projected.slice(at);\n"
+            },
+            {
+              "offset": 7893,
+              "before": "      ['changed tail',raw.replace('const fqcRequiredAuth=','const fqcRequiredAuthChanged=')],\n      ['duplicate tail',raw+tail],\n      ['extra suffix',raw+'\\n// unreviewed suffix\\n'],\n      ['changed original prefix',raw.replace(\"const prefix='state-records/v1/'\",\"const prefix='state-records/v2/'\")],\n",
+              "after": "      ['changed tail',projected.replace('const fqcRequiredAuth=','const fqcRequiredAuthChanged=')],\n      ['duplicate tail',projected+tail],\n      ['extra suffix',projected+'\\n// unreviewed suffix\\n'],\n      ['changed original prefix',projected.replace(\"const prefix='state-records/v1/'\",\"const prefix='state-records/v2/'\")],\n"
+            },
+            {
+              "offset": 8257,
+              "before": "      ['duplicated original inverse span',raw.replace(proof.spans[0].candidate,proof.spans[0].candidate+proof.spans[0].candidate)],\n",
+              "after": "      ['duplicated original inverse span',projected.replace(proof.spans[0].candidate,proof.spans[0].candidate+proof.spans[0].candidate)],\n"
+            },
+            {
+              "offset": 8454,
+              "before": "        ['changed IPQC-C create inverse',raw.replace(row.candidate,row.candidate.replace('b.consumed=true;','b.consumed=false;'))],\n        ['missing IPQC-C create inverse',raw.replace(row.candidate,'')],\n        ['duplicate IPQC-C create inverse',raw.replace(row.candidate,row.candidate+row.candidate)],\n        ['relocated IPQC-C create inverse',row.candidate+raw.replace(row.candidate,'')],\n        ['gap before FQC tail',raw.replace(row.candidate,row.candidate+'// unexpected gap\\n')],\n",
+              "after": "        ['changed IPQC-C create inverse',projected.replace(row.candidate,row.candidate.replace('b.consumed=true;','b.consumed=false;'))],\n        ['missing IPQC-C create inverse',projected.replace(row.candidate,'')],\n        ['duplicate IPQC-C create inverse',projected.replace(row.candidate,row.candidate+row.candidate)],\n        ['relocated IPQC-C create inverse',row.candidate+projected.replace(row.candidate,'')],\n        ['gap before FQC tail',projected.replace(row.candidate,row.candidate+'// unexpected gap\\n')],\n"
+            },
+            {
+              "offset": 9057,
+              "before": "        ['changed read-ahead inverse '+index,raw.replace(row.candidate,row.candidate+'// unexpected drift\\n')],\n        ['missing read-ahead inverse '+index,raw.replace(row.candidate,'')],\n        ['duplicate read-ahead inverse '+index,raw.replace(row.candidate,row.candidate+row.candidate)],\n",
+              "after": "        ['changed read-ahead inverse '+index,projected.replace(row.candidate,row.candidate+'// unexpected drift\\n')],\n        ['missing read-ahead inverse '+index,projected.replace(row.candidate,'')],\n        ['duplicate read-ahead inverse '+index,projected.replace(row.candidate,row.candidate+row.candidate)],\n"
+            },
+            {
+              "offset": 9451,
+              "before": "        ['changed authority inverse '+index,raw.replace(row.candidate,row.candidate+'// unexpected authority drift\\n')],\n        ['missing authority inverse '+index,raw.replace(row.candidate,'')],\n        ['duplicate authority inverse '+index,raw.replace(row.candidate,row.candidate+row.candidate)],\n",
+              "after": "        ['changed authority inverse '+index,projected.replace(row.candidate,row.candidate+'// unexpected authority drift\\n')],\n        ['missing authority inverse '+index,projected.replace(row.candidate,'')],\n        ['duplicate authority inverse '+index,projected.replace(row.candidate,row.candidate+row.candidate)],\n"
+            },
+            {
+              "offset": 9786,
+              "before": "    for(const[name,source]of corruptions){assert.notEqual(source,raw,name+' mutation is effective');assert.throws(()=>execute(source),{code:'ERR_ASSERTION'},name+' must be rejected');}\n",
+              "after": "    for(const[name,source]of corruptions){assert.notEqual(source,projected,name+' mutation is effective');for(const eol of ['LF','CRLF'])assert.throws(()=>execute(eol==='LF'?raw:raw.replace(/\\n/g,'\\r\\n'), before=>{assert.equal(before,projected);return eol==='LF'?source:source.replace(/\\n/g,'\\r\\n');}),{code:'ERR_ASSERTION'},name+' '+eol+' must be rejected');}\n"
+            }
+          ]
+        },
+        "scripts/test-authoring-contentissues-readscope.cjs": {
+          "afterHash": "a735fc9aa4272238f641db6c5f6ec7af7cc92da512f4c1470f9755a40902b8da",
+          "beforeHash": "11602ecac03b10e409d7ae5a9a2a8195ddcb94ee79384a26f9ff3ab40f9ee370",
+          "beforeNormalizedHash": "11602ecac03b10e409d7ae5a9a2a8195ddcb94ee79384a26f9ff3ab40f9ee370",
+          "beforeCRLF": [],
+          "rules": [
+            {
+              "offset": 3731,
+              "before": " async get(k){const event={kind:'R2',method:'get',key:k,bytes:0,fault:k===targetKey?mode:'none'};events.push(event);if(k===targetKey&&mode==='missing'){event.found=false;return null;}const b=objects.get(k);event.found=!!b;if(!b)return null;return{...metadata.get(k),text:async()=>{const raw=k===targetKey&&mode==='corrupt'?Buffer.from('{\"synthetic\":\"corrupt bytes\"}'):b;event.bytes+=raw.length;return raw.toString();},arrayBuffer:async()=>{event.bytes+=b.length;return b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength);}};},\n",
+              "after": " async get(k){const event={kind:'R2',method:'get',key:k,bytes:0,fault:k===targetKey?mode:'none'};events.push(event);if(k===targetKey&&mode==='missing'){event.found=false;return null;}const b=objects.get(k);event.found=!!b;if(!b)return null;return{...metadata.get(k),text:async()=>{const raw=k===targetKey&&mode==='corrupt'?Buffer.from('{\"synthetic\":\"corrupt bytes\"}'):b;event.bytes+=raw.length;events.push({kind:'consumed',key:k,bytes:raw.length,sha256:hash(raw)});return raw.toString();},arrayBuffer:async()=>{event.bytes+=b.length;return b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength);}};},\n"
+            },
+            {
+              "offset": 13528,
+              "before": "const candidateCounters={validations:[],bomFactories:0,bomLookups:0,bomKeyComparisons:0},candidateLoad=pathLoader(source,env,candidateCounters),targetApi=candidateLoad(routeKey),stateModule=load('lib/process-state.ts');\n",
+              "after": "const candidateCounters={validations:[],bomFactories:0,bomLookups:0,bomKeyComparisons:0},candidateLoad=pathLoader(source,env,candidateCounters,{[routeKey]:require('./quality-operation-source-contract.cjs').restore(fs.readFileSync(path.join(source,routeKey)),routeKey).toString()}),targetApi=candidateLoad(routeKey),stateModule=load('lib/process-state.ts');\n"
+            },
+            {
+              "offset": 13987,
+              "before": "assert.equal(candidateCounters.routeBinding.overrideUsed,false);assert.notEqual(candidateCounters.routeBinding.sha256,counters.routeBinding.sha256,'actually distinct baseline/candidate route');\n",
+              "after": "assert.equal(candidateCounters.routeBinding.overrideUsed,true);assert.equal(candidateCounters.routeBinding.sha256,hash(cp.execFileSync('git',['show','a1775a8a342d58335edf96d199a9c42844227dc6:'+routeKey])));assert.notEqual(candidateCounters.routeBinding.sha256,counters.routeBinding.sha256,'actually distinct baseline/candidate route');\n"
+            },
+            {
+              "offset": 15853,
+              "before": "",
+              "after": "const currentCounters={validations:[],bomFactories:0,bomLookups:0,bomKeyComparisons:0},currentApi=pathLoader(source,env,currentCounters)(routeKey);\n"
+            },
+            {
+              "offset": 16919,
+              "before": "",
+              "after": " // Original strict pair remains intact; separately exercise the actual current\n // permission phase and scheduler against the genuine historical intermediate.\n const current=await measure(name+' current',currentApi,currentCounters,query,who,afterStatus);\n assert.deepEqual(current.body,after.body,name+' current complete DTO');assert.deepEqual(current.headers,after.headers);\n assert.deepEqual(current.io.filter(e=>e.kind==='consumed'),after.io.filter(e=>e.kind==='consumed'),name+' exact body bytes and consumption order');\n const nonSession=e=>e.kind==='SQL'&&!e.sql.includes('FROM process_revoked_sessions');\n assert.deepEqual(current.io.filter(nonSession),after.io.filter(nonSession),name+' non-session SQL');\n const sessionReads=after.metrics.revocationReads===0?0:revocationAfter===1?2:afterStatus===403?1:2;\n assert.equal(current.metrics.revocationReads,sessionReads,name+' initial identity and fresh permission fence');\n assert.equal(current.validation.validations.length,after.validation.validations.length);assert.equal(current.validation.bomKeyComparisons,after.validation.bomKeyComparisons);\n\n"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

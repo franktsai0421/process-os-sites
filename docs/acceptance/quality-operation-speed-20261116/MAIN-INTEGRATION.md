@@ -1,0 +1,15 @@
+# Main integration — 2026-11-16
+
+Parents: PR #126 `18336433e6bcb0efd18ab1a153d48d4002717ee1` and merged #124 main `64e44b2f72642bf3186afea89e7d786c9bcbcc91`. The integration branch starts at the actual remote #126 head. The separate local `cf71f8b6` observation-document commit is not included.
+
+Three explicit conflicts: HANDOFF.md and AI_CONTEXT/CHANGELOG.md retain both entries; scripts/quality-root-source-contract.cjs composes both exact source chains. Auto-merged index.html retains #124's account receipt scripts/cache and #126's authoring bootstrap/readback scripts/cache. Navigation expectations retain both. Account runtime sources are unchanged from main; quality runtime changes are retained from #126, except their shared HTML shell which contains both sets of additions. No permission policy, role, CAS, receipt, history, schema, business data or deployment change is introduced by integration.
+
+The test-only dual-parent integration inverse restores complete exact bytes to each genuine parent, validates LF/CRLF equivalence and rejects changed/missing/duplicated spans and appended bytes. Original parent manifests/hashes remain unchanged. The runtime-union test explicitly includes both quality helpers, attests their complete bytes against18336433 and retains the original account/password helper checks and complete file inventory.
+
+Old Local safety failure investigation (971c8f07, job133192426877):
+- Explicit input abandonment: `ROUND5_AUTHORING_READBACK_FAILED`, D1-select bridge `fetch failed`, nested Windows `connect EADDRINUSE 127.0.0.1:65277`. This proves a local transport failure; it does not establish a product defect or justify a retry/timeout change. Native Windows execution still requires new-head CI; local Chrome is unavailable in this environment. No assertion or retry changed.
+- Integrated entry: `converted working no saved SQL` compared the old contentIssues route's eight session reads with the new request-local phase. Preserve the original strict historical pair by restoring the exact a1775a8a route; add the unmodified current handler as a third execution. All37 scenarios compare complete body/headers, exact consumed bytes/hash/order, unchanged non-session SQL, explicit initial/fresh session-fence counts, validation work and zero writes. The three pre-existing unrelated-fault-policy differences remain explicitly labeled, not removed. Result111 GETs PASS.
+
+Original two source-EOL failures are addressed by the existing projected-input negative tests, retained here. Feedback's original INVISIBLE_TARGET remains unproven; later successes are not a root-cause finding. No new performance claims arise from this merge: prior paired synthetic metrics and their limitations remain in IMPLEMENTATION-2.md. Office environment/data/request equivalence, actual ready-to-edit and end-to-end live acceptance are still outstanding.
+
+Validation results and exact remote commit/CI are recorded in the PR after upload. A local build or previous head's checks must not be presented as final-head CI. Do not merge or deploy this draft.
