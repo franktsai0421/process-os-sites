@@ -30,3 +30,9 @@ C處理中按鈕根因：writeShared原有同步busy鎖可擋第二次dispatch�
 原head 1be9cb637bb789b6065cd46bb40532f6f759baa7、main 64e44b2f72642bf3186afea89e7d786c9bcbcc91。四處衝突：CHANGELOG/HANDOFF並列保留兩份紀錄；帳號冷啟動測試保留receipt helper安裝順序、account-outcome tags及quality-office header tag；quality-root來源入口接續兩套exact投影。index/nav自動合併後逐項核對雙方tags。AB/C/共用header產品程式保留#125，user-access/backend保留main #124原bytes，沒有搬入未合併#121/#126。
 
 原office/account所有歷史JSON pins不改。新增精確joint層，僅已知共同候選按hash/固定byte offset/EOL回復各自真Git parent，再執行原證明；未知bytes仍拒絕。新負例及整合後所有source回歸須重新執行，舊15綠不是本輪CI或實站驗收。原FQC Office版本仍待核實，已成功的B/C保存/送審/撤回不改列失敗。不操作帳號、業務資料、部署或備份；本輪結果以最終head/CI/審查回報為準。
+
+## 2026-11-17 — #125 整合已合併 #121
+
+核對head161b24289f2da730f31e6cdbbe0deac5ed00017d與main0f2c8ec5b3bc8f6a5625ef049782fab1f96988b1。五處衝突逐段處理：兩份文件並列保留；account/quality來源入口串接雙方精確證明；C pure-inverse保留固定a177歷史來源與當前office來源，各自驗raw/normalized pin、偽HEAD、EOL/hint drift與移除實際guard的退化控制。AB/C/共用header產品bytes保留#125，app/lib完整保留最新main的#121排程及#124帳號修復。資產入口與版本斷言逐項核對；未引入未合併#126。
+
+既有所有JSON manifests不改。新增當前候選→兩個真Git parent的精確source-only inverse，未知bytes仍拒絕；#121私有有界正規化快取與全部突變/alias/poisoning負例保留。另以無投影raw比較實際兩邊runtime，防止只有歷史投影通過。原兩輪測試與量測為歷史證據，本輪新候選須重跑來源/行為/lint/typecheck/build；未跑項明列，不視作實站驗收或新增速度成果。PR公開說明先前受拒，沒有新的該項批准，本輪不重試。沒有備份、部署或真資料操作。

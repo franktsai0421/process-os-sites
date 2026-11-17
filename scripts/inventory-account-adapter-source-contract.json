@@ -1,0 +1,29 @@
+{
+  "parents": {
+    "accountMain": "64e44b2f72642bf3186afea89e7d786c9bcbcc91"
+  },
+  "files": {
+    "scripts/quality-root-source-contract.cjs": {
+      "afterHash": "370ceadb85f3482b0371cc0bb24602fe32bb131cd16b1dd4d9175146de81145b",
+      "parents": {
+        "accountMain": {
+          "hash": "2089479479b1e4c4343a80b1ed286c2e70bf6b459c2b049a22decb404510a8d7",
+          "normalizedHash": "2089479479b1e4c4343a80b1ed286c2e70bf6b459c2b049a22decb404510a8d7",
+          "crlf": [],
+          "rules": [
+            {
+              "offset": 438,
+              "before": "function restore(bytes,file){bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);\n assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Quality root proof wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterNormalizedHash,'Quality root pinned source');\n",
+              "after": "function restore(bytes,file){\n assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./inventory-quality-source-contract.cjs').projectKnown(bytes,file,'qualityMain');bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Quality root proof wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterNormalizedHash,'Quality root pinned source');\n"
+            },
+            {
+              "offset": 1516,
+              "before": "function projectKnown(bytes,file){bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n",
+              "after": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./inventory-quality-source-contract.cjs').projectKnown(bytes,file,'qualityMain');bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

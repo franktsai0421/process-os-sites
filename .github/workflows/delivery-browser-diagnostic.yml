@@ -1,0 +1,59 @@
+name: Compiled delivery diagnostic
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/sites-delivery-browser.test.mjs'
+      - 'tests/root-entry-native-fixture.mjs'
+      - 'tests/sites-delivery-fixture-revision.test.mjs'
+      - '.github/workflows/delivery-browser-diagnostic.yml'
+permissions:
+  contents: read
+jobs:
+  exact-delivery:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+      PROCESS_PROGRAM_COMMIT: ${{ github.sha }}
+      USER_PERMISSIONS_EVIDENCE: ${{ github.workspace }}/.sites-runtime/role-template-compiled
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Locked install and original source guard
+        run: |
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/sites-ci-preflight.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Original guarded build
+        run: npm run build
+      - name: Locked Chromium
+        run: node node_modules/playwright/cli.js install chromium
+      - name: Original Local safety role and delivery browser commands
+        run: |
+          node --test tests/sites-delivery-fixture-revision.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/role-template-compiled-browser.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/sites-delivery-browser.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ !cancelled() }}
+        with:
+          name: synthetic-delivery-${{ github.sha }}
+          path: .sites-runtime/integrated-delivery-browser-result.json
+          if-no-files-found: warn
+# Early evidence only. The original Local safety job, all 57 steps, original
+# assertions and its unchanged 60-second readiness limits remain required.

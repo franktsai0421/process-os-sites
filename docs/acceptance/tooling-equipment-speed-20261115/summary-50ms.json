@@ -1,0 +1,920 @@
+{
+  "status": "PASS_SYNTHETIC_PAIRED_MEASUREMENT",
+  "baselineCommit": "e040a7e838133c0c9870850a49955cf045dbc02b",
+  "pairs": 3,
+  "order": "alternating before/after; no discarded warmup",
+  "summary": [
+    {
+      "module": "tooling",
+      "step": "read",
+      "before": {
+        "n": 3,
+        "medianMs": 1981.8345839999997,
+        "medianReadStateMs": 608.6363589999996,
+        "r2Gets": [
+          12
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          676526,
+          676526
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1808.4821519999996,
+        "medianReadStateMs": 358.5197400000002,
+        "r2Gets": [
+          12
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          676526,
+          676526
+        ]
+      },
+      "improvementPercent": 8.747068670590929
+    },
+    {
+      "module": "tooling",
+      "step": "save-write",
+      "before": {
+        "n": 3,
+        "medianMs": 2337.366323,
+        "medianReadStateMs": 1429.761899,
+        "r2Gets": [
+          28
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          844669,
+          844669
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1707.5316899999998,
+        "medianReadStateMs": 777.069606,
+        "r2Gets": [
+          28
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          844669,
+          844669
+        ]
+      },
+      "improvementPercent": 26.946338141451875
+    },
+    {
+      "module": "tooling",
+      "step": "save-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 2012.1525489999995,
+        "medianReadStateMs": 660.8701470000015,
+        "r2Gets": [
+          13
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          844675,
+          844675
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1778.5936550000006,
+        "medianReadStateMs": 409.92637999999897,
+        "r2Gets": [
+          13
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          844675,
+          844675
+        ]
+      },
+      "improvementPercent": 11.60741486106871
+    },
+    {
+      "module": "tooling",
+      "step": "submit-write",
+      "before": {
+        "n": 3,
+        "medianMs": 2438.329313,
+        "medianReadStateMs": 1478.2641559999993,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          1189436,
+          1189436
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1762.4259989999991,
+        "medianReadStateMs": 830.3323519999994,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          1189436,
+          1189436
+        ]
+      },
+      "improvementPercent": 27.719935547524667
+    },
+    {
+      "module": "tooling",
+      "step": "submit-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 2045.7579650000007,
+        "medianReadStateMs": 672.6667039999993,
+        "r2Gets": [
+          13
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          1189442,
+          1189442
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1824.6242120000006,
+        "medianReadStateMs": 424.28430300000036,
+        "r2Gets": [
+          13
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          1189442,
+          1189442
+        ]
+      },
+      "improvementPercent": 10.809380033380444
+    },
+    {
+      "module": "tooling",
+      "step": "withdraw-write",
+      "before": {
+        "n": 3,
+        "medianMs": 2389.2563850000006,
+        "medianReadStateMs": 1501.5795280000002,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          1017204,
+          1017204
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1746.0991509999985,
+        "medianReadStateMs": 855.7277990000002,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          1017204,
+          1017204
+        ]
+      },
+      "improvementPercent": 26.918719901213194
+    },
+    {
+      "module": "tooling",
+      "step": "withdraw-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 2073.821885999998,
+        "medianReadStateMs": 687.472815000001,
+        "r2Gets": [
+          13
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          1017210,
+          1017210
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1779.1741759999986,
+        "medianReadStateMs": 427.045032,
+        "r2Gets": [
+          13
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          1017210,
+          1017210
+        ]
+      },
+      "improvementPercent": 14.20795643006343
+    },
+    {
+      "module": "tooling",
+      "step": "resubmit-write",
+      "before": {
+        "n": 3,
+        "medianMs": 2434.8262940000022,
+        "medianReadStateMs": 1488.3750309999996,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          1361972,
+          1361972
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1808.2794799999992,
+        "medianReadStateMs": 862.2664670000013,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          1361972,
+          1361972
+        ]
+      },
+      "improvementPercent": 25.73271101696105
+    },
+    {
+      "module": "tooling",
+      "step": "resubmit-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 2070.4877269999997,
+        "medianReadStateMs": 682.0719519999984,
+        "r2Gets": [
+          13
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          1361978,
+          1361978
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1794.8941909999994,
+        "medianReadStateMs": 429.8931160000029,
+        "r2Gets": [
+          13
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          1361978,
+          1361978
+        ]
+      },
+      "improvementPercent": 13.310561198028314
+    },
+    {
+      "module": "tooling",
+      "step": "confirm-review-write",
+      "before": {
+        "n": 3,
+        "medianMs": 2197.492614999999,
+        "medianReadStateMs": 1507.5878830000001,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          1026303,
+          1026303
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1555.5803640000013,
+        "medianReadStateMs": 870.079225999998,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          1026303,
+          1026303
+        ]
+      },
+      "improvementPercent": 29.21112210427147
+    },
+    {
+      "module": "tooling",
+      "step": "confirm-review-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 1995.130344000001,
+        "medianReadStateMs": 630.2354379999997,
+        "r2Gets": [
+          12
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          1026343,
+          1026343
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1759.3213730000025,
+        "medianReadStateMs": 380.3340590000007,
+        "r2Gets": [
+          12
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          1026343,
+          1026343
+        ]
+      },
+      "improvementPercent": 11.819226333214372
+    },
+    {
+      "module": "tooling",
+      "step": "relation-load",
+      "before": {
+        "n": 3,
+        "medianMs": 468.5901840000006,
+        "medianReadStateMs": 354.14203199999974,
+        "r2Gets": [
+          7
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          187,
+          187
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 319.4666550000002,
+        "medianReadStateMs": 203.33415400000013,
+        "r2Gets": [
+          7
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          187,
+          187
+        ]
+      },
+      "improvementPercent": 31.823869575552234
+    },
+    {
+      "module": "routine-equipment",
+      "step": "read",
+      "before": {
+        "n": 3,
+        "medianMs": 789.540358000002,
+        "medianReadStateMs": 607.1141290000014,
+        "r2Gets": [
+          12
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          193263,
+          193263
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 641.5342149999997,
+        "medianReadStateMs": 457.51059800000075,
+        "r2Gets": [
+          12
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          193263,
+          193263
+        ]
+      },
+      "improvementPercent": 18.745861627000192
+    },
+    {
+      "module": "routine-equipment",
+      "step": "save-write",
+      "before": {
+        "n": 3,
+        "medianMs": 2564.852324000003,
+        "medianReadStateMs": 1471.5500849999953,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          264249,
+          264249
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1898.5955280000017,
+        "medianReadStateMs": 788.9639690000004,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          264249,
+          264249
+        ]
+      },
+      "improvementPercent": 25.976419373765115
+    },
+    {
+      "module": "routine-equipment",
+      "step": "save-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 924.9837659999976,
+        "medianReadStateMs": 762.6351020000002,
+        "r2Gets": [
+          15
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          263987,
+          263987
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 767.0636090000007,
+        "medianReadStateMs": 608.6199559999986,
+        "r2Gets": [
+          15
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          263987,
+          263987
+        ]
+      },
+      "improvementPercent": 17.072749036764957
+    },
+    {
+      "module": "routine-equipment",
+      "step": "submit-write",
+      "before": {
+        "n": 3,
+        "medianMs": 2625.1363249999995,
+        "medianReadStateMs": 1600.375602,
+        "r2Gets": [
+          32
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          264906,
+          264906
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1943.0456259999992,
+        "medianReadStateMs": 999.0359759999992,
+        "r2Gets": [
+          32
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          264906,
+          264906
+        ]
+      },
+      "improvementPercent": 25.98305819413018
+    },
+    {
+      "module": "routine-equipment",
+      "step": "submit-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 921.3058369999999,
+        "medianReadStateMs": 761.0838130000047,
+        "r2Gets": [
+          15
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          264610,
+          264610
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 768.3481980000033,
+        "medianReadStateMs": 608.8015540000015,
+        "r2Gets": [
+          15
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          264610,
+          264610
+        ]
+      },
+      "improvementPercent": 16.602265269268734
+    },
+    {
+      "module": "routine-equipment",
+      "step": "withdraw-write",
+      "before": {
+        "n": 3,
+        "medianMs": 2643.6320599999963,
+        "medianReadStateMs": 1698.3193020000035,
+        "r2Gets": [
+          32
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          264729,
+          264729
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1874.7138699999996,
+        "medianReadStateMs": 939.0638910000016,
+        "r2Gets": [
+          32
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          264729,
+          264729
+        ]
+      },
+      "improvementPercent": 29.085673518424414
+    },
+    {
+      "module": "routine-equipment",
+      "step": "withdraw-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 925.3216820000016,
+        "medianReadStateMs": 764.2864750000008,
+        "r2Gets": [
+          15
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          264467,
+          264467
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 769.630806000001,
+        "medianReadStateMs": 607.3378860000012,
+        "r2Gets": [
+          15
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          264467,
+          264467
+        ]
+      },
+      "improvementPercent": 16.825594712477542
+    },
+    {
+      "module": "routine-equipment",
+      "step": "resubmit-write",
+      "before": {
+        "n": 3,
+        "medianMs": 2599.3065540000025,
+        "medianReadStateMs": 1634.151512999997,
+        "r2Gets": [
+          32
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          265387,
+          265387
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1876.6613460000008,
+        "medianReadStateMs": 938.7509770000033,
+        "r2Gets": [
+          32
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          265387,
+          265387
+        ]
+      },
+      "improvementPercent": 27.801461389305647
+    },
+    {
+      "module": "routine-equipment",
+      "step": "resubmit-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 971.0069150000054,
+        "medianReadStateMs": 781.2194279999967,
+        "r2Gets": [
+          15
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          265091,
+          265091
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 790.792601000001,
+        "medianReadStateMs": 624.6791410000005,
+        "r2Gets": [
+          15
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          265091,
+          265091
+        ]
+      },
+      "improvementPercent": 18.559529413856268
+    },
+    {
+      "module": "routine-equipment",
+      "step": "confirm-review-write",
+      "before": {
+        "n": 3,
+        "medianMs": 2320.6312030000045,
+        "medianReadStateMs": 1613.0257349999956,
+        "r2Gets": [
+          32
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          169013,
+          169013
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1633.3803810000027,
+        "medianReadStateMs": 953.0069079999957,
+        "r2Gets": [
+          32
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          169013,
+          169013
+        ]
+      },
+      "improvementPercent": 29.614822946082764
+    },
+    {
+      "module": "routine-equipment",
+      "step": "confirm-review-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 764.9738369999977,
+        "medianReadStateMs": 607.3813660000014,
+        "r2Gets": [
+          12
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          168785,
+          168785
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 613.0765290000054,
+        "medianReadStateMs": 456.0916270000016,
+        "r2Gets": [
+          12
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          168785,
+          168785
+        ]
+      },
+      "improvementPercent": 19.85653634844413
+    },
+    {
+      "module": "routine-equipment",
+      "step": "workflow-read",
+      "before": {
+        "n": 3,
+        "medianMs": 2233.894284000002,
+        "medianReadStateMs": 864.9097089999923,
+        "r2Gets": [
+          17
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 2,
+        "wireBytesRange": [
+          169053,
+          169053
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1948.820645000007,
+        "medianReadStateMs": 607.9100099999996,
+        "r2Gets": [
+          17
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          169053,
+          169053
+        ]
+      },
+      "improvementPercent": 12.761286021536478
+    }
+  ],
+  "runtimeCommit": "250b7f28dfe18dc49def35c15d098f07c6fecd97",
+  "runtimeHashes": {
+    "lib/process-state.ts": "aa790135602ef8eb5249be9b3bff46eed126ec01667b3fc2ff77c4ca163902af",
+    "lib/state-records.ts": "9021ff077ea60b58382d93380f8080f7ea59fbf7e3d9d464b4069b5d672a55a7",
+    "lib/tooling-workflow.ts": "2cbf91c26a89f8e04190c4217c62fd2d535f06b16d27952857338b2a18035eea",
+    "lib/equipment-workflow.ts": "5698203e328d6d7bb752462bb8922586aded195e85dbfa7e01d3daa770d447ec",
+    "lib/versioned-shared-workflow.ts": "4b155e3f68c82b33e83f91623a0549db6147fea97ecbb46472585287623b9f2e",
+    "app/api/tooling/iqc/route.ts": "cf8f140187a568416ff559fcf9352886aba3af3b400955bfd7b67c315f3d5e84",
+    "app/api/routine-equipment/route.ts": "450abd9ddadc02b30b1642b4182c53da451d46be2a7a4e98dc18132ba2bac35c",
+    "lib/inventory-read-ahead.mjs": "edec4965f468106bc29c14a81f79c256d251f03a1ebe636f6fb16792c7a27413"
+  },
+  "fixture": {
+    "tools": 366,
+    "equipment": 119,
+    "historicalVersionsPerModule": 20,
+    "unrelatedAggregates": 8,
+    "storage": "records-v1, isolated in-memory SQLite and Map R2",
+    "photos": 0
+  },
+  "environment": {
+    "node": "v24.22.1",
+    "delayMs": 50,
+    "clock": "performance.now, wall response fully consumed"
+  }
+}

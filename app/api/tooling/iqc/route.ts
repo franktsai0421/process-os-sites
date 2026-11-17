@@ -2,7 +2,7 @@ import {readState,identity,can,parse,responseHeaders} from '@/lib/process-state'
 import {toolingIqcSource} from '@/lib/tooling-iqc';
 import type {IqcControl} from '@/lib/iqc';
 export async function GET(request:Request){try{
- const state=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode','iqcMasterControl'],deferHistory:true});
+ const state=await readState({aggregateReadAhead:true,keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode','iqcMasterControl'],deferHistory:true});
  if(!await identity(request,state)||!(await can(request,state,'view:data')||await can(request,state,'view:approval')))return Response.json({error:'FORBIDDEN'},{status:403});
  const c=parse(state.values.iqcMasterControl,{versions:[],activeVersionId:null}) as IqcControl;
  const source=toolingIqcSource(c);if(!source)return Response.json({error:'IQC_APPROVED_SOURCE_UNAVAILABLE'},{status:409});

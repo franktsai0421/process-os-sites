@@ -1,0 +1,1675 @@
+{
+  "status": "PASS_TOOLING_CHECKS_ROUTE_PAIRS",
+  "pairs": [
+    {
+      "count": 366,
+      "baseline": {
+        "fixture": {
+          "tools": 366,
+          "transfers": 2196
+        },
+        "sourceHashes": {
+          "lib/tooling.ts": "42abb0ce9b3100a7452a8a6d1056a7862017cce480ea274df6baefc31f7d4cc7",
+          "lib/tooling-workflow.ts": "2cbf91c26a89f8e04190c4217c62fd2d535f06b16d27952857338b2a18035eea",
+          "lib/state-records.ts": "9021ff077ea60b58382d93380f8080f7ea59fbf7e3d9d464b4069b5d672a55a7",
+          "lib/versioned-shared-workflow.ts": "4b155e3f68c82b33e83f91623a0549db6147fea97ecbb46472585287623b9f2e",
+          "lib/shared-draft.ts": "eea647afcfe5e5ef1e3c5dfa966dda5541f09ccbb9998c21fa2c34ca20bd8dc3",
+          "lib/workflow-wire.ts": "11cfbe893bdf1d857f869ac3b5a64bc6a9b84c14d0d1b9473ab728187f5e347d",
+          "lib/process-state.ts": "aa790135602ef8eb5249be9b3bff46eed126ec01667b3fc2ff77c4ca163902af",
+          "scripts/ipqc-ab-import-harness.cjs": "b63faa49897290bf4608ac8da0bb26d9493e02ed26af3372319c92c4bc942c97",
+          "app/api/tooling/checks/route.ts": "f1313c87da69cae1d454fcd910afd63b0b366768dac88da26b2e897f501286f0"
+        },
+        "actions": [
+          {
+            "name": "entry",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 0,
+              "r2Gets": 4,
+              "r2GetBytes": 624550,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 624028,
+            "elapsedMs": 253.23673099999996,
+            "observedHeapGrowthBytes": 25152352,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 2,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 0,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 3,
+            "workingHash": "3124a0f013ea9cad8fe051546f85fcdab3458131b044b0d8b722cb93d7921ad1",
+            "activeHash": "3124a0f013ea9cad8fe051546f85fcdab3458131b044b0d8b722cb93d7921ad1",
+            "caseStatuses": [],
+            "workingTools": 366,
+            "workingTransfers": 2196
+          },
+          {
+            "name": "initial-unsaved",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 7,
+              "r2GetBytes": 625993,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 214535,
+            "elapsedMs": 61.12463300000013,
+            "observedHeapGrowthBytes": 24640328,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 5,
+            "checksVerifiedBodyHash": "d22969fa1d71c86bc010d62094afb3fd9333760a2a7b81885e192972127a2006",
+            "issuesHash": "7578484a333514e042bfbb22ecdcd4f702624eab2625210a9c291ad3d8b20a3b",
+            "issueCount": 1219
+          },
+          {
+            "name": "begin",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 1,
+              "r2Gets": 7,
+              "r2GetBytes": 756812,
+              "r2Heads": 0,
+              "r2Puts": 1,
+              "r2PutBytes": 1669
+            },
+            "responseBytes": 624139,
+            "elapsedMs": 53.30761800000005,
+            "observedHeapGrowthBytes": 23090200,
+            "recordKeysRead": {
+              "versionSampleSeed4": 1,
+              "platformUsers": 1,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 1
+            },
+            "uniqueR2Keys": 7,
+            "workingHash": "3124a0f013ea9cad8fe051546f85fcdab3458131b044b0d8b722cb93d7921ad1",
+            "activeHash": "3124a0f013ea9cad8fe051546f85fcdab3458131b044b0d8b722cb93d7921ad1",
+            "caseStatuses": [],
+            "workingTools": 366,
+            "workingTransfers": 2196
+          },
+          {
+            "name": "apply",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 1,
+              "r2Gets": 7,
+              "r2GetBytes": 757280,
+              "r2Heads": 0,
+              "r2Puts": 2,
+              "r2PutBytes": 625223
+            },
+            "responseBytes": 1247454,
+            "elapsedMs": 309.478936,
+            "observedHeapGrowthBytes": 22593896,
+            "recordKeysRead": {
+              "versionSampleSeed4": 1,
+              "platformUsers": 1,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 1
+            },
+            "uniqueR2Keys": 7,
+            "workingHash": "7ce8513b8bc107faa39cdf7c43fc6a13f65b27570ba2bf1886737d3b8ab98cc1",
+            "activeHash": "3124a0f013ea9cad8fe051546f85fcdab3458131b044b0d8b722cb93d7921ad1",
+            "caseStatuses": [],
+            "workingTools": 366,
+            "workingTransfers": 2196
+          },
+          {
+            "name": "changed-unsaved",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 8,
+              "r2GetBytes": 1250015,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 214679,
+            "elapsedMs": 99.02498300000002,
+            "observedHeapGrowthBytes": 29465032,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 6,
+            "checksVerifiedBodyHash": "7298c14db28aa2ad1f95d618d67f36a021c1c4031b2f8a9dbf1bad6f3784c9f1",
+            "issuesHash": "825ffb7366850ab4b03c3d7ec8eac97564a0f692e9f0177ceadce276688a97f9",
+            "issueCount": 1220
+          },
+          {
+            "name": "save",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 1,
+              "r2Gets": 8,
+              "r2GetBytes": 1380834,
+              "r2Heads": 0,
+              "r2Puts": 1,
+              "r2PutBytes": 3530
+            },
+            "responseBytes": 1247703,
+            "elapsedMs": 113.85458399999993,
+            "observedHeapGrowthBytes": 39526032,
+            "recordKeysRead": {
+              "versionSampleSeed4": 1,
+              "platformUsers": 1,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 1
+            },
+            "uniqueR2Keys": 8,
+            "workingHash": "7ce8513b8bc107faa39cdf7c43fc6a13f65b27570ba2bf1886737d3b8ab98cc1",
+            "activeHash": "3124a0f013ea9cad8fe051546f85fcdab3458131b044b0d8b722cb93d7921ad1",
+            "caseStatuses": [],
+            "workingTools": 366,
+            "workingTransfers": 2196
+          },
+          {
+            "name": "saved-equal",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 8,
+              "r2GetBytes": 1251319,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 429193,
+            "elapsedMs": 122.76306699999986,
+            "observedHeapGrowthBytes": 5472440,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 6,
+            "checksVerifiedBodyHash": "321474b77fad6d6b2f83ab35d7826d7d690f42749b47a08b7dbd94a841fb9f33",
+            "issuesHash": "88957b71e3dc180bdc69759a2742505f362c89f2c4be2f4dd693891ada9402b7",
+            "issueCount": 2440
+          },
+          {
+            "name": "apply",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 1,
+              "r2Gets": 8,
+              "r2GetBytes": 1382138,
+              "r2Heads": 0,
+              "r2Puts": 2,
+              "r2PutBytes": 627047
+            },
+            "responseBytes": 1870841,
+            "elapsedMs": 329.73505399999976,
+            "observedHeapGrowthBytes": 64668240,
+            "recordKeysRead": {
+              "versionSampleSeed4": 1,
+              "platformUsers": 1,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 1
+            },
+            "uniqueR2Keys": 8,
+            "workingHash": "fd26207968f24ba580a0f80a69417008932164a9f72054e54c8ce4c07d8e4c87",
+            "activeHash": "3124a0f013ea9cad8fe051546f85fcdab3458131b044b0d8b722cb93d7921ad1",
+            "caseStatuses": [],
+            "workingTools": 366,
+            "workingTransfers": 2196
+          },
+          {
+            "name": "saved-distinct",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 9,
+              "r2GetBytes": 1874836,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 429337,
+            "elapsedMs": 101.37321199999997,
+            "observedHeapGrowthBytes": 36870016,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 7,
+            "checksVerifiedBodyHash": "97734a9b4b35c59cdf3dbc32341a456d843c36afc38db675390cca8eb94b1374",
+            "issuesHash": "cee98fa43fb75e4d8049359c42c261f15d394696c0f7730c3359146d6bfbaf85",
+            "issueCount": 2441
+          },
+          {
+            "name": "unauthenticated",
+            "status": 403,
+            "error": "FORBIDDEN",
+            "metrics": {
+              "sqlReads": 1,
+              "sqlWrites": 0,
+              "r2Gets": 1,
+              "r2GetBytes": 169,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 21,
+            "elapsedMs": 1.627835000000232,
+            "observedHeapGrowthBytes": 116368,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 1,
+              "toolingMasterControl": 0,
+              "iqcMasterControl": 0,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 1,
+            "checksVerifiedBodyHash": "4e72f7d6ab7b3f41ea639948c0c97c78c0db03ccc56416807f3296e65dc3f9b0"
+          },
+          {
+            "name": "unrelatedAux-fault",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 9,
+              "r2GetBytes": 1874836,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 429337,
+            "elapsedMs": 129.00978699999996,
+            "observedHeapGrowthBytes": 36865624,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 7,
+            "checksVerifiedBodyHash": "97734a9b4b35c59cdf3dbc32341a456d843c36afc38db675390cca8eb94b1374",
+            "issuesHash": "cee98fa43fb75e4d8049359c42c261f15d394696c0f7730c3359146d6bfbaf85",
+            "issueCount": 2441
+          },
+          {
+            "name": "toolingMasterControl-fault",
+            "status": 503,
+            "error": "WORKFLOW_LOAD_FAILED",
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 0,
+              "r2Gets": 3,
+              "r2GetBytes": 355,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 32,
+            "elapsedMs": 13.172362000000248,
+            "observedHeapGrowthBytes": 5829656,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 2,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 0,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 2,
+            "checksVerifiedBodyHash": "8a6eb281d5a342352b7620aef3c2dd971faf0b41a2a0849a77d37379ba916501"
+          },
+          {
+            "name": "iqcMasterControl-fault",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 8,
+              "r2GetBytes": 1873579,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 554278,
+            "elapsedMs": 123.92185900000004,
+            "observedHeapGrowthBytes": 37053480,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 6,
+            "checksVerifiedBodyHash": "38163cf8427d645e8716a7932aea3f98e192c1dea335957deba8c6639dbdbfa5",
+            "issuesHash": "f81ebfee186ae795f301162405a896db4f810bec7209f2e96e02cebb9b3f0184",
+            "issueCount": 3173
+          },
+          {
+            "name": "revision-drift",
+            "status": 409,
+            "error": "TOOLING_CHECKS_STALE_RETRY",
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 9,
+              "r2GetBytes": 1874836,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 38,
+            "elapsedMs": 62.88746899999978,
+            "observedHeapGrowthBytes": 31375632,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 7,
+            "checksVerifiedBodyHash": "e31386aa3e4ede385513c120267d4ebcb9912ccdf3daf83370efa2921a6aaea9"
+          }
+        ]
+      },
+      "candidate": {
+        "fixture": {
+          "tools": 366,
+          "transfers": 2196
+        },
+        "sourceHashes": {
+          "lib/tooling.ts": "42abb0ce9b3100a7452a8a6d1056a7862017cce480ea274df6baefc31f7d4cc7",
+          "lib/tooling-workflow.ts": "2cbf91c26a89f8e04190c4217c62fd2d535f06b16d27952857338b2a18035eea",
+          "lib/state-records.ts": "9021ff077ea60b58382d93380f8080f7ea59fbf7e3d9d464b4069b5d672a55a7",
+          "lib/versioned-shared-workflow.ts": "4b155e3f68c82b33e83f91623a0549db6147fea97ecbb46472585287623b9f2e",
+          "lib/shared-draft.ts": "eea647afcfe5e5ef1e3c5dfa966dda5541f09ccbb9998c21fa2c34ca20bd8dc3",
+          "lib/workflow-wire.ts": "11cfbe893bdf1d857f869ac3b5a64bc6a9b84c14d0d1b9473ab728187f5e347d",
+          "lib/process-state.ts": "aa790135602ef8eb5249be9b3bff46eed126ec01667b3fc2ff77c4ca163902af",
+          "scripts/ipqc-ab-import-harness.cjs": "b63faa49897290bf4608ac8da0bb26d9493e02ed26af3372319c92c4bc942c97",
+          "app/api/tooling/checks/route.ts": "a67e24c661320f81b927e6283896ba287adedd49ecf5508384cce0c4db258e9b"
+        },
+        "actions": [
+          {
+            "name": "entry",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 0,
+              "r2Gets": 4,
+              "r2GetBytes": 624550,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 624028,
+            "elapsedMs": 138.28132499999992,
+            "observedHeapGrowthBytes": 25151576,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 2,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 0,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 3,
+            "workingHash": "3124a0f013ea9cad8fe051546f85fcdab3458131b044b0d8b722cb93d7921ad1",
+            "activeHash": "3124a0f013ea9cad8fe051546f85fcdab3458131b044b0d8b722cb93d7921ad1",
+            "caseStatuses": [],
+            "workingTools": 366,
+            "workingTransfers": 2196
+          },
+          {
+            "name": "initial-unsaved",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 7,
+              "r2GetBytes": 625993,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 214535,
+            "elapsedMs": 66.02786300000002,
+            "observedHeapGrowthBytes": 7122040,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 5,
+            "checksVerifiedBodyHash": "d22969fa1d71c86bc010d62094afb3fd9333760a2a7b81885e192972127a2006",
+            "issuesHash": "7578484a333514e042bfbb22ecdcd4f702624eab2625210a9c291ad3d8b20a3b",
+            "issueCount": 1219
+          },
+          {
+            "name": "begin",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 1,
+              "r2Gets": 7,
+              "r2GetBytes": 756812,
+              "r2Heads": 0,
+              "r2Puts": 1,
+              "r2PutBytes": 1669
+            },
+            "responseBytes": 624139,
+            "elapsedMs": 97.77867100000003,
+            "observedHeapGrowthBytes": 23083944,
+            "recordKeysRead": {
+              "versionSampleSeed4": 1,
+              "platformUsers": 1,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 1
+            },
+            "uniqueR2Keys": 7,
+            "workingHash": "3124a0f013ea9cad8fe051546f85fcdab3458131b044b0d8b722cb93d7921ad1",
+            "activeHash": "3124a0f013ea9cad8fe051546f85fcdab3458131b044b0d8b722cb93d7921ad1",
+            "caseStatuses": [],
+            "workingTools": 366,
+            "workingTransfers": 2196
+          },
+          {
+            "name": "apply",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 1,
+              "r2Gets": 7,
+              "r2GetBytes": 757280,
+              "r2Heads": 0,
+              "r2Puts": 2,
+              "r2PutBytes": 625223
+            },
+            "responseBytes": 1247454,
+            "elapsedMs": 484.46906399999966,
+            "observedHeapGrowthBytes": 22553568,
+            "recordKeysRead": {
+              "versionSampleSeed4": 1,
+              "platformUsers": 1,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 1
+            },
+            "uniqueR2Keys": 7,
+            "workingHash": "7ce8513b8bc107faa39cdf7c43fc6a13f65b27570ba2bf1886737d3b8ab98cc1",
+            "activeHash": "3124a0f013ea9cad8fe051546f85fcdab3458131b044b0d8b722cb93d7921ad1",
+            "caseStatuses": [],
+            "workingTools": 366,
+            "workingTransfers": 2196
+          },
+          {
+            "name": "changed-unsaved",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 8,
+              "r2GetBytes": 1250015,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 214679,
+            "elapsedMs": 89.41765700000042,
+            "observedHeapGrowthBytes": 9513600,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 6,
+            "checksVerifiedBodyHash": "7298c14db28aa2ad1f95d618d67f36a021c1c4031b2f8a9dbf1bad6f3784c9f1",
+            "issuesHash": "825ffb7366850ab4b03c3d7ec8eac97564a0f692e9f0177ceadce276688a97f9",
+            "issueCount": 1220
+          },
+          {
+            "name": "save",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 1,
+              "r2Gets": 8,
+              "r2GetBytes": 1380834,
+              "r2Heads": 0,
+              "r2Puts": 1,
+              "r2PutBytes": 3530
+            },
+            "responseBytes": 1247703,
+            "elapsedMs": 200.91762300000028,
+            "observedHeapGrowthBytes": 39518384,
+            "recordKeysRead": {
+              "versionSampleSeed4": 1,
+              "platformUsers": 1,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 1
+            },
+            "uniqueR2Keys": 8,
+            "workingHash": "7ce8513b8bc107faa39cdf7c43fc6a13f65b27570ba2bf1886737d3b8ab98cc1",
+            "activeHash": "3124a0f013ea9cad8fe051546f85fcdab3458131b044b0d8b722cb93d7921ad1",
+            "caseStatuses": [],
+            "workingTools": 366,
+            "workingTransfers": 2196
+          },
+          {
+            "name": "saved-equal",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 8,
+              "r2GetBytes": 1251319,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 429193,
+            "elapsedMs": 66.06544399999984,
+            "observedHeapGrowthBytes": 12250232,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 6,
+            "checksVerifiedBodyHash": "321474b77fad6d6b2f83ab35d7826d7d690f42749b47a08b7dbd94a841fb9f33",
+            "issuesHash": "88957b71e3dc180bdc69759a2742505f362c89f2c4be2f4dd693891ada9402b7",
+            "issueCount": 2440
+          },
+          {
+            "name": "apply",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 1,
+              "r2Gets": 8,
+              "r2GetBytes": 1382138,
+              "r2Heads": 0,
+              "r2Puts": 2,
+              "r2PutBytes": 627047
+            },
+            "responseBytes": 1870841,
+            "elapsedMs": 254.38484199999994,
+            "observedHeapGrowthBytes": 64705504,
+            "recordKeysRead": {
+              "versionSampleSeed4": 1,
+              "platformUsers": 1,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 1
+            },
+            "uniqueR2Keys": 8,
+            "workingHash": "fd26207968f24ba580a0f80a69417008932164a9f72054e54c8ce4c07d8e4c87",
+            "activeHash": "3124a0f013ea9cad8fe051546f85fcdab3458131b044b0d8b722cb93d7921ad1",
+            "caseStatuses": [],
+            "workingTools": 366,
+            "workingTransfers": 2196
+          },
+          {
+            "name": "saved-distinct",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 9,
+              "r2GetBytes": 1874836,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 429337,
+            "elapsedMs": 59.293153000000075,
+            "observedHeapGrowthBytes": 14592008,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 7,
+            "checksVerifiedBodyHash": "97734a9b4b35c59cdf3dbc32341a456d843c36afc38db675390cca8eb94b1374",
+            "issuesHash": "cee98fa43fb75e4d8049359c42c261f15d394696c0f7730c3359146d6bfbaf85",
+            "issueCount": 2441
+          },
+          {
+            "name": "unauthenticated",
+            "status": 403,
+            "error": "FORBIDDEN",
+            "metrics": {
+              "sqlReads": 1,
+              "sqlWrites": 0,
+              "r2Gets": 1,
+              "r2GetBytes": 169,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 21,
+            "elapsedMs": 3.63239700000031,
+            "observedHeapGrowthBytes": 73528,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 1,
+              "toolingMasterControl": 0,
+              "iqcMasterControl": 0,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 1,
+            "checksVerifiedBodyHash": "4e72f7d6ab7b3f41ea639948c0c97c78c0db03ccc56416807f3296e65dc3f9b0"
+          },
+          {
+            "name": "unrelatedAux-fault",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 9,
+              "r2GetBytes": 1874836,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 429337,
+            "elapsedMs": 48.75633800000014,
+            "observedHeapGrowthBytes": 14577160,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 7,
+            "checksVerifiedBodyHash": "97734a9b4b35c59cdf3dbc32341a456d843c36afc38db675390cca8eb94b1374",
+            "issuesHash": "cee98fa43fb75e4d8049359c42c261f15d394696c0f7730c3359146d6bfbaf85",
+            "issueCount": 2441
+          },
+          {
+            "name": "toolingMasterControl-fault",
+            "status": 503,
+            "error": "WORKFLOW_LOAD_FAILED",
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 0,
+              "r2Gets": 3,
+              "r2GetBytes": 355,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 32,
+            "elapsedMs": 5.448070000000371,
+            "observedHeapGrowthBytes": 633264,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 2,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 0,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 2,
+            "checksVerifiedBodyHash": "8a6eb281d5a342352b7620aef3c2dd971faf0b41a2a0849a77d37379ba916501"
+          },
+          {
+            "name": "iqcMasterControl-fault",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 8,
+              "r2GetBytes": 1873579,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 554278,
+            "elapsedMs": 53.345524999999725,
+            "observedHeapGrowthBytes": 14785584,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 6,
+            "checksVerifiedBodyHash": "38163cf8427d645e8716a7932aea3f98e192c1dea335957deba8c6639dbdbfa5",
+            "issuesHash": "f81ebfee186ae795f301162405a896db4f810bec7209f2e96e02cebb9b3f0184",
+            "issueCount": 3173
+          },
+          {
+            "name": "revision-drift",
+            "status": 409,
+            "error": "TOOLING_CHECKS_STALE_RETRY",
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 9,
+              "r2GetBytes": 1874836,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 38,
+            "elapsedMs": 23.103205999999773,
+            "observedHeapGrowthBytes": 9042768,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 7,
+            "checksVerifiedBodyHash": "e31386aa3e4ede385513c120267d4ebcb9912ccdf3daf83370efa2921a6aaea9"
+          }
+        ]
+      }
+    },
+    {
+      "count": 1000,
+      "baseline": {
+        "fixture": {
+          "tools": 1000,
+          "transfers": 6000
+        },
+        "sourceHashes": {
+          "lib/tooling.ts": "42abb0ce9b3100a7452a8a6d1056a7862017cce480ea274df6baefc31f7d4cc7",
+          "lib/tooling-workflow.ts": "2cbf91c26a89f8e04190c4217c62fd2d535f06b16d27952857338b2a18035eea",
+          "lib/state-records.ts": "9021ff077ea60b58382d93380f8080f7ea59fbf7e3d9d464b4069b5d672a55a7",
+          "lib/versioned-shared-workflow.ts": "4b155e3f68c82b33e83f91623a0549db6147fea97ecbb46472585287623b9f2e",
+          "lib/shared-draft.ts": "eea647afcfe5e5ef1e3c5dfa966dda5541f09ccbb9998c21fa2c34ca20bd8dc3",
+          "lib/workflow-wire.ts": "11cfbe893bdf1d857f869ac3b5a64bc6a9b84c14d0d1b9473ab728187f5e347d",
+          "lib/process-state.ts": "aa790135602ef8eb5249be9b3bff46eed126ec01667b3fc2ff77c4ca163902af",
+          "scripts/ipqc-ab-import-harness.cjs": "b63faa49897290bf4608ac8da0bb26d9493e02ed26af3372319c92c4bc942c97",
+          "app/api/tooling/checks/route.ts": "f1313c87da69cae1d454fcd910afd63b0b366768dac88da26b2e897f501286f0"
+        },
+        "actions": [
+          {
+            "name": "entry",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 0,
+              "r2Gets": 4,
+              "r2GetBytes": 1700971,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 1700449,
+            "elapsedMs": 81.55902200000003,
+            "observedHeapGrowthBytes": 41046400,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 2,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 0,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 3,
+            "workingHash": "ad0183e57cd3bc445992c748afa7bf3fdcd04a6a8610bc37bbd8c05e7461a852",
+            "activeHash": "ad0183e57cd3bc445992c748afa7bf3fdcd04a6a8610bc37bbd8c05e7461a852",
+            "caseStatuses": [],
+            "workingTools": 1000,
+            "workingTransfers": 6000
+          },
+          {
+            "name": "initial-unsaved",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 7,
+              "r2GetBytes": 1702414,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 585554,
+            "elapsedMs": 351.1965190000001,
+            "observedHeapGrowthBytes": 42330944,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 5,
+            "checksVerifiedBodyHash": "893eb87d4f9544c3a77b872453501bf3fbeae9fc8b390c50a83cdc769e3034aa",
+            "issuesHash": "81960f0018eff593db7c72ec798bcf7ef666f286d1e245e679940dcac7debf7c",
+            "issueCount": 3325
+          },
+          {
+            "name": "begin",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 1,
+              "r2Gets": 7,
+              "r2GetBytes": 1833233,
+              "r2Heads": 0,
+              "r2Puts": 1,
+              "r2PutBytes": 1669
+            },
+            "responseBytes": 1700560,
+            "elapsedMs": 87.13325899999995,
+            "observedHeapGrowthBytes": 45238760,
+            "recordKeysRead": {
+              "versionSampleSeed4": 1,
+              "platformUsers": 1,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 1
+            },
+            "uniqueR2Keys": 7,
+            "workingHash": "ad0183e57cd3bc445992c748afa7bf3fdcd04a6a8610bc37bbd8c05e7461a852",
+            "activeHash": "ad0183e57cd3bc445992c748afa7bf3fdcd04a6a8610bc37bbd8c05e7461a852",
+            "caseStatuses": [],
+            "workingTools": 1000,
+            "workingTransfers": 6000
+          },
+          {
+            "name": "apply",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 1,
+              "r2Gets": 7,
+              "r2GetBytes": 1833701,
+              "r2Heads": 0,
+              "r2Puts": 2,
+              "r2PutBytes": 1701644
+            },
+            "responseBytes": 3400296,
+            "elapsedMs": 1156.046577,
+            "observedHeapGrowthBytes": 74143032,
+            "recordKeysRead": {
+              "versionSampleSeed4": 1,
+              "platformUsers": 1,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 1
+            },
+            "uniqueR2Keys": 7,
+            "workingHash": "a943d71f9936e0e3b04647d8d4df4910198f6b27115ca8d2a7b73bc236c38da9",
+            "activeHash": "ad0183e57cd3bc445992c748afa7bf3fdcd04a6a8610bc37bbd8c05e7461a852",
+            "caseStatuses": [],
+            "workingTools": 1000,
+            "workingTransfers": 6000
+          },
+          {
+            "name": "changed-unsaved",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 8,
+              "r2GetBytes": 3402857,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 585698,
+            "elapsedMs": 224.65054699999973,
+            "observedHeapGrowthBytes": 29708704,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 6,
+            "checksVerifiedBodyHash": "2583fd335c8b8a80aef957a7fbbcb112c22a25ef82e2e886339c91a0c772b4f3",
+            "issuesHash": "63379360fbb60e5357f05734793a7a9082d3fe3c3b2503d8e07b11945d52c894",
+            "issueCount": 3326
+          },
+          {
+            "name": "save",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 1,
+              "r2Gets": 8,
+              "r2GetBytes": 3533676,
+              "r2Heads": 0,
+              "r2Puts": 1,
+              "r2PutBytes": 3530
+            },
+            "responseBytes": 3400545,
+            "elapsedMs": 231.12976100000014,
+            "observedHeapGrowthBytes": 89961952,
+            "recordKeysRead": {
+              "versionSampleSeed4": 1,
+              "platformUsers": 1,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 1
+            },
+            "uniqueR2Keys": 8,
+            "workingHash": "a943d71f9936e0e3b04647d8d4df4910198f6b27115ca8d2a7b73bc236c38da9",
+            "activeHash": "ad0183e57cd3bc445992c748afa7bf3fdcd04a6a8610bc37bbd8c05e7461a852",
+            "caseStatuses": [],
+            "workingTools": 1000,
+            "workingTransfers": 6000
+          },
+          {
+            "name": "saved-equal",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 8,
+              "r2GetBytes": 3404161,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 1171231,
+            "elapsedMs": 389.23367599999983,
+            "observedHeapGrowthBytes": 65635768,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 6,
+            "checksVerifiedBodyHash": "52275c879378564d2d1f8583c5e8b8b4dfe3ec74d8f8a90560c4ce31aac39c1f",
+            "issuesHash": "d82c4bacd161566908e3b447187a9b6bc561eef2a6293766b078f203d66c1c62",
+            "issueCount": 6652
+          },
+          {
+            "name": "apply",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 1,
+              "r2Gets": 8,
+              "r2GetBytes": 3534980,
+              "r2Heads": 0,
+              "r2Puts": 2,
+              "r2PutBytes": 1703468
+            },
+            "responseBytes": 5100104,
+            "elapsedMs": 1361.07618,
+            "observedHeapGrowthBytes": 96652160,
+            "recordKeysRead": {
+              "versionSampleSeed4": 1,
+              "platformUsers": 1,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 1
+            },
+            "uniqueR2Keys": 8,
+            "workingHash": "8063fcfa52e7857d4d41eac11a25724e0a97a2cccbad882b9b130b5749c0e92f",
+            "activeHash": "ad0183e57cd3bc445992c748afa7bf3fdcd04a6a8610bc37bbd8c05e7461a852",
+            "caseStatuses": [],
+            "workingTools": 1000,
+            "workingTransfers": 6000
+          },
+          {
+            "name": "saved-distinct",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 9,
+              "r2GetBytes": 5104099,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 1171375,
+            "elapsedMs": 382.6270050000003,
+            "observedHeapGrowthBytes": 42776752,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 7,
+            "checksVerifiedBodyHash": "2bce211d3d2a39ab3ddc9594dc74aa06319916731c7fe9c851ca2b604307dbd0",
+            "issuesHash": "9bc1d514bb8594fa8187ece1be527286851956a2ab7b77d26876687c4661b7ec",
+            "issueCount": 6653
+          },
+          {
+            "name": "unauthenticated",
+            "status": 403,
+            "error": "FORBIDDEN",
+            "metrics": {
+              "sqlReads": 1,
+              "sqlWrites": 0,
+              "r2Gets": 1,
+              "r2GetBytes": 169,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 21,
+            "elapsedMs": 4.854693000000225,
+            "observedHeapGrowthBytes": 141536,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 1,
+              "toolingMasterControl": 0,
+              "iqcMasterControl": 0,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 1,
+            "checksVerifiedBodyHash": "4e72f7d6ab7b3f41ea639948c0c97c78c0db03ccc56416807f3296e65dc3f9b0"
+          },
+          {
+            "name": "unrelatedAux-fault",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 9,
+              "r2GetBytes": 5104099,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 1171375,
+            "elapsedMs": 474.5984929999995,
+            "observedHeapGrowthBytes": 68957920,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 7,
+            "checksVerifiedBodyHash": "2bce211d3d2a39ab3ddc9594dc74aa06319916731c7fe9c851ca2b604307dbd0",
+            "issuesHash": "9bc1d514bb8594fa8187ece1be527286851956a2ab7b77d26876687c4661b7ec",
+            "issueCount": 6653
+          },
+          {
+            "name": "toolingMasterControl-fault",
+            "status": 503,
+            "error": "WORKFLOW_LOAD_FAILED",
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 0,
+              "r2Gets": 3,
+              "r2GetBytes": 355,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 32,
+            "elapsedMs": 12.613378000000012,
+            "observedHeapGrowthBytes": 5829320,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 2,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 0,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 2,
+            "checksVerifiedBodyHash": "8a6eb281d5a342352b7620aef3c2dd971faf0b41a2a0849a77d37379ba916501"
+          },
+          {
+            "name": "iqcMasterControl-fault",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 8,
+              "r2GetBytes": 5102842,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 1513144,
+            "elapsedMs": 342.8065260000003,
+            "observedHeapGrowthBytes": 67270256,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 6,
+            "checksVerifiedBodyHash": "30e588324fbc86390613ac347ffc9a84865b64cd73950c8b65eab40723a8980d",
+            "issuesHash": "682ceb68c5243c915f60ecff50635438fcef03a9921b0c7cc7911f53cd379480",
+            "issueCount": 8653
+          },
+          {
+            "name": "revision-drift",
+            "status": 409,
+            "error": "TOOLING_CHECKS_STALE_RETRY",
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 9,
+              "r2GetBytes": 5104099,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 38,
+            "elapsedMs": 162.29607100000067,
+            "observedHeapGrowthBytes": 54047992,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 7,
+            "checksVerifiedBodyHash": "e31386aa3e4ede385513c120267d4ebcb9912ccdf3daf83370efa2921a6aaea9"
+          }
+        ]
+      },
+      "candidate": {
+        "fixture": {
+          "tools": 1000,
+          "transfers": 6000
+        },
+        "sourceHashes": {
+          "lib/tooling.ts": "42abb0ce9b3100a7452a8a6d1056a7862017cce480ea274df6baefc31f7d4cc7",
+          "lib/tooling-workflow.ts": "2cbf91c26a89f8e04190c4217c62fd2d535f06b16d27952857338b2a18035eea",
+          "lib/state-records.ts": "9021ff077ea60b58382d93380f8080f7ea59fbf7e3d9d464b4069b5d672a55a7",
+          "lib/versioned-shared-workflow.ts": "4b155e3f68c82b33e83f91623a0549db6147fea97ecbb46472585287623b9f2e",
+          "lib/shared-draft.ts": "eea647afcfe5e5ef1e3c5dfa966dda5541f09ccbb9998c21fa2c34ca20bd8dc3",
+          "lib/workflow-wire.ts": "11cfbe893bdf1d857f869ac3b5a64bc6a9b84c14d0d1b9473ab728187f5e347d",
+          "lib/process-state.ts": "aa790135602ef8eb5249be9b3bff46eed126ec01667b3fc2ff77c4ca163902af",
+          "scripts/ipqc-ab-import-harness.cjs": "b63faa49897290bf4608ac8da0bb26d9493e02ed26af3372319c92c4bc942c97",
+          "app/api/tooling/checks/route.ts": "a67e24c661320f81b927e6283896ba287adedd49ecf5508384cce0c4db258e9b"
+        },
+        "actions": [
+          {
+            "name": "entry",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 0,
+              "r2Gets": 4,
+              "r2GetBytes": 1700971,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 1700449,
+            "elapsedMs": 103.87929799999995,
+            "observedHeapGrowthBytes": 41049616,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 2,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 0,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 3,
+            "workingHash": "ad0183e57cd3bc445992c748afa7bf3fdcd04a6a8610bc37bbd8c05e7461a852",
+            "activeHash": "ad0183e57cd3bc445992c748afa7bf3fdcd04a6a8610bc37bbd8c05e7461a852",
+            "caseStatuses": [],
+            "workingTools": 1000,
+            "workingTransfers": 6000
+          },
+          {
+            "name": "initial-unsaved",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 7,
+              "r2GetBytes": 1702414,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 585554,
+            "elapsedMs": 228.05045999999993,
+            "observedHeapGrowthBytes": 12491464,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 5,
+            "checksVerifiedBodyHash": "893eb87d4f9544c3a77b872453501bf3fbeae9fc8b390c50a83cdc769e3034aa",
+            "issuesHash": "81960f0018eff593db7c72ec798bcf7ef666f286d1e245e679940dcac7debf7c",
+            "issueCount": 3325
+          },
+          {
+            "name": "begin",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 1,
+              "r2Gets": 7,
+              "r2GetBytes": 1833233,
+              "r2Heads": 0,
+              "r2Puts": 1,
+              "r2PutBytes": 1669
+            },
+            "responseBytes": 1700560,
+            "elapsedMs": 124.06884100000002,
+            "observedHeapGrowthBytes": 45228408,
+            "recordKeysRead": {
+              "versionSampleSeed4": 1,
+              "platformUsers": 1,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 1
+            },
+            "uniqueR2Keys": 7,
+            "workingHash": "ad0183e57cd3bc445992c748afa7bf3fdcd04a6a8610bc37bbd8c05e7461a852",
+            "activeHash": "ad0183e57cd3bc445992c748afa7bf3fdcd04a6a8610bc37bbd8c05e7461a852",
+            "caseStatuses": [],
+            "workingTools": 1000,
+            "workingTransfers": 6000
+          },
+          {
+            "name": "apply",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 1,
+              "r2Gets": 7,
+              "r2GetBytes": 1833701,
+              "r2Heads": 0,
+              "r2Puts": 2,
+              "r2PutBytes": 1701644
+            },
+            "responseBytes": 3400296,
+            "elapsedMs": 1316.296582,
+            "observedHeapGrowthBytes": 73968528,
+            "recordKeysRead": {
+              "versionSampleSeed4": 1,
+              "platformUsers": 1,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 1
+            },
+            "uniqueR2Keys": 7,
+            "workingHash": "a943d71f9936e0e3b04647d8d4df4910198f6b27115ca8d2a7b73bc236c38da9",
+            "activeHash": "ad0183e57cd3bc445992c748afa7bf3fdcd04a6a8610bc37bbd8c05e7461a852",
+            "caseStatuses": [],
+            "workingTools": 1000,
+            "workingTransfers": 6000
+          },
+          {
+            "name": "changed-unsaved",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 8,
+              "r2GetBytes": 3402857,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 585698,
+            "elapsedMs": 150.8614950000001,
+            "observedHeapGrowthBytes": 13461968,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 6,
+            "checksVerifiedBodyHash": "2583fd335c8b8a80aef957a7fbbcb112c22a25ef82e2e886339c91a0c772b4f3",
+            "issuesHash": "63379360fbb60e5357f05734793a7a9082d3fe3c3b2503d8e07b11945d52c894",
+            "issueCount": 3326
+          },
+          {
+            "name": "save",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 1,
+              "r2Gets": 8,
+              "r2GetBytes": 3533676,
+              "r2Heads": 0,
+              "r2Puts": 1,
+              "r2PutBytes": 3530
+            },
+            "responseBytes": 3400545,
+            "elapsedMs": 217.12890200000038,
+            "observedHeapGrowthBytes": 89950936,
+            "recordKeysRead": {
+              "versionSampleSeed4": 1,
+              "platformUsers": 1,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 1
+            },
+            "uniqueR2Keys": 8,
+            "workingHash": "a943d71f9936e0e3b04647d8d4df4910198f6b27115ca8d2a7b73bc236c38da9",
+            "activeHash": "ad0183e57cd3bc445992c748afa7bf3fdcd04a6a8610bc37bbd8c05e7461a852",
+            "caseStatuses": [],
+            "workingTools": 1000,
+            "workingTransfers": 6000
+          },
+          {
+            "name": "saved-equal",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 8,
+              "r2GetBytes": 3404161,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 1171231,
+            "elapsedMs": 276.5724869999999,
+            "observedHeapGrowthBytes": 23155520,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 6,
+            "checksVerifiedBodyHash": "52275c879378564d2d1f8583c5e8b8b4dfe3ec74d8f8a90560c4ce31aac39c1f",
+            "issuesHash": "d82c4bacd161566908e3b447187a9b6bc561eef2a6293766b078f203d66c1c62",
+            "issueCount": 6652
+          },
+          {
+            "name": "apply",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 1,
+              "r2Gets": 8,
+              "r2GetBytes": 3534980,
+              "r2Heads": 0,
+              "r2Puts": 2,
+              "r2PutBytes": 1703468
+            },
+            "responseBytes": 5100104,
+            "elapsedMs": 1367.250661,
+            "observedHeapGrowthBytes": 96644544,
+            "recordKeysRead": {
+              "versionSampleSeed4": 1,
+              "platformUsers": 1,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 1
+            },
+            "uniqueR2Keys": 8,
+            "workingHash": "8063fcfa52e7857d4d41eac11a25724e0a97a2cccbad882b9b130b5749c0e92f",
+            "activeHash": "ad0183e57cd3bc445992c748afa7bf3fdcd04a6a8610bc37bbd8c05e7461a852",
+            "caseStatuses": [],
+            "workingTools": 1000,
+            "workingTransfers": 6000
+          },
+          {
+            "name": "saved-distinct",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 9,
+              "r2GetBytes": 5104099,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 1171375,
+            "elapsedMs": 281.3442869999999,
+            "observedHeapGrowthBytes": 24927240,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 7,
+            "checksVerifiedBodyHash": "2bce211d3d2a39ab3ddc9594dc74aa06319916731c7fe9c851ca2b604307dbd0",
+            "issuesHash": "9bc1d514bb8594fa8187ece1be527286851956a2ab7b77d26876687c4661b7ec",
+            "issueCount": 6653
+          },
+          {
+            "name": "unauthenticated",
+            "status": 403,
+            "error": "FORBIDDEN",
+            "metrics": {
+              "sqlReads": 1,
+              "sqlWrites": 0,
+              "r2Gets": 1,
+              "r2GetBytes": 169,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 21,
+            "elapsedMs": 1.0820690000000468,
+            "observedHeapGrowthBytes": 73584,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 1,
+              "toolingMasterControl": 0,
+              "iqcMasterControl": 0,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 1,
+            "checksVerifiedBodyHash": "4e72f7d6ab7b3f41ea639948c0c97c78c0db03ccc56416807f3296e65dc3f9b0"
+          },
+          {
+            "name": "unrelatedAux-fault",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 9,
+              "r2GetBytes": 5104099,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 1171375,
+            "elapsedMs": 464.0545519999996,
+            "observedHeapGrowthBytes": 25795352,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 7,
+            "checksVerifiedBodyHash": "2bce211d3d2a39ab3ddc9594dc74aa06319916731c7fe9c851ca2b604307dbd0",
+            "issuesHash": "9bc1d514bb8594fa8187ece1be527286851956a2ab7b77d26876687c4661b7ec",
+            "issueCount": 6653
+          },
+          {
+            "name": "toolingMasterControl-fault",
+            "status": 503,
+            "error": "WORKFLOW_LOAD_FAILED",
+            "metrics": {
+              "sqlReads": 2,
+              "sqlWrites": 0,
+              "r2Gets": 3,
+              "r2GetBytes": 355,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 32,
+            "elapsedMs": 5.536511000000246,
+            "observedHeapGrowthBytes": 633264,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 2,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 0,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 2,
+            "checksVerifiedBodyHash": "8a6eb281d5a342352b7620aef3c2dd971faf0b41a2a0849a77d37379ba916501"
+          },
+          {
+            "name": "iqcMasterControl-fault",
+            "status": 200,
+            "error": null,
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 8,
+              "r2GetBytes": 5102842,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 1513144,
+            "elapsedMs": 264.3810119999998,
+            "observedHeapGrowthBytes": 23031664,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 6,
+            "checksVerifiedBodyHash": "30e588324fbc86390613ac347ffc9a84865b64cd73950c8b65eab40723a8980d",
+            "issuesHash": "682ceb68c5243c915f60ecff50635438fcef03a9921b0c7cc7911f53cd379480",
+            "issueCount": 8653
+          },
+          {
+            "name": "revision-drift",
+            "status": 409,
+            "error": "TOOLING_CHECKS_STALE_RETRY",
+            "metrics": {
+              "sqlReads": 4,
+              "sqlWrites": 0,
+              "r2Gets": 9,
+              "r2GetBytes": 5104099,
+              "r2Heads": 0,
+              "r2Puts": 0,
+              "r2PutBytes": 0
+            },
+            "responseBytes": 38,
+            "elapsedMs": 40.68687899999986,
+            "observedHeapGrowthBytes": 11247216,
+            "recordKeysRead": {
+              "versionSampleSeed4": 0,
+              "platformUsers": 3,
+              "toolingMasterControl": 1,
+              "iqcMasterControl": 1,
+              "unrelatedAux": 0
+            },
+            "uniqueR2Keys": 7,
+            "checksVerifiedBodyHash": "e31386aa3e4ede385513c120267d4ebcb9912ccdf3daf83370efa2921a6aaea9"
+          }
+        ]
+      }
+    }
+  ],
+  "limits": [
+    "Actual authenticated handlers, synthetic memory SQLite/R2 only",
+    "No browser, hosted timing or Worker memory-limit acceptance"
+  ]
+}

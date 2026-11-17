@@ -1,0 +1,14 @@
+{
+  "beforeCommit": "bd6724a86a0a4f864bdaf0c2e2db5fd83d5837a5",
+  "beforeObserved": {
+    "aliasWithInputPool": true,
+    "inputChanged": true,
+    "freshDigestMatches": false,
+    "firstDigestReused": true
+  },
+  "cause": "Small Buffer.from allocations can share a slab with input/returned ArrayBuffers. Mutating the whole exposed backing store can alter the private snapshot too.",
+  "fix": "Use independently owned unpooled storage for private raw snapshots, private normalized bytes and all returned copies.",
+  "regression": "Isolated child process mutates complete returned backing store and complete original input backing store; fresh digest and returned normalized bytes must remain correct.",
+  "newUnitTests": 6,
+  "unitExitCode": 0
+}
