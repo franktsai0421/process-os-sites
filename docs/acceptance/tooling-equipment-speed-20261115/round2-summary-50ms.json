@@ -1,0 +1,1357 @@
+{
+  "status": "PASS_SYNTHETIC_PAIRED_MEASUREMENT",
+  "baselineCommit": "cd17b8774ee80a9a9cfe68c1b30c90eecc625f64",
+  "runner": "benchmark-inventory-round2.cjs",
+  "pairs": 3,
+  "order": "alternating before/after; no discarded warmup",
+  "summary": [
+    {
+      "module": "tooling",
+      "step": "read",
+      "before": {
+        "n": 3,
+        "medianMs": 1844.6609329999997,
+        "medianReadStateMs": 358.91265500000054,
+        "r2Gets": [
+          12
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          173490,
+          173490
+        ],
+        "sql": [
+          28
+        ],
+        "canCalls": [
+          24
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1743.531852,
+        "medianReadStateMs": 358.62456400000065,
+        "r2Gets": [
+          12
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          173490,
+          173490
+        ],
+        "sql": [
+          28
+        ],
+        "canCalls": [
+          24
+        ]
+      },
+      "improvementPercent": 5.482258511082138
+    },
+    {
+      "module": "tooling",
+      "step": "open-checks-ready",
+      "before": {
+        "n": 3,
+        "medianMs": 2413.8530739999997,
+        "medianReadStateMs": 814.114818,
+        "r2Gets": [
+          19
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          172248,
+          172248
+        ],
+        "sql": [
+          32
+        ],
+        "canCalls": [
+          25
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1025.4025570000003,
+        "medianReadStateMs": 561.0908490000002,
+        "r2Gets": [
+          19
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          172248,
+          172248
+        ],
+        "sql": [
+          11
+        ],
+        "canCalls": [
+          3
+        ]
+      },
+      "improvementPercent": 57.52009233516419
+    },
+    {
+      "module": "tooling",
+      "step": "save-write",
+      "before": {
+        "n": 3,
+        "medianMs": 1783.1132850000004,
+        "medianReadStateMs": 774.057017000001,
+        "r2Gets": [
+          28
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          341622,
+          341622
+        ],
+        "sql": [
+          16
+        ],
+        "canCalls": [
+          12
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1723.6733849999991,
+        "medianReadStateMs": 788.0398270000005,
+        "r2Gets": [
+          28
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          341622,
+          341622
+        ],
+        "sql": [
+          16
+        ],
+        "canCalls": [
+          12
+        ]
+      },
+      "improvementPercent": 3.3334898292792015
+    },
+    {
+      "module": "tooling",
+      "step": "save-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 1785.8871229999986,
+        "medianReadStateMs": 409.44998699999815,
+        "r2Gets": [
+          13
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          341628,
+          341628
+        ],
+        "sql": [
+          28
+        ],
+        "canCalls": [
+          24
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1826.4765530000004,
+        "medianReadStateMs": 411.7182010000015,
+        "r2Gets": [
+          13
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          341628,
+          341628
+        ],
+        "sql": [
+          28
+        ],
+        "canCalls": [
+          24
+        ]
+      },
+      "improvementPercent": -2.272788099385492
+    },
+    {
+      "module": "tooling",
+      "step": "save-checks-ready",
+      "before": {
+        "n": 3,
+        "medianMs": 2487.236112999999,
+        "medianReadStateMs": 911.0710389999986,
+        "r2Gets": [
+          20
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          344335,
+          344335
+        ],
+        "sql": [
+          32
+        ],
+        "canCalls": [
+          25
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1064.1586439999992,
+        "medianReadStateMs": 615.241664000001,
+        "r2Gets": [
+          20
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          344335,
+          344335
+        ],
+        "sql": [
+          11
+        ],
+        "canCalls": [
+          3
+        ]
+      },
+      "improvementPercent": 57.215214171345565
+    },
+    {
+      "module": "tooling",
+      "step": "submit-write",
+      "before": {
+        "n": 3,
+        "medianMs": 1871.9689899999994,
+        "medianReadStateMs": 828.6493469999987,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          686389,
+          686389
+        ],
+        "sql": [
+          16
+        ],
+        "canCalls": [
+          12
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1833.8676130000003,
+        "medianReadStateMs": 840.4945750000006,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          686389,
+          686389
+        ],
+        "sql": [
+          16
+        ],
+        "canCalls": [
+          12
+        ]
+      },
+      "improvementPercent": 2.0353636840960254
+    },
+    {
+      "module": "tooling",
+      "step": "submit-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 1806.134673999999,
+        "medianReadStateMs": 425.38654099999985,
+        "r2Gets": [
+          13
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          686395,
+          686395
+        ],
+        "sql": [
+          28
+        ],
+        "canCalls": [
+          24
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1822.334463000001,
+        "medianReadStateMs": 420.21195199999966,
+        "r2Gets": [
+          13
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          686395,
+          686395
+        ],
+        "sql": [
+          28
+        ],
+        "canCalls": [
+          24
+        ]
+      },
+      "improvementPercent": -0.896931399037082
+    },
+    {
+      "module": "tooling",
+      "step": "submit-checks-ready",
+      "before": {
+        "n": 3,
+        "medianMs": 2454.9739210000007,
+        "medianReadStateMs": 919.6012389999996,
+        "r2Gets": [
+          20
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          344335,
+          344335
+        ],
+        "sql": [
+          32
+        ],
+        "canCalls": [
+          25
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1048.150291,
+        "medianReadStateMs": 626.9207899999983,
+        "r2Gets": [
+          20
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          344335,
+          344335
+        ],
+        "sql": [
+          11
+        ],
+        "canCalls": [
+          3
+        ]
+      },
+      "improvementPercent": 57.305033587768214
+    },
+    {
+      "module": "tooling",
+      "step": "withdraw-write",
+      "before": {
+        "n": 3,
+        "medianMs": 1726.5102799999986,
+        "medianReadStateMs": 833.1170730000013,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          514157,
+          514157
+        ],
+        "sql": [
+          16
+        ],
+        "canCalls": [
+          12
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1761.8718219999992,
+        "medianReadStateMs": 879.7591410000005,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          514157,
+          514157
+        ],
+        "sql": [
+          16
+        ],
+        "canCalls": [
+          12
+        ]
+      },
+      "improvementPercent": -2.048151256881048
+    },
+    {
+      "module": "tooling",
+      "step": "withdraw-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 1802.6849239999974,
+        "medianReadStateMs": 427.0826240000024,
+        "r2Gets": [
+          13
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          514163,
+          514163
+        ],
+        "sql": [
+          28
+        ],
+        "canCalls": [
+          24
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1790.6850919999997,
+        "medianReadStateMs": 423.27461200000107,
+        "r2Gets": [
+          13
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          514163,
+          514163
+        ],
+        "sql": [
+          28
+        ],
+        "canCalls": [
+          24
+        ]
+      },
+      "improvementPercent": 0.6656644120244359
+    },
+    {
+      "module": "tooling",
+      "step": "resubmit-write",
+      "before": {
+        "n": 3,
+        "medianMs": 1807.691788,
+        "medianReadStateMs": 841.4419760000019,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          858925,
+          858925
+        ],
+        "sql": [
+          16
+        ],
+        "canCalls": [
+          12
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1783.984585000002,
+        "medianReadStateMs": 831.354588000002,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          858925,
+          858925
+        ],
+        "sql": [
+          16
+        ],
+        "canCalls": [
+          12
+        ]
+      },
+      "improvementPercent": 1.3114626706484778
+    },
+    {
+      "module": "tooling",
+      "step": "resubmit-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 1925.990507999999,
+        "medianReadStateMs": 479.92884799999956,
+        "r2Gets": [
+          13
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          858931,
+          858931
+        ],
+        "sql": [
+          28
+        ],
+        "canCalls": [
+          24
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1845.391900999999,
+        "medianReadStateMs": 466.89713400000255,
+        "r2Gets": [
+          13
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          858931,
+          858931
+        ],
+        "sql": [
+          28
+        ],
+        "canCalls": [
+          24
+        ]
+      },
+      "improvementPercent": 4.184787342679885
+    },
+    {
+      "module": "tooling",
+      "step": "confirm-review-write",
+      "before": {
+        "n": 3,
+        "medianMs": 1537.5326939999977,
+        "medianReadStateMs": 850.1638039999998,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          690923,
+          690923
+        ],
+        "sql": [
+          11
+        ],
+        "canCalls": [
+          7
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1533.911157999999,
+        "medianReadStateMs": 856.1598149999991,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          690923,
+          690923
+        ],
+        "sql": [
+          11
+        ],
+        "canCalls": [
+          7
+        ]
+      },
+      "improvementPercent": 0.23554204825245728
+    },
+    {
+      "module": "tooling",
+      "step": "confirm-review-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 1753.217007000003,
+        "medianReadStateMs": 384.68395000000237,
+        "r2Gets": [
+          12
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          690963,
+          690963
+        ],
+        "sql": [
+          28
+        ],
+        "canCalls": [
+          24
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1757.492922999998,
+        "medianReadStateMs": 374.9830380000021,
+        "r2Gets": [
+          12
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          690963,
+          690963
+        ],
+        "sql": [
+          28
+        ],
+        "canCalls": [
+          24
+        ]
+      },
+      "improvementPercent": -0.24388971718405372
+    },
+    {
+      "module": "tooling",
+      "step": "relation-load",
+      "before": {
+        "n": 3,
+        "medianMs": 315.4618830000036,
+        "medianReadStateMs": 204.52021400000012,
+        "r2Gets": [
+          7
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          187,
+          187
+        ],
+        "sql": [
+          3
+        ],
+        "canCalls": [
+          1
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 306.7969320000011,
+        "medianReadStateMs": 203.2373570000018,
+        "r2Gets": [
+          7
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          187,
+          187
+        ],
+        "sql": [
+          3
+        ],
+        "canCalls": [
+          1
+        ]
+      },
+      "improvementPercent": 2.7467505479900955
+    },
+    {
+      "module": "routine-equipment",
+      "step": "read",
+      "before": {
+        "n": 3,
+        "medianMs": 645.9339059999984,
+        "medianReadStateMs": 456.8212810000041,
+        "r2Gets": [
+          12
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          193263,
+          193263
+        ],
+        "sql": [
+          4
+        ],
+        "canCalls": [
+          2
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 641.3824659999991,
+        "medianReadStateMs": 456.24101599999995,
+        "r2Gets": [
+          12
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          193263,
+          193263
+        ],
+        "sql": [
+          4
+        ],
+        "canCalls": [
+          2
+        ]
+      },
+      "improvementPercent": 0.7046293680702531
+    },
+    {
+      "module": "routine-equipment",
+      "step": "save-write",
+      "before": {
+        "n": 3,
+        "medianMs": 1958.3471919999938,
+        "medianReadStateMs": 795.0932990000001,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          75921,
+          75921
+        ],
+        "sql": [
+          17
+        ],
+        "canCalls": [
+          12
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1894.4500159999989,
+        "medianReadStateMs": 797.7559419999998,
+        "r2Gets": [
+          29
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          75921,
+          75921
+        ],
+        "sql": [
+          17
+        ],
+        "canCalls": [
+          12
+        ]
+      },
+      "improvementPercent": 3.2628114289958376
+    },
+    {
+      "module": "routine-equipment",
+      "step": "save-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 771.8153170000005,
+        "medianReadStateMs": 608.978608999998,
+        "r2Gets": [
+          15
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          263987,
+          263987
+        ],
+        "sql": [
+          4
+        ],
+        "canCalls": [
+          2
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 770.4462519999979,
+        "medianReadStateMs": 609.492929,
+        "r2Gets": [
+          15
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          263987,
+          263987
+        ],
+        "sql": [
+          4
+        ],
+        "canCalls": [
+          2
+        ]
+      },
+      "improvementPercent": 0.1773824605248886
+    },
+    {
+      "module": "routine-equipment",
+      "step": "submit-write",
+      "before": {
+        "n": 3,
+        "medianMs": 1905.5796009999976,
+        "medianReadStateMs": 959.1031520000033,
+        "r2Gets": [
+          32
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          76578,
+          76578
+        ],
+        "sql": [
+          17
+        ],
+        "canCalls": [
+          12
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1965.9811029999983,
+        "medianReadStateMs": 1013.1361649999963,
+        "r2Gets": [
+          32
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          76578,
+          76578
+        ],
+        "sql": [
+          17
+        ],
+        "canCalls": [
+          12
+        ]
+      },
+      "improvementPercent": -3.1697181250420314
+    },
+    {
+      "module": "routine-equipment",
+      "step": "submit-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 766.894650000002,
+        "medianReadStateMs": 608.6477540000051,
+        "r2Gets": [
+          15
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          264610,
+          264610
+        ],
+        "sql": [
+          4
+        ],
+        "canCalls": [
+          2
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 771.7236009999979,
+        "medianReadStateMs": 608.9792050000033,
+        "r2Gets": [
+          15
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          264610,
+          264610
+        ],
+        "sql": [
+          4
+        ],
+        "canCalls": [
+          2
+        ]
+      },
+      "improvementPercent": -0.6296759274557306
+    },
+    {
+      "module": "routine-equipment",
+      "step": "withdraw-write",
+      "before": {
+        "n": 3,
+        "medianMs": 1930.931822999999,
+        "medianReadStateMs": 946.982766000001,
+        "r2Gets": [
+          32
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          76401,
+          76401
+        ],
+        "sql": [
+          17
+        ],
+        "canCalls": [
+          12
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1886.5121169999984,
+        "medianReadStateMs": 941.0312159999958,
+        "r2Gets": [
+          32
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          76401,
+          76401
+        ],
+        "sql": [
+          17
+        ],
+        "canCalls": [
+          12
+        ]
+      },
+      "improvementPercent": 2.3004285014572745
+    },
+    {
+      "module": "routine-equipment",
+      "step": "withdraw-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 768.943435000001,
+        "medianReadStateMs": 609.8456769999975,
+        "r2Gets": [
+          15
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          264467,
+          264467
+        ],
+        "sql": [
+          4
+        ],
+        "canCalls": [
+          2
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 782.7891529999979,
+        "medianReadStateMs": 611.2971550000002,
+        "r2Gets": [
+          15
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          264467,
+          264467
+        ],
+        "sql": [
+          4
+        ],
+        "canCalls": [
+          2
+        ]
+      },
+      "improvementPercent": -1.800615932171512
+    },
+    {
+      "module": "routine-equipment",
+      "step": "resubmit-write",
+      "before": {
+        "n": 3,
+        "medianMs": 1979.6057599999986,
+        "medianReadStateMs": 961.1369110000014,
+        "r2Gets": [
+          32
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          77059,
+          77059
+        ],
+        "sql": [
+          17
+        ],
+        "canCalls": [
+          12
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1929.629952000003,
+        "medianReadStateMs": 976.5054720000044,
+        "r2Gets": [
+          32
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          77059,
+          77059
+        ],
+        "sql": [
+          17
+        ],
+        "canCalls": [
+          12
+        ]
+      },
+      "improvementPercent": 2.5245333697147654
+    },
+    {
+      "module": "routine-equipment",
+      "step": "resubmit-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 773.1588219999976,
+        "medianReadStateMs": 609.0609410000034,
+        "r2Gets": [
+          15
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          265091,
+          265091
+        ],
+        "sql": [
+          4
+        ],
+        "canCalls": [
+          2
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 771.4620649999997,
+        "medianReadStateMs": 610.5807650000061,
+        "r2Gets": [
+          15
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          265091,
+          265091
+        ],
+        "sql": [
+          4
+        ],
+        "canCalls": [
+          2
+        ]
+      },
+      "improvementPercent": 0.21945775586039717
+    },
+    {
+      "module": "routine-equipment",
+      "step": "confirm-review-write",
+      "before": {
+        "n": 3,
+        "medianMs": 1703.5069260000018,
+        "medianReadStateMs": 1021.8683690000034,
+        "r2Gets": [
+          32
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          44487,
+          44487
+        ],
+        "sql": [
+          12
+        ],
+        "canCalls": [
+          7
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 1632.7323869999964,
+        "medianReadStateMs": 948.7089570000026,
+        "r2Gets": [
+          32
+        ],
+        "cas": [
+          1
+        ],
+        "peakGets": 5,
+        "wireBytesRange": [
+          44487,
+          44487
+        ],
+        "sql": [
+          12
+        ],
+        "canCalls": [
+          7
+        ]
+      },
+      "improvementPercent": 4.154637584373722
+    },
+    {
+      "module": "routine-equipment",
+      "step": "confirm-review-refresh",
+      "before": {
+        "n": 3,
+        "medianMs": 618.1502909999981,
+        "medianReadStateMs": 457.492634000002,
+        "r2Gets": [
+          12
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          168785,
+          168785
+        ],
+        "sql": [
+          4
+        ],
+        "canCalls": [
+          2
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 614.1370009999955,
+        "medianReadStateMs": 456.70847499999945,
+        "r2Gets": [
+          12
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          168785,
+          168785
+        ],
+        "sql": [
+          4
+        ],
+        "canCalls": [
+          2
+        ]
+      },
+      "improvementPercent": 0.6492417877067114
+    },
+    {
+      "module": "routine-equipment",
+      "step": "workflow-read",
+      "before": {
+        "n": 3,
+        "medianMs": 2030.5879399999976,
+        "medianReadStateMs": 620.4357820000005,
+        "r2Gets": [
+          17
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          44527,
+          44527
+        ],
+        "sql": [
+          28
+        ],
+        "canCalls": [
+          24
+        ]
+      },
+      "after": {
+        "n": 3,
+        "medianMs": 2069.405128999999,
+        "medianReadStateMs": 615.4284179999959,
+        "r2Gets": [
+          17
+        ],
+        "cas": [
+          0
+        ],
+        "peakGets": 3,
+        "wireBytesRange": [
+          44527,
+          44527
+        ],
+        "sql": [
+          28
+        ],
+        "canCalls": [
+          24
+        ]
+      },
+      "improvementPercent": -1.91162314299973
+    }
+  ],
+  "sourceHashes": {
+    "before": {
+      "lib/process-state.ts": "aa790135602ef8eb5249be9b3bff46eed126ec01667b3fc2ff77c4ca163902af",
+      "lib/state-records.ts": "9021ff077ea60b58382d93380f8080f7ea59fbf7e3d9d464b4069b5d672a55a7",
+      "lib/tooling-workflow.ts": "2cbf91c26a89f8e04190c4217c62fd2d535f06b16d27952857338b2a18035eea",
+      "lib/equipment-workflow.ts": "5698203e328d6d7bb752462bb8922586aded195e85dbfa7e01d3daa770d447ec",
+      "lib/versioned-shared-workflow.ts": "4b155e3f68c82b33e83f91623a0549db6147fea97ecbb46472585287623b9f2e",
+      "app/api/tooling/iqc/route.ts": "cf8f140187a568416ff559fcf9352886aba3af3b400955bfd7b67c315f3d5e84",
+      "app/api/routine-equipment/route.ts": "450abd9ddadc02b30b1642b4182c53da451d46be2a7a4e98dc18132ba2bac35c",
+      "app/api/tooling/checks/route.ts": "f1313c87da69cae1d454fcd910afd63b0b366768dac88da26b2e897f501286f0",
+      "lib/inventory-read-ahead.mjs": "edec4965f468106bc29c14a81f79c256d251f03a1ebe636f6fb16792c7a27413"
+    },
+    "after": {
+      "lib/process-state.ts": "aa790135602ef8eb5249be9b3bff46eed126ec01667b3fc2ff77c4ca163902af",
+      "lib/state-records.ts": "9021ff077ea60b58382d93380f8080f7ea59fbf7e3d9d464b4069b5d672a55a7",
+      "lib/tooling-workflow.ts": "2cbf91c26a89f8e04190c4217c62fd2d535f06b16d27952857338b2a18035eea",
+      "lib/equipment-workflow.ts": "5698203e328d6d7bb752462bb8922586aded195e85dbfa7e01d3daa770d447ec",
+      "lib/versioned-shared-workflow.ts": "4b155e3f68c82b33e83f91623a0549db6147fea97ecbb46472585287623b9f2e",
+      "app/api/tooling/iqc/route.ts": "cf8f140187a568416ff559fcf9352886aba3af3b400955bfd7b67c315f3d5e84",
+      "app/api/routine-equipment/route.ts": "450abd9ddadc02b30b1642b4182c53da451d46be2a7a4e98dc18132ba2bac35c",
+      "app/api/tooling/checks/route.ts": "a67e24c661320f81b927e6283896ba287adedd49ecf5508384cce0c4db258e9b",
+      "lib/inventory-read-ahead.mjs": "edec4965f468106bc29c14a81f79c256d251f03a1ebe636f6fb16792c7a27413"
+    }
+  },
+  "candidateBinding": "Measured while HEAD remained cd17 with uncommitted merge and checks change. Every after runtime source hash was verified against candidate bytes before commit; no timing runtime source changed during measurement."
+}

@@ -59,7 +59,7 @@ export async function GET(request: Request) {
   try {
     if (new URL(request.url).searchParams.get('catalog') === 'effective') return await effectiveCatalog(request);
     const caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
-    const state = await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY],modelKey:KEY,deferHistory:true,deferDependencyHistory:true});
+    const state = await readState({aggregateReadAhead:true,keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY],modelKey:KEY,deferHistory:true,deferDependencyHistory:true});
     const actor = await identity(request, state);
     if (!actor || !(await can(request, state, 'equipment.view')))
       return reply({ error: '沒有查看檢具資料的權限' }, 403);

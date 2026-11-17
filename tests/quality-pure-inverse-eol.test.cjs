@@ -1,6 +1,8 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),{createHash}=require('node:crypto'),{createRequire}=require('node:module'),{execFileSync}=require('node:child_process');
 const proof=require('../scripts/quality-root-source-contract.cjs'),display=require('../scripts/ipqc-c-display-image-source-contract.cjs');
-const file='public/process/ipqc-c.js',source=execFileSync('git',['show','HEAD:'+file]),text=source.toString(),pin=proof.contract.files[file],hash=x=>createHash('sha256').update(x).digest('hex');
+// Stable genuine quality successor: the same raw/normalized pins and mutant
+// must run before and after a later merge commit moves HEAD.
+const file='public/process/ipqc-c.js',source=execFileSync('git',['show','a1775a8a342d58335edf96d199a9c42844227dc6:'+file]),text=source.toString(),pin=proof.contract.files[file],hash=x=>createHash('sha256').update(x).digest('hex');
 void test('quality successor has separate exact raw and normalized C pins',()=>{assert.equal(pin.afterHash,hash(source));assert.equal(pin.afterNormalizedHash,hash(text.replaceAll('\r\n','\n')));assert.equal(hash(fs.readFileSync(file,'utf8').replaceAll('\r\n','\n')),pin.afterNormalizedHash,'native checkout remains separately EOL-equivalent to committed bytes');});
 void test('pure C display inverse rejects equivalent EOL bytes; trusted HEAD checkout boundary admits them',()=>{
  const expected=display.withoutDisplay(source),lf=text.replaceAll('\r\n','\n'),crlf=lf.replaceAll('\n','\r\n');

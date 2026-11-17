@@ -1,0 +1,173 @@
+{
+  "checkpointCommit": "bcf49fe119070c8e17f8fb71b621e38ca91f5e38",
+  "checkpointTree": "b47af6b61dc3bb70827ff6384d0e1442bdf422bb",
+  "qualityCOriginalCommands": {
+    "commit": "bcf49fe119070c8e17f8fb71b621e38ca91f5e38",
+    "tree": "b47af6b61dc3bb70827ff6384d0e1442bdf422bb",
+    "originalWorkflowTimeoutMinutes": 30,
+    "commands": [
+      [
+        "node",
+        "--test",
+        "tests/quality-main-source-proof.test.cjs",
+        "tests/quality-triple-source-proof.test.cjs",
+        "tests/ipqc-ab-integration-source-proof.test.cjs",
+        "tests/quality-c-joint-source-proof.test.cjs",
+        "tests/quality-integration-source-proof.test.cjs",
+        "tests/ipqc-c-integration-source-contract.test.cjs",
+        "tests/background-check-source-proof.test.cjs"
+      ],
+      [
+        "node",
+        "--test",
+        "tests/quality-triple-joint-isolation.test.mjs",
+        "tests/quality-c-joint-isolation.test.mjs",
+        "tests/quality-module-command-isolation.test.mjs",
+        "tests/quality-submission-fences.test.mjs"
+      ],
+      [
+        "node",
+        "--test",
+        "tests/navigation-adapters.test.mjs",
+        "tests/process-scripts-build.test.mjs",
+        "tests/quality-shell-bundle-oracle.test.mjs",
+        "tests/multiuser-module-departure-bindings.test.mjs"
+      ]
+    ],
+    "status": "PASS",
+    "startedAt": "2026-11-16T16:53:55.275715+00:00",
+    "steps": [
+      {
+        "step": 1,
+        "exitCode": 0,
+        "seconds": 577.1975731420025,
+        "log": "/tmp/pr121-proof-qualityc-step1.log",
+        "summary": {
+          "tests": 116,
+          "pass": 116,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        }
+      },
+      {
+        "step": 2,
+        "exitCode": 0,
+        "seconds": 9.366977010002302,
+        "log": "/tmp/pr121-proof-qualityc-step2.log",
+        "summary": {
+          "tests": 48,
+          "pass": 48,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        }
+      },
+      {
+        "step": 3,
+        "exitCode": 0,
+        "seconds": 8.532426072997623,
+        "log": "/tmp/pr121-proof-qualityc-step3.log",
+        "summary": {
+          "tests": 225,
+          "pass": 225,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        }
+      }
+    ],
+    "endedAt": "2026-11-16T17:03:50.373487+00:00",
+    "seconds": 595.0977694910034
+  },
+  "remainingOriginalHistoricalFiles": {
+    "commit": "bcf49fe119070c8e17f8fb71b621e38ca91f5e38",
+    "command": [
+      "node",
+      "--experimental-vm-modules",
+      "--test",
+      "--test-concurrency=2",
+      "tests/accounts-process-integration-source.test.mjs",
+      "tests/process-ipqc-frequency-source.test.cjs",
+      "tests/process-ipqc-link-source.test.cjs",
+      "tests/process-review-source.test.cjs",
+      "tests/process-submit-outcome-source.test.cjs",
+      "tests/account-process-followup-source.test.cjs"
+    ],
+    "startedAt": "2026-11-16T17:06:12.924348+00:00",
+    "exitCode": 0,
+    "seconds": 19.33266390099743,
+    "summary": {
+      "tests": 73,
+      "pass": 73,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    }
+  },
+  "originalTenHistoricalFiles": [
+    "tests/account-process-followup-source.test.cjs",
+    "tests/accounts-process-integration-source.test.mjs",
+    "tests/process-ipqc-frequency-source.test.cjs",
+    "tests/process-ipqc-link-source.test.cjs",
+    "tests/process-review-source.test.cjs",
+    "tests/process-submit-outcome-source.test.cjs",
+    "tests/quality-c-joint-source-proof.test.cjs",
+    "tests/quality-integration-source-proof.test.cjs",
+    "tests/quality-main-source-proof.test.cjs",
+    "tests/quality-triple-source-proof.test.cjs"
+  ],
+  "originalTenCoveredWithoutRepeatingFiles": true,
+  "originalTestFilesByteIdenticalToEa137": true,
+  "inventoryOriginalCommand": {
+    "command": [
+      "node",
+      "--test",
+      "--test-concurrency=1",
+      "tests/inventory-read-ahead.test.mjs",
+      "tests/inventory-speed-source.test.cjs",
+      "tests/inventory-main-source.test.cjs",
+      "tests/inventory-round2-source.test.cjs",
+      "tests/inventory-quality-source.test.cjs",
+      "tests/inventory-account-main-source.test.cjs",
+      "tests/account-role-source.test.cjs",
+      "tests/quality-root-source.test.cjs",
+      "tests/quality-pure-inverse-eol.test.cjs",
+      "tests/inventory-permission-phase.test.mjs",
+      "tests/tooling-checks-read-fences.test.cjs",
+      "tests/fqc-read-ahead.test.mjs",
+      "tests/ipqc-operation-speed-source.test.cjs",
+      "tests/ipqc-operation-speed-joint-source.test.cjs",
+      "tests/ipqc-operation-speed-integration-source.test.cjs",
+      "tests/process-platform-adopt-source.test.cjs",
+      "tests/process-ipqc-latest.test.mjs",
+      "tests/process-inspection-view.test.mjs"
+    ],
+    "commit": "bcf49fe119070c8e17f8fb71b621e38ca91f5e38",
+    "exitCode": 0,
+    "seconds": 37.188562636001734,
+    "summary": {
+      "tests": 515,
+      "pass": 515,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    }
+  },
+  "newCacheUnit": {
+    "tests": 5,
+    "pass": 5,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "exitCode": 0
+  },
+  "allOriginalManifestsPreserved": true,
+  "productSourcesAndPackagesUnchanged": true,
+  "limits": "Groups overlap; do not sum as unique cases. Quality C completed all three unchanged commands under the original 30-minute budget. GitHub exact new-head CI is separate."
+}

@@ -1,0 +1,43 @@
+name: Inventory operation speed
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  inventory-speed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node --test --test-concurrency=1 tests/inventory-read-ahead.test.mjs tests/inventory-speed-source.test.cjs tests/inventory-main-source.test.cjs tests/inventory-round2-source.test.cjs tests/inventory-quality-source.test.cjs tests/inventory-account-main-source.test.cjs tests/account-role-source.test.cjs tests/quality-root-source.test.cjs tests/quality-pure-inverse-eol.test.cjs tests/inventory-permission-phase.test.mjs tests/tooling-checks-read-fences.test.cjs tests/fqc-read-ahead.test.mjs tests/ipqc-operation-speed-source.test.cjs tests/ipqc-operation-speed-joint-source.test.cjs tests/ipqc-operation-speed-integration-source.test.cjs tests/process-platform-adopt-source.test.cjs tests/process-ipqc-latest.test.mjs tests/process-inspection-view.test.mjs
+      - run: node --test tests/source-normalization-cache.test.cjs
+      - name: Compare checks against genuine prior route on identical merged runtime
+        run: |
+          baseline_dir="$(mktemp -d)"
+          git archive HEAD | tar -x -C "$baseline_dir"
+          git show a1775a8a342d58335edf96d199a9c42844227dc6:app/api/tooling/checks/route.ts > "$baseline_dir/app/api/tooling/checks/route.ts"
+          NODE_PATH="$GITHUB_WORKSPACE/node_modules" node scripts/test-tooling-checks-paired.mjs "$baseline_dir" > tooling-checks-paired.json
+      - run: node scripts/benchmark-inventory-round2.cjs > inventory-speed-lifecycle.json
+        env:
+          SPEED_ROUNDS: '1'
+          SPEED_IO_MS: '0'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: inventory-speed-lifecycle-${{ github.sha }}
+          path: |
+            inventory-speed-lifecycle.json
+            tooling-checks-paired.json
+          if-no-files-found: error
