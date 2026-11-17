@@ -1,0 +1,1018 @@
+{
+  "parents": {
+    "office": {
+      "sha": "161b24289f2da730f31e6cdbbe0deac5ed00017d",
+      "files": {
+        ".github/workflows/equipment-integration.yml": {
+          "beforeHash": "de4830d83c8c2ef83393427bef016e8e6500c1b29037f1a49f7377a2ff26f44b",
+          "beforeNormalizedHash": "de4830d83c8c2ef83393427bef016e8e6500c1b29037f1a49f7377a2ff26f44b",
+          "afterHash": "844b047c7798e5068f5f4209f1df03987289144f98d3d52ebb2dad804a9c10a3",
+          "afterNormalizedHash": "844b047c7798e5068f5f4209f1df03987289144f98d3d52ebb2dad804a9c10a3",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 1664,
+              "before": "        run: node --test --test-concurrency=1 tests/quality-root-source.test.cjs tests/quality-observed-ui.test.mjs tests/ipqc-ab-response-capacity.test.mjs tests/ipqc-ab-equipment-references.test.mjs tests/inventory-permission-phase.test.mjs tests/history-read-feedback.test.mjs tests/equipment-reference-actions.test.mjs tests/quality-ack-readback-status.test.mjs tests/quality-c-begin-feedback.test.mjs tests/quality-ab-submit-conflict.test.mjs tests/quality-equipment-photo-status.test.mjs tests/quality-edit-open-race-fixture.test.mjs tests/quality-pure-inverse-eol.test.cjs tests/quality-office-ab-state.test.mjs tests/quality-office-fqc-defaults.test.mjs tests/quality-office-source.test.cjs tests/quality-office-joint-source.test.cjs tests/quality-office-c-busy.test.mjs\n",
+              "after": "        run: node --test --test-concurrency=1 tests/quality-root-source.test.cjs tests/quality-observed-ui.test.mjs tests/ipqc-ab-response-capacity.test.mjs tests/ipqc-ab-equipment-references.test.mjs tests/inventory-permission-phase.test.mjs tests/history-read-feedback.test.mjs tests/equipment-reference-actions.test.mjs tests/quality-ack-readback-status.test.mjs tests/quality-c-begin-feedback.test.mjs tests/quality-ab-submit-conflict.test.mjs tests/quality-equipment-photo-status.test.mjs tests/quality-edit-open-race-fixture.test.mjs tests/quality-pure-inverse-eol.test.cjs tests/quality-office-ab-state.test.mjs tests/quality-office-fqc-defaults.test.mjs tests/quality-office-source.test.cjs tests/quality-office-joint-source.test.cjs tests/quality-office-inventory-source.test.cjs tests/quality-office-c-busy.test.mjs\n"
+            }
+          ]
+        },
+        "AI_CONTEXT/CHANGELOG.md": {
+          "beforeHash": "72b7aca6497242755d92f9585214dbe9a244514e865e2a75742f8a72f3f586b7",
+          "beforeNormalizedHash": "72b7aca6497242755d92f9585214dbe9a244514e865e2a75742f8a72f3f586b7",
+          "afterHash": "f23a7ff3ca11b7259ac6ce8def24026be44dd0c2122800195cc80d109243af70",
+          "afterNormalizedHash": "f23a7ff3ca11b7259ac6ce8def24026be44dd0c2122800195cc80d109243af70",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 632,
+              "before": "",
+              "after": "## 2026-11-16 — #121 與已合併 #124 的共同候選\n\n保持原檢具／模具 runtime 及 main 帳號修正，六個文件／來源衝突逐段整合。來源 proof 新增真實 accountMain 目標，原 manifests／負控保留；未納入並行 IQC 優化。[整合證據](../docs/acceptance/tooling-equipment-speed-20261115/README.md#整合後續已合併-124)。未合併或部署。\n\n## 2026-11-16 — #121 恢復與最新品質 main 整合\n\n環境更換後，從已保存 a70ab7e2／tree 57c04f99 恢復同一速度工作，合入 main a1775a8a（#122／#123）。七個內容衝突逐段保留兩邊文件、來源 proof 與測試；shared workflow 自動合併已核對同時保留 inventory read-ahead 與 request-local inventory phase。原刪除／回饋／AB 修復均採 main，未重做或覆蓋。雙真實父版 inverse 保留所有原 manifests 與負控。之後另核查 IQC 與 bootstrap 的讀取成本，不把單次 Network／Worker 日誌直接歸因 DB/R2。[證據與限制](../docs/acceptance/tooling-equipment-speed-20261115/README.md)。不合併 PR、不部署、不改實站資料。\n\n## 2026-11-15 — #121 第二輪效能與 #122 整合\n\n保留已發布 cd17b877 的讀取排程及已合併 main 346c5eef 的 AQL 修復。Tooling checks 改為直接讀取原完整模型、原 IQC 與版本 fence，免除未使用的完整 workflow 回應和寫入按鈕權限計算；保留認證前置、選定資料及最終 session 撤銷檢查。實際 compact 客戶端與 checks 分開成對量測，舊非 compact 證據保留歷史界線。設備主要剩餘權限成本歸 #123，未抄入並行修復。[第二輪證據](../docs/acceptance/tooling-equipment-speed-20261115/README.md#第二輪實際客戶端與完整性檢查)。不合併 PR、不部署、不操作實站資料。\n\n## 2026-11-15 — #121 整合已合併 #120 的 main\n\n原速度 8f94d0f 與 main c6ac41a6 在同一 #121 分支逐段整合。四個文件／來源測試衝突保留雙方內容，原 manifests 不改，以獨立雙父版本 exact inverse 核對完整前身；產品檔分別 byte-exact 保留。共同候選需重跑適用回歸與以 c6ac41a6 為基準的速度量測。[共同證據與 CI 界線](../docs/acceptance/tooling-equipment-speed-20261115/README.md#整合已合併-120-的共同候選)。不納入其他功能工作、不合併 PR、不部署或操作實站資料。\n\n## 2026-11-15 — Inventory R2 read scheduling candidate\n\nMeasured sequential aggregate waits in Tooling/equipment reads and lifecycle writes; opt into existing bounded scheduling while preserving complete records, ordered validation, receipts/CAS and original destructive paths. Three-pair synthetic before/after evidence and limits: [record](../docs/acceptance/tooling-equipment-speed-20261115/README.md). Independent speed draft only; no deployment/live-data action.\n"
+            }
+          ]
+        },
+        "AI_CONTEXT/models/TOOLING.md": {
+          "beforeHash": "8c57127a0f18f9d0328d59bc66eab29171ea3e3fece420576f5fd5c5e6d849b7",
+          "beforeNormalizedHash": "8c57127a0f18f9d0328d59bc66eab29171ea3e3fece420576f5fd5c5e6d849b7",
+          "afterHash": "2daa63539499ccec5378a47c3ee36d75b4789eb1b2b9c8aefbc7d6a679aaecec",
+          "afterNormalizedHash": "2daa63539499ccec5378a47c3ee36d75b4789eb1b2b9c8aefbc7d6a679aaecec",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 5548,
+              "before": "- Public shared-state projection strips working/saved/cases and only exposes the active version. `/api/tooling/checks` uses the same authorized workflow reader; results identify generation/revision and separate working/saved findings.\n",
+              "after": "- Public shared-state projection strips working/saved/cases and only exposes the active version. `/api/tooling/checks` reads the same complete selected tooling model directly after preflight and selected-state view authorization, retaining the IQC source route, global revision retry and terminal session fence. It avoids unused workflow serialization and write-button permissions; results identify generation/revision and separate working/saved findings. [Round-two synthetic evidence and limits](../../docs/acceptance/tooling-equipment-speed-20261115/README.md#第二輪實際客戶端與完整性檢查).\n"
+            }
+          ]
+        },
+        "AI_CONTEXT/modules/QUALITY.md": {
+          "beforeHash": "6d18abd0f25531adc415789e85fb77610db13a7f887f219cd55c4b734be73375",
+          "beforeNormalizedHash": "6d18abd0f25531adc415789e85fb77610db13a7f887f219cd55c4b734be73375",
+          "afterHash": "941830c725b6b1f7430cc54b33844ca5af5b9c698541fd324eabef2f1b2c2659",
+          "afterNormalizedHash": "941830c725b6b1f7430cc54b33844ca5af5b9c698541fd324eabef2f1b2c2659",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 92523,
+              "before": "",
+              "after": "## 2026-11-15 — 檢具／模具 R2 讀取排程候選\n\n兩個 inventory workflow 以 exact route/key/scope 選用既有上限五個 aggregate GET 預讀；body 解碼及 hash／原錯誤順序不變，完整依賴與 CAS 不變。移除／新增 patches、還原、import、混合 Begin envelope 保留原排程；檢具畫面 GET 與 Tooling IQC 唯讀來源亦採 bounded 預讀。權限 phase、反查、回饋與刪除由獨立品質工作負責，沒有帶入其未合併內容。[隔離量測、回歸與分工界線](../../docs/acceptance/tooling-equipment-speed-20261115/README.md)。不是 Diem／測試站效能驗收。\n"
+            }
+          ]
+        },
+        "HANDOFF.md": {
+          "beforeHash": "2abb615eb6fe1561b68628ee72cf258a2a1ed0a91650590795bdefa8e6414f38",
+          "beforeNormalizedHash": "2abb615eb6fe1561b68628ee72cf258a2a1ed0a91650590795bdefa8e6414f38",
+          "afterHash": "0b59d1e19a49faee31772089d79944cad5257a8c705e9612ea9f073ac14ece5c",
+          "afterNormalizedHash": "0b59d1e19a49faee31772089d79944cad5257a8c705e9612ea9f073ac14ece5c",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 798,
+              "before": "",
+              "after": "## 2026-11-16 #121 整合後續已合併 #124\n\n以已發布 174fb8a 與最新 main 64e44b2 為雙真實前身，保留檢具／模具速度與 #122／#123，並逐段保留 #124 帳號回執修正。僅整合最新 main；不包含另行研究的 IQC body 優化，不混入未合併 #125／#126。六個文件／source proof 衝突保留雙方原測試與 hash／EOL 負例；產品檔分別精確保留前身。[方法與交付界線](docs/acceptance/tooling-equipment-speed-20261115/README.md#整合後續已合併-124)。不合併 PR、不部署。\n\n## 2026-11-16 — #121 恢復與最新品質 main 整合\n\n環境更換後，從已保存 a70ab7e2／tree 57c04f99 恢復同一速度工作，合入 main a1775a8a（#122／#123）。七個內容衝突逐段保留兩邊文件、來源 proof 與測試；shared workflow 自動合併已核對同時保留 inventory read-ahead 與 request-local inventory phase。原刪除／回饋／AB 修復均採 main，未重做或覆蓋。雙真實父版 inverse 保留所有原 manifests 與負控。之後另核查 IQC 與 bootstrap 的讀取成本，不把單次 Network／Worker 日誌直接歸因 DB/R2。[證據與限制](docs/acceptance/tooling-equipment-speed-20261115/README.md)。不合併 PR、不部署、不改實站資料。\n\n## 2026-11-15 — #121 第二輪效能與 #122 整合\n\n保留已發布 cd17b877 的讀取排程及已合併 main 346c5eef 的 AQL 修復。Tooling checks 改為直接讀取原完整模型、原 IQC 與版本 fence，免除未使用的完整 workflow 回應和寫入按鈕權限計算；保留認證前置、選定資料及最終 session 撤銷檢查。實際 compact 客戶端與 checks 分開成對量測，舊非 compact 證據保留歷史界線。設備主要剩餘權限成本歸 #123，未抄入並行修復。[第二輪證據](docs/acceptance/tooling-equipment-speed-20261115/README.md#第二輪實際客戶端與完整性檢查)。不合併 PR、不部署、不操作實站資料。\n\n## 2026-11-15 — #121 整合已合併 #120 的 main\n\n原速度 8f94d0f 與 main c6ac41a6 在同一 #121 分支逐段整合。四個文件／來源測試衝突保留雙方內容，原 manifests 不改，以獨立雙父版本 exact inverse 核對完整前身；產品檔分別 byte-exact 保留。共同候選需重跑適用回歸與以 c6ac41a6 為基準的速度量測。[共同證據與 CI 界線](docs/acceptance/tooling-equipment-speed-20261115/README.md#整合已合併-120-的共同候選)。不納入其他功能工作、不合併 PR、不部署或操作實站資料。\n\n## 2026-11-15 — 獨立檢具／模具速度候選\n\n`perf/tooling-equipment-speed-20261115` 自核實 main e040a7e 建立隔離 worktree；只補 bounded R2 讀取排程。保留原品質工作權限／回饋／反查／AB OOM 分工及 #120 製程採用新版範圍。[根因、全步驟前後量測、測試及整合風險](docs/acceptance/tooling-equipment-speed-20261115/README.md)。不合併、部署或改真資料。\n"
+            }
+          ]
+        },
+        "app/api/routine-equipment/route.ts": {
+          "beforeHash": "ad65bec3666ada1924389ebe559a67a2afb442c736348bee96fbc3d69ccb029d",
+          "beforeNormalizedHash": "61d53523948d9a093c69a4eadba8d805c4a823b9cc00b9c469ef81f87b6a831b",
+          "afterHash": "450abd9ddadc02b30b1642b4182c53da451d46be2a7a4e98dc18132ba2bac35c",
+          "afterNormalizedHash": "728a48a382018355dd4ddc3ccd652b119d2460765a0b62a9a71c19b41184ab19",
+          "beforeCRLFRanges": [
+            [
+              0,
+              269
+            ]
+          ],
+          "rules": [
+            {
+              "offset": 4078,
+              "before": "    const state = await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY],modelKey:KEY,deferHistory:true,deferDependencyHistory:true});\n",
+              "after": "    const state = await readState({aggregateReadAhead:true,keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY],modelKey:KEY,deferHistory:true,deferDependencyHistory:true});\n"
+            }
+          ]
+        },
+        "app/api/tooling/checks/route.ts": {
+          "beforeHash": "f1313c87da69cae1d454fcd910afd63b0b366768dac88da26b2e897f501286f0",
+          "beforeNormalizedHash": "f1313c87da69cae1d454fcd910afd63b0b366768dac88da26b2e897f501286f0",
+          "afterHash": "a67e24c661320f81b927e6283896ba287adedd49ecf5508384cce0c4db258e9b",
+          "afterNormalizedHash": "a67e24c661320f81b927e6283896ba287adedd49ecf5508384cce0c4db258e9b",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 0,
+              "before": "import {versionedWorkflowRoute} from '@/lib/versioned-shared-workflow';\nimport {toolingWorkflowAdapter} from '@/lib/tooling-workflow';\n",
+              "after": "import {readState,identity,can,stateRevisionIsCurrent,responseHeaders} from '@/lib/process-state';\nimport {parseTooling} from '@/lib/tooling-workflow';\nimport {DraftConflict} from '@/lib/shared-draft';\n"
+            },
+            {
+              "offset": 310,
+              "before": "import {stateRevisionIsCurrent} from '@/lib/process-state';\n",
+              "after": ""
+            },
+            {
+              "offset": 426,
+              "before": "const route=versionedWorkflowRoute(toolingWorkflowAdapter);\n",
+              "after": "\nconst authKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];\nconst reply=(body:unknown,status=200)=>Response.json(body,{status,headers:responseHeaders});\n"
+            },
+            {
+              "offset": 691,
+              "before": "",
+              "after": " // Same permission and selected-state fences as the workflow reader, without\n // evaluating unrelated write buttons or serializing an unused full response.\n let state:Awaited<ReturnType<typeof readState>>,input:ReturnType<typeof toolingChecksInput>,actorId:string;\n try{\n  const preflight=await readState({keys:authKeys,aggregateReadAhead:true});\n  const before=await identity(request,preflight);\n  if(!before||!await can(request,preflight,'tooling.view'))return reply({error:'FORBIDDEN'},403);\n  state=preflight.recordStorage?await readState({keys:[...authKeys,'toolingMasterControl'],modelKey:'toolingMasterControl',deferHistory:true,deferDependencyHistory:true,aggregateReadAhead:true}):preflight;\n  const actor=await identity(request,state);\n  if(!actor||!await can(request,state,'tooling.view'))return reply({error:'FORBIDDEN'},403);\n  actorId=actor.id;\n  input=toolingChecksInput({revision:state.revision,control:parseTooling(state.values.toolingMasterControl,state.recordStorage?.models.get('toolingMasterControl'))});\n }catch(error){return reply({error:error instanceof DraftConflict?error.code:'WORKFLOW_LOAD_FAILED'},error instanceof DraftConflict?error.status:503);}\n const {stateRevision,activeVersionId,savedId,generation,revision,hasWorkflow,hasSaved,working,saved}=input;\n"
+            },
+            {
+              "offset": 2041,
+              "before": " const read=async()=>{const response=await route.GET(new Request(url,request));return response.ok?toolingChecksInput(await response.json()):response;};\n const input=await read();if(input instanceof Response)return input;\n const {stateRevision,activeVersionId,savedId,generation,revision,hasWorkflow,hasSaved,working,saved}=input;\n",
+              "after": " // Retain the exact IQC authority, historical-source hydration and failure path.\n"
+            },
+            {
+              "offset": 2286,
+              "before": " // Inspection spans tooling and IQC reads. Never label a mixed revision current.\n",
+              "after": ""
+            },
+            {
+              "offset": 2456,
+              "before": "",
+              "after": " const terminal=await identity(request,state);\n if(!terminal||terminal.id!==actorId)return reply({error:'FORBIDDEN'},403);\n"
+            }
+          ]
+        },
+        "app/api/tooling/iqc/route.ts": {
+          "beforeHash": "5eb3af818c7ef7ae70aa5d4d157fb28f99c7bd6ac899acaad3385bbaf1357cc0",
+          "beforeNormalizedHash": "5eb3af818c7ef7ae70aa5d4d157fb28f99c7bd6ac899acaad3385bbaf1357cc0",
+          "afterHash": "cf8f140187a568416ff559fcf9352886aba3af3b400955bfd7b67c315f3d5e84",
+          "afterNormalizedHash": "cf8f140187a568416ff559fcf9352886aba3af3b400955bfd7b67c315f3d5e84",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 225,
+              "before": " const state=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode','iqcMasterControl'],deferHistory:true});\n",
+              "after": " const state=await readState({aggregateReadAhead:true,keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode','iqcMasterControl'],deferHistory:true});\n"
+            }
+          ]
+        },
+        "lib/versioned-shared-workflow.ts": {
+          "beforeHash": "52fb98ea7a42169d75e4172d633e048ec634ecb26f12f6439997023c5eea8f5e",
+          "beforeNormalizedHash": "95076db197439fd58018e4e349626bc590264d90ea0c06e4940b628aa5e7a5e2",
+          "afterHash": "5b7a4adf07a524c9b7d1e7b0a2a226fa976aed90f4ae95fddfd28366e075be21",
+          "afterNormalizedHash": "1d2deb0507f5868b62ff3ba2fad830cdf27382cae2f9e661c057674d792da67b",
+          "beforeCRLFRanges": [
+            [
+              11,
+              12
+            ],
+            [
+              13,
+              18
+            ],
+            [
+              20,
+              36
+            ],
+            [
+              46,
+              50
+            ],
+            [
+              60,
+              72
+            ],
+            [
+              73,
+              74
+            ],
+            [
+              75,
+              149
+            ],
+            [
+              151,
+              155
+            ],
+            [
+              163,
+              166
+            ],
+            [
+              167,
+              170
+            ],
+            [
+              171,
+              176
+            ],
+            [
+              178,
+              180
+            ],
+            [
+              181,
+              191
+            ],
+            [
+              192,
+              200
+            ],
+            [
+              218,
+              225
+            ],
+            [
+              236,
+              249
+            ],
+            [
+              251,
+              258
+            ],
+            [
+              268,
+              269
+            ],
+            [
+              299,
+              300
+            ],
+            [
+              301,
+              303
+            ],
+            [
+              304,
+              305
+            ],
+            [
+              306,
+              313
+            ],
+            [
+              315,
+              316
+            ],
+            [
+              317,
+              319
+            ],
+            [
+              322,
+              329
+            ],
+            [
+              330,
+              331
+            ],
+            [
+              333,
+              335
+            ],
+            [
+              336,
+              338
+            ],
+            [
+              339,
+              341
+            ],
+            [
+              344,
+              350
+            ],
+            [
+              351,
+              355
+            ],
+            [
+              359,
+              360
+            ],
+            [
+              362,
+              364
+            ],
+            [
+              366,
+              368
+            ]
+          ],
+          "rules": [
+            {
+              "offset": 0,
+              "before": "",
+              "after": "import {inventoryReadAhead} from './inventory-read-ahead.mjs';\n"
+            },
+            {
+              "offset": 18922,
+              "before": "      const fqcReadAhead=isIpqcAB(request)||adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!selectors.has('scope');\n",
+              "after": "      const fqcReadAhead=inventoryReadAhead(request,adapter.key,adapter.scope)||isIpqcAB(request)||adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!selectors.has('scope');\n"
+            },
+            {
+              "offset": 35490,
+              "before": "        const state=requiredState||mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({aggregateReadAhead:body.action===undefined&&Object.keys(body).every(key=>key==='command')&&(isIpqcAB(request)&&['apply','restore','save','submit','withdraw','approve','return'].includes(body.command?.action||'')||fqcAggregateReadAheadCommand(body.command)&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope')),deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=requiredPhase||await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);\n",
+              "after": "        const state=requiredState||mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({aggregateReadAhead:inventoryReadAhead(request,adapter.key,adapter.scope,body)||body.action===undefined&&Object.keys(body).every(key=>key==='command')&&(isIpqcAB(request)&&['apply','restore','save','submit','withdraw','approve','return'].includes(body.command?.action||'')||fqcAggregateReadAheadCommand(body.command)&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope')),deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=requiredPhase||await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);\n"
+            }
+          ]
+        },
+        "scripts/account-outcome-source-contract.cjs": {
+          "beforeHash": "98fd35aa0f604acbaa7f1b436161b4842059d57fe730d66223b16bd5a58d0977",
+          "beforeNormalizedHash": "98fd35aa0f604acbaa7f1b436161b4842059d57fe730d66223b16bd5a58d0977",
+          "afterHash": "daf3b8c5b0343857c7b7c74bf8d2829abf6be871c17a0ae59eeefd5e89054c8c",
+          "afterNormalizedHash": "daf3b8c5b0343857c7b7c74bf8d2829abf6be871c17a0ae59eeefd5e89054c8c",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 423,
+              "before": "function inverse(bytes,file,source){assert(Buffer.isBuffer(bytes),'Account outcome requires raw Buffer');bytes=require('./quality-office-joint-source-contract.cjs').projectKnown(bytes,file,'main');const c=Object.hasOwn(source.files,file)?source.files[file]:null;assert(c,'Account outcome wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Account outcome successor differs');for(const r of [...c.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'Account outcome span differs');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),c.beforeHash,'Account outcome predecessor differs');return out;}\n",
+              "after": "function inverse(bytes,file,source){assert(Buffer.isBuffer(bytes),'Account outcome requires raw Buffer');bytes=require('./quality-office-joint-source-contract.cjs').projectKnown(bytes,file,'main');bytes=require('./inventory-account-adapter-source-contract.cjs').projectKnown(bytes,file,'accountMain');bytes=require('./inventory-quality-source-contract.cjs').projectKnown(bytes,file,'accountMain');const c=Object.hasOwn(source.files,file)?source.files[file]:null;assert(c,'Account outcome wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Account outcome successor differs');for(const r of [...c.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'Account outcome span differs');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),c.beforeHash,'Account outcome predecessor differs');return out;}\n"
+            },
+            {
+              "offset": 1522,
+              "before": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Account outcome requires raw Buffer');bytes=require('./quality-office-joint-source-contract.cjs').projectKnown(bytes,file,'main');for(const source of [integration,contract]){const c=Object.hasOwn(source.files,file)?source.files[file]:null;if(c&&hash(normalized(bytes))===c.afterHash)return inverse(bytes,file,source);}return bytes;}\n",
+              "after": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Account outcome requires raw Buffer');bytes=require('./quality-office-joint-source-contract.cjs').projectKnown(bytes,file,'main');bytes=require('./inventory-account-adapter-source-contract.cjs').projectKnown(bytes,file,'accountMain');bytes=require('./inventory-quality-source-contract.cjs').projectKnown(bytes,file,'accountMain');for(const source of [integration,contract]){const c=Object.hasOwn(source.files,file)?source.files[file]:null;if(c&&hash(normalized(bytes))===c.afterHash)return inverse(bytes,file,source);}return bytes;}\n"
+            }
+          ]
+        },
+        "scripts/ipqc-speed-assignment-source-contract.cjs": {
+          "beforeHash": "eaa84c75cb3cb7c6bc4943d7f5f63b5523c608a9acf527a0207e18a5de4b0c12",
+          "beforeNormalizedHash": "eaa84c75cb3cb7c6bc4943d7f5f63b5523c608a9acf527a0207e18a5de4b0c12",
+          "afterHash": "6ba5f2465fca688f079c8455f0459a1c6ef75d016c6ccd6450f08473cc8f88a2",
+          "afterNormalizedHash": "6ba5f2465fca688f079c8455f0459a1c6ef75d016c6ccd6450f08473cc8f88a2",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 444,
+              "before": "function restore(bytes,file,target){assert(Buffer.isBuffer(bytes),'IPQC assignment/speed proof requires raw Buffer');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);bytes=require('./process-platform-adopt-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null,p=c&&c.parents[target];assert(p,'IPQC assignment/speed wrong path/target');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'IPQC assignment/speed unknown source');for(const r of [...p.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'IPQC assignment/speed positioned span');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),p.normalizedHash);const lines=out.toString().split('\\n');for(const i of p.crlf)lines[i]+='\\r';out=Buffer.from(lines.join('\\n'));assert.equal(hash(out),p.hash,'IPQC assignment/speed exact parent');return out;}\nfunction projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'IPQC assignment/speed proof requires raw Buffer');if(!Object.hasOwn(contract.parents,target))return bytes;bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);bytes=require('./process-platform-adopt-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&c.parents[target]&&hash(normalized(bytes))===c.afterHash?restore(bytes,file,target):bytes;}\n",
+              "after": "function restore(bytes,file,target){assert(Buffer.isBuffer(bytes),'IPQC assignment/speed proof requires raw Buffer');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);bytes=require('./inventory-speed-source-contract.cjs').projectKnown(bytes,file);bytes=require('./process-platform-adopt-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null,p=c&&c.parents[target];assert(p,'IPQC assignment/speed wrong path/target');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'IPQC assignment/speed unknown source');for(const r of [...p.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'IPQC assignment/speed positioned span');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),p.normalizedHash);const lines=out.toString().split('\\n');for(const i of p.crlf)lines[i]+='\\r';out=Buffer.from(lines.join('\\n'));assert.equal(hash(out),p.hash,'IPQC assignment/speed exact parent');return out;}\nfunction projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'IPQC assignment/speed proof requires raw Buffer');if(!Object.hasOwn(contract.parents,target))return bytes;bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);bytes=require('./inventory-speed-source-contract.cjs').projectKnown(bytes,file);bytes=require('./process-platform-adopt-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&c.parents[target]&&hash(normalized(bytes))===c.afterHash?restore(bytes,file,target):bytes;}\n"
+            }
+          ]
+        },
+        "scripts/process-ipqc-frequency-source-contract.cjs": {
+          "beforeHash": "704458238da167ac7399fcf4b0ad3ce29c7805a234e168d755380478449faaf8",
+          "beforeNormalizedHash": "704458238da167ac7399fcf4b0ad3ce29c7805a234e168d755380478449faaf8",
+          "afterHash": "5a53c892aa69350792e3c2469de1eef3c85e25e589e6b092ed4e7773320a52e3",
+          "afterNormalizedHash": "5a53c892aa69350792e3c2469de1eef3c85e25e589e6b092ed4e7773320a52e3",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 474,
+              "before": " assert(Buffer.isBuffer(bytes),'Frequency display proof requires raw bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Frequency display wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Frequency display successor drift');\n",
+              "after": " assert(Buffer.isBuffer(bytes),'Frequency display proof requires raw bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);bytes=require('./inventory-round2-source-contract.cjs').projectKnown(bytes,file,'main122');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Frequency display wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Frequency display successor drift');\n"
+            },
+            {
+              "offset": 1451,
+              "before": "function projectKnown(bytes,file){bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);assert(Buffer.isBuffer(bytes),'Frequency display proof requires raw bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n",
+              "after": "function projectKnown(bytes,file){bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);assert(Buffer.isBuffer(bytes),'Frequency display proof requires raw bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);bytes=require('./inventory-round2-source-contract.cjs').projectKnown(bytes,file,'main122');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n"
+            }
+          ]
+        },
+        "scripts/process-platform-adopt-source-contract.cjs": {
+          "beforeHash": "b4f9f452efc435663efd5b9032667544488a21e7f66f8269c40a150c97febffd",
+          "beforeNormalizedHash": "b4f9f452efc435663efd5b9032667544488a21e7f66f8269c40a150c97febffd",
+          "afterHash": "0b646f27446837996ca918384afe59c36504ed66fecaac83471047d3574d8d7d",
+          "afterNormalizedHash": "0b646f27446837996ca918384afe59c36504ed66fecaac83471047d3574d8d7d",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 474,
+              "before": " assert(Buffer.isBuffer(bytes),'Platform adoption proof requires raw bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);bytes=require('./process-ipqc-frequency-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Platform adoption wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Platform adoption successor drift');\n",
+              "after": " assert(Buffer.isBuffer(bytes),'Platform adoption proof requires raw bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);bytes=require('./inventory-main-source-contract.cjs').projectKnown(bytes,file,'main120');bytes=require('./process-ipqc-frequency-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Platform adoption wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Platform adoption successor drift');\n"
+            },
+            {
+              "offset": 1536,
+              "before": "function projectKnown(bytes,file){bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);assert(Buffer.isBuffer(bytes),'Platform adoption proof requires raw bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);bytes=require('./process-ipqc-frequency-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n",
+              "after": "function projectKnown(bytes,file){bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);assert(Buffer.isBuffer(bytes),'Platform adoption proof requires raw bytes');bytes=require('./quality-root-source-contract.cjs').projectKnown(bytes,file);bytes=require('./inventory-main-source-contract.cjs').projectKnown(bytes,file,'main120');bytes=require('./process-ipqc-frequency-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterHash?restore(bytes,file):bytes;}\n"
+            }
+          ]
+        },
+        "scripts/quality-office-joint-source-contract.cjs": {
+          "beforeHash": "ba8525874bfe76de3e2321ea16a45cf1a46bd7921a5c5fd9a98e4973430fb865",
+          "beforeNormalizedHash": "ba8525874bfe76de3e2321ea16a45cf1a46bd7921a5c5fd9a98e4973430fb865",
+          "afterHash": "24242f2e19d117745502f7a7b65b5297bba77180db2af9184486de55525e262b",
+          "afterNormalizedHash": "24242f2e19d117745502f7a7b65b5297bba77180db2af9184486de55525e262b",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 396,
+              "before": " assert(Buffer.isBuffer(bytes),'Office joint requires raw Buffer');assert(Object.hasOwn(contract.parents,target),'Office joint wrong parent');const c=Object.hasOwn(contract.parents[target].files,file)?contract.parents[target].files[file]:null;assert(c,'Office joint wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterNormalizedHash,'Office joint successor differs');\n",
+              "after": " assert(Buffer.isBuffer(bytes),'Office joint requires raw Buffer');bytes=require('./quality-office-inventory-source-contract.cjs').projectKnown(bytes,file,'office');assert(Object.hasOwn(contract.parents,target),'Office joint wrong parent');const c=Object.hasOwn(contract.parents[target].files,file)?contract.parents[target].files[file]:null;assert(c,'Office joint wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterNormalizedHash,'Office joint successor differs');\n"
+            },
+            {
+              "offset": 1469,
+              "before": "function projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'Office joint requires raw Buffer');assert(Object.hasOwn(contract.parents,target),'Office joint wrong parent');const c=Object.hasOwn(contract.parents[target].files,file)?contract.parents[target].files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file,target):bytes;}\n",
+              "after": "function projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'Office joint requires raw Buffer');bytes=require('./quality-office-inventory-source-contract.cjs').projectKnown(bytes,file,'office');assert(Object.hasOwn(contract.parents,target),'Office joint wrong parent');const c=Object.hasOwn(contract.parents[target].files,file)?contract.parents[target].files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file,target):bytes;}\n"
+            }
+          ]
+        },
+        "scripts/quality-root-source-contract.cjs": {
+          "beforeHash": "1f7213ab97bec620e3f54eeb2f4c70649f2883f4c30cc89424e5cbf31a61d13a",
+          "beforeNormalizedHash": "1f7213ab97bec620e3f54eeb2f4c70649f2883f4c30cc89424e5cbf31a61d13a",
+          "afterHash": "3da6b04b626ee6e99ee5a755b3998f8a9e508769c7132de5467a43437c7bd342",
+          "afterNormalizedHash": "3da6b04b626ee6e99ee5a755b3998f8a9e508769c7132de5467a43437c7bd342",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 468,
+              "before": " assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./quality-office-source-contract.cjs').projectKnown(bytes,file);bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Quality root proof wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterNormalizedHash,'Quality root pinned source');\n",
+              "after": " assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./quality-office-source-contract.cjs').projectKnown(bytes,file);bytes=require('./inventory-quality-source-contract.cjs').projectKnown(bytes,file,'qualityMain');bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Quality root proof wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterNormalizedHash,'Quality root pinned source');\n"
+            },
+            {
+              "offset": 1595,
+              "before": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./quality-office-source-contract.cjs').projectKnown(bytes,file);bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n",
+              "after": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./quality-office-source-contract.cjs').projectKnown(bytes,file);bytes=require('./inventory-quality-source-contract.cjs').projectKnown(bytes,file,'qualityMain');bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n"
+            }
+          ]
+        },
+        "tests/accounts-process-integration-source.test.mjs": {
+          "beforeHash": "1d77deed25b3781dcef195b466acff1f1b025174205890ab7c3c7c7c3465eb42",
+          "beforeNormalizedHash": "1d77deed25b3781dcef195b466acff1f1b025174205890ab7c3c7c7c3465eb42",
+          "afterHash": "47d2ca5dff4daedcf46a0bba912db96fccf5dce3a461cabc9deb6c181751a7a9",
+          "afterNormalizedHash": "47d2ca5dff4daedcf46a0bba912db96fccf5dce3a461cabc9deb6c181751a7a9",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 3178,
+              "before": "",
+              "after": " const inventoryHelper='lib/inventory-read-ahead.mjs';\n assert.equal(git('ls-tree',manifest.sources.pr103.commit,'--',inventoryHelper).length,0);\n assert.equal(hash(git('show','HEAD:'+inventoryHelper)),'edec4965f468106bc29c14a81f79c256d251f03a1ebe636f6fb16792c7a27413');\n"
+            },
+            {
+              "offset": 3918,
+              "before": " assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\\n'),[...files,...additions,catalogAddition,helper,...accountHelpers].sort());\n",
+              "after": " assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\\n'),[...files,...additions,catalogAddition,helper,inventoryHelper,...accountHelpers].sort());\n"
+            }
+          ]
+        },
+        "tests/ipqc-operation-speed-integration-source.test.cjs": {
+          "beforeHash": "e2da82d71dc7599f4aec505271a3eae319141a72a5e72fb1ff73a4d163525c85",
+          "beforeNormalizedHash": "e2da82d71dc7599f4aec505271a3eae319141a72a5e72fb1ff73a4d163525c85",
+          "afterHash": "717dfa4f2fbe9b3aabbb77907bf164c9c3bf6243ae7110d8980cc9ad5ca9e073",
+          "afterNormalizedHash": "717dfa4f2fbe9b3aabbb77907bf164c9c3bf6243ae7110d8980cc9ad5ca9e073",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 2365,
+              "before": " for(const file of files)assert.deepEqual(normalized(require('../scripts/process-platform-adopt-source-contract.cjs').projectKnown(require('../scripts/quality-root-source-contract.cjs').projectKnown(fs.readFileSync(file),file),file)),normalized(git('show',commit+':'+file)),file+' retains full parent runtime through the exact reviewed adoption inverse; checkout LF/CRLF allowed');\n",
+              "after": " for(const file of files)assert.deepEqual(normalized(require('../scripts/process-platform-adopt-source-contract.cjs').projectKnown(require('../scripts/inventory-speed-source-contract.cjs').projectKnown(require('../scripts/quality-root-source-contract.cjs').projectKnown(fs.readFileSync(file),file),file),file)),normalized(git('show',commit+':'+file)),file+' retains full parent runtime; both exact inventory/adoption inverses then checkout LF/CRLF normalization allowed');\n"
+            }
+          ]
+        },
+        "tests/ipqc-operation-speed-source.test.cjs": {
+          "beforeHash": "6b9100216af36898362aaecd0d9e8f358682126ed2ca5b5d7441c7e37f521d12",
+          "beforeNormalizedHash": "6b9100216af36898362aaecd0d9e8f358682126ed2ca5b5d7441c7e37f521d12",
+          "afterHash": "cf09434d20fa17ed4a16596b5340306656ea73a6b272ba472fb2f4e9a980d41f",
+          "afterNormalizedHash": "cf09434d20fa17ed4a16596b5340306656ea73a6b272ba472fb2f4e9a980d41f",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 772,
+              "before": " const normalized=Buffer.from(current.toString().replaceAll('\\r\\n','\\n'));\n",
+              "after": " const retained=require('../scripts/inventory-speed-source-contract.cjs').projectKnown(current,file);\n const normalized=Buffer.from(retained.toString().replaceAll('\\r\\n','\\n'));\n"
+            }
+          ]
+        },
+        "tests/quality-office-joint-source.test.cjs": {
+          "beforeHash": "22dd538459512a7c92f8f9c4c84fb034ae073f5475a2b44aef9e65fdf524f69b",
+          "beforeNormalizedHash": "22dd538459512a7c92f8f9c4c84fb034ae073f5475a2b44aef9e65fdf524f69b",
+          "afterHash": "175aca635b1194133ae054a4c72af8e06cc16b6a3a26c9a094504cb629c88bd7",
+          "afterNormalizedHash": "175aca635b1194133ae054a4c72af8e06cc16b6a3a26c9a094504cb629c88bd7",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 413,
+              "before": " const bytes=fs.readFileSync(file),head=execFileSync('git',['show','HEAD:'+file]),before=execFileSync('git',['show',parent.sha+':'+file]);assert.equal(p.hash(head),c.afterHash,'committed candidate bytes');assert.equal(p.hash(Buffer.from(bytes.toString().replaceAll('\\r\\n','\\n'))),p.hash(Buffer.from(head.toString().replaceAll('\\r\\n','\\n'))),'checkout attests HEAD');assert.deepEqual(p.restore(bytes,file,target),before);assert.deepEqual(p.restore(Buffer.from(bytes.toString().replaceAll('\\r\\n','\\n').replaceAll('\\n','\\r\\n')),file,target),before);\n",
+              "after": " const bytes=fs.readFileSync(file),head=execFileSync('git',['show','HEAD:'+file]),before=execFileSync('git',['show',parent.sha+':'+file]);assert.equal(p.hash(require('../scripts/quality-office-inventory-source-contract.cjs').projectKnown(head,file,'office')),c.afterHash,'committed candidate bytes');assert.equal(p.hash(Buffer.from(bytes.toString().replaceAll('\\r\\n','\\n'))),p.hash(Buffer.from(head.toString().replaceAll('\\r\\n','\\n'))),'checkout attests HEAD');assert.deepEqual(p.restore(bytes,file,target),before);assert.deepEqual(p.restore(Buffer.from(bytes.toString().replaceAll('\\r\\n','\\n').replaceAll('\\n','\\r\\n')),file,target),before);\n"
+            }
+          ]
+        },
+        "tests/quality-pure-inverse-eol.test.cjs": {
+          "beforeHash": "1f098c70616195a1c2c59a66a434c4f3abab3e1fc3a57472c0bc1fc4458cc193",
+          "beforeNormalizedHash": "1f098c70616195a1c2c59a66a434c4f3abab3e1fc3a57472c0bc1fc4458cc193",
+          "afterHash": "49771d963960c56e85ad4b13f60bdf7ff9f6f19dc8a0d033f0c7e038a5340957",
+          "afterNormalizedHash": "49771d963960c56e85ad4b13f60bdf7ff9f6f19dc8a0d033f0c7e038a5340957",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 373,
+              "before": "const file='public/process/ipqc-c.js',source=execFileSync('git',['show','HEAD:'+file]),text=source.toString(),pin=require('../scripts/quality-office-source-contract.cjs').contract.files[file]||proof.contract.files[file],hash=x=>createHash('sha256').update(x).digest('hex');\nvoid test('quality successor has separate exact raw and normalized C pins',()=>{assert.equal(pin.afterHash,hash(source));assert.equal(pin.afterNormalizedHash,hash(text.replaceAll('\\r\\n','\\n')));assert.equal(hash(fs.readFileSync(file,'utf8').replaceAll('\\r\\n','\\n')),pin.afterNormalizedHash,'native checkout remains separately EOL-equivalent to committed bytes');});\nvoid test('pure C display inverse rejects equivalent EOL bytes; trusted HEAD checkout boundary admits them',()=>{\n",
+              "after": "const file='public/process/ipqc-c.js',hash=x=>createHash('sha256').update(x).digest('hex');\nfor(const {label,ref,pin,guard}of [{label:'historical',ref:'a1775a8a342d58335edf96d199a9c42844227dc6',pin:proof.contract.files[file],guard:'qualityPin'},{label:'office',ref:'HEAD',pin:require('../scripts/quality-office-source-contract.cjs').contract.files[file],guard:'officePin'}]){\n const source=execFileSync('git',['show',ref+':'+file]),text=source.toString();\nvoid test(label+' quality successor has separate exact raw and normalized C pins',()=>{assert.equal(pin.afterHash,hash(source));assert.equal(pin.afterNormalizedHash,hash(text.replaceAll('\\r\\n','\\n')));assert.equal(hash((label==='historical'?require('../scripts/quality-office-source-contract.cjs').projectKnown(fs.readFileSync(file),file):fs.readFileSync(file)).toString().replaceAll('\\r\\n','\\n')),pin.afterNormalizedHash,'native checkout remains separately EOL-equivalent to committed bytes');});\nvoid test(label+' pure C display inverse rejects equivalent EOL bytes; trusted HEAD checkout boundary admits them',()=>{\n"
+            },
+            {
+              "offset": 2137,
+              "before": "void test('removing the new exact successor guard reproduces the original negative-control escape',()=>{\n",
+              "after": "void test(label+' removing the new exact successor guard reproduces the original negative-control escape',()=>{\n"
+            },
+            {
+              "offset": 2594,
+              "before": " assert(actual.includes(line),'mutant must remove actual guard');const box={module:{exports:{}},require:createRequire(path),Buffer};vm.runInNewContext(actual.replace(line,''),box);const changed=text.replaceAll('\\r\\n','\\n').replaceAll('\\n','\\r\\n');assert.notEqual(changed,text);assert.equal(box.module.exports.withoutDisplay(changed),display.withoutDisplay(source),'old inverse wrongly accepted unknown EOL bytes');\n",
+              "after": " assert(actual.includes(line.replaceAll('officePin',guard)),'mutant must remove actual guard');const box={module:{exports:{}},require:createRequire(path),Buffer};vm.runInNewContext(actual.replace(line.replaceAll('officePin',guard),''),box);const changed=text.replaceAll('\\r\\n','\\n').replaceAll('\\n','\\r\\n');assert.notEqual(changed,text);assert.equal(box.module.exports.withoutDisplay(changed),display.withoutDisplay(source),'old inverse wrongly accepted unknown EOL bytes');\n"
+            },
+            {
+              "offset": 3073,
+              "before": "",
+              "after": "}\n"
+            }
+          ]
+        }
+      }
+    },
+    "main": {
+      "sha": "0f2c8ec5b3bc8f6a5625ef049782fab1f96988b1",
+      "files": {
+        ".github/workflows/equipment-integration.yml": {
+          "beforeHash": "7e3ddb4b2d551de90415d2d60720cb5dcd2f0e9f5a343edfac6f533dc7b8c73c",
+          "beforeNormalizedHash": "7e3ddb4b2d551de90415d2d60720cb5dcd2f0e9f5a343edfac6f533dc7b8c73c",
+          "afterHash": "844b047c7798e5068f5f4209f1df03987289144f98d3d52ebb2dad804a9c10a3",
+          "afterNormalizedHash": "844b047c7798e5068f5f4209f1df03987289144f98d3d52ebb2dad804a9c10a3",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 1664,
+              "before": "        run: node --test --test-concurrency=1 tests/quality-root-source.test.cjs tests/quality-observed-ui.test.mjs tests/ipqc-ab-response-capacity.test.mjs tests/ipqc-ab-equipment-references.test.mjs tests/inventory-permission-phase.test.mjs tests/history-read-feedback.test.mjs tests/equipment-reference-actions.test.mjs tests/quality-ack-readback-status.test.mjs tests/quality-c-begin-feedback.test.mjs tests/quality-ab-submit-conflict.test.mjs tests/quality-equipment-photo-status.test.mjs tests/quality-edit-open-race-fixture.test.mjs tests/quality-pure-inverse-eol.test.cjs\n",
+              "after": "        run: node --test --test-concurrency=1 tests/quality-root-source.test.cjs tests/quality-observed-ui.test.mjs tests/ipqc-ab-response-capacity.test.mjs tests/ipqc-ab-equipment-references.test.mjs tests/inventory-permission-phase.test.mjs tests/history-read-feedback.test.mjs tests/equipment-reference-actions.test.mjs tests/quality-ack-readback-status.test.mjs tests/quality-c-begin-feedback.test.mjs tests/quality-ab-submit-conflict.test.mjs tests/quality-equipment-photo-status.test.mjs tests/quality-edit-open-race-fixture.test.mjs tests/quality-pure-inverse-eol.test.cjs tests/quality-office-ab-state.test.mjs tests/quality-office-fqc-defaults.test.mjs tests/quality-office-source.test.cjs tests/quality-office-joint-source.test.cjs tests/quality-office-inventory-source.test.cjs tests/quality-office-c-busy.test.mjs\n"
+            },
+            {
+              "offset": 2631,
+              "before": "      - run: node --test --test-concurrency=1 tests/equipment-atomic-browser.test.mjs tests/equipment-atomic-compiled.test.mjs tests/equipment-transfer-compiled.test.mjs\n",
+              "after": "      - run: node --test --test-concurrency=1 tests/equipment-atomic-browser.test.mjs tests/equipment-atomic-compiled.test.mjs tests/equipment-transfer-compiled.test.mjs tests/quality-office-native.test.mjs tests/quality-office-c-native.test.mjs\n"
+            }
+          ]
+        },
+        "AI_CONTEXT/CHANGELOG.md": {
+          "beforeHash": "4256cb09ff21c4c504b64729325ab4887f982a5ba80225f50a593acf44ffb44a",
+          "beforeNormalizedHash": "4256cb09ff21c4c504b64729325ab4887f982a5ba80225f50a593acf44ffb44a",
+          "afterHash": "f23a7ff3ca11b7259ac6ce8def24026be44dd0c2122800195cc80d109243af70",
+          "afterNormalizedHash": "f23a7ff3ca11b7259ac6ce8def24026be44dd0c2122800195cc80d109243af70",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 0,
+              "before": "",
+              "after": "## 2026-11-16 — AB範圍版本與FQC新增回歸候選\n\n以已合併#123的main a1775a8建立獨立功能分支，修正AB本機草稿Vundefined與全模組快照誤認；補FQC新增預設AQL回歸，不重複速度優化。無schema／資料／ACL／合併或部署。[隔離根因與驗證界線](../docs/acceptance/quality-office-followup-20261116.md)。\nC另同步處理中Save／Submit按鈕狀態，保留既有busy防重送與原回執／權限保護；取消及明確錯誤後恢復，UNKNOWN須先查證。B保存重載、送審、撤回與C第二輪送審／撤回已被測試者證實成功，本次不誤列失敗。\n"
+            }
+          ]
+        },
+        "AI_CONTEXT/modules/QUALITY.md": {
+          "beforeHash": "86f5121466cab6f9fc57fcc22946f33b150738b19b6f1e4a37aa021391c033d5",
+          "beforeNormalizedHash": "86f5121466cab6f9fc57fcc22946f33b150738b19b6f1e4a37aa021391c033d5",
+          "afterHash": "941830c725b6b1f7430cc54b33844ca5af5b9c698541fd324eabef2f1b2c2659",
+          "afterNormalizedHash": "941830c725b6b1f7430cc54b33844ca5af5b9c698541fd324eabef2f1b2c2659",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 0,
+              "before": "",
+              "after": "## 2026-11-16 — 辦公室實測功能續修候選\n\nAB無既存群組草稿時的開始修改僅建立RAM草稿，不預分配伺服器版本號；頁首明示本機未存。全模組最後快照時間明確標示全模組，不把A的儲存回執當成B本機內容已存；既存B內容、版本與同模組篩選保留規則不變。空群組與讀取失敗分開呈現。FQC目前main已含頻率預設刷新，新增『新增項目』的中越文與原生預設回歸，未將尚無部署證據的實站現象宣稱已重現／修復。[證據與限制](../../docs/acceptance/quality-office-followup-20261116.md)。\nC另同步處理中Save／Submit按鈕狀態，保留既有busy防重送與原回執／權限保護；取消及明確錯誤後恢復，UNKNOWN須先查證。B保存重載、送審、撤回與C第二輪送審／撤回已被測試者證實成功，本次不誤列失敗。\n\n"
+            }
+          ]
+        },
+        "HANDOFF.md": {
+          "beforeHash": "9b599e427991573b3338ca037029295301e80bfb0a0bcdedc4c25ea333306a53",
+          "beforeNormalizedHash": "9b599e427991573b3338ca037029295301e80bfb0a0bcdedc4c25ea333306a53",
+          "afterHash": "0b59d1e19a49faee31772089d79944cad5257a8c705e9612ea9f073ac14ece5c",
+          "afterNormalizedHash": "0b59d1e19a49faee31772089d79944cad5257a8c705e9612ea9f073ac14ece5c",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 0,
+              "before": "",
+              "after": "## 2026-11-16 — 辦公室Chrome功能續修\n\n獨立clone／fix/quality-office-fqc-ab-20261116，自最新main a1775a8（#123已合併）開始；與速度工作分開。AB provisional版本與模組儲存資訊分開顯示；FQC新增入口回歸擴至中越文與未碰取樣選單的原生預設。[根因、測試及未確認實站條件](docs/acceptance/quality-office-followup-20261116.md)。未操作Diem／業務草稿、帳號、實站API、合併或部署；公開靜態資產GET403，無法驗實際部署版本。\nC另同步處理中Save／Submit按鈕狀態，保留既有busy防重送與原回執／權限保護；取消及明確錯誤後恢復，UNKNOWN須先查證。B保存重載、送審、撤回與C第二輪送審／撤回已被測試者證實成功，本次不誤列失敗。\n"
+            }
+          ]
+        },
+        "public/process/index.html": {
+          "beforeHash": "d9434d5d6e51efc989548b7f9b6976e6af1f690588b7cac6e4e367a83e43a113",
+          "beforeNormalizedHash": "d9434d5d6e51efc989548b7f9b6976e6af1f690588b7cac6e4e367a83e43a113",
+          "afterHash": "c4f1601ecf9ed2f34773f4205498a05879f30593c10a8a9010eb31245b40527b",
+          "afterNormalizedHash": "c4f1601ecf9ed2f34773f4205498a05879f30593c10a8a9010eb31245b40527b",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 7265,
+              "before": "    <script data-process-src=\"version-draft-ui.js?v=20261115-quality-root1\"></script>\n",
+              "after": "    <script data-process-src=\"version-draft-ui.js?v=20261116-quality-office1\"></script>\n"
+            },
+            {
+              "offset": 9961,
+              "before": "    <script data-process-src=\"ipqc-c.js?v=20261115-quality-root3\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261115-quality-root4\"></script>\n",
+              "after": "    <script data-process-src=\"ipqc-c.js?v=20261116-quality-office1\"></script>\n    <script data-process-src=\"ipqc-ab.js?v=20261116-quality-office1\"></script>\n"
+            }
+          ]
+        },
+        "public/process/ipqc-ab.js": {
+          "beforeHash": "4a54a68a06eaf000bf6d0a4c19e7aa97e044043c8cc2b1c0686c229d25b6d39d",
+          "beforeNormalizedHash": "4a54a68a06eaf000bf6d0a4c19e7aa97e044043c8cc2b1c0686c229d25b6d39d",
+          "afterHash": "7a59e4af9aaaf8816ef7abc8130da784c7725846e7335eb66b5d8f3156af6c84",
+          "afterNormalizedHash": "7a59e4af9aaaf8816ef7abc8130da784c7725846e7335eb66b5d8f3156af6c84",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 5039,
+              "before": "",
+              "after": "  const versionTitle = row => row?.unpersisted ? t('本機草稿 · 尚未存取','Bản nháp cục bộ · chưa lưu') : !row ? t('此群組尚無版本','Nhóm này chưa có phiên bản') : !Number.isSafeInteger(row.number)||row.number<1 ? t('版本編號未記錄','Chưa ghi nhận số phiên bản') : undefined;\n"
+            },
+            {
+              "offset": 54439,
+              "before": "      entry={scope:key(),generation:server?.workflow?.generation||null,baseId:server?.activeVersionId||null,base:clone(content),snapshot:clone(content),source:clone(control.source??null),lineageAnchor:lineageView?.groups?.[key()]?.anchor??null,originRevision:lineageView?.groups?.[key()]?.originRevision??null,originDigest:lineageView?.groups?.[key()]?.originDigest??null,owner:actor(),epoch:window.ProcessSync?.identityGeneration?.(),delivery:window.ProcessSync?.captureDelivery?.(),lifetime:mutationLifetime,host,version:{...(open||active()),id:open?.id||'local-'+key(),status:'draft',snapshot:clone(content)}};\n",
+              "after": "      entry={scope:key(),generation:server?.workflow?.generation||null,baseId:server?.activeVersionId||null,base:clone(content),snapshot:clone(content),source:clone(control.source??null),lineageAnchor:lineageView?.groups?.[key()]?.anchor??null,originRevision:lineageView?.groups?.[key()]?.originRevision??null,originDigest:lineageView?.groups?.[key()]?.originDigest??null,owner:actor(),epoch:window.ProcessSync?.identityGeneration?.(),delivery:window.ProcessSync?.captureDelivery?.(),lifetime:mutationLifetime,host,version:{...(open||active()),id:open?.id||'local-'+key(),status:'draft',unpersisted:!open,snapshot:clone(content)}};\n"
+            },
+            {
+              "offset": 117335,
+              "before": "        <h2>IPQC-AB · ${v?`V${v.number} · ${status(v.status)}`:t('尚無版本','Chưa có phiên bản')}</h2>\n        <p>${v?`${t('最後編輯','Người sửa cuối')}: ${h(lastEdit(v)?.actorName || v.creatorName)} · ${h(new Date(lastEdit(v)?.at || v.createdAt).toLocaleString())}`:''}\n",
+              "after": "        <h2>IPQC-AB · ${h(versionTitle(v)??`V${v.number} · ${status(v.status)}`)}</h2>\n        <p>${v&&!v.unpersisted?`${t('最後編輯','Người sửa cuối')}: ${h(lastEdit(v)?.actorName || v.creatorName)} · ${h(new Date(lastEdit(v)?.at || v.createdAt).toLocaleString())}`:''}\n"
+            },
+            {
+              "offset": 121093,
+              "before": "",
+              "after": "      ${!scope()?.versions.length?`<p class=\"ipqcab-card\" data-ab-empty-scope>${t('此群組尚無已存標準。開始修改只建立本機草稿，完成後請按「存取草稿」。','Nhóm này chưa có tiêu chuẩn đã lưu. Bắt đầu sửa chỉ tạo bản nháp cục bộ; hoàn tất rồi chọn “Lưu bản nháp”.')}</p>`:''}\n"
+            },
+            {
+              "offset": 145424,
+              "before": "    window.VersionDraftUI?.mount(host,{localUnsaved:localDirty()||hasLocalFilterForm()||!!modal&&!modal.readonly,header:'.ipqcab-version',historyClient:()=>moduleTransport(),mountApprovedHistory,module:'IPQC-AB',moduleActions:true,scope:t('全部 IPQC-AB 草稿；A／B 全部群組與工段','Tất cả bản nháp IPQC-AB; mọi nhóm và công đoạn A/B'),version:version(),versions:scope()?.versions,active:active(),flow:control?.moduleDraft?.workflow||scope()?.workflow,busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#ipqcab-begin',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-ab-issue-kind=\"error\"],[data-shared-issue-kind=\"error\"]',missing:'[data-ab-issue-kind=\"missing\"],[data-shared-issue-kind=\"missing\"]',checked:{missing:true},history:['[data-shared-issue-kind=\"warning\"]'],remove:['.ipqcab-history','#ab-case-history'],status:['#ipqcab-shared-status']});\n",
+              "after": "    window.VersionDraftUI?.mount(host,{localUnsaved:!!localEntry()?.version.unpersisted||localDirty()||hasLocalFilterForm()||!!modal&&!modal.readonly,versionTitle,savedMetadata:control?.moduleDraft?.workflow?.saved,savedLabel:()=>t('全模組已存快照：儲存者與時間','Bản chụp đã lưu toàn mô-đun: người lưu và thời gian'),header:'.ipqcab-version',historyClient:()=>moduleTransport(),mountApprovedHistory,module:'IPQC-AB',moduleActions:true,scope:t('全部 IPQC-AB 草稿；A／B 全部群組與工段','Tất cả bản nháp IPQC-AB; mọi nhóm và công đoạn A/B'),version:version(),versions:scope()?.versions,active:active(),flow:control?.moduleDraft?.workflow||scope()?.workflow,busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#ipqcab-begin',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-ab-issue-kind=\"error\"],[data-shared-issue-kind=\"error\"]',missing:'[data-ab-issue-kind=\"missing\"],[data-shared-issue-kind=\"missing\"]',checked:{errors:true,missing:true},history:['[data-shared-issue-kind=\"warning\"]'],remove:['.ipqcab-history','#ab-case-history'],status:['#ipqcab-shared-status']});\n"
+            }
+          ]
+        },
+        "public/process/ipqc-c.js": {
+          "beforeHash": "90ce15c0a28a66ac542dabfb04a9b7ba02f06f601d25c14fc914fbe48aca981d",
+          "beforeNormalizedHash": "90ce15c0a28a66ac542dabfb04a9b7ba02f06f601d25c14fc914fbe48aca981d",
+          "afterHash": "aac01a7a9f4d5ec320b4b6a89e947a161bbe2b486b012ed348f033be8254c6c7",
+          "afterNormalizedHash": "aac01a7a9f4d5ec320b4b6a89e947a161bbe2b486b012ed348f033be8254c6c7",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 5900,
+              "before": "",
+              "after": "  function syncWriteButtons(){\n    const locked=busy||saveInputNoticePending()||sharedClient?.hasUnknown()===true;\n    for(const [id,operation]of [['#ipqcc-save','save'],['#ipqcc-submit','submit']]){\n      const button=host?.querySelector?.(id);if(!button)continue;\n      button.disabled=locked||!draftOpen()||!operationAllowed(operation);\n      if(busy)button.setAttribute('aria-busy','true');else button.removeAttribute('aria-busy');\n    }\n  }\n"
+            },
+            {
+              "offset": 7524,
+              "before": "",
+              "after": "    syncWriteButtons();\n"
+            },
+            {
+              "offset": 38884,
+              "before": "    if(busy)return;const query=captureOperationQuery(),recoveringBegin=query.client.hasUnknownBegin?.()===true;busy=true;\n",
+              "after": "    if(busy)return;const query=captureOperationQuery(),recoveringBegin=query.client.hasUnknownBegin?.()===true;busy=true;syncWriteButtons();\n"
+            },
+            {
+              "offset": 41120,
+              "before": "",
+              "after": "    syncWriteButtons();\n"
+            },
+            {
+              "offset": 52122,
+              "before": "    }}\n",
+              "after": "    }if(sameActor())syncWriteButtons();}\n"
+            },
+            {
+              "offset": 140300,
+              "before": "    try { await read(false,current,true);if(!current())return;draw(); } catch(error) {if(!current()||isReadSuperseded(error))return;navigationError=error;message=error.message; host.innerHTML=`<section class=\"ipqcc-page\"><p role=\"alert\">${h(displayDraftError(message))}</p><button type=\"button\" class=\"button signal\" id=\"ipqcc-load-retry\">${t('Tải lại dữ liệu','重新載入資料')}</button></section>`;host.querySelector('#ipqcc-load-retry').onclick=()=>mount(element); }\n",
+              "after": "    try { await read(false,current,true);if(!current())return;draw();\n      // Re-entry may render while the same transport still owns an original\n      // operation. Observe its existing queue only; never read or replay here.\n      const transport=sharedClient,actor=identity(),epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.();\n      const settled=()=>{if(current()&&host?.isConnected&&transport===sharedClient&&actor===identity()&&epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)))syncWriteButtons();};\n      void transport.flush().then(settled,settled);\n    } catch(error) {if(!current()||isReadSuperseded(error))return;navigationError=error;message=error.message; host.innerHTML=`<section class=\"ipqcc-page\"><p role=\"alert\">${h(displayDraftError(message))}</p><button type=\"button\" class=\"button signal\" id=\"ipqcc-load-retry\">${t('Tải lại dữ liệu','重新載入資料')}</button></section>`;host.querySelector('#ipqcc-load-retry').onclick=()=>mount(element); }\n"
+            }
+          ]
+        },
+        "public/process/version-draft-ui.js": {
+          "beforeHash": "aed712a971c2e5572b801c089163ef8da2c0e6ee80b0e1ecf7d203e20761e049",
+          "beforeNormalizedHash": "718876842fbe1f572b4484a6bd5bfb163bacb467b9c36ec50b7349aafbd2f948",
+          "afterHash": "510d289c80d385e104e734dd2ae0e318f643952b45bb598cba45dfeb1a7873fb",
+          "afterNormalizedHash": "dfce8779ae1d2e3ee6d5d3a4bae33779c0d2bc7e4f471c3ccad059dfcc4b595c",
+          "beforeCRLFRanges": [
+            [
+              0,
+              7
+            ],
+            [
+              8,
+              12
+            ],
+            [
+              14,
+              41
+            ],
+            [
+              121,
+              122
+            ],
+            [
+              123,
+              127
+            ],
+            [
+              128,
+              129
+            ],
+            [
+              130,
+              132
+            ],
+            [
+              133,
+              136
+            ],
+            [
+              137,
+              161
+            ],
+            [
+              162,
+              194
+            ],
+            [
+              195,
+              210
+            ],
+            [
+              215,
+              224
+            ],
+            [
+              226,
+              230
+            ],
+            [
+              231,
+              252
+            ],
+            [
+              331,
+              334
+            ],
+            [
+              377,
+              380
+            ],
+            [
+              382,
+              384
+            ]
+          ],
+          "rules": [
+            {
+              "offset": 28673,
+              "before": "    const v=model.version,flow=model.flow,versions=model.versions||[],pending=['pending','pending-test'].includes(v?.status),draft=versions.find(row=>row.status==='draft');\n",
+              "after": "    const v=model.version,flow=model.flow,versions=model.versions||[],versionTitle=()=>model.versionTitle?.(v)??`${number(v)} · ${t(v?.status||'unchecked')}`,savedLabel=()=>model.savedLabel?.()??t('savedBy'),pending=['pending','pending-test'].includes(v?.status),draft=versions.find(row=>row.status==='draft');\n"
+            },
+            {
+              "offset": 29571,
+              "before": "    const card=create('section','vd-card'),top=create('div','vd-top'),title=create('h3','',`${number(v)} · ${t(v?.status||'unchecked')}`),choice=create('label','vd-choice');choice.append(label(create('span','',t('menu')),'menu'));translations.push(()=>title.textContent=`${number(v)} · ${t(v?.status||'unchecked')}`);\n",
+              "after": "    const card=create('section','vd-card'),top=create('div','vd-top'),title=create('h3','',versionTitle()),choice=create('label','vd-choice');choice.append(label(create('span','',t('menu')),'menu'));translations.push(()=>title.textContent=versionTitle());\n"
+            },
+            {
+              "offset": 30656,
+              "before": "    const saver=saved?.actor?.name||saveEvent?.actorName||saveEvent?.actor||t('unknown'),at=saved?.at||saveEvent?.at;\n    const meta=create('div','vd-meta');meta.innerHTML=`<span>${t('active')}：${number(model.active)}</span><span data-vd-saver>${t('savedBy')}：${h(savedStamp(saver===t('unknown')?null:saver,at))}</span><span data-vd-sync>${t('sync')}：${model.failed?t(model.rejected?'rejected':'failed'):model.busy?t('syncing'):model.syncNotice?h(model.syncNotice):model.localUnsaved?t('localOnly'):flow?t(model.masterScope?'draftSynced':'synced'):t('unknown')}</span><span data-vd-saved>${t('saveState')}：${flow&&v?.status==='draft'?(!model.localUnsaved&&JSON.stringify(saved?.content??flow.active?.content)===JSON.stringify(flow.working)?t(saved?'saved':'unchanged'):t(model.masterScope?'draftUnsaved':'unsaved')):saved||saveEvent?t('saved'):t('unknown')}</span>`;\n",
+              "after": "    const recordedSave=saved||model.savedMetadata;\n    const saver=recordedSave?.actor?.name||saveEvent?.actorName||saveEvent?.actor||t('unknown'),at=recordedSave?.at||saveEvent?.at;\n    const meta=create('div','vd-meta');meta.innerHTML=`<span>${t('active')}：${number(model.active)}</span><span data-vd-saver>${h(savedLabel())}：${h(savedStamp(saver===t('unknown')?null:saver,at))}</span><span data-vd-sync>${t('sync')}：${model.failed?t(model.rejected?'rejected':'failed'):model.busy?t('syncing'):model.syncNotice?h(model.syncNotice):model.localUnsaved?t('localOnly'):flow?t(model.masterScope?'draftSynced':'synced'):t('unknown')}</span><span data-vd-saved>${t('saveState')}：${flow&&v?.status==='draft'?(!model.localUnsaved&&JSON.stringify(saved?.content??flow.active?.content)===JSON.stringify(flow.working)?t(saved?'saved':'unchanged'):t(model.masterScope?'draftUnsaved':'unsaved')):saved||saveEvent?t('saved'):t('unknown')}</span>`;\n"
+            },
+            {
+              "offset": 37202,
+              "before": "    shell.refreshLabels=()=>{const lang=document.documentElement.lang;if(lang===priorLanguage)return;const before=priorLanguage==='vi'?1:0,after=lang==='vi'?1:0;for(const area of [heading,meta]){const walker=document.createTreeWalker(area,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode())){for(const pair of Object.values(words))node.nodeValue=node.nodeValue.split(pair[before]).join(pair[after]);}}for(const refresh of translations)refresh();for(const option of select?.options||[]){const row=versions.find(item=>item.id===option.value);if(row)option.textContent=`${number(row)} · ${t(row.status)}`;}const recorded=saved||model.savedMetadata;const saverNode=meta.querySelector('[data-vd-saver]');if(saverNode)saverNode.textContent=t('savedBy')+'：'+savedStamp(recorded?.actor?.name||saveEvent?.actorName||saveEvent?.actor,recorded?.at||saveEvent?.at);shell.refreshHistoryLabels?.();priorLanguage=lang;};return shell;\n",
+              "after": "    shell.refreshLabels=()=>{const lang=document.documentElement.lang;if(lang===priorLanguage)return;const before=priorLanguage==='vi'?1:0,after=lang==='vi'?1:0;for(const area of [heading,meta]){const walker=document.createTreeWalker(area,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode())){for(const pair of Object.values(words))node.nodeValue=node.nodeValue.split(pair[before]).join(pair[after]);}}for(const refresh of translations)refresh();for(const option of select?.options||[]){const row=versions.find(item=>item.id===option.value);if(row)option.textContent=`${number(row)} · ${t(row.status)}`;}const recorded=saved||model.savedMetadata;const saverNode=meta.querySelector('[data-vd-saver]');if(saverNode)saverNode.textContent=savedLabel()+'：'+savedStamp(recorded?.actor?.name||saveEvent?.actorName||saveEvent?.actor,recorded?.at||saveEvent?.at);shell.refreshHistoryLabels?.();priorLanguage=lang;};return shell;\n"
+            }
+          ]
+        },
+        "scripts/account-outcome-source-contract.cjs": {
+          "beforeHash": "cbed592d1f252bbaea1a40dc96dce42c692e2e07cfc19f41f7b4eb000494a368",
+          "beforeNormalizedHash": "cbed592d1f252bbaea1a40dc96dce42c692e2e07cfc19f41f7b4eb000494a368",
+          "afterHash": "daf3b8c5b0343857c7b7c74bf8d2829abf6be871c17a0ae59eeefd5e89054c8c",
+          "afterNormalizedHash": "daf3b8c5b0343857c7b7c74bf8d2829abf6be871c17a0ae59eeefd5e89054c8c",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 423,
+              "before": "function inverse(bytes,file,source){assert(Buffer.isBuffer(bytes),'Account outcome requires raw Buffer');bytes=require('./inventory-account-adapter-source-contract.cjs').projectKnown(bytes,file,'accountMain');bytes=require('./inventory-quality-source-contract.cjs').projectKnown(bytes,file,'accountMain');const c=Object.hasOwn(source.files,file)?source.files[file]:null;assert(c,'Account outcome wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Account outcome successor differs');for(const r of [...c.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'Account outcome span differs');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),c.beforeHash,'Account outcome predecessor differs');return out;}\n",
+              "after": "function inverse(bytes,file,source){assert(Buffer.isBuffer(bytes),'Account outcome requires raw Buffer');bytes=require('./quality-office-joint-source-contract.cjs').projectKnown(bytes,file,'main');bytes=require('./inventory-account-adapter-source-contract.cjs').projectKnown(bytes,file,'accountMain');bytes=require('./inventory-quality-source-contract.cjs').projectKnown(bytes,file,'accountMain');const c=Object.hasOwn(source.files,file)?source.files[file]:null;assert(c,'Account outcome wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Account outcome successor differs');for(const r of [...c.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'Account outcome span differs');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),c.beforeHash,'Account outcome predecessor differs');return out;}\n"
+            },
+            {
+              "offset": 1522,
+              "before": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Account outcome requires raw Buffer');bytes=require('./inventory-account-adapter-source-contract.cjs').projectKnown(bytes,file,'accountMain');bytes=require('./inventory-quality-source-contract.cjs').projectKnown(bytes,file,'accountMain');for(const source of [integration,contract]){const c=Object.hasOwn(source.files,file)?source.files[file]:null;if(c&&hash(normalized(bytes))===c.afterHash)return inverse(bytes,file,source);}return bytes;}\n",
+              "after": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Account outcome requires raw Buffer');bytes=require('./quality-office-joint-source-contract.cjs').projectKnown(bytes,file,'main');bytes=require('./inventory-account-adapter-source-contract.cjs').projectKnown(bytes,file,'accountMain');bytes=require('./inventory-quality-source-contract.cjs').projectKnown(bytes,file,'accountMain');for(const source of [integration,contract]){const c=Object.hasOwn(source.files,file)?source.files[file]:null;if(c&&hash(normalized(bytes))===c.afterHash)return inverse(bytes,file,source);}return bytes;}\n"
+            }
+          ]
+        },
+        "scripts/inventory-account-adapter-source-contract.cjs": {
+          "beforeHash": "2d76fc124ae76d31b3c47f2458bb39dda1956e8fcc46a78059e562282a97a02a",
+          "beforeNormalizedHash": "2d76fc124ae76d31b3c47f2458bb39dda1956e8fcc46a78059e562282a97a02a",
+          "afterHash": "a6851070400e305b703d2d1a0adcbd447f4c18b502ea1114dd984aeca0f59085",
+          "afterNormalizedHash": "a6851070400e305b703d2d1a0adcbd447f4c18b502ea1114dd984aeca0f59085",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 440,
+              "before": "function restore(bytes,file,target){assert(Buffer.isBuffer(bytes),'Inventory quality composition proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null,p=c&&c.parents[target];assert(p,'Inventory quality composition wrong path or target');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Inventory quality composition unknown source');for(const r of [...p.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'Inventory quality composition positioned span');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),p.normalizedHash);const lines=out.toString().split('\\n');for(const i of p.crlf)lines[i]+='\\r';out=Buffer.from(lines.join('\\n'));assert.equal(hash(out),p.hash,'Inventory quality composition exact public parent');return out;}\nfunction projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'Inventory quality composition proof requires raw Buffer');if(!Object.hasOwn(contract.parents,target))return bytes;const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&c.parents[target]&&hash(normalized(bytes))===c.afterHash?restore(bytes,file,target):bytes;}\n",
+              "after": "function restore(bytes,file,target){assert(Buffer.isBuffer(bytes),'Inventory quality composition proof requires raw Buffer');bytes=require('./quality-office-inventory-source-contract.cjs').projectKnown(bytes,file,'main');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null,p=c&&c.parents[target];assert(p,'Inventory quality composition wrong path or target');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Inventory quality composition unknown source');for(const r of [...p.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'Inventory quality composition positioned span');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),p.normalizedHash);const lines=out.toString().split('\\n');for(const i of p.crlf)lines[i]+='\\r';out=Buffer.from(lines.join('\\n'));assert.equal(hash(out),p.hash,'Inventory quality composition exact public parent');return out;}\nfunction projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'Inventory quality composition proof requires raw Buffer');if(!Object.hasOwn(contract.parents,target))return bytes;bytes=require('./quality-office-inventory-source-contract.cjs').projectKnown(bytes,file,'main');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&c.parents[target]&&hash(normalized(bytes))===c.afterHash?restore(bytes,file,target):bytes;}\n"
+            }
+          ]
+        },
+        "scripts/inventory-quality-source-contract.cjs": {
+          "beforeHash": "616ee25666434f88bf20593d572fa3598810ac3f824a9d3cf3cbf914abca0b7b",
+          "beforeNormalizedHash": "616ee25666434f88bf20593d572fa3598810ac3f824a9d3cf3cbf914abca0b7b",
+          "afterHash": "0d6653044a69349250a8de94f12d246607925f56928a1f33e53ffa9959d3c306",
+          "afterNormalizedHash": "0d6653044a69349250a8de94f12d246607925f56928a1f33e53ffa9959d3c306",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 466,
+              "before": "function restore(bytes,file,target){assert(Buffer.isBuffer(bytes),'Inventory quality composition proof requires raw Buffer');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null,p=c&&c.parents[target];assert(p,'Inventory quality composition wrong path or target');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Inventory quality composition unknown source');for(const r of [...p.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'Inventory quality composition positioned span');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),p.normalizedHash);const lines=out.toString().split('\\n');for(const i of p.crlf)lines[i]+='\\r';out=Buffer.from(lines.join('\\n'));assert.equal(hash(out),p.hash,'Inventory quality composition exact public parent');return out;}\nfunction projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'Inventory quality composition proof requires raw Buffer');if(!Object.hasOwn(contract.parents,target))return bytes;const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&c.parents[target]&&normalization.hash(bytes)===c.afterHash?restore(bytes,file,target):bytes;}\n",
+              "after": "function restore(bytes,file,target){assert(Buffer.isBuffer(bytes),'Inventory quality composition proof requires raw Buffer');bytes=require('./quality-office-inventory-source-contract.cjs').projectKnown(bytes,file,'main');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null,p=c&&c.parents[target];assert(p,'Inventory quality composition wrong path or target');let out=normalized(bytes);assert.equal(hash(out),c.afterHash,'Inventory quality composition unknown source');for(const r of [...p.rules].reverse()){const span=Buffer.from(r.after);assert(out.subarray(r.offset,r.offset+span.length).equals(span),'Inventory quality composition positioned span');out=Buffer.concat([out.subarray(0,r.offset),Buffer.from(r.before),out.subarray(r.offset+span.length)]);}assert.equal(hash(out),p.normalizedHash);const lines=out.toString().split('\\n');for(const i of p.crlf)lines[i]+='\\r';out=Buffer.from(lines.join('\\n'));assert.equal(hash(out),p.hash,'Inventory quality composition exact public parent');return out;}\nfunction projectKnown(bytes,file,target){assert(Buffer.isBuffer(bytes),'Inventory quality composition proof requires raw Buffer');if(!Object.hasOwn(contract.parents,target))return bytes;bytes=require('./quality-office-inventory-source-contract.cjs').projectKnown(bytes,file,'main');const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&c.parents[target]&&normalization.hash(bytes)===c.afterHash?restore(bytes,file,target):bytes;}\n"
+            }
+          ]
+        },
+        "scripts/ipqc-c-display-image-source-contract.cjs": {
+          "beforeHash": "a6b3e144a2a49d3c9431dec6041acbdf11565a90e83fa61d7c98e497ceba4a33",
+          "beforeNormalizedHash": "a6b3e144a2a49d3c9431dec6041acbdf11565a90e83fa61d7c98e497ceba4a33",
+          "afterHash": "61b19b725aebfecabb29d2c423fcdeb077d34aed1b77fba094f9eb767e9d2d6c",
+          "afterNormalizedHash": "61b19b725aebfecabb29d2c423fcdeb077d34aed1b77fba094f9eb767e9d2d6c",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 2759,
+              "before": "",
+              "after": " const officePin=require('./quality-office-source-contract.json').files['public/process/ipqc-c.js'];\n if(officePin&&hash(Buffer.from(source).toString('utf8').replaceAll('\\r\\n','\\n'))===officePin.afterNormalizedHash)assert.equal(hash(source),officePin.afterHash,'C display source differs from exact reviewed bytes');\n"
+            }
+          ]
+        },
+        "scripts/quality-root-source-contract.cjs": {
+          "beforeHash": "370ceadb85f3482b0371cc0bb24602fe32bb131cd16b1dd4d9175146de81145b",
+          "beforeNormalizedHash": "370ceadb85f3482b0371cc0bb24602fe32bb131cd16b1dd4d9175146de81145b",
+          "afterHash": "3da6b04b626ee6e99ee5a755b3998f8a9e508769c7132de5467a43437c7bd342",
+          "afterNormalizedHash": "3da6b04b626ee6e99ee5a755b3998f8a9e508769c7132de5467a43437c7bd342",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 468,
+              "before": " assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./inventory-quality-source-contract.cjs').projectKnown(bytes,file,'qualityMain');bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Quality root proof wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterNormalizedHash,'Quality root pinned source');\n",
+              "after": " assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./quality-office-source-contract.cjs').projectKnown(bytes,file);bytes=require('./inventory-quality-source-contract.cjs').projectKnown(bytes,file,'qualityMain');bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;assert(c,'Quality root proof wrong path');let out=normalized(bytes);assert.equal(hash(out),c.afterNormalizedHash,'Quality root pinned source');\n"
+            },
+            {
+              "offset": 1595,
+              "before": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./inventory-quality-source-contract.cjs').projectKnown(bytes,file,'qualityMain');bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n",
+              "after": "function projectKnown(bytes,file){assert(Buffer.isBuffer(bytes),'Quality root proof requires raw Buffer');bytes=require('./quality-office-source-contract.cjs').projectKnown(bytes,file);bytes=require('./inventory-quality-source-contract.cjs').projectKnown(bytes,file,'qualityMain');bytes=require('./account-outcome-source-contract.cjs').projectKnown(bytes,file);const c=Object.hasOwn(contract.files,file)?contract.files[file]:null;return c&&hash(normalized(bytes))===c.afterNormalizedHash?restore(bytes,file):bytes;}\n"
+            }
+          ]
+        },
+        "scripts/test-ipqc-c-local-browser.cjs": {
+          "beforeHash": "45de552dcedf8dccaad1faf470e0bef926a8320f5114d09dd7e3c5222eada9f9",
+          "beforeNormalizedHash": "45de552dcedf8dccaad1faf470e0bef926a8320f5114d09dd7e3c5222eada9f9",
+          "afterHash": "133f26ee195222773c42cf300879f5ace04bdbb699f9fddb3b1bbb9e49d80b71",
+          "afterNormalizedHash": "133f26ee195222773c42cf300879f5ace04bdbb699f9fddb3b1bbb9e49d80b71",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 44180,
+              "before": " await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>!__localTest.state().busy&&!__localTest.state().unknown);\n",
+              "after": " assert.equal(await page.locator('#ipqcc-save').isDisabled(),true,'UNKNOWN cannot dispatch another Save');assert.equal(await page.locator('#ipqcc-submit').isDisabled(),true,'UNKNOWN cannot dispatch Submit');\n await page.locator('#ipqcc-check-operation').click();await page.waitForFunction(()=>!__localTest.state().busy&&!__localTest.state().unknown);\n assert.equal(await page.locator('#ipqcc-save').isDisabled(),false,'original receipt recovery restores current allowed Save');assert.equal(await page.locator('#ipqcc-submit').isDisabled(),false,'original receipt recovery restores current allowed Submit');\n"
+            }
+          ]
+        },
+        "tests/account-page-entry.test.cjs": {
+          "beforeHash": "b861a6312ead1b23272bbd29be2faae80d9b3fbf3b68629b02b616cec3a24458",
+          "beforeNormalizedHash": "b861a6312ead1b23272bbd29be2faae80d9b3fbf3b68629b02b616cec3a24458",
+          "afterHash": "b284898e0d4762dba3fc35e78565e72d28d496a235221bf701ae2370f8cfa1d3",
+          "afterNormalizedHash": "b284898e0d4762dba3fc35e78565e72d28d496a235221bf701ae2370f8cfa1d3",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 695,
+              "before": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261115-quality-root4','master-page-editor.js':'20261114-lines-flow-review1','master-shared-client.js':'20261114-lines-flow-review1','page-draft-merge.js':'20261114-lines-flow-review1','master-data.js':'20261114-lines-flow-review1','version-draft-ui.js':'20261115-quality-root1','user-access.js':'20261115-account-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n",
+              "after": " const position=file=>{const matching=scripts.map((url,i)=>({url,i})).filter(row=>row.url.split('?')[0]===file);assert.equal(matching.length,1,file);assert.equal(matching[0].url,file+'?v='+({'routine-page-approved-history.js':'20261112-quality-main-joint1','routine-fqc-page.js':'20261112-quality-main-joint1','routine-fqc.js':'20261112-quality-main-joint1','shared-draft-client.js':'20261115-quality-root4','master-page-editor.js':'20261114-lines-flow-review1','master-shared-client.js':'20261114-lines-flow-review1','page-draft-merge.js':'20261114-lines-flow-review1','master-data.js':'20261114-lines-flow-review1','version-draft-ui.js':'20261116-quality-office1','user-access.js':'20261115-account-outcome1'}[file]||tag),file);assert(fs.existsSync(path.join(base,file)),file);return matching[0].i;};\n"
+            }
+          ]
+        },
+        "tests/inventory-account-main-source.test.cjs": {
+          "beforeHash": "09f95bcf946d397473bdcac8a1d4bf13d491a15bc0722cab058b5d99407299da",
+          "beforeNormalizedHash": "09f95bcf946d397473bdcac8a1d4bf13d491a15bc0722cab058b5d99407299da",
+          "afterHash": "ed5efcf5f138fa02344ad4f0d25c30726ea9a158efec02448059545b1b14a242",
+          "afterNormalizedHash": "ed5efcf5f138fa02344ad4f0d25c30726ea9a158efec02448059545b1b14a242",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 212,
+              "before": "",
+              "after": "const readCurrent=file=>require('../scripts/quality-office-inventory-source-contract.cjs').projectKnown(fs.readFileSync(file),file,'main');\n"
+            },
+            {
+              "offset": 1069,
+              "before": " for(const file of files)if(!composition.has(file))assert.deepEqual(fs.readFileSync(file),git('show',main+':'+file),file);\n for(const file of ['lib/state-records.ts','lib/versioned-shared-workflow.ts','lib/inventory-read-ahead.mjs','app/api/tooling/checks/route.ts','app/api/tooling/iqc/route.ts','app/api/routine-equipment/route.ts'])assert.deepEqual(fs.readFileSync(file),git('show',prior+':'+file),file);\n",
+              "after": " for(const file of files)if(!composition.has(file))assert.deepEqual(readCurrent(file),git('show',main+':'+file),file);\n for(const file of ['lib/state-records.ts','lib/versioned-shared-workflow.ts','lib/inventory-read-ahead.mjs','app/api/tooling/checks/route.ts','app/api/tooling/iqc/route.ts','app/api/routine-equipment/route.ts'])assert.deepEqual(readCurrent(file),git('show',prior+':'+file),file);\n"
+            }
+          ]
+        },
+        "tests/module-begin-recovery.test.mjs": {
+          "beforeHash": "4e2b7a4ab0e3341fa3e96dbe0eefbeb06f4bb7b13a60bdbf1776285c986cdb87",
+          "beforeNormalizedHash": "4e2b7a4ab0e3341fa3e96dbe0eefbeb06f4bb7b13a60bdbf1776285c986cdb87",
+          "afterHash": "f59ce3046366c17b1f9cbd77dc8fed3449dd62e0585e575efaf5dc9a150c0581",
+          "afterNormalizedHash": "f59ce3046366c17b1f9cbd77dc8fed3449dd62e0585e575efaf5dc9a150c0581",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 493,
+              "before": "function run(code,c){c.window=c;c.host=c;vm.createContext(c);vm.runInContext(code,c);return c;}\n",
+              "after": "function run(code,c){c.window=c;c.host=c;vm.createContext(c);if(code.includes('syncWriteButtons();')){const helper=between(source('ipqc-c'),'  function syncWriteButtons(){','  function mountVersionState(){');if(!c.saveInputNoticePending){c.saveInputNotice=null;code=source('ipqc-c').split('\\n').find(line=>line.includes('  const saveInputNoticePending='))+'\\n'+code;}code=helper+code;}vm.runInContext(code,c);return c;}\n"
+            }
+          ]
+        },
+        "tests/navigation-adapters.test.mjs": {
+          "beforeHash": "7c0cf8bb90182853edae2fd5808fc0e20ab0b59ea020e2f1c0fd4b7d012ab8f7",
+          "beforeNormalizedHash": "7c0cf8bb90182853edae2fd5808fc0e20ab0b59ea020e2f1c0fd4b7d012ab8f7",
+          "afterHash": "8e1ba195f353cc4facb4c870208ca5135ce7426cf66c8bdd50c1ea6ba9cf2202",
+          "afterNormalizedHash": "8e1ba195f353cc4facb4c870208ca5135ce7426cf66c8bdd50c1ea6ba9cf2202",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 17005,
+              "before": "  'ipqc-ab.js':'20261115-quality-root4',\n  'ipqc-c.js':'20261115-quality-root3',\n",
+              "after": "  'ipqc-ab.js':'20261116-quality-office1',\n  'ipqc-c.js':'20261116-quality-office1',\n"
+            },
+            {
+              "offset": 18226,
+              "before": "  'version-draft-ui.js':'20261115-quality-root1',\n",
+              "after": "  'version-draft-ui.js':'20261116-quality-office1',\n"
+            }
+          ]
+        },
+        "tests/quality-pure-inverse-eol.test.cjs": {
+          "beforeHash": "cbbffa90c520482ed1c61a392690a602414e70d2c8d21a59d34d169d65064497",
+          "beforeNormalizedHash": "cbbffa90c520482ed1c61a392690a602414e70d2c8d21a59d34d169d65064497",
+          "afterHash": "49771d963960c56e85ad4b13f60bdf7ff9f6f19dc8a0d033f0c7e038a5340957",
+          "afterNormalizedHash": "49771d963960c56e85ad4b13f60bdf7ff9f6f19dc8a0d033f0c7e038a5340957",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 373,
+              "before": "// Stable genuine quality successor: the same raw/normalized pins and mutant\n// must run before and after a later merge commit moves HEAD.\nconst file='public/process/ipqc-c.js',source=execFileSync('git',['show','a1775a8a342d58335edf96d199a9c42844227dc6:'+file]),text=source.toString(),pin=proof.contract.files[file],hash=x=>createHash('sha256').update(x).digest('hex');\nvoid test('quality successor has separate exact raw and normalized C pins',()=>{assert.equal(pin.afterHash,hash(source));assert.equal(pin.afterNormalizedHash,hash(text.replaceAll('\\r\\n','\\n')));assert.equal(hash(fs.readFileSync(file,'utf8').replaceAll('\\r\\n','\\n')),pin.afterNormalizedHash,'native checkout remains separately EOL-equivalent to committed bytes');});\nvoid test('pure C display inverse rejects equivalent EOL bytes; trusted HEAD checkout boundary admits them',()=>{\n",
+              "after": "const file='public/process/ipqc-c.js',hash=x=>createHash('sha256').update(x).digest('hex');\nfor(const {label,ref,pin,guard}of [{label:'historical',ref:'a1775a8a342d58335edf96d199a9c42844227dc6',pin:proof.contract.files[file],guard:'qualityPin'},{label:'office',ref:'HEAD',pin:require('../scripts/quality-office-source-contract.cjs').contract.files[file],guard:'officePin'}]){\n const source=execFileSync('git',['show',ref+':'+file]),text=source.toString();\nvoid test(label+' quality successor has separate exact raw and normalized C pins',()=>{assert.equal(pin.afterHash,hash(source));assert.equal(pin.afterNormalizedHash,hash(text.replaceAll('\\r\\n','\\n')));assert.equal(hash((label==='historical'?require('../scripts/quality-office-source-contract.cjs').projectKnown(fs.readFileSync(file),file):fs.readFileSync(file)).toString().replaceAll('\\r\\n','\\n')),pin.afterNormalizedHash,'native checkout remains separately EOL-equivalent to committed bytes');});\nvoid test(label+' pure C display inverse rejects equivalent EOL bytes; trusted HEAD checkout boundary admits them',()=>{\n"
+            },
+            {
+              "offset": 2137,
+              "before": "void test('removing the new exact successor guard reproduces the original negative-control escape',()=>{\n const path=require.resolve('../scripts/ipqc-c-display-image-source-contract.cjs'),actual=fs.readFileSync(path,'utf8'),line=\" if(qualityPin&&hash(Buffer.from(source).toString('utf8').replaceAll('\\\\r\\\\n','\\\\n'))===qualityPin.afterNormalizedHash)assert.equal(hash(source),qualityPin.afterHash,'C display source differs from exact reviewed bytes');\";\n assert(actual.includes(line),'mutant must remove actual guard');const box={module:{exports:{}},require:createRequire(path),Buffer};vm.runInNewContext(actual.replace(line,''),box);const changed=text.replaceAll('\\r\\n','\\n').replaceAll('\\n','\\r\\n');assert.notEqual(changed,text);assert.equal(box.module.exports.withoutDisplay(changed),display.withoutDisplay(source),'old inverse wrongly accepted unknown EOL bytes');\n",
+              "after": "void test(label+' removing the new exact successor guard reproduces the original negative-control escape',()=>{\n const path=require.resolve('../scripts/ipqc-c-display-image-source-contract.cjs'),actual=fs.readFileSync(path,'utf8'),line=\" if(officePin&&hash(Buffer.from(source).toString('utf8').replaceAll('\\\\r\\\\n','\\\\n'))===officePin.afterNormalizedHash)assert.equal(hash(source),officePin.afterHash,'C display source differs from exact reviewed bytes');\";\n assert(actual.includes(line.replaceAll('officePin',guard)),'mutant must remove actual guard');const box={module:{exports:{}},require:createRequire(path),Buffer};vm.runInNewContext(actual.replace(line.replaceAll('officePin',guard),''),box);const changed=text.replaceAll('\\r\\n','\\n').replaceAll('\\n','\\r\\n');assert.notEqual(changed,text);assert.equal(box.module.exports.withoutDisplay(changed),display.withoutDisplay(source),'old inverse wrongly accepted unknown EOL bytes');\n"
+            },
+            {
+              "offset": 3073,
+              "before": "",
+              "after": "}\n"
+            }
+          ]
+        },
+        "tests/quality-submit-confirmation-pins.test.cjs": {
+          "beforeHash": "b52c4ea36cfaaabe5ac6ba677b120efb7a999a690b1a6afdc9ec58cba5c27451",
+          "beforeNormalizedHash": "b52c4ea36cfaaabe5ac6ba677b120efb7a999a690b1a6afdc9ec58cba5c27451",
+          "afterHash": "396a71dc371f19e8441ef63cb92717e7000e1198caa31d63df25849e26d782d8",
+          "afterNormalizedHash": "396a71dc371f19e8441ef63cb92717e7000e1198caa31d63df25849e26d782d8",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 5957,
+              "before": "",
+              "after": " if(kind==='c'){const a=source.indexOf('  function syncWriteButtons(){'),b=source.indexOf('  function mountVersionState(){',a);assert(a>=0&&b>a,'actual C button presentation dependency');vm.runInContext(source.slice(a,b),context);}\n"
+            }
+          ]
+        },
+        "tests/shared-draft-receipt-recovery.test.mjs": {
+          "beforeHash": "2d72403c21a390a2647949137eee28cda63868b1cfaee348dbd9f9f7f239e073",
+          "beforeNormalizedHash": "2d72403c21a390a2647949137eee28cda63868b1cfaee348dbd9f9f7f239e073",
+          "afterHash": "2043ffee332d4717a36962a6d58d11b7f5f7cf9e67a0b2e4ba0bebae059ab4ca",
+          "afterNormalizedHash": "2043ffee332d4717a36962a6d58d11b7f5f7cf9e67a0b2e4ba0bebae059ab4ca",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 14388,
+              "before": "  'version-draft-ui.js':'20261115-quality-root1',\n",
+              "after": "  'version-draft-ui.js':'20261116-quality-office1',\n"
+            },
+            {
+              "offset": 15151,
+              "before": "  'ipqc-c.js':'20261115-quality-root3',\n",
+              "after": "  'ipqc-c.js':'20261116-quality-office1',\n"
+            },
+            {
+              "offset": 15317,
+              "before": "  'ipqc-ab.js':'20261115-quality-root4',\n",
+              "after": "  'ipqc-ab.js':'20261116-quality-office1',\n"
+            }
+          ]
+        },
+        "tests/source-normalization-cache.test.cjs": {
+          "beforeHash": "33f88a4ae7d8b3e72bcef47c503c83183b390e9388ac90bb6d7fa7c17510e005",
+          "beforeNormalizedHash": "33f88a4ae7d8b3e72bcef47c503c83183b390e9388ac90bb6d7fa7c17510e005",
+          "afterHash": "3c58863a1bfb987ca4a8b5f848c9d80b78787f9e3271b656af177262622420e8",
+          "afterNormalizedHash": "3c58863a1bfb987ca4a8b5f848c9d80b78787f9e3271b656af177262622420e8",
+          "beforeCRLFRanges": [],
+          "rules": [
+            {
+              "offset": 4992,
+              "before": "  const text=fs.readFileSync(file).toString().replaceAll('\\r\\n','\\n'),raw=Buffer.from(eol==='mixed'?text.replace('\\n','\\r\\n'):text.replaceAll('\\n',eol));assert.deepEqual(after.restore(raw,file,target),before.restore(raw,file,target));assert.deepEqual(after.projectKnown(raw,file,target),before.projectKnown(raw,file,target));\n",
+              "after": "  const text=execFileSync('git',['show','0f2c8ec5b3bc8f6a5625ef049782fab1f96988b1:'+file]).toString().replaceAll('\\r\\n','\\n'),raw=Buffer.from(eol==='mixed'?text.replace('\\n','\\r\\n'):text.replaceAll('\\n',eol));assert.deepEqual(after.restore(raw,file,target),before.restore(raw,file,target));assert.deepEqual(after.projectKnown(raw,file,target),before.projectKnown(raw,file,target));\n"
+            },
+            {
+              "offset": 6200,
+              "before": " const git=(...args)=>execFileSync('git',args),base='ea137c7dd8d608d216d45ab29b033fc5f782ff5d';const readGit=args=>new Promise((resolve,reject)=>{const child=spawn('git',args,{stdio:['ignore','pipe','pipe']}),chunks=[];child.stdout.on('data',chunk=>chunks.push(chunk));child.on('error',reject);child.on('close',code=>code===0?resolve(Buffer.concat(chunks)):reject(Error('Git source read failed: '+code)));});for(const file of git('ls-tree','-r','--name-only',base,'--','scripts').toString().trim().split('\\n').filter(x=>x.endsWith('.json')))assert.deepEqual(fs.readFileSync(file),await readGit(['show',base+':'+file]),file);assert.equal(git('diff',base,'--','app','lib','public','package.json','package-lock.json').length,0);assert.equal(fs.existsSync('lib/iqc-body-read-ahead.mjs'),false);\n",
+              "after": " const git=(...args)=>execFileSync('git',args),base='ea137c7dd8d608d216d45ab29b033fc5f782ff5d';const readGit=args=>new Promise((resolve,reject)=>{const child=spawn('git',args,{stdio:['ignore','pipe','pipe']}),chunks=[];child.stdout.on('data',chunk=>chunks.push(chunk));child.on('error',reject);child.on('close',code=>code===0?resolve(Buffer.concat(chunks)):reject(Error('Git source read failed: '+code)));});for(const file of git('ls-tree','-r','--name-only',base,'--','scripts').toString().trim().split('\\n').filter(x=>x.endsWith('.json')))assert.deepEqual(fs.readFileSync(file),await readGit(['show',base+':'+file]),file);const scope=['app','lib','public','package.json','package-lock.json'];const changes=git('diff','--name-only',base,'--',...scope).toString().trim().split('\\n').filter(Boolean).sort();assert.deepEqual(changes,['public/process/index.html','public/process/ipqc-ab.js','public/process/ipqc-c.js','public/process/version-draft-ui.js'],'only the four explicitly reviewed #125 product files may differ');for(const file of changes){const expected=git('show','161b24289f2da730f31e6cdbbe0deac5ed00017d:'+file);assert.deepEqual(fs.readFileSync(file),expected,'exact approved #125 product bytes '+file);}assert.equal(git('diff',base,'0f2c8ec5b3bc8f6a5625ef049782fab1f96988b1','--',...scope).length,0,'merged #121 main itself preserves the approved cache-only runtime boundary');assert.equal(fs.existsSync('lib/iqc-body-read-ahead.mjs'),false);\n"
+            },
+            {
+              "offset": 7659,
+              "before": "",
+              "after": "\nvoid test('actual integrated adapter rejects warmed source mutations and result poisoning without a test-side projection',()=>{\n const before=original(),after=require('../scripts/inventory-quality-source-contract.cjs');\n for(const file of ['public/process/fqc-master.js','public/process/shared-draft-client.js','HANDOFF.md'])for(const target of Object.keys(before.contract.parents)){\n  const current=fs.readFileSync(file),parent=execFileSync('git',['show','0f2c8ec5b3bc8f6a5625ef049782fab1f96988b1:'+file]),expected=before.restore(parent,file,target);assert.deepEqual(after.restore(current,file,target),expected);const result=after.restore(current,file,target);result.fill(0);assert.deepEqual(after.restore(current,file,target),expected);\n  for(const at of [0,Math.floor(current.length/2),current.length-1]){const value=current[at];current[at]^=1;assert.throws(()=>after.restore(current,file,target));assert.equal(after.projectKnown(current,file,target),current);current[at]=value;assert.deepEqual(after.restore(current,file,target),expected);}\n }\n});\n"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

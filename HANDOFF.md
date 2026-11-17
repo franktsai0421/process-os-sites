@@ -1,3 +1,7 @@
+## 2026-11-16 — 辦公室Chrome功能續修
+
+獨立clone／fix/quality-office-fqc-ab-20261116，自最新main a1775a8（#123已合併）開始；與速度工作分開。AB provisional版本與模組儲存資訊分開顯示；FQC新增入口回歸擴至中越文與未碰取樣選單的原生預設。[根因、測試及未確認實站條件](docs/acceptance/quality-office-followup-20261116.md)。未操作Diem／業務草稿、帳號、實站API、合併或部署；公開靜態資產GET403，無法驗實際部署版本。
+C另同步處理中Save／Submit按鈕狀態，保留既有busy防重送與原回執／權限保護；取消及明確錯誤後恢復，UNKNOWN須先查證。B保存重載、送審、撤回與C第二輪送審／撤回已被測試者證實成功，本次不誤列失敗。
 ## 2026-11-16 #121 整合後續已合併 #124
 
 以已發布 174fb8a 與最新 main 64e44b2 為雙真實前身，保留檢具／模具速度與 #122／#123，並逐段保留 #124 帳號回執修正。僅整合最新 main；不包含另行研究的 IQC body 優化，不混入未合併 #125／#126。六個文件／source proof 衝突保留雙方原測試與 hash／EOL 負例；產品檔分別精確保留前身。[方法與交付界線](docs/acceptance/tooling-equipment-speed-20261115/README.md#整合後續已合併-124)。不合併 PR、不部署。

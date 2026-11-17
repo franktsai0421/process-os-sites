@@ -1,3 +1,7 @@
+## 2026-11-16 — AB範圍版本與FQC新增回歸候選
+
+以已合併#123的main a1775a8建立獨立功能分支，修正AB本機草稿Vundefined與全模組快照誤認；補FQC新增預設AQL回歸，不重複速度優化。無schema／資料／ACL／合併或部署。[隔離根因與驗證界線](../docs/acceptance/quality-office-followup-20261116.md)。
+C另同步處理中Save／Submit按鈕狀態，保留既有busy防重送與原回執／權限保護；取消及明確錯誤後恢復，UNKNOWN須先查證。B保存重載、送審、撤回與C第二輪送審／撤回已被測試者證實成功，本次不誤列失敗。
 ## 2026-11-16 — #121 與已合併 #124 的共同候選
 
 保持原檢具／模具 runtime 及 main 帳號修正，六個文件／來源衝突逐段整合。來源 proof 新增真實 accountMain 目標，原 manifests／負控保留；未納入並行 IQC 優化。[整合證據](../docs/acceptance/tooling-equipment-speed-20261115/README.md#整合後續已合併-124)。未合併或部署。

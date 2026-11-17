@@ -40,6 +40,7 @@ function fixture(kind){
   }
   vm.runInContext(source.slice(boundaryStart,boundaryEnd)+'\ninputBasisOwner=inputOwner();',context,{filename:file+':actual-caller-ownership'});
  }
+ if(kind==='c'){const a=source.indexOf('  function syncWriteButtons(){'),b=source.indexOf('  function mountVersionState(){',a);assert(a>=0&&b>a,'actual C button presentation dependency');vm.runInContext(source.slice(a,b),context);}
  const handler=vm.runInContext('('+source.slice(from,to).trim()+')',context,{filename:file+':actual-command-handler'});
  return{g,flow,calls,setAnswer:fn=>{answer=fn;},setForm(){form=true;g.modal={dirty:true,readonly:false,fields:{name:'尚未套用 Việt'}};},async run(action='submit'){try{return await handler(action);}catch(error){g.message=error.message;return null;}},sends:()=>calls.filter(call=>call.action==='submit'||call.action==='save'||call.action==='apply')};
 }
