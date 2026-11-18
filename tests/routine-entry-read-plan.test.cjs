@@ -96,3 +96,76 @@ for (const format of ['inline', 'records']) {
     },
   );
 }
+
+for (const query of ['', '?availability=1']) {
+  void test(
+    'routine entry fences late revocation and revision drift ' +
+      (query || 'full'),
+    async (t) => {
+      const f = await fixture();
+      t.after(() => f.close());
+      await f.mutate((values) => {
+        const users = JSON.parse(values.platformUsers);
+        users[0].accessOverrides['routine.view'] = true;
+        values.platformUsers = JSON.stringify(users);
+        values.routineFqcEnabled = '1';
+        const library = JSON.parse(values.qualityMasterControl);
+        library.libraries.fqc.versions[0].updatedAt = '2026-01-01T00:00:00Z';
+        values.qualityMasterControl = JSON.stringify(library);
+      });
+      const get = (suffix = query, cookie = f.cookies.editor) =>
+        f
+          .load(route)
+          .GET(
+            new Request('https://synthetic.invalid/api/routine-fqc' + suffix, {
+              headers: { cookie },
+            }),
+          );
+      f.events.length = 0;
+      const ok = await get();
+      assert.equal(ok.status, 200);
+      assert.equal(
+        f.events.filter(
+          (e) =>
+            e.kind === 'read' && e.sql.includes('process_revoked_sessions'),
+        ).length,
+        2,
+      );
+      assert.equal(
+        f.events.filter(
+          (e) => e.kind === 'read' && e.sql.startsWith('SELECT revision FROM'),
+        ).length,
+        1,
+      );
+      assert.equal((await get(query, '')).status, 401);
+      assert.equal((await get(query, f.cookies.other)).status, 403);
+      // Noncanonical entry URLs that reach the handler still use the original evaluator.
+      assert.equal((await get('/' + query)).status, 200);
+      f.hooks.sql = (statement) => {
+        if (statement.startsWith('SELECT revision FROM')) {
+          f.hooks.sql = null;
+          f.db
+            .prepare('UPDATE shared_state SET revision=revision+1 WHERE id=1')
+            .run();
+        }
+      };
+      const changed = await get();
+      assert.equal(changed.status, 409);
+      assert.deepEqual(await changed.json(), {
+        error: 'CONCURRENT_CHANGE_RETRY',
+      });
+      assert.equal((await get()).status, 200);
+      let revocationReads = 0;
+      f.hooks.sql = (statement) => {
+        if (
+          statement.includes('process_revoked_sessions') &&
+          ++revocationReads === 2
+        )
+          f.revoke();
+      };
+      const revoked = await get();
+      assert.equal(revoked.status, 401);
+      assert.deepEqual(await revoked.json(), { error: 'LOGIN_REQUIRED' });
+    },
+  );
+}

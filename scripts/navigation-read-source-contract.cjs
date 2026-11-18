@@ -1,5 +1,5 @@
 // Historical source proofs only. Restore the exact previous main bytes for
-// three pinned files. No projected predecessor executes in application tests.
+// the pinned files. No projected predecessor executes in application tests.
 const assert = require('node:assert/strict');
 const { createHash } = require('node:crypto');
 const contract = require('./navigation-read-source-contract.json');
@@ -14,6 +14,12 @@ function projectKnown(bytes, file) {
     const end = rule.offset + Buffer.byteLength(rule.after);
     assert(prior.subarray(rule.offset, end).equals(Buffer.from(rule.after)), 'Navigation successor span');
     prior = Buffer.concat([prior.subarray(0, rule.offset), Buffer.from(rule.before), prior.subarray(end)]);
+  }
+  if (entry.beforeCRLFRanges) {
+    const lines = prior.toString('utf8').split('\n');
+    for (const [start, end] of entry.beforeCRLFRanges)
+      for (let i = start; i < end; i++) lines[i] += '\r';
+    prior = Buffer.from(lines.join('\n'));
   }
   assert.equal(hash(prior), entry.before, 'Navigation exact predecessor');
   return prior;
