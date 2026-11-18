@@ -7,9 +7,27 @@ import {createProcessPlatformRound5Fixture} from './process-platform-round5-fixt
 const browserOptions={headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE}:{})};
 const launch=()=>chromium.launch(browserOptions);
 const ready=(page,view)=>page.waitForFunction(view=>window.ProcessSync?.destination?.view===view&&document.documentElement.dataset.processNavigationStatus==='ready',view);
-async function contextFor(browser,f,width,lang){const context=await browser.newContext({viewport:{width,height:850},serviceWorkers:'block'});await context.route('**/*',route=>new URL(route.request().url()).origin===f.url.origin?route.continue():route.abort());await context.addInitScript(lang=>localStorage.setItem('processUILanguage',lang),lang);return context;}
-for(const [width,lang]of [[390,'zh'],[1280,'vi']])void test(`compiled AB/C abandonment drops unsent form and completed edits while preserving explicit Save ${width} ${lang}`,async()=>{
- const f=await createABCFixture(),browser=await launch(),context=await contextFor(browser,f,width,lang);try{
+async function openSession(t, createFixture, width, lang, launchBrowser = launch) {
+  const resources = [];
+  t.after(async () => {
+    const failures = [];
+    for (const resource of resources.reverse()) {
+      try { await resource.close(); } catch (error) { failures.push(error); }
+    }
+    if (failures.length) throw new AggregateError(failures, 'Abandonment session cleanup failed');
+  });
+  const f = await createFixture();
+  resources.push(f);
+  const browser = await launchBrowser();
+  resources.push(browser);
+  const context = await browser.newContext({viewport: {width, height: 850}, serviceWorkers: 'block'});
+  resources.push(context);
+  await context.route('**/*', route => new URL(route.request().url()).origin === f.url.origin ? route.continue() : route.abort());
+  await context.addInitScript(lang => localStorage.setItem('processUILanguage', lang), lang);
+  return {f, context};
+}
+for(const [width,lang]of [[390,'zh'],[1280,'vi']])void test(`compiled AB/C abandonment drops unsent form and completed edits while preserving explicit Save ${width} ${lang}`,async(t)=>{
+ const {f,context}=await openSession(t,createABCFixture,width,lang);
   await context.addCookies([{name:'process_demo',value:f.cookie(),url:f.url.origin}]);const page=await context.newPage(),posts=[],errors=[],prompts=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()==='POST')posts.push({url:r.url(),body:r.postDataJSON()});});page.on('dialog',d=>{prompts.push(d.type());void d.dismiss();});
   const persisted=()=>f.db.prepare('SELECT revision,"values" FROM shared_state WHERE id=1').first();
@@ -28,10 +46,9 @@ for(const [width,lang]of [[390,'zh'],[1280,'vi']])void test(`compiled AB/C aband
   assert.equal(await page.evaluate(()=>JSON.stringify(MasterDataWorkflow.shared.flow('AB'))),shared);assert.equal(await page.evaluate(()=>MasterDataWorkflow.shared.localDirty('AB')),false);
   await page.locator('[data-product-edit="A001"]').click();assert.equal(await page.locator('#master-edit-dialog [name=name]').inputValue(),'Shared committed input');
   assert.equal(posts.length,before);assert.deepEqual(await persisted(),saved);assert.deepEqual(errors,[]);assert.deepEqual(prompts,[]);
- }finally{await context.close();await browser.close();await f.close();}
 });
-for(const [width,lang]of [[390,'vi'],[1280,'zh']])void test(`compiled process abandonment never performs server inverse or saves ${width} ${lang}`,async()=>{
- const f=await createProcessPlatformRound5Fixture(),browser=await launch(),context=await contextFor(browser,f,width,lang);try{
+for(const [width,lang]of [[390,'vi'],[1280,'zh']])void test(`compiled process abandonment never performs server inverse or saves ${width} ${lang}`,async(t)=>{
+ const {f,context}=await openSession(t,createProcessPlatformRound5Fixture,width,lang);
   let prompts=0;const page=await context.newPage(),posts=[],errors=[];page.setDefaultTimeout(20000);page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{prompts++;void d.dismiss();});page.on('request',r=>{if(r.method()==='POST'&&new URL(r.url()).pathname==='/api/process-authoring/workflow')posts.push(r.postData());});
   await page.goto(f.url.origin+'/login?view=dashboard');await page.locator('#id').fill(f.actors.editor);await page.locator('#password').fill(f.password);await page.locator('.site-entry-submit').click();await ready(page,'dashboard');
   await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('editor'));await ready(page,'editor');await page.locator('[data-av3="begin"]').click();await page.waitForFunction(()=>window.ProcessAuthoringV3.canMutate());
@@ -39,19 +56,17 @@ for(const [width,lang]of [[390,'vi'],[1280,'zh']])void test(`compiled process ab
   await open();await page.locator('[data-field="name"]').fill('Drop unsent authoring form');const before=await f.readAuthoring(),count=posts.length;
   await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('dashboard'));await ready(page,'dashboard');assert.equal(await page.locator('[data-navigation-departure]').count(),0);assert.deepEqual(await f.readAuthoring(),before);assert.equal(posts.length,count);
   await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('editor'));await ready(page,'editor');await open();assert.equal(await page.locator('[data-field="name"]').inputValue(),'Shared authoring survives');assert.equal(posts.length,count);assert.deepEqual(errors,[]);assert.equal(prompts,0);
- }finally{await context.close();await browser.close();await f.close();}
 });
-void test('compiled user form abandonment sends no account mutation and stores no password copy',async()=>{
- const f=await createABCFixture(),browser=await launch(),context=await contextFor(browser,f,390,'zh');try{
+void test('compiled user form abandonment sends no account mutation and stores no password copy',async(t)=>{
+ const {f,context}=await openSession(t,createABCFixture,390,'zh');
   await context.addCookies([{name:'process_demo',value:f.cookie(),url:f.url.origin}]);const page=await context.newPage(),posts=[];page.on('dialog',d=>void d.accept());page.on('request',r=>{if(r.method()==='POST')posts.push(r.url());});
   await page.goto(f.url.origin+'/process/?system=process&view=data&dataTab=users');await page.locator('#ua-new-user').click();await page.locator('.ua-dialog [name="name"]').fill('Drop this account input');await page.locator('.ua-dialog [name="password"]').fill('Synthetic-never-store-123');const before=posts.length;
   await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('dashboard'));await page.locator('[data-departure-choice="abandon"]').click();await ready(page,'dashboard');assert.equal(await page.locator('.ua-dialog').count(),0);assert.equal(posts.length,before);assert.equal(await page.evaluate(()=>[...Object.values(sessionStorage),...Object.values(localStorage)].some(value=>value.includes('Synthetic-never-store-123'))),false);
   await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('data','users'));await page.locator('#ua-new-user').click();assert.equal(await page.locator('.ua-dialog [name="name"]').inputValue(),'');assert.equal(posts.length,before);
- }finally{await context.close();await browser.close();await f.close();}
 });
 
-for(const [width,lang] of [[390,'vi'],[1280,'zh']])for(const linking of [false,true])void test(`failed destination after process abandonment shows the remaining shared canvas without restoring input ${width} ${lang} linking=${linking}`,async()=>{
- const f=await createProcessPlatformRound5Fixture(),browser=await launch(),context=await contextFor(browser,f,width,lang);try{
+for(const [width,lang] of [[390,'vi'],[1280,'zh']])for(const linking of [false,true])void test(`failed destination after process abandonment shows the remaining shared canvas without restoring input ${width} ${lang} linking=${linking}`,async(t)=>{
+ const {f,context}=await openSession(t,createProcessPlatformRound5Fixture,width,lang);
   let prompts=0;const page=await context.newPage(),posts=[];page.on('dialog',d=>{prompts++;void d.dismiss();});page.on('request',r=>{if(r.method()==='POST')posts.push(r.url());});
   await page.goto(f.url.origin+'/login?view=dashboard');await page.locator('#id').fill(f.actors.editor);await page.locator('#password').fill(f.password);await page.locator('.site-entry-submit').click();await ready(page,'dashboard');
   await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('editor'));await ready(page,'editor');await page.locator('[data-av3="begin"]').click();await page.waitForFunction(()=>window.ProcessAuthoringV3.canMutate());
@@ -65,5 +80,35 @@ for(const [width,lang] of [[390,'vi'],[1280,'zh']])for(const linking of [false,t
   assert.equal(await page.evaluate(()=>window.ProcessEditorV2.interacting()),false);assert.equal(await page.locator('.pe-port-selected,.pe-link-preview').count(),0);
   assert.equal(await card.locator('h3').textContent(),original,'visible canvas must agree with the discarded local journal');
   await card.locator('[data-pe="edit"]').click();assert.equal(await page.locator('#process-operation-dialog [data-field="name"]').inputValue(),original,'reopening must not recover input captured by the old card handler');assert.equal(posts.length,count);assert.equal(prompts,0);
- }finally{await context.close();await browser.close();await f.close();}
+});
+
+void test('abandonment session releases partial setup and attempts every close', async () => {
+  for (const stage of ['launch', 'newContext', 'route', 'addInitScript', 'complete']) {
+    const closed = [];
+    let cleanup;
+    const setupError = Error(stage);
+    const closeError = Error('context close');
+    const check = name => { if (stage === name) throw setupError; };
+    const fixture = {close: async () => closed.push('fixture')};
+    const context = {
+      route: async () => check('route'),
+      addInitScript: async () => check('addInitScript'),
+      close: async () => { closed.push('context'); if (stage === 'complete') throw closeError; },
+    };
+    const browser = {
+      newContext: async () => { check('newContext'); return context; },
+      close: async () => closed.push('browser'),
+    };
+    const open = () => openSession({after: callback => { cleanup = callback; }},
+      async () => fixture, 390, 'vi', async () => { check('launch'); return browser; });
+    if (stage === 'complete') {
+      await open();
+      await assert.rejects(cleanup, error => error instanceof AggregateError && error.errors[0] === closeError);
+    } else {
+      await assert.rejects(open, error => error === setupError);
+      await cleanup();
+    }
+    const expected = stage === 'launch' ? ['fixture'] : stage === 'newContext' ? ['browser', 'fixture'] : ['context', 'browser', 'fixture'];
+    assert.deepEqual(closed, expected);
+  }
 });
