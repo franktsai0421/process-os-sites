@@ -8,6 +8,7 @@ import { createRootEntryFixture } from '../tests/root-entry-native-fixture.mjs';
 import { pngFixture } from '../tests/photo-fixtures.mjs';
 
 const require = createRequire(import.meta.url);
+const populated = process.env.NAV_PROFILE === 'populated';
 const secret = 'synthetic-local-navigation-only';
 const fixture = await createRootEntryFixture({
   syntheticBindings: {
@@ -78,6 +79,120 @@ try {
     bomOverrides: '{"replaceAll":true,"data":{}}',
     processMasterData: '{}',
   });
+  if (populated) {
+    const authoring = require('./v3-master-permission-fixture.cjs')(
+      'authoring',
+    );
+    values.processAuthoringControl =
+      authoring.values.processAuthoringControl.replaceAll('"XA"', '"PAB"');
+    // The isolated build has no template image pack. Use the seeded PNG for
+    // each synthetic media reference and let the normal photo API serve it.
+    const templates = JSON.parse(authoring.values.processMasterData);
+    for (const stage of Object.values(templates)) {
+      for (const item of stage) {
+        item.media = '/api/iqc/photo?id=' + id;
+        for (const media of item.mediaItems) media.src = item.media;
+      }
+    }
+    values.processMasterData = JSON.stringify(templates);
+    master.active.PROCESS = JSON.parse(values.processMasterData);
+    master.versions.find((row) => row.scope === 'PROCESS').snapshot =
+      master.active.PROCESS;
+    values.masterDataControl = JSON.stringify(master);
+    values.dispatchBoard = JSON.stringify({ A: ['PAB'], B: [], C: ['PC'] });
+
+    const { columns, parseMatrices } =
+      await import('../public/process/bom-domain.mjs');
+    const data = parseMatrices(
+      ['PAB', 'PC'].map((code) => ({
+        name: code,
+        rows: [
+          columns,
+          [code, '0', '', '', 'Synthetic root', '', 'PCS', '1', '1', '0'],
+          ...Array.from({ length: 40 }, (_, i) => [
+            code,
+            '.1',
+            String(i + 1),
+            'PART-' + i,
+            'Synthetic part ' + i,
+            '',
+            'PCS',
+            '1',
+            '1',
+            '0',
+          ]),
+        ],
+      })),
+    );
+    values.bomOverrides = JSON.stringify({
+      __format: 'PROCESS_OS_BOM_OCCURRENCES_V3',
+      replaceAll: true,
+      data,
+    });
+    const bomSnapshot = { bom: data, referenceIssues: [] };
+    const bomFlow = load('lib/shared-draft.ts').createSharedDraft(
+      'bom',
+      bomSnapshot,
+      'approved',
+      'synthetic-bom-generation',
+    );
+    values.bomMasterControl = JSON.stringify({
+      schemaVersion: 1,
+      activeVersionId: 'approved',
+      workflow: bomFlow,
+      versions: [
+        {
+          id: 'approved',
+          number: 1,
+          status: 'approved',
+          snapshot: bomSnapshot,
+          creatorId: 'owner',
+          creatorName: 'Synthetic',
+          revision: 1,
+          history: [],
+        },
+      ],
+    });
+    const tools = Array.from({ length: 60 }, (_, i) => ({
+      id: 'tool-' + i,
+      code: 'DC01-' + String(i).padStart(4, '0'),
+      nameVi: 'Synthetic tool ' + i,
+      nameZh: '合成模具 ' + i,
+      categoryId: 'cat',
+      assetCode: 'SYN-' + i,
+      quantity: 1,
+      unit: 'PCS',
+      location: { kind: 'internal', holderId: 'holder' },
+      enabled: true,
+      archived: false,
+      photos: [],
+      iqcIds: ['part'],
+    }));
+    const snapshot = {
+      tools,
+      categories: [{ id: 'cat', code: 'DC01', nameVi: 'Synthetic' }],
+      custodians: [{ id: 'holder', nameVi: 'Synthetic' }],
+      suppliers: [],
+      manufacturers: [],
+      transfers: [],
+    };
+    values.toolingMasterControl = JSON.stringify({
+      schemaVersion: 1,
+      activeVersionId: 'v2',
+      versions: [1, 2].map((number) => ({
+        id: 'v' + number,
+        number,
+        status: number === 2 ? 'approved' : 'superseded',
+        snapshot,
+        history: [],
+        revision: 1,
+      })),
+      reservedCodes: {
+        categories: ['DC01'],
+        tools: tools.map((row) => row.code),
+      },
+    });
+  }
   const quality = JSON.parse(values.qualityMasterControl);
   for (const row of quality.libraries.fqc.versions[0].snapshot.items)
     row.rule = { cadence: 'time', timeFrequency: 'monthly' };
@@ -220,123 +335,204 @@ try {
           );
           throw error;
         });
+      if (process.env.NAV_PROBE === 'tooling-bootstrap') {
+        // Separate endpoint timing from the editor departure and tooling paint.
+        for (let sample = 0; sample < 25; sample++) {
+          const result = await page.evaluate(async () => {
+            const start = performance.now();
+            const response = await fetch(
+              '/api/process-bootstrap?view=data&dataTab=quality-mold-equipment',
+              {
+                cache: 'no-store',
+                headers: { 'X-Process-Media': 'deferred-v1' },
+              },
+            );
+            const headersMs = performance.now() - start;
+            const data = await response.json();
+            if (
+              !response.ok ||
+              data.identity?.id !== 'owner' ||
+              data.destination?.dataTab !== 'quality-mold-equipment' ||
+              !data.deliveryProjection
+            )
+              throw Error('Unexpected tooling bootstrap response');
+            return { ms: performance.now() - start, headersMs };
+          });
+          console.log(
+            JSON.stringify({
+              round,
+              sample,
+              probe: 'tooling-bootstrap',
+              ...result,
+            }),
+          );
+        }
+        continue;
+      }
+      if (process.env.NAV_NETWORK === 'constrained') {
+        // Isolate transport sensitivity after dashboard startup. Rates in bytes/s.
+        const cdp = await context.newCDPSession(page);
+        await cdp.send('Network.enable');
+        await cdp.send('Network.emulateNetworkConditions', {
+          offline: false,
+          latency: 80,
+          downloadThroughput: 5000000 / 8,
+          uploadThroughput: 1000000 / 8,
+        });
+      }
       for (const entry of ['first', 'revisit'])
         for (const target of targets) {
           try {
-            const result = await page.evaluate(async (target) => {
-              const [view, tab] = target.split(':'),
-                nav = window.ProcessDeliveryNavigation;
-              const dataset = document.documentElement.dataset,
-                prior = dataset.processDestinationGeneration;
-              const start = performance.now();
-              performance.clearResourceTimings();
-              if (view === 'approval') void nav.approval(tab);
-              else nav.navigate(view, tab);
-              // Sample on animation frames, after the selected generation's own ready
-              // fence and visible content, then allow that frame to reach the screen.
-              while (performance.now() - start < 12000) {
-                await new Promise(requestAnimationFrame);
-                if (dataset.processNavigationStatus === 'error')
-                  throw Error('NAVIGATION_ERROR');
-                if (
-                  prior === dataset.processDestinationGeneration ||
-                  dataset.processDestinationReadyGeneration !==
-                    dataset.processDestinationGeneration ||
-                  dataset.processNavigationStatus !== 'ready'
-                )
-                  continue;
-                const selected = nav.current();
-                if (
-                  selected.view !== view ||
-                  (view === 'data' && selected.dataTab !== tab) ||
-                  (view === 'approval' && selected.approvalTab !== tab)
-                )
-                  continue;
-                const root = document.querySelector(
-                  view === 'approval'
-                    ? '#approval-panel-' + tab
-                    : view === 'data'
-                      ? '#data-content'
-                      : '#view-root',
-                );
-                if (!root?.innerText.trim()) continue;
-                const visible = (el) => el.getClientRects().length > 0;
-                if (
-                  [
-                    ...root.querySelectorAll(
-                      '[role="alert"],[aria-busy="true"],.fqc-loading',
-                    ),
-                  ].some(
-                    (el) =>
-                      visible(el) &&
-                      (el.matches('[aria-busy="true"],.fqc-loading') ||
-                        el.textContent.trim()),
-                  )
-                )
-                  continue;
-                if (
-                  view === 'quality-inspections' &&
-                  !root.querySelector('.rf-tabs button:not(:disabled)')
-                )
-                  continue;
-                if (
-                  tab === 'routine' &&
-                  !root.querySelector('[data-review-doc]:not(:disabled)')
-                )
-                  continue;
-                if (
-                  tab === 'quality' &&
-                  [...root.querySelectorAll('[data-overview-count]')].filter(
-                    (el) => /^\d+$/.test(el.textContent.trim()),
-                  ).length !== 6
-                )
-                  continue;
-                if (
-                  tab === 'quality' &&
-                  document
-                    .querySelector('[data-review-total]')
-                    ?.textContent.match(
-                      /讀取中|đang kiểm tra|失敗|chưa tải được/i,
-                    )
-                )
-                  continue;
-                if (
-                  ![
-                    ...document.querySelectorAll(
-                      '.sidebar button:not(:disabled),[data-dual-view]:not(:disabled)',
-                    ),
-                  ].some(visible)
-                )
-                  continue;
-                await new Promise(requestAnimationFrame);
-                const end = performance.now();
-                const intervals = performance
-                  .getEntriesByType('resource')
-                  .filter(
-                    (e) =>
-                      e.startTime >= start &&
-                      e.responseEnd <= end &&
-                      new URL(e.name).pathname.startsWith('/api/'),
-                  )
-                  .sort((a, b) => a.startTime - b.startTime);
-                let cursor = start,
-                  apiMs = 0;
-                for (const row of intervals) {
-                  apiMs += Math.max(
-                    0,
-                    row.responseEnd - Math.max(cursor, row.startTime),
+            const result = await page.evaluate(
+              async ({ target, populated }) => {
+                const [view, tab] = target.split(':'),
+                  nav = window.ProcessDeliveryNavigation;
+                const dataset = document.documentElement.dataset,
+                  prior = dataset.processDestinationGeneration;
+                const start = performance.now();
+                let previousFrame = start;
+                let longestFrameGap = 0;
+                const nextFrame = async () => {
+                  await new Promise(requestAnimationFrame);
+                  const now = performance.now();
+                  longestFrameGap = Math.max(
+                    longestFrameGap,
+                    now - previousFrame,
                   );
-                  cursor = Math.max(cursor, row.responseEnd);
-                }
-                return {
-                  ms: Math.round(end - start),
-                  apiMs: Math.round(apiMs),
-                  requests: intervals.length,
-                  rootChars: root.innerText.length,
+                  previousFrame = now;
                 };
-              }
-              throw Error('READINESS_TIMEOUT');
-            }, target);
+                performance.clearResourceTimings();
+                if (view === 'approval') void nav.approval(tab);
+                else nav.navigate(view, tab);
+                // Sample on animation frames, after the selected generation's own ready
+                // fence and visible content, then allow that frame to reach the screen.
+                while (performance.now() - start < 12000) {
+                  await nextFrame();
+                  if (dataset.processNavigationStatus === 'error')
+                    throw Error('NAVIGATION_ERROR');
+                  if (
+                    prior === dataset.processDestinationGeneration ||
+                    dataset.processDestinationReadyGeneration !==
+                      dataset.processDestinationGeneration ||
+                    dataset.processNavigationStatus !== 'ready'
+                  )
+                    continue;
+                  const selected = nav.current();
+                  if (
+                    selected.view !== view ||
+                    (view === 'data' && selected.dataTab !== tab) ||
+                    (view === 'approval' && selected.approvalTab !== tab)
+                  )
+                    continue;
+                  const root = document.querySelector(
+                    view === 'approval'
+                      ? '#approval-panel-' + tab
+                      : view === 'data'
+                        ? '#data-content'
+                        : '#view-root',
+                  );
+                  if (!root?.innerText.trim()) continue;
+                  const visible = (el) => el.getClientRects().length > 0;
+                  if (
+                    [
+                      ...root.querySelectorAll(
+                        '[role="alert"],[aria-busy="true"],.fqc-loading',
+                      ),
+                    ].some(
+                      (el) =>
+                        visible(el) &&
+                        (el.matches('[aria-busy="true"],.fqc-loading') ||
+                          el.textContent.trim()),
+                    )
+                  )
+                    continue;
+                  if (
+                    populated &&
+                    ((tab === 'bom' &&
+                      !root.querySelector(
+                        '.bw-results button[data-code]:enabled',
+                      )) ||
+                      (tab === 'quality-mold-equipment' &&
+                        !root.querySelector('[data-tool-view]:enabled')) ||
+                      (view === 'editor' &&
+                        !root.querySelector('.pe-card[data-node="row0"]')))
+                  )
+                    continue;
+                  if (
+                    view === 'quality-inspections' &&
+                    !root.querySelector('.rf-tabs button:not(:disabled)')
+                  )
+                    continue;
+                  if (
+                    tab === 'routine' &&
+                    !root.querySelector('[data-review-doc]:not(:disabled)')
+                  )
+                    continue;
+                  if (
+                    tab === 'quality' &&
+                    [...root.querySelectorAll('[data-overview-count]')].filter(
+                      (el) => /^\d+$/.test(el.textContent.trim()),
+                    ).length !== 6
+                  )
+                    continue;
+                  if (
+                    tab === 'quality' &&
+                    document
+                      .querySelector('[data-review-total]')
+                      ?.textContent.match(
+                        /讀取中|đang kiểm tra|失敗|chưa tải được/i,
+                      )
+                  )
+                    continue;
+                  if (
+                    ![
+                      ...document.querySelectorAll(
+                        '.sidebar button:not(:disabled),[data-dual-view]:not(:disabled)',
+                      ),
+                    ].some(visible)
+                  )
+                    continue;
+                  await nextFrame();
+                  const end = performance.now();
+                  const intervals = performance
+                    .getEntriesByType('resource')
+                    .filter(
+                      (e) =>
+                        e.startTime >= start &&
+                        e.responseEnd <= end &&
+                        new URL(e.name).pathname.startsWith('/api/'),
+                    )
+                    .sort((a, b) => a.startTime - b.startTime);
+                  let cursor = start,
+                    apiMs = 0;
+                  for (const row of intervals) {
+                    apiMs += Math.max(
+                      0,
+                      row.responseEnd - Math.max(cursor, row.startTime),
+                    );
+                    cursor = Math.max(cursor, row.responseEnd);
+                  }
+                  return {
+                    ms: Math.round(end - start),
+                    apiMs: Math.round(apiMs),
+                    readyMs: Math.round(Number(dataset.processReadyMs) - start),
+                    maxFrameGapMs: Math.round(longestFrameGap),
+                    requests: intervals.length,
+                    endpoints: intervals.map((row) => ({
+                      path: new URL(row.name).pathname,
+                      startMs: Math.round(row.startTime - start),
+                      ms: Math.round(row.responseEnd - row.startTime),
+                      ttfbMs: Math.round(row.responseStart - row.requestStart),
+                      bytes: row.decodedBodySize,
+                      encodedBytes: row.encodedBodySize,
+                    })),
+                    rootChars: root.innerText.length,
+                  };
+                }
+                throw Error('READINESS_TIMEOUT');
+              },
+              { target, populated },
+            );
             console.log(JSON.stringify({ round, entry, target, ...result }));
           } catch (error) {
             process.exitCode = 1;
