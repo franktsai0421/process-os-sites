@@ -114,13 +114,11 @@ for (const query of ['', '?availability=1']) {
         values.qualityMasterControl = JSON.stringify(library);
       });
       const get = (suffix = query, cookie = f.cookies.editor) =>
-        f
-          .load(route)
-          .GET(
-            new Request('https://synthetic.invalid/api/routine-fqc' + suffix, {
-              headers: { cookie },
-            }),
-          );
+        f.load(route).GET(
+          new Request('https://synthetic.invalid/api/routine-fqc' + suffix, {
+            headers: { cookie },
+          }),
+        );
       f.events.length = 0;
       const ok = await get();
       assert.equal(ok.status, 200);
