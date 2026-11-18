@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {chromium} from 'playwright';
 import {createFeedbackFixture} from './web-feedback-native-fixture.mjs';
-import {screenshotBoard,screenshotFailureKind} from './web-feedback-screenshot.mjs';
+import {screenshotBoard,screenshotFailureKind,failedBoardGeometry} from './web-feedback-screenshot.mjs';
 
 const passed=[],errors=[],requests=[];let fixture,browser,stage='setup';
 const out='.sites-runtime/feedback-queues';fs.mkdirSync(out,{recursive:true});
@@ -95,6 +95,6 @@ try {
 } catch(error) {
   // Never print Playwright's request log: it can contain even synthetic cookies.
   const site=String(error?.stack||'').match(/web-feedback-queues-browser\.test\.mjs:(\d+):(\d+)/);
-  const failure={status:'FAIL',stage,errorKind:screenshotFailureKind(error),errorName:['AssertionError','TimeoutError','Error'].includes(error?.name)?error.name:'OTHER',location:site?{line:Number(site[1]),column:Number(site[2])}:null,passed};
+  const failure={status:'FAIL',stage,boardGeometryAfterFailure:failedBoardGeometry(error),errorKind:screenshotFailureKind(error),errorName:['AssertionError','TimeoutError','Error'].includes(error?.name)?error.name:'OTHER',location:site?{line:Number(site[1]),column:Number(site[2])}:null,passed};
   fs.writeFileSync(out+'/result.json',JSON.stringify(failure,null,2));console.error(JSON.stringify(failure));process.exitCode=1;
 } finally {await browser?.close();await fixture?.close();}
