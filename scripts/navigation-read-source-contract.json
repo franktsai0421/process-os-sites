@@ -1,0 +1,55 @@
+{
+  "app/api/process-bootstrap/route.ts": {
+    "before": "3d6f699f1647817c9605985eb023105e086fa0888af6e7a0ff2186bd811dd79c",
+    "after": "0afd28cc59204f7616ba7e56576d226ea226cb3271354458aa6952d90c88a9d3",
+    "rules": [
+      {
+        "offset": 2781,
+        "before": "    const state=await readState({keys:plan.keys,effectiveOnly:true,deferHistory:true,deferDependencyHistory:true,...(reuseIdentity?{identityReadToken}:{}),...(plan.destination.module==='fqc'?{projectValue:projectFqc}:{})});\n",
+        "after": "    const state=await readState({keys:plan.keys,effectiveOnly:true,deferHistory:true,deferDependencyHistory:true,...(reuseIdentity?{identityReadToken}:{aggregateReadAhead:true}),...(plan.destination.module==='fqc'?{projectValue:projectFqc}:{})});\n"
+      },
+      {
+        "offset": 4506,
+        "before": "    const after=await readState({keys:[...identityKeys]}),actor=await identity(request,after);\n",
+        "after": "    const after=await readState({keys:[...identityKeys],aggregateReadAhead:true}),actor=await identity(request,after);\n"
+      }
+    ]
+  },
+  "app/api/routine-fqc/route.ts": {
+    "before": "4b4c50522bdb5e43c60475f42c8e8eb661aa9f45868d95726e140c6bf89e3cd7",
+    "after": "a50aca9b061a2f0f3a6e145eed6a558e87e4eb96b9c1d51fab675e2378c759c3",
+    "rules": [
+      {
+        "offset": 1928,
+        "before": "",
+        "after": "    // The normal page and its availability probe share authority and layout.\n    // Only the full page consumes the approved FQC and master catalogs.\n    const availability = query.size === 1 && query.get('availability') === '1';\n    const entryKeys = [...authorityKeys, RF_KEY];\n    // Both consumers of this dependency use only the active, approved FQC\n    // version. Keep its metadata and complete snapshot, including image refs.\n    const entryCatalog = (key: string, raw: string) => {\n      if (key !== 'qualityMasterControl') return raw;\n      const library = JSON.parse(raw)?.libraries?.fqc;\n      if (!Array.isArray(library?.versions)) return raw;\n      const version = library.versions.find((row: {id: string; status: string}) =>\n        row.id === library.activeVersionId && row.status === 'approved');\n      return JSON.stringify({libraries: {fqc: {activeVersionId: library.activeVersionId, versions: version ? [version] : []}}});\n    };\n"
+      },
+      {
+        "offset": 2915,
+        "before": "",
+        "after": "        ...(availability ? {keys: entryKeys, aggregateReadAhead: true}\n          : query.size === 0 ? {keys: [...entryKeys, 'qualityMasterControl', 'masterDataControl'], aggregateReadAhead: true, projectValue: entryCatalog} : {}),\n"
+      },
+      {
+        "offset": 6241,
+        "before": "    const c = parseRoutine(state.values[RF_KEY]),\n      sources = operationId?[]:routineSources(state);\n",
+        "after": "    const c = parseRoutine(state.values[RF_KEY]);\n"
+      },
+      {
+        "offset": 6847,
+        "before": "",
+        "after": "    const sources = operationId?[]:routineSources(state);\n"
+      }
+    ]
+  },
+  "tests/source-normalization-cache.test.cjs": {
+    "before": "3c58863a1bfb987ca4a8b5f848c9d80b78787f9e3271b656af177262622420e8",
+    "after": "d0044d4565ad5b558ca6564a5e86da5ffe5208b01c1cac973e09358020831905",
+    "rules": [
+      {
+        "offset": 6200,
+        "before": " const git=(...args)=>execFileSync('git',args),base='ea137c7dd8d608d216d45ab29b033fc5f782ff5d';const readGit=args=>new Promise((resolve,reject)=>{const child=spawn('git',args,{stdio:['ignore','pipe','pipe']}),chunks=[];child.stdout.on('data',chunk=>chunks.push(chunk));child.on('error',reject);child.on('close',code=>code===0?resolve(Buffer.concat(chunks)):reject(Error('Git source read failed: '+code)));});for(const file of git('ls-tree','-r','--name-only',base,'--','scripts').toString().trim().split('\\n').filter(x=>x.endsWith('.json')))assert.deepEqual(fs.readFileSync(file),await readGit(['show',base+':'+file]),file);const scope=['app','lib','public','package.json','package-lock.json'];const changes=git('diff','--name-only',base,'--',...scope).toString().trim().split('\\n').filter(Boolean).sort();assert.deepEqual(changes,['public/process/index.html','public/process/ipqc-ab.js','public/process/ipqc-c.js','public/process/version-draft-ui.js'],'only the four explicitly reviewed #125 product files may differ');for(const file of changes){const expected=git('show','161b24289f2da730f31e6cdbbe0deac5ed00017d:'+file);assert.deepEqual(fs.readFileSync(file),expected,'exact approved #125 product bytes '+file);}assert.equal(git('diff',base,'0f2c8ec5b3bc8f6a5625ef049782fab1f96988b1','--',...scope).length,0,'merged #121 main itself preserves the approved cache-only runtime boundary');assert.equal(fs.existsSync('lib/iqc-body-read-ahead.mjs'),false);\n",
+        "after": " const git=(...args)=>execFileSync('git',args),base='ea137c7dd8d608d216d45ab29b033fc5f782ff5d';const readGit=args=>new Promise((resolve,reject)=>{const child=spawn('git',args,{stdio:['ignore','pipe','pipe']}),chunks=[];child.stdout.on('data',chunk=>chunks.push(chunk));child.on('error',reject);child.on('close',code=>code===0?resolve(Buffer.concat(chunks)):reject(Error('Git source read failed: '+code)));});for(const file of git('ls-tree','-r','--name-only',base,'--','scripts').toString().trim().split('\\n').filter(x=>x.endsWith('.json')))assert.deepEqual(fs.readFileSync(file),await readGit(['show',base+':'+file]),file);const scope=['app','lib','public','package.json','package-lock.json'];const changes=git('diff','--name-only',base,'--',...scope).toString().trim().split('\\n').filter(Boolean).sort();const navigation=['app/api/process-bootstrap/route.ts','app/api/routine-fqc/route.ts'];assert.deepEqual(changes,[...navigation,'public/process/index.html','public/process/ipqc-ab.js','public/process/ipqc-c.js','public/process/version-draft-ui.js'],'only four #125 product files and the two pinned navigation handlers may differ');for(const file of changes){const expected=git('show',(navigation.includes(file)?'96f6def91b23773910b1ba7e9972a4cea34005d0':'161b24289f2da730f31e6cdbbe0deac5ed00017d')+':'+file);assert.deepEqual(fs.readFileSync(file),expected,'exact pinned product bytes '+file);}assert.equal(git('diff',base,'0f2c8ec5b3bc8f6a5625ef049782fab1f96988b1','--',...scope).length,0,'merged #121 main itself preserves the approved cache-only runtime boundary');assert.equal(fs.existsSync('lib/iqc-body-read-ahead.mjs'),false);\n"
+      }
+    ]
+  }
+}
