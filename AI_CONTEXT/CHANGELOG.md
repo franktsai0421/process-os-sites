@@ -1,7 +1,3 @@
-## 2026-11-18 — 目的地與例行入口讀取
-
-共用目的地讀取採用有界 R2 排程。例行入口只載入當頁依賴與啟用狀態所需資料。[讀取範圍、隔離量測與主測試站待驗項](../docs/acceptance/main-navigation-20261118.md)。
-
 ## 2026-11-16 — AB範圍版本與FQC新增回歸候選
 
 以已合併#123的main a1775a8建立獨立功能分支，修正AB本機草稿Vundefined與全模組快照誤認；補FQC新增預設AQL回歸，不重複速度優化。無schema／資料／ACL／合併或部署。[隔離根因與驗證界線](../docs/acceptance/quality-office-followup-20261116.md)。
