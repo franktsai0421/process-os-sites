@@ -53,7 +53,23 @@ export async function GET(request: Request) {
     const approved=routineApprovedQuery(request);
     const authorityKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','routineFqcEnabled'];
     const query = new URL(request.url).searchParams, operationId=query.get('operationId');
+    // The normal page and its availability probe share authority and layout.
+    // Only the full page consumes the approved FQC and master catalogs.
+    const availability = query.size === 1 && query.get('availability') === '1';
+    const entryKeys = [...authorityKeys, RF_KEY];
+    // Both consumers of this dependency use only the active, approved FQC
+    // version. Keep its metadata and complete snapshot, including image refs.
+    const entryCatalog = (key: string, raw: string) => {
+      if (key !== 'qualityMasterControl') return raw;
+      const library = JSON.parse(raw)?.libraries?.fqc;
+      if (!Array.isArray(library?.versions)) return raw;
+      const version = library.versions.find((row: {id: string; status: string}) =>
+        row.id === library.activeVersionId && row.status === 'approved');
+      return JSON.stringify({libraries: {fqc: {activeVersionId: library.activeVersionId, versions: version ? [version] : []}}});
+    };
     const state = await readState({
+        ...(availability ? {keys: entryKeys, aggregateReadAhead: true}
+          : query.size === 0 ? {keys: [...entryKeys, 'qualityMasterControl', 'masterDataControl'], aggregateReadAhead: true, projectValue: entryCatalog} : {}),
         ...(approved?{keys:[...authorityKeys,RF_KEY],modelKey:RF_KEY}:{}),
         deferHistory: true,
         deferDependencyHistory: true,
@@ -80,14 +96,14 @@ export async function GET(request: Request) {
       const finalActor=await identity(request,fresh);if(!finalActor||finalActor.id!==actor.id||finalActor.sessionType!==actor.sessionType)return reply({error:'FORBIDDEN'},403);
       return new Response(text,{headers:responseHeaders});
     }
-    const c = parseRoutine(state.values[RF_KEY]),
-      sources = operationId?[]:routineSources(state);
+    const c = parseRoutine(state.values[RF_KEY]);
     if (query.has('availability'))
       return reply({ enabled: enabled(request, state),...((c as typeof c & {pageDraftLayout?:string}).pageDraftLayout==='page-v1'?{pageDraftLayout:'page-v1'}:{}) });
     if (!enabled(request, state))
       return reply({ error: 'FQC_NOT_ENABLED' }, 404);
     if ((c as typeof c & {pageDraftLayout?:string}).pageDraftLayout === 'page-v1' && !query.has('operationId') && !query.has('export') && !query.has('legacyArchive'))
       return reply({enabled:true,pageDraftLayout:'page-v1',pageEndpoint:'/api/routine-fqc/page'});
+    const sources = operationId?[]:routineSources(state);
     if(query.has('legacyArchive')&&([...query.keys()].some(key=>!['legacyArchive','compact'].includes(key))||query.getAll('legacyArchive').length!==1||query.get('legacyArchive')!=='1'))return reply({error:'ROUTINE_PAGE_SELECTOR_INVALID'},422);
     // Search is a read-only projection under routine.view. It does not grant
     // schedule settings access and never persists preview jobs.

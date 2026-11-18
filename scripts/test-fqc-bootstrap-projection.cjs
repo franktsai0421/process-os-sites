@@ -19,14 +19,18 @@ const start=currentRoute.indexOf(startAnchor),end=currentRoute.indexOf(endAnchor
 // Keep the paired old/new GETs under the same approved access-event metadata.
 // Only the FQC body projection differs. Separately prove that removing the
 // exact approved metadata restores the historical pinned route byte-for-byte.
-const baselineRoute=currentRoute.slice(0,start)+"    const state=await readState({keys:plan.keys,effectiveOnly:true,deferHistory:true,deferDependencyHistory:true,...(reuseIdentity?{identityReadToken}:{})});\n"+currentRoute.slice(end);
+const baselineRoute=currentRoute.slice(0,start)+"    const state=await readState({keys:plan.keys,effectiveOnly:true,deferHistory:true,deferDependencyHistory:true,...(reuseIdentity?{identityReadToken}:{aggregateReadAhead:true})});\n"+currentRoute.slice(end);
 const approvedImports="import {accessEventSchemaReady} from '@/lib/access-event-schema-ready';\nimport {accessEventSources} from '@/public/process/access-event-protocol.mjs';\n";
 const approvedCollection="    // Optional collection is admitted only for this verified delivery. Keep\n    // feature-off requests free of extra schema and permission reads.\n    const accessEvents=reader.actor.role!=='device'&&reader.actor.sessionType==='platform'&&(env as typeof env&{ACCESS_EVENTS_ENABLED?:string}).ACCESS_EVENTS_ENABLED==='1'&&await accessEventSchemaReady(env.DB)\n      ?Object.keys(accessEventSources).filter(module=>reader.canRead(module+'.view')):[];\n";
 const approvedFeature='features:{...features,accessEvents},';
 function replaceApprovedOnce(value,needle,replacement,label){assert.equal(value.split(needle).length,2,'exact approved access metadata: '+label);return value.replace(needle,replacement);}
 function stripApprovedMetadata(value){return replaceApprovedOnce(replaceApprovedOnce(replaceApprovedOnce(value,approvedImports,'','imports'),approvedCollection,'','collection'),approvedFeature,'features,','feature response');}
 const pinnedHistoricalHash='a39c41145728f56983d3afb286ea4406a1ebb23d4cf050831e579398fb08107b';
-function assertHistoricalFence(value){assert.equal(hash(stripApprovedMetadata(value)),pinnedHistoricalHash,'exact prior route byte fence, normalized LF');}
+function assertHistoricalFence(value){
+ const priorReadPlan=replaceApprovedOnce(replaceApprovedOnce(value,
+   '...(reuseIdentity?{identityReadToken}:{aggregateReadAhead:true})','...(reuseIdentity?{identityReadToken}:{})','selected schedule'),
+   'const after=await readState({keys:[...identityKeys],aggregateReadAhead:true})','const after=await readState({keys:[...identityKeys]})','final schedule');
+ assert.equal(hash(stripApprovedMetadata(priorReadPlan)),pinnedHistoricalHash,'exact prior route byte fence, normalized LF');}
 assertHistoricalFence(baselineRoute);
 const negativeProjectionMutations=[
  ['alter approved permission',baselineRoute.replace("reader.canRead(module+'.view')","reader.canRead(module+'.edit')")],
