@@ -271,7 +271,7 @@ export async function createFqcPermissionPhase(request:Request,state:State){
 // Only the routine entry reads share one permission evaluation per snapshot.
 export async function createRoutineEntryPermissionPhase(request:Request,state:State){
   const url=new URL(request.url),query=url.searchParams;
-  if(request.method!=='GET'||url.pathname!=='/api/routine-fqc'||!(query.size===0||query.size===1&&query.get('availability')==='1'))throw Error('INVALID_PERMISSION_PHASE');
+  if(request.method!=='GET'||url.pathname!=='/api/routine-fqc'||!(query.size===0||query.size===1&&query.get('availability')==='1'))return null;
   return createWorkflowPermissionPhase(request,state);
 }
 // Exact A/B workflow only. Each selected snapshot and CAS retry gets its own
