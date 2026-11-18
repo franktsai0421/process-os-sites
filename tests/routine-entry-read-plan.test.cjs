@@ -11,7 +11,7 @@ const oldSource = execFileSync('git', ['show', predecessor + ':' + route], {
 });
 
 for (const format of ['inline', 'records']) {
-  test(
+  void test(
     format +
       ' routine entry preserves complete GETs and fails closed on required data',
     async (t) => {
