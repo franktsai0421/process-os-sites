@@ -1,0 +1,128 @@
+{
+  "app/api/process-bootstrap/route.ts": {
+    "before": "3d6f699f1647817c9605985eb023105e086fa0888af6e7a0ff2186bd811dd79c",
+    "after": "0afd28cc59204f7616ba7e56576d226ea226cb3271354458aa6952d90c88a9d3",
+    "rules": [
+      {
+        "offset": 2781,
+        "before": "    const state=await readState({keys:plan.keys,effectiveOnly:true,deferHistory:true,deferDependencyHistory:true,...(reuseIdentity?{identityReadToken}:{}),...(plan.destination.module==='fqc'?{projectValue:projectFqc}:{})});\n",
+        "after": "    const state=await readState({keys:plan.keys,effectiveOnly:true,deferHistory:true,deferDependencyHistory:true,...(reuseIdentity?{identityReadToken}:{aggregateReadAhead:true}),...(plan.destination.module==='fqc'?{projectValue:projectFqc}:{})});\n"
+      },
+      {
+        "offset": 4506,
+        "before": "    const after=await readState({keys:[...identityKeys]}),actor=await identity(request,after);\n",
+        "after": "    const after=await readState({keys:[...identityKeys],aggregateReadAhead:true}),actor=await identity(request,after);\n"
+      }
+    ]
+  },
+  "app/api/routine-fqc/route.ts": {
+    "before": "4b4c50522bdb5e43c60475f42c8e8eb661aa9f45868d95726e140c6bf89e3cd7",
+    "after": "79914269da04afedbb8a669ed3bb1644db269fbba24e336b1801cf97f3888089",
+    "rules": [
+      {
+        "offset": 351,
+        "before": "",
+        "after": "  createRoutineEntryPermissionPhase,\n"
+      },
+      {
+        "offset": 970,
+        "before": "",
+        "after": "  check = (key: string): boolean | Promise<boolean> => can(request, state, key),\n"
+      },
+      {
+        "offset": 1055,
+        "before": "  const granular=await workflowAccess(request,state);\n  return {...granular,settings:granular.view&&await can(request,state,'routine.settings'),revoke:granular.approve&&await can(request,state,'approval.revoke'),revise:granular.edit&&await can(request,state,'approval.revise')};\n",
+        "after": "  const granular=await workflowAccess(request,state,check);\n  return {...granular,settings:granular.view&&await check('routine.settings'),revoke:granular.approve&&await check('approval.revoke'),revise:granular.edit&&await check('approval.revise')};\n"
+      },
+      {
+        "offset": 2016,
+        "before": "",
+        "after": "    // The normal page and its availability probe share authority and layout.\n    // Only the full page consumes the approved FQC and master catalogs.\n    const availability = query.size === 1 && query.get('availability') === '1';\n    const entryKeys = [...authorityKeys, RF_KEY];\n    // Both consumers of this dependency use only the active, approved FQC\n    // version. Keep its metadata and complete snapshot, including image refs.\n    const entryCatalog = (key: string, raw: string) => {\n      if (key !== 'qualityMasterControl') return raw;\n      const library = JSON.parse(raw)?.libraries?.fqc;\n      if (!Array.isArray(library?.versions)) return raw;\n      const version = library.versions.find((row: {id: string; status: string}) =>\n        row.id === library.activeVersionId && row.status === 'approved');\n      return JSON.stringify({libraries: {fqc: {activeVersionId: library.activeVersionId, versions: version ? [version] : []}}});\n    };\n"
+      },
+      {
+        "offset": 3003,
+        "before": "",
+        "after": "        ...(availability ? {keys: entryKeys, aggregateReadAhead: true}\n          : query.size === 0 ? {keys: [...entryKeys, 'qualityMasterControl', 'masterDataControl'], aggregateReadAhead: true, projectValue: entryCatalog} : {}),\n"
+      },
+      {
+        "offset": 3876,
+        "before": "      actor = await identity(request, state),\n      permissions = await access(request, state);\n",
+        "after": "      entryPhase = availability || query.size === 0\n        ? await createRoutineEntryPermissionPhase(request, state)\n        : null,\n      actor = entryPhase ? entryPhase.actor : await identity(request, state);\n"
+      },
+      {
+        "offset": 4152,
+        "before": "",
+        "after": "    const permissions = await access(request, state, entryPhase?.allowed);\n    // The response is serialized before these independent revision/session reads.\n    // The phase is never shared with another request, a history read or a write.\n    const finishEntry = async (response: Response) => {\n      if (entryPhase) {\n        if (!await stateRevisionIsCurrent(state)) return reply({error:'CONCURRENT_CHANGE_RETRY'},409);\n        if (!await entryPhase.current()) return reply({error:'LOGIN_REQUIRED'},401);\n      }\n      return response;\n    };\n"
+      },
+      {
+        "offset": 6991,
+        "before": "    const c = parseRoutine(state.values[RF_KEY]),\n      sources = operationId?[]:routineSources(state);\n",
+        "after": "    const c = parseRoutine(state.values[RF_KEY]);\n"
+      },
+      {
+        "offset": 7076,
+        "before": "      return reply({ enabled: enabled(request, state),...((c as typeof c & {pageDraftLayout?:string}).pageDraftLayout==='page-v1'?{pageDraftLayout:'page-v1'}:{}) });\n",
+        "after": "      return await finishEntry(reply({ enabled: enabled(request, state),...((c as typeof c & {pageDraftLayout?:string}).pageDraftLayout==='page-v1'?{pageDraftLayout:'page-v1'}:{}) }));\n"
+      },
+      {
+        "offset": 7517,
+        "before": "      return reply({enabled:true,pageDraftLayout:'page-v1',pageEndpoint:'/api/routine-fqc/page'});\n",
+        "after": "      return await finishEntry(reply({enabled:true,pageDraftLayout:'page-v1',pageEndpoint:'/api/routine-fqc/page'}));\n    const sources = operationId?[]:routineSources(state);\n"
+      },
+      {
+        "offset": 13598,
+        "before": "    return reply({\n",
+        "after": "    return await finishEntry(reply({\n"
+      },
+      {
+        "offset": 14014,
+        "before": "    });\n",
+        "after": "    }));\n"
+      }
+    ]
+  },
+  "tests/source-normalization-cache.test.cjs": {
+    "before": "3c58863a1bfb987ca4a8b5f848c9d80b78787f9e3271b656af177262622420e8",
+    "after": "709504767e25b388445305b54ede4aa818a4a79f24f630b55a0328255669734c",
+    "rules": [
+      {
+        "offset": 6200,
+        "before": " const git=(...args)=>execFileSync('git',args),base='ea137c7dd8d608d216d45ab29b033fc5f782ff5d';const readGit=args=>new Promise((resolve,reject)=>{const child=spawn('git',args,{stdio:['ignore','pipe','pipe']}),chunks=[];child.stdout.on('data',chunk=>chunks.push(chunk));child.on('error',reject);child.on('close',code=>code===0?resolve(Buffer.concat(chunks)):reject(Error('Git source read failed: '+code)));});for(const file of git('ls-tree','-r','--name-only',base,'--','scripts').toString().trim().split('\\n').filter(x=>x.endsWith('.json')))assert.deepEqual(fs.readFileSync(file),await readGit(['show',base+':'+file]),file);const scope=['app','lib','public','package.json','package-lock.json'];const changes=git('diff','--name-only',base,'--',...scope).toString().trim().split('\\n').filter(Boolean).sort();assert.deepEqual(changes,['public/process/index.html','public/process/ipqc-ab.js','public/process/ipqc-c.js','public/process/version-draft-ui.js'],'only the four explicitly reviewed #125 product files may differ');for(const file of changes){const expected=git('show','161b24289f2da730f31e6cdbbe0deac5ed00017d:'+file);assert.deepEqual(fs.readFileSync(file),expected,'exact approved #125 product bytes '+file);}assert.equal(git('diff',base,'0f2c8ec5b3bc8f6a5625ef049782fab1f96988b1','--',...scope).length,0,'merged #121 main itself preserves the approved cache-only runtime boundary');assert.equal(fs.existsSync('lib/iqc-body-read-ahead.mjs'),false);\n",
+        "after": " const git=(...args)=>execFileSync('git',args),base='ea137c7dd8d608d216d45ab29b033fc5f782ff5d';const readGit=args=>new Promise((resolve,reject)=>{const child=spawn('git',args,{stdio:['ignore','pipe','pipe']}),chunks=[];child.stdout.on('data',chunk=>chunks.push(chunk));child.on('error',reject);child.on('close',code=>code===0?resolve(Buffer.concat(chunks)):reject(Error('Git source read failed: '+code)));});for(const file of git('ls-tree','-r','--name-only',base,'--','scripts').toString().trim().split('\\n').filter(x=>x.endsWith('.json')))assert.deepEqual(fs.readFileSync(file),await readGit(['show',base+':'+file]),file);const scope=['app','lib','public','package.json','package-lock.json'];const changes=git('diff','--name-only',base,'--',...scope).toString().trim().split('\\n').filter(Boolean).sort();const navigation=['app/api/process-bootstrap/route.ts','app/api/routine-fqc/route.ts','lib/process-state.ts'];assert.deepEqual(changes,[...navigation,'public/process/index.html','public/process/ipqc-ab.js','public/process/ipqc-c.js','public/process/version-draft-ui.js'],'only four #125 product files and the pinned navigation read sources may differ');for(const file of changes){const expected=git('show',(navigation.includes(file)?'27ca5b879423b126122ce0c7f8200330eff4df1c':'161b24289f2da730f31e6cdbbe0deac5ed00017d')+':'+file);assert.deepEqual(fs.readFileSync(file),expected,'exact pinned product bytes '+file);}assert.equal(git('diff',base,'0f2c8ec5b3bc8f6a5625ef049782fab1f96988b1','--',...scope).length,0,'merged #121 main itself preserves the approved cache-only runtime boundary');assert.equal(fs.existsSync('lib/iqc-body-read-ahead.mjs'),false);\n"
+      }
+    ]
+  },
+  "lib/process-state.ts": {
+    "before": "43c6c9da1ebb566f146ffb6a0d374b5cdbd3d9aa1daf6c6c9850f8bab38bfc6e",
+    "after": "e3769a5b602029fdf2bd350ddb1f51f099a7369899b5d7f6243a1df0c7944feb",
+    "rules": [
+      {
+        "offset": 17817,
+        "before": "",
+        "after": "// Only the routine entry reads share one permission evaluation per snapshot.\nexport async function createRoutineEntryPermissionPhase(request:Request,state:State){\n  const url=new URL(request.url),query=url.searchParams;\n  if(request.method!=='GET'||url.pathname!=='/api/routine-fqc'||!(query.size===0||query.size===1&&query.get('availability')==='1'))return null;\n  return createWorkflowPermissionPhase(request,state);\n}\n"
+      }
+    ],
+    "beforeCRLFRanges": [
+      [
+        1,
+        139
+      ],
+      [
+        140,
+        242
+      ],
+      [
+        243,
+        270
+      ],
+      [
+        296,
+        340
+      ],
+      [
+        350,
+        456
+      ]
+    ]
+  }
+}

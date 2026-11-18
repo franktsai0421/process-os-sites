@@ -6,6 +6,7 @@ import {
   readState,
   identity,
   can,
+  createRoutineEntryPermissionPhase,
   sameOrigin,
   encodeValues,
   stateRevisionIsCurrent,
@@ -35,9 +36,10 @@ import {
 async function access(
   request: Request,
   state: Awaited<ReturnType<typeof readState>>,
+  check = (key: string): boolean | Promise<boolean> => can(request, state, key),
 ) {
-  const granular=await workflowAccess(request,state);
-  return {...granular,settings:granular.view&&await can(request,state,'routine.settings'),revoke:granular.approve&&await can(request,state,'approval.revoke'),revise:granular.edit&&await can(request,state,'approval.revise')};
+  const granular=await workflowAccess(request,state,check);
+  return {...granular,settings:granular.view&&await check('routine.settings'),revoke:granular.approve&&await check('approval.revoke'),revise:granular.edit&&await check('approval.revise')};
 }
 const reply = (body: unknown, status = 200) =>
   Response.json(body, { status, headers: responseHeaders });
@@ -53,15 +55,43 @@ export async function GET(request: Request) {
     const approved=routineApprovedQuery(request);
     const authorityKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','routineFqcEnabled'];
     const query = new URL(request.url).searchParams, operationId=query.get('operationId');
+    // The normal page and its availability probe share authority and layout.
+    // Only the full page consumes the approved FQC and master catalogs.
+    const availability = query.size === 1 && query.get('availability') === '1';
+    const entryKeys = [...authorityKeys, RF_KEY];
+    // Both consumers of this dependency use only the active, approved FQC
+    // version. Keep its metadata and complete snapshot, including image refs.
+    const entryCatalog = (key: string, raw: string) => {
+      if (key !== 'qualityMasterControl') return raw;
+      const library = JSON.parse(raw)?.libraries?.fqc;
+      if (!Array.isArray(library?.versions)) return raw;
+      const version = library.versions.find((row: {id: string; status: string}) =>
+        row.id === library.activeVersionId && row.status === 'approved');
+      return JSON.stringify({libraries: {fqc: {activeVersionId: library.activeVersionId, versions: version ? [version] : []}}});
+    };
     const state = await readState({
+        ...(availability ? {keys: entryKeys, aggregateReadAhead: true}
+          : query.size === 0 ? {keys: [...entryKeys, 'qualityMasterControl', 'masterDataControl'], aggregateReadAhead: true, projectValue: entryCatalog} : {}),
         ...(approved?{keys:[...authorityKeys,RF_KEY],modelKey:RF_KEY}:{}),
         deferHistory: true,
         deferDependencyHistory: true,
         ...(operationId?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','routineFqcEnabled',RF_KEY],projectValue:(key:string,raw:string)=>{if(key!==RF_KEY)return raw;const root=JSON.parse(raw);return JSON.stringify({schemaVersion:root.schemaVersion,revision:root.revision,documents:[],jobs:[],cases:[],receipts:root.receipts&&Object.hasOwn(root.receipts,operationId)?{[operationId]:root.receipts[operationId]}:{}});}}:{}),
       }),
-      actor = await identity(request, state),
-      permissions = await access(request, state);
+      entryPhase = availability || query.size === 0
+        ? await createRoutineEntryPermissionPhase(request, state)
+        : null,
+      actor = entryPhase ? entryPhase.actor : await identity(request, state);
     if (!actor) return reply({ error: 'LOGIN_REQUIRED' }, 401);
+    const permissions = await access(request, state, entryPhase?.allowed);
+    // The response is serialized before these independent revision/session reads.
+    // The phase is never shared with another request, a history read or a write.
+    const finishEntry = async (response: Response) => {
+      if (entryPhase) {
+        if (!await stateRevisionIsCurrent(state)) return reply({error:'CONCURRENT_CHANGE_RETRY'},409);
+        if (!await entryPhase.current()) return reply({error:'LOGIN_REQUIRED'},401);
+      }
+      return response;
+    };
     if (!permissions.view) return reply({ error: 'FORBIDDEN' }, 403);
     if(approved){
       if(!enabled(request,state))return reply({error:'FQC_NOT_ENABLED'},404);
@@ -80,14 +110,14 @@ export async function GET(request: Request) {
       const finalActor=await identity(request,fresh);if(!finalActor||finalActor.id!==actor.id||finalActor.sessionType!==actor.sessionType)return reply({error:'FORBIDDEN'},403);
       return new Response(text,{headers:responseHeaders});
     }
-    const c = parseRoutine(state.values[RF_KEY]),
-      sources = operationId?[]:routineSources(state);
+    const c = parseRoutine(state.values[RF_KEY]);
     if (query.has('availability'))
-      return reply({ enabled: enabled(request, state),...((c as typeof c & {pageDraftLayout?:string}).pageDraftLayout==='page-v1'?{pageDraftLayout:'page-v1'}:{}) });
+      return await finishEntry(reply({ enabled: enabled(request, state),...((c as typeof c & {pageDraftLayout?:string}).pageDraftLayout==='page-v1'?{pageDraftLayout:'page-v1'}:{}) }));
     if (!enabled(request, state))
       return reply({ error: 'FQC_NOT_ENABLED' }, 404);
     if ((c as typeof c & {pageDraftLayout?:string}).pageDraftLayout === 'page-v1' && !query.has('operationId') && !query.has('export') && !query.has('legacyArchive'))
-      return reply({enabled:true,pageDraftLayout:'page-v1',pageEndpoint:'/api/routine-fqc/page'});
+      return await finishEntry(reply({enabled:true,pageDraftLayout:'page-v1',pageEndpoint:'/api/routine-fqc/page'}));
+    const sources = operationId?[]:routineSources(state);
     if(query.has('legacyArchive')&&([...query.keys()].some(key=>!['legacyArchive','compact'].includes(key))||query.getAll('legacyArchive').length!==1||query.get('legacyArchive')!=='1'))return reply({error:'ROUTINE_PAGE_SELECTOR_INVALID'},422);
     // Search is a read-only projection under routine.view. It does not grant
     // schedule settings access and never persists preview jobs.
@@ -182,7 +212,7 @@ export async function GET(request: Request) {
         timezone: 'Asia/Ho_Chi_Minh',
       });
     }
-    return reply({
+    return await finishEntry(reply({
       control: {
         ...c,
         documents,
@@ -198,7 +228,7 @@ export async function GET(request: Request) {
       identity: actor,
       today: companyDate(),
       revision: state.revision,
-    });
+    }));
   } catch (error) {
     return reply(
       {
