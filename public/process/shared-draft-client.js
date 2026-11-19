@@ -7,6 +7,7 @@
   // Display only: retain raw transport/classifier/receipt errors.
   window.sharedDraftErrorMessage = (error, language = document.documentElement.lang) => {
     const messages = {
+      CUSTOM_TIME_FREQUENCY_READ_ONLY:['不能新增或修改時間自訂頻率。既有值只能保留；如需變更請選標準頻率。','Không thể tạo hoặc sửa tần suất thời gian tùy chỉnh. Chỉ giữ giá trị cũ; chọn tần suất chuẩn để thay đổi.'],
       NO_SUBSTANTIVE_CHANGE:['本次未送審：已儲存內容相對正式版沒有實質變更。草稿仍保留；請修改並存取草稿後再送審。撤回或發回的原快照可依規則再次送審。','Chưa gửi duyệt: nội dung đã lưu không có thay đổi thực chất so với bản có hiệu lực. Bản nháp vẫn được giữ; hãy sửa và lưu rồi gửi duyệt. Có thể gửi lại bản chụp đã rút hoặc trả về theo quy tắc.'],
       SUCCESSFUL_SAVE_REQUIRED:['請先成功儲存目前共用草稿，再送出審核。','Hãy lưu bản nháp chung thành công trước khi gửi duyệt.'],
       UNSAVED_CHANGES_SAVE_REQUIRED:['共用草稿有儲存後的新修改。請先儲存，再核對版本並送審；目前修改仍保留。','Bản nháp chung có thay đổi sau lần lưu. Hãy lưu rồi kiểm tra phiên bản trước khi gửi duyệt; các thay đổi vẫn được giữ.'],
@@ -731,6 +732,7 @@
       const proof=boundedResponses.get(error),id=error.requestId,code=error.message,action=command.action;
       const iqcLocalSave=boundedScope==='iqc'&&action==='save'&&['save-local-v1','save-local-revive-v1'].includes(command.moduleAction)&&Array.isArray(command.patches);
       if(!proof||proof.record!==boundedRecord||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||!externalCurrent()||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||''))return false;
+      if(['fqc','iqc','tooling'].includes(boundedScope)&&['apply','save','restore'].includes(action)&&error.status===422&&code==='CUSTOM_TIME_FREQUENCY_READ_ONLY')return true;
       if(boundedScope==='tooling'&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.patches)&&Array.isArray(command.guards)){
         if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return Array.isArray(error.details?.path)&&command.guards.some(guard=>JSON.stringify(guard.path)===JSON.stringify(error.details.path));
         if(error.status===409&&['ENTITY_REMOVED_OR_AMBIGUOUS','TOOLING_TRANSFER_SOURCE_CHANGED'].includes(code))return true;

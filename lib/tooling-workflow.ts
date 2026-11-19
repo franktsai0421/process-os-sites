@@ -1,3 +1,4 @@
+import {checkToolingTime} from './time-frequency-policy';
 import {parse} from './process-state';
 import {applyDraftCommand,cloneDraft,DraftConflict,stableDraftJSON,type DraftPatch} from './shared-draft';
 import {effectiveVersion,type VersionedControl,type WorkflowAdapter} from './versioned-shared-workflow';
@@ -18,7 +19,7 @@ export const toolingWorkflowAdapter:WorkflowAdapter<ToolingSnapshot,ToolingContr
   const iqc=parse(state.values.iqcMasterControl,{activeVersionId:null,versions:[]}) as {activeVersionId:string|null;versions:{id:string;status:string;snapshot:{parts:{id:string;isDeleted?:boolean;isEnabled?:boolean}[]}}[]};
   const iqcParts=iqc.versions.find(v=>v.id===iqc.activeVersionId&&v.status==='approved')?.snapshot.parts||[],iqcIds=new Set(iqcParts.filter(p=>!p.isDeleted&&p.isEnabled!==false).map(p=>p.id));
   return {...base,activeId:control.activeVersionId,advisoryPolicy:'tooling-completeness-v1',semantic:s=>s,validate:s=>[...toolingIssues(s),...s.tools.flatMap(t=>t.iqcIds.filter(id=>!iqcIds.has(id)).map(id=>({kind:'missing' as const,code:'TOOLING_IQC_SOURCE_UNAVAILABLE',path:['tools',{id:t.id},'iqcIds'],message:(iqcParts.some(p=>p.id===id&&!p.isDeleted)?'IQC đã ngưng / IQC 已停用':'IQC đã bị gỡ; cần đối chiếu lại / IQC 來源已移除／待重新對應')+' · '+id})))],
-   structure(content,previous){checkTooling(content);
+   structure(content,previous){checkTooling(content);for(const row of content.tools)checkToolingTime(row,previous.tools.find(old=>old.id===row.id));
     for(const key of Object.keys(fields) as (keyof ToolingSnapshot)[])for(const old of previous[key]){const next=content[key].find(r=>r.id===old.id);if(!next){if(active[key].some(r=>r.id===old.id)||key==='tools'&&previous.transfers.some(t=>t.toolId===old.id))throw new DraftConflict('TOOLING_HISTORY_DELETE_FORBIDDEN',422);continue;}
      if('code'in old&&!same(old.code,'code'in next?next.code:undefined))throw new DraftConflict('TOOLING_CODE_IMMUTABLE',422);
      if('source'in old&&!same(old.source,'source'in next?next.source:undefined))throw new DraftConflict('TOOLING_SOURCE_IMMUTABLE',422);

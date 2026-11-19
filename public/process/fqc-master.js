@@ -216,7 +216,7 @@
     prepareMatrixRecovery();if(ui.saving)return;await ensureMatrixRecoveryReady();
     const session=matrixRecoverySession,owned=currentReadOwner(workspaceReady),inventory=session.discover();
     const overlay=document.createElement('div');overlay.className='fqc-modal-overlay fqc-recovery-overlay';
-    const heading=isVi()?'Bản khôi phục trên thiết bị này':'此裝置本機恢復紀錄';
+    const heading=isVi()?'Kiểm tra thao tác chưa hoàn tất':'檢查未完成操作';
     overlay.innerHTML=`<section class="fqc-modal" role="dialog" aria-modal="true" aria-label="${heading}"><header class="fqc-modal-header"><h3>${heading}</h3></header><div class="fqc-modal-body"><p>${isVi()?'Không tự điền, không tự gửi. Phải lấy khóa độc quyền trước khi xem; không đọc bản đang dùng ở tab khác.':'不自動填入、不自動送出。先取得獨占鎖才讀取預覽；不讀取其他分頁使用中的記錄。'}</p><p data-recovery-message role="status"></p><div data-recovery-list></div><pre data-recovery-preview style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></div><footer class="fqc-modal-actions"><button type="button" class="button ghost" data-recovery-close>${isVi()?'Đóng':'關閉'}</button></footer></section>`;
     document.body.append(overlay);
     const message=overlay.querySelector('[data-recovery-message]'),list=overlay.querySelector('[data-recovery-list]'),detail=overlay.querySelector('[data-recovery-preview]');
@@ -226,7 +226,7 @@
       choose.onclick=async()=>{try{
         const claimed=await session.claim(item.key);if(!owned()||session!==matrixRecoverySession||!overlay.isConnected)return;if(!claimed.ok)throw Error(claimed.code);
         const preview=session.preview(item.key);if(!preview.ok)throw Error(preview.code);actions.replaceChildren();detail.textContent=JSON.stringify(preview.kind==='local'?preview.payload:preview.receipt,null,2);
-        const choices=preview.kind==='unknown'?[['receipt',isVi()?'Kiểm tra biên nhận':'查原回執']]:preview.kind==='resolved'?[['finalize',isVi()?'Hoàn tất dọn bản đã xác nhận':'完成已確認記錄清理']]:[['restore',isVi()?'Khôi phục cục bộ':'恢復至本機'],['discard',isVi()?'Bỏ bản này':'放棄此紀錄']];
+        const choices=preview.kind==='unknown'?[['receipt',isVi()?'Kiểm tra biên nhận':'查原回執']]:preview.kind==='resolved'?[['finalize',isVi()?'Hoàn tất dọn bản đã xác nhận':'完成已確認記錄清理']]:[];
         for(const [action,label]of choices){const button=document.createElement('button');button.type='button';button.className='button ghost';button.textContent=label;button.onclick=async()=>{if(!owned()||session!==matrixRecoverySession){overlay.remove();return;}try{
           const confirmPreview=value=>{detail.textContent=JSON.stringify(value.payload||value.receipt,null,2);return window.confirm(isVi()?'Xác nhận thao tác chỉ cho bản cục bộ đã xem? Không tự gửi.':'確認只處理預覽中的本機紀錄？不會自動共享。');};
           if(action==='restore')await restoreMatrixRecord(item.key,confirmPreview);else if(action==='discard')await discardMatrixRecord(item.key,confirmPreview);else if(action==='receipt')await resolveMatrixRecord(item.key);else await finalizeMatrixRecord(item.key,confirmPreview);
@@ -243,7 +243,8 @@
   const unappliedMessage=()=>isVi()?'Hãy lưu thay đổi trước khi gửi duyệt.':'請先按存取保存本次修改，再送審。';
   function assertNoUnapplied(){if(localDirty()||document.querySelector('.fqc-modal-overlay'))throw Error(unappliedMessage());}
   function matrixSelected(item,versionId){const row=matrixOwner()&&matrixBatch.versionId===versionId?matrixBatch.rows.get(item.id):null;return row?.codes||(Array.isArray(item.productCodes)?new Set(item.productCodes):null);}
-  function matrixToolbarHTML(){return `<section class="fqc-matrix-actions" data-i18n-skip="true" aria-label="${isVi()?'Thay đổi ma trận cục bộ, dùng chung sau khi lưu':'本機矩陣變更，按存取後共用'}"><strong id="fqc-matrix-count" role="status"></strong><span id="fqc-matrix-message" role="alert"></span><div><button type="button" class="button signal" id="fqc-matrix-apply"></button><details id="fqc-matrix-more"><summary>${isVi()?'Tùy chọn chỉnh sửa / khôi phục':'編輯／復原選項'}</summary><div><button type="button" class="button ghost" id="fqc-matrix-discard"></button><button type="button" class="button ghost" id="fqc-matrix-reconcile" hidden></button><button type="button" class="button ghost" id="fqc-matrix-recovery">${isVi()?'Xem bản khôi phục':'查看本機恢復'}</button></div></details></div></section>`;}
+  function matrixToolbarHTML(){return `<section class="fqc-operation-status" hidden data-i18n-skip="true" aria-label="${isVi()?'Kết quả thao tác cần kiểm tra':'待查詢的操作結果'}"><strong id="fqc-matrix-count" role="status" hidden></strong><span id="fqc-matrix-message" role="alert"></span><button type="button" class="button ghost" id="fqc-matrix-apply" hidden></button><button type="button" class="button ghost" id="fqc-matrix-recovery" hidden>${isVi()?'Kiểm tra thao tác chưa hoàn tất':'檢查未完成操作'}</button></section>`;}
+
   const matrixCanEdit=()=>!!editable()&&!library().workflow?.pendingId&&canEditDraft()&&sharedClient?.permission('edit')!==false;
   function paintMatrixActions(){
     window.VersionDraftUI?.updateSaved?.(hostElement,library().workflow,localDirty());
@@ -260,10 +261,14 @@
     const note=matrixRecoveryNote==='MATRIX_SHARED_APPLIED'?(savedCurrent?(isVi()?'Đã cập nhật bản nháp chung; đã lưu bản chụp.':'已更新共用草稿；快照已儲存。'):(isVi()?'Đã cập nhật bản nháp chung; chưa lưu bản chụp.':'已更新共用草稿；尚未儲存快照。')):matrixRecoveryNote;
     message.textContent=[matrixRecoveryError,batch?.storageError,batch?.error,persistFailure,note,rejectedCleanup].filter(Boolean).join(' ');
     apply.hidden=!unknown;apply.textContent=unknown?(isVi()?'Kiểm tra kết quả áp dụng':'查詢套用結果'):(isVi()?'Áp dụng thiết lập ma trận mới':'套用新矩陣設定');
-    discard.textContent=isVi()?'Bỏ lựa chọn lần này':'放棄本次勾選';
+    if(discard)discard.textContent=isVi()?'Bỏ lựa chọn lần này':'放棄本次勾選';
     const more=hostElement?.querySelector('#fqc-matrix-more');if(more&&(unknown||batch?.error||batch?.storageError||matrixRecoveryError))more.open=true;
     if(reconcile){reconcile.textContent=isVi()?'Đối chiếu lựa chọn mới nhất':'核對最新勾選';reconcile.hidden=!!batch?.completeMatrix||!count||unknown||!batch?.error;reconcile.disabled=ui.saving||matrixRecoveryBlocked;}
-    apply.disabled=ui.saving||!count||matrixRecoveryBlocked||!matrixRecoveryReady||!unknown&&!matrixCanEdit();discard.disabled=ui.saving||!count&&!hasMatrixConflicts(batch)||unknown;
+    apply.disabled=ui.saving||!count||matrixRecoveryBlocked||!matrixRecoveryReady||!unknown&&!matrixCanEdit();if(discard)discard.disabled=ui.saving||!count&&!hasMatrixConflicts(batch)||unknown;
+    const safety=hostElement?.querySelector('.fqc-operation-status'),recovery=hostElement?.querySelector('#fqc-matrix-recovery');
+    const needsRecovery=matrixRecoveryBlocked||!!batch?.rejectionCleanup||!!persistFailure;
+    if(recovery)recovery.hidden=!needsRecovery;
+    if(safety)safety.hidden=!(unknown||needsRecovery||matrixRecoveryError||batch?.storageError||batch?.error);
   }
   function toggleMatrixChoice(button){
     if(!restoreMatrixChoices()){paintMatrixActions();return;}
@@ -298,34 +303,6 @@
     for(const row of input.items){const changed=batch.rows.get(row.id);if(changed)row.productCodes=[...changed.codes];}
     if(new TextEncoder().encode(JSON.stringify(input)).length>1_800_000)throw Error('FQC_MATRIX_TOO_LARGE');
     return {moduleAction:'replace-matrix-v1',input};
-  }
-  function confirmMatrixReconcile(rows){
-    const overlay=document.createElement('div');overlay.className='fqc-modal-overlay';
-    const label=()=>isVi()?'Đối chiếu lựa chọn mới nhất':'核對最新勾選',values=codes=>codes.length?codes.join(', '):(isVi()?'Không có':'無');
-    overlay.innerHTML=`<section class="fqc-modal" role="dialog" aria-modal="true" aria-label="${label()}"><header class="fqc-modal-header"><h3>${label()}</h3></header><div class="fqc-modal-body"><p>${isVi()?'Xác nhận chỉ cập nhật giá trị đối chiếu, giữ thay đổi của bạn và lựa chọn khác của người khác. Sau đó hãy bấm Áp dụng.':'確認只更新比對基準，保留你的變更與他人其他勾選；之後仍需按「套用勾選變更」。'}</p>${rows.map(row=>`<article><strong>${h(row.label)}</strong><dl><dt>${isVi()?'Giá trị gốc':'原值'}</dt><dd>${h(values(row.base))}</dd><dt>${isVi()?'Bản chung mới nhất':'共享最新'}</dt><dd>${h(values(row.latest))}</dd><dt>${isVi()?'Lựa chọn của tôi':'我的選擇'}</dt><dd>${h(values(row.mine))}</dd></dl></article>`).join('')}</div><footer class="fqc-modal-actions"><button class="button ghost" data-matrix-review-cancel>${isVi()?'Giữ nguyên, quay lại':'保留原狀，返回'}</button><button class="button signal" data-matrix-review-confirm>${isVi()?'Xác nhận đối chiếu, chưa áp dụng':'確認核對，尚不套用'}</button></footer></section>`;
-    document.body.append(overlay);return new Promise(resolve=>{const close=value=>{overlay.remove();resolve(value);};overlay.querySelector('[data-matrix-review-confirm]').onclick=()=>close(true);overlay.querySelector('[data-matrix-review-cancel]').onclick=()=>close(false);overlay.querySelector('[data-matrix-review-cancel]').focus();});
-  }
-  async function reconcileMatrixChoices(){
-    if(!matrixDirty()||matrixRecoveryBlocked||!matrixBatch||ui.saving)return;
-    if(matrixBatch.completeMatrix)return;
-    const batch=matrixBatch,owned=currentReadOwner(),client=transport(),choiceRevision=matrixChoiceRevision,localRevision=library().workflow?.revision,operation={owned};let refreshed=false;activeSharedAction=operation;ui.saving=true;paintMatrixActions();
-    const checkCurrent=()=>{if(!owned()||matrixBatch!==batch)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(matrixChoiceRevision!==choiceRevision||library().workflow?.revision!==localRevision||library().workflow?.generation!==batch.generation)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');if(batch.pending||client.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');};
-    const checkFlow=result=>{const flow=result?.control?.workflow;if(!flow||flow.generation!==batch.generation)throw Error('STALE_GENERATION');if(flow.pendingId)throw Error('PENDING_LOCKED');if(!result.control.versions?.some(version=>version.id===batch.versionId&&version.status==='draft'))throw Error('STALE_GENERATION');for(const id of batch.rows.keys())if(!flow.working?.items?.some(item=>item.id===id&&!item.isDeleted))throw Error(isVi()?'Hạng mục đã bị xóa; giữ lựa chọn, không thể đối chiếu tự động.':'檢查項目已刪除；勾選仍保留，無法自動核對。');return flow;};
-    try{
-      checkCurrent();if(document.querySelector('.fqc-modal-overlay'))throw Error(unappliedMessage());
-      const read=await client.read();checkCurrent();const flow=checkFlow(read),comparisons=[];
-      for(const [id,row]of batch.rows){const latest=flow.working.items.find(item=>item.id===id);comparisons.push({label:latest.checkNo||latest.name||id,base:row.base.productCodes||[],latest:latest.productCodes||[],mine:[...row.codes]});}
-      if(!await confirmMatrixReconcile(comparisons))return;checkCurrent();
-      const confirmed=await client.read();checkCurrent();const current=checkFlow(confirmed);if(current.revision!==flow.revision)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
-      const rows=new Map();let count=0;
-      for(const [id,row]of batch.rows){const latest=current.working.items.find(item=>item.id===id),codes=new Set(latest.productCodes||[]),changed=new Set();for(const code of row.changed){if(row.codes.has(code))codes.add(code);else codes.delete(code);if(codes.has(code)!==(latest.productCodes||[]).includes(code))changed.add(code);}if(!changed.size)continue;const base={};for(const key of ['productCodes','productRefs','products'])base[key]=latest[key]===undefined?undefined:clone(latest[key]);rows.set(id,{base,codes,changed});count+=changed.size;}
-      const session=matrixRecoverySession,nextBase=matrixBase(current,batch.versionId);matrixRecoveryVerified={owned,flow:current,baseVersion:nextBase};
-      const rebased=await session.rebaseLocal({baseVersion:nextBase,workflow:{...current,scope:'FQC:matrix'},localRevision:matrixChoiceRevision,payload:matrixSnapshot({...batch,rows,count})});if(!rebased.ok||!rebased.durable)throw Error(rebased.code||'RECOVERY_NOT_DURABLE');
-      checkCurrent();if(session!==matrixRecoverySession)throw Error('RECOVERY_CONTEXT_CHANGED');
-      batch.rows=rows;batch.count=count;batch.error='';ui.lastError=null;matrixChoiceRevision++;matrixRecoveryNote=isVi()?'Đã đối chiếu; lựa chọn vẫn chưa gửi. Hãy bấm Áp dụng.':'已核對，勾選仍未送出；請再按「套用勾選變更」。';
-      adopt(confirmed);matrixRecoveryBase=nextBase;matrixRecoveryReady=session.status().ready===true;batch.storageError='';refreshed=true;
-    }catch(error){if(owned()&&matrixBatch===batch){batch.error=displayDraftError(error);ui.lastError=error.message;}}
-    finally{matrixRecoveryVerified=null;if(activeSharedAction===operation){activeSharedAction=null;ui.saving=false;if(owned()&&matrixBatch===batch){paintMatrixActions();if(refreshed)render();}}}
   }
   async function applyMatrixChoices(){
     if(!matrixDirty()||matrixRecoveryBlocked||!matrixBatch||ui.saving)return;
@@ -1160,6 +1137,7 @@
   function mountApprovedHistory(shell,log,empty){
     const client=transport(),page=hostElement,mount=mountSequence;approvedHistoryView?.retire();
     approvedHistoryView=window.VersionDraftUI.createApprovedHistory({root:hostElement.querySelector('#fqc-page'),shell,client,empty,selectId:'fqc-approved-version',cacheKey:library().activeVersionId||null,
+      emptyHistoryLabel:()=>isVi()?'Chưa có hồ sơ phê duyệt; nguồn lịch hiện hành: '+(approved()?'V'+approved().number:'—'):'尚無審核紀錄；現行排程來源：'+(approved()?'V'+approved().number:'—'),
       isCurrent:()=>page===hostElement&&mount===mountSequence&&sharedClient===client&&fqcTabIsActive(),
       canChoose:()=>!ui.saving&&!activeSharedAction&&!activeSaveComparison&&!document.querySelector('.fqc-modal-overlay'),
       onBoundary(){historyDisplayEpoch++;},
@@ -1193,13 +1171,14 @@
         <div class="master-version-actions fqc-version-actions">
           <div class="fqc-version-select-wrap">
             <label>選擇版本／草稿</label>
-            <select id="fqc-version">${versions().map(item => `<option value="${h(item.id)}" ${item.id === version.id ? 'selected' : ''}>${h(item.number)} · ${h(statusLabel(item.status))} · ${h(displayScalar(historyDisplay(lastEdit(item)).actor,item.creatorName))} · ${formatDate(lastEdit(item)?.at || item.createdAt)}</option>`).join('')}</select>
+            <select id="fqc-version">${versions().map(item => `<option value="${h(item.id)}" ${item.id === version.id ? 'selected' : ''}>${h(item.number)} · ${h(statusLabel(item.status))}${item.id===library().activeVersionId&&item.status==='approved'?' · '+(isVi()?'Nguồn lịch hiện hành':'現行排程來源'):''} · ${h(displayScalar(historyDisplay(lastEdit(item)).actor,item.creatorName))} · ${formatDate(lastEdit(item)?.at || item.createdAt)}</option>`).join('')}</select>
           </div>
           ${(version.status === 'approved'||version.status === 'draft'&&!library().workflow) && canEditDraft() ? '<button class="button signal" id="fqc-begin">開始修改／刪除資料</button>' : ''}
           ${version.status === 'draft' && canDraftAction('save') ? `<button class="button ghost" id="fqc-save" ${ui.saving ? 'disabled' : ''}>${ui.saving ? '儲存中…' : '存取'}</button>` : ''}${version.status === 'draft' && canDraftAction('submit') ? `<button class="button signal" id="fqc-submit">送出主管審核</button>` : ''}
           ${version.status === 'pending' && canWithdrawDraft() ? '<button class="button ghost" id="fqc-withdraw">解除送審</button>' : ''}
         </div>
       </section>
+      <p class="fqc-source-version-note" role="note">${isVi()?'Nguồn lịch hiện hành':'現行排程來源'}：${h(approved()?'V'+approved().number:'—')}。${isVi()?'Danh sách lịch sử chỉ chứa phiên bản có hồ sơ phê duyệt.':'歷史選單列有審核紀錄的版本。'}${version.id!==approved()?.id?(isVi()?'Nội dung này chưa phải nguồn lịch hiện hành.':'目前內容不是現行排程來源。'):''}</p>
       ${problemsCardHTML(version, 'error', versionProblems)}${problemsCardHTML(version, 'missing', versionProblems)}
       <details class="master-history fqc-activity"><summary>${isVi()?'Lịch sử thao tác':'歷史操作'} · ${(version.history||[]).length}</summary>${(version.history||[]).slice().reverse().map(event=>{const entry=historyDisplay(event);return `<p>${h(entry.label)} · ${h(entry.actor)} · ${formatDate(event.at)} ${entry.note?h(entry.note):''}</p>`;}).join('') || `<p>${isVi()?'Chưa có thao tác':'尚無操作紀錄'}</p>`}</details>
       <section class="master-toolbar fqc-toolbar">
@@ -1285,7 +1264,7 @@
                   </td>
                   <td class="col-item-actions">
                     <div class="master-row-actions">
-                      <button class="master-small" data-routine-history="${h(item.id)}">${isVi()?'Lịch sử kiểm tra':'例行檢查回查'}</button>
+                      <button class="master-small" data-inspect-item="${h(item.id)}">${isVi()?'Xem':'查看'}</button>
                       ${canEdit ? `
                         <button class="master-small" data-edit-item="${h(item.id)}">修改</button>
                         <button class="master-small danger" data-delete-item="${h(item.id)}">刪除</button>
@@ -1423,12 +1402,10 @@
     root.querySelectorAll('[data-delete-error]').forEach(button => button.onclick = guardWorking(button,() => deleteError(button.dataset.deleteError)));
     root.querySelector('#fqc-add-item')?.addEventListener('click', guardWorking(root.querySelector('#fqc-add-item'),() => openItemModal()));
     root.querySelectorAll('[data-edit-item]').forEach(button => button.onclick = guardWorking(button,() => openItemModal(button.dataset.editItem)));
-    root.querySelectorAll('[data-routine-history]').forEach(button => button.onclick = guardWorking(button,() => window.RoutineFQCUI?.historyForItem?.(button.dataset.routineHistory)));
+    root.querySelectorAll('[data-inspect-item]').forEach(button => button.onclick = guardWorking(button,() => openItemModal(button.dataset.inspectItem, '', false, true)));
     root.querySelectorAll('[data-delete-item]').forEach(button => button.onclick = guardWorking(button,() => deleteItem(button.dataset.deleteItem)));
     root.querySelectorAll('[data-matrix-item]').forEach(button => button.onclick = guardWorking(button,() => toggleMatrixChoice(button)));
     root.querySelector('#fqc-matrix-apply')?.addEventListener('click',guardWorking(root.querySelector('#fqc-matrix-apply'),applyMatrixChoices));
-    root.querySelector('#fqc-matrix-discard')?.addEventListener('click',guardWorking(root.querySelector('#fqc-matrix-discard'),discardMatrixChoices));
-    root.querySelector('#fqc-matrix-reconcile')?.addEventListener('click',guardWorking(root.querySelector('#fqc-matrix-reconcile'),reconcileMatrixChoices));
     root.querySelector('#fqc-matrix-recovery')?.addEventListener('click',guardWorking(root.querySelector('#fqc-matrix-recovery'),openMatrixRecovery));
     root.querySelectorAll('[data-add-existing]').forEach(button => button.onclick = guardWorking(button,() => openExistingModal(button.dataset.addExisting)));
     root.querySelectorAll('[data-add-new-product]').forEach(button => button.onclick = guardWorking(button,() => openItemModal('', button.dataset.addNewProduct)));
@@ -2049,11 +2026,13 @@
     return closeView;
   }
 
-  function openItemModal(id = '', preselectCode = '', focusRule = false) {
+  function openItemModal(id = '', preselectCode = '', focusRule = false, readOnly = false) {
+    if(readOnly&&document.querySelector('.fqc-modal-overlay'))return;
     const formActor=identity(),formActorId=formActor?.id,formGeneration=library().workflow?.generation,formVersionId=editable()?.id;
     const formCurrent=()=>overlay.isConnected&&identity()===formActor&&formActor?.id===formActorId&&library().workflow?.generation===formGeneration&&editable()?.id===formVersionId;
     const assertFormCurrent=()=>{if(!formCurrent())throw Error('DEPENDENCY_CHANGED_RECONFIRM');if(library().workflow?.pendingId||transport().permission('edit')===false)throw Error('PENDING_OR_PERMISSION_LOCKED');};
-    const version = {...clone(editable()),snapshot:localSnapshot()}, errors = errorRows(version, categoryName(version)), items = version.snapshot.items, existing = items.find(item => item.id === id), error = errors.find(item => item.id === (existing?.errorId || ui.selectedErrorId)) || errors[0]; if (!error) return;
+    const baseVersion=readOnly?selected():editable();if(!baseVersion)return;
+    const version = {...clone(baseVersion),snapshot:editable()?.id===baseVersion.id?localSnapshot():clone(baseVersion.snapshot)}, errors = errorRows(version, categoryName(version)), items = version.snapshot.items, existing = items.find(item => item.id === id), error = errors.find(item => item.id === (existing?.errorId || ui.selectedErrorId)) || errors[0]; if (!error) return;
     const newId = `fqc-item:${crypto.randomUUID()}`;
     const productCodes = new Set(existing?.productCodes || []); if (preselectCode) productCodes.add(preselectCode);
     const products = effectiveProducts(error.category), checkNo = existing?.checkNo || nextCheckNo(error, items);
@@ -2071,7 +2050,7 @@
     }
     let toolType = initialToolType;
 
-    const overlay = modal(`<form class="fqc-modal-form fqc-item-form"><header><h2>${existing ? (vi ? 'Sửa hạng mục kiểm tra' : '修改檢查項目') : (vi ? 'Thêm hạng mục kiểm tra mới' : '新增檢查項目')} · ${h(checkNo)}</h2><button type="button" class="button ghost" data-close>${vi ? 'Quay lại' : '返回'}</button></header><div class="fqc-modal-body">
+    const overlay = modal(`<form class="fqc-modal-form fqc-item-form"><header><h2>${readOnly ? (vi ? 'Xem hạng mục kiểm tra (chỉ đọc)' : '查看檢查項目（唯讀）') : existing ? (vi ? 'Sửa hạng mục kiểm tra' : '修改檢查項目') : (vi ? 'Thêm hạng mục kiểm tra mới' : '新增檢查項目')} · ${h(checkNo)}</h2><button type="button" class="button ghost" data-close>${vi ? 'Quay lại' : '返回'}</button></header><div class="fqc-modal-body">
       <div class="fqc-form-grid">
         <div class="fqc-field"><label class="fqc-label">${vi ? 'Mã lỗi' : '錯誤代碼'}</label><select name="errorId" class="fqc-select">${errors.map(item => `<option value="${h(item.id)}" ${item.id === error.id ? 'selected' : ''}>${h(item.code)} · ${h(item.name)}</option>`).join('')}</select></div>
         <div class="fqc-field"><label class="fqc-label">${vi ? 'Mã kiểm tra FQC (tự động)' : 'FQC 檢查編號（自動）'}</label><input value="${h(checkNo)}" readonly data-i18n-skip="true" class="fqc-input fqc-readonly"></div>
@@ -2185,13 +2164,13 @@
                 <option value="quarterly" ${currentRule.timeFrequency === 'quarterly' ? 'selected' : ''}>${vi ? 'Hàng quý' : '每季'}</option>
                 <option value="half_yearly" ${currentRule.timeFrequency === 'half_yearly' ? 'selected' : ''}>${vi ? 'Nửa năm' : '每半年'}</option>
                 <option value="yearly" ${currentRule.timeFrequency === 'yearly' ? 'selected' : ''}>${vi ? 'Hàng năm' : '每年'}</option>
-                <option value="custom" ${currentRule.timeFrequency === 'custom' ? 'selected' : ''}>${vi ? 'Tùy chỉnh' : '自訂'}</option>
+                ${currentRule.timeFrequency === 'custom' ? `<option value="custom" selected disabled>${vi ? 'Giá trị cũ (chỉ đọc)' : '既有自訂（唯讀）'}</option>` : ''}
               </select>
             </div>
 
             <div id="fqc-time-custom-wrap" class="fqc-field" data-field-wrap="customTimeText" style="${currentRule.cadence === 'time' && currentRule.timeFrequency === 'custom' ? '' : 'display:none;'}">
-              <label class="fqc-label">${vi ? 'Mô tả chu kỳ tùy chỉnh (bắt buộc)' : '自訂週期說明（自訂內容不可空白）'}</label>
-              <input type="text" name="customTimeText" id="fqc-time-custom" class="fqc-input" value="${h(currentRule.customTimeText || '')}" placeholder="${vi ? 'Nhập mô tả chu kỳ' : '請輸入自訂時間週期說明'}" data-i18n-skip="true">
+              <label class="fqc-label">${vi ? 'Giữ nguyên giá trị cũ; chọn tần suất chuẩn để thay đổi' : '既有值保留；如需變更請選標準頻率'}</label>
+              <input type="text" name="customTimeText" readonly id="fqc-time-custom" class="fqc-input" value="${h(currentRule.customTimeText || '')}" placeholder="${vi ? 'Nhập mô tả chu kỳ' : '請輸入自訂時間週期說明'}" data-i18n-skip="true">
               <div class="fqc-field-error" data-field-error="customTimeText"></div>
             </div>
           </div>
@@ -2205,6 +2184,19 @@
       <div class="fqc-field"><label class="fqc-label">${vi ? 'Ghi chú' : '備註'}</label><textarea name="note" data-i18n-skip="true" class="fqc-textarea">${h(existing?.note || '')}</textarea></div>
       <p class="fqc-system-note">${vi ? 'Phiên bản' : '版本'} ${h(version.number)} · ${vi ? 'Tài khoản sửa' : '修改帳號'} ${h(actor().id)} · ${vi ? 'Thời gian lưu do máy chủ ghi nhận' : '儲存時間由伺服器完成後記錄'}</p>
     </div><footer><div class="fqc-modal-alert" role="alert"></div><button class="button signal" type="submit">${vi ? 'Hoàn tất chỉnh sửa' : '完成編輯'}</button><button type="button" class="button ghost" data-close>${vi ? 'Hủy' : '取消'}</button></footer></form>`);
+
+    // Same field template and snapshot as Edit, but no edit handlers, form
+    // ownership, upload or Save path is installed for a read-only view.
+    if(readOnly){
+      renderPhotoList();
+      const form=overlay.querySelector('form');form.classList.add('fqc-item-readonly');
+      form.onsubmit=event=>{event.preventDefault();return false;};
+      for(const button of form.querySelectorAll('button'))if(!button.hasAttribute('data-close'))button.remove();
+      for(const input of form.querySelectorAll('input,textarea,select')){input.disabled=true;input.setAttribute('aria-readonly','true');}
+      overlay.querySelectorAll('[data-close]').forEach(button=>{button.textContent=vi?'Đóng':'關閉';button.onclick=()=>closeModal(overlay);});
+      overlay.querySelector('[data-close]')?.focus();
+      return overlay;
+    }
 
     overlay.querySelectorAll('[data-close]').forEach(button => button.onclick = guardWorking(button,() => closeModal(overlay)));
 
@@ -2280,6 +2272,7 @@
         </div>
       `).join('');
 
+      if(readOnly)return;
       container.querySelectorAll('[data-photo-note]').forEach(input => {
         input.oninput = guardWorking(input,e => {
           const i = Number(e.target.dataset.photoNote);
@@ -2438,8 +2431,8 @@
       const batchQuantity = nativeFormValueText(form.get('batchQuantity') || '').trim();
       const customBatchText = typeof form.get('customBatchText') === 'string' ? form.get('customBatchText').trim() : '';
       const customBatchValue = typeof form.get('customBatchValue') === 'string' ? form.get('customBatchValue').trim() : '';
-      const timeFrequency = nativeFormValueText(form.get('timeFrequency') || 'monthly');
-      const customTimeText = nativeFormValueText(form.get('customTimeText') || '').trim();
+      const timeFrequency = nativeFormValueText(form.get('timeFrequency') || (currentRule.timeFrequency === 'custom' ? 'custom' : 'monthly'));
+      const customTimeText = currentRule.timeFrequency === 'custom' ? (currentRule.customTimeText || '') : nativeFormValueText(form.get('customTimeText') || '').trim();
 
       let finalRule = { cadence: ruleCadence };
 
@@ -2477,11 +2470,11 @@
         }
       } else if (ruleCadence === 'time') {
         if (timeFrequency === 'custom') {
-          if (!customTimeText) {
-            showModalFieldError(overlay, 'customTimeText', vi ? 'Vui lòng nhập mô tả chu kỳ' : '自訂週期說明不可空白');
+          if (currentRule.cadence !== 'time' || currentRule.timeFrequency !== 'custom' || customTimeText !== (currentRule.customTimeText || '')) {
+            showModalFieldError(overlay, 'customTimeText', vi ? 'Chọn tần suất chuẩn; không sửa giá trị tùy chỉnh cũ' : '請選標準頻率；既有自訂值不可修改');
             return;
           }
-          finalRule = { cadence: 'time', timeFrequency: 'custom', customTimeText };
+          finalRule = clone(currentRule);
         } else {
           finalRule = { cadence: 'time', timeFrequency };
         }

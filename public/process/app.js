@@ -3718,6 +3718,12 @@ document
   .forEach((item) => (item.onclick = () => navigate(item.dataset.view)));
 document.querySelector('#menu-toggle').onclick = () =>
   document.querySelector('.sidebar').classList.toggle('open');
+// Close mobile navigation without dispatching a business action.
+document.addEventListener('click', (event) => {
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar?.classList.contains('open') && !event.target.closest('.sidebar, #menu-toggle')) sidebar.classList.remove('open');
+});
+
 document.querySelector('#account-button').onclick = () =>
   document.querySelector('#account-menu').classList.toggle('open');
 document.querySelector('#logout-button').onclick = async () => {

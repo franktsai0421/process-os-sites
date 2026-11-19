@@ -29,7 +29,10 @@ import {
   reportAvailability,
   cancellationDependencies,
   planFamily,
+  routineCaseOutcome,
+  routineDocumentReviewIssues,
   reportIssues,
+  routineSourceTimeline,
   type RoutineCommand,
 } from '@/lib/routine-fqc';
 
@@ -59,6 +62,7 @@ export async function GET(request: Request) {
     // Only the full page consumes the approved FQC and master catalogs.
     const availability = query.size === 1 && query.get('availability') === '1';
     const entryKeys = [...authorityKeys, RF_KEY];
+    const pendingOnly = query.size === 1 && query.get('pending-count') === '1';
     // Both consumers of this dependency use only the active, approved FQC
     // version. Keep its metadata and complete snapshot, including image refs.
     const entryCatalog = (key: string, raw: string) => {
@@ -72,6 +76,7 @@ export async function GET(request: Request) {
     const state = await readState({
         ...(availability ? {keys: entryKeys, aggregateReadAhead: true}
           : query.size === 0 ? {keys: [...entryKeys, 'qualityMasterControl', 'masterDataControl'], aggregateReadAhead: true, projectValue: entryCatalog} : {}),
+        ...(pendingOnly ? {keys: entryKeys, aggregateReadAhead: true} : {}),
         ...(approved?{keys:[...authorityKeys,RF_KEY],modelKey:RF_KEY}:{}),
         deferHistory: true,
         deferDependencyHistory: true,
@@ -117,6 +122,11 @@ export async function GET(request: Request) {
       return reply({ error: 'FQC_NOT_ENABLED' }, 404);
     if ((c as typeof c & {pageDraftLayout?:string}).pageDraftLayout === 'page-v1' && !query.has('operationId') && !query.has('export') && !query.has('legacyArchive'))
       return await finishEntry(reply({enabled:true,pageDraftLayout:'page-v1',pageEndpoint:'/api/routine-fqc/page'}));
+    if (pendingOnly) {
+      if (!await stateRevisionIsCurrent(state)) return reply({error:'CONCURRENT_CHANGE_RETRY'},409);
+      if ((await identity(request,state))?.id !== actor.id) return reply({error:'LOGIN_REQUIRED'},401);
+      return reply({enabled:true,pendingCount:c.documents.filter(d=>!d.cancelled&&d.flow.pendingId).length,revision:state.revision});
+    }
     const sources = operationId?[]:routineSources(state);
     if(query.has('legacyArchive')&&([...query.keys()].some(key=>!['legacyArchive','compact'].includes(key))||query.getAll('legacyArchive').length!==1||query.get('legacyArchive')!=='1'))return reply({error:'ROUTINE_PAGE_SELECTOR_INVALID'},422);
     // Search is a read-only projection under routine.view. It does not grant
@@ -171,8 +181,8 @@ export async function GET(request: Request) {
       familyId: planFamily(c, d),
       reportAvailability: d.kind === 'plan' ? reportAvailability(c, d) : [],
       dependencies: cancellationDependencies(c, d),
-      workingIssues: reportIssues(d.flow.working, d.kind),
-      savedIssues: d.flow.saved ? reportIssues(d.flow.saved.content, d.kind) : [],
+      workingIssues: c.calendarPolicy ? routineDocumentReviewIssues(c, d, d.flow.working) : reportIssues(d.flow.working, d.kind),
+      savedIssues: d.flow.saved ? (c.calendarPolicy ? routineDocumentReviewIssues(c, d, d.flow.saved.content) : reportIssues(d.flow.saved.content, d.kind)) : [],
       flow: {
         ...d.flow,
         receipts: {},
@@ -219,6 +229,7 @@ export async function GET(request: Request) {
         cases: c.cases.map((item) => ({
           ...item,
           unresolvedFailureSamples: unresolvedFailureSamples(c, item),
+          ...(c.calendarPolicy ? {workflowOutcome: routineCaseOutcome(c, item)} : {}),
         })),
         receipts: {},
       },
@@ -276,9 +287,9 @@ export async function POST(request: Request) {
       if (state.values.maintenanceMode === '1')
         return reply({ error: 'MAINTENANCE' }, 503);
       const permissions = await access(request, state);
-      if (!permissions.view) return reply({ error: 'FORBIDDEN' }, 403);
-      if(['create-plan','create-report'].includes(command.action)&&!await can(request,state,'routine.create'))return reply({error:'FORBIDDEN'},403);
-      if(['discard-draft','delete-plan'].includes(command.action)&&!await can(request,state,'routine.delete'))return reply({error:'FORBIDDEN'},403);
+      if (!permissions.view) return reply({ error: 'FORBIDDEN', requestId }, 403);
+      if(['create-plan','create-report','request'].includes(command.action)&&!await can(request,state,'routine.create'))return reply({error:'FORBIDDEN',requestId},403);
+      if(['discard-draft','delete-plan'].includes(command.action)&&!await can(request,state,'routine.delete'))return reply({error:'FORBIDDEN',requestId},403);
       const control = parseRoutine(state.values[RF_KEY]),
         existing = control.receipts[command.operationId];
       if ((control as typeof control & {pageDraftLayout?:string}).pageDraftLayout === 'page-v1' && !existing)
@@ -315,7 +326,15 @@ export async function POST(request: Request) {
       }
       if (!enabled(request, state))
         return reply({ error: 'FQC_NOT_ENABLED' }, 404);
-      const result = executeRoutine(control, command, routineSources(state), {
+      // Calendar writes need the approved transition snapshots. Keep the
+      // ordinary GET path on its bounded, active-version-only projection.
+      let sourceState = state;
+      if (!existing && control.calendarPolicy) {
+        const source = await readState({keys:['qualityMasterControl','masterDataControl'],deferHistory:false});
+        if (source.revision !== state.revision) continue;
+        sourceState = {...state,values:{...state.values,...source.values}};
+      }
+      const result = executeRoutine(control, command, routineSources(sourceState), {
         actor: {
           id: actor.id,
           name: actor.name,
@@ -323,6 +342,7 @@ export async function POST(request: Request) {
         },
         at,
         today: companyDate(),
+        sourceTimeline:!existing&&control.calendarPolicy?routineSourceTimeline(sourceState):undefined,
         allowed: (p) => permissions[p],
         settings: permissions.settings,
         revoke: permissions.revoke,
@@ -351,6 +371,8 @@ export async function POST(request: Request) {
         !(await stateRevisionIsCurrent(state))
       )
         continue;
+      const currentActor = await identity(request,state);
+      if (!currentActor || currentActor.id !== actor.id || currentActor.sessionType !== actor.sessionType) return reply({error:'LOGIN_REQUIRED',requestId},401);
       const values = { ...state.values, [RF_KEY]: JSON.stringify(control) };
       const changed = await env.DB.prepare(
         'UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?',

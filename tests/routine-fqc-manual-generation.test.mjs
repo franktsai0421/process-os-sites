@@ -303,7 +303,7 @@ for (const phase of ['headers', 'body']) for (const mode of ['history', 'review'
 for (const phase of ['headers', 'body']) void test('current rejected ' + phase + ' is still reported and keeps input', async () => {
   const f = manualUI(), before = dirty(f), pause = rejectRead(f, phase);
   const pending = f.button().click(); await pause.entered; pause.release(); await pending;
-  assert.match(f.api.s.error, phase === 'headers' ? /STALE_NETWORK_FAILURE/ : /STALE_MALFORMED_DENIAL/);
+  assert.match(f.api.s.error, phase === 'headers' ? /STALE_NETWORK_FAILURE/ : /無法讀取伺服器回應/);
   assert.equal(inputs(f), before); assert.equal(posted(f).length, 0);
   assert.equal(!!f.document.querySelector('section[role="alert"]'), phase === 'body');
 });

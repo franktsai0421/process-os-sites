@@ -31,6 +31,7 @@ function assertPredecessor(bytes,file){
 }
 function assertIndexSuccessor(bytes,before,file){
   raw(bytes);raw(before);assert.equal(file,contract.index,'Routine cache proof wrong file');
+  bytes=require('./routine-integration-source-contract.cjs').projectKnown(bytes,file);
   bytes=require('./background-check-source-contract.cjs').projectKnown(bytes,file);
   assert.equal(hash(before),contract.indexBeforeHash,'Routine cache predecessor differs from merged main');
   const marker=Buffer.from(contract.oldTag),next=Buffer.from(contract.newTag),offset=before.indexOf(marker);

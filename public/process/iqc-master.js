@@ -88,7 +88,7 @@
   const lastEdit = version => [...(version?.history||[])].reverse().find(event=>!['submit','approve','reject','withdraw'].includes(event.action));
   const translations = new Map();
   const t = (zh, vi) => { translations.set(zh, vi); return document.documentElement.lang === 'vi' ? vi : zh; };
-  const ruleKindLabel = rule => ({ aql: 'AQL', fixed_count: t('固定件數','Số mẫu cố định'), batch_quantity: t('批次數量','Số lượng lô'), week: t('週','Tuần'), month: t('月','Tháng'), quarter: t('季','Quý'), half_year: t('半年','Nửa năm'), year: t('年','Năm'), custom: rule.nameVi || t('自訂','Tùy chỉnh') })[rule.kind] || rule.kind;
+  const ruleKindLabel = rule => ({ all: t('每批檢查（舊格式）','Kiểm tra từng lô (định dạng cũ)'), aql: 'AQL', fixed_count: t('固定件數','Số mẫu cố định'), batch_quantity: t('批次數量','Số lượng lô'), week: t('週','Tuần'), month: t('月','Tháng'), quarter: t('季','Quý'), half_year: t('半年','Nửa năm'), year: t('年','Năm'), custom: rule.nameVi || t('自訂','Tùy chỉnh') })[rule.kind] || rule.kind;
   function switchLabels() {
     const toVi = document.documentElement.lang === 'vi';
     const pairs = [...translations].sort((a,b) => Math.max(b[0].length,b[1].length)-Math.max(a[0].length,a[1].length));
@@ -537,8 +537,14 @@
           if(control?.workflow?.generation!==submissionGeneration||control.workflow.revision!==submission.expectedRevision||control.workflow.saved?.id!==submission.savedId)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
           detail={...submission,reason};
         }else if(['approve','reject','withdraw'].includes(action)){
-          commandAction=action==='reject'?'return':action;const caseId=extra.versionId||flow.pendingId,c=flow.cases.find(c=>c.id===caseId);
-          const answer=await window.VersionDraftUI.confirmReview({action,scope:'IQC · '+caseId,reason:extra.comment||'',selfReview:action!=='withdraw'&&c?.actor.id===identity()?.id});if(!answer)return;
+          commandAction=action==='reject'?'return':action;
+          const caseId=extra.versionId||flow.pendingId,c=flow.cases.find(row=>row.id===caseId);
+          if(!c||flow.pendingId!==caseId)throw Error('CASE_NOT_PENDING');
+          const version=control.versions.find(row=>row.id===caseId);
+          const scope=(version?'IQC V'+version.number:'IQC')+' · '+caseId;
+          const answer=await window.VersionDraftUI.confirmReview({action,scope,reason:extra.comment||'',selfReview:action!=='withdraw'&&c.actor.id===identity()?.id});
+          if(!answer)return;
+          if(control.workflow?.generation!==flow.generation||control.workflow.pendingId!==caseId)throw Error('CASE_NOT_PENDING');
           detail={caseId,...answer};
         }
         owner?.assert();
@@ -770,7 +776,7 @@
       const partCode=item?.partCode||part?.code||error?.partCode;if(!partCode||!mayEdit())return;
       ui.search='';ui.supplier='';ui.category='';ui.partCode=partCode;ui.errorId=item?.errorId||error?.id||'';render();if(item)editItem(item.id);else if(part)editPart(partCode);else editError(error.id);
     }});
-    window.VersionDraftUI?.mount(root,{header:'.iqc-version',historyClient:transport,mountApprovedHistory,module:'IQC',scope:t('IQC 全庫','Toàn bộ IQC'),version:selected(),versions:control.versions,active:active(),flow:localSnapshot?{...control.workflow,working:localSnapshot}:control.workflow,busy:ui.busy,failed:!ui.busy&&sharedClient?.hasUnknown()&&!sharedClient?.confirmedOperation?.(),syncNotice:sharedClient?.confirmedOperation?.()?t('原操作收據已確認；核對草稿與權限中','Biên nhận gốc đã xác nhận; đang kiểm tra bản nháp và quyền'):'',actions:{begin:'#iqc-begin',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-shared-issue-kind="error"]',missing:'.iqc-pending,[data-shared-issue-kind="missing"]',checked:{missing:false},history:['.iqc-work-history','#iqc-case-history','[data-shared-issue-kind="warning"]'],status:['#iqc-shared-status']});
+    window.VersionDraftUI?.mount(root,{header:'.iqc-version',historyClient:transport,mountApprovedHistory,module:'IQC',scope:t('IQC 全庫','Toàn bộ IQC'),version:selected(),versions:control.versions,active:active(),flow:localSnapshot?{...control.workflow,working:localSnapshot}:control.workflow,busy:ui.busy,failed:!ui.busy&&sharedClient?.hasUnknown()&&!sharedClient?.confirmedOperation?.(),syncNotice:sharedClient?.confirmedOperation?.()?t('原操作收據已確認；核對草稿與權限中','Biên nhận gốc đã xác nhận; đang kiểm tra bản nháp và quyền'):'',actions:{begin:'#iqc-begin',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw'},review:openReview,errors:'[data-shared-issue-kind="error"]',missing:'.iqc-pending,[data-shared-issue-kind="missing"]',checked:{missing:false},history:['.iqc-work-history','#iqc-case-history','[data-shared-issue-kind="warning"]'],status:['#iqc-shared-status']});
     window.scrollTo(0, pageScroll);
   }
   // Search updates only the results. Replacing a focused input on every keystroke
@@ -934,6 +940,19 @@
     }));
   }
 
+  async function openReview() {
+    const navigation=window.ProcessDeliveryNavigation;
+    if(navigation?.approval){
+      const result=await navigation.approval('quality');
+      if(result?.status!=='ready')return;
+    }else{
+      state.view='approval';
+      state.approvalTab='quality';
+      window.render();
+    }
+    document.querySelector('#approval-panel-quality [data-review-jump="iqc"]')?.click();
+  }
+
   function bind() {
     const on = (selector, event, handler) => root.querySelectorAll(selector).forEach(node => node.addEventListener(event,guardWorking(node,handler)));
     on('#iqc-version', 'change', event => { void selectVersion(event.target.value); });
@@ -976,9 +995,8 @@
     on('#iqc-import', 'click', importPreview);
     on('#iqc-begin', 'click', async () => { try { await post('begin'); notice(t('IQC 草稿已開啟','Đã mở bản nháp IQC')); } catch (error) { notice(displayDraftError(error)); } });
     on('#iqc-save', 'click', async () => { try { const saved=await post('save');if(saved===false)return;notice(t('IQC 草稿已保存並共用','Đã lưu và chia sẻ bản nháp IQC')); } catch (error) { notice(displayDraftError(error)); } });
-    on('#iqc-submit', 'click', async () => { try { const result=await post('submit'); if(result)notice(t('IQC 草稿已送出主管審核','Đã gửi bản nháp IQC để quản lý duyệt')); } catch (error) { notice(displayDraftError(error)); } });
+    on('#iqc-submit', 'click', async () => { try { const result=await post('submit'); if(result)notice(t('IQC 已送審。請至版本確認平台 → 品質系統資料庫 → IQC 查看。','Đã gửi IQC. Xem tại Duyệt phiên bản → Cơ sở dữ liệu chất lượng → IQC.')); } catch (error) { notice(displayDraftError(error)); } });
     on('#iqc-withdraw', 'click', async () => { try { await post('withdraw'); void window.RoutineEquipmentUI?.reconcilePendingReplacements?.(); notice(t('IQC 送審已撤回，仍保留同一草稿','Đã rút hồ sơ IQC; bản nháp được giữ lại')); } catch (error) { notice(displayDraftError(error)); } });
-    on('#iqc-to-review', 'click', () => { document.querySelector('[data-dual-view="approval"]')?.click(); setTimeout(() => document.querySelector('#approval-tab-quality')?.click(), 0); });
     on('#iqc-manage-suppliers', 'click', () => withDraft(() => manageList('suppliers')));
     on('#iqc-manage-categories', 'click', () => withDraft(() => manageList('categories')));
     on('#iqc-add-part', 'click', () => withDraft(() => editPart()));
@@ -1400,7 +1418,7 @@
       }
       if(owner.current())event.target.value = '';
     };
-    const kinds = rule => rule.cadence === 'batch' ? [['aql','AQL'],['fixed_count',t('固定件數','Số mẫu cố định')],['batch_quantity',t('批次數量','Số lượng lô')],['custom',t('自訂','Tùy chỉnh')]] : [['week',t('週','Tuần')],['month',t('月','Tháng')],['quarter',t('季','Quý')],['half_year',t('半年','Nửa năm')],['year',t('年','Năm')],['custom',t('自訂','Tùy chỉnh')]];
+    const kinds = rule => rule.cadence === 'batch' ? [['aql','AQL'],['fixed_count',t('固定件數','Số mẫu cố định')],['batch_quantity',t('批次數量','Số lượng lô')],['custom',t('自訂','Tùy chỉnh')]] : [['week',t('週','Tuần')],['month',t('月','Tháng')],['quarter',t('季','Quý')],['half_year',t('半年','Nửa năm')],['year',t('年','Năm')]];
     // Advisory only: drafts may retain invalid values; Submit validates the saved snapshot.
     const updateRuleNumberHint = input => {
       const index = Number(input.dataset.ruleValue), rule = rules[index];
@@ -1420,9 +1438,9 @@
       overlay.querySelector('#iqc-rule-rows').innerHTML = formal.map(({rule,index},position) => `<details class="iqc-rule-card" data-rule-card="${index}" ${opened.has(index) || !opened.size ? 'open' : ''}>
         <summary>${t('檢查規則','Quy tắc kiểm tra')} ${position+1} · ${rule.cadence === 'batch' ? t('按批次','Theo lô') : t('按時間','Theo thời gian')}</summary>
         <div class="iqc-rule-fields"><label>${t('方式','Cách')}<select data-rule-cadence="${index}"><option value="batch" ${rule.cadence==='batch'?'selected':''}>${t('按批次','Theo lô')}</option><option value="time" ${rule.cadence==='time'?'selected':''}>${t('按時間','Theo thời gian')}</option></select></label>
-        <label>${rule.cadence === 'batch' ? t('取樣方式','Cách lấy mẫu') : t('頻率','Tần suất')}<select data-rule-kind="${index}">${kinds(rule).map(([value,label]) => `<option value="${value}" ${rule.kind===value?'selected':''}>${label}</option>`).join('')}</select></label>
+        <label>${rule.cadence === 'batch' ? t('取樣方式','Cách lấy mẫu') : t('頻率','Tần suất')}<select data-rule-kind="${index}">${rule.cadence==='batch'&&rule.kind==='all'?`<option value="all" selected disabled>${h(ruleKindLabel(rule))}</option>`:''}${rule.cadence==='time'&&rule.kind==='custom'?`<option value="custom" selected disabled>${t('既有自訂（唯讀）','Giá trị cũ (chỉ đọc)')}</option>`:''}${kinds(rule).map(([value,label]) => `<option value="${value}" ${rule.kind===value?'selected':''}>${label}</option>`).join('')}</select></label>
         ${rule.cadence === 'batch' && rule.kind === 'custom' ? `<label>${t('自訂項目名稱（必填）','Tên mục tùy chỉnh (bắt buộc)')}<input data-rule-name="${index}" value="${h(rule.nameVi||'')}" data-i18n-skip="true"></label>` : ''}
-        ${rule.cadence === 'batch' ? `<label>${rule.kind === 'custom' ? t('對應數量或文字內容（必填）','Số lượng hoặc nội dung (bắt buộc)') : t('對應數值（必填）','Giá trị (bắt buộc)')}<input data-rule-value="${index}" aria-describedby="iqc-rule-number-hint-${index}" value="${h(rule.value ?? '')}" ${rule.kind === 'custom' ? '' : 'inputmode="decimal"'} data-i18n-skip="true"><span class="iqc-error" id="iqc-rule-number-hint-${index}" data-rule-number-hint="${index}" role="status"></span></label>` : rule.kind === 'custom' ? `<label>${t('自訂週期內容（必填）','Nội dung chu kỳ tùy chỉnh (bắt buộc)')}<input data-rule-name="${index}" value="${h(rule.nameVi||'')}" data-i18n-skip="true"></label>` : `<p class="iqc-muted">${t('按時間不填數量','Theo thời gian không nhập số lượng')}</p>`}
+        ${rule.cadence === 'batch' ? `<label>${rule.kind === 'custom' ? t('對應數量或文字內容（必填）','Số lượng hoặc nội dung (bắt buộc)') : t('對應數值（必填）','Giá trị (bắt buộc)')}<input data-rule-value="${index}" ${rule.kind==='all'?'readonly':''} aria-describedby="iqc-rule-number-hint-${index}" value="${h(rule.value ?? '')}" ${rule.kind === 'custom' ? '' : 'inputmode="decimal"'} data-i18n-skip="true"><span class="iqc-error" id="iqc-rule-number-hint-${index}" data-rule-number-hint="${index}" role="status"></span></label>` : rule.kind === 'custom' ? `<label>${t('既有值保留；如需變更請選標準頻率','Giữ giá trị cũ; chọn tần suất chuẩn để thay đổi')}<input readonly data-rule-name="${index}" value="${h(rule.nameVi||'')}" data-i18n-skip="true"></label>` : `<p class="iqc-muted">${t('按時間不填數量','Theo thời gian không nhập số lượng')}</p>`}
         </div><button type="button" class="button iqc-danger iqc-small iqc-rule-remove" data-rule-remove="${index}" ${rules.length === 1 ? 'disabled' : ''}>${t('移除規則','Xóa quy tắc')}</button></details>`).join('');
       overlay.querySelectorAll('[data-rule-cadence]').forEach(select => select.onchange = () => { if(!owner.current())return; const rule=rules[Number(select.dataset.ruleCadence)]; rule.cadence=select.value; rule.kind=select.value==='batch'?'aql':'week'; rule.value=''; rule.nameVi=''; drawRules(); });
       overlay.querySelectorAll('[data-rule-kind]').forEach(select => select.onchange = () => { if(!owner.current())return; const rule=rules[Number(select.dataset.ruleKind)]; rule.kind=select.value; rule.value=''; rule.nameVi=''; drawRules(); });
@@ -1514,7 +1532,7 @@
         const v=control.versions.find(item=>item.id===id);if(!v||v.snapshotDeferred)return;
         detail.innerHTML = `<h4>IQC V${v.number} · ${status(v.status)}</h4><p>${t('零件','Linh kiện')} ${v.snapshot.parts.filter(item=>!item.isDeleted).length} · ${t('錯誤代碼','Mã lỗi')} ${v.snapshot.errors.filter(item=>!item.isDeleted).length} · ${t('檢查項目','Hạng mục')} ${v.snapshot.items.filter(item=>!item.isDeleted).length}</p><p>${t('修改者','Người sửa')}: <span data-i18n-skip="true">${h(v.creatorName)}</span> · ${date(v.updatedAt)}<br>${t('送審者','Người gửi')}: <span data-i18n-skip="true">${h(v.submittedBy||'')}</span> · ${date(v.submittedAt)}${v.reviewedBy?`<br>${t('確認者','Người duyệt')}: ${h(v.reviewedBy)} · ${date(v.reviewedAt)}`:''}${v.reviewComment?`<br>${t('審核意見','Ý kiến')}: ${h(v.reviewComment)}`:''}</p>${(mayReview()||mayReview('approval.reject'))&&v.status==='pending' ? `<label>${t('審核意見（選填）','Ý kiến duyệt (không bắt buộc)')}<textarea id="iqc-review-comment" rows="3"></textarea></label><div class="iqc-actions"><button class="button ghost" id="iqc-review-reject">${t('發回','Trả lại')}</button><button class="button signal" id="iqc-review-approve">${t('確認','Duyệt')}</button></div>` : ''}`;
         if(v.status==='pending'&&mayWithdraw())detail.insertAdjacentHTML('beforeend',`<button class="button ghost" id="iqc-review-withdraw">${t('撤回送審','Rút hồ sơ')}</button>`);
-        detail.insertAdjacentHTML('beforeend', `<button type="button" class="button ghost" id="iqc-review-content">${t('查看固定內容／前後差異','Xem nội dung / thay đổi')}</button>`);
+        detail.insertAdjacentHTML('beforeend', `<button type="button" class="button ghost" id="iqc-review-content">${t('查看固定內容／前後差異','Xem nội dung / thay đổi')}</button><p class="iqc-error" data-iqc-review-operation aria-live="assertive"></p>`);
         detail.querySelector('#iqc-review-content').onclick = async () => {
           try {
             const client = transport(); await client.permissions();
@@ -1525,9 +1543,24 @@
         };
         sharedClient?.gatePermissions?.();
         for (const action of ['reject','approve','withdraw']) detail.querySelector(`#iqc-review-${action}`)?.addEventListener('click',async()=>{
+          const resultStatus=detail.querySelector('[data-iqc-review-operation]');
+          const ownsCase=()=>resultStatus?.isConnected&&detailVersionId===v.id&&identity()===requestIdentity&&
+            window.ProcessSync?.identityGeneration?.()===requestEpoch&&!window.ProcessSync?.requiresReload&&
+            (!requestDelivery||window.ProcessSync?.isCurrentDelivery?.(requestDelivery)===true);
+          if(ui.busy||!ownsCase())return;
           const comment=action==='approve' ? detail.querySelector('#iqc-review-comment')?.value?.trim() || '' : '';
-          try { const result=await post(action,{versionId:v.id,versionRevision:v.revision,comment});if(!result)return; void window.RoutineEquipmentUI?.reconcilePendingReplacements?.(); reviewRoot=panel.querySelector('.iqc-review'); if(reviewRoot){reviewRoot.outerHTML=reviewHTML();/* bindReview retains its existing owned load/error UI; success notice stays immediate. */void bindReview(panel);} notice(action==='approve'?t('IQC 版本已核准','Đã duyệt phiên bản IQC'):action==='withdraw'?t('IQC 送審已撤回','Đã rút hồ sơ IQC'):t('IQC 版本已發回','Đã trả lại phiên bản IQC')); }
-          catch(error){notice(displayDraftError(error));}
+          resultStatus.textContent=t('正在處理 IQC V'+v.number+'…','Đang xử lý IQC V'+v.number+'…');
+          try {
+            const result=await post(action,{versionId:v.id,versionRevision:v.revision,comment});
+            if(!ownsCase())return;
+            if(!result){resultStatus.textContent='';return;}
+            void window.RoutineEquipmentUI?.reconcilePendingReplacements?.();
+            reviewRoot=panel.querySelector('.iqc-review');
+            if(reviewRoot){reviewRoot.outerHTML=reviewHTML();void bindReview(panel);}
+            notice(action==='approve'?t('IQC 版本已核准','Đã duyệt phiên bản IQC'):action==='withdraw'?t('IQC 送審已撤回','Đã rút hồ sơ IQC'):t('IQC 版本已發回','Đã trả lại phiên bản IQC'));
+          }catch(error){
+            if(ownsCase())resultStatus.textContent=displayDraftError(error);
+          }
         });
       });
       current.querySelector('.quality-review-pending-list [data-iqc-review]')?.click();

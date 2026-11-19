@@ -128,3 +128,36 @@ void test('approval popstate uses the same single valid tab rule as cold load an
   f.finish(1);await turn();assert.equal(f.state.view,'approval');assert.equal(f.state.approvalTab,expected);assert.equal(f.api.current().approvalTab,expected);
  }
 });
+void test('actual router retains each quality routine tab through approval, return and history without leaking to process',async()=>{
+ for(const tab of ['sources','jobs','plans','reports']){const f=await fixture();f.api.navigate('quality-inspections',null,'quality');f.finish(0);await turn();const url=new URL(f.location.href);url.searchParams.set('rfTab',tab);assert.equal(f.api.replaceDisplayURL(url.href),true);f.api.navigate('approval');f.finish(1);await turn();assert.equal(f.window.ProcessDualSystem.activeSystem,'quality');assert.equal(new URL(f.location.href).searchParams.get('rfTab'),tab);const approvalURL=f.location.href;f.api.navigate('quality-inspections');f.finish(2);await turn();assert.equal(new URL(f.location.href).searchParams.get('rfTab'),tab);const returnURL=f.location.href;f.location.href=approvalURL;f.dispatchPop(2);f.finish(3);await turn();assert.equal(f.state.view,'approval');assert.equal(f.window.ProcessDualSystem.activeSystem,'quality');f.location.href=returnURL;f.dispatchPop(3);f.finish(4);await turn();assert.equal(f.state.view,'quality-inspections');assert.equal(new URL(f.location.href).searchParams.get('rfTab'),tab);f.api.navigate('dashboard',null,'process');f.finish(5);await turn();assert.equal(new URL(f.location.href).searchParams.has('rfTab'),false);f.api.navigate('approval');f.finish(6);await turn();assert.equal(f.window.ProcessDualSystem.activeSystem,'process');assert.equal(new URL(f.location.href).searchParams.has('rfTab'),false);}
+});
+
+void test('the generic approval entry uses the active IQC workspace and removes stale document IDs, while explicit tabs retain their own routes',async()=>{
+ const f=await fixture();
+ f.api.navigate('quality-inspections',null,'quality');f.finish(0);await turn();
+ const source=new URL(f.location.href);
+ source.searchParams.set('rfModule','iqc');
+ source.searchParams.set('riDocument','stale-approval-id');
+ assert.equal(f.api.replaceDisplayURL(source),true);
+ f.window.RoutineFQCUI={opensRoutineApproval:()=>true};
+ f.state.approvalTab='quality';
+ f.context.navigate('approval');assert.equal(f.reads[1].target.approvalTab,'routine');f.finish(1);await turn();
+ assert.equal(f.state.approvalTab,'routine');
+ const approval=new URL(f.location.href);
+ assert.equal(approval.searchParams.get('rfModule'),'iqc');
+ assert.equal(approval.searchParams.get('approvalTab'),'routine');
+ assert.equal(approval.searchParams.has('riDocument'),false);
+ const deliberateDeepLink=new URL(approval);deliberateDeepLink.searchParams.set('riDocument','deliberate-document');
+ assert.equal(f.api.replaceDisplayURL(deliberateDeepLink),true);
+ f.api.approval('quality');assert.equal(f.reads[2].target.approvalTab,'quality');f.finish(2);await turn();
+ assert.equal(f.state.approvalTab,'quality');
+ assert.equal(new URL(f.location.href).searchParams.has('riDocument'),false);
+ f.location.href=deliberateDeepLink.href;f.dispatchPop(2);f.finish(3);await turn();
+ assert.equal(f.state.approvalTab,'routine');
+ assert.equal(new URL(f.location.href).searchParams.get('riDocument'),'deliberate-document');
+ f.api.navigate('quality-inspections');f.finish(4);await turn();
+ assert.equal(new URL(f.location.href).searchParams.has('riDocument'),false);
+ f.window.RoutineFQCUI.opensRoutineApproval=()=>false;
+ f.api.navigate('approval');assert.equal(f.reads[5].target.approvalTab,'master');f.finish(5);await turn();
+ assert.equal(f.state.approvalTab,'master');
+});

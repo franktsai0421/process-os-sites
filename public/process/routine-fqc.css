@@ -409,6 +409,9 @@
   gap: 12px;
   margin-bottom: 18px;
 }
+.rf-input-grid > label:only-child {
+  grid-column: 1 / -1;
+}
 .rf-input-grid label,
 .rf-edit label {
   display: grid;
@@ -479,36 +482,65 @@
 .rf-choice {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 8px;
 }
-.rf-choice button {
-  border: 1px solid #d2deeb;
-  border-radius: 5px;
-  background: white;
-  padding: 7px 9px;
-  font-size: 11px;
-  color: #6b8095;
+.rf-app .rf-choice button {
+  --rf-choice-selected: #24486b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 8px 13px;
+  border: 1px solid #708498;
+  border-radius: 8px;
+  background: #f1f5fa;
+  color: #243b53;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
-.rf-choice button.active {
-  background: #245b92;
-  border-color: #245b92;
-  color: white;
+.rf-app .rf-choice button[data-outcome='pass'] { --rf-choice-selected: #176443; }
+.rf-app .rf-choice button[data-outcome='fail'] { --rf-choice-selected: #a22837; }
+.rf-app .rf-choice button[data-outcome='abnormal'],
+.rf-app .rf-choice button[data-outcome='dispose'],
+.rf-app .rf-choice button[data-outcome='unable'] { --rf-choice-selected: #744515; }
+.rf-app .rf-choice button[data-outcome='undetermined'] { --rf-choice-selected: #59478c; }
+.rf-app .rf-choice button[aria-pressed='true'] {
+  border-color: var(--rf-choice-selected);
+  background: var(--rf-choice-selected);
+  color: #fff;
 }
-.rf-choice button[data-outcome='fail'].active {
-  background: #d24b5a;
-  border-color: #d24b5a;
+.rf-app .rf-choice button[aria-pressed='true']::before {
+  content: '';
+  flex: none;
+  width: 9px;
+  height: 5px;
+  border-inline-start: 2px solid currentColor;
+  border-block-end: 2px solid currentColor;
+  transform: rotate(-45deg);
 }
-.rf-choice button[data-outcome='pass'].active {
-  background: #2d936a;
-  border-color: #2d936a;
+.rf-app .rf-choice button:disabled {
+  opacity: 1;
+  border: 1px dashed #64778b;
+  background: #e8edf2;
+  color: #36485b;
 }
-.rf-choice button[data-outcome='unable'].active {
-  background: #c99328;
-  border-color: #c99328;
+.rf-app .rf-choice button:disabled[aria-pressed='true'] {
+  border-color: var(--rf-choice-selected);
+  background: #fff;
+  color: var(--rf-choice-selected);
 }
-.rf-choice button[data-outcome='undetermined'].active {
-  background: #796fb2;
-  border-color: #796fb2;
+.rf-app .rf-choice[data-editable='false'] button:disabled[aria-pressed='false'] {
+  display: none;
+}
+.rf-app .rf-choice button:focus-visible {
+  outline: 3px solid #0957a5;
+  outline-offset: 2px;
 }
 .rf-samples {
   margin: 10px 0;
@@ -785,12 +817,6 @@
 .rf-table:has([data-job]) th:first-child {
   width: 34px;
 }
-.rf-choice button:disabled {
-  opacity: 1;
-}
-.rf-choice button:disabled:not(.active) {
-  display: none;
-}
 .rf-wide {
   grid-template-columns: 1fr !important;
 }
@@ -951,9 +977,6 @@
 .rf-job-pick{min-width:62px!important;text-align:center!important;vertical-align:top}
 .rf-pick-status{display:block;margin:7px 0;padding:3px 5px;border-radius:5px;background:#e4edf7;font-size:11px;color:#385a7a;white-space:normal}
 .rf-pick-status.pending{background:#fff0ce;color:#9a6200}.rf-pick-status.approved{background:#dff3e9;color:#197451}
-.rf-choice{gap:9px!important;display:flex;flex-wrap:wrap}
-.rf-choice button{min-height:46px!important;min-width:96px!important;padding:10px 15px!important;font-size:14px!important;font-weight:700;background:#eef4fc!important;border:1px solid #b6cbe5!important;cursor:pointer}
-.rf-choice button.active[data-outcome=pass]{background:#208864!important;color:#fff!important}.rf-choice button.active[data-outcome=fail]{background:#ce4149!important;color:#fff!important}.rf-choice button.active[data-outcome=unable],.rf-choice button.active[data-outcome=undetermined]{background:#b47c16!important;color:#fff!important}
 .rf-select-hint{font-weight:700;color:#325273;margin:14px 0 8px}
 .rf-samples{padding:12px;border:1px solid #c3d7eb;border-radius:8px;background:#f5f9ff;margin:12px 0}.rf-samples summary{cursor:pointer;font-weight:700;min-height:28px}.rf-sample-options label{min-height:40px}
 .rf-issue-row{display:flex;gap:12px;align-items:center;justify-content:space-between;margin:8px 0}.rf-issue-row>span{overflow-wrap:anywhere}.rf-issue-row button{flex:none;min-height:38px}
@@ -1103,3 +1126,539 @@
 .rf-app .rf-kind-tabs [data-rf-tone].primary,.rf-app .rf-group-jumps [data-rf-tone][aria-pressed=true]{color:var(--rf-doc-ink,#24496d);background:var(--rf-doc-tint,#edf3f8);box-shadow:inset 0 0 0 1px var(--rf-doc-ink,#24496d)}
 .rf-app .rf-photo-remove{display:inline-flex;justify-content:center;align-items:center;min-width:88px;min-height:44px;color:#a22d40;background:#fff0f2;border:1px solid #c04b5c;font-weight:600}
 .rf-app .rf-photo-remove:focus-visible{outline:3px solid #a22d40;outline-offset:2px}
+
+.rf-source-filters{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0}.rf-source-filters label{display:flex;flex-direction:column;gap:6px;flex:1;min-width:180px}.rf-source-filters select{padding:10px;border:1px solid #cbd5e1;border-radius:6px;max-width:100%}.rf-source-scroll{overflow:auto}.rf-source-picker td label{display:flex;align-items:center;gap:8px;margin:8px 0}.rf-source-picker .rf-selection-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center}.rf-source-picker .rf-selection-bar small{flex-basis:100%}
+/* Source picker has data-job checkboxes in its final column, unlike job lists. */
+.rf-source-picker .rf-table{min-width:720px;table-layout:fixed;font-size:13px}
+.rf-source-picker .rf-table th:first-child{width:28%}
+.rf-source-picker .rf-table th:nth-child(2){width:28%}
+.rf-source-picker .rf-table th:nth-child(3){width:12%}
+.rf-source-picker .rf-table th:nth-child(4){width:32%}
+
+/* Calendar FQC: scoped to the explicit calendar-policy interface. */
+.rf-calendar-hero {display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:24px;background:linear-gradient(120deg,#eff6ff,#f8fafc);border:1px solid #dbe5ef;border-radius:16px;margin-bottom:18px;color:#172b45}
+.rf-calendar-hero>div {min-width:0}.rf-calendar-hero span {font-size:12px;letter-spacing:.05em;color:#426584;font-weight:700}.rf-calendar-hero h2 {margin:8px 0 0;font-size:clamp(21px,2vw,28px);line-height:1.4}
+.rf-calendar-hero details {max-width:420px;font-size:13px;line-height:1.7}.rf-calendar-hero summary {cursor:pointer;color:#246190;font-weight:600}.rf-calendar-hero p {margin:10px 0}
+.rf-calendar {min-width:0}
+.rf-calendar-toolbar,.rf-calendar-tools {display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:16px 0}.rf-calendar-toolbar>b {font-size:13px;color:#63738a;margin-right:auto}.rf-calendar .rf-btn {white-space:normal;overflow-wrap:anywhere;line-height:1.45;min-height:40px}
+.rf-calendar-work {display:grid;grid-template-columns:minmax(0,1fr);min-width:0;gap:14px;container-type:inline-size}.rf-calendar-card {border:1px solid #dce4ee;border-radius:12px;background:#fff;overflow:hidden;min-width:0}.rf-calendar-card>header {display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:16px 18px;background:#f8fafc;border-bottom:1px solid #e6edf4}.rf-calendar-card header>div {min-width:0}.rf-calendar-card h3 {margin:0;font-size:15px;line-height:1.5;overflow-wrap:anywhere}.rf-calendar-card p {margin:5px 0 0;font-size:12px;color:#65778d;overflow-wrap:anywhere}.rf-calendar-product {max-width:45%;font-size:12px;line-height:1.6;text-align:right;overflow-wrap:anywhere;color:#47657e}
+.rf-calendar-period {display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 18px;border-bottom:1px solid #edf1f5}.rf-calendar-period:last-child {border:0}.rf-calendar-period label {display:flex;align-items:flex-start;gap:12px;min-width:0;flex:1;cursor:pointer}.rf-calendar-period input {margin-top:4px;width:18px;height:18px;flex:none;accent-color:#176b9e}.rf-calendar-period span {min-width:0}.rf-calendar-period b {font-size:13px;overflow-wrap:anywhere}.rf-calendar-period small,.rf-calendar-period em {display:block;font-size:12px;line-height:1.6;color:#6a788a;font-style:normal;margin-top:3px}.rf-calendar-period em {color:#a35d14}.rf-calendar-period>div {display:flex;flex-wrap:wrap;gap:8px;max-width:40%}.rf-calendar-card>details>summary {padding:12px 18px;color:#9b5314;background:#fffaf0;cursor:pointer;font-size:12px;line-height:1.6}
+.rf-calendar-fields {margin:16px 0;padding:16px;background:#f5f8fc;border:1px solid #e3eaf2;border-radius:10px;display:grid;gap:14px}.rf-calendar-fields label {display:grid;gap:7px;font-size:13px;color:#475a73}.rf-calendar-fields input,.rf-calendar-fields textarea {box-sizing:border-box;width:100%;min-width:0;padding:10px;border:1px solid #cdd9e6;border-radius:7px;font:inherit;background:white}.rf-calendar-fields textarea {min-height:80px;resize:vertical}.rf-calendar-fields .rf-kv {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.rf-calendar-fields small,.rf-calendar-fields strong {display:block;line-height:1.8}.rf-calendar-fields small {color:#6a7b90;font-size:12px}.rf-calendar-fields strong {font-size:14px}
+@media(max-width:640px){.rf-calendar-hero {padding:16px;flex-direction:column;gap:12px}.rf-calendar-hero details {max-width:100%}.rf-calendar-card>header {padding:14px;flex-direction:column;gap:6px}.rf-calendar-product {max-width:100%;text-align:left}.rf-calendar-period {padding:14px;align-items:flex-start;flex-wrap:wrap}.rf-calendar-period>div {max-width:100%;margin-left:30px}.rf-calendar-toolbar>b {width:100%}.rf-calendar-toolbar .rf-btn {flex:1 1 130px}.rf-calendar-fields {padding:12px}.rf-calendar .rf-layout,.rf-calendar .rf-panel,.rf-calendar .rf-detail {min-width:0;max-width:100%}.rf-calendar .rf-table {table-layout:fixed;width:100%}.rf-calendar .rf-table td {overflow-wrap:anywhere}}
+
+.rf-calendar-document-list{display:grid;gap:10px;padding:4px}.rf-calendar-document{display:grid;gap:8px;width:100%;min-width:0;text-align:left;padding:16px;border:1px solid #dbe5ed;border-radius:10px;background:white;color:#29445b;cursor:pointer;font:inherit;overflow-wrap:anywhere}.rf-calendar-document.selected{border-color:#19759b;box-shadow:inset 3px 0 #19759b;background:#f0f8fc}.rf-calendar-document>span{font-size:13px;line-height:1.5}.rf-calendar-document small{color:#687f91;line-height:1.6}.rf-calendar-doc-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.rf-calendar-doc-top strong{font-size:13px}.rf-calendar .rf-no-issues{display:none}.rf-calendar .rf-document .vd-shell>header>p{display:none}.rf-calendar .rf-panel{border-radius:12px}.rf-calendar .rf-detail{padding:20px}.rf-calendar .rf-layout{grid-template-columns:minmax(280px,35%) minmax(0,1fr)}@media(max-width:760px){.rf-calendar .rf-layout{grid-template-columns:minmax(0,1fr)}.rf-calendar .rf-detail{padding:14px}}
+
+.rf-calendar-document.rf-retest-plan{border:2px solid #8257a6;background:#f8f1ff;border-left-width:6px}.rf-calendar-document.rf-retest-plan .rf-calendar-doc-top{color:#613280}.rf-retest-links{display:flex;flex-wrap:wrap;gap:8px}.rf-retest-links .rf-btn{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+
+.rf-calendar-document.rf-retest-report{border:2px solid #7c3aed;border-left-width:6px;background:#f5f3ff}.rf-retest-report strong{color:#6d28d9}.rf-awaiting-reports{display:grid;gap:12px;margin-bottom:20px}
+
+.rf-calendar-document.rf-initial-document{border-left:6px solid #2563eb;background:#eff6ff}
+
+.rf-document-family{min-width:0;border:1px solid #cbd5e1;border-radius:12px;padding:12px;display:grid;gap:10px}.rf-document-family header,.rf-document-family details,.rf-family-entry{min-width:0;display:grid;gap:8px}.rf-document-family button,.rf-document-family small,.rf-document-family span{max-width:100%;white-space:normal;overflow-wrap:anywhere;min-width:0}.rf-document-family summary{cursor:pointer;overflow-wrap:anywhere}.rf-family-entry+.rf-family-entry{margin-top:10px}
+
+.rf-integrated-plan,.rf-report-slot,.rf-period-history{min-width:0;overflow-wrap:anywhere}.rf-report-slot{padding:16px;display:grid;gap:8px}.rf-calendar-period>div{min-width:0}.rf-period-history{margin-top:10px}.rf-period-history ol{padding-left:20px}.rf-calendar-tools label{display:grid;gap:4px}
+.rf-integrated-plan{gap:8px}.rf-integrated-plan p,.rf-integrated-plan h4{margin:0;line-height:1.6}
+
+/* Period information and actions own separate tracks: buttons cannot squeeze dates. */
+.rf-calendar-period{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,38%);align-items:start}
+.rf-calendar-period>label{display:grid;grid-template-columns:18px minmax(0,1fr);width:100%;box-sizing:border-box}
+.rf-calendar-period>label>span{width:100%;min-width:0;line-height:1.6;word-break:normal;overflow-wrap:break-word}
+.rf-calendar-period>label b{display:block;word-break:normal;overflow-wrap:normal}
+.rf-calendar-period>div{max-width:none;width:100%;margin:0;align-content:start}
+.rf-calendar-period .rf-period-history{flex-basis:100%;width:100%}
+.rf-calendar-period .rf-btn{flex:1 1 160px;min-width:0}
+.rf-calendar .rf-tag{flex:0 0 auto;white-space:nowrap;word-break:keep-all}
+.rf-card-meta{display:flex;flex-wrap:wrap;gap:4px 16px;padding:0 4px;color:#60758b;font-size:12px;line-height:1.6}
+.rf-card-meta small,.rf-card-date{white-space:normal;word-break:normal;font-variant-numeric:tabular-nums}
+.rf-report-ready{border-style:dashed!important}.rf-report-ready:disabled{cursor:not-allowed;opacity:.7}
+.rf-calendar-document{box-sizing:border-box}.rf-calendar-doc-top strong{min-width:0;overflow-wrap:break-word;line-height:1.6}
+@media(max-width:760px){
+ .rf-calendar-period{grid-template-columns:minmax(0,1fr);gap:12px;padding:14px}
+ .rf-calendar-period>label{flex:none;width:100%;gap:10px}
+ .rf-calendar-period>div{margin:0;padding-left:28px;box-sizing:border-box;width:100%;max-width:100%}
+ .rf-calendar-period small,.rf-calendar-period em{font-size:13px;word-break:normal;overflow-wrap:break-word}
+ .rf-calendar .rf-btn{min-height:44px;padding:10px 12px;word-break:normal;overflow-wrap:break-word}
+ .rf-calendar-document{padding:14px;gap:10px}.rf-document-family{padding:8px}
+ .rf-card-meta{display:grid;gap:2px}.rf-card-meta small{font-size:12px}
+ .rf-calendar .rf-input-grid,.rf-calendar .rf-calendar-fields .rf-kv{grid-template-columns:minmax(0,1fr)}
+ .rf-calendar .rf-source-filters{display:grid;grid-template-columns:minmax(0,1fr)}
+ .rf-calendar .rf-source-filters label,.rf-calendar .rf-source-filters select{min-width:0;width:100%;box-sizing:border-box}
+ .rf-calendar .rf-actions{flex-wrap:wrap;gap:8px}.rf-calendar .rf-actions>button{flex:1 1 140px;max-width:100%}
+ .rf-calendar .rf-number{font-size:17px;overflow-wrap:break-word}.rf-calendar .rf-detail{padding:12px}
+ .rf-calendar .rf-calendar-tools label{flex:1 1 130px;min-width:0}.rf-calendar .rf-calendar-tools select{min-height:44px;max-width:100%}
+}
+
+/* Keep report plan identity, dates and item details together at both widths. */
+.rf-calendar-fields.rf-integrated-plan { gap: 8px; padding: 12px 14px; }
+.rf-integrated-plan > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; }
+.rf-integrated-plan .rf-plan-reference { font-size: 15px; line-height: 1.4; }
+.rf-plan-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; margin: 0; }
+.rf-plan-facts > div { min-width: 0; }
+.rf-plan-facts dt { color: #52667d; font-size: 12px; }
+.rf-plan-facts dd { margin: 2px 0 0; color: #16324c; line-height: 1.35; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.rf-plan-items { display: grid; gap: 0; padding: 0 0 0 1.25rem; margin: 0; }
+.rf-plan-items li { border-top: 1px solid #dbe5ef; padding: 5px 0; }
+.rf-plan-items li::marker { color: #59718c; font-size: 12px; }
+.rf-plan-items li strong, .rf-plan-items li small { line-height: 1.4; }
+@media (max-width: 760px) {
+  .rf-calendar-fields.rf-integrated-plan { padding: 10px; }
+  .rf-calendar .rf-input-grid input { box-sizing: border-box; min-width: 0; max-width: 100%; }
+}
+
+/* Period status and selection are distinct from the formal inspection result. */
+.rf-period-choice.is-locked { cursor: default; }
+.rf-period-choice input:disabled {
+  appearance: none;
+  border: 1px solid #8496a9;
+  border-radius: 4px;
+  background: #e9eef4;
+  opacity: 1;
+}
+.rf-period-choice input:disabled::after {
+  content: "−";
+  display: block;
+  color: #3e5164;
+  text-align: center;
+  line-height: 16px;
+  font-weight: 700;
+}
+.rf-period-lock { display: block; margin-top: 4px; color: #4a5e71; font-size: 12px; }
+.rf-period-fact { display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 8px; margin-top: 6px; }
+.rf-period-fact small { margin: 0; color: #4a5e71; }
+.rf-period-chip {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+.rf-period-chip.progress, .rf-period-chip.ready { color: #124c78; background: #e5f0fb; }
+.rf-period-chip.pending { color: #6b450a; background: #fff0cf; }
+.rf-period-chip.alert { color: #82242a; background: #fde9ea; }
+.rf-period-chip.done { color: #16563d; background: #e1f3e9; }
+.rf-period-chip.neutral { color: #44576a; background: #edf2f6; }
+.rf-calendar-period > .rf-period-history { grid-column: 1 / -1; margin: 0; }
+.rf-period-history > summary { cursor: pointer; width: fit-content; max-width: 100%; padding: 6px 0; color: #234f73; font-weight: 600; }
+.rf-period-history-body { display: grid; gap: 12px; margin-top: 4px; }
+.rf-period-history-group { display: grid; gap: 6px; min-width: 0; }
+.rf-period-history-group h4 { margin: 0; color: #304d65; font-size: 13px; }
+.rf-period-record { min-width: 0; border: 1px solid #dbe5ed; border-radius: 8px; background: #f7f9fc; padding: 8px 10px; }
+.rf-period-record header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 8px; }
+.rf-period-record header > strong { color: #254564; overflow-wrap: anywhere; }
+.rf-period-record p { margin: 3px 0 0; overflow-wrap: anywhere; }
+.rf-period-record-result { margin-top: 6px; padding: 5px 8px; border-left: 3px solid #839ab3; background: #eef3f9; }
+.rf-period-record-result ul { margin: 3px 0 0; padding-left: 15px; }
+.rf-period-record-result li > span { margin-left: 6px; }
+.rf-period-history .rf-period-events { list-style: none; padding: 0 0 0 9px; margin: 7px 0 0; border-left: 1px solid #bac9d9; }
+.rf-period-events li + li { margin-top: 6px; }
+.rf-period-events time { display: block; color: #4a5e71; font-size: 12px; }
+@media (max-width: 760px) {
+  .rf-calendar-period > .rf-period-history { margin-left: 28px; width: calc(100% - 28px); }
+}
+
+.rf-period-search { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin: 10px 0; }
+.rf-period-search label { display: grid; gap: 4px; min-width: 0; flex: 1 1 220px; font-size: 13px; }
+.rf-period-search input { box-sizing: border-box; width: 100%; min-height: 44px; min-width: 0; padding: 8px 10px; border: 1px solid #9cb1c4; border-radius: 7px; font: inherit; }
+.rf-period-match { margin: 0 0 10px; color: #324e68; font-weight: 700; }
+.rf-period-group-toggle {
+  background: #f6f9fc; border: 0; width: 100%; box-sizing: border-box;
+  padding: 12px 14px; color: #183953; font: inherit; text-align: left;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) auto; gap: 8px 12px; align-items: center;
+  cursor: pointer; overflow-wrap: anywhere; min-height: 48px;
+}
+.rf-period-group-toggle:hover { background: #eef5fb; }
+.rf-period-group-toggle:focus-visible { outline: 2px solid #175a87; outline-offset: -3px; }
+.rf-period-group-title { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; gap: 3px; }
+.rf-period-group-title small { color: #52667d; }
+.rf-period-group-summary { display: flex; min-width: 0; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 12px; }
+.rf-period-product-code { font-weight: 700; color: #16486c; }
+.rf-period-picked { color: #145739; font-weight: 700; }
+.rf-period-chevron { font-size: 15px; color: #344c64; }
+.rf-period-older-alert { padding: 8px 12px; background: #fff2e4; color: #762f14; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px; }
+.rf-period-older-alert .rf-btn { color: #762f14; border-color: #c89172; }
+.rf-period-older { border-top: 1px solid #dae4ee; }
+.rf-period-older h4, .rf-period-empty { margin: 0; padding: 10px 14px; font-size: 13px; }
+.rf-period-group [data-period-more] { margin: 8px 14px; }
+.rf-period-group :is(.rf-period-group-title, .rf-period-group-summary, .rf-period-fact, .rf-period-lock, .rf-period-chip, .rf-tag) {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+.rf-calendar .rf-period-group .rf-btn {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.rf-calendar-period > div:empty { display: none; }
+.rf-period-older-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 14px; }
+.rf-period-older-actions [data-period-more] { margin: 0; }
+@media (max-width: 760px) {
+  .rf-period-group-toggle { grid-template-columns: minmax(0, 1fr) auto; padding: 10px 12px; gap: 5px 8px; }
+  .rf-period-group-summary { grid-column: 1 / -1; grid-row: 2; }
+  .rf-period-chevron { grid-column: 2; grid-row: 1; align-self: start; }
+  .rf-period-search label { flex-basis: 100%; }
+  .rf-calendar-period > div { padding-left: 0; }
+  .rf-calendar-period > .rf-period-history { width: 100%; margin-left: 0; }
+}
+@container (max-width: 520px) {
+  .rf-period-group-toggle { grid-template-columns: minmax(0, 1fr) auto; padding: 10px 12px; }
+  .rf-period-group-summary { grid-column: 1 / -1; grid-row: 2; }
+  .rf-period-chevron { grid-column: 2; grid-row: 1; align-self: start; }
+  .rf-period-group .rf-calendar-period { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 12px; }
+  .rf-period-group .rf-calendar-period > div { padding-left: 0; }
+  .rf-period-group .rf-calendar-period > .rf-period-history { width: 100%; margin-left: 0; }
+  .rf-period-group .rf-calendar-period > div > .rf-btn { flex-basis: 100%; }
+}
+
+.rf-calendar-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) 32px minmax(0, 2fr);
+  align-items: center;
+  margin: 12px 0 16px;
+  padding: 12px;
+  border: 1px solid #d5e0eb;
+  border-radius: 12px;
+  background: #fff;
+}
+.rf-calendar-tabs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 5px;
+  min-width: 0;
+}
+.rf-calendar-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 7px 8px;
+  border: 1px solid #c2d2e3;
+  border-radius: 8px;
+  background: #f1f6fb;
+  color: #203d59;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+.rf-calendar-tabs button:hover { background: #e5effa; }
+.rf-calendar-tabs button.active { border-color: #174e82; background: #174e82; color: #fff; }
+.rf-flow-number { flex: none; font-size: 16px; }
+.rf-flow-arrow { align-self: center; color: #4a6884; font-weight: 700; text-align: center; }
+.rf-flow-arrow span:last-child { display: none; }
+.rf-calendar-results { min-width: 0; }
+.rf-calendar-results h3 { margin: 0 0 4px; color: #29475f; font-size: 13px; line-height: 1.35; }
+.rf-calendar-branches {
+  display: grid;
+  gap: 3px;
+  padding-inline-start: 9px;
+  border-inline-start: 2px solid #a9bdd0;
+}
+.rf-result-branch {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 34px;
+  padding: 4px 7px;
+  border: 1px solid #dce5ed;
+  border-radius: 7px;
+  background: #f7fafd;
+  font-size: 13px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+.rf-result-branch::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: -11px;
+  top: 50%;
+  width: 9px;
+  border-top: 2px solid #a9bdd0;
+}
+.rf-result-branch.pass { grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.6fr); color: #195c47; }
+.rf-result-branch.fail { color: #852c35; }
+.rf-result-branch.unable { color: #684605; }
+.rf-result-branch:hover:not(.pass) { background: #eaf2fa; }
+.rf-result-branch.active { border-color: currentColor; box-shadow: inset 0 0 0 1px currentColor; }
+.rf-result-branch small { font-size: 12px; }
+.rf-branch-icon, .rf-flow-count {
+  min-width: 20px;
+  padding: 2px 4px;
+  border-radius: 6px;
+  background: #e8eff6;
+  font-size: 12px;
+  font-weight: 750;
+  text-align: center;
+}
+.rf-flow-count { font-variant-numeric: tabular-nums; }
+@media (max-width: 850px) {
+  .rf-calendar-flow { grid-template-columns: minmax(0, 1fr); padding: 10px; }
+  .rf-calendar-tabs button { justify-content: center; }
+  .rf-flow-arrow.report { justify-self: end; width: 33.33%; }
+  .rf-flow-arrow.report span:first-child { display: none; }
+  .rf-flow-arrow.report span:last-child { display: inline; }
+  .rf-calendar-results h3 { text-align: end; }
+  button.rf-result-branch { min-height: 44px; }
+}
+@media (max-width: 440px) {
+  .rf-calendar-tabs { gap: 3px; }
+  .rf-calendar-tabs button { flex-direction: column; gap: 2px; padding: 5px 4px; text-align: center; }
+  .rf-calendar-tabs button span:last-child { font-size: 13px; }
+  .rf-app .rf-choice button { flex: 1 1 100px; }
+}
+.rf-approved-routing { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 8px; margin: 12px 0; }
+.rf-approved-routing section {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #dce4ee;
+  border-radius: 8px;
+  background: #f6f8fb;
+  overflow-wrap: anywhere;
+}
+.rf-approved-routing h4 { margin: 0 0 6px; }
+.rf-approved-routing ul { display: grid; gap: 6px; margin: 0; padding-inline-start: 18px; }
+.rf-approved-routing small { display: block; }
+.rf-period-events li { min-width: 0; overflow-wrap: anywhere; }
+.rf-period-events li > button { width: fit-content; max-width: 100%; }
+.rf-timeline-dialog { box-sizing: border-box; width: min(700px, calc(100vw - 24px)); max-height: 85vh; max-height: 85dvh; overflow: auto; }
+.rf-timeline-dialog > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.rf-timeline-dialog h2, .rf-history-snapshot { min-width: 0; overflow-wrap: anywhere; }
+.rf-history-snapshot dd { white-space: pre-wrap; }
+.rf-history-snapshot ol { padding-inline-start: 20px; }
+
+.rf-period-history .rf-period-events { padding-inline-start: 16px; border-inline-start: 2px solid #bac9d9; border-left-width: 2px; }
+.rf-period-events > li { position: relative; }
+.rf-period-events > li::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: -21px;
+  top: 5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3c7198;
+}
+.rf-calendar .rf-source-filters > label, .rf-calendar .rf-source-filters select,
+.rf-calendar .rf-work-states > button {
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 640px) {
+  .rf-calendar .rf-work-states {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .rf-calendar .rf-work-states > button {
+    flex: 1 1 94px;
+    min-height: 44px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .rf-timeline-dialog > header > button { min-height: 44px; }
+}
+
+.rf-period-search {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.4fr) repeat(2, minmax(132px, 0.9fr)) minmax(145px, 1.3fr) auto;
+  align-items: end;
+}
+.rf-period-search select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 9px;
+  border: 1px solid #9cb1c4;
+  border-radius: 7px;
+  background: white;
+  color: inherit;
+  font: inherit;
+}
+.rf-period-filter-actions { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.rf-period-filter-actions button { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }
+.rf-period-search [role="alert"]:not([hidden]) {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #8c302e;
+}
+@media (max-width: 1060px) {
+  .rf-period-search { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rf-period-query { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  .rf-period-outcome, .rf-period-filter-actions { grid-column: 1 / -1; }
+  .rf-period-filter-actions button { flex: 1 1 110px; }
+  .rf-period-search input[type="date"] { padding-inline: 6px; }
+}
+.rf-period-search input[type="date"] { display:block; min-inline-size:0; max-inline-size:100%; }
+.rf-period-search input[type="date"]::-webkit-date-and-time-value { min-width:0; text-align:start; }
+@media (max-width: 480px) {
+  /* iOS date controls need a full track even when the value is empty. */
+  .rf-period-search { grid-template-columns:minmax(0,1fr); }
+}
+
+.rf-layout.rf-approved-layout { grid-template-columns: minmax(0, 1fr); }
+.rf-layout.rf-approved-layout > .rf-detail-panel { display: none; }
+.rf-approved-list { min-width: 0; padding: 0 12px 12px; }
+.rf-approved-list form { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
+.rf-approved-list form label { flex: 1 1 220px; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.rf-approved-list form input { display: block; width: 100%; min-height: 44px; }
+.rf-approved-list .rf-btn { min-height: 44px; white-space: normal; }
+
+/* Approved retest returns to planning; the original result remains history. */
+.rf-retest-return { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #d5e0eb; color: #753a28; font-size: 13px; }
+.rf-retest-return-line { flex: 1; max-width: 90px; min-width: 12px; font-size: 28px; line-height: 1; text-align: center; }
+.rf-retest-return .rf-btn { white-space: normal; }
+.rf-retest-queue .rf-family-entry { margin: 8px 0; padding: 12px; border: 1px solid #d5e0eb; border-radius: 8px; }
+
+/* One forward spine, then independent outcome lanes: no crossing connectors. */
+.rf-calendar-flow { grid-template-columns: minmax(0,1fr); gap: 10px; }
+.rf-calendar-flow .rf-calendar-tabs { width: 100%; }
+.rf-flow-gate { margin: 0; text-align: center; color: #526b80; font-size: 13px; }
+.rf-calendar-flow .rf-calendar-branches { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; border: 0; padding: 0; }
+.rf-flow-lane { display: flex; flex-direction: column; align-items: stretch; text-align: center; min-width: 0; padding: 10px; border: 1px solid #d5e0eb; border-radius: 10px; gap: 7px; background: #f9fbfd; }
+.rf-calendar-flow .rf-flow-lane .rf-result-branch { width: 100%; box-sizing: border-box; min-height: 44px; }
+.rf-calendar-flow .rf-flow-lane .rf-result-branch::before { display: none; }
+.rf-flow-down { margin: 0; color: #71879a; }
+.rf-flow-terminal { padding: 8px; color: #28694e; background: #e9f5ef; border-radius: 6px; }
+.rf-flow-lane small,.rf-flow-note { color: #526b80; font-size: 12px; line-height: 1.6; }
+.rf-flow-note { margin: 12px 0 0; }
+.rf-calendar-flow .rf-retest-return { margin: 0; padding: 0; border: 0; gap: 6px; }
+.rf-calendar-flow .rf-retest-return .rf-btn { min-height: 44px; }
+@media(max-width:700px){ .rf-calendar-flow .rf-calendar-branches { grid-template-columns: minmax(0,1fr); } .rf-flow-lane { padding: 12px; } }
+@media(max-width:700px){
+  .rf-calendar-flow .rf-calendar-tabs { grid-template-columns: minmax(0,1fr); }
+  .rf-calendar-flow .rf-flow-arrow.step span:first-child { display: none; }
+  .rf-calendar-flow .rf-flow-arrow.step span:last-child { display: inline; }
+}
+
+/* One original-period row aggregates every retest; history stays expandable. */
+.rf-period-group { container-type: inline-size; }
+.rf-period-group .rf-period-single { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1fr) minmax(0,1.25fr); gap:12px 20px; align-items:start; }
+.rf-period-group-summary {
+  display:grid;
+  grid-template-columns:minmax(0,1.1fr) minmax(0,.55fr) minmax(0,1.8fr) minmax(0,.5fr);
+  align-items:start;
+}
+.rf-period-group-summary .rf-period-chip { justify-self:start; }
+.rf-period-group-title strong,.rf-period-group-title small,.rf-period-overview b { display:block; overflow-wrap:anywhere; }
+.rf-period-group .rf-period-exemption .rf-btn,.rf-period-group .rf-period-older-actions .rf-btn { min-height:44px; }
+.rf-period-group .rf-period-history > summary { min-height:44px; align-content:center; }
+.rf-calendar .rf-detail-panel :is(h2,h3,[data-action="back"],[data-ri-action="back"]) { scroll-margin-block:100px 16px; }
+@container (max-width: 620px) {
+  .rf-period-group .rf-period-group-toggle { grid-template-columns:minmax(0,1fr) auto; }
+  .rf-period-group .rf-period-group-summary { grid-column:1/-1; grid-row:2; grid-template-columns:minmax(0,1.75fr) minmax(0,1fr); }
+  .rf-period-group .rf-period-chevron { grid-column:2; grid-row:1; align-self:start; }
+  .rf-period-group .rf-period-single { grid-template-columns:minmax(0,1fr); gap:10px; }
+}
+
+.rf-period-group .rf-period-single > label { width:auto; min-width:0; }
+.rf-period-group .rf-period-single > div { margin:0; padding:0; width:auto; min-width:0; display:grid; gap:5px; overflow-wrap:anywhere; }
+.rf-period-single .rf-period-location small,.rf-period-single .rf-period-results small { color:#52667d; }
+.rf-period-single .rf-period-chip { width:fit-content; }
+.rf-period-single .rf-period-exemption { grid-column:1/-1; justify-self:start; }
+.rf-period-group .rf-period-single > .rf-period-history { grid-column:1/-1; width:100%; margin:0; }
+@media(max-width:760px){.rf-period-group .rf-period-single { grid-template-columns:minmax(0,1fr);gap:10px;padding:12px; }.rf-period-single .rf-period-location,.rf-period-single .rf-period-results{padding-left:28px!important;}}
+/* Status text is not the global five-pixel .progress meter. */
+.rf-period-group .rf-period-chip { height:auto; min-height:1.45em; max-height:none; overflow:visible; box-sizing:border-box; flex:0 1 auto; line-height:1.45; }
+.rf-period-group-summary > span { min-width:0; max-width:100%; overflow-wrap:anywhere; }
+.rf-location-link { color:#175a87; text-decoration:underline; text-underline-offset:3px; }
+.rf-location-link:focus-visible { outline:2px solid #175a87; outline-offset:3px; }
+.rf-fqc-administration { margin:12px 0;padding:12px 16px;background:#fff;border:1px solid #d5e0eb;border-radius:10px; }
+.rf-fqc-administration summary { cursor:pointer;font-weight:700;min-height:32px; }
+.rf-fqc-administration p,.rf-fqc-administration small { overflow-wrap:anywhere;line-height:1.5; }
+.rf-fqc-administration small { display:block; }
+
+.rf-calendar-hero .rf-fqc-administration { margin:0;min-width:0;flex:0 1 360px; }
+@media(max-width:640px){.rf-calendar-hero .rf-fqc-administration {flex:auto;align-self:stretch;}}
+
+/* Compact flow navigation; detail instructions stay available on demand. */
+.rf-calendar-flow .rf-flow-lane { justify-content:flex-start;gap:10px; }
+.rf-flow-help { margin-top:12px;font-size:13px;line-height:1.6;color:#526b80;overflow-wrap:anywhere; }
+.rf-flow-help summary { cursor:pointer;min-height:32px;display:list-item;font-weight:600; }
+.rf-flow-help p { margin:8px 0;max-width:90ch; }
+
+/* Reserved perimeter carries retest approvals back to the report node. */
+.rf-flow-diagram { position:relative;padding-right:34px;min-width:0; }
+.rf-flow-diagram .rf-flow-gate { margin:10px 0; }
+.rf-flow-connectors { position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible; }
+.rf-flow-return-path,.rf-flow-join-path { fill:none;stroke:#a55331;stroke-width:2;stroke-linejoin:round; }
+.rf-flow-return-path { marker-end:url(#rf-flow-return-arrow); }
+.rf-calendar-flow .rf-flow-diagram .rf-retest-return { min-height:50px;justify-content:flex-start;padding-left:8px;box-sizing:border-box; }
+.rf-flow-diagram .rf-retest-return span { position:relative;background:#fff;padding:3px 6px;margin-left:52%;max-width:42%;overflow-wrap:anywhere; }
+@media(max-width:700px){.rf-flow-diagram {padding-right:28px}.rf-flow-diagram .rf-retest-return span{margin-left:0;max-width:100%}.rf-calendar-flow .rf-flow-diagram .rf-retest-return{min-height:40px}}
+
+/* FQC small-screen controls retain full labels and normal document scrolling. */
+@media (max-width: 760px) {
+  #routine-fqc-root { overflow:visible; }
+  #routine-fqc-root :is(button, summary, input, select, textarea) { scroll-margin-block:100px 24px; }
+  #routine-fqc-root :is(button, summary) { min-height:44px; max-width:100%; white-space:normal!important; overflow-wrap:anywhere; line-height:1.5; }
+  #routine-fqc-root summary { padding-block:10px; cursor:pointer; }
+  #routine-fqc-root :is(input:not([type=checkbox]):not([type=radio]):not([type=file]), select, textarea) {
+    font-size:16px; min-height:44px; min-width:0; max-width:100%; box-sizing:border-box;
+  }
+  #routine-fqc-root textarea { min-height:96px; resize:vertical; }
+  #routine-fqc-root .rf-modules button { font-size:13px; }
+  #routine-fqc-root :is(.rf-actions,.vd-actions) { gap:8px; flex-wrap:wrap; }
+  #routine-fqc-root :is(.rf-actions,.vd-actions) > button { flex:1 1 110px; min-width:0; }
+  #routine-fqc-root .rf-period-choice { min-height:44px; }
+  #routine-fqc-root :is(.rf-kv,.rf-integrated-plan dl) { grid-template-columns:minmax(0,1fr); }
+  #routine-fqc-root :is(.rf-document,.rf-detail,.rf-list-group,.rf-source-scroll) { min-width:0; overflow-wrap:anywhere; }
+  #routine-fqc-root .rf-source-scroll { overflow-x:auto; }
+  #routine-fqc-root .rf-table { width:100%; table-layout:fixed; }
+  #routine-fqc-root .rf-table :is(th,td) { overflow-wrap:anywhere; white-space:normal; }
+  .rf-modal, body:has(#routine-fqc-root .rf-calendar) .vd-confirm {
+    box-sizing:border-box; width:calc(100vw - 24px); max-width:700px;
+    max-height:calc(100dvh - 24px); padding:16px; overflow:auto; overscroll-behavior:contain;
+    overflow-wrap:anywhere; scroll-padding-block:16px;
+  }
+  .rf-modal *, body:has(#routine-fqc-root .rf-calendar) .vd-confirm * { box-sizing:border-box; min-width:0; }
+  .rf-modal :is(input:not([type=checkbox]):not([type=radio]),select,textarea),
+  body:has(#routine-fqc-root .rf-calendar) .vd-confirm textarea { font-size:16px; width:100%; min-height:44px; }
+  .rf-modal textarea, body:has(#routine-fqc-root .rf-calendar) .vd-confirm textarea { min-height:96px; resize:vertical; }
+  .rf-modal :is(button,summary), body:has(#routine-fqc-root .rf-calendar) .vd-confirm button {
+    min-height:44px; max-width:100%; white-space:normal!important; overflow-wrap:anywhere!important;
+  }
+  .rf-modal .rf-actions, body:has(#routine-fqc-root .rf-calendar) .vd-confirm .vd-actions { position:static; display:flex; flex-wrap:wrap; gap:8px; }
+  .rf-modal .rf-actions button, body:has(#routine-fqc-root .rf-calendar) .vd-confirm .vd-actions button { flex:1 1 110px; min-width:0; }
+  .rf-modal .rf-table { width:100%; table-layout:fixed; }
+  .rf-modal .rf-table :is(td,th) { overflow-wrap:anywhere; }
+}
+
+.rf-modal .rf-confirm-ack { display:flex;align-items:flex-start;gap:12px;min-height:44px;cursor:pointer; }
+.rf-modal .rf-confirm-ack input { flex:0 0 24px;width:24px;height:24px;margin:0; }
+.rf-confirm-ack span { min-width:0;line-height:1.6; }
+.rf-confirm-help { margin:0;padding:12px;background:#f1f6fa;border-radius:8px;line-height:1.6;overflow-wrap:anywhere; }
+@media (max-width:760px) {
+  #routine-fqc-root :is(button,summary) { font-size:14px; }
+  #routine-fqc-root .vd-choice select { font-size:16px!important; }
+  #routine-fqc-root textarea { min-height:96px!important; }
+  #routine-fqc-root a.rf-location-link { display:inline-flex;align-items:center;min-height:44px;max-width:100%;overflow-wrap:anywhere; }
+}
+
+/* Long bilingual source names remain available through an explicit disclosure. */
+.rf-period-source-full,.rf-long-text{min-width:0;max-width:100%;overflow-wrap:anywhere;white-space:normal;}
+.rf-period-source-full{padding:0 14px 10px;color:#344d65;}
+.rf-period-source-full summary,.rf-long-text summary{min-height:44px;cursor:pointer;line-height:1.55;padding:10px 0;}
+.rf-period-source-full p,.rf-long-text p{margin:6px 0;white-space:pre-wrap;overflow-wrap:anywhere;}
+.rf-long-text summary span{color:#17667b;font-weight:600;}
+.rf-period-single :is(.rf-period-location,.rf-period-results){line-height:1.6;}
+@media(max-width:760px){.rf-period-group .rf-period-single .rf-period-location,.rf-period-group .rf-period-single .rf-period-results{padding-left:0!important;}.rf-period-source-full{padding:0 12px 10px;}}
+
+.rf-receipt-reference { display:block; margin-top:6px; overflow-wrap:anywhere; }
+
+.rf-receipt-compact { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.rf-receipt-compact .rf-receipt-reference { flex-basis:100%; margin-top:0; }
+.rf-receipt-compact button { min-height:44px; }

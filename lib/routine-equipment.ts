@@ -1,3 +1,4 @@
+import {checkEquipmentTime} from './time-frequency-policy';
 import {legacyJsonValueText,type JsonValue} from './legacy-login-json';
 export type Equipment = Record<string, unknown> & {
   id: string; assetCode: string; pieceMark: string; groupId: string;
@@ -224,6 +225,7 @@ export function checkedSnapshot(version: EquipmentVersion, incoming: unknown) {
       item = { ...old };
     }
     for (const field of mutableFields) if (field in raw) item[field] = raw[field];
+    checkEquipmentTime(item,old);
     for (const field of ['assetCode','name','nameVi','groupId','category','subcategory','unit','calibrationMethod','calibratedAt','expiresAt','photoId'])
       if (item[field] !== undefined && typeof item[field] !== 'string') throw Error(`${field} 格式錯誤: 【${item.assetCode || item.id}】`);
     if (typeof item.enabled !== 'boolean' || typeof item.confirmed !== 'boolean') throw Error(`設備狀態格式錯誤: 【${item.assetCode}】`);

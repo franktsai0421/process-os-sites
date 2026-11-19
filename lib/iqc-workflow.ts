@@ -25,6 +25,8 @@ export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>=
   draftMissing:content=>iqcContentIssues(content).filter(issue=>issue.kind==='missing'),
   photoPrefix:'iqc/photos/',photoIds:content=>[...content.parts.flatMap(p=>p.photos.map(p=>p.id)),...content.items.flatMap(i=>(i.mediaItems||[]).map(p=>p.id))],
   context(control,state,base){
+    const approved=effectiveVersion(control);
+    const approvedContent=approved?.status==='approved'&&Array.isArray(approved.snapshot?.items)?approved.snapshot:undefined;
     const equipment=parse(state.values.routineEquipmentControl,{}) as {activeVersionId?:string;versions?:{id:string;status:string;equipment:{id:string;enabled?:boolean;assetCode?:string;pieceMark?:string;name?:string;nameVi?:string;spec?:string;photoId?:string}[]}[]};
     const selected=new Map((equipment.versions?.find(v=>v.id===equipment.activeVersionId&&v.status==='approved')?.equipment||[]).map(e=>[e.id,e]));
     return {...base,validateRevivedEquipment:(content:IqcSnapshot,ids:Set<string>)=>{for(const item of content.items)if(ids.has(item.id)&&item.equipmentId&&(!selected.has(item.equipmentId)||selected.get(item.equipmentId)?.enabled===false))throw new DraftConflict('EQUIPMENT_UNAVAILABLE',422);},activeId:effectiveVersion(control)?.id||null,
@@ -50,7 +52,7 @@ export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>=
         }
         try{checkedIqcSnapshot(previous,content,true);}catch(error){throw new DraftConflict(error instanceof Error?error.message:'INVALID_STRUCTURE',422);}
       },
-      validate(content){return [...iqcContentIssues(content),
+      validate(content){return [...iqcContentIssues(content,approvedContent),
         ...content.items.filter(i=>!i.isDeleted&&i.equipmentId&&(!selected.has(i.equipmentId)||selected.get(i.equipmentId)?.enabled===false)).map(i=>({kind:'error' as const,path:['items',{id:i.id},'equipmentId'],message:'EQUIPMENT_UNAVAILABLE'}))];}
     };
   },

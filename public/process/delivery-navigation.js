@@ -82,6 +82,7 @@
    window.ProcessNavigationForms?.clearDisconnected?.();
   }
   function routeURL(target){const url=policy.destinationURL(committedURL,target);
+   url.searchParams.delete('riDocument');
    if(target.view==='approval')url.searchParams.set('approvalTab',target.approvalTab||'master');else{url.searchParams.delete('approvalTab');url.searchParams.delete('rfDocument');url.searchParams.delete('rfCase');}
    if(target.display){for(const [key,value]of Object.entries(target.display))if(['rfDocument','rfCase'].includes(key))url.searchParams.set(key,value);}
    return url;
@@ -253,7 +254,8 @@
   }
   api.navigate=(view,tab,system,options={})=>{
    if(view!=='data'&&!Object.hasOwn(policy.deliveryViews,view)||view==='data'&&tab&&!Object.hasOwn(policy.deliveryTabs,tab))return false;
-   const target={view,dataTab:view==='data'?tab||null:null,system:system||installed.system,approvalTab:view==='approval'?state.approvalTab||'master':undefined};
+   const routineEntry=view==='approval'&&installed.view==='quality-inspections'&&window.RoutineFQCUI?.opensRoutineApproval?.();
+   const target={view,dataTab:view==='data'?tab||null:null,system:system||installed.system,approvalTab:view==='approval'?(routineEntry?'routine':state.approvalTab||'master'):undefined};
    if(view.startsWith('quality-')||tab?.startsWith('quality-'))target.system='quality';
    void request(target,options);return true;
   };

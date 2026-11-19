@@ -1,4 +1,5 @@
-import type { DraftIssue } from './shared-draft';
+import {checkIqcTime} from './time-frequency-policy';
+import { stableDraftJSON, type DraftIssue } from './shared-draft';
 export type IqcRule = {
   id: string;
   cadence: 'source' | 'batch' | 'time';
@@ -144,6 +145,7 @@ export function checkedIqcSnapshot(previous: IqcSnapshot, value: unknown, workin
     if (nextErrors.get(old.id)?.partCode !== old.partCode ||
         nextErrors.get(old.id)?.sourceRow !== old.sourceRow)
       throw Error(`${old.code} 的來源零件不可改動`);
+  for(const row of next.items)checkIqcTime(row,previous.items.find(old=>old.id===row.id));
   const nextItems = new Map(next.items.map(item => [item.id, item]));
   for (const old of previous.items) {
     const current = nextItems.get(old.id);
@@ -220,8 +222,17 @@ export function checkedIqcSnapshot(previous: IqcSnapshot, value: unknown, workin
   return next;
 }
 
-export function iqcSubmitErrors(snapshot: IqcSnapshot): string[] {
+// Older approved snapshots encode the every-batch rule as all/1. It
+// describes a batch check, and is only valid as an unchanged carried rule.
+function approvedBatchRules(approved?: IqcSnapshot) {
+  const items = new Map(approved?.items.filter(item => !item.isDeleted).map(item => [item.id,item]));
+  return (item: IqcItem, rule: IqcRule) => rule.cadence === 'batch' && rule.kind === 'all' && rule.value === '1' &&
+    (items.get(item.id)?.rules.some(before => before.id === rule.id && stableDraftJSON(before) === stableDraftJSON(rule)) ?? false);
+}
+
+export function iqcSubmitErrors(snapshot: IqcSnapshot, approved?: IqcSnapshot): string[] {
   const issues: string[] = [];
+  const acceptedLegacyBatch = approvedBatchRules(approved);
   const categoryIds = new Set(snapshot.categories.map(item => item.id));
   for (const part of snapshot.parts.filter(item => !item.isDeleted)) {
     if (!categoryIds.has(part.categoryId)) issues.push(`${part.code} 尚未指定有效類別`);
@@ -232,7 +243,7 @@ export function iqcSubmitErrors(snapshot: IqcSnapshot): string[] {
     for (const rule of item.rules) {
       if (rule.cadence === 'source') {
         if (!text(rule.sourceTextVi).trim()) issues.push(`${item.checkNo} 來源規則空白`);
-      } else if (rule.cadence === 'batch') {
+      } else if (rule.cadence === 'batch' && !acceptedLegacyBatch(item,rule)) {
         const value = text(rule.value).trim();
         if (!['aql','fixed_count','batch_quantity','custom'].includes(rule.kind) || !value ||
             rule.kind === 'custom' && !text(rule.nameVi).trim() ||
@@ -249,14 +260,14 @@ export function iqcSubmitErrors(snapshot: IqcSnapshot): string[] {
 }
 
 // Missing content is reviewable; supplied invalid values/references remain errors.
-export function iqcSubmitBlockingErrors(snapshot:IqcSnapshot,all:readonly string[]=iqcSubmitErrors(snapshot)):string[]{
-  const blocked=new Set<string>();
+export function iqcSubmitBlockingErrors(snapshot:IqcSnapshot,all?:readonly string[],approved?:IqcSnapshot):string[]{
+  const blocked=new Set<string>(),acceptedLegacyBatch=approvedBatchRules(approved);
   for(const part of snapshot.parts.filter(p=>!p.isDeleted))if(part.categoryId&&!snapshot.categories.some(c=>c.id===part.categoryId))blocked.add(`${part.code} 尚未指定有效類別`);
   for(const item of snapshot.items.filter(i=>!i.isDeleted))for(const rule of item.rules){
-    if(rule.cadence==='batch'&&(!['aql','fixed_count','batch_quantity','custom'].includes(rule.kind)||rule.kind!=='custom'&&text(rule.value).trim()&&(!Number.isFinite(Number(rule.value))||Number(rule.value)<=0)))blocked.add(`${item.checkNo} 按批次規則缺少有效數值或自訂名稱`);
+    if(rule.cadence==='batch'&&!acceptedLegacyBatch(item,rule)&&(!['aql','fixed_count','batch_quantity','custom'].includes(rule.kind)||rule.kind!=='custom'&&text(rule.value).trim()&&(!Number.isFinite(Number(rule.value))||Number(rule.value)<=0)))blocked.add(`${item.checkNo} 按批次規則缺少有效數值或自訂名稱`);
     if(rule.cadence==='time'&&(!['week','month','quarter','half_year','year','custom'].includes(rule.kind)||text(rule.value).trim()))blocked.add(`${item.checkNo} 按時間規則格式錯誤`);
   }
-  return all.filter(message=>blocked.has(message));
+  return (all??iqcSubmitErrors(snapshot,approved)).filter(message=>blocked.has(message));
 }
 
 export function nextIqcErrorCode(control: IqcControl, partCode: string): string {
@@ -274,8 +285,8 @@ export function nextIqcCheckNo(control: IqcControl, errorCode: string): string {
 }
 
 // Same content checks for submission and read-only working-draft presentation.
-export function iqcContentIssues(content:IqcSnapshot):DraftIssue[]{
-  const errors=iqcSubmitErrors(content),blocked=new Set(iqcSubmitBlockingErrors(content,errors));return [
+export function iqcContentIssues(content:IqcSnapshot,approved?:IqcSnapshot):DraftIssue[]{
+  const errors=iqcSubmitErrors(content,approved),blocked=new Set(iqcSubmitBlockingErrors(content,errors,approved));return [
         ...errors.map(message=>{
           const item=content.items.find(row=>message.startsWith(row.checkNo+' ')),part=item?undefined:content.parts.find(row=>message.startsWith(row.code+' '));
           return{kind:blocked.has(message)?'error' as const:'missing' as const,path:item?['items',{id:item.id},'rules']:part?['parts',{id:part.id},message.endsWith('零件名稱空白')?'nameVi':'categoryId']:[],message};

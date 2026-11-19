@@ -128,5 +128,9 @@ void test('normal Update and separate read-only Refresh are bilingual; cache mat
   assert.match(source, /btn\('refresh', t\('重新整理', 'Làm mới'\)\)/);
   assert.doesNotMatch(source, /setInterval\s*\(/);
   const shell = fs.readFileSync('public/process/index.html', 'utf8');
-  assert.equal(shell.match(/routine-fqc\.js\?v=20261112-quality-main-joint1/g)?.length, 1);
+  const js = [...shell.matchAll(/routine-fqc\.js\?v=([^"]+)/g)];
+  const css = [...shell.matchAll(/routine-fqc\.css\?v=([^"]+)/g)];
+  assert.equal(js.length, 1);
+  assert.equal(css.length, 1);
+  assert.equal(js[0][1], css[0][1]);
 });
