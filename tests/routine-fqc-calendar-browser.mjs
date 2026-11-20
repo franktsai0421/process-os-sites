@@ -176,6 +176,30 @@ export async function runRoutineFqcCalendarBrowser() {
 
 
     const reviewer = await open('routine-reviewer',{width:390,height:844});
+    async function observeApprovalDispatch() {
+      // Audit the real navigation result without changing its route, inputs
+      // or error handling. The application normally consumes this Promise.
+      await page.evaluate(() => {
+        const api=window.ProcessDeliveryNavigation, dispatch=api.approval;
+        window.syntheticRoutineApprovalResult=null;
+        api.approval=function(...args) {
+          api.approval=dispatch;
+          const result=dispatch.apply(this,args);
+          void result.then(value=>{
+            window.syntheticRoutineApprovalResult={
+              status:value.status,
+              committed:value.committed ?? null,
+              error:value.error?.message?.slice(0,160) ?? null,
+              frames:value.error?.stack?.split('\n').slice(1,4).map(frame=>{
+                const match=frame.match(/\/process\/([a-z0-9_.-]+(?:\?.*?)?):(\d+):(\d+)/i);
+                return match ? [match[1].split('?')[0],Number(match[2]),Number(match[3])] : null;
+              }) ?? [],
+            };
+          });
+          return result;
+        };
+      });
+    }
     async function submitDocument() {
       await action(document,'save').click();
       await action(document,'submit').click();
@@ -184,7 +208,11 @@ export async function runRoutineFqcCalendarBrowser() {
       return read();
     }
     async function review(id, pendingId, selfFence = false) {
+      await observeApprovalDispatch();
       await action(document,'review').click();
+      const navigationHandle=await page.waitForFunction(()=>window.syntheticRoutineApprovalResult);
+      const navigation=await navigationHandle.jsonValue();
+      assert.equal(navigation.status,'ready',JSON.stringify(navigation));
       await page.waitForURL(url=>url.searchParams.get('approvalTab')==='routine' &&
         url.searchParams.get('rfDocument')===id && url.searchParams.get('rfCase')===pendingId);
       if (selfFence) {
@@ -224,9 +252,21 @@ export async function runRoutineFqcCalendarBrowser() {
     assert.deepEqual(posted.map(item=>item.command),['configure','generate','request','save','submit','approve']);
     report.checks.push('only the selected product closes after separate approval in the routine queue; self-confirm defaults locked');
 
+    let ordinaryEntries = 0;
     async function tab(name) {
-      await page.goto(origin+inspection.replace('rfTab=sources','rfTab='+name),{waitUntil:'domcontentloaded'});
-      await root.locator('.rf-calendar-flow').waitFor();
+      // Change tabs in the mounted workspace. Coming back from review is an
+      // ordinary FQC entry, which intentionally has one schedule generation.
+      const before = posted.length;
+      const flow = root.locator('.rf-calendar-flow');
+      if (await flow.isVisible()) {
+        await flow.locator(`[data-tab="${name}"]`).click();
+        assert.deepEqual(posted.slice(before),[]);
+      } else {
+        await page.goto(origin+inspection.replace('rfTab=sources','rfTab='+name),{waitUntil:'domcontentloaded'});
+        await flow.waitFor();
+        assert.deepEqual(posted.slice(before),[{actor:'frank',command:'generate'}]);
+        ordinaryEntries++;
+      }
     }
     async function enterReport(planId, outcome) {
       await tab('reports');
@@ -311,8 +351,9 @@ export async function runRoutineFqcCalendarBrowser() {
     await history.locator('[data-cancel]').click();
     assert.equal(posted.length,reviewWrites);
     assert.deepEqual(blocked,[]);
-    assert.deepEqual(posted.map(item=>item.command),[
-      'configure','generate','request','save','submit','approve',
+    assert.equal(posted.filter(item=>item.command==='generate').length,1+ordinaryEntries);
+    assert.deepEqual(posted.filter(item=>item.command!=='generate').map(item=>item.command),[
+      'configure','request','save','submit','approve',
       'create-plan','save','submit','approve','create-report','save','submit','approve',
       'request','save','submit','approve','create-report','save','submit','approve',
       'create-plan','save','submit','approve','create-report','save','submit','approve',
