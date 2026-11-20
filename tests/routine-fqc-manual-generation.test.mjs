@@ -447,3 +447,55 @@ for (const phase of ['post', 'receipt-headers', 'receipt-body']) void test('stal
   assert.equal(f.api.record().notSent, false); assert.equal(inputs(f), before);
   assert.equal(f.document.querySelector('section[role="alert"]'), null);
 });
+
+void test('deferred terminal case bodies leave unrelated periods selectable and show the exact current approval', () => {
+  const f = manualUI();
+  const source = {id:'standard',name:'Synthetic check',code:'SYN',line:'A',category:'Synthetic',
+    frequency:'monthly',description:'Synthetic standard',version:'1'};
+  const job = product => ({id:'period-'+product,itemId:source.id,start:'2026-10-01',end:'2026-10-31',
+    source:{...source,products:[{code:product,name:product}]},planId:null,completion:null,
+    calendar:{scope:product,productCode:product,frequency:'monthly'}});
+  const waived=job('waived'), available=job('available'), reported=job('reported');
+  const ref={__immutableBody:{sha256:'a'.repeat(64),bytes:128}};
+  const snapshot=(target,results=[])=>({title:target.id,date:'2026-10-20',notes:'',reason:'Synthetic current approval',
+    disposition:'',evidence:[],lines:[{id:'line-'+target.id,jobId:target.id,source:target.source,results}]});
+  function approved(id,kind,value,extra={}) {
+    const actor={id:'fixture-admin',name:'Synthetic reviewer'};
+    return {id,number:id,kind,owner:actor,createdAt:'2026-10-20T00:00:00Z',...extra,
+      flow:{working:value,active:{id:id+'-active',content:value},saved:null,pendingId:null,cases:[
+        {id:id+'-prior',status:'approved',content:ref,actor,at:'2026-10-19T00:00:00Z'},
+        {id:id+'-active',status:'approved',content:ref,actor,at:'2026-10-20T00:00:00Z',
+          result:{actor,at:'2026-10-21T00:00:00Z'}},
+      ]}};
+  }
+  const waiver=approved('WAIVER','plan',snapshot(waived),{requestKind:'skip',calendarVersion:2});
+  const report=approved('REPORT','report',snapshot(reported,[{id:'result',outcome:'pass',value:'Synthetic measured pass',
+    samples:['reported'],notes:'',photos:['b'.repeat(64)]}]));
+  waived.completion={kind:'skip',reportId:waiver.id};
+  reported.completion={kind:'pass',reportId:report.id};
+  Object.assign(f.remote.control,{startDate:'2026-10-01',calendarPolicy:{version:2,scopes:{}},
+    documents:[waiver,report],jobs:[waived,available,reported],cases:[]});
+  f.api.setData(structuredClone(f.remote));
+  f.paint();
+  const group = key => [...f.root.querySelectorAll('[data-period-group]')].find(node=>node.dataset.periodGroup===key);
+  group('available').querySelector('[data-period-toggle]').click();
+  const pick=group('available').querySelector('input[data-job]');
+  assert.equal(pick.dataset.job,available.id);
+  assert.equal(pick.disabled,false);
+  assert.equal(group('available').querySelector('[data-timeline-doc]'),null,'no cross-product links');
+  group('waived').querySelector('[data-period-toggle]').click();
+  const active=group('waived').querySelector('[data-timeline-review="WAIVER-active"]');
+  assert(active,'exact active case is available from its hydrated snapshot');
+  assert.equal(group('waived').querySelector('[data-timeline-review="WAIVER-prior"]'),null,'no unverified older body is substituted');
+  active.click();
+  const dialog=f.document.querySelector('dialog.rf-timeline-dialog');
+  assert.match(dialog.textContent,/Synthetic current approval/);
+  dialog.querySelector('[data-cancel]').click();
+  group('reported').querySelector('[data-period-toggle]').click();
+  const result=group('reported').querySelector('[data-timeline-review="REPORT-active"]');
+  result.click();
+  const reportDialog=f.document.querySelector('dialog.rf-timeline-dialog');
+  assert.match(reportDialog.textContent,/Synthetic measured pass/);
+  assert.equal(reportDialog.querySelector('img').getAttribute('src'),'/api/routine-fqc/photo?id='+'b'.repeat(64));
+  assert.deepEqual(posted(f),[]);
+});

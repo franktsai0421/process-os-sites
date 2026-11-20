@@ -1169,6 +1169,13 @@
     return new Set([j.id,...itemCases.flatMap(a=>[a.jobId,...(a.lineageJobIds || [])]),
       ...data.control.jobs.filter(other=>other.calendar?.originJobId===j.id||caseIds.has(other.calendar?.retestCaseId)).map(other=>other.id)]);
   }
+  const hasPeriodLines = snapshot => Array.isArray(snapshot?.lines);
+  function periodReviewSnapshot(d, review) {
+    if (hasPeriodLines(review.content)) return review.content;
+    // Normal entry defers terminal case bodies. The active snapshot is
+    // already hydrated and belongs only to the exact matching review.
+    return review.id === d.flow.active?.id ? d.flow.active.content : null;
+  }
   function approvedPeriodReports(j, includeRetests = true) {
     const ids=includeRetests&&!j.calendar?.retestCaseId?periodLineage(j):new Set([j.id]);
     return docs().flatMap(d => {
@@ -1178,7 +1185,8 @@
       if(active?.id)approvals.push({id:active.id,content:active.content,
         result:d.flow.cases.find(review=>review.id===active.id)?.result});
       return approvals.flatMap(review=>{
-        const lines=review.content?.lines.filter(l=>ids.has(l.jobId)&&!d.cancelledJobIds?.includes(l.jobId))||[];
+        if (!hasPeriodLines(review.content)) return [];
+        const lines=review.content.lines.filter(l=>ids.has(l.jobId)&&!d.cancelledJobIds?.includes(l.jobId));
         return lines.length?[{doc:d,review,lines}]:[];
       });
     }).sort((a,b)=>(a.review.result?.at||a.doc.createdAt||'').localeCompare(b.review.result?.at||b.doc.createdAt||''));
@@ -1261,14 +1269,14 @@
   function periodHistory(j) {
     if(!data.permissions.history)return '';
     const lineage = periodLineage(j);
-    const contains = value => value?.lines.some(line => lineage.has(line.jobId));
+    const contains = value => hasPeriodLines(value) && value.lines.some(line => lineage.has(line.jobId));
     const documents = docs().filter(d=>[d.flow.working,d.flow.saved?.content,d.flow.active?.content,
-      ...d.flow.cases.map(review=>review.content)].some(contains));
+      ...d.flow.cases.map(review=>periodReviewSnapshot(d,review))].some(contains));
     const events = [];
     for(const d of documents){
       events.push({doc:d,at:d.createdAt,title:reportLabel(d),actor:d.owner});
       for(const review of d.flow.cases){
-        if(!contains(review.content))continue;
+        if(!contains(periodReviewSnapshot(d,review)))continue;
         events.push({doc:d,review,at:review.at,title:t('送出審核','Gửi duyệt'),actor:review.actor,reason:review.reason});
         if(review.result)events.push({doc:d,review,title:historyAction(review.status),...review.result});
       }
@@ -1315,9 +1323,9 @@
     if(entry&&!review || button.dataset.timelineJob&&!job)return;
     const formal=button.hasAttribute('data-timeline-formal');
     if(formal&&!d.flow.active.id)return;
-    const snapshot=formal?d.flow.active.content:review?.content||content(d);
+    const snapshot=formal?d.flow.active.content:review?periodReviewSnapshot(d,review):content(d);
     const lineage=job?periodLineage(job):null;
-    if(!snapshot || lineage&&!snapshot.lines.some(l=>lineage.has(l.jobId)))return;
+    if(!hasPeriodLines(snapshot) || lineage&&!snapshot.lines.some(l=>lineage.has(l.jobId)))return;
     const el=document.createElement('dialog'),title=displayNumber(d)+' · '+t('唯讀明細','Chi tiết chỉ đọc');
     s.dialogOpen=true;
     el.className='rf-modal rf-timeline-dialog';

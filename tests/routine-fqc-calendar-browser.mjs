@@ -488,8 +488,8 @@ export async function runRoutineFqcCalendarBrowser() {
     assert.equal(find(final.cases,dispositionOrigin.item.id).status,'disposed');
     assert.deepEqual(find(final.documents,dispositionOrigin.original.id).flow.active,dispositionOrigin.original.flow.active);
     assert.equal(find(final.cases,retestOrigin.item.id).status,'closed');
-    const reviewWrites = posted.length;
     await tab('reports');
+    const reviewWrites = posted.length;
     await root.locator('[data-work-state="approved-history"]').click();
     await root.locator(`[data-approved-report][data-timeline-doc="${retestOrigin.original.id}"]`).click();
     const history = page.locator('dialog.rf-timeline-dialog[open]');
