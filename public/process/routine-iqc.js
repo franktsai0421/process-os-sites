@@ -1018,8 +1018,15 @@
       return;
     }
     if(kind==='review'){
-      if(!window.RoutineFQCUI.navigation.canLeave()||window.ProcessDeliveryNavigation?.pending?.())
-        throw Error(t('先處理保留中的工作，再前往版本確認平台。','Hoàn tất công việc đang giữ trước khi mở nền tảng duyệt.'));
+      const navigation=window.ProcessDeliveryNavigation;
+      const blocked=()=>Error(t('先處理保留中的工作，再前往版本確認平台。','Hoàn tất công việc đang giữ trước khi mở nền tảng duyệt.'));
+      if(!iqcCanLeave())throw blocked();
+      if(navigation?.approval){
+        const result=await navigation.approval('routine',{riDocument:id});
+        if(result?.status==='blocked')throw blocked();
+        return;
+      }
+      if(!window.RoutineFQCUI.navigation.canLeave()||navigation?.pending?.())throw blocked();
       const target=route(true,true);target.searchParams.set('riDocument',id);location.assign(target);return;
     }
     if(kind==='receipt'){

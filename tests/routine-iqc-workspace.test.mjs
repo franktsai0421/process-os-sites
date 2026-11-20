@@ -8,7 +8,7 @@ import {manualUI} from './fixtures/routine-fqc-manual-ui.mjs';
 
 const fixtureOrigin = 'https://synthetic.invalid';
 
-function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirmAction=false,fqcPending=null,listNavigation={},displayDocument=null,manualDialog=false,pageDraft=false,badgeAvailability={fqc:false,iqc:false}}={}){
+function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirmAction=false,fqcPending=null,listNavigation={},displayDocument=null,manualDialog=false,pageDraft=false,badgeAvailability={fqc:false,iqc:false},managedApproval}={}){
  let onClick, changed, iqcClick, iqcChange, fqcMounts=0, epoch=1, allowed=false;
  let recoveryText={textContent:''}, badgeChanged, adminModal;
  let dialogCount=0, closeDialog;
@@ -55,7 +55,7 @@ function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirm
  const location={href:fixtureOrigin+'/process/?'+(review?'view=approval&approvalTab=routine&rfModule=iqc':'view=quality-inspections')+'&system=quality'+(displayDocument?'&riDocument='+displayDocument:''),assign:url=>visits.push(url.href)};
  const departure={inspect:()=>({state:'unknown'})};
  const window={hasPermission:key=>pageDraft&&key==='iqc.view',scrollTo(){},addEventListener(){},ProcessSync:{identity:{id:'synthetic'},identityGeneration:()=>epoch},
-  ProcessDeliveryNavigation:{replaceDisplayURL(url){location.href=url.href;return true;}},
+  ProcessDeliveryNavigation:{approval:managedApproval,replaceDisplayURL(url){location.href=url.href;return true;}},
   RoutineFQCUI:{...listNavigation,html:()=>'<section id="routine-fqc-root"><p role="status">Loading</p></section>',mount(){fqcMounts++;},pendingCount:()=>fqcPending||0,
     approvalPendingAvailability:async()=>badgeAvailability,
     async refreshPending(enabled){if(enabled)fqcBadgeReads.push('pending-count');},navigation:{departure,canLeave:()=>allowed,reset(){}}}};
@@ -381,6 +381,23 @@ void test('each routine IQC document opens and filters only in routine approval 
    const queue=review.iqcRoot.innerHTML.split('data-ri-panel="review"')[0];
    assert.deepEqual(Array.from(queue.matchAll(/data-ri-action="doc:([^"]+)"/g),match=>match[1]),[id]);
   }
+ }
+});
+
+void test('IQC review shortcut gives the guarded shell the exact document while hidden FQC is unresolved',async()=>{
+ const pending=parityDoc('PENDING-IQC-PLAN','plan','pending',[]);
+ for(const lang of ['zh','vi']){
+  const targets=[];
+  const source=switchFixture(lang,{data:parityState([], [pending]),managedApproval:async(tab,display)=>{
+   targets.push([tab,display.riDocument]);return {status:'ready'};
+  }});
+  source.press(source.entry);await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(source.navigation.canLeave(),false,'hidden FQC still owns its write fence');
+  source.action('review:'+pending.id);await new Promise(resolve=>setImmediate(resolve));
+  assert.deepEqual(targets,[['routine',pending.id]]);
+  assert.deepEqual(source.visits,[],'no unguarded reload');
+  assert.equal(source.localForm.value,'TEST ONLY unsaved notes');
+  assert.equal(source.navigation.canLeave(),false);
  }
 });
 

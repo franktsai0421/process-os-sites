@@ -3215,7 +3215,9 @@
       try{return receiptStore().getItem(receiptRecord.key)===receiptRecord.raw?{record:receiptRecord,raw:receiptRecord.raw,pin}:null;}catch{return null;}
     };
     const valid=record=>{const live=anchor();return !!live&&live.record===record.anchor.record&&live.raw===record.anchor.raw&&receiptOwnedPin(record.anchor.pin);};
-    return {...base,autoAbandon:true,allowUnload:()=>!s.busy&&!inFlightMutation,
+    return {...base,
+      get autoAbandon(){return !config.local();},
+      allowUnload:()=>!config.local()&&!s.busy&&!inFlightMutation,
       inspect(){if(held&&valid(held))return {state:'departing',departureId:held.id,canSave:false,canDiscard:false,reason:receiptNotice()};const state=base.inspect();return state.state==='unknown'&&anchor()?{...state,canAbandon:true}:state;},
       async abandon(){
         if(base.inspect().state!=='unknown')return base.abandon();

@@ -31,6 +31,21 @@ void test('actual router deduplicates rapid same-target clicks and suppresses ol
 void test('actual router partial install failure suspends writes and never restores old projection',async()=>{const f=await fixture();f.window.ProcessRuntimeProjection.install=()=>{throw Error('injected install failure');};f.api.navigate('editor');f.finish(0);await turn();assert(f.calls.includes('suspend'));assert.equal(f.document.documentElement.dataset.processNavigationStatus,'error');assert.deepEqual(Object.keys(f.window.IMPORTED_DATA),[]);assert.equal(f.sync.identity.id,'frank');});
 void test('actual router postcommit target read failure is not ready and does not resurrect source',async()=>{const f=await fixture(),q=deferred();f.ready(q.promise);f.api.navigate('editor');f.finish(0);await turn();q.reject(Error('target GET unavailable'));await turn();assert.equal(f.state.view,'editor');assert.equal(f.document.documentElement.dataset.processNavigationStatus,'error');assert(!f.document.documentElement.dataset.processDestinationReadyGeneration);assert(!f.calls.includes('suspend'));});
 void test('actual router approval panels are separately prepared without mutating selected panel early',async()=>{const f=await fixture();f.api.approval('quality');assert.equal(f.state.view,'dashboard');assert.equal(f.state.approvalTab,'master');f.finish(0);await turn();assert.equal(f.state.approvalTab,'quality');assert.equal(new URL(f.location.href).searchParams.get('approvalTab'),'quality');});
+void test('only a routine IQC review opens its requested document and removes stale FQC links',async()=>{
+ const f=await fixture();
+ f.location.href='https://fixture.invalid/process/index.html?system=quality&view=quality-inspections&rfModule=iqc&rfDocument=old-fqc&rfCase=old-case';
+ const pending=f.api.approval('routine',{riDocument:'pending-iqc'});
+ assert.equal(f.reads[0].target.approvalTab,'routine');
+ f.finish(0);assert.equal((await pending).status,'ready');
+ const target=new URL(f.location.href).searchParams;
+ assert.equal(target.get('approvalTab'),'routine');assert.equal(target.get('rfModule'),'iqc');
+ assert.equal(target.get('riDocument'),'pending-iqc');
+ assert.equal(target.has('rfDocument'),false);assert.equal(target.has('rfCase'),false);
+ const quality=f.api.approval('quality',{riDocument:'forbidden-target'});
+ f.finish(1);assert.equal((await quality).status,'ready');
+ assert.equal(new URL(f.location.href).searchParams.has('riDocument'),false);
+});
+
 void test('actual invalidation clears private globals and bfcache still requires revalidation',async()=>{const f=await fixture();f.sync.requiresReload=true;f.sync.identity=null;f.events['process-delivery-invalidated']();assert.deepEqual(Object.keys(f.window.IMPORTED_DATA),[]);f.events.pageshow({persisted:true});assert(f.calls.includes('reload'));});
 void test('actual popstate commits player intent only after fresh catalog and keeps numbered entry',async()=>{
  const f=await fixture();let intent;

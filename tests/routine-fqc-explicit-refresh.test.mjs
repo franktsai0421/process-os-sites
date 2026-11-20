@@ -3,6 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 import {fixture} from './fixtures/routine-fqc-durable.mjs';
 import {manualUI} from './fixtures/routine-fqc-manual-ui.mjs';
 
@@ -108,6 +109,11 @@ void test('unknown generate receipt survives idle, manual Refresh and 404 retry 
   const f = ui(), before = dirtyInput(f); f.setMode('lost');
   await assert.rejects(f.api.refresh(true));
   const retry = JSON.stringify(f.api.s.retry), receipt = JSON.stringify([...f.store.map]);
+  f.box.bindDataInner = () => {};
+  vm.runInContext(fs.readFileSync('public/process/version-draft-ui.js', 'utf8'), f.box);
+  const departure = f.win.RoutineFQCUI.navigation.departure;
+  assert.equal(departure.autoAbandon, false, 'unknown write with unsaved inputs needs an explicit choice');
+  assert.equal(departure.allowUnload(), false);
   assert.deepEqual(writes(f), ['generate']); assert.equal(f.store.map.size, 1);
   f.remote.today = '2026-11-03'; f.remote.sources = [{id: 'later-source'}];
   await f.time.advance(3 * 24 * 60 * 60 * 1000);

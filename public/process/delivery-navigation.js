@@ -85,6 +85,12 @@
    url.searchParams.delete('riDocument');
    if(target.view==='approval')url.searchParams.set('approvalTab',target.approvalTab||'master');else{url.searchParams.delete('approvalTab');url.searchParams.delete('rfDocument');url.searchParams.delete('rfCase');}
    if(target.display){for(const [key,value]of Object.entries(target.display))if(['rfDocument','rfCase'].includes(key))url.searchParams.set(key,value);}
+   if(target.view==='approval'&&target.approvalTab==='routine'&&target.display?.riDocument){
+    url.searchParams.delete('rfDocument');
+    url.searchParams.delete('rfCase');
+    url.searchParams.set('rfModule','iqc');
+    url.searchParams.set('riDocument',target.display.riDocument);
+   }
    return url;
   }
   function targetError(error,reloadOnly=false){
