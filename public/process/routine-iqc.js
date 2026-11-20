@@ -391,12 +391,12 @@
     };
     const standard=v.data.catalog.items.length, startDate=v.data.startDate;
     if(!v.data.jobs.length){
-      if(!standard)return emptyList(t('沒有可排程的 IQC 檢查項目','Chưa có hạng mục IQC để lập lịch'),
-        t('請到資料後台 IQC 核對已核准的零件分類和檢查項目。例行檢查會抓取已核准的標準時間頻率。','Kiểm tra nhóm linh kiện và hạng mục đã duyệt trong Quản lý dữ liệu IQC. Lịch dùng tần suất định kỳ chuẩn đã duyệt.'),
-        window.hasPermission?.('iqc.view')?button('open-master',t('前往資料後台 IQC','Mở Quản lý dữ liệu IQC')):'');
+      const noSources=t('請到資料後台 IQC 核對已核准的零件分類和檢查項目。例行檢查會抓取已核准的標準時間頻率。','Kiểm tra nhóm linh kiện và hạng mục đã duyệt trong Quản lý dữ liệu IQC. Lịch dùng tần suất định kỳ chuẩn đã duyệt.');
+      const openMaster=window.hasPermission?.('iqc.view')?button('open-master',t('前往資料後台 IQC','Mở Quản lý dữ liệu IQC')):'';
       if(!startDate)return emptyList(t('IQC 排程尚未啟動','Lịch IQC chưa bắt đầu'),
-        t('設定開始日期後，這裡會列出可勾選的當期檢查項目。','Sau khi đặt ngày bắt đầu, danh sách sẽ hiển thị hạng mục có thể chọn trong kỳ.'),
-        canConfigure(v)?button('configure',t('設定開始日期','Đặt ngày bắt đầu'),false,true):'');
+        !standard ? noSources : t('設定開始日期後，這裡會列出可勾選的當期檢查項目。','Sau khi đặt ngày bắt đầu, danh sách sẽ hiển thị hạng mục có thể chọn trong kỳ.'),
+        (!standard ? openMaster : '')+(canConfigure(v)?button('configure',t('設定開始日期','Đặt ngày bắt đầu'),false,true):''));
+      if(!standard)return emptyList(t('沒有可排程的 IQC 檢查項目','Chưa có hạng mục IQC để lập lịch'),noSources,openMaster);
       return emptyList(t('目前沒有應檢工作','Hiện chưa có công việc kiểm tra'),
         startDate>v.data.today?t('排程開始日為 ','Lịch bắt đầu ngày ')+startDate:
           t('請核對頻率與期別，或重新整理以讀取最新工作。','Kiểm tra tần suất và kỳ hoặc tải lại công việc mới nhất.'));
@@ -762,7 +762,11 @@
     v.flowObserver?.disconnect();
     const moduleNav=moduleNavigation();
     if(!v.data){
-      v.root.innerHTML=`${moduleNav}<p class="rf-empty" role="${v.error?'alert':'status'}">${h(v.error||t('載入 IQC…','Đang tải IQC…'))}</p>`;
+      const message = v.error === 'IQC_UNAVAILABLE'
+        ? t('暫時無法讀取例行 IQC。請重新讀取。','Tạm thời không tải được IQC định kỳ. Vui lòng tải lại.')
+        : v.error || t('載入 IQC…','Đang tải IQC…');
+      v.root.innerHTML=`${moduleNav}<p class="rf-empty" role="${v.error?'alert':'status'}">${h(message)}</p>
+        ${v.error?button('retry-entry',t('重新讀取 IQC','Tải lại IQC')):''}`;
       return;
     }
     if(v.reloadNeeded){
@@ -927,6 +931,14 @@
   }
   async function act(v,action,control) {
     const [kind,...tail]=action.split(':'), id=tail.join(':'), doc=docOf(v);
+    if (kind === 'retry-entry') {
+      if (v.data) return;
+      v.busy = true;
+      render(v);
+      try { await load(v); }
+      finally { v.busy = false; if (v.data) render(v); }
+      return;
+    }
     if(kind==='open-master'){
       if(window.hasPermission?.('iqc.view'))await window.ProcessDeliveryNavigation?.navigate?.('data','quality-iqc','quality');
       return;

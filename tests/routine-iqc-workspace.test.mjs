@@ -153,7 +153,9 @@ void test('IQC makes the plan prerequisites and empty stages accessible in both 
   let html=ui.iqcRoot.innerHTML;
   assert.match(html,/aria-current="page"/);
   assert.match(html,/ri-flow-return-arrow/);
-  assert.match(html,lang==='zh'?/沒有可排程的 IQC 檢查項目/:/Chưa có hạng mục IQC để lập lịch/);
+  assert.match(html,lang==='zh'?/IQC 排程尚未啟動/:/Lịch IQC chưa bắt đầu/);
+  assert.match(html,lang==='zh'?/已核准的標準時間頻率/:/tần suất định kỳ chuẩn đã duyệt/);
+  assert.match(html,lang==='zh'?/設定開始日期/:/Đặt ngày bắt đầu/);
   assert.match(html,lang==='zh'?/模具檢查/:/Kiểm tra khuôn/);
   ui.stage('plan');
   html=ui.iqcRoot.innerHTML;
@@ -164,6 +166,28 @@ void test('IQC makes the plan prerequisites and empty stages accessible in both 
    assert.match(ui.iqcRoot.innerHTML,lang==='zh'?/目前沒有待處理項目/:/Hiện không có hạng mục cần xử lý/);
    assert.match(ui.iqcRoot.innerHTML,/rf-calendar-document-list/);
   }
+ }
+});
+
+void test('first IQC GET failure provides a bilingual same-page, read-only recovery', async () => {
+ for (const lang of ['zh', 'vi']) {
+  const data={...parityState([]),startDate:null};
+  const calls=[];
+  const ui=switchFixture(lang,{simulateRequest:async(url,options)=>{
+    calls.push([url,options.method||'GET']);
+    return calls.length===1 ? Response.json({error:'IQC_UNAVAILABLE'},{status:503}) : Response.json(data);
+  }});
+  ui.press(ui.entry);
+  await new Promise(setImmediate);
+  assert.match(ui.iqcRoot.innerHTML,lang==='zh'?/暫時無法讀取例行 IQC/:/Tạm thời không tải được IQC định kỳ/);
+  assert.match(ui.iqcRoot.innerHTML,/role="alert"/);
+  assert.match(ui.iqcRoot.innerHTML,/data-ri-action="retry-entry"/);
+  ui.action('retry-entry');
+  ui.action('retry-entry');
+  await new Promise(setImmediate);
+  assert.match(ui.iqcRoot.innerHTML,lang==='zh'?/IQC 排程尚未啟動/:/Lịch IQC chưa bắt đầu/);
+  assert.doesNotMatch(ui.iqcRoot.innerHTML,/data-ri-action="retry-entry"/);
+  assert.deepEqual(calls,[['/api/routine-iqc','GET'],['/api/routine-iqc','GET']]);
  }
 });
 

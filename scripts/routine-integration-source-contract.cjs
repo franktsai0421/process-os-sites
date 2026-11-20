@@ -6,6 +6,12 @@ const {createHash} = require('node:crypto');
 const {isUtf8} = require('node:buffer');
 const contract = require('./routine-integration-source-contract.json');
 const followup = require('./routine-integration-followup-source.json');
+const parity = followup.workspaceParity;
+const parityPin = file => parity && Object.hasOwn(parity.files, file) ? parity.files[file] : null;
+function currentSourcePin(file) {
+  return parityPin(file) || (Object.hasOwn(followup.files, file) ? followup.files[file] : null);
+}
+
 const hash = value => createHash('sha256').update(value).digest('hex');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
@@ -34,6 +40,13 @@ function preimage(commit, file, expected) {
 
 function projectKnown(bytes, file) {
   assert(Buffer.isBuffer(bytes), 'Routine integration proof requires raw Buffer');
+  const successor = parityPin(file);
+  if (successor && exactCheckout(bytes, successor)) {
+    assert.equal(git('rev-parse', parity.base + '^{tree}').toString().trim(), parity.tree);
+    const prior = preimage(parity.base, file, successor.base);
+    assert.notEqual(successor.base, successor.current, 'Parity successor requires an exact public predecessor');
+    return projectKnown(Buffer.from(prior), file);
+  }
   const old = Object.hasOwn(contract.files, file) && contract.files[file];
   const next = Object.hasOwn(followup.files, file) && followup.files[file];
   if (next && exactCheckout(bytes, next)) {
@@ -54,22 +67,23 @@ function assertRawRoutineEncoding(bytes, file, message) {
   assert(Buffer.isBuffer(bytes), 'Routine integration proof requires raw Buffer');
   const raw = hash(bytes);
   const lf = hash(Buffer.from(bytes.toString('utf8').replaceAll('\r\n', '\n')));
-  const matching = [contract.files[file], followup.files[file]].filter(pin => pin.currentLf === lf);
+  const matching = [contract.files[file], followup.files[file], parityPin(file)].filter(pin => pin?.currentLf === lf);
   if (matching.length) assert(matching.some(pin => pin.current === raw), message);
 }
 
 function assertRoutineHeadBlob(bytes, file) {
   if (file === 'public/process/routine-fqc.js')
-    assert.equal(hash(bytes), followup.files[file].current, 'Routine attested Git blob differs from the reviewed raw bytes');
+    assert.equal(hash(bytes), currentSourcePin(file).current, 'Routine attested Git blob differs from the reviewed raw bytes');
 }
 
 function assertUploadedOrFollowup(bytes, file) {
   assert(Buffer.isBuffer(bytes), 'Routine integration proof requires raw Buffer');
-  if (Object.hasOwn(followup.files, file)) {
-    assert(exactCheckout(bytes, followup.files[file]), 'Routine follow-up reviewed bytes changed: ' + file);
+  const pin = currentSourcePin(file);
+  if (pin) {
+    assert(exactCheckout(bytes, pin), 'Routine follow-up reviewed bytes changed: ' + file);
   } else {
     assert.deepEqual(bytes, git('show', followup.uploaded + ':' + file), 'Uploaded product bytes changed: ' + file);
   }
 }
 
-module.exports = {projectKnown:memoizeSourceProof(projectKnown), assertRawRoutineEncoding, assertRoutineHeadBlob, assertUploadedOrFollowup, followup};
+module.exports = {projectKnown:memoizeSourceProof(projectKnown), assertRawRoutineEncoding, assertRoutineHeadBlob, assertUploadedOrFollowup, currentSourcePin, followup};

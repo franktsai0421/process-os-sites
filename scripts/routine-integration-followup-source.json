@@ -92,5 +92,36 @@
       "currentLf": "8b8ef97155cde7f1d97288baf38c4a2d240104e5c4171d5b1136cf19ac415865",
       "uploaded": "709504767e25b388445305b54ede4aa818a4a79f24f630b55a0328255669734c"
     }
+  },
+  "workspaceParity": {
+    "base": "86204ee12c95788c5a4f3b7a3f9065b74658bde3",
+    "tree": "f1d055f69fa4b475ba663f7d68c72cd0005235a2",
+    "files": {
+      "public/process/index.html": {
+        "current": "37cb1e60fbe75fac335dd5aad59641d96982ab6a8d44c2c556b060c2f5c1cba0",
+        "currentLf": "37cb1e60fbe75fac335dd5aad59641d96982ab6a8d44c2c556b060c2f5c1cba0",
+        "base": "d11fb0252401e5a77fd7cf374e9146ac2c4c1309b7e852437557da456d61156c"
+      },
+      "public/process/routine-fqc.js": {
+        "current": "c36d0ff36c8c391b5965a17d86db17867ee58620edbe57d2bdd1ef685db77cb7",
+        "currentLf": "c36d0ff36c8c391b5965a17d86db17867ee58620edbe57d2bdd1ef685db77cb7",
+        "base": "ea63b6f0a43061c658fa0deb4889add2b307a10cfa3b4fea4a8d0101fe9ee860"
+      },
+      "public/process/routine-iqc.js": {
+        "current": "7c988b9dbc04bac3ebafabe4ed84c316833f39e1b6465e0499a1cdb0dc77d64b",
+        "currentLf": "7c988b9dbc04bac3ebafabe4ed84c316833f39e1b6465e0499a1cdb0dc77d64b",
+        "base": "b7765b4f332a49f3682dc90f98ef484b16340511957c8e6c205b77e869029b7e"
+      },
+      "tests/account-page-entry.test.cjs": {
+        "current": "1c522f6f22d70e930899affd64c6f3718d78b8b0a9c3c3fdf5145691d6f17097",
+        "currentLf": "1c522f6f22d70e930899affd64c6f3718d78b8b0a9c3c3fdf5145691d6f17097",
+        "base": "ec7632102032a65a80a68d01751cbd6849c48a6997fb24ba07d0805775967132"
+      },
+      "tests/navigation-adapters.test.mjs": {
+        "current": "c24414d2ba7b3e1b44f948053ec6345eb7884ff951c0c494b6c8f20661245ff7",
+        "currentLf": "c24414d2ba7b3e1b44f948053ec6345eb7884ff951c0c494b6c8f20661245ff7",
+        "base": "51b89910397bf465fa22199a6f6f4b91693759b1c39b15f5113972cf77f8b5e3"
+      }
+    }
   }
 }

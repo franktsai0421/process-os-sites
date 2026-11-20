@@ -2,6 +2,63 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { manualUI, posted, inputs, dirty, deferred } from './fixtures/routine-fqc-manual-ui.mjs';
 
+for (const settings of [true, false]) void test('unstarted FQC uses the calendar workspace without writing; settings=' + settings, async () => {
+  const f = manualUI();
+  Object.assign(f.remote.control, { startDate: null, jobs: [], documents: [], cases: [] });
+  f.remote.permissions.settings = settings;
+  await f.win.RoutineFQCUI.mount(f.root);
+  assert(f.root.querySelector('.rf-calendar-flow'));
+  assert.match(f.root.innerHTML, /每項檢查，進度清楚/);
+  assert.match(f.root.innerHTML, /FQC 排程尚未啟動/);
+  assert.equal(Boolean(f.button('settings')), settings);
+  assert.equal(f.button('create-plan').disabled, true);
+  f.document.documentElement.lang = 'vi';
+  f.paint();
+  assert.match(f.root.innerHTML, /Lịch FQC chưa bắt đầu/);
+  for (const tab of ['plans', 'reports', 'failed', 'cases']) {
+    f.root.querySelector('[data-tab="' + tab + '"]').click();
+    assert.equal(f.root.querySelector('[data-tab="' + tab + '"]').getAttribute('aria-current'), 'page');
+  }
+  assert.deepEqual(posted(f), []);
+});
+
+void test('explicit FQC first setup requests calendar v2 and normal generation', async () => {
+  const f = manualUI();
+  Object.assign(f.remote.control, { startDate: null, jobs: [], documents: [], cases: [] });
+  f.remote.permissions.settings = true;
+  await f.win.RoutineFQCUI.mount(f.root);
+  f.api.setDialog(async () => null);
+  await f.button('settings').click();
+  assert.deepEqual(posted(f), []);
+  f.api.setDialog(async () => new Map([['start', '2026-11-19']]));
+  f.afterPost(payload => {
+    if (payload.action === 'configure') {
+      f.remote.control.startDate = payload.startDate;
+      f.remote.control.calendarPolicy = { version: payload.calendarVersion };
+    }
+  });
+  await f.button('settings').click();
+  assert.deepEqual(posted(f).map(p => p.action), ['configure', 'generate']);
+  assert.equal(posted(f)[0].calendarVersion, 2);
+  assert.equal(posted(f)[0].startDate, '2026-11-19');
+  assert.equal(f.root.querySelector('.rf-calendar-setup'), null);
+  assert.equal(f.button('settings').disabled, true);
+});
+
+void test('started FQC calendar exposes its locked date without resetting stored work', async () => {
+  const f = manualUI();
+  Object.assign(f.remote.control, { jobs: [], documents: [], cases: [], calendarPolicy: { version: 2 } });
+  f.remote.permissions.settings = true;
+  f.api.setData(structuredClone(f.remote));
+  f.paint();
+  assert(f.root.querySelector('.rf-calendar-flow'));
+  assert.equal(f.root.querySelector('.rf-calendar-setup'), null);
+  assert.equal(f.button('settings').disabled, true);
+  assert.match(f.root.innerHTML, /FQC 特殊功能/);
+  assert.match(f.root.innerHTML, /日期鎖定/);
+  assert.deepEqual(posted(f), []);
+});
+
 void test('normal rendered Update button reads, generates and reads back without saving local input', async () => {
   const f = manualUI(), before = dirty(f), button = f.button();
   assert(button, 'Normal production paint must expose Update');
