@@ -50,7 +50,8 @@ export async function runRoutineFqcCalendarBrowser() {
   const {chromium} = await import('playwright');
   const secret = randomBytes(32).toString('hex');
   const report = {checks:[], programCommit:process.env.PROCESS_PROGRAM_COMMIT};
-  let fixture, browser, stage = 'isolated fixture';
+  let fixture, browser, activePage, stage = 'isolated fixture';
+  const transport = [];
   try {
     fixture = await createRootEntryFixture({syntheticBindings:{PROCESS_IMPORT_ENABLED:'0',PROCESS_SESSION_SECRET:secret}});
     const origin = fixture.url.origin;
@@ -78,6 +79,13 @@ export async function runRoutineFqcCalendarBrowser() {
       });
       const page = await context.newPage();
       page.setDefaultTimeout(18000);
+      page.on('response',response=>{
+        const url=new URL(response.url());
+        if (url.origin!==origin || !url.pathname.startsWith('/api/')) return;
+        if (url.pathname!==endpoint && response.status()<400) return;
+        transport.push({actor,method:response.request().method(),path:url.pathname,status:response.status(),selector:[...new Set(url.searchParams.keys())]});
+        if (transport.length>30) transport.shift();
+      });
       return {context,page,root:page.locator('#routine-fqc-root')};
     }
     stage = 'phone viewer authority and pristine state';
@@ -94,6 +102,7 @@ export async function runRoutineFqcCalendarBrowser() {
     stage = 'desktop setup and date-response fence';
     const editor = await open('frank',{width:1280,height:800});
     const {page,root} = editor;
+    activePage = page;
     async function read() {
       const response = await editor.context.request.get(origin+endpoint);
       assert.equal(response.status(),200);
@@ -183,12 +192,14 @@ export async function runRoutineFqcCalendarBrowser() {
         await self.locator('[data-self-review]').waitFor();
         assert.equal(await action(self,'approve').isDisabled(),true);
       }
+      activePage = reviewer.page;
       await reviewer.page.goto(page.url(),{waitUntil:'domcontentloaded'});
       const approval = reviewer.page.locator('#review-routine-fqc .rf-approval');
       await action(approval,'approve').waitFor();
       assert.equal(await approval.locator('[data-self-review]').count(),0);
       await action(approval,'approve').click();
       await approval.waitFor({state:'detached'});
+      activePage = page;
       const state = await read();
       const reviewed = find(state.documents,id);
       assert.equal(reviewed.flow.active.id,pendingId);
@@ -311,6 +322,24 @@ export async function runRoutineFqcCalendarBrowser() {
     report.status = 'PASS_NATIVE_SYNTHETIC_ROUTINE_FQC';
     return report;
   } catch (error) {
+    const pageState = await activePage?.evaluate(() => {
+      const approval = document.querySelector('#approval-panel-routine');
+      const fqc = document.querySelector('#review-routine-fqc');
+      return {
+        view:window.ProcessSync?.destination?.view,
+        navigation:document.documentElement.dataset.processNavigationStatus ?? null,
+        routineTab:document.querySelector('#approval-tab-routine')?.getAttribute('aria-selected') ?? null,
+        routinePanelHidden:approval?.hidden ?? null,
+        fqcHidden:fqc?.closest('[data-ri-fqc]')?.hidden ?? null,
+        cards:fqc?.querySelectorAll('.rf-review-list button').length ?? 0,
+        selected:!!fqc?.querySelector('.rf-review-card.selected'),
+        hasConfirm:!!fqc?.querySelector('.rf-approval'),
+        hasSelfConfirm:!!fqc?.querySelector('[data-self-review]'),
+        fqcHeading:fqc?.querySelector('h2')?.textContent?.slice(0,100) ?? null,
+        alert:document.querySelector('#view-root [role="alert"]')?.textContent?.trim().slice(0,160) ?? null,
+      };
+    }).catch(()=>null);
+    console.log(JSON.stringify({stage,checks:report.checks,pageState,transport}));
     throw new Error(`Routine FQC synthetic browser stage "${stage}": ${String(error.message).replaceAll(secret,'[redacted]').slice(0,450)}`);
   } finally {
     if (browser) await browser.close();
