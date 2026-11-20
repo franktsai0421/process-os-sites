@@ -1,4 +1,5 @@
 // Historical proof only. Runtime tests must use the integrated implementation.
+const {memoizeSourceProof}=require('./source-proof-context.cjs');
 const assert = require('node:assert/strict');
 const {execFileSync} = require('node:child_process');
 const {createHash} = require('node:crypto');
@@ -47,6 +48,21 @@ function projectKnown(bytes, file) {
   return Buffer.from(preimage(contract.publicBase, file, old.base));
 }
 
+// Raw Git attestations must fence the checkout-compatible historical inverse.
+function assertRawRoutineEncoding(bytes, file, message) {
+  if (file !== 'public/process/routine-fqc.js') return;
+  assert(Buffer.isBuffer(bytes), 'Routine integration proof requires raw Buffer');
+  const raw = hash(bytes);
+  const lf = hash(Buffer.from(bytes.toString('utf8').replaceAll('\r\n', '\n')));
+  const matching = [contract.files[file], followup.files[file]].filter(pin => pin.currentLf === lf);
+  if (matching.length) assert(matching.some(pin => pin.current === raw), message);
+}
+
+function assertRoutineHeadBlob(bytes, file) {
+  if (file === 'public/process/routine-fqc.js')
+    assert.equal(hash(bytes), followup.files[file].current, 'Routine attested Git blob differs from the reviewed raw bytes');
+}
+
 function assertUploadedOrFollowup(bytes, file) {
   assert(Buffer.isBuffer(bytes), 'Routine integration proof requires raw Buffer');
   if (Object.hasOwn(followup.files, file)) {
@@ -56,4 +72,4 @@ function assertUploadedOrFollowup(bytes, file) {
   }
 }
 
-module.exports = {projectKnown, assertUploadedOrFollowup, followup};
+module.exports = {projectKnown:memoizeSourceProof(projectKnown), assertRawRoutineEncoding, assertRoutineHeadBlob, assertUploadedOrFollowup, followup};

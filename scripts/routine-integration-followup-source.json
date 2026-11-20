@@ -22,6 +22,11 @@
       "currentLf": "b7765b4f332a49f3682dc90f98ef484b16340511957c8e6c205b77e869029b7e",
       "uploaded": "29a9e12f9cca3abbdf9b9cf99d5d37fe71f22afbd1e7c7c153098f298a36252b"
     },
+    "scripts/account-page-source-contract.cjs": {
+      "current": "aa6e20a4d9ba80e953631c2d78ebcf07b154fad6100d4a13025e7008f9a5d9fc",
+      "currentLf": "aa6e20a4d9ba80e953631c2d78ebcf07b154fad6100d4a13025e7008f9a5d9fc",
+      "uploaded": "7aad0500aaa6e52b51289de9bd8200e3323608f4ba39ff0d1c2c1dbaa905457d"
+    },
     "scripts/equipment-ci-repair-source-contract.cjs": {
       "current": "415665aa413f1fcd4e8337417cacaeaad556f5e280e80f3472b63a0e8e71eaec",
       "currentLf": "415665aa413f1fcd4e8337417cacaeaad556f5e280e80f3472b63a0e8e71eaec",
@@ -32,10 +37,25 @@
       "currentLf": "bbd7f73a125a3c27dded8fe0bc6068f0e74286524a540e69e35a891ab69c8b13",
       "uploaded": "2bb1d7bd0ff1b995129f1a417c73b41bc0a5b2c307dc2ed30feda673c591eba9"
     },
+    "scripts/quality-main-source-contract.cjs": {
+      "current": "dafd6a314007e0bd1d6a28addee8dd6f01845482c63a35423f55e064bf102086",
+      "currentLf": "dafd6a314007e0bd1d6a28addee8dd6f01845482c63a35423f55e064bf102086",
+      "uploaded": "0c5b49570f4ace91c4967b513da7592f7644ef97af6c56cc83558d73f15f0945"
+    },
+    "scripts/quality-root-source-contract.cjs": {
+      "current": "0694a7798fd07ffbffb6f57506869b65cca7fbffc7824602b5869fa2590f6533",
+      "currentLf": "0694a7798fd07ffbffb6f57506869b65cca7fbffc7824602b5869fa2590f6533",
+      "uploaded": "3da6b04b626ee6e99ee5a755b3998f8a9e508769c7132de5467a43437c7bd342"
+    },
     "scripts/routine-fqc-source-contract.cjs": {
-      "current": "8f865c4b19e84ec7b0e88193dc0d69fbff4be7143f23e8f575184243c13176de",
-      "currentLf": "8f865c4b19e84ec7b0e88193dc0d69fbff4be7143f23e8f575184243c13176de",
+      "current": "05d9d99e80c7cdf49449861d547aa8191be80a21611ca1255e7d6a22a83e6d3d",
+      "currentLf": "05d9d99e80c7cdf49449861d547aa8191be80a21611ca1255e7d6a22a83e6d3d",
       "uploaded": "c5b2c20a325958de0d6418f870def4c10dd2da4e7d760fc12ca7899e639097a3"
+    },
+    "tests/account-page-entry.test.cjs": {
+      "current": "ec7632102032a65a80a68d01751cbd6849c48a6997fb24ba07d0805775967132",
+      "currentLf": "ec7632102032a65a80a68d01751cbd6849c48a6997fb24ba07d0805775967132",
+      "uploaded": "b284898e0d4762dba3fc35e78565e72d28d496a235221bf701ae2370f8cfa1d3"
     },
     "tests/accounts-process-integration-source.test.mjs": {
       "current": "c4a7c52d80d13d74df55ec73aff5d01615ee092decb6a14e4d830d4325b4a464",
@@ -46,6 +66,11 @@
       "current": "8d226abf83848ef84c945032b2cdae79fc16c4d3862865e7fc6325ed2acd3e1c",
       "currentLf": "8d226abf83848ef84c945032b2cdae79fc16c4d3862865e7fc6325ed2acd3e1c",
       "uploaded": "3acf10cc3f61a92bc9ca571e6004db8b329e8a56369fbcc6dc9c802b1ad50836"
+    },
+    "tests/fixtures/browser-timer-inventory.json": {
+      "current": "42b0bd28df64de2c2084fd39a79c832ce458e0b627e3e996c0536d6335f57012",
+      "currentLf": "42b0bd28df64de2c2084fd39a79c832ce458e0b627e3e996c0536d6335f57012",
+      "uploaded": "e2b11457cdd877e1b2e027d704232dd0295667b3b166d4799809d9e2803d0e0b"
     },
     "tests/process-draft-lifecycle-browser.mjs": {
       "current": "f2bd360bf9712ae5a48a5d308541cf2f8bef95088363b893f8b1087004ca035b",

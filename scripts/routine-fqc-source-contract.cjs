@@ -23,11 +23,7 @@ function assertSource(bytes,file){
   raw(bytes);assert.equal(file,contract.file,'Routine source proof wrong file');
   // A historical projection can recognize an EOL-equivalent checkout.
   // This raw assertion only accepts an actual committed encoding.
-  const published=require('./routine-integration-source-contract.json').files[file];
-  const followup=require('./routine-integration-followup-source.json').files[file];
-  const checkoutHash=hash(checkoutLF(bytes));
-  const candidates=[published,followup].filter(pin=>pin.currentLf===checkoutHash);
-  if(candidates.length)assert(candidates.some(pin=>pin.current===hash(bytes)),'Routine source differs from pinned raw encoding');
+  require('./routine-integration-source-contract.cjs').assertRawRoutineEncoding(bytes,file,'Routine source differs from pinned raw encoding');
   bytes=require('./account-page-source-contract.cjs').projectKnown(bytes,file);
   assert.equal(bytes.length,contract.afterLength,'Routine source pinned byte length');
   assert.equal(hash(bytes),contract.afterHash,'Routine source differs from pinned successor');
@@ -61,7 +57,9 @@ function verifyRepository(directory=process.cwd()){
   git('merge-base','--is-ancestor',contract.base,'HEAD');
   const before=git('show',contract.base+':'+contract.file),beforeIndex=git('show',contract.base+':'+contract.index);
   assertPredecessor(before,contract.file);
-  const source=canonicalCheckout(fs.readFileSync(path.join(directory,contract.file)),git('show','HEAD:'+contract.file));
+  const committed=git('show','HEAD:'+contract.file);
+  require('./routine-integration-source-contract.cjs').assertRoutineHeadBlob(committed,contract.file);
+  const source=canonicalCheckout(fs.readFileSync(path.join(directory,contract.file)),committed);
   const index=canonicalCheckout(fs.readFileSync(path.join(directory,contract.index)),git('show','HEAD:'+contract.index));
   const page=require('./account-page-source-contract.cjs');page.assertCurrent(source,contract.file);assertSource(source,contract.file);assertIndexSuccessor(index,beforeIndex,contract.index);
   return Object.freeze({status:'PASS_ROUTINE_FQC_SOURCE',base:contract.base,sourceHash:hash(source),attestedSourceHash:hash(page.projectFile(source,contract.file)),indexHash:hash(index)});
