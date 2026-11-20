@@ -45,6 +45,51 @@ void test('explicit FQC first setup requests calendar v2 and normal generation',
   assert.equal(f.button('settings').disabled, true);
 });
 
+void test('FQC initial preview ignores superseded responses for earlier dates', async () => {
+  const f = manualUI(), old = deferred(), latest = deferred();
+  Object.assign(f.remote.control, {startDate:null,jobs:[],documents:[],cases:[]});
+  f.remote.permissions.settings = true;
+  await f.win.RoutineFQCUI.mount(f.root);
+  const confirm = {}, date = {value:'2026-11-19'}, output = {}, preview = {};
+  const dialog = {open:true,querySelector:selector=>({
+    '[type=submit]':confirm,'[name=start]':date,'.rf-preview':output,'[data-preview]':preview
+  })[selector]};
+  const entered = deferred(), finish = deferred();
+  f.api.setDialog(async (_title, _body, _accept, onready) => {
+    onready(dialog);
+    entered.resolve();
+    await finish.promise;
+    return null;
+  });
+  const reads = [], fetch = f.box.fetch.bind(f.box);
+  f.box.fetch = (url,options) => {
+    if(!url.includes('preview=1'))return fetch(url,options);
+    reads.push(url);
+    return url.includes('2026-11-19') ? old.promise : latest.promise;
+  };
+  const pending = f.button('settings').click();
+  await entered.promise;
+  const first = preview.onclick();
+  date.value = '2026-11-20';
+  date.oninput();
+  const second = preview.onclick();
+  old.resolve(Response.json({jobs:[{source:{name:'Old date'},start:'2026-11-01',end:'2026-11-30'}],unresolved:[]}));
+  await first;
+  assert.equal(confirm.disabled,true);
+  assert.doesNotMatch(output.innerHTML||'',/Old date/);
+  latest.resolve(Response.json({jobs:[{source:{name:'New date'},calendar:{productCode:'SYN-P'},start:'2026-11-01',end:'2026-11-30'}],unresolved:[]}));
+  await second;
+  assert.equal(confirm.disabled,false);
+  assert.match(output.innerHTML,/New date · SYN-P/);
+  assert.deepEqual(reads,[
+    '/api/routine-fqc?preview=1&start=2026-11-19&calendar=2',
+    '/api/routine-fqc?preview=1&start=2026-11-20&calendar=2',
+  ]);
+  finish.resolve();
+  await pending;
+  assert.deepEqual(posted(f),[]);
+});
+
 void test('started FQC calendar exposes its locked date without resetting stored work', async () => {
   const f = manualUI();
   Object.assign(f.remote.control, { jobs: [], documents: [], cases: [], calendarPolicy: { version: 2 } });

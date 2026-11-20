@@ -12,12 +12,25 @@ const whenFailed=(error:unknown)=>error instanceof DraftConflict?reply({error:er
   error instanceof SyntaxError?reply({error:'INVALID_JSON'},422):
   error instanceof Error&&error.message==='BODY_TOO_LARGE'?reply({error:'BODY_TOO_LARGE'},413):reply({error:'IQC_UNAVAILABLE'},503);
 
+// Below the start date, the catalog needs only the effective approved
+// snapshot and its original approval case. Keep the full timeline for
+// started schedules and never substitute a working or historic snapshot.
+function unstartedMaster(key:string,raw:string){
+  if(key!=='iqcMasterControl')return raw;
+  const master=JSON.parse(raw);
+  if(!Array.isArray(master?.versions)||master.workflow&&!Array.isArray(master.workflow.cases))return raw;
+  const activeVersionId=master.activeVersionId;
+  return JSON.stringify({activeVersionId,
+    versions:master.versions.filter((version:{id:string})=>version.id===activeVersionId),
+    ...(master.workflow?{workflow:{cases:master.workflow.cases.filter((review:{id:string})=>review.id===activeVersionId)}}:{})});
+}
+
 export async function GET(request:Request){
   try{
     const q=new URL(request.url).searchParams,operationId=q.get('operationId'),pendingOnly=q.get('pending-count')==='1';
     const validSelector=q.size===0||q.size===1&&(pendingOnly||operationId!==null&&/^[\w-]{8,100}$/.test(operationId));
     if(!validSelector)throw new DraftConflict('IQC_SELECTOR_INVALID',422);
-    const keys=[...routineIqcAuthorityKeys,RI_KEY,...(pendingOnly?[]:['iqcMasterControl'])];
+    const keys=[...routineIqcAuthorityKeys,RI_KEY,...(operationId?['iqcMasterControl']:[])];
     const state=await readState({keys,deferHistory:false});
     const {actor,permissions}=await routineIqcAccess(request,state),c=readRoutineIqc(state),today=companyDate();
     let body:unknown;
@@ -30,12 +43,15 @@ export async function GET(request:Request){
     }else{
       const {calendar,documents,cases}=c;
       const dateStarted=!!calendar.startDate&&calendar.startDate<=today;
+      const master=await readState({keys:['iqcMasterControl'],deferHistory:false,
+        ...(!dateStarted?{projectValue:unstartedMaster}:{})});
+      if(master.revision!==state.revision)return reply({error:'REVISION_CONFLICT'},409);
       const policy=calendar.calendarPolicy;
-      const scheduleDue=dateStarted&&(c.lastScheduleDay!==today||routineIqcTimeline(state).some(v=>
+      const scheduleDue=dateStarted&&(c.lastScheduleDay!==today||routineIqcTimeline(master).some(v=>
         v.day<=today&&v.at>=(policy?.adoptedAt||'')&&!policy?.appliedVersions?.includes(v.id)));
       body={today,identity:{id:actor.id,role:actor.role,name:actor.name},permissions,revision:c.revision,
         startDate:calendar.startDate,scheduleDue,jobs:calendar.jobs,
-        cases:cases.map(item=>({...item,disposalAvailable:iqcCanDispose(c,item)})),catalog:routineIqcCatalog(state),
+        cases:cases.map(item=>({...item,disposalAvailable:iqcCanDispose(c,item)})),catalog:routineIqcCatalog(master),
         periodRules:Object.fromEntries(Object.entries(policy?.scopes||{}).map(([scope,rule])=>
           [scope,{from:rule.from,until:rule.until,frequency:rule.source.frequency}])),
         ...(actor.role==='admin'&&permissions.settings&&permissions.edit?{stateRevision:state.revision,startLocked:iqcStartLocked(c)}:{}),

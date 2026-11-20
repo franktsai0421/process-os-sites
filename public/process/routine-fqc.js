@@ -2874,26 +2874,34 @@
     }
   }
   async function settings() {
-    const locked = startDateLocked();
+    const locked = startDateLocked(), calendarSetup = calendarSetupAvailable();
     const f = await dialog(
-      calendarSetupAvailable() ? t('設定 FQC 開始日期', 'Đặt ngày bắt đầu FQC') : t('FQC 排程設定', 'Thiết lập lịch FQC'),
+      calendarSetup ? t('設定 FQC 開始日期', 'Đặt ngày bắt đầu FQC') : t('FQC 排程設定', 'Thiết lập lịch FQC'),
       `<p>${t('依公司曆週／月／季／半年／年安排。既有工作保留，未知頻率不推算。', 'Theo tuần / tháng / quý / nửa năm / năm. Giữ công việc cũ; không suy đoán tần suất.')}</p><label>${t('管理起始日', 'Ngày bắt đầu quản lý')}<input type="date" name="start" required value="${h(data.control.startDate || data.today)}" ${locked ? 'readonly' : ''}></label><button type="button" class="rf-btn" data-preview>${t('預覽首次應檢與下次頻率交接', 'Xem trước lịch và chuyển tần suất')}</button><div class="rf-preview" aria-live="polite"></div><p>${locked ? t('已有工作；起始日已鎖定。頻率請於原 FQC 標準核准變更。', 'Đã có công việc; khóa ngày bắt đầu. Đổi tần suất qua tiêu chuẩn FQC.') : t('必須預覽後確認啟用。', 'Phải xem trước trước khi kích hoạt.')}</p>`,
       locked ? t('關閉', 'Đóng') : t('確認啟用', 'Xác nhận kích hoạt'),
       (el) => {
-        const submit = el.querySelector('[type=submit]');
-        submit.disabled = !locked;
-        el.querySelector('[name=start]').oninput = () =>
-          (submit.disabled = true);
+        const submit = el.querySelector('[type=submit]'),
+          date = el.querySelector('[name=start]'), output = el.querySelector('.rf-preview');
+        let request = 0;
+        const invalidate = () => {
+          request++;
+          submit.disabled = !locked;
+          output.textContent = '';
+        };
+        invalidate();
+        date.oninput = invalidate;
         el.querySelector('[data-preview]').onclick = async () => {
+          invalidate();
+          const ticket = request, requestedDate = date.value;
+          const current = () => el.open && ticket === request && date.value === requestedDate;
           try {
-            const preview = await read(
-              '?preview=1&start=' + el.querySelector('[name=start]').value,
-            );
-            el.querySelector('.rf-preview').innerHTML =
-              `<table class="rf-table"><tr><th>${t('項目', 'Hạng mục')}</th><th>${t('首次適用期別／期限', 'Kỳ áp dụng / hạn')}</th></tr>${preview.jobs.map((j) => `<tr><td>${h(j.source.name)}</td><td>${h(j.start + ' — ' + j.end)}</td></tr>`).join('')}</table>${preview.unresolved.map((v) => `<p>⚠ ${h(v.name + ' · ' + v.frequencyText)} · ${t('待確認頻率', 'Cần xác nhận tần suất')}</p>`).join('')}`;
+            const preview = await read('?preview=1&start=' + encodeURIComponent(requestedDate) + (calendarSetup ? '&calendar=2' : ''));
+            if (!current()) return;
+            output.innerHTML =
+              `<table class="rf-table"><tr><th>${calendarSetup?t('項目／產品','Hạng mục / Sản phẩm'):t('項目','Hạng mục')}</th><th>${t('首次適用期別／期限', 'Kỳ áp dụng / hạn')}</th></tr>${preview.jobs.map((j) => `<tr><td>${h(j.source.name)}${j.calendar?' · '+h(j.calendar.productCode):''}</td><td>${h(j.start + ' — ' + j.end)}</td></tr>`).join('')}</table>${preview.unresolved.map((v) => `<p>⚠ ${h(v.name + ' · ' + v.frequencyText)} · ${t('待確認頻率', 'Cần xác nhận tần suất')}</p>`).join('')}`;
             submit.disabled = false;
           } catch (e) {
-            el.querySelector('.rf-preview').textContent = e.message;
+            if (current()) output.textContent = e.message;
           }
         };
       },
