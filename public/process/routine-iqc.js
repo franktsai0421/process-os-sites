@@ -1332,7 +1332,13 @@
       iqc={pin,revision,count:value};
       paint();
     }
-    async function refresh() {
+    async function refresh(available) {
+      if (!available) {
+        iqc = null;
+        read = null;
+        paint();
+        return;
+      }
       paint();
       const pin=owner();
       if(!pin.actor)return;
@@ -1343,12 +1349,12 @@
           const response=await fetch(endpoint+'?pending-count=1',{cache:'no-store'});
           if(!response.ok){
             if([401,403,404].includes(response.status)&&sameOwner(pin)){iqc=null;paint();}
-            return;
+            throw Error('Routine IQC pending count read failed ('+response.status+')');
           }
           const result=await response.json();
-          if(result.identityId===pin.actor)recordIqc(pin,result.revision,result.pendingCount);
+          if(read===request&&result.identityId===pin.actor)recordIqc(pin,result.revision,result.pendingCount);
         }finally{if(read===request)read=null;}
-      })().catch(()=>{});
+      })();
       read=request;
       return request.promise;
     }
@@ -1356,16 +1362,31 @@
   }
   function attach(original) {
     approvalBadge=approvalCounts(original);
+    async function refreshPending({ fqc = true, iqc = true } = {}) {
+      const pin = owner();
+      try {
+        const enabled = await original.approvalPendingAvailability();
+        if (!sameOwner(pin)) return;
+        await Promise.all([
+          fqc && original.refreshPending(enabled.fqc),
+          iqc && approvalBadge.refresh(enabled.iqc),
+        ]);
+      } catch (error) {
+        if (sameOwner(pin) && error.message !== 'DELIVERY_SUPERSEDED')
+          console.warn('Routine approval pending counts could not be refreshed', error);
+      }
+    }
     const wrapped={...original,html:()=>pairHtml(original.html()),reviewHTML:()=>pairHtml(original.reviewHTML()),
       mount:(container,history)=>mountPair(container,false,area=>original.mount(area,history)),
       bindReview:container=>{
         approvalBadge.paint();
-        if(selected())void original.refreshPending?.();else void approvalBadge.refresh();
-        return mountPair(container,true,area=>original.bindReview(area));
+        const mounted=mountPair(container,true,area=>original.bindReview(area));
+        if(selected())void refreshPending({ iqc: false });else void refreshPending({ fqc: false });
+        return mounted;
       },
       opensRoutineApproval:()=>mountedCurrent(workspace)&&workspace.active==='iqc'&&!workspace.review,
       pendingCount:()=>approvalBadge.total(),
-      refreshPending:()=>Promise.all([approvalBadge.refresh(),original.refreshPending?.()]),
+      refreshPending,
       navigation:{
         get departure(){return workspace?.ready.fqc&&iqcCanLeave()?original.navigation.departure:null;},
         canLeave:()=>iqcCanLeave()&&(!workspace?.ready.fqc||original.navigation.canLeave()),

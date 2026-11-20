@@ -73,7 +73,8 @@ export function captureRequests(page, origin, {responseDeadlineMs = 5000} = {}) 
     // Retain only a bounded protocol label; never record request IDs or input.
     let beginProtocol = null;
     try { const action = JSON.parse(req.postData() || 'null')?.action; if (req.method() === 'POST' && ['begin', 'begin-v1'].includes(action)) beginProtocol = action; } catch { /* Malformed requests remain fully counted. */ }
-    entries.set(req, {beginProtocol, method: req.method(), path: url.pathname, queryEmpty: url.search === '', status: null, observedBodyContract: null, requestBytes: Buffer.byteLength(req.postData() || ''), responseBytes: null, failed: false, clientTiming: null, serverTiming: null});
+    const routineAvailability = url.pathname === '/api/routine-fqc' && url.searchParams.size === 1 && url.searchParams.get('availability') === '1';
+    entries.set(req, {beginProtocol, method: req.method(), path: url.pathname, queryEmpty: url.search === '', routineAvailability, status: null, observedBodyContract: null, requestBytes: Buffer.byteLength(req.postData() || ''), responseBytes: null, failed: false, clientTiming: null, serverTiming: null});
     completions.set(req, new Promise(resolve => finishers.set(req, resolve)));
   };
   const response = res => {

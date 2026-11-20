@@ -91,6 +91,7 @@ function assertCurrent(bytes,file){
  return contract;
 }
 function restorePredecessor(bytes,file){
+ assert(Buffer.isBuffer(bytes),'Equipment repair proof requires raw source bytes');
  bytes=require('./routine-integration-source-contract.cjs').projectKnown(bytes,file);
  const contract=assertCurrent(bytes,file);let result=Buffer.from(bytes);
  for(const {offset,before,after}of [...contract.rules].reverse())result=Buffer.concat([result.subarray(0,offset),Buffer.from(before),result.subarray(offset+Buffer.byteLength(after))]);

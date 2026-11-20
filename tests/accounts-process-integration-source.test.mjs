@@ -40,7 +40,20 @@ void test('reviewed account/process runtime union retains every installed file w
  const account=createRequire(import.meta.url)('../scripts/account-outcome-source-contract.cjs'),accountHelpers=['lib/account-state.ts','public/process/account-write-receipt.js'];
  assert.deepEqual(Object.keys(account.contract.runtime).sort(),accountHelpers);
  for(const file of accountHelpers){assert.equal(git('ls-tree',account.contract.base,'--',file).length,0);account.assertRuntime(git('show','HEAD:'+file),file);account.assertRuntime(fs.readFileSync(file),file);}
- assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\n'),[...files,...additions,catalogAddition,helper,inventoryHelper,...accountHelpers].sort());
+ const routineAdditions=[
+  'app/api/routine-iqc/photo/route.ts','app/api/routine-iqc/route.ts',
+  'lib/routine-fqc-calendar.ts','lib/routine-iqc-access.ts','lib/routine-iqc-workflow.ts',
+  'lib/routine-iqc.ts','lib/time-frequency-policy.ts',
+  'public/process/routine-iqc.css','public/process/routine-iqc.js',
+ ];
+ assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\n'),[...files,...additions,catalogAddition,helper,inventoryHelper,...accountHelpers,...routineAdditions].sort());
+ const routineProof=createRequire(import.meta.url)('../scripts/routine-integration-source-contract.cjs');
+ assert.equal(git('rev-parse',routineProof.followup.uploaded+'^{tree}').toString().trim(),routineProof.followup.tree);
+ for(const file of routineAdditions){
+  const supplied=git('show','HEAD:'+file);
+  routineProof.assertUploadedOrFollowup(supplied,file);
+  assert.throws(()=>routineProof.assertUploadedOrFollowup(Buffer.concat([supplied,Buffer.from(' ')]),file));
+ }
  for(const file of additions)assert.deepEqual(createRequire(import.meta.url)('../scripts/quality-main-source-contract.cjs').projectKnown(git('show','HEAD:'+file),file,'quality'),git('show','0850a46732ce4d468a2238450d83c3f2f8fb3d07:'+file),file);
  // Preserve exact quality-parent bytes; C return semantics have an independently tested narrow inverse.
  for(const file of files)assert.deepEqual(published(git('show','HEAD:'+file),file),git('show',manifest.sources.pr103.commit+':'+file),file);

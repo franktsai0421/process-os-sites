@@ -8,11 +8,11 @@ import {manualUI} from './fixtures/routine-fqc-manual-ui.mjs';
 
 const fixtureOrigin = 'https://synthetic.invalid';
 
-function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirmAction=false,fqcPending=null,listNavigation={},displayDocument=null,manualDialog=false,pageDraft=false}={}){
+function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirmAction=false,fqcPending=null,listNavigation={},displayDocument=null,manualDialog=false,pageDraft=false,badgeAvailability={fqc:false,iqc:false}}={}){
  let onClick, changed, iqcClick, iqcChange, fqcMounts=0, epoch=1, allowed=false;
  let recoveryText={textContent:''}, badgeChanged, adminModal;
  let dialogCount=0, closeDialog;
- const pendingBadge=fqcPending===null?null:{textContent:String(fqcPending)};
+ const pendingBadge=fqcPending===null?null:{textContent:String(fqcPending)}, fqcBadgeReads=[], badgeErrors=[];
  const visits=[],confirmations=[],localForm={value:'TEST ONLY unsaved notes'}, originalReceipt='synthetic-receipt';
  const switchButton={focus(){}};
  class Element {}
@@ -56,7 +56,9 @@ function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirm
  const departure={inspect:()=>({state:'unknown'})};
  const window={hasPermission:key=>pageDraft&&key==='iqc.view',scrollTo(){},addEventListener(){},ProcessSync:{identity:{id:'synthetic'},identityGeneration:()=>epoch},
   ProcessDeliveryNavigation:{replaceDisplayURL(url){location.href=url.href;return true;}},
-  RoutineFQCUI:{...listNavigation,html:()=>'<section id="routine-fqc-root"><p role="status">Loading</p></section>',mount(){fqcMounts++;},pendingCount:()=>fqcPending||0,navigation:{departure,canLeave:()=>allowed,reset(){}}}};
+  RoutineFQCUI:{...listNavigation,html:()=>'<section id="routine-fqc-root"><p role="status">Loading</p></section>',mount(){fqcMounts++;},pendingCount:()=>fqcPending||0,
+    approvalPendingAvailability:async()=>badgeAvailability,
+    async refreshPending(enabled){if(enabled)fqcBadgeReads.push('pending-count');},navigation:{departure,canLeave:()=>allowed,reset(){}}}};
  class MutationObserver {
   constructor(callback){this.callback=callback;}
   observe(target){if(target===pendingBadge)badgeChanged=this.callback;else changed=this.callback;}
@@ -66,7 +68,7 @@ function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirm
  const fetch=simulateRequest||(()=>data?Promise.resolve(Response.json(data)):new Promise(()=>{}));
  const pendingWrites=new Map();
  const sessionStorage={getItem:key=>pendingWrites.get(key)||null,setItem:(key,value)=>pendingWrites.set(key,value),removeItem:key=>pendingWrites.delete(key)};
- vm.runInNewContext(fs.readFileSync('public/process/routine-iqc.js','utf8'),{window,document,location,URL,Element,MutationObserver,fetch,crypto,sessionStorage,structuredClone,matchMedia:()=>({matches:false}),confirm:message=>{confirmations.push(message);return confirmAction;}});
+ vm.runInNewContext(fs.readFileSync('public/process/routine-iqc.js','utf8'),{window,document,location,URL,Element,MutationObserver,fetch,crypto,sessionStorage,structuredClone,console:{warn:(...args)=>badgeErrors.push(args)},matchMedia:()=>({matches:false}),confirm:message=>{confirmations.push(message);return confirmAction;}});
  if(review)window.RoutineFQCUI.bindReview(container);else window.RoutineFQCUI.mount(container);
  const press=node=>onClick({target:node,preventDefault(){},stopImmediatePropagation(){}});
  return {entry,retry,pagePanel,loadingMarkup:window.RoutineFQCUI.html(),errorText,visits,press,changed,clearCheck:()=>{recoveryText=null;},showCheck:()=>recoveryText,
@@ -87,7 +89,7 @@ function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirm
   dialogCount:()=>dialogCount, closeDialog:value=>closeDialog(value),
   pick(id){iqcChange({target:{dataset:{riPick:id},checked:true}});},
   changePick(target,checked){target.checked=checked;iqcChange({target});},
-  pendingBadge,fqcRefresh(value){pendingBadge.textContent=String(value);badgeChanged();},
+  pendingBadge,fqcBadgeReads,badgeErrors,refreshApprovalCounts:()=>window.RoutineFQCUI.refreshPending(),fqcRefresh(value){pendingBadge.textContent=String(value);badgeChanged();},
   opensRoutineApproval:()=>window.RoutineFQCUI.opensRoutineApproval(),
   confirmations,localForm,originalReceipt,pendingWrites,iqcRoot,location,navigation:window.RoutineFQCUI.navigation,departure,
   expireIdentity:()=>{epoch++;},unlockFqc:()=>{allowed=true;}};
@@ -615,6 +617,33 @@ void test('routine review badge composes FQC and IQC counts without losing eithe
  ui.action('refresh');await new Promise(resolve=>setImmediate(resolve));
  assert.equal(ui.pendingBadge.textContent,'3');
  assert.match(ui.iqcRoot.innerHTML,/IQC 待審案件 · 0/);
+});
+
+for (const [name, availability] of Object.entries({
+ disabled:{fqc:false,iqc:false}, fqcOnly:{fqc:true,iqc:false}, both:{fqc:true,iqc:true},
+})) void test('routine approval background does not read inactive or denied modules: '+name, async()=>{
+ const requests=[];
+ const ui=switchFixture('zh',{fqcPending:2,badgeAvailability:availability,simulateRequest:(url,options)=>{
+  requests.push([url,options.method||'GET']);
+  return Promise.resolve(Response.json({revision:10,identityId:'synthetic',pendingCount:3}));
+ }});
+ await ui.refreshApprovalCounts();
+ assert.deepEqual(ui.fqcBadgeReads,availability.fqc?['pending-count']:[]);
+ assert.deepEqual(requests,availability.iqc?[['/api/routine-iqc?pending-count=1','GET']]:[]);
+ assert.equal(ui.badgeErrors.length,0);
+ if(availability.iqc)assert.equal(ui.pendingBadge.textContent,'5');
+});
+
+void test('routine IQC pending errors remain visible to diagnostics without retry', async()=>{
+ let requests=0;
+ const ui=switchFixture('zh',{fqcPending:2,badgeAvailability:{fqc:true,iqc:true},simulateRequest:()=>{
+  requests++;return Promise.resolve(Response.json({error:'UNAVAILABLE'},{status:503}));
+ }});
+ await ui.refreshApprovalCounts();
+ assert.equal(requests,1);
+ assert.equal(ui.badgeErrors.length,1);
+ assert.match(ui.badgeErrors[0][1].message,/503/);
+ assert.equal(ui.pendingBadge.textContent,'2');
 });
 
 void test('same-state FQC and IQC plan and report details bind to the selected source and its saved evidence',async()=>{

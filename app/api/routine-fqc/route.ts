@@ -116,8 +116,16 @@ export async function GET(request: Request) {
       return new Response(text,{headers:responseHeaders});
     }
     const c = parseRoutine(state.values[RF_KEY]);
-    if (query.has('availability'))
-      return await finishEntry(reply({ enabled: enabled(request, state),...((c as typeof c & {pageDraftLayout?:string}).pageDraftLayout==='page-v1'?{pageDraftLayout:'page-v1'}:{}) }));
+    if (query.has('availability')) {
+      // Only the exact approval-badge probe needs the IQC capability. IQC
+      // shares the stored feature flag, but does not use FQC's local QA override.
+      const badgeProbe = availability && request.headers.get('X-Process-Routine-Pending') === '1';
+      const iqcEnabled = badgeProbe && state.values.routineFqcEnabled === '1' &&
+        await (entryPhase?.allowed('iqc.view') ?? can(request, state, 'iqc.view'));
+      return await finishEntry(reply({ enabled: enabled(request, state),
+        ...(badgeProbe ? { iqcEnabled } : {}),
+        ...((c as typeof c & {pageDraftLayout?:string}).pageDraftLayout==='page-v1'?{pageDraftLayout:'page-v1'}:{}) }));
+    }
     if (!enabled(request, state))
       return reply({ error: 'FQC_NOT_ENABLED' }, 404);
     if ((c as typeof c & {pageDraftLayout?:string}).pageDraftLayout === 'page-v1' && !query.has('operationId') && !query.has('export') && !query.has('legacyArchive'))

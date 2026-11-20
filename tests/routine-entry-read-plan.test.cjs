@@ -167,3 +167,29 @@ for (const query of ['', '?availability=1']) {
     },
   );
 }
+
+void test('approval badge availability is authorized per module and reads no count payload', async (t) => {
+  const f = await fixture({ format: 'records' });
+  t.after(() => f.close());
+  const setAccess = (enabled, iqc) => f.mutate(values => {
+    const users = JSON.parse(values.platformUsers);
+    users[0].accessOverrides['routine.view'] = true;
+    users[0].accessOverrides['iqc.view'] = iqc;
+    values.platformUsers = JSON.stringify(users);
+    values.routineFqcEnabled = enabled ? '1' : '0';
+  });
+  const get = async (actor, host = 'https://fixture.invalid', probe = true) => {
+    const result = await f.load(route).GET(new Request(host + '/api/routine-fqc?availability=1', {
+      headers: { cookie: f.cookies[actor], ...(probe ? { 'X-Process-Routine-Pending': '1' } : {}) },
+    }));
+    return { status: result.status, body: await result.json() };
+  };
+  await setAccess(false, true);
+  assert.deepEqual(await get('editor'), { status: 200, body: { enabled: false, iqcEnabled: false } });
+  await setAccess(true, false);
+  assert.deepEqual(await get('editor'), { status: 200, body: { enabled: true, iqcEnabled: false } });
+  assert.equal((await get('other')).status, 403);
+  await setAccess(true, true);
+  assert.deepEqual(await get('editor'), { status: 200, body: { enabled: true, iqcEnabled: true } });
+  assert.deepEqual(await get('editor', 'https://fixture.invalid', false), { status: 200, body: { enabled: true } });
+});

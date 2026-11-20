@@ -20,7 +20,15 @@ const contract=Object.freeze({
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 function raw(bytes){assert(Buffer.isBuffer(bytes),'Routine source proof requires raw Buffer bytes');}
 function assertSource(bytes,file){
-  raw(bytes);assert.equal(file,contract.file,'Routine source proof wrong file');bytes=require('./account-page-source-contract.cjs').projectKnown(bytes,file);
+  raw(bytes);assert.equal(file,contract.file,'Routine source proof wrong file');
+  // A historical projection can recognize an EOL-equivalent checkout.
+  // This raw assertion only accepts an actual committed encoding.
+  const published=require('./routine-integration-source-contract.json').files[file];
+  const followup=require('./routine-integration-followup-source.json').files[file];
+  const checkoutHash=hash(checkoutLF(bytes));
+  const candidates=[published,followup].filter(pin=>pin.currentLf===checkoutHash);
+  if(candidates.length)assert(candidates.some(pin=>pin.current===hash(bytes)),'Routine source differs from pinned raw encoding');
+  bytes=require('./account-page-source-contract.cjs').projectKnown(bytes,file);
   assert.equal(bytes.length,contract.afterLength,'Routine source pinned byte length');
   assert.equal(hash(bytes),contract.afterHash,'Routine source differs from pinned successor');
 }

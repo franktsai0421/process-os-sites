@@ -363,7 +363,7 @@
       clearTimeout(timer);
     }
   }
-  async function read(query = '', accepts = () => true) {
+  async function read(query = '', accepts = () => true, options = {}) {
     assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();
     const owner=receiptPin(),delivery=window.ProcessSync?.captureDelivery?.(),pauseOwner=readPause.capture(),kind=query.includes('operationId=')?'receipt':query?'auxiliary':'state';
     const assertCurrent = () => {
@@ -373,7 +373,7 @@
     let r, v;
     assertCurrent();
     try {
-      ({ response: r, value: v } = await routineJSON(endpoint + query, { cache: 'no-store' }));
+      ({ response: r, value: v } = await routineJSON(endpoint + query, { cache: 'no-store', ...options }));
     } catch (error) {
       assertCurrent();
       if (error.response) {
@@ -3127,7 +3127,39 @@
     const count = pageDraftMode?window.RoutineFqcPage.pendingCount():liveDocs().filter((d) => status(d) === 'pending').length;
     const badge = document.querySelector('#approval-tab-routine .approval-tab-count'); if (badge) badge.textContent = count;
   }
-  async function refreshPending() { if (!historyAllowsMutation()||s.reviewPlatform || s.busy) return; try { const next = await read('?pending-count=1'); if(next.pageDraftLayout==='page-v1'){pageDraftMode=true;await window.RoutineFqcPage.refreshMetadata();updatePendingBadge();return;} const badge = document.querySelector('#approval-tab-routine .approval-tab-count'); if (badge && Number.isInteger(next.pendingCount) && next.pendingCount>=0) badge.textContent = next.pendingCount; } catch {} }
+  async function approvalPendingAvailability() {
+    const pin = receiptPin(), delivery = window.ProcessSync?.captureDelivery?.();
+    const current = () => receiptCurrent(pin) && (!delivery || window.ProcessSync?.isCurrentDelivery?.(delivery) === true);
+    if (!historyAllowsMutation() || !window.hasPermission?.('routine.view')) return { fqc: false, iqc: false };
+    const response = await read('?availability=1', current, { headers: { 'X-Process-Routine-Pending': '1' } });
+    if (typeof response.enabled !== 'boolean' || typeof response.iqcEnabled !== 'boolean')
+      throw Error('ROUTINE_PENDING_AVAILABILITY_INVALID');
+    return { fqc: response.enabled, iqc: response.iqcEnabled };
+  }
+  function reportPendingReadError(error) {
+    if (error.message !== 'DELIVERY_SUPERSEDED') console.warn('Routine FQC pending count could not be refreshed', error);
+  }
+  async function refreshPending(available) {
+    if (!historyAllowsMutation() || s.reviewPlatform || s.busy) return;
+    try {
+      const enabled = available ?? (await approvalPendingAvailability()).fqc;
+      if (!enabled) {
+        const badge = document.querySelector('#approval-tab-routine .approval-tab-count');
+        if (badge) badge.textContent = '0';
+        return;
+      }
+      const next = await read('?pending-count=1');
+      if (next.pageDraftLayout === 'page-v1') {
+        pageDraftMode = true;
+        await window.RoutineFqcPage.refreshMetadata();
+        updatePendingBadge();
+        return;
+      }
+      const badge = document.querySelector('#approval-tab-routine .approval-tab-count');
+      if (badge && Number.isSafeInteger(next.pendingCount) && next.pendingCount >= 0)
+        badge.textContent = next.pendingCount;
+    } catch (error) { reportPendingReadError(error); }
+  }
 
   // Navigation consumes only unsent RAM. Exact unknown-operation metadata
   // remains in storage and continues to fence every Routine FQC write.
@@ -3176,6 +3208,7 @@
     mount,
     reviewHTML,
     bindReview,
+    approvalPendingAvailability,
     refreshPending,
     pendingCount: () => pageDraftMode?window.RoutineFqcPage.pendingCount():liveDocs().filter((d) => status(d) === 'pending').length,
     historyForItem: (item) => {
