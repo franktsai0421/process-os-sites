@@ -15,9 +15,21 @@ void test('actual IQC route and editor preserve legacy custom while rejecting ne
  const h=await iqcSetup();try{
  await h.f.mutate(values=>{const c=JSON.parse(values.iqcMasterControl);c.workflow.revision++;c.workflow.working.items[0].rules=[{id:'legacy',cadence:'time',kind:'custom',nameVi:'  45 days  ',value:''}];for(const v of c.versions)if(v.snapshot)v.snapshot.items[0].rules=structuredClone(c.workflow.working.items[0].rules);values.iqcMasterControl=JSON.stringify(c);});
  await h.probe.load();const ui=h.probe.get().ui;ui.partCode='P';ui.errorId='error';h.probe.render();{const button=h.main.querySelector('[data-edit-item="item"]');button.dispatchEvent({type:'click',target:button,currentTarget:button});}const form=h.doc.querySelector('#iqc-item-form');assert(form);assert(form.querySelector('[data-rule-kind] [value="custom"]')?.disabled,form.textContent);assert(form.querySelector('[data-rule-name]').hasAttribute('readonly'));
- const before=await h.state();await h.peerSave({nameVi:'Unrelated'});assert.equal((await h.state()).workflow.saved.content.items[0].rules[0].nameVi,'  45 days  ');
- await assert.rejects(h.peerSave({rules:[{...before.workflow.working.items[0].rules[0],nameVi:'60 days'}]}),/CUSTOM_TIME_FREQUENCY_READ_ONLY/);
- await h.peerSave({rules:[{id:'legacy',cadence:'time',kind:'month',nameVi:'',value:''}]});await assert.rejects(h.peerSave({rules:before.workflow.working.items[0].rules}),/CUSTOM_TIME_FREQUENCY_READ_ONLY/);
+ const [legacy]=(await h.state()).workflow.working.items[0].rules;
+ await h.peerSave({nameVi:'Unrelated'});
+ const preserved=await h.state();
+ assert.deepEqual(preserved.workflow.saved.content.items[0].rules,[legacy]);
+ assert.deepEqual(preserved.workflow.working.items[0].rules,[legacy]);
+ await assert.rejects(h.peerSave({rules:[{...legacy,nameVi:'60 days'}]}),/CUSTOM_TIME_FREQUENCY_READ_ONLY/);
+ assert.deepEqual(await h.state(),preserved);
+ await assert.rejects(h.peerSave({rules:[legacy,{...legacy,id:'new-custom'}]}),/CUSTOM_TIME_FREQUENCY_READ_ONLY/);
+ assert.deepEqual(await h.state(),preserved);
+ const standardRule={id:'legacy',cadence:'time',kind:'month',nameVi:'',value:''};
+ await h.peerSave({rules:[standardRule]});
+ const replaced=await h.state();
+ assert.deepEqual(replaced.workflow.saved.content.items[0].rules,[standardRule]);
+ await assert.rejects(h.peerSave({rules:[legacy]}),/CUSTOM_TIME_FREQUENCY_READ_ONLY/);
+ assert.deepEqual(await h.state(),replaced);
  }finally{h.close();}
 });
 void test('actual FQC save submit and independent approval changes effective frequency only after approval',async()=>{
