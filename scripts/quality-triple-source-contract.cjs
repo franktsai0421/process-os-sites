@@ -1,5 +1,6 @@
 // Test-only exact inverse for the reviewed #109 + #107 common source.
 // Each projection returns one genuine pinned parent. Never used by runtime.
+const {memoizeSourceProof}=require('./source-proof-context.cjs');
 const assert=require('node:assert/strict'),{createHash}=require('node:crypto');
 const contracts=require('./quality-triple-source-contracts.json');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -18,4 +19,4 @@ function projectKnown(bytes,file,target){
  assert(Buffer.isBuffer(bytes),'Joint proof requires raw Buffer bytes');bytes=require('./quality-main-source-contract.cjs').projectKnown(bytes,file,'quality');
  return contracts.some(c=>c.file===file&&c.target===target&&c.afterHash===hash(bytes))?restoreParent(bytes,file,target):bytes;
 }
-module.exports={contracts,hash,restoreParent,projectKnown};
+module.exports={contracts,hash,restoreParent:memoizeSourceProof(restoreParent),projectKnown:memoizeSourceProof(projectKnown)};

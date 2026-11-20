@@ -12,3 +12,70 @@
 @media(max-width:700px){.quality-review-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.quality-review-dashboard,.quality-review-module>.quality-review-section{padding:12px}.quality-review-module>summary{padding:12px}.quality-review-module-status{margin-left:0}.quality-review-module-meta{padding-left:0}}
 .quality-review-module .iqc-review .iqc-review-case{display:grid;gap:6px;padding:12px;background:#fff;border-radius:8px}.quality-review-module .iqc-review-case>strong,.quality-review-module .iqc-review-case>span{display:block}
 @media(max-width:600px){.approval-tabs [role="tab"]{flex:1 1 150px;padding:10px 12px}}
+
+
+@media (max-width: 720px) {
+  .app-shell > main:has(> #view-root .approval-page) > .topbar {
+    height: auto;
+    min-height: 92px;
+    gap: 8px;
+    padding-block: 8px;
+  }
+  .app-shell > main:has(> #view-root .approval-page) > .topbar > :has(> #page-title) {
+    flex: 1 1 0;
+    min-inline-size: 0;
+  }
+  .app-shell > main:has(> #view-root .approval-page) > .topbar #page-title {
+    line-height: 1.2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .app-shell .sidebar .nav-item[data-view="approval"] {
+    min-inline-size: 0;
+    min-height: 44px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .app-shell .sidebar .nav-item[data-view="approval"] > span { flex: 0 0 20px; }
+
+  .approval-page .approval-tabs [role="tab"] {
+    min-height: 44px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .approval-page .approval-tabs [role="tab"] > span:first-child { min-inline-size: 0; }
+  .approval-page :is(.approval-head, .quality-review-dashboard-heading, .master-review-top > header,
+    #approval-panel-routine .rf-hero, #approval-panel-routine .rf-calendar-hero) > div:first-child {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+  }
+  .approval-page :is(.approval-head, .quality-review-intro, .quality-review-dashboard-heading,
+    .master-review-top, #approval-panel-routine) :is(h2, h3, p),
+  #approval-panel-quality :is(.quality-review-dashboard-heading > strong, .quality-review-module-title, .quality-review-module-status),
+  #approval-panel-routine :is(.rf-modules, .rf-kind-tabs, .rf-work-states) > button {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  #approval-panel-routine :is(.rf-modules, .rf-kind-tabs, .rf-work-states) > button { min-height: 44px; }
+  #approval-panel-quality .quality-review-status-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .approval-page .approval-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .approval-page .approval-tabs [role="tab"] { justify-content: space-between; }
+  .approval-page .approval-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .approval-page .approval-stats > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}

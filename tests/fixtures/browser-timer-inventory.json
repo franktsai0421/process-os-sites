@@ -119,13 +119,6 @@
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
-    "file": "public/process/iqc-master.js",
-    "line": 981,
-    "kind": "setTimeout",
-    "hash": "418b477fa48d48f5b026d7c057ea4a9b47a5c8dce921c112c2af219f881b93b3",
-    "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
-  },
-  {
     "file": "public/process/local-draft-recovery.js",
     "line": 479,
     "kind": "setTimeout",
@@ -152,6 +145,13 @@
     "kind": "setTimeout",
     "hash": "affc9f30645a4e839fb95e8b879bae38a3b6662599ede77a06b9dd02682fe7f3",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
+  },
+  {
+    "file": "public/process/routine-fqc.js",
+    "line": 356,
+    "kind": "setTimeout",
+    "hash": "bac91c5e199ffb1b66bb4005a0b1fa2b9ded8253a24037d0fa09e0679ffa7767",
+    "purpose": "One 15-second deadline for an existing fetch and JSON body; aborts on deadline and clears in finally. No request or timer recurrence."
   },
   {
     "file": "public/process/routine-fqc.js",

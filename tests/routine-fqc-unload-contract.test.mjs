@@ -14,7 +14,7 @@ import ts from 'typescript';
 const require=createRequire(import.meta.url),pageProof=require('../scripts/account-page-source-contract.cjs'),{canonicalCheckout}=require('../scripts/routine-fqc-source-contract.cjs');
 // The checkout may use CRLF. Attest it against actual HEAD bytes before the
 // unchanged exact source/predecessor checks; never normalize their hashes.
-function assertCurrentCheckout(working,committed){const source=canonicalCheckout(working,committed);pageProof.assertCurrent(source,file);return source;}
+function assertCurrentCheckout(working,committed){pageProof.assertCurrent(committed,file);return canonicalCheckout(working,committed);}
 const file='public/process/routine-fqc.js',committedSuccessor=execFileSync('git',['show','HEAD:'+file]),successor=assertCurrentCheckout(fs.readFileSync(file),committedSuccessor),legacyBytes=execFileSync('git',['show','5f9d34b04fbbc87bd473c0ff7ddd9f5ac8e9a035:'+file]),legacy=legacyBytes.toString(),previous=execFileSync('git',['show','51bda3eda99c98ab30d3c46b6615065588be564c'],{encoding:'utf8'});
 assert.equal(createHash('sha256').update(previous).digest('hex'),'ed342c34242df88c2b6edb71d2f2025b284a4fe41026ffbd92d0fb614f03c3f7');
 const lf=text=>text.replace(/\r\n/g,'\n');
@@ -150,6 +150,11 @@ void test('current Routine EOL admission rejects content drift and cannot bless 
  }
  const crlf=Buffer.from(raw.replace(/\n/g,'\r\n'));
  assert.throws(()=>assertCurrentCheckout(crlf,crlf),/successor length differs/,'a CRLF Git blob is not the attested LF blob');
+ assert.throws(()=>pageProof.projectFile(crlf,file),/successor length differs/);
+ const {assertRoutineHeadBlob}=require('../scripts/routine-integration-source-contract.cjs');
+ assert.doesNotThrow(()=>assertRoutineHeadBlob(committedSuccessor,file));
+ for(const different of [crlf,...altered.map(source=>Buffer.from(source)),legacyBytes])
+  assert.throws(()=>assertRoutineHeadBlob(different,file),/reviewed raw bytes/);
 });
 void test('current full Routine legacy-layout navigation retains dirty, busy, retry and dialog fences',()=>{
  const f=fullFixture(),navigation=f.win.RoutineFQCUI.navigation,d=f.api.getData().control.documents[0];

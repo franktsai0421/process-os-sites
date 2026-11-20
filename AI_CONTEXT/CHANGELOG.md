@@ -1,3 +1,11 @@
+## 2026-11-20 — 版本確認的例行檢查待審數
+
+先確認例行檢查啟用與模組權限，再讀取 FQC／IQC 待審數。PROCESS 審核的非預期請求錯誤仍保留，原操作、待審資料及審核歷史沿用既有流程。
+
+## 2026-11-19 — 例行 FQC 與 IQC 整合
+
+例行檢查新增 IQC 定期來源與各 ERP 批次紀錄，沿用正式登入、權限、原回執及資料版本保護。FQC 保留現有工作流並新增定期排程和中越文版面改善。見 [整合範圍與驗證](../docs/acceptance/routine-inspection-integration-20261119.md)。
+
 ## 2026-11-16 — AB範圍版本與FQC新增回歸候選
 
 以已合併#123的main a1775a8建立獨立功能分支，修正AB本機草稿Vundefined與全模組快照誤認；補FQC新增預設AQL回歸，不重複速度優化。無schema／資料／ACL／合併或部署。[隔離根因與驗證界線](../docs/acceptance/quality-office-followup-20261116.md)。

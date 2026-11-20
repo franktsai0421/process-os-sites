@@ -1,3 +1,4 @@
+import {reconcileCalendar,type CalendarTimelineEntry,generateCalendar,calendarCanArrange,validatePlanDates,validCalendarDate,calendarNextSelection,type CalendarPolicy,type CalendarWork} from './routine-fqc-calendar';
 import {approvedMasterPageCatalog} from './master-approved-pages';
 import {legacyJsonValueText,type JsonValue} from './legacy-login-json';
 import type {FqcSnapshot} from './fqc-workflow';
@@ -28,7 +29,7 @@ export type Frequency =
   | 'quarterly'
   | 'semiannual'
   | 'yearly';
-export type Outcome = '' | 'pass' | 'fail' | 'unable' | 'undetermined';
+export type Outcome = '' | 'pass' | 'fail' | 'abnormal' | 'dispose' | 'unable' | 'undetermined';
 export type Source = {
   id: string;
   name: string;
@@ -43,8 +44,10 @@ export type Source = {
   frequency: Frequency | null;
   frequencyText: string;
   products: { code: string; name: string }[];
+  standardSnapshot?: FqcSnapshot["items"][number];
 };
 export type Job = {
+  calendar?: CalendarWork;
   id: string;
   itemId: string;
   period: string;
@@ -61,6 +64,7 @@ export type ResultRow = {
   outcome: Outcome;
   value: string;
   notes: string;
+  disposalReason?: string;
   photos: string[];
 };
 export type Line = {
@@ -71,6 +75,7 @@ export type Line = {
   results: ResultRow[];
 };
 export type Content = {
+  planStart?: string; planEnd?: string; overdueReason?: string; nextDate?: string; skipReason?: string; dispositionResult?: string;
   title: string;
   date: string;
   notes: string;
@@ -80,6 +85,11 @@ export type Content = {
   evidence: string[];
 };
 export type Document = {
+  disposalPolicy?: 'skip-period';
+  calendarLegacy?: {adoptedAt:string;unrecordedPlanDates:boolean};
+  waiverRetests?: {jobIds:string[]; documents:{id:string;revision:number;activeId:string|null;jobIds:string[]}[]};
+  nextWork?: {targetId:string;skipIds:string[];sourceVersionId:string};
+  retestApplicationCaseId?: string; calendarVersion?: 2; requestKind?: 'skip'|'retest'|'void'; targetPlanId?: string; cancelledJobIds?: string[]; submissionLog?: {at:string;reason:string;caseId:string|null}[];
   id: string;
   number: string;
   kind: 'plan' | 'report' | 'waiver' | 'disposal';
@@ -104,6 +114,7 @@ export type RoutineBusinessState = Omit<RoutineFqc, 'documents'> & { documents: 
 export type RoutineDocumentLinks = Partial<Pick<RoutineDocumentMetadata, 'planId' | 'caseId' | 'correctionOf'>>;
 
 export type Case = {
+  lineageJobIds?: string[];
   id: string;
   number: string;
   jobId: string;
@@ -129,6 +140,7 @@ export type Case = {
   }[];
 };
 export type RoutineFqc = {
+  calendarPolicy?: CalendarPolicy;
   schemaVersion: 1;
   revision: number;
   startDate: string | null;
@@ -238,6 +250,7 @@ export function routineSources(state: State): Source[] {
         ? f as Frequency
         : null;
       return {
+        standardSnapshot: cloneDraft(i) as FqcSnapshot["items"][number],
         id: i.id,
         name: i.name || '',
         code: i.checkNo || '',
@@ -269,6 +282,17 @@ export function routineSources(state: State): Source[] {
       };
     })
     .filter((s: Source) => s.frequencyText);
+}
+/** Read-only timeline of approved source versions; never changes approval status in storage. */
+export function routineSourceTimeline(state:State):CalendarTimelineEntry[]{
+ const quality=JSON.parse(state.values.qualityMasterControl||'{"libraries":{}}'),library=quality.libraries?.fqc;
+ if(!library)return [];
+ return library.versions.filter((v:{status:string})=>['approved','superseded'].includes(v.status)).map((version:{id:string;reviewedAt?:string;updatedAt?:string;createdAt:string;snapshot:FqcSnapshot})=>{
+  const at=version.reviewedAt||version.updatedAt||version.createdAt;
+  demand(at&&Number.isFinite(Date.parse(at))&&Array.isArray(version.snapshot?.items),'SOURCE_TIMELINE_INCOMPLETE',409);
+  const projected={...quality,libraries:{...quality.libraries,fqc:{...library,activeVersionId:version.id,versions:[{...version,status:'approved'}]}}};
+  return {id:version.id,at,day:companyDate(new Date(at)),sources:routineSources({...state,values:{...state.values,qualityMasterControl:JSON.stringify(projected)}})};
+ });
 }
 // The FQC backend browses the effective AB category catalog (including empty
 // categories), while scheduling uses only the effective enabled time rules.
@@ -311,6 +335,7 @@ export function routineCatalog(state: State) {
       line: i.line || '',
       category: i.category || '',
       enabled: !!i.isEnabled,
+      productCodes: [...(i.productCodes || [])],
       cadence: i.rule?.cadence || '',
       frequency: i.rule?.timeFrequency || '',
     }));
@@ -409,7 +434,8 @@ export function planFamily(c: RoutineFqc, d: Document): string {
 // One availability rule for both browser and write transaction, including legacy
 // plan corrections whose reports still point at an earlier approved version.
 export function reportAvailability(c: RoutineFqc, plan: Document) {
-  return docContent(plan).lines.map((line) => ({
+  if(plan.requestKind)return [];
+  return docContent(plan).lines.filter(line=>!plan.cancelledJobIds?.includes(line.jobId)).map((line) => ({
     jobId: line.jobId,
     assigned: plan.caseId
       ? c.cases.some((a) => a.id === plan.caseId && ['open', 'retest'].includes(a.status))
@@ -444,7 +470,7 @@ export function reportIssues(
         add(['lines', { id: line.id }, 'results'], 'RESULT_REQUIRED');
       for (const r of line.results) {
         const p = ['lines', { id: line.id }, 'results', { id: r.id }];
-        if (!r.outcome) add([...p, 'outcome'], 'RESULT_REQUIRED');
+        if (!r.outcome || r.outcome==='dispose') add([...p, 'outcome'], 'RESULT_REQUIRED');
         if (r.outcome !== 'unable' && !r.samples.length)
           add([...p, 'samples'], 'SAMPLES_REQUIRED');
         if (r.samples.length > 1) add([...p,'samples'],'SINGLE_SAMPLE_REQUIRED');
@@ -482,7 +508,7 @@ export function structure(content: Content, previous: Content) {
         'lines',
         'reason',
         'disposition',
-        'evidence',
+        'evidence','planStart','planEnd','overdueReason','nextDate','skipReason','dispositionResult',
       ].includes(k),
     ),
     'CONTENT_INVALID',
@@ -492,6 +518,7 @@ export function structure(content: Content, previous: Content) {
       typeof content[k] === 'string' && content[k].length <= 20000,
       'TEXT_INVALID',
     );
+  for(const k of ['planStart','planEnd','overdueReason','nextDate','skipReason','dispositionResult'] as const)if(content[k]!==undefined)demand(typeof content[k]==='string'&&content[k]!.length<=20000,'TEXT_INVALID');
   demand(
     Array.isArray(content.evidence) &&
       content.evidence.every((p) => /^[a-f0-9]{64}$/.test(p)),
@@ -531,7 +558,7 @@ export function structure(content: Content, previous: Content) {
       seen.add(r.id);
       demand(
         Object.keys(r).every((k) =>
-          ['id', 'samples', 'outcome', 'value', 'notes', 'photos'].includes(k),
+          ['id', 'samples', 'outcome', 'value', 'notes', 'disposalReason', 'photos'].includes(k),
         ),
         'RESULT_INVALID',
       );
@@ -553,13 +580,15 @@ export function structure(content: Content, previous: Content) {
         demand(sameSamples && oldOther && stableDraftJSON(oldOther.samples) === stableDraftJSON(other.samples), 'SAMPLE_OUTSIDE_COVERAGE_OR_DUPLICATE');
       }
       demand(
-        ['', 'pass', 'fail', 'unable', 'undetermined'].includes(r.outcome),
+        ['', 'pass', 'fail', 'abnormal', 'dispose', 'unable', 'undetermined'].includes(r.outcome),
         'RESULT_INVALID',
       );
       demand(
-        r.outcome !== 'unable' || r.samples.length === 0,
+        !['unable','abnormal'].includes(r.outcome) || r.samples.length === 0,
         'UNABLE_MUST_NOT_HAVE_SAMPLES',
       );
+      demand(r.outcome !== 'dispose' || !r.samples.length, 'DISPOSAL_MUST_NOT_HAVE_SAMPLES');
+      demand(r.disposalReason===undefined||typeof r.disposalReason==='string'&&r.disposalReason.length<=20000,'TEXT_INVALID');
       demand(
         typeof r.value === 'string' && typeof r.notes === 'string',
         'TEXT_INVALID',
@@ -578,6 +607,7 @@ export const photoIds = (content: Content) => [
   ...content.lines.flatMap((l) => l.results.flatMap((r) => r.photos)),
 ];
 type Context = {
+  sourceTimeline?:CalendarTimelineEntry[];
   actor: DraftActor;
   at: string;
   today: string;
@@ -594,6 +624,10 @@ export type RoutineCommand = {
   caseId?: string;
   jobIds?: string[];
   startDate?: string;
+  calendarVersion?: 2;
+  endDate?: string;
+  requestKind?: 'skip'|'retest'|'void'|'waiver'|'disposal';
+  retestPlan?: boolean;
   reason?: string;
   notes?: string;
   photos?: string[];
@@ -613,9 +647,9 @@ export function buildRoutineDocumentDraft(
   const id = crypto.randomUUID(),
     number =
       (kind === 'plan'
-        ? 'FQC-PLN'
+        ? jobs.some(j=>j.calendar?.retestCaseId) ? 'FQC-RPL' : 'FQC-PLN'
         : kind === 'report'
-          ? extra.caseId ? 'FQC-RTS' : extra.correctionOf ? 'FQC-COR' : 'FQC-RPT'
+          ? extra.correctionOf ? 'FQC-COR' : extra.caseId || jobs.some(j=>j.calendar?.retestCaseId) ? 'FQC-RTS' : 'FQC-RPT'
           : kind === 'waiver'
             ? 'FQC-WVR'
             : 'FQC-DSP') +
@@ -666,12 +700,50 @@ function addDocument(c: RoutineFqc, kind: Document['kind'], jobs: Job[], ctx: Co
   return doc;
 }
 function linkedCase(c: Pick<RoutineFqc, 'cases'>, doc: Pick<RoutineDocumentMetadata, 'caseId' | 'correctionOf'>, jobId: string) {
+  const lineage=c.cases.find(a=>a.lineageJobIds?.includes(jobId));if(lineage)return lineage;
   if (doc.caseId)
     return c.cases.find((a) => a.id === doc.caseId && a.jobId === jobId);
   if (doc.correctionOf)
     return c.cases.find(
       (a) => a.jobId === jobId && a.reportIds.includes(doc.correctionOf!),
     );
+}
+
+/** Route only recorded approved results, including legacy and repeat reports. */
+export function routineCaseOutcome(c: RoutineFqc, item: Case): Outcome | null {
+  const lineage = new Set([item.jobId, ...(item.lineageJobIds || []),
+    ...c.jobs.filter(j => j.calendar?.retestCaseId === item.id).map(j => j.id)]);
+  const ids = new Set([item.originReportId, ...item.reportIds]);
+  const reports = c.documents.filter(d => d.kind === 'report' && !d.cancelled && d.flow?.active.id &&
+    (ids.has(d.id) || d.caseId === item.id) &&
+    d.flow.active.content.lines.some(line => lineage.has(line.jobId)&&!d.cancelledJobIds?.includes(line.jobId)));
+  const time = (d: Document) => d.flow.cases?.find(review => review.id === d.flow.active.id)?.result?.at ||
+    [...item.events].reverse().find(event => event.documentId === d.id)?.at || d.createdAt || '';
+  reports.sort((a,b) => time(a).localeCompare(time(b)));
+  const report = reports.at(-1);
+  if (!report) return null;
+  const results = new Set(report.flow.active.content.lines
+    .filter(line => lineage.has(line.jobId)&&!report.cancelledJobIds?.includes(line.jobId)).flatMap(line => line.results.map(row => row.outcome)));
+  const outcome = results.values().next().value;
+  return results.size === 1 && outcome && ['pass','fail','abnormal','unable','dispose'].includes(outcome) ? outcome : null;
+}
+
+function legacyCalendarFollowup(d: Document) {
+  return d.kind === 'waiver' || d.kind === 'disposal' && d.disposalPolicy !== 'skip-period';
+}
+
+function assertCalendarFollowupKind(c: RoutineFqc, item: Case, kind: string) {
+  const outcome = routineCaseOutcome(c,item);
+  const abnormal = outcome === 'abnormal' || outcome === 'unable';
+  demand(outcome === 'fail' || abnormal, 'FOLLOWUP_APPROVED_RESULT_REQUIRED',409);
+  demand(kind === 'retest' || kind === 'disposal' && abnormal, 'FOLLOWUP_KIND_UNAVAILABLE',409);
+}
+
+function assertNoCalendarFollowup(c: RoutineFqc, item: Case, documentId?: string) {
+  demand(!c.documents.some(d => d.id !== documentId && !d.cancelled && (d.caseId === item.id || d.retestApplicationCaseId === item.id) &&
+      docStatus(d) !== 'approved' && (!legacyCalendarFollowup(d) || !!d.flow.pendingId)) &&
+    !c.jobs.some(j => j.calendar?.retestCaseId === item.id && j.planId !== documentId && !j.completion && !j.calendar.stopped),
+    'FOLLOWUP_OPEN', 409);
 }
 
 export function unresolvedFailureSamples(c: RoutineFqc, item: Case) {
@@ -721,7 +793,18 @@ function validateCaseLink(c: RoutineFqc, doc: Document) {
 // Save core. Read-only: no receipts, revisions, approvals or business effects.
 export function validateRoutineContentEdit(c: Pick<RoutineFqc, 'cases'>, doc: RoutineDocumentMetadata, content: Content, previous: Content) {
   structure(content, previous);
+  for(const id of doc.cancelledJobIds||[])demand(stableDraftJSON(content.lines.find(l=>l.jobId===id))===stableDraftJSON(previous.lines.find(l=>l.jobId===id)),'STOPPED_ITEM_READ_ONLY',409);
   if (doc.kind === 'report') for (const line of content.lines) {
+    const earlier = previous.lines.find(l=>l.id===line.id)?.results||[];
+    const disposing = line.results.some(r=>r.outcome==='dispose');
+    demand(doc.calendarVersion===2||!line.results.some(r=>['abnormal','dispose'].includes(r.outcome)),'RESULT_INVALID');
+    demand(!line.results.some(r=>r.outcome==='dispose'&&!earlier.some(old=>old.id===r.id&&old.outcome==='dispose')),
+      'LEGACY_INLINE_DISPOSAL_KEEP_EXISTING',409);
+    if(doc.calendarVersion===2&&doc.correctionOf)
+      demand(disposing===earlier.some(r=>r.outcome==='dispose'),'DISPOSAL_CORRECTION_RULE_REQUIRED',409);
+    if(doc.calendarVersion===2)
+      demand(!line.results.some(row=>row.outcome==='unable'&&!earlier.some(old=>old.id===row.id&&old.outcome==='unable')),
+        'LEGACY_UNABLE_KEEP_EXISTING',409);
     const required = linkedCase(c, doc, line.jobId)?.requiredSamples || [];
     if (!required.length) continue;
     for (const row of line.results) {
@@ -733,15 +816,16 @@ export function validateRoutineContentEdit(c: Pick<RoutineFqc, 'cases'>, doc: Ro
 
 // Submission rules accept explicit metadata/content, without a per-document flow.
 export function routineDocumentReviewIssues(c: Pick<RoutineFqc, 'cases'>, doc: RoutineDocumentMetadata, content: Content): DraftIssue[] {
-  const issues = reportIssues(content, doc.kind);
+  const reviewed=doc.calendarVersion===2&&doc.cancelledJobIds?.length?{...content,lines:content.lines.filter(l=>!doc.cancelledJobIds!.includes(l.jobId))}:content;
+  const issues = doc.calendarVersion===2 ? calendarReviewIssues(doc,reviewed) : reportIssues(content, doc.kind);
   if (doc.kind === 'report')
-    for (const line of content.lines) {
+    for (const line of reviewed.lines) {
       const a = linkedCase(c, doc, line.jobId);
       if (!a) continue;
       if (a.requiredSamples.length && line.results.some(row => row.samples.some(sample => !a.requiredSamples.includes(sample))))
         issues.push({kind:'error',path:['lines',{id:line.id},'samples'],message:'RETEST_SAMPLE_FIXED'});
       if (
-        !line.results.some((r) => r.outcome === 'unable') &&
+        !line.results.some((r) => ['abnormal','unable','dispose'].includes(r.outcome)) &&
         a.requiredSamples.some(
           (s) => !line.results.flatMap((r) => r.samples).includes(s),
         )
@@ -761,6 +845,7 @@ export function routineDocumentReviewIssues(c: Pick<RoutineFqc, 'cases'>, doc: R
 export function applyRoutineDocumentApprovalEffects(c: RoutineBusinessState, doc: RoutineDocumentMetadata,
   content: Content, ctx: Pick<Context, 'actor' | 'at'>) {
   validateRoutineCaseLink(c, doc, content);
+  if(doc.calendarVersion===2&&calendarApproval(c,doc,content,ctx))return;
   if (doc.correctionOf) {
     const old = c.documents.find((d) => d.id === doc.correctionOf)!;
     old.impact ||= [];
@@ -770,6 +855,7 @@ export function applyRoutineDocumentApprovalEffects(c: RoutineBusinessState, doc
     });
   }
   if (doc.kind === 'plan') {
+    if(doc.retestApplicationCaseId){const item=c.cases.find(a=>a.id===doc.retestApplicationCaseId)!;item.status='retest';item.events.push({action:'retest-plan-approved',actor:ctx.actor,at:ctx.at,reason:content.reason,documentId:doc.id});}
     if (doc.caseId) {
       c.cases
         .find((a) => a.id === doc.caseId)!
@@ -789,10 +875,17 @@ export function applyRoutineDocumentApprovalEffects(c: RoutineBusinessState, doc
   }
   if (doc.kind === 'waiver' || doc.kind === 'disposal') {
     const item = c.cases.find((a) => a.id === doc.caseId)!;
+    if(doc.kind==='waiver')stopWaivedRetests(c,doc,ctx);
     item.status = doc.kind === 'waiver' ? 'waived' : 'disposed';
-    if (doc.kind === 'disposal') item.result = 'fail';
+    if (doc.kind === 'disposal' && doc.disposalPolicy !== 'skip-period') item.result = 'fail';
     const job = c.jobs.find((j) => j.id === item.jobId)!;
-    job.completion = { kind: doc.kind, reportId: doc.id, at: ctx.at };
+    job.completion = { kind: doc.disposalPolicy === 'skip-period' ? 'skip' : doc.kind, reportId: doc.id, at: ctx.at };
+    if (doc.disposalPolicy === 'skip-period') {
+      const latestReportId = item.reportIds.at(-1);
+      for (const retest of c.jobs.filter(j => j.calendar?.retestCaseId === item.id &&
+        j.completion?.kind === 'abnormal' && j.completion.reportId === latestReportId))
+        retest.completion = { ...job.completion };
+    }
     item.events.push({
       action: doc.kind,
       actor: ctx.actor,
@@ -803,19 +896,23 @@ export function applyRoutineDocumentApprovalEffects(c: RoutineBusinessState, doc
     return;
   }
   for (const l of content.lines) {
+    if(doc.calendarVersion===2&&doc.cancelledJobIds?.includes(l.jobId))continue;
     const job = c.jobs.find((j) => j.id === l.jobId)!;
     const unresolved = l.results.some((r) =>
-      ['unable', 'undetermined'].includes(r.outcome),
+      ['abnormal', 'unable', 'undetermined'].includes(r.outcome),
     );
-    const result = l.results.some((r) => r.outcome === 'fail')
+    const disposal=doc.calendarVersion===2&&l.results.length===1&&l.results[0].outcome==='dispose'?l.results[0]:null;
+    const result = disposal ? 'dispose' : l.results.some((r) => r.outcome === 'fail')
       ? 'fail'
-      : l.results.some((r) => r.outcome === 'undetermined')
+      : l.results.some((r) => r.outcome === 'abnormal')
+        ? 'abnormal'
+        : l.results.some((r) => r.outcome === 'undetermined')
         ? 'undetermined'
         : l.results.some((r) => r.outcome === 'unable')
           ? 'unable'
           : 'pass';
-    if (!unresolved)
-      job.completion = { kind: result, reportId: doc.id, at: ctx.at };
+    if (!unresolved || doc.calendarVersion===2)
+      job.completion = { kind: disposal ? 'skip' : result, reportId: doc.id, at: ctx.at };
     else job.completion = null;
     let item =
       linkedCase(c, doc, job.id) ||
@@ -824,6 +921,8 @@ export function applyRoutineDocumentApprovalEffects(c: RoutineBusinessState, doc
           a.jobId === job.id &&
           !['closed', 'disposed', 'waived'].includes(a.status),
       );
+    if(disposal&&job.calendar?.retestCaseId)
+      demand(item?.id===job.calendar.retestCaseId,'CASE_LINK_INVALID',409);
     if (result !== 'pass' && !item) {
       item = {
         id: crypto.randomUUID(),
@@ -854,6 +953,15 @@ export function applyRoutineDocumentApprovalEffects(c: RoutineBusinessState, doc
         });
       if (!item.reportIds.includes(doc.id)) item.reportIds.push(doc.id);
       item.result = result;
+      if(disposal){
+        const origin=c.jobs.find(j=>j.id===item.jobId);
+        demand(origin,'CASE_LINK_INVALID',409);
+        origin.completion={kind:'skip',reportId:doc.id,at:ctx.at};
+        item.status='disposed';
+        item.events.push({action:'dispose',actor:ctx.actor,at:ctx.at,
+          reason:disposal.disposalReason||'',documentId:doc.id});
+        continue;
+      }
       const measured = new Set(l.results.flatMap((r) => r.samples));
       item.requiredSamples = [
         ...new Set([
@@ -863,7 +971,8 @@ export function applyRoutineDocumentApprovalEffects(c: RoutineBusinessState, doc
             .flatMap((r) => r.samples),
         ]),
       ];
-      item.status = result === 'pass' ? 'ready-close' : 'open';
+      item.status = result === 'pass' ? doc.calendarVersion===2?'closed':'ready-close' : 'open';
+      if(doc.calendarVersion===2&&result==='pass'&&doc.correctionOf)cancelErroneousRetests(c,item,doc,ctx);
       item.events.push({
         action: result,
         actor: ctx.actor,
@@ -877,6 +986,12 @@ export function applyRoutineDocumentApprovalEffects(c: RoutineBusinessState, doc
     }
   }
 }
+/** Ordinary calendar plans freeze after their period if no live submission remains. */
+export function routinePlanExpired(c: Pick<RoutineFqc,'jobs'>,doc: Document,today:string) {
+  if(doc.kind!=='plan'||doc.calendarVersion!==2||doc.retestApplicationCaseId||doc.requestKind||doc.flow.pendingId||doc.flow.active.id&&!doc.reopened)return false;
+  return doc.flow.working.lines.some(line=>{const job=c.jobs.find(j=>j.id===line.jobId);return !!job?.calendar&&!job.calendar.retestCaseId&&!job.calendar.stopped&&!job.completion&&job.end<today;});
+}
+
 export function executeRoutine(
   c: RoutineFqc,
   cmd: RoutineCommand,
@@ -928,6 +1043,7 @@ export function executeRoutine(
     return old.result;
   }
   demand(ctx.allowed('view'), 'FORBIDDEN', 403);
+  if(c.calendarPolicy&&ctx.sourceTimeline)reconcileCalendar(c,ctx.sourceTimeline,ctx.today,ctx.at);
   const doc = c.documents.find((d) => d.id === cmd.documentId),
     item = c.cases.find((a) => a.id === cmd.caseId);
   let result: unknown = { ok: true };
@@ -939,15 +1055,52 @@ export function executeRoutine(
       409,
     );
   const edit = () => demand(ctx.allowed('edit'), 'FORBIDDEN', 403);
+  if(doc&&routinePlanExpired(c,doc,ctx.today))throw new DraftConflict('EXPIRED_PLAN_READ_ONLY',409);
+  assertWaiverConversionUnlocked(c,doc,cmd.jobIds||[],item?.id);
   if (doc?.cancelled && cmd.action !== 'restore-document') throw new DraftConflict('DOCUMENT_CANCELLED', 409);
   switch (cmd.action) {
+    case 'queue':
+      edit();guard();demand(c.calendarPolicy,'CALENDAR_POLICY_REQUIRED',409);
+      demand(Array.isArray(cmd.jobIds)&&cmd.jobIds.length&&new Set(cmd.jobIds).size===cmd.jobIds.length,'ITEM_REQUIRED');
+      for(const id of cmd.jobIds!){const j=c.jobs.find(j=>j.id===id);demand(j&&calendarCanArrange(j,ctx.today),'JOB_NOT_ARRANGEABLE',409);j.calendar!.queuedAt||=ctx.at;}
+      break;
+    case 'request': {
+      edit();guard();demand(c.calendarPolicy,'CALENDAR_POLICY_REQUIRED',409);
+      demand(['skip','retest','void','waiver','disposal'].includes(cmd.requestKind||''),'KIND_INVALID');
+      let jobs:Job[]=[];
+      if(cmd.requestKind==='skip'){demand(cmd.jobIds?.length&&new Set(cmd.jobIds).size===cmd.jobIds.length,'ITEM_REQUIRED');jobs=cmd.jobIds!.map(id=>c.jobs.find(j=>j.id===id)!);demand(jobs.every(j=>j?.calendar&&j.start<=ctx.today&&!j.planId&&!j.completion&&!j.calendar.requestId&&calendarSkipAllowed(c,j)),'JOB_ALREADY_ASSIGNED',409);}
+      else if(cmd.requestKind==='void'){demand(doc?.kind==='plan'&&docStatus(doc)==='approved'&&!doc.requestKind,'APPROVED_PLAN_REQUIRED');jobs=doc.flow.active.content.lines.map(l=>c.jobs.find(j=>j.id===l.jobId)!);}
+      else {
+        demand(item&&!['closed','disposed','waived'].includes(item.status),'CASE_CLOSED',409);
+        assertCalendarFollowupKind(c,item,cmd.requestKind!);
+        assertNoCalendarFollowup(c,item);
+        jobs=[c.jobs.find(j=>j.id===item.jobId)!];
+      }
+      demand(jobs.every(Boolean),'ITEM_REQUIRED');
+      const kind=['waiver','disposal'].includes(cmd.requestKind!)?cmd.requestKind as 'waiver'|'disposal':'plan';
+      const d=addDocument(c,kind,jobs,ctx,{caseId:item?.id||null,planId:cmd.requestKind==='void'?doc!.id:null});d.calendarVersion=2;
+      if(kind==='disposal')d.disposalPolicy='skip-period';
+      if(['skip','retest','void'].includes(cmd.requestKind!))d.requestKind=cmd.requestKind as Document['requestKind'];
+      if(d.requestKind==='void'){d.targetPlanId=doc!.id;validateVoidTarget(c,d);}
+      if(item){const original=c.documents.find(x=>x.id===item.originReportId)?.flow.active.content.lines.find(l=>l.jobId===item.jobId);if(original)d.flow.working.lines[0].source=cloneDraft(original.source);}
+      if(cmd.requestKind==='retest'&&cmd.retestPlan){
+        const origin=jobs[0],key='retest:'+d.id,source=cloneDraft(d.flow.working.lines[0].source);
+        const job:Job={...cloneDraft(origin),id:key,source,createdAt:ctx.at,planId:d.id,completion:null,calendar:{scope:origin.calendar?.scope||JSON.stringify([source.line,source.products[0]?.code,source.id]),productCode:source.products[0]?.code||'',frequency:source.frequency!,queuedAt:ctx.at,retestCaseId:item!.id,originJobId:origin.id}};
+        c.jobs.push(job);item!.lineageJobIds||=[];item!.lineageJobIds.push(key);
+        d.retestApplicationCaseId=item!.id;d.caseId=null;delete d.requestKind;
+        d.flow.working.lines[0].jobId=key;d.flow.working.planStart='';d.flow.working.planEnd='';
+        d.flow.working.notes=cmd.notes||'';
+        item!.events.push({action:'retest-plan-prepared',actor:ctx.actor,at:ctx.at,reason:cmd.reason||'',documentId:d.id});
+      }
+      d.flow.working.reason=cmd.reason||'';d.flow.working.nextDate='';d.flow.working.skipReason='';d.flow.working.dispositionResult='';d.flow.active.content=cloneDraft({...d.flow.working,lines:[]});result={documentId:d.id};break;
+    }
     case 'configure':
       edit();
       demand(ctx.settings, 'FORBIDDEN', 403);
       guard();
       demand(dateOK(cmd.startDate), 'DATE_INVALID');
       demand(
-        !c.documents.length && c.jobs.every((j) => !j.planId && !j.completion),
+        !c.documents.length && !c.cases.length && (!c.calendarPolicy || !c.startDate) && c.jobs.every((j) => !j.planId && !j.completion),
         'START_DATE_LOCKED',
         409,
       );
@@ -958,11 +1111,15 @@ export function executeRoutine(
           at: ctx.at,
           reason: c.startDate + ' → ' + cmd.startDate,
         });
+      // Existing legacy schedules keep their layout and business records.
+      if (cmd.calendarVersion===2 && !c.startDate && !c.jobs.length && !c.cases.length)
+        c.calendarPolicy={version:2,adoptedAt:new Date(cmd.startDate+'T00:00:00+07:00').toISOString(),scopes:{}};
       c.startDate = cmd.startDate;
       c.jobs = [];
       break;
     case 'generate':
       edit();
+      if(c.calendarPolicy){result={generated:generateCalendar(c,sources,ctx.today,ctx.at)};break;}
       if (c.startDate) {
         const next = schedulePreview(c, sources, c.startDate, ctx.today);
         c.jobs.push(...next.map((j) => ({ ...j, createdAt: ctx.at })));
@@ -985,7 +1142,13 @@ export function executeRoutine(
           'JOB_ALREADY_ASSIGNED',
           409,
         );
+        if(c.calendarPolicy){
+          demand(new Set(jobs.map(j=>!!j!.calendar?.retestCaseId)).size===1,'MIXED_INITIAL_RETEST_PLAN',422);
+          validatePlanDates(jobs as Job[],cmd.startDate||'',cmd.endDate||'',ctx.today);
+          for(const j of jobs as Job[]){if(j.calendar?.retestCaseId)continue;const latest=sources.find(s=>s.id===j.itemId&&s.line===j.source.line&&s.products.some(p=>p.code===j.calendar?.productCode)&&s.frequency===j.calendar?.frequency);demand(latest,'SOURCE_CHANGED_RELOAD',409);j.source={...cloneDraft(latest),products:latest.products.filter(p=>p.code===j.calendar?.productCode)};}
+        }
         const d = addDocument(c, 'plan', jobs as Job[], ctx);
+        if(c.calendarPolicy){d.calendarVersion=2;d.flow.working.planStart=cmd.startDate;d.flow.working.planEnd=cmd.endDate;d.flow.active.content=cloneDraft({...d.flow.working,lines:[]});}
         for (const j of jobs) j!.planId = d.id;
         result = { documentId: d.id };
       }
@@ -993,34 +1156,35 @@ export function executeRoutine(
     case 'create-report':
       edit();
       guard();
+      demand(!c.calendarPolicy || doc?.calendarVersion === 2, 'LEGACY_DOCUMENT_MAPPING_REQUIRED', 409);
       demand(
-        doc?.kind === 'plan' && docStatus(doc) === 'approved',
+        doc?.kind === 'plan' && !doc.requestKind && docStatus(doc) === 'approved',
         'APPROVED_PLAN_REQUIRED',
         409,
       );
       {
         const selected =
-          cmd.jobIds || doc.flow.active.content.lines.map((l) => l.jobId);
+          cmd.jobIds || doc.flow.active.content.lines.filter(l=>!doc.cancelledJobIds?.includes(l.jobId)).map((l) => l.jobId);
         demand(
           selected.length &&
             new Set(selected).size === selected.length &&
             selected.every((id) =>
-              doc.flow.active.content.lines.some((l) => l.jobId === id),
+              doc.flow.active.content.lines.some((l) => l.jobId === id)&&!doc.cancelledJobIds?.includes(id),
             ),
           'PLAN_ITEM_INVALID',
         );
         const occupied = reportAvailability(c, doc).filter((a) => selected.includes(a.jobId) && a.reportIds.length);
         demand(reportAvailability(c, doc).filter((a) => selected.includes(a.jobId)).every((a) => a.assigned), 'PLAN_NOT_CURRENTLY_ASSIGNED', 409);
         if (occupied.length) throw new DraftConflict('REPORT_ALREADY_EXISTS', 409, { documentIds: [...new Set(occupied.flatMap((a) => a.reportIds))] });
-        result = {
-          documentId: addDocument(
+        const report = addDocument(
             c,
             'report',
             selected.map((id) => c.jobs.find((j) => j.id === id)!),
             ctx,
             { planId: doc.id, caseId: doc.caseId },
-          ).id,
-        };
+          );
+        if(doc.calendarVersion===2){demand(selected.length===doc.flow.active.content.lines.filter(l=>!doc.cancelledJobIds?.includes(l.jobId)).length,'WHOLE_PLAN_REPORT_REQUIRED');report.calendarVersion=2;if(doc.calendarLegacy)report.calendarLegacy=cloneDraft(doc.calendarLegacy);report.flow.working.planStart=doc.flow.active.content.planStart;report.flow.working.planEnd=doc.flow.active.content.planEnd;report.flow.working.overdueReason='';for(const l of report.flow.working.lines){l.source=cloneDraft(doc.flow.active.content.lines.find(x=>x.jobId===l.jobId)!.source);l.results=[{id:crypto.randomUUID(),samples:l.source.products.map(p=>p.code),outcome:'',value:'',notes:'',photos:[]}];}report.flow.active.content=cloneDraft({...report.flow.working,lines:[]});}
+        result={documentId:report.id};
       }
       break;
     case 'draft':
@@ -1028,8 +1192,48 @@ export function executeRoutine(
       demand(cmd.command, 'COMMAND_REQUIRED');
       {
         const command = cmd.command;
+        if(c.calendarPolicy&&doc.calendarVersion!==2&&command.action==='submit')throw new DraftConflict('LEGACY_DOCUMENT_MAPPING_REQUIRED',409);
+        let nextSelection:ReturnType<typeof calendarNextSelection>|undefined;
+        if(doc.calendarVersion===2&&command.action==='submit'){
+          const value=doc.flow.saved?.content;
+          if(doc.kind==='report'&&value)
+            demand(!value.lines.some(line=>!doc.cancelledJobIds?.includes(line.jobId)&&line.results.some(row=>row.outcome==='unable')),
+              'LEGACY_UNABLE_KEEP_EXISTING',409);
+          if(doc.kind==='report'&&value&&!doc.correctionOf)
+            demand(!value.lines.some(line=>!doc.cancelledJobIds?.includes(line.jobId)&&line.results.some(row=>row.outcome==='dispose')),
+              'LEGACY_INLINE_DISPOSAL_KEEP_EXISTING',409);
+          if(doc.kind==='report'&&value?.planEnd&&ctx.today>value.planEnd)demand(value.overdueReason?.trim(),'OVERDUE_REASON_REQUIRED');
+          if(doc.requestKind==='skip')for(const l of value?.lines||[]){const j=c.jobs.find(x=>x.id===l.jobId);demand(j&&j.start<=ctx.today&&!j.planId&&!j.completion&&!j.calendar?.requestId&&calendarSkipAllowed(c,j),'JOB_ALREADY_ASSIGNED',409);}
+          if(doc.requestKind==='void')validateVoidTarget(c,doc);
+          if(doc.caseId&&!doc.correctionOf&&(doc.requestKind==='retest'||['waiver','disposal'].includes(doc.kind))){
+            const target=c.cases.find(a=>a.id===doc.caseId);
+            demand(target,'CASE_LINK_INVALID',422);
+            demand(!legacyCalendarFollowup(doc),'FOLLOWUP_KIND_UNAVAILABLE',409);
+            assertCalendarFollowupKind(c,target,doc.requestKind||doc.kind);
+            assertNoCalendarFollowup(c,target,doc.id);
+          }
+          if(['waiver','disposal'].includes(doc.kind)&&doc.disposalPolicy!=='skip-period'&&value){
+            const origin=c.jobs.find(j=>j.id===c.cases.find(a=>a.id===doc.caseId)?.jobId);demand(origin,'CASE_LINK_INVALID');
+            nextSelection=calendarNextSelection(c,origin,value.nextDate||'',ctx.at);
+            if(nextSelection.skipped.length)demand(value.skipReason?.trim(),'SKIP_REASON_REQUIRED');
+            demand(nextSelection.skipped.every(j=>!j.calendar?.requestId),'SKIP_REVIEW_CONFLICT',409);
+          }
+        }
+        if(doc.retestApplicationCaseId&&['submit','approve'].includes(command.action)){
+          const target=c.cases.find(a=>a.id===doc.retestApplicationCaseId);demand(target,'CASE_LINK_INVALID',422);
+          assertCalendarFollowupKind(c,target,'retest');assertNoCalendarFollowup(c,target,doc.id);
+        }
+        if(doc.calendarVersion===2&&doc.kind==='waiver'&&['submit','approve'].includes(command.action))validateWaiverRetests(c,doc);
+        if(doc.calendarVersion===2&&command.action==='approve'&&doc.requestKind==='void')validateVoidTarget(c,doc);
         if (['submit', 'approve'].includes(command.action))
           validateCaseLink(c, doc);
+        if(doc.calendarVersion===2&&command.action==='approve'&&doc.flow.pendingId&&
+          (doc.disposalPolicy==='skip-period'||doc.requestKind==='retest')){
+          const target=c.cases.find(a=>a.id===doc.caseId);
+          demand(target,'CASE_LINK_INVALID',422);
+          assertCalendarFollowupKind(c,target,doc.requestKind||'disposal');
+          assertNoCalendarFollowup(c,target,doc.id);
+        }
         demand(
           command.operationId === cmd.operationId,
           'OPERATION_ID_MISMATCH',
@@ -1050,7 +1254,7 @@ export function executeRoutine(
                     'notes',
                     'reason',
                     'disposition',
-                    'evidence',
+                    'evidence',...(doc.retestApplicationCaseId?['planStart','planEnd']:[]),...(doc.calendarVersion===2?['overdueReason','nextDate','skipReason','dispositionResult']:[]),
                   ].includes(legacyJsonValueText((p.path[0]) as JsonValue)) &&
                     p.path.length === 1) ||
                     (p.path.length === 3 &&
@@ -1112,6 +1316,11 @@ export function executeRoutine(
           applied.state.receipts[command.operationId] = { ...applied.state.receipts[command.operationId], result: cloneDraft(applied.receipt) };
         }
         doc.flow = applied.state;
+        if(doc.calendarVersion===2){
+          if(nextSelection){c.jobs.push(...nextSelection.created);doc.nextWork={targetId:nextSelection.target.id,skipIds:nextSelection.skipped.map(j=>j.id),sourceVersionId:nextSelection.target.source.versionId};for(const j of nextSelection.skipped)j.calendar!.requestId=doc.id;}
+          if(command.action==='submit'){doc.submissionLog||=[];doc.submissionLog.push({at:ctx.at,reason:doc.flow.saved?.content.overdueReason||'',caseId:doc.flow.pendingId});if(doc.requestKind==='skip')for(const l of doc.flow.saved?.content.lines||[]){const j=c.jobs.find(j=>j.id===l.jobId);if(j?.calendar)j.calendar.requestId=doc.id;}}
+          if(['withdraw','return'].includes(command.action)&&(doc.requestKind==='skip'||doc.nextWork))for(const j of c.jobs)if(j.calendar?.requestId===doc.id)delete j.calendar.requestId;
+        }
         result = applied.receipt;
         if (command.action === 'approve') {
           doc.reopened = false;
@@ -1143,6 +1352,7 @@ export function executeRoutine(
       });
       break;
     case 'followup':
+      demand(!c.calendarPolicy,'USE_REVIEWED_FOLLOWUP_REQUEST',409);
       edit();
       guard();
       demand(
@@ -1231,10 +1441,11 @@ export function executeRoutine(
       });
       break;
     case 'revoke-plan':
+      demand(!c.calendarPolicy&&doc?.calendarVersion!==2,'USE_VOID_REQUEST',409);
       guard();
       demand(ctx.revoke, 'FORBIDDEN', 403);
       demand(
-        doc?.kind === 'plan' && docStatus(doc) === 'approved',
+        doc?.kind === 'plan' && !doc.requestKind && docStatus(doc) === 'approved',
         'APPROVED_PLAN_REQUIRED',
       );
       demand(
@@ -1255,6 +1466,7 @@ export function executeRoutine(
       demand(doc, 'DOCUMENT_NOT_FOUND', 404);
       demand(!doc.flow.pendingId, 'WITHDRAW_BEFORE_DISCARD', 409);
       if (cmd.action === 'delete-plan') {
+        demand(!c.calendarPolicy&&doc.calendarVersion!==2,'USE_VOID_REQUEST',409);
         demand(ctx.revoke, 'FORBIDDEN', 403);
         demand(doc.kind === 'plan' && docStatus(doc) === 'approved', 'APPROVED_PLAN_REQUIRED');
       } else {
@@ -1268,6 +1480,7 @@ export function executeRoutine(
       doc.lifecycle ||= [];
       doc.lifecycle.push({ action: cmd.action, at: ctx.at, actor: ctx.actor });
       if (doc.kind === 'plan' && !doc.caseId) for (const j of c.jobs) if (j.planId === doc.id) j.planId = null;
+      if(doc.retestApplicationCaseId)for(const j of c.jobs)if(j.calendar?.retestCaseId===doc.retestApplicationCaseId&&j.id==='retest:'+doc.id){j.calendar.stopped={at:ctx.at,reason:'draft-discarded'};delete j.calendar.queuedAt;}
       // Removing an unapproved retest returns the case to its unresolved state.
       if (linked && ['plan', 'report'].includes(doc.kind) && linked.status === 'retest') linked.status = 'open';
       if (linked) linked.events.push({ action: cmd.action, at: ctx.at, actor: ctx.actor, reason: '', documentId: doc.id });
@@ -1302,8 +1515,10 @@ export function executeRoutine(
           ctx,
           { planId: doc.planId, caseId: doc.caseId, correctionOf: doc.id },
         );
+        if(doc.calendarVersion===2){demand(doc.kind==='report','CORRECTION_REQUIRES_IMPACT_REVIEW',409);d.calendarVersion=2;if(doc.calendarLegacy)d.calendarLegacy=cloneDraft(doc.calendarLegacy);}
         d.flow.working = cloneDraft(doc.flow.active.content);
         d.flow.working.reason = cmd.reason!;
+        if(d.calendarVersion===2){const related=c.cases.filter(a=>a.reportIds.includes(doc.id));const downstream=c.documents.filter(other=>other.id!==doc.id&&other.flow.active.id&&related.some(a=>a.reportIds.includes(other.id)||other.caseId===a.id));d.impact=downstream.map(other=>({id:other.id,reason:'APPROVED_DOWNSTREAM_RETAINED'}));}
         d.flow.working.title = d.number;
         d.flow.active.content = { ...cloneDraft(d.flow.working), lines: [] };
         result = { documentId: d.id };
@@ -1336,4 +1551,95 @@ export function executeRoutine(
   });
   c.receipts[cmd.operationId] = { actorId: ctx.actor.id, fingerprint, result };
   return result;
+}
+
+
+function calendarReviewIssues(doc:RoutineDocumentMetadata,value:Content):DraftIssue[]{
+ const issues:DraftIssue[]=[];const add=(field:string,code:string)=>issues.push({kind:'error',path:[field],message:code,code});
+ if(!value.title.trim())add('title','TITLE_REQUIRED');
+ if(!value.lines.length)add('lines','ITEM_REQUIRED');
+ if(doc.requestKind){if(!value.reason.trim())add('reason','REASON_REQUIRED');return issues;}
+ if(doc.kind==='plan'){if(doc.retestApplicationCaseId&&!value.reason.trim())add('reason','REASON_REQUIRED');if(doc.calendarLegacy?.unrecordedPlanDates)return issues;if(!validCalendarDate(value.planStart)||!validCalendarDate(value.planEnd)||value.planStart!>value.planEnd!)add('planStart','PLAN_DATES_REQUIRED');return issues;}
+ if(doc.kind==='report'){
+  if(!validCalendarDate(value.date))add('date','DATE_REQUIRED');
+  for(const l of value.lines){if(l.results.length!==1){add('lines','ONE_RESULT_PER_PRODUCT_REQUIRED');continue;}const r=l.results[0];const path:DraftIssue['path']=['lines',{id:l.id},'results',{id:r.id}];const issue=(field:string,code:string)=>issues.push({kind:'error',path:[...path,field],message:code,code});
+   if(!['pass','fail','abnormal','unable','dispose'].includes(r.outcome))issue('outcome','RESULT_REQUIRED');
+   if(['pass','fail'].includes(r.outcome)&&(r.samples.length!==1||r.samples[0]!==l.source.products[0]?.code))issue('samples','SAMPLES_REQUIRED');
+   if(r.outcome==='fail'&&!r.photos.length)issue('photos','UPLOADED_PHOTO_REQUIRED');
+   if(r.outcome==='unable'&&!r.notes.trim())issue('notes','EXPLANATION_REQUIRED');
+   if(r.outcome==='dispose'){
+    if(!r.disposalReason?.trim())issue('disposalReason','DISPOSAL_REASON_REQUIRED');
+    if(!r.notes.trim())issue('notes','DISPOSAL_PROBLEM_REQUIRED');
+   }
+  }return issues;
+ }
+ if(!value.reason.trim())add('reason','REASON_REQUIRED');
+ if(doc.disposalPolicy!=='skip-period'&&!validCalendarDate(value.nextDate))add('nextDate','NEXT_DATE_REQUIRED');
+ if(doc.kind==='disposal'){if(!value.disposition.trim())add('disposition','DISPOSITION_REQUIRED');if(doc.disposalPolicy!=='skip-period'&&!value.dispositionResult?.trim())add('dispositionResult','DISPOSITION_RESULT_REQUIRED');}
+ return issues;
+}
+// Conversion pins original work; no retest data is removed at draft/submission.
+export function waiverRetestSnapshot(c:RoutineFqc,caseId:string):NonNullable<Document['waiverRetests']>{
+ const jobs=c.jobs.filter(j=>j.calendar?.retestCaseId===caseId&&!j.completion&&!j.calendar.stopped);
+ const ids=new Set(jobs.map(j=>j.id)),plans=new Set(jobs.map(j=>j.planId).filter(Boolean));
+ const documents=c.documents.filter(d=>!d.cancelled&&!d.requestKind&&(plans.has(d.id)||d.kind==='report'&&plans.has(d.planId)));
+ demand(!documents.some(d=>d.flow.pendingId),'WITHDRAW_RETEST_REVIEW_BEFORE_WAIVER',409);
+ demand(!documents.some(d=>d.kind==='report'&&d.flow.active.id),'APPROVED_RETEST_CHANGED',409);
+ return {jobIds:[...ids].sort(),documents:documents.map(d=>({id:d.id,revision:d.flow.revision,activeId:d.flow.active.id,jobIds:docContent(d).lines.map(l=>l.jobId)})).sort((a,b)=>a.id.localeCompare(b.id))};
+}
+export function validateWaiverRetests(c:RoutineFqc,doc:Document){
+ const current=waiverRetestSnapshot(c,doc.caseId!);
+ demand(!doc.waiverRetests?current.jobIds.length===0:JSON.stringify(doc.waiverRetests)===JSON.stringify(current),'WAIVER_RETEST_CHANGED',409);
+}
+function assertWaiverConversionUnlocked(c:RoutineFqc,doc:Document|undefined,jobIds:string[],caseId?:string){
+ for(const waiver of c.documents.filter(d=>!d.cancelled&&d.flow.pendingId&&d.waiverRetests)){
+  if(waiver.id===doc?.id)continue;
+  demand(!(caseId&&caseId===waiver.caseId)&&!jobIds.some(id=>waiver.waiverRetests!.jobIds.includes(id))&&!waiver.waiverRetests!.documents.some(d=>d.id===doc?.id),'WAIVER_CONVERSION_PENDING',409);
+ }
+}
+function stopWaivedRetests(c:RoutineBusinessState,doc:RoutineDocumentMetadata,ctx:Pick<Context,'actor'|'at'>){
+ const targets=doc.waiverRetests;if(!targets)return;
+ const jobs=targets.jobIds.map(id=>c.jobs.find(j=>j.id===id));
+ demand(jobs.every(j=>j&&j.calendar?.retestCaseId===doc.caseId&&!j.completion&&!j.calendar.stopped),'WAIVER_RETEST_CHANGED',409);
+ for(const job of jobs){job!.calendar!.stopped={at:ctx.at,reason:'approved-waiver:'+doc.id};delete job!.calendar!.queuedAt;}
+ for(const pin of targets.documents){const target=c.documents.find(d=>d.id===pin.id);demand(target,'WAIVER_RETEST_CHANGED',409);
+  target.cancelledJobIds||=[];for(const id of pin.jobIds.filter(id=>targets.jobIds.includes(id)))if(!target.cancelledJobIds.includes(id))target.cancelledJobIds.push(id);
+  target.lifecycle||=[];target.lifecycle.push({action:'approved-waiver:'+doc.id,at:ctx.at,actor:ctx.actor});
+  if(pin.jobIds.every(id=>target.cancelledJobIds!.includes(id)))target.cancelled={at:ctx.at,actor:ctx.actor,status:pin.activeId?'approved':'draft'};
+ }
+}
+function validateVoidTarget(c:RoutineFqc,doc:Document){
+ const target=c.documents.find(d=>d.id===doc.targetPlanId);demand(target&&!target.cancelled&&docStatus(target)==='approved','APPROVED_PLAN_REQUIRED',409);
+ const reports=c.documents.filter(d=>!d.cancelled&&d.kind==='report'&&d.planId===target.id);
+ demand(!reports.some(d=>d.flow.pendingId),'WITHDRAW_REPORT_BEFORE_VOID',409);demand(!reports.some(d=>d.flow.active.id),'APPROVED_REPORT_USE_CORRECTION',409);
+}
+function cancelErroneousRetests(c:RoutineBusinessState,item:Case,correction:RoutineDocumentMetadata,ctx:Pick<Context,'actor'|'at'>){
+ for(const j of c.jobs)if(j.calendar?.retestCaseId===item.id&&j.completion){correction.impact||=[];if(!correction.impact.some(i=>i.id===j.completion!.reportId))correction.impact.push({id:j.completion.reportId,reason:'APPROVED_DOWNSTREAM_RETAINED'});}
+ item.events.push({action:'report-correction-closed',actor:ctx.actor,at:ctx.at,reason:correction.id,documentId:correction.id});
+ for(const j of c.jobs)if(j.calendar?.retestCaseId===item.id&&!j.completion){j.calendar.stopped={at:ctx.at,reason:'origin-report-corrected'};delete j.calendar.queuedAt;for(const d of c.documents)if(d.id===j.planId||d.planId===j.planId&&d.kind==='report'){d.cancelledJobIds||=[];if(!d.cancelledJobIds.includes(j.id))d.cancelledJobIds.push(j.id);d.lifecycle||=[];d.lifecycle.push({action:'origin-report-corrected:'+correction.id,at:ctx.at,actor:ctx.actor});}}
+}
+function calendarSkipAllowed(c:RoutineBusinessState,j:Job){
+ return !j.calendar?.retestCaseId&&!j.calendar?.stopped&&!c.cases.some(a=>(a.jobId===j.id||a.lineageJobIds?.includes(j.id))&&!['closed','disposed','waived'].includes(a.status));
+}
+function calendarApproval(c:RoutineBusinessState,doc:RoutineDocumentMetadata,value:Content,ctx:Pick<Context,'actor'|'at'>){
+ if(doc.requestKind==='skip'){for(const l of value.lines){const j=c.jobs.find(j=>j.id===l.jobId)!;demand(!j.planId&&!j.completion&&calendarSkipAllowed(c,j),'JOB_ALREADY_ASSIGNED',409);j.completion={kind:'skip',reportId:doc.id,at:ctx.at};if(j.calendar){delete j.calendar.requestId;delete j.calendar.queuedAt;}}return true;}
+ if(doc.requestKind==='void'){
+  const target=c.documents.find(d=>d.id===doc.targetPlanId)!;target.cancelled={at:ctx.at,actor:ctx.actor,status:'approved'};target.lifecycle||=[];target.lifecycle.push({action:'approved-void:'+doc.id,at:ctx.at,actor:ctx.actor});
+  for(const d of c.documents)if(d.planId===target.id&&d.kind==='report'&&!d.cancelled){d.cancelled={at:ctx.at,actor:ctx.actor,status:'draft'};d.lifecycle||=[];d.lifecycle.push({action:'approved-void:'+doc.id,at:ctx.at,actor:ctx.actor});}
+  for(const j of c.jobs)if(j.planId===target.id){j.planId=null;if(j.calendar)j.calendar.queuedAt=ctx.at;}return true;
+ }
+ if(doc.requestKind==='retest'){
+  const item=c.cases.find(a=>a.id===doc.caseId)!;const origin=c.jobs.find(j=>j.id===item.jobId)!;const key='retest:'+doc.id;
+  if(!c.jobs.some(j=>j.id===key)){const source=cloneDraft(value.lines[0].source);const job:Job={...cloneDraft(origin),id:key,source,createdAt:ctx.at,planId:null,completion:null,calendar:{scope:origin.calendar?.scope||JSON.stringify([source.line,source.products[0]?.code,source.id]),productCode:source.products[0]?.code||'',frequency:source.frequency!,queuedAt:ctx.at,retestCaseId:item.id,originJobId:origin.id}};c.jobs.push(job);item.lineageJobIds||=[];item.lineageJobIds.push(key);}
+  item.status='retest';item.events.push({action:'retest-request-approved',actor:ctx.actor,at:ctx.at,reason:value.reason,documentId:doc.id});return true;
+ }
+ if(['waiver','disposal'].includes(doc.kind)&&doc.disposalPolicy!=='skip-period'){
+  demand(doc.nextWork&&c.jobs.some(j=>j.id===doc.nextWork!.targetId),'NEXT_DATE_REVIEW_PIN_REQUIRED',409);
+  const target=c.jobs.find(j=>j.id===doc.nextWork!.targetId)!;demand(!target.calendar?.stopped,'NEXT_DATE_FREQUENCY_CHANGED',409);
+  const skipped=doc.nextWork.skipIds.map(id=>c.jobs.find(j=>j.id===id)!);demand(skipped.every(j=>j&&!j.planId&&!j.completion&&!j.calendar?.stopped),'SKIP_REVIEW_CONFLICT',409);
+  if(skipped.length)demand(value.skipReason?.trim(),'SKIP_REASON_REQUIRED');
+  for(const j of skipped){demand(!j.calendar?.requestId||j.calendar.requestId===doc.id,'SKIP_REVIEW_CONFLICT',409);j.completion={kind:'skip',reportId:doc.id,at:ctx.at};if(j.calendar){delete j.calendar.requestId;delete j.calendar.queuedAt;}}
+  // Existing normal approval effects close the abnormality and retain its result.
+ }
+ return false;
 }

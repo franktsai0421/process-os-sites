@@ -859,3 +859,9 @@ body.fqc-modal-open{overflow:hidden}
 
 /* The single module save is the primary touch action for local edits. */
 #fqc-save{min-height:44px;min-width:44px}
+
+/* The routine toolbar is removed; only unresolved operation safety is visible. */
+.fqc-operation-status[hidden]{display:none}
+.fqc-operation-status:not([hidden]){display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--panel,#fff);border-color:var(--border,#d6dbe1);box-shadow:none}
+.fqc-operation-status button[hidden]{display:none}
+.fqc-item-readonly input:disabled,.fqc-item-readonly textarea:disabled,.fqc-item-readonly select:disabled{opacity:1;color:inherit;-webkit-text-fill-color:currentColor}

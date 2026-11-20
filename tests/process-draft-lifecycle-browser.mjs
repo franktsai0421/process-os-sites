@@ -212,7 +212,15 @@ export async function runProcessDraftBrowser({isolatedDesktop = false, executabl
             before: await page.evaluate(disabledRoutineReviewContext, {reviewer: seed.actors.reviewer.id}),
             current: () => page.evaluate(disabledRoutineReviewContext, {reviewer: seed.actors.reviewer.id})};
         }
-        return measureAction({page, origin, action, cycle, selector, ready, verify, expectedPost, samples: report.samples, disabledRoutineBackground});
+        const sample = await measureAction({page, origin, action, cycle, selector, ready, verify, expectedPost, samples: report.samples, disabledRoutineBackground});
+        if (disabledRoutineBackground?.seedDisabled && disabledRoutineBackground.before) {
+          const routinePaths = sample.requests.rows.filter(row =>
+            row.path === '/api/routine-iqc' || row.path === '/api/routine-fqc');
+          assert(routinePaths.every(row => row.path === '/api/routine-fqc' &&
+            row.method === 'GET' && row.status === 200 && !row.failed && row.routineAvailability),
+          'Disabled routine modules must not cause routine count/queue requests during PROCESS review');
+        }
+        return sample;
       }
       await measure(editor.page, 'begin', mainSelector('begin'), async () => {
         await waitEnabled(editor.page, mainSelector('save')); await idle(editor.page);

@@ -6,6 +6,7 @@ const contract = require('./navigation-read-source-contract.json');
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 function projectKnown(bytes, file) {
   assert(Buffer.isBuffer(bytes), 'Navigation proof requires raw Buffer');
+  bytes = require('./routine-integration-source-contract.cjs').projectKnown(bytes, file);
   if (!Object.hasOwn(contract, file)) return bytes;
   const entry = contract[file];
   let prior = Buffer.from(bytes.toString('utf8').replaceAll('\r\n', '\n'));

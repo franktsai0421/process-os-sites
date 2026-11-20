@@ -10,7 +10,44 @@ void test('shell CSS preserves every source byte, cascade order and relative URL
     names.push(name);
     return fs.readFileSync('public/process/' + name, 'utf8');
   });
-  assert.equal(result.count, 31);
+  // The reviewed IQC sheet follows FQC. A missing, duplicate or reordered
+  // stylesheet must still fail even if the generated CSS links collapse to one.
+  const expected = [
+    'styles.css',
+    'photo-viewer.css',
+    'version-workflow.css',
+    'version-workflow-extra.css',
+    'permission-controls.css',
+    'flow-zoom.css',
+    'editor-version-guard.css',
+    'i18n.css',
+    'master-data.css',
+    'master-data-extra.css',
+    'master-data-validation.css',
+    'master-admin-ui.css',
+    'approval-tabs.css',
+    'bom-search.css',
+    'bom-workspace.css',
+    'process-equipment.css',
+    'dual-system.css',
+    'fqc-master.css',
+    'iqc-master.css',
+    'routine-equipment.css',
+    'ipqc-c.css',
+    'ipqc-ab.css',
+    'version-draft-ui.css',
+    'data-safety.css',
+    'system-upgrade.css',
+    'tooling.css',
+    'process-ipqc.css',
+    'routine-fqc.css',
+    'routine-iqc.css',
+    'process-editor.css',
+    'interface-layout.css',
+    'user-access.css',
+  ];
+  assert.deepEqual(names, expected);
+  assert.equal(result.count, expected.length);
   assert.equal((result.html.match(/rel="stylesheet"/g) || []).length, 1);
   let end = 0;
   for (const name of names) {

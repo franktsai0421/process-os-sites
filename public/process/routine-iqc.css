@@ -1,0 +1,88 @@
+.ri-app{min-width:0;overflow-wrap:anywhere}
+.ri-app :is(input,select,textarea,button,a){box-sizing:border-box;max-width:100%;min-height:44px}
+.ri-app :is(fieldset,.rf-detail-panel,.rf-list-panel){min-width:0}
+.ri-app :is(.ri-lots fieldset,.ri-batch){border:1px solid #cddad7;border-radius:10px;padding:12px;margin:10px 0;background:#fff}
+.ri-app .ri-batch>header{padding:8px;background:#edf5f3;border-radius:6px}
+.ri-app .ri-lot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:end;margin:8px 0}
+.ri-app :is(.ri-inspection,.rf-document) label{display:grid;gap:6px;margin:8px 0}
+.ri-app .rf-list-panel{display:grid;gap:8px;align-content:start}
+.ri-app input[type=checkbox]{min-height:0}
+@media(max-width:640px){.ri-app .ri-lot{grid-template-columns:minmax(0,1fr)}.ri-app .rf-layout{display:block}.ri-app .rf-layout.has-selection .rf-list-panel{display:none}}
+
+.ri-workspaces [hidden]{display:none!important}
+/* IQC uses the same responsive flow layout as the other routine modules. */
+.ri-app .rf-flow-return-path{marker-end:url(#ri-flow-return-arrow)}
+.ri-app .rf-calendar-flow .rf-calendar-tabs{min-width:0}
+.ri-app :is(.ri-flow-actions,.ri-work-context){display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.ri-app .ri-flow-actions .rf-flow-help{flex:1 1 220px;margin-top:0}
+.ri-app .ri-work-context p{margin:0}
+.ri-app .ri-empty h3,.ri-app .ri-empty p{margin:0 0 8px}
+.ri-app .rf-calendar-document{width:100%;white-space:normal}
+
+@media (max-width: 480px) {
+  .ri-app :is(.ri-flow-actions,.ri-work-context) {
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+  }
+  .ri-app :is(.rf-calendar-tabs button > span:last-child,.rf-result-branch > strong,
+    .rf-retest-return > span,.rf-flow-terminal,.rf-flow-help,.ri-work-context > p,.ri-empty > :is(h3,p)) {
+    min-inline-size:0;
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+  .ri-app :is(.rf-modules > button,.ri-flow-actions > button,.ri-work-context > button,.ri-empty > button,
+    .rf-flow-help > summary) {
+    min-inline-size:0;
+    min-height:44px;
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+  .ri-app .rf-flow-help > summary { align-content:center; }
+  .ri-app .ri-work-context > button { justify-self:start; }
+}
+
+.ri-app .ri-job-identity{display:block;min-width:0;overflow-wrap:anywhere}
+.ri-app .ri-job-identity :is(strong,small){display:block}
+.ri-app .ri-job-identity small{margin-top:3px}
+.ri-app .ri-picks{margin:12px 0;padding:12px;border:1px solid #bdceda;border-radius:8px;background:#f4f8fb}
+.ri-app .ri-picks p{margin:0 0 6px}
+.ri-app .ri-pick-list{display:grid;gap:8px;list-style:none;padding:0;margin:10px 0;overflow-wrap:anywhere}
+.ri-app .ri-pick-list li{display:grid;min-width:0;justify-items:start;gap:4px;border-bottom:1px solid #d5e0eb;padding:0 0 8px}
+.ri-app .ri-hidden-pick-tag{padding:2px 6px;background:#fff4db;color:#674618;border-radius:4px}
+.ri-app .ri-selection-dialog form{max-height:min(78vh,78dvh);overflow:auto;overscroll-behavior:contain}
+
+.ri-app .ri-reset-actions{margin-top:10px;display:grid;gap:6px;justify-items:start}
+.ri-app .ri-admin-dialog .rf-confirm-ack{display:flex;gap:10px;align-items:center;min-height:44px}
+.ri-app .ri-admin-dialog .rf-confirm-ack input{width:20px;height:20px;flex:0 0 auto}
+.ri-app .ri-admin-dialog textarea{min-height:70px}
+
+.ri-app .rf-period-results p{margin:0 0 6px}
+.ri-app .ri-waiver-note{margin:0 0 10px;overflow-wrap:anywhere}
+@media(max-width:760px){
+  .ri-app :is(button,summary,input,select,textarea){scroll-margin-block:100px max(24px,env(safe-area-inset-bottom));}
+  .ri-app :is(input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea){font-size:16px;min-width:0;}
+  .ri-app :is(.rf-notice,.rf-document,.rf-layout,.rf-calendar-document-list){min-inline-size:0;overflow-wrap:anywhere;}
+}
+
+.ri-app .ri-source-standard dd { white-space:pre-wrap; overflow-wrap:anywhere; }
+.ri-app .ri-inspection textarea[readonly] { resize:vertical; }
+
+.ri-app .ri-outcome-heading { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
+.ri-app .ri-outcome-heading .rf-select-hint { margin:0; }
+.ri-app .ri-outcome-choices button { flex:1 1 94px; }
+.ri-app .ri-outcome-choices button:focus-visible { outline:2px solid #1763d7; outline-offset:2px; }
+.ri-app .ri-submit-dialog {
+  box-sizing:border-box; width:min(440px, calc(100vw - 24px)); max-height:calc(100dvh - 24px);
+  padding:0; overflow:auto; overscroll-behavior:contain; overflow-wrap:anywhere;
+}
+.ri-app .ri-submit-dialog form { gap:0; }
+.ri-app .ri-submit-content { display:grid; gap:12px; padding:20px 16px 16px; }
+.ri-app .ri-submit-content :is(h2,p,dl,dd) { margin:0; }
+.ri-app .ri-submit-content dl { display:grid; gap:7px; }
+.ri-app .ri-submit-content dl div { display:grid; grid-template-columns:minmax(0, 36%) minmax(0, 1fr); gap:8px; }
+.ri-app .ri-submit-content dt { font-weight:600; }
+.ri-app .ri-submit-dialog .rf-actions {
+  position:sticky; bottom:0; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px;
+  margin:0; padding:12px 16px max(12px, env(safe-area-inset-bottom)); border-top:1px solid #d5e1ef;
+}
+.ri-app .ri-submit-dialog .rf-actions .rf-btn { min-width:0; min-height:44px; white-space:normal; overflow-wrap:anywhere; }

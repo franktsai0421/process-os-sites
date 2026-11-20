@@ -317,6 +317,7 @@ async function createWorkflowPermissionPhase(request:Request,state:State){
 export function publicState(state: State,actorId?:string) {
   const values = { ...state.values };
   delete values.routineFqcControl;
+  delete values.routineIqcControl;
   if(values.processAuthoringControl){const authoring=parse(values.processAuthoringControl,null);if(!authoring?.workflow)throw Error('Invalid process authoring control');
     values.processAuthoringControl=JSON.stringify({activeVersionId:authoring.activeVersionId,versions:authoring.versions.filter((v:{id:string})=>v.id===authoring.activeVersionId)});
     // The legacy archive is not the public current editor or approval source.

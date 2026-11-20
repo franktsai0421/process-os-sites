@@ -24,13 +24,32 @@ async function run(width,lang){const f=await require('./fqc-apply-fixture.cjs')(
  await page.locator('[data-rule-kind="0"]').selectOption('fixed_count');await value().fill('0');
  if(process.env.IQC_EXPECT_BASELINE){assert.equal(await hint().count(),0);assert.equal(await page.locator('#iqc-item-error').innerText(),'');console.log('REPRODUCED: fixed_count 0 has no inline warning');return;}
  const message=lang==='vi'?'Giá trị phải là số lớn hơn 0. Có thể lưu bản nháp; cần sửa trước khi gửi duyệt.':'數值須大於 0。可暫存草稿，送審前須修正。';
+ assert.equal(await hint().getAttribute('role'),'status');
+ assert.equal(await value().getAttribute('aria-describedby'),await hint().getAttribute('id'));
  for(const kind of ['fixed_count','aql','batch_quantity']){
   await page.locator('[data-rule-kind="0"]').selectOption(kind);
   for(const invalid of ['0','-1','abc','Infinity']){await value().fill(invalid);assert.equal(await hint().innerText(),message);assert.equal(await value().getAttribute('aria-invalid'),'true');assert.equal(await value().evaluate(n=>n===document.activeElement),true);}
   for(const valid of ['2','2.5','','  ']){await value().fill(valid);assert.equal(await hint().innerText(),'');assert.equal(await value().getAttribute('aria-invalid'),null);}
  }
- await value().fill('0');await page.locator('[data-rule-kind="0"]').selectOption('custom');await value().fill('abc');assert.equal(await hint().innerText(),'');
- await page.locator('[data-rule-name="0"]').fill('Synthetic custom');await page.locator('[data-rule-cadence="0"]').selectOption('time');await page.locator('[data-rule-kind="0"]').selectOption('custom');await page.locator('[data-rule-name="0"]').fill('Synthetic time');assert.equal(await page.locator('[aria-invalid="true"]').count(),0);
+ const cadence=page.locator('[data-rule-cadence="0"]'),ruleKind=page.locator('[data-rule-kind="0"]');
+ await value().fill('0');await ruleKind.selectOption('custom');await value().fill('abc');
+ const ruleName=page.locator('[data-rule-name="0"]');
+ await ruleName.fill('Synthetic custom batch');
+ assert.equal(await ruleKind.inputValue(),'custom');
+ assert.equal(await ruleName.inputValue(),'Synthetic custom batch');
+ assert.equal(await value().inputValue(),'abc');
+ assert.equal(await hint().innerText(),'');
+ assert.equal(await value().getAttribute('aria-invalid'),null);
+ await cadence.selectOption('time');
+ assert.equal(await ruleKind.locator('option[value="custom"]').count(),0,'new timed rules offer no custom time');
+ for(const standard of ['month','quarter']){
+  await ruleKind.selectOption(standard);
+  assert.equal(await ruleKind.inputValue(),standard);
+  assert.equal(await value().count(),0);
+  assert.equal(await hint().count(),0);
+  assert.equal(await ruleName.count(),0);
+  assert.equal(await page.locator('[aria-invalid="true"]').count(),0);
+ }
  await page.locator('[data-rule-cadence="0"]').selectOption('batch');await page.locator('[data-rule-kind="0"]').selectOption('fixed_count');await value().fill('0');
  await page.evaluate(()=>{document.documentElement.lang=document.documentElement.lang==='vi'?'zh-TW':'vi';window.dispatchEvent(new Event('process-language-change'));});assert.notEqual(await hint().innerText(),message);assert.equal(await value().inputValue(),'0');
  await page.evaluate(lang=>{document.documentElement.lang=lang;window.dispatchEvent(new Event('process-language-change'));},lang);assert.equal(await hint().innerText(),message);
@@ -41,7 +60,8 @@ async function run(width,lang){const f=await require('./fqc-apply-fixture.cjs')(
  const save=async()=>{const n=writes.length;await page.locator('#iqc-save').click();await page.waitForFunction(()=>document.querySelector('[data-vd-saved]')?.textContent.match(/已儲存|Đã lưu/));assert.equal(writes.length,n+1);assert.equal(writes.at(-1).command.moduleAction,'save-local-v1');};
  // 0 still stages locally and saves; backend Submit rejects it without a case.
  await apply();assert.equal((await read()).working.items.length,1);await save();assert.equal((await read()).saved.content.items.at(-1).rules[0].value,'0');
- await page.locator('#iqc-submit').click();let confirm=page.locator('dialog.vd-confirm');await confirm.waitFor();await confirm.locator('textarea').fill('Synthetic invalid submission');await confirm.locator('button[type=submit]').click();await page.waitForFunction(()=>document.body.textContent.includes('VALIDATION_FAILED')||document.querySelector('dialog.vd-confirm [role="alert"]')?.textContent);assert.equal((await read()).pendingId,null);assert.equal((await read()).cases.length,0);assert.deepEqual(dialogs,['alert'],'existing Submit rejection alert only');dialogs.length=0;
+ const beforeRejectedSubmit=await read();
+ await page.locator('#iqc-submit').click();let confirm=page.locator('dialog.vd-confirm');await confirm.waitFor();await confirm.locator('textarea').fill('Synthetic invalid submission');await confirm.locator('button[type=submit]').click();await page.waitForFunction(()=>document.body.textContent.includes('VALIDATION_FAILED')||document.querySelector('dialog.vd-confirm [role="alert"]')?.textContent);assert.equal((await read()).pendingId,null);assert.equal((await read()).cases.length,0);assert.deepEqual(await read(),beforeRejectedSubmit,'rejected Submit must not change the workflow');assert.deepEqual(dialogs,['alert'],'existing Submit rejection alert only');dialogs.length=0;
  // Reload leaves only the saved 0; editing then leaving does not write or prompt.
  await page.reload();await page.locator('[data-select-part="P"]').click();await page.locator('[data-edit-item]').last().click();assert.equal(await value().inputValue(),'0');assert.notEqual(await hint().innerText(),'');await value().fill('2');const before=writes.length;await page.reload();assert.equal(writes.length,before);assert.deepEqual(dialogs,[]);await page.locator('[data-select-part="P"]').click();await page.locator('[data-edit-item]').last().click();assert.equal(await value().inputValue(),'0');
  await value().fill('');await apply();await save();assert.equal((await read()).saved.content.items.at(-1).rules[0].value,'');

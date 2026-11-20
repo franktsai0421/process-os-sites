@@ -21,7 +21,7 @@ const declarations=[];function declaration(node){if(ts.isFunctionDeclaration(nod
 const part=(from,to)=>{
  const a=routine.indexOf(from),b=routine.indexOf(to,a);assert(a>=0&&b>a);return routine.slice(a,b);
 };
-const code=[part('  let historyDisplayEpoch=','  function retireApprovedHistory('),...declarations,part('  const routineReceiptPrefix=', '  let inFlightMutation='),part('  async function read(', '  const issueNames ='),
+const code=[part('  let historyDisplayEpoch=','  function retireApprovedHistory('),...declarations,part('  const routineReceiptPrefix=', '  let inFlightMutation='),part('  async function routineJSON(', '  const issueNames ='),
  part('  async function postOwned(','  async function refresh('),
  part('  const departureSharedOwned=','  window.RoutineFQCUI ='),
  'this.departureSharedOwned=departureSharedOwned;this.departureDocuments=departureDocuments;'].join('\n');

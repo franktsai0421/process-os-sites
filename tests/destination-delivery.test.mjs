@@ -39,3 +39,12 @@ void test('dedicated quality loaders avoid duplicate bootstrap business hydratio
  const fqc=await destinationPlan('?view=data&dataTab=quality-fqc',owner);
  assert.deepEqual(fqc.deliveryKeys,['qualityMasterControl','canonicalQuality'],'FQC notice/bootstrap compatibility remains unchanged');
 });
+void test('shared approval preserves explicit source system without changing approval permissions',async()=>{
+ for(const system of ['quality','process']){const p=await destinationPlan('?view=approval&system='+system,only('approval.view'));assert.equal(p.destination.system,system);assert.equal(p.destination.view,'approval');}
+ assert.equal((await destinationPlan('?view=approval',owner)).destination.system,'process');
+ await assert.rejects(()=>destinationPlan('?view=approval&system=quality',()=>false),/DESTINATION_FORBIDDEN/);
+});
+void test('four routine tabs survive approval and return URLs; switching systems clears source context',()=>{
+ for(const tab of ['sources','jobs','plans','reports']){const start='https://fixture.invalid/process/?system=quality&view=quality-inspections&rfTab='+tab;const approval=destinationURL(start,{view:'approval',system:'quality'});assert.equal(approval.searchParams.get('rfTab'),tab);const back=destinationURL(approval,{view:'quality-inspections',system:'quality'});assert.equal(back.searchParams.get('rfTab'),tab);assert.equal(deliveryCandidate(approval.search).preferredSystem,'quality');assert.equal(deliveryCandidate(back.search).view,'quality-inspections');const process=destinationURL(approval,{view:'approval',system:'process'});assert.equal(process.searchParams.has('rfTab'),false);assert.equal(destinationURL(process,{view:'quality-inspections',system:'quality'}).searchParams.has('rfTab'),false);}
+ for(const current of ['?system=quality&view=quality-dashboard&rfTab=plans','?system=process&view=approval&rfTab=plans','?system=quality&view=approval&rfTab=invalid'])assert.equal(destinationURL('https://fixture.invalid/'+current,{view:'quality-inspections',system:'quality'}).searchParams.has('rfTab'),false);
+});

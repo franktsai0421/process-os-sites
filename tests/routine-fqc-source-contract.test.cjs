@@ -64,7 +64,28 @@ void test('Windows checkout EOL is separate from exact committed raw source; non
  assert.throws(()=>proof.canonicalCheckout(lf.toString(),after),/raw Buffer/);
 });
 void test('actual committed Routine successor and checkout attest against genuine merged-main ancestry',()=>{
- const result=proof.verifyRepository();assert.equal(result.status,'PASS_ROUTINE_FQC_SOURCE');assert.equal(result.sourceHash,require('../scripts/account-page-source-contract.cjs').contract.files[contract.file].afterHash);assert.equal(result.attestedSourceHash,contract.afterHash);assert.equal(result.base,contract.base);
+ const result=proof.verifyRepository();assert.equal(result.status,'PASS_ROUTINE_FQC_SOURCE');assert.equal(result.sourceHash,require('../scripts/routine-integration-followup-source.json').files[contract.file].current);assert.equal(result.attestedSourceHash,contract.afterHash);assert.equal(result.base,contract.base);
 });
 
 void test('exact joint cache successor preserves the reviewed account index and original Routine closure',()=>{assert.deepEqual(followup.restore(rawIndex,contract.index),afterIndex);proof.assertIndexSuccessor(rawIndex,beforeIndex,contract.index);});
+
+void test('routine integration projects only committed public changes for historical proofs',()=>{
+ const project=require('../scripts/routine-integration-source-contract.cjs').projectKnown;
+ const published='f173bd2474d6070c6411736f91a5707e1e49be4b';
+ for(const file of ['public/process/index.html','public/process/fqc-master.js','AI_CONTEXT/CHANGELOG.md']){
+  const current=execFileSync('git',['show','HEAD:'+file]);
+  const prior=execFileSync('git',['show',published+':'+file]);
+  const lf=current.toString('utf8').replaceAll('\r\n','\n');
+  for(const raw of [current,Buffer.from(lf),Buffer.from(lf.replaceAll('\n','\r\n'))])
+   assert.deepEqual(project(raw,file),prior);
+  // Mutating a returned buffer cannot affect the next pinned projection.
+  const result=project(current,file);result[0]^=1;
+  assert.deepEqual(project(current,file),prior);
+  const changed=Buffer.from(current);
+  changed[0]^=1;
+  for(const raw of [changed,current.subarray(1),Buffer.concat([current,Buffer.from(' ')])])
+   assert.strictEqual(project(raw,file),raw,'source drift is never projected');
+  for(const unknown of ['./'+file,'constructor','__proto__'])assert.strictEqual(project(current,unknown),current);
+  assert.throws(()=>project(lf,file),/raw Buffer/);
+ }
+});

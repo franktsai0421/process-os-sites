@@ -31,8 +31,38 @@ void test('cached composition matches genuine original outputs, errors, EOL and 
  }
  assert.throws(()=>after.restore(fs.readFileSync('HANDOFF.md'),'wrong','qualityMain'));assert.throws(()=>after.restore(fs.readFileSync('HANDOFF.md'),'HANDOFF.md','wrong'));
 });
-void test('every original JSON manifest and all product sources remain byte-identical to approved head',async()=>{
- const git=(...args)=>execFileSync('git',args),base='ea137c7dd8d608d216d45ab29b033fc5f782ff5d';const readGit=args=>new Promise((resolve,reject)=>{const child=spawn('git',args,{stdio:['ignore','pipe','pipe']}),chunks=[];child.stdout.on('data',chunk=>chunks.push(chunk));child.on('error',reject);child.on('close',code=>code===0?resolve(Buffer.concat(chunks)):reject(Error('Git source read failed: '+code)));});for(const file of git('ls-tree','-r','--name-only',base,'--','scripts').toString().trim().split('\n').filter(x=>x.endsWith('.json')))assert.deepEqual(fs.readFileSync(file),await readGit(['show',base+':'+file]),file);const scope=['app','lib','public','package.json','package-lock.json'];const changes=git('diff','--name-only',base,'--',...scope).toString().trim().split('\n').filter(Boolean).sort();const navigation=['app/api/process-bootstrap/route.ts','app/api/routine-fqc/route.ts','lib/process-state.ts'];assert.deepEqual(changes,[...navigation,'public/process/index.html','public/process/ipqc-ab.js','public/process/ipqc-c.js','public/process/version-draft-ui.js'],'only four #125 product files and the pinned navigation read sources may differ');for(const file of changes){const expected=git('show',(navigation.includes(file)?'27ca5b879423b126122ce0c7f8200330eff4df1c':'161b24289f2da730f31e6cdbbe0deac5ed00017d')+':'+file);assert.deepEqual(fs.readFileSync(file),expected,'exact pinned product bytes '+file);}assert.equal(git('diff',base,'0f2c8ec5b3bc8f6a5625ef049782fab1f96988b1','--',...scope).length,0,'merged #121 main itself preserves the approved cache-only runtime boundary');assert.equal(fs.existsSync('lib/iqc-body-read-ahead.mjs'),false);
+void test('original JSON manifests, approved product changes and reviewed Routine delta remain exact',async()=>{
+ const git=(...args)=>execFileSync('git',args);
+ const base='ea137c7dd8d608d216d45ab29b033fc5f782ff5d';
+ const readGit=args=>new Promise((resolve,reject)=>{
+  const child=spawn('git',args,{stdio:['ignore','pipe','pipe']}),chunks=[];
+  child.stdout.on('data',chunk=>chunks.push(chunk));child.on('error',reject);
+  child.on('close',code=>code===0?resolve(Buffer.concat(chunks)):reject(Error('Git source read failed: '+code)));
+ });
+ for(const file of git('ls-tree','-r','--name-only',base,'--','scripts').toString().trim().split('\n').filter(x=>x.endsWith('.json')))
+  assert.deepEqual(fs.readFileSync(file),await readGit(['show',base+':'+file]),file);
+ const scope=['app','lib','public','package.json','package-lock.json'];
+ const sourceProof=require('../scripts/routine-integration-source-contract.cjs');
+ const main='f173bd2474d6070c6411736f91a5707e1e49be4b';
+ const readDiff=(...commits)=>git('diff','--name-status',...commits,'--',...scope).toString().trimEnd();
+ const navigation=['app/api/process-bootstrap/route.ts','app/api/routine-fqc/route.ts','lib/process-state.ts'];
+ const historical=[...navigation,'public/process/index.html','public/process/ipqc-ab.js','public/process/ipqc-c.js','public/process/version-draft-ui.js'];
+ assert.deepEqual(readDiff(base,main).split('\n').map(row=>row.split('\t')[1]),historical,
+  'only four #125 product files and the pinned navigation read sources may differ in the historical comparison');
+ for(const file of historical){
+  const expected=git('show',(navigation.includes(file)?'27ca5b879423b126122ce0c7f8200330eff4df1c':'161b24289f2da730f31e6cdbbe0deac5ed00017d')+':'+file);
+  assert.deepEqual(git('show',main+':'+file),expected,'exact pinned historical product bytes '+file);
+ }
+ const uploaded=sourceProof.followup.uploaded;
+ const approved=readDiff(main,uploaded);
+ assert.equal(readDiff(main,'HEAD'),approved,'Routine product paths and change status must match the uploaded PR');
+ assert.equal(readDiff('HEAD'),'','tracked product checkout must match its commit');
+ for(const row of approved.split('\n')){
+  const [,file]=row.split('\t');
+  sourceProof.assertUploadedOrFollowup(fs.readFileSync(file),file);
+ }
+ assert.equal(git('diff',base,'0f2c8ec5b3bc8f6a5625ef049782fab1f96988b1','--',...scope).length,0,'merged #121 main itself preserves the approved cache-only runtime boundary');
+ assert.equal(fs.existsSync('lib/iqc-body-read-ahead.mjs'),false);
 });
 
 void test('actual integrated adapter rejects warmed source mutations and result poisoning without a test-side projection',()=>{

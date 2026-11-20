@@ -865,7 +865,7 @@
     if (method !== 'none') {
       const cycle = String(item.calibrationCycle || '').trim();
       if (!cycle || (cycle === 'custom' && !String(item.customCycle || '').trim())) {
-        problems.push({ id: item.id, field: cycle === 'custom' ? 'customCycle' : 'calibrationCycle', message: `${prefix}: ${t('校正週期必填', 'Chu kỳ hiệu chuẩn bắt buộc')}`, advice: t('請選擇校正週期，或自訂週期說明。', 'Chọn chu kỳ hiệu chuẩn hoặc chu kỳ tùy chỉnh.') });
+        problems.push({ id: item.id, field: cycle === 'custom' ? 'customCycle' : 'calibrationCycle', message: `${prefix}: ${t('校正週期必填', 'Chu kỳ hiệu chuẩn bắt buộc')}`, advice: t('請選擇標準校正週期。', 'Chọn chu kỳ hiệu chuẩn chuẩn.') });
       }
       if (!item.calibratedAt) {
         problems.push({ id: item.id, field: 'calibratedAt', message: `${prefix}: ${t('最近校正日期必填', 'Ngày hiệu chuẩn bắt buộc')}`, advice: t('請填寫有效之最近校正日期（YYYY-MM-DD）。', 'Nhập ngày hiệu chuẩn hợp lệ (YYYY-MM-DD).') });
@@ -923,13 +923,13 @@
       <label>${t('校正週期', 'Chu kỳ hiệu chuẩn')}${cycleProb ? `<span class="routine-field-error">⚠️ ${h(problemMessage(cycleProb).replace(/^.*?:\s*/, ''))}</span>` : ''}
         <select data-select="calibrationCycle" class="${cycleProb ? 'has-error' : ''}" ${can ? '' : 'disabled'}>
           <option value="" ${!cycleValue ? 'selected' : ''}>${t('請選擇週期', 'Chọn chu kỳ')}</option>
-          ${cycleValue && !Object.keys(cycleLabels).includes(cycleValue) ? `<option data-i18n-skip="true" value="${h(cycleValue)}" selected>${h(cycleValue)}</option>` : ''}
-          ${Object.entries(cycleLabels).map(([code, labels]) => `<option value="${code}" ${code === cycleValue ? 'selected' : ''}>${label(labels)}</option>`).join('')}
+          ${cycleValue && (cycleValue==='custom'||!Object.keys(cycleLabels).includes(cycleValue)) ? `<option data-i18n-skip="true" value="${h(cycleValue)}" selected disabled>${h(cycleValue)} · ${t('既有值（唯讀）','Giá trị cũ (chỉ đọc)')}</option>` : ''}
+          ${Object.entries(cycleLabels).filter(([code])=>code!=='custom').map(([code, labels]) => `<option value="${code}" ${code === cycleValue ? 'selected' : ''}>${label(labels)}</option>`).join('')}
         </select>
       </label>
       ${item.calibrationCycle === 'custom' ? `
-        <label>${t('自訂週期', 'Chu kỳ tùy chỉnh')}${customProb ? `<span class="routine-field-error">⚠️ ${h(problemMessage(customProb).replace(/^.*?:\s*/, ''))}</span>` : ''}
-          <input data-field="customCycle" data-i18n-skip="true" type="text" class="${customProb ? 'has-error' : ''}" value="${h(item.customCycle || '')}" ${can ? '' : 'disabled'}>
+        <label>${t('既有週期（唯讀）；請改選標準頻率', 'Chu kỳ cũ (chỉ đọc); chọn tần suất chuẩn')}${customProb ? `<span class="routine-field-error">⚠️ ${h(problemMessage(customProb).replace(/^.*?:\s*/, ''))}</span>` : ''}
+          <input readonly data-field="customCycle" data-i18n-skip="true" type="text" class="${customProb ? 'has-error' : ''}" value="${h(item.customCycle || '')}" ${can ? '' : 'disabled'}>
         </label>` : ''}
       <label>${t('最近校正日期', 'Ngày hiệu chuẩn gần nhất')}${calProb ? `<span class="routine-field-error">⚠️ ${h(problemMessage(calProb).replace(/^.*?:\s*/, ''))}</span>` : ''}
         <input data-field="calibratedAt" type="date" class="${calProb ? 'has-error' : ''}" value="${h(item.calibratedAt || '')}" ${can ? '' : 'disabled'}>
@@ -1304,12 +1304,12 @@
         ${t('校正週期', 'Chu kỳ hiệu chuẩn')}
         <select id="routine-add-calibration-cycle">
           <option value="" ${!form.calibrationCycle ? 'selected' : ''}>${t('請選擇週期', 'Chọn chu kỳ')}</option>
-          ${Object.entries(cycleLabels).map(([code, labels]) => `<option value="${code}" ${code === form.calibrationCycle ? 'selected' : ''}>${label(labels)}</option>`).join('')}
+          ${Object.entries(cycleLabels).filter(([code])=>code!=='custom').map(([code, labels]) => `<option value="${code}" ${code === form.calibrationCycle ? 'selected' : ''}>${label(labels)}</option>`).join('')}
         </select>
       </label>
       ${form.calibrationCycle === 'custom' ? `
         <label>
-          ${t('自訂週期', 'Chu kỳ tùy chỉnh')}
+          ${t('既有週期（唯讀）；請改選標準頻率', 'Chu kỳ cũ (chỉ đọc); chọn tần suất chuẩn')}
           <input type="text" id="routine-add-custom-cycle" data-i18n-skip="true" value="${h(form.customCycle || '')}" placeholder="${t('例如：每 45 天', 'Ví dụ: mỗi 45 ngày')}">
         </label>` : ''}
       <label>

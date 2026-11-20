@@ -7,12 +7,12 @@ const baseline=fs.readFileSync(new URL('./fixtures/bootstrap.pre-fourth.js',impo
 const nav=fs.readFileSync('public/process/delivery-navigation.js','utf8');
 const navReady=nav.slice(nav.indexOf('  async function readyForDestination(target){'),nav.indexOf('  const coordinator=createNavigationCoordinator'));
 const drain=async()=>{for(let i=0;i<35;i++)await Promise.resolve();};
-const baselineAccessImport="import('./access-policy.mjs?v=20261010-access3')",candidateAccessImport="import('./access-policy.mjs?v=20261110-account-pages1')",purposeImport="import('./delivery-purpose.mjs?v=20261026-feedback1')";
+const baselineAccessImport="import('./access-policy.mjs?v=20261010-access3')",candidateAccessImport="import('./access-policy.mjs?v=20261110-account-pages1')",baselinePurposeImport="import('./delivery-purpose.mjs?v=20261026-feedback1')",candidatePurposeImport="import('./delivery-purpose.mjs?v=20261117-origin1')";
 const ownedImport="import('./owned-draft-ledger.mjs?v=20261030-platform5')",accountReviewImport="import('./account-review-preview.mjs?v=20261110-account-pages1')";
 function dependencyBindings(accessImport){
  assert([baselineAccessImport,candidateAccessImport].includes(accessImport),'only pinned baseline/candidate policy imports');
  const candidate=accessImport===candidateAccessImport;
- return [['access-policy',accessImport,'({})',1],['delivery-purpose',purposeImport,'deliveryPolicy',1],['owned-draft-ledger',ownedImport,'ownedDraftPolicy',candidate?1:0],['account-review-preview',accountReviewImport,'accountReviewPolicy',candidate?1:0]];
+ return [['access-policy',accessImport,'({})',1],['delivery-purpose',candidate?candidatePurposeImport:baselinePurposeImport,'deliveryPolicy',1],['owned-draft-ledger',ownedImport,'ownedDraftPolicy',candidate?1:0],['account-review-preview',accountReviewImport,'accountReviewPolicy',candidate?1:0]];
 }
 function wireDependencies(source,accessImport){
  for(const [name,exact,binding,count]of dependencyBindings(accessImport)){
@@ -27,7 +27,7 @@ let anchorChecks=0;
 for(const [source,accessImport]of [[baseline,baselineAccessImport],[candidate,candidateAccessImport]]){
  for(const newline of ['\n','\r\n']){
   const text=source.replace(/\r?\n/g,newline);
-  assert.equal(wireDependencies(text,accessImport),text.replace(accessImport,'({})').replace(purposeImport,'deliveryPolicy').replace(ownedImport,'ownedDraftPolicy').replace(accountReviewImport,'accountReviewPolicy'));anchorChecks++;
+  assert.equal(wireDependencies(text,accessImport),text.replace(accessImport,'({})').replace(accessImport===candidateAccessImport?candidatePurposeImport:baselinePurposeImport,'deliveryPolicy').replace(ownedImport,'ownedDraftPolicy').replace(accountReviewImport,'accountReviewPolicy'));anchorChecks++;
  }
  for(const [_name,exact,_binding,count]of dependencyBindings(accessImport)){
   const mutations=count?[source.replace(exact,''),source+'\n'+exact,source.replace(exact,exact.replace(/v=[^']+/,"v=unexpected"))]:[source+'\n'+exact];

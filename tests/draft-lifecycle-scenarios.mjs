@@ -190,7 +190,7 @@ export const scenarios = modules.flatMap(m => {
   }
   for (const p of plans) {
     Object.assign(p.network, wireContract(m));
-    p.evidence.push(m.id === 'routine-fqc' ? evidence('routine-fqc.js', 'fetch(endpoint + query') : evidence('shared-draft-client.js', "+'compact=1'", "responseProjection==='iqc-edit-v1'"));
+    p.evidence.push(m.id === 'routine-fqc' ? evidence('routine-fqc.js', 'await routineJSON(endpoint + query', 'const response = await fetch(url, { ...options, signal: controller.signal });') : evidence('shared-draft-client.js', "+'compact=1'", "responseProjection==='iqc-edit-v1'"));
     if (['approve', 'return'].includes(p.action)) { const review = reviewContext(m); p.route = review.route; p.ready = control(review.ready); p.setupSteps = review.setup; p.evidence.push(...review.evidence); }
     p.evidence.push({ file: vd, tokens: ['vd-shell', "const select=old.querySelector('select')"] });
     if (p.steps.some(step => step.target?.selector.includes('vd-confirm'))) p.evidence.push({ file: vd, tokens: ['confirmSubmit', 'confirmReview', 'vd-confirm'] });
