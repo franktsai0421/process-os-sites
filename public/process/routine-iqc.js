@@ -859,6 +859,9 @@
       <div class="ri-work-context"><p class="rf-subtle">${v.review?`${t('IQC 待審案件','Hồ sơ IQC chờ duyệt')} · ${pending.length}`:
         `${t('有效 IQC 主檔','Nguồn IQC hiện hành')} · V${h(data.catalog.version||'—')} · ${data.catalog.items.length} ${t('個時間檢查規則','quy tắc theo thời gian')}`}</p>
         ${button('refresh',t('重新整理','Tải lại'))}</div>
+      ${!v.review&&data.scheduleDue?`<p class="rf-notice" role="status">${p.edit
+        ?t('有待產生的應檢工作。沒有未儲存修改或待確認操作時，按「重新整理」產生。','Có công việc kiểm tra cần tạo. Chọn Tải lại để tạo khi không còn chỉnh sửa chưa lưu hoặc thao tác chờ xác nhận.')
+        :t('有待產生的應檢工作。請由有編輯權限的人員重新整理。','Có công việc kiểm tra cần tạo. Người có quyền chỉnh sửa có thể tải lại để tạo.')}</p>`:''}
       ${!v.review&&v.tab==='sources'&&!doc&&!v.target?jobList(v):filters+(!cards&&!doc&&!v.target?emptyStage(v):
         `<div class="rf-layout ${doc||v.target?'has-selection':''}"><section class="rf-panel rf-list-panel"><div class="rf-calendar-document-list">${cards}</div></section>
         <section class="rf-panel rf-detail-panel"><div class="rf-detail">${doc||v.target?button('back',v.listReturn?.tab==='sources'||doc?.kind==='waiver'&&!v.review?t('返回檢查項目','Về hạng mục kiểm tra'):t('返回清單','Về danh sách')):''}
@@ -931,12 +934,19 @@
   }
   async function act(v,action,control) {
     const [kind,...tail]=action.split(':'), id=tail.join(':'), doc=docOf(v);
-    if (kind === 'retry-entry') {
-      if (v.data) return;
+    if (kind === 'retry-entry' || kind === 'refresh') {
+      if (kind === 'retry-entry' && v.data) return;
+      const readOnly = kind === 'retry-entry' || v.review;
       v.busy = true;
       render(v);
-      try { await load(v); }
-      finally { v.busy = false; if (v.data) render(v); }
+      try {
+        await load(v);
+        if (!readOnly && workspace?.active === 'iqc' && v.data.scheduleDue && permissions(v).edit && !edited(v) && !v.pending)
+          await write(v,'generate');
+      } finally {
+        v.busy = false;
+        if (v.data) render(v);
+      }
       return;
     }
     if(kind==='open-master'){
@@ -1023,7 +1033,6 @@
       }finally{v.busy=false;render(v);}
       return;
     }
-    if(kind==='refresh'){await load(v);if(v.data.scheduleDue&&permissions(v).edit&&!edited(v)&&!v.pending)await write(v,'generate');return;}
     if(kind==='configure'){await administer(v);return;}
     if(kind==='create-plan'||kind==='create-waiver'){
       const eligible=kind==='create-waiver'?canExempt:available;

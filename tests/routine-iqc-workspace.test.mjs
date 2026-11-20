@@ -29,7 +29,7 @@ function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirm
    selector.endsWith('[data-action="retry"]')?retry:recoveryText
  };
  const listeners={};
- const iqcRoot={isConnected:true,append(){},querySelector:selector=>selector==='[data-ri-start]'?{value:'2026-11-19'}:null,addEventListener(kind,handler){listeners[kind]=handler;if(kind==='click')iqcClick=handler;if(kind==='change')iqcChange=handler;}};
+ const iqcRoot={isConnected:true,append(){},querySelectorAll:()=>[],querySelector:selector=>selector==='[data-ri-start]'?{value:'2026-11-19'}:null,addEventListener(kind,handler){listeners[kind]=handler;if(kind==='click')iqcClick=handler;if(kind==='change')iqcChange=handler;}};
  const fqc={matches:()=>false, contains:el=>[retry,entry,fqcRoot].includes(el),
    querySelector(selector){return selector.includes('routine-fqc-root')?fqcRoot:switchButton;}};
  const iqc={matches:()=>false,contains:node=>node===iqcRoot,
@@ -186,10 +186,79 @@ void test('first IQC GET failure provides a bilingual same-page, read-only recov
   ui.action('retry-entry');
   await new Promise(setImmediate);
   assert.match(ui.iqcRoot.innerHTML,lang==='zh'?/IQC 排程尚未啟動/:/Lịch IQC chưa bắt đầu/);
-  assert.doesNotMatch(ui.iqcRoot.innerHTML,/data-ri-action="retry-entry"/);
+  assert.doesNotMatch(ui.iqcRoot.innerHTML,/data-ri-action="retry-entry"|role="alert"/);
   assert.deepEqual(calls,[['/api/routine-iqc','GET'],['/api/routine-iqc','GET']]);
  }
 });
+
+for (const mode of ['edit','read-only','pending receipt','review','left IQC']) {
+ void test('started IQC retry is GET-only and due Refresh respects ' + mode, async () => {
+  const work=parityJob('generated-work');
+  const remote=parityState([]);
+  remote.catalog.items=[work];
+  remote.scheduleDue=true;
+  remote.revision=12;
+  remote.permissions.edit=mode!=='read-only';
+  remote.permissions.settings=true;
+  remote.startLocked=true;
+  const calls=[], flush=()=>new Promise(setImmediate);
+  let release;
+  const delayedRefresh=new Promise(resolve=>{release=resolve;});
+  const ui=switchFixture(mode==='read-only'?'vi':'zh',{
+   review:mode==='review',
+   simulateRequest:async (url,options)=>{
+    assert.equal(url,'/api/routine-iqc');
+    const method=options.method||'GET';
+    const payload=options.body?JSON.parse(options.body):null;
+    calls.push({method,payload});
+    if(calls.length===1)return Response.json({error:'IQC_UNAVAILABLE'},{status:503});
+    if(calls.length===3)await delayedRefresh;
+    if(method==='POST'){
+     assert.equal(payload.action,'generate');
+     assert.equal(payload.expectedRevision,12);
+     assert.equal(remote.scheduleDue,true);
+     remote.scheduleDue=false;
+     remote.jobs=[work];
+     remote.revision++;
+     return Response.json({result:{},revision:remote.revision});
+    }
+    return Response.json(remote);
+   }
+  });
+  if(mode==='pending receipt')ui.pendingWrites.set('routine-iqc-receipt:synthetic','old-operation');
+  if(mode!=='review')ui.press(ui.entry);
+  await flush();
+  assert.match(ui.iqcRoot.innerHTML,/data-ri-action="retry-entry"/);
+  ui.action('retry-entry');
+  ui.action('retry-entry');
+  await flush();
+  assert.deepEqual(calls.map(c=>c.method),['GET','GET']);
+  assert.doesNotMatch(ui.iqcRoot.innerHTML,/role="alert"|data-ri-action="retry-entry"/);
+  if(mode==='review')assert.doesNotMatch(ui.iqcRoot.innerHTML,/有待產生的應檢工作/);
+  else assert.match(ui.iqcRoot.innerHTML,mode==='read-only'?/Có công việc kiểm tra cần tạo/:/有待產生的應檢工作/);
+  if(mode==='edit'){
+   assert.match(ui.iqcRoot.innerHTML,/已啟動 · 日期鎖定/);
+   assert.doesNotMatch(ui.iqcRoot.innerHTML,/RESET/);
+  }
+
+  ui.action('refresh');
+  ui.action('refresh');
+  assert.deepEqual(calls.map(c=>c.method),['GET','GET','GET']);
+  if(mode==='left IQC')ui.goBack();
+  release();
+  await flush();
+  const generated=mode==='edit';
+  assert.deepEqual(calls.map(c=>c.method),generated?['GET','GET','GET','POST','GET']:['GET','GET','GET']);
+  if(mode==='pending receipt')assert.equal(ui.pendingWrites.get('routine-iqc-receipt:synthetic'),'old-operation');
+  if(generated){
+   assert.doesNotMatch(ui.iqcRoot.innerHTML,/有待產生的應檢工作|class="rf-notice error"/);
+   assert.match(ui.iqcRoot.innerHTML,/TEST check generated-work/);
+   ui.action('refresh');
+   await flush();
+   assert.deepEqual(calls.map(c=>c.method),['GET','GET','GET','POST','GET','GET']);
+  }
+ });
+}
 
 void test('IQC supplier filters keep selections visible in the summary and let users remove hidden picks',async()=>{
  const jobs=[
