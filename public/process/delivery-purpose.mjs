@@ -20,7 +20,7 @@ export function destinationURL(current,destination){
  const from=new URL(current);
  const keepRoutine=destination.system==='quality'&&['quality-inspections','approval'].includes(destination.view)&&from.searchParams.get('system')==='quality'&&['quality-inspections','approval'].includes(from.searchParams.get('view'));
  const tab=from.searchParams.get('rfTab');
- if(keepRoutine&&['sources','jobs','plans','reports'].includes(tab))url.searchParams.set('rfTab',tab);else url.searchParams.delete('rfTab');
+ if(keepRoutine&&['sources','jobs','plans','reports','failed','cases'].includes(tab))url.searchParams.set('rfTab',tab);else url.searchParams.delete('rfTab');
  if(destination.view!=='player'){url.searchParams.delete('line');url.searchParams.delete('stage');}
  return url;
 }

@@ -7,7 +7,7 @@ const baseline=fs.readFileSync(new URL('./fixtures/bootstrap.pre-fourth.js',impo
 const nav=fs.readFileSync('public/process/delivery-navigation.js','utf8');
 const navReady=nav.slice(nav.indexOf('  async function readyForDestination(target){'),nav.indexOf('  const coordinator=createNavigationCoordinator'));
 const drain=async()=>{for(let i=0;i<35;i++)await Promise.resolve();};
-const baselineAccessImport="import('./access-policy.mjs?v=20261010-access3')",candidateAccessImport="import('./access-policy.mjs?v=20261110-account-pages1')",baselinePurposeImport="import('./delivery-purpose.mjs?v=20261026-feedback1')",candidatePurposeImport="import('./delivery-purpose.mjs?v=20261117-origin1')";
+const baselineAccessImport="import('./access-policy.mjs?v=20261010-access3')",candidateAccessImport="import('./access-policy.mjs?v=20261110-account-pages1')",baselinePurposeImport="import('./delivery-purpose.mjs?v=20261026-feedback1')",candidatePurposeImport="import('./delivery-purpose.mjs?v=20261120-routine-result-route1')";
 const ownedImport="import('./owned-draft-ledger.mjs?v=20261030-platform5')",accountReviewImport="import('./account-review-preview.mjs?v=20261110-account-pages1')";
 function dependencyBindings(accessImport){
  assert([baselineAccessImport,candidateAccessImport].includes(accessImport),'only pinned baseline/candidate policy imports');

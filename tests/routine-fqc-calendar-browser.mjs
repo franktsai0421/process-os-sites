@@ -386,6 +386,8 @@ export async function runRoutineFqcCalendarBrowser() {
         assert.deepEqual(posted.slice(before),[{actor:'frank',command:'generate'}]);
         ordinaryEntries++;
       }
+      assert.equal(new URL(page.url()).searchParams.get('rfTab'),name,'The requested FQC tab survives navigation');
+      assert.equal(await flow.locator(`[data-tab="${name}"]`).getAttribute('aria-current'),'page');
     }
     async function enterReport(planId, outcome) {
       await tab('reports');
