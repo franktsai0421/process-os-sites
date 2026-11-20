@@ -380,5 +380,10 @@ export async function runFqcDraftBrowser() {
   fs.mkdirSync('.sites-runtime', {recursive: true}); fs.writeFileSync('.sites-runtime/fqc-draft-lifecycle-browser-result.json', JSON.stringify(report, null, 2)); console.log(JSON.stringify(report)); return report;
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const result = await runFqcDraftBrowser(); process.exitCode = result.status.startsWith('PASS_') ? 0 : 1;
+  const result = await runFqcDraftBrowser();
+  if (!result.status.startsWith('PASS_')) process.exitCode = 1;
+  else {
+    const {runRoutineFqcCalendarBrowser} = await import('./routine-fqc-calendar-browser.mjs');
+    console.log(JSON.stringify(await runRoutineFqcCalendarBrowser()));
+  }
 }

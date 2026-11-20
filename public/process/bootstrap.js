@@ -10,7 +10,7 @@ void (async () => {
   try {
     [window.ProcessAccessPolicy,window.ProcessDeliveryPurpose,window.ProcessAccountReview]=await Promise.all([
       import('./access-policy.mjs?v=20261110-account-pages1'),
-      import('./delivery-purpose.mjs?v=20261117-origin1'),
+      import('./delivery-purpose.mjs?v=20261120-routine-result-route1'),
       import('./account-review-preview.mjs?v=20261110-account-pages1'),
     ]);
     await window.ProcessSync.ready;

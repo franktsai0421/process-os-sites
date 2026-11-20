@@ -64,7 +64,7 @@ void test('Windows checkout EOL is separate from exact committed raw source; non
  assert.throws(()=>proof.canonicalCheckout(lf.toString(),after),/raw Buffer/);
 });
 void test('actual committed Routine successor and checkout attest against genuine merged-main ancestry',()=>{
- const result=proof.verifyRepository();assert.equal(result.status,'PASS_ROUTINE_FQC_SOURCE');assert.equal(result.sourceHash,require('../scripts/routine-integration-followup-source.json').files[contract.file].current);assert.equal(result.attestedSourceHash,contract.afterHash);assert.equal(result.base,contract.base);
+ const result=proof.verifyRepository();assert.equal(result.status,'PASS_ROUTINE_FQC_SOURCE');assert.equal(result.sourceHash,require('../scripts/routine-integration-source-contract.cjs').currentSourcePin(contract.file).current);assert.equal(result.attestedSourceHash,contract.afterHash);assert.equal(result.base,contract.base);
 });
 
 void test('exact joint cache successor preserves the reviewed account index and original Routine closure',()=>{assert.deepEqual(followup.restore(rawIndex,contract.index),afterIndex);proof.assertIndexSuccessor(rawIndex,beforeIndex,contract.index);});

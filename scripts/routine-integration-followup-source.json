@@ -92,5 +92,61 @@
       "currentLf": "8b8ef97155cde7f1d97288baf38c4a2d240104e5c4171d5b1136cf19ac415865",
       "uploaded": "709504767e25b388445305b54ede4aa818a4a79f24f630b55a0328255669734c"
     }
+  },
+  "workspaceParity": {
+    "base": "86204ee12c95788c5a4f3b7a3f9065b74658bde3",
+    "tree": "f1d055f69fa4b475ba663f7d68c72cd0005235a2",
+    "files": {
+      "public/process/index.html": {
+        "current": "b13d60dfd6b183882b676b350e8025b6e380a4b11f65ddebc5656b9a6f78994e",
+        "currentLf": "b13d60dfd6b183882b676b350e8025b6e380a4b11f65ddebc5656b9a6f78994e",
+        "base": "d11fb0252401e5a77fd7cf374e9146ac2c4c1309b7e852437557da456d61156c"
+      },
+      "public/process/routine-fqc.js": {
+        "current": "b6ea1ef0465e093566a0835b4888a3b8ecaa3ee8a379f361c61d5f149be8ecf6",
+        "currentLf": "b6ea1ef0465e093566a0835b4888a3b8ecaa3ee8a379f361c61d5f149be8ecf6",
+        "base": "ea63b6f0a43061c658fa0deb4889add2b307a10cfa3b4fea4a8d0101fe9ee860"
+      },
+      "public/process/routine-iqc.js": {
+        "current": "705063f055e571e7c23a750cce4f7ed56963a7f0fbb3885a62c158ec0bad0ef2",
+        "currentLf": "705063f055e571e7c23a750cce4f7ed56963a7f0fbb3885a62c158ec0bad0ef2",
+        "base": "b7765b4f332a49f3682dc90f98ef484b16340511957c8e6c205b77e869029b7e"
+      },
+      "tests/account-page-entry.test.cjs": {
+        "current": "0d02e275196aae531866711ec28a33941bd18834e1edbf57fb8613e8e15ccfe5",
+        "currentLf": "0d02e275196aae531866711ec28a33941bd18834e1edbf57fb8613e8e15ccfe5",
+        "base": "ec7632102032a65a80a68d01751cbd6849c48a6997fb24ba07d0805775967132"
+      },
+      "tests/navigation-adapters.test.mjs": {
+        "current": "081144c74e667ebc9b1952937d6c0394a096a05bdadde81cfb6c7779fe87059c",
+        "currentLf": "081144c74e667ebc9b1952937d6c0394a096a05bdadde81cfb6c7779fe87059c",
+        "base": "51b89910397bf465fa22199a6f6f4b91693759b1c39b15f5113972cf77f8b5e3"
+      },
+      "app/api/routine-fqc/route.ts": {
+        "current": "3a63ad835803e92a0e26fa11170a0f0f19da1d8ef5f0da2b284fc25c8571eaf5",
+        "currentLf": "3a63ad835803e92a0e26fa11170a0f0f19da1d8ef5f0da2b284fc25c8571eaf5",
+        "base": "b5b2677aaee776c0024eef8a97b81debef8855bf707c06e3000e9b713c1e9ed4"
+      },
+      "app/api/routine-iqc/route.ts": {
+        "current": "cc6b401f063b3bc4a030584018c041aa2bff7c074ac2d146e093e9371e5a22fd",
+        "currentLf": "cc6b401f063b3bc4a030584018c041aa2bff7c074ac2d146e093e9371e5a22fd",
+        "base": "7ffc543c1450696e0fbda210423d59d2d3930ed2ff1c6bd5ef7a74b62795fb0e"
+      },
+      "public/process/bootstrap.js": {
+        "current": "0b2069c3cbc2d6bcc26dc5ce9ce99591274da29e208a1680fc352a7ed4822709",
+        "currentLf": "0b2069c3cbc2d6bcc26dc5ce9ce99591274da29e208a1680fc352a7ed4822709",
+        "base": "efa9437b134f8c2aaa53c521a55c2b12962d36a0f9e23c1b9070a4ec71e36680"
+      },
+      "public/process/delivery-purpose.mjs": {
+        "current": "de671d32fdf0cc9fb18f774e8cac5fff66ecafefc37864b4987a2fa1a7a2817a",
+        "currentLf": "de671d32fdf0cc9fb18f774e8cac5fff66ecafefc37864b4987a2fa1a7a2817a",
+        "base": "99f7e43222069705c74148515a656137f3f5e1a5a098a73147307b927f3a120c"
+      },
+      "tests/destination-delivery.test.mjs": {
+        "current": "47f47fdc554c641f4e6a2687b579722709253d74228dd440de4a64b381278526",
+        "currentLf": "47f47fdc554c641f4e6a2687b579722709253d74228dd440de4a64b381278526",
+        "base": "58bac85e56614e5bc0aa0c32d8af8c386cdf586b944c8e42f1a4099705214097"
+      }
+    }
   }
 }

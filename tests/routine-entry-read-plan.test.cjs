@@ -193,3 +193,59 @@ void test('approval badge availability is authorized per module and reads no cou
   assert.deepEqual(await get('editor'), { status: 200, body: { enabled: true, iqcEnabled: true } });
   assert.deepEqual(await get('editor', 'https://fixture.invalid', false), { status: 200, body: { enabled: true } });
 });
+
+void test('initial v2 FQC preview matches generated per-product periods and protects existing schedules', async t => {
+  const f = await fixture({format:'records'});
+  t.after(() => f.close());
+  const {companyDate} = f.load('lib/routine-fqc.ts');
+  const today = companyDate();
+  await f.mutate(values => {
+    const users = JSON.parse(values.platformUsers);
+    Object.assign(users[0].accessOverrides, {'routine.view':true,'routine.edit':true,'routine.settings':true});
+    users[1].accessOverrides['routine.view'] = true;
+    values.platformUsers = JSON.stringify(users);
+    values.routineFqcEnabled = '1';
+    const quality = JSON.parse(values.qualityMasterControl), version = quality.libraries.fqc.versions[0];
+    version.createdAt = version.updatedAt = '2025-01-01T00:00:00.000Z';
+    const item = version.snapshot.items[0];
+    item.productCodes = ['SYN-P', 'SYN-Q'];
+    item.rule = {cadence:'time',timeFrequency:'monthly'};
+    version.snapshot.items.push({...item,id:'unknown',rule:{cadence:'pending_confirmation'}});
+    values.qualityMasterControl = JSON.stringify(quality);
+  });
+  const api = f.load(route), endpoint = 'https://fixture.invalid/api/routine-fqc';
+  async function call(query = '', command, actor = 'editor') {
+    const method = command ? 'POST' : 'GET';
+    const result = await api[method](new Request(endpoint+query,{method,headers:{
+      origin:'https://fixture.invalid',cookie:f.cookies[actor],'Content-Type':'application/json'},
+      ...(command ? {body:JSON.stringify(command)} : {})}));
+    return {status:result.status, body:await result.json()};
+  }
+  const store = () => f.db.prepare('SELECT revision,"values" FROM shared_state').get();
+  const before = store();
+  const query = '?preview=1&start='+today+'&calendar=2';
+  assert.equal((await call(query,undefined,'other')).status,403);
+  assert.equal((await call('?preview=1&start=2026-02-30&calendar=2')).status,422);
+  assert.equal((await call(query+'&start='+today)).status,422);
+  const combined = await call('?preview=1&start='+today);
+  assert.equal(combined.status,200);
+  assert.equal(combined.body.jobs.length,1);
+  assert.equal(combined.body.jobs[0].source.products.length,2);
+  const preview = await call(query);
+  assert.equal(preview.status,200);
+  assert.deepEqual(preview.body.unresolved.map(item=>item.id),['unknown']);
+  assert.deepEqual(preview.body.jobs.map(job=>job.calendar.productCode).sort(),['SYN-P','SYN-Q']);
+  assert.deepEqual(store(),before);
+  const configure = await call('',{action:'configure',operationId:'synthetic-start',expectedRevision:0,startDate:today,calendarVersion:2});
+  assert.equal(configure.status,200);
+  const generated = await call('',{action:'generate',operationId:'synthetic-generate',expectedRevision:configure.body.revision});
+  assert.equal(generated.status,200);
+  const active = await call();
+  const periods = rows => rows.map(job => [job.id,job.start,job.end,job.calendar.productCode]).sort();
+  assert.deepEqual(periods(active.body.control.jobs),periods(preview.body.jobs));
+  assert.equal(active.body.control.calendarPolicy.version,2);
+  const existing = store();
+  assert.equal((await call(query)).status,409);
+  assert.equal((await call('',{action:'configure',operationId:'synthetic-reconfigure',expectedRevision:active.body.control.revision,startDate:today,calendarVersion:2})).status,409);
+  assert.deepEqual(store(),existing);
+});

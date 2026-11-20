@@ -178,3 +178,71 @@ void test('real route: IQC four scope guards and independent multi-batch approva
     await cmd('reset',{},admin.id,422);
   }finally{f.close();}
 });
+
+void test('unstarted IQC entry needs the active approved source but not inactive archives', async t => {
+  const f = await fixture();
+  t.after(() => f.close());
+  const iqcRoute = f.load('app/api/routine-iqc/route.ts');
+  const fqcRoute = f.load('app/api/routine-fqc/route.ts');
+  const {companyDate,emptyRoutine} = f.load('lib/routine-fqc.ts');
+  const today = companyDate(), date = '2025-01-01T00:00:00.000Z';
+  const actor = {id:'synthetic-source-author',name:'Synthetic source author'};
+  const version = {id:'active',number:2,status:'approved',createdAt:date,creatorId:actor.id,baseVersionId:'old',
+    snapshot:{categories:[],suppliers:[],parts:[],errors:[],items:[]}};
+  const approval = {id:version.id,status:'approved',actor,baseId:'old',at:date,savedId:'synthetic-saved-id',
+    result:{actor:{id:'synthetic-source-reviewer',name:'Synthetic source reviewer'},at:date},
+    content:{...version.snapshot,categories:[{id:'case',nameVi:'Approved case category'}]}};
+  const old = {...version,id:'old',number:1,status:'superseded',
+    snapshot:{...version.snapshot,categories:[{id:'archived',nameVi:'Archived test only'}]}};
+  await f.mutate(values => {
+    const users = JSON.parse(values.platformUsers);
+    Object.assign(users[0].accessOverrides, {'routine.view':true,'iqc.view':true});
+    values.platformUsers = JSON.stringify(users);
+    values.routineFqcEnabled = '1';
+    values.iqcMasterControl = JSON.stringify({schemaVersion:1,activeVersionId:version.id,versions:[old,version],workflow:{cases:[approval]}});
+  });
+  const stored = () => f.db.prepare('SELECT revision,"values" FROM shared_state').get();
+  const masterRef = JSON.parse(stored().values).__processRecords.values.iqcMasterControl.key;
+  const model = JSON.parse(f.objects.get(masterRef).toString());
+  const archived = model.versions, approvedKey = model.workflow.cases[0].content.__immutableBody.key;
+  const oldKey = archived.find(row=>row.id===old.id).snapshot.__immutableBody.key;
+  const activeKey = archived.find(row=>row.id===version.id).snapshot.__immutableBody.key;
+  const template = new Request(endpoint,{headers:{cookie:f.cookies.editor}});
+  async function read(path = '', handler = iqcRoute) {
+    const result = await handler.GET(new Request(endpoint+path,template));
+    return {status:result.status,data:await result.json()};
+  }
+  const pristine = await read();
+  assert.equal(pristine.status,200);
+  assert.equal(pristine.data.catalog.categories[0].id,'case');
+  const before = stored();
+  const fetched = [];
+  f.hooks.get = key => {fetched.push(key);if(key===oldKey)throw Error('Synthetic inactive snapshot unavailable');};
+  assert.equal((await read('?pending-count=1')).status,200);
+  assert(!fetched.includes(oldKey));
+  const reachable = await read();
+  assert.equal(reachable.status,200);
+  assert.deepEqual(reachable.data,pristine.data);
+  assert(!fetched.includes(oldKey));
+  assert(fetched.includes(activeKey));
+  assert(fetched.includes(approvedKey));
+  assert.deepEqual(stored(),before);
+  for(const required of [activeKey,approvedKey]){
+    f.hooks.get = key => {if(key===required)throw Error('Synthetic required snapshot unavailable');};
+    assert.deepEqual(await read(),{status:503,data:{error:'IQC_UNAVAILABLE'}});
+  }
+
+  f.hooks.get = undefined;
+  await f.mutate(values => {
+    values.routineIqcControl = JSON.stringify({schemaVersion:1,revision:1,documents:[],cases:[],receipts:{},
+      calendar:{...emptyRoutine(),startDate:today,calendarPolicy:{version:2,adoptedAt:today+'T00:00:00+07:00',scopes:{}}}});
+  });
+  assert.equal((await read()).data.scheduleDue,true);
+  f.hooks.get = key => {if(key===oldKey)throw Error('Synthetic historical read unavailable');};
+  assert.equal((await read('?pending-count=1')).status,200);
+  assert.deepEqual(await read(),{status:503,data:{error:'IQC_UNAVAILABLE'}});
+  // The routine entry probe has separate dependencies and never reads IQC history.
+  const entry = await fqcRoute.GET(new Request(origin+'/api/routine-fqc?availability=1',
+    {headers:{cookie:f.cookies.editor,'X-Process-Routine-Pending':'1'}}));
+  assert.deepEqual(await entry.json(),{enabled:true,iqcEnabled:true});
+});

@@ -13,8 +13,10 @@ import {
   responseHeaders,
 } from '@/lib/process-state';
 import { DraftConflict } from '@/lib/shared-draft';
+import { generateCalendar, reconcileCalendar, validCalendarDate } from '@/lib/routine-fqc-calendar';
 import {
   RF_KEY,
+  emptyRoutine,
   parseRoutine,
   routineSources,
   routineCatalog,
@@ -58,6 +60,9 @@ export async function GET(request: Request) {
     const approved=routineApprovedQuery(request);
     const authorityKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','routineFqcEnabled'];
     const query = new URL(request.url).searchParams, operationId=query.get('operationId');
+    const calendarPreview = query.get('preview') === '1' && query.get('calendar') === '2';
+    if (calendarPreview && (query.size !== 3 || !query.has('start')))
+      return reply({error:'DATE_INVALID'},422);
     // The normal page and its availability probe share authority and layout.
     // Only the full page consumes the approved FQC and master catalogs.
     const availability = query.size === 1 && query.get('availability') === '1';
@@ -78,8 +83,9 @@ export async function GET(request: Request) {
           : query.size === 0 ? {keys: [...entryKeys, 'qualityMasterControl', 'masterDataControl'], aggregateReadAhead: true, projectValue: entryCatalog} : {}),
         ...(pendingOnly ? {keys: entryKeys, aggregateReadAhead: true} : {}),
         ...(approved?{keys:[...authorityKeys,RF_KEY],modelKey:RF_KEY}:{}),
-        deferHistory: true,
-        deferDependencyHistory: true,
+        ...(calendarPreview ? {keys:[...entryKeys,'qualityMasterControl','masterDataControl']} : {}),
+        deferHistory: !calendarPreview,
+        deferDependencyHistory: !calendarPreview,
         ...(operationId?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','routineFqcEnabled',RF_KEY],projectValue:(key:string,raw:string)=>{if(key!==RF_KEY)return raw;const root=JSON.parse(raw);return JSON.stringify({schemaVersion:root.schemaVersion,revision:root.revision,documents:[],jobs:[],cases:[],receipts:root.receipts&&Object.hasOwn(root.receipts,operationId)?{[operationId]:root.receipts[operationId]}:{}});}}:{}),
       }),
       entryPhase = availability || query.size === 0
@@ -161,6 +167,25 @@ export async function GET(request: Request) {
     }
     if (query.has('preview')) {
       if (!permissions.settings) return reply({ error: 'FORBIDDEN' }, 403);
+      if (calendarPreview) {
+        if (!permissions.edit) return reply({error:'FORBIDDEN'},403);
+        if (c.startDate || c.calendarPolicy || c.jobs.length || c.documents.length || c.cases.length)
+          return reply({error:'START_DATE_LOCKED'},409);
+        const start = query.get('start');
+        if (!validCalendarDate(start)) return reply({error:'DATE_INVALID'},422);
+        const now = new Date(), today = companyDate(now), horizon = start > today ? start : today;
+        const projection = emptyRoutine();
+        projection.startDate = start;
+        projection.calendarPolicy = {version:2,adoptedAt:new Date(start+'T00:00:00+07:00').toISOString(),scopes:{}};
+        reconcileCalendar(projection,routineSourceTimeline(state),horizon,now.toISOString());
+        generateCalendar(projection,sources,horizon,now.toISOString());
+        const response = reply({jobs:projection.jobs.filter(job=>!job.calendar?.stopped),unresolved:sources.filter(source=>!source.frequency)});
+        if (!await stateRevisionIsCurrent(state)) return reply({error:'CONCURRENT_CHANGE_RETRY'},409);
+        const current = await identity(request,state);
+        if (!current || current.id !== actor.id || current.sessionType !== actor.sessionType)
+          return reply({error:'LOGIN_REQUIRED'},401);
+        return response;
+      }
       const start = query.get('start') || c.startDate || companyDate();
       const jobs = sources.flatMap((source) => {
         const last = c.jobs
