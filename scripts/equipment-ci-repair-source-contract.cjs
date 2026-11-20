@@ -83,6 +83,7 @@ const contracts=[
 for(const contract of contracts){for(const rule of contract.rules)Object.freeze(rule);Object.freeze(contract.rules);Object.freeze(contract);}Object.freeze(contracts);
 function assertCurrent(bytes,file){
  assert(Buffer.isBuffer(bytes),'Equipment repair proof requires raw source bytes');
+ bytes=require('./routine-integration-source-contract.cjs').projectKnown(bytes,file);
  const contract=contracts.find(value=>value.file===file);assert(contract,'Equipment repair proof wrong file');
  assert.equal(bytes.length,contract.afterLength,'Equipment repair proof differs from pinned byte length');
  assert.equal(hash(bytes),contract.afterHash,'Equipment repair proof differs from pinned bytes');
@@ -90,6 +91,7 @@ function assertCurrent(bytes,file){
  return contract;
 }
 function restorePredecessor(bytes,file){
+ bytes=require('./routine-integration-source-contract.cjs').projectKnown(bytes,file);
  const contract=assertCurrent(bytes,file);let result=Buffer.from(bytes);
  for(const {offset,before,after}of [...contract.rules].reverse())result=Buffer.concat([result.subarray(0,offset),Buffer.from(before),result.subarray(offset+Buffer.byteLength(after))]);
  assert.equal(result.length,contract.beforeLength,'Equipment repair proof predecessor length changed');

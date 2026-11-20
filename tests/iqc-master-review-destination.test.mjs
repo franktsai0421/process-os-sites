@@ -18,7 +18,7 @@ function confirm(dialog, reason, selfReview=false) {
   dialog.querySelector('form').onsubmit({preventDefault(){}});
 }
 
-for(const lang of ['zh','vi'])test('IQC master '+lang+': exact pending case routes to the database module and failed approval stays visible',async t=>{
+for(const lang of ['zh','vi'])void test('IQC master '+lang+': exact pending case routes to the database module and failed approval stays visible',async t=>{
   let failApproval=false;
   const h=await setup({common:true,intercept:async(url,options,next)=>{
     if(failApproval&&options.method==='POST'&&JSON.parse(options.body)?.command?.action==='approve')throw Error('TEST_ONLY_NETWORK_FAILURE');

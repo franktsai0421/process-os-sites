@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-test('outside click closes open sidebar, inside/toggle click and closed menu are untouched',()=>{
+void test('outside click closes open sidebar, inside/toggle click and closed menu are untouched',()=>{
  const source=fs.readFileSync(new URL('../public/process/app.js',import.meta.url),'utf8');
  const start=source.indexOf("document.addEventListener('click', (event) =>",source.indexOf('// Close mobile navigation'));
  const end=source.indexOf('\n});',start)+4;

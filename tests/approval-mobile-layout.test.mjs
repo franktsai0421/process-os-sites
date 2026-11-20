@@ -21,7 +21,7 @@ function declarationsAt(selector, width) {
   return values;
 }
 
-test('mobile approval CSS lets the title shrink and keeps two wrapping tab columns and count badges', () => {
+void test('mobile approval CSS lets the title shrink and keeps two wrapping tab columns and count badges', () => {
   for (const width of [320, 375, 390, 430]) {
     assert.equal(declarationsAt(shellTitle, width).height, 'auto');
     assert.equal(declarationsAt(shellTitle + ' > :has(> #page-title)', width)['min-inline-size'], '0');
@@ -41,7 +41,7 @@ test('mobile approval CSS lets the title shrink and keeps two wrapping tab colum
   assert.match(read('index.html'), /approval-tabs\.css\?v=20261119-mobile1/);
 });
 
-test('approval mounts the full Chinese and Vietnamese labels in every selected section with independent counts', () => {
+void test('approval mounts the full Chinese and Vietnamese labels in every selected section with independent counts', () => {
   const labelsByLocale = {
     zh: ['主資料送審', '製程版本確認', '品質系統資料庫', '例行檢查'],
     vi: ['Duyệt dữ liệu gốc', 'Duyệt phiên bản quy trình', 'Cơ sở dữ liệu chất lượng', 'Kiểm tra định kỳ'],

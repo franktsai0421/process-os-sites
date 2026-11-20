@@ -335,3 +335,33 @@ void test('all frequency pairs preserve committed periods and start first comple
  assert.equal(cases,320);
 });
 void test('unplanned frequency reversal restores one current row with stop evidence',()=>{const c=state(),a=source(),b=source({frequency:'quarterly',effectiveDate:'2026-05-20'});cal.generateCalendar(c,[a],'2026-05-20','first');const id=c.jobs[0].id;cal.generateCalendar(c,[b],'2026-05-20','second');cal.generateCalendar(c,[{...a,effectiveDate:'2026-05-20'}],'2026-05-20','third');const job=c.jobs.find(j=>j.id===id);assert(cal.calendarCanArrange(job,'2026-05-20'));assert.equal(job.calendar.resumeHistory[0].stopped.reason,'frequency-changed');assert.equal(c.jobs.filter(j=>j.id===id).length,1);});
+
+void test('calendar v2 activates only through first setup and never converts legacy controls',()=>{
+ const today='2026-11-19',ctx={...context(today),settings:true};
+ const src=source({frequency:'weekly',effectiveDate:today,products:[{code:'P1',name:'Synthetic product'}]});
+ for(const mode of ['fresh-v2','fresh-legacy','previous-date','previous-job','previous-plan','previous-case']){
+  const c=r.emptyRoutine();
+  if(mode==='previous-date')c.startDate='2026-11-01';
+  if(mode==='previous-job'||mode==='previous-plan')c.jobs.push({id:'existing-job',planId:mode==='previous-plan'?'existing-plan':null,completion:null});
+  if(mode==='previous-case')c.cases.push({id:'existing-case',status:'open'});
+  const opts={startDate:today,...(mode==='fresh-legacy'?{}:{calendarVersion:2})};
+  if(mode==='previous-plan'||mode==='previous-case'){
+   const before=JSON.stringify(c);
+   assert.throws(()=>r.executeRoutine(c,command(c,'configure',opts),[src],ctx),/START_DATE_LOCKED/);
+   assert.equal(JSON.stringify(c),before);
+   continue;
+  }
+  r.executeRoutine(c,command(c,'configure',opts),[src],ctx);
+  assert.equal(c.calendarPolicy?.version,mode==='fresh-v2'?2:undefined,mode);
+  if(mode==='fresh-v2'){
+   const before=JSON.stringify(c);
+   assert.throws(()=>r.executeRoutine(c,command(c,'configure',opts),[src],ctx),/START_DATE_LOCKED/);
+   assert.equal(JSON.stringify(c),before);
+  }
+  r.executeRoutine(c,command(c,'generate'),[src],ctx);
+  r.executeRoutine(c,command(c,'generate'),[src],ctx);
+  assert.equal(c.jobs.length,1,mode);
+  assert.equal(Boolean(c.jobs[0].calendar),mode==='fresh-v2',mode);
+  assert.deepEqual([c.jobs[0].start,c.jobs[0].end],['2026-11-16','2026-11-22']);
+ }
+});

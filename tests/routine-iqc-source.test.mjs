@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {setup} from './iqc-save-choice-fixture.mjs';
 
-test('Approved legacy batch rules survive IQC master Save, Submit and approval without entering the calendar', async () => {
+void test('Approved legacy batch rules survive IQC master Save, Submit and approval without entering the calendar', async () => {
   const h=await setup();
   try {
     const {routineIqcCatalog,routineIqcSources,routineIqcTimeline}=h.f.load('lib/routine-iqc.ts');

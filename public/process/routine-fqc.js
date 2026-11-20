@@ -1302,18 +1302,6 @@
     document.body.append(el);
     el.showModal();
   }
-  function periodAction(j){
-    const related=jobDocuments(j).filter(d=>!d.cancelled),active=related.filter(blocksCurrentWork).at(-1);
-    const conversion = pendingWaiver(j);
-    if(conversion)return `<button class="rf-btn" data-doc="${h(conversion.id)}">${t('查看轉免做申請','Xem đề nghị chuyển miễn')}</button>`;
-    if(j.calendar?.requestId)return `<button class="rf-btn" data-doc="${h(j.calendar.requestId)}">${t('查看免測審核狀態','Xem trạng thái duyệt miễn kiểm tra')}</button>`;
-    if(active)return `<button class="rf-btn" data-doc="${h(active.id)}">${status(active)==='pending'?t('查看審核狀態','Xem trạng thái duyệt'):t('繼續編輯','Tiếp tục chỉnh sửa')} · ${h(reportLabel(active))}</button>`;
-    const abnormal=openJobCases(j)[0];if(abnormal&&(!j.calendar?.retestCaseId||j.completion))return `<button class="rf-btn" data-case="${h(abnormal.id)}"> ${caseOutcome(abnormal)==='fail'?t('查看不合格待辦','Xem việc không đạt'):t('處理未結案異常','Xử lý bất thường chưa đóng')}</button>`;
-    const plan=docs().find(d=>d.id===j.planId&&!d.cancelled),report=related.filter(d=>d.kind==='report').at(-1);
-    if(report)return `<button class="rf-btn" data-doc="${h(report.id)}">${t('查看報告','Xem báo cáo')}</button>`;
-    if(plan)return status(plan)==='approved'?`<button class="rf-btn" data-plan-report="${h(plan.id)}" ${data.permissions.edit?'':'disabled'}>${t('填寫報告','Nhập báo cáo')}</button>`:`<button class="rf-btn" data-doc="${h(plan.id)}">${t('編輯計畫','Sửa kế hoạch')}</button>`;
-    return arrangeable(j)?`<button class="rf-btn" data-period-next="${h(j.id)}" ${data.permissions.edit?'':'disabled'}>${j.calendar.retestCaseId?t('建立復測計畫','Tạo kế hoạch thử lại'):t('建立計畫','Tạo kế hoạch')}</button>`:'';
-  }
   const periodGroupKey = j => j.calendar?.scope || JSON.stringify([
     j.source.line,
     j.source.products.length === 1 ? j.source.products[0].code : j.source.products.map(p => p.code),

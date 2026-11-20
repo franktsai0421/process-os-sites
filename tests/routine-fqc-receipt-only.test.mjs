@@ -72,7 +72,7 @@ for(const lang of ['zh','vi'])void test('404 banner can collapse and reopen with
   f.paint();
   assert.equal(!!panel().querySelector('[data-action="receipt-minimize"]'),false,'fresh unqueried error is expanded');
   await f.api.act('retry');
-  const gate=deferred(), fetch=f.box.fetch;
+  const gate=deferred(), fetch=f.box.fetch.bind(f.box);
   f.box.fetch=async(...args)=>{await gate.promise;return fetch(...args);};
   const checking=f.api.act('retry');
   assert.match(panel().textContent,lang==='zh'?/正在查詢原操作收據/:/Đang tra biên nhận/);
@@ -140,7 +140,7 @@ void test('receipt query failure stays visible and recovery needs authenticated 
   f.alterReceipt(()=>({}));
   const original=f.draft();
   await assert.rejects(f.api.postOwned(original));
-  const originalFetch=f.box.fetch;
+  const originalFetch=f.box.fetch.bind(f.box);
   f.box.fetch=async()=>{throw Error('TEST ONLY lookup network failure');};
   await f.api.act('retry');
   assert.match(f.root.querySelector('[data-rf-receipt-panel]').textContent,/收據查詢失敗/);

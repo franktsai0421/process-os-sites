@@ -7,8 +7,13 @@ void test('FQC view shares all edit fields including rule, photo notes, equipmen
  f.c.__fqcTest.openItemModal('item','',false,true);assert.equal(f.doc.querySelectorAll('.fqc-modal-overlay').length,1);await form.onsubmit({preventDefault(){}});assert.equal(JSON.stringify(f.library),before);assert.equal(JSON.stringify([...f.records]),journal);assert.equal(f.requests.length,requests);
  f.rotate();form.querySelector('[data-close]').click();assert(!form.isConnected);assert.equal(f.requests.length,requests);
 });
-void test('FQC normal yellow/undo toolbar is absent while an unknown save keeps GET-only recovery',async()=>{
- const f=await fixture();assert.equal(f.main.querySelectorAll('.fqc-matrix-actions').length,0);assert.equal(f.main.querySelectorAll('#fqc-matrix-more,#fqc-matrix-discard,#fqc-matrix-reconcile').length,0);assert(f.main.querySelector('.fqc-operation-status').hidden);
+void test('FQC hides matrix controls without selections and keeps GET-only recovery for an unknown save',async()=>{
+ const f=await fixture(),panel=()=>f.main.querySelector('.fqc-operation-status');
+ assert(panel().hidden);assert(panel().querySelector('#fqc-matrix-discard').hidden);assert(panel().querySelector('#fqc-matrix-reconcile').hidden);
+ const baseline=f.requests.filter(r=>r.method==='POST').length,cell=f.main.querySelector('[data-matrix-item]');
+ cell.click();assert.equal(panel().hidden,false);assert.equal(panel().querySelector('#fqc-matrix-discard').hidden,false);
+ await panel().querySelector('#fqc-matrix-discard').click();
+ assert(panel().hidden);assert.equal(f.requests.filter(r=>r.method==='POST').length,baseline,'discarding a local checkbox never writes');
  f.c.__fqcTest.openItemModal('item');const form=f.doc.querySelector('.fqc-item-form');form.querySelector('[name="name"]').value='Synthetic edited';await form.onsubmit({preventDefault(){},target:form});f.setMode('lost');await f.c.__fqcTest.sharedAction('save').catch(()=>{});assert(f.c.__fqcTest.transport().hasUnknown());assert.equal(f.requests.filter(r=>r.method==='POST').length,1);assert(f.main.querySelector('#fqc-check-result'));assert.equal(f.library.workflow.saved,null);
 });
 void test('FQC read-only approved item can be viewed without editable draft or edit permission in both languages',async()=>{

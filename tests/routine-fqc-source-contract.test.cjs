@@ -68,3 +68,21 @@ void test('actual committed Routine successor and checkout attest against genuin
 });
 
 void test('exact joint cache successor preserves the reviewed account index and original Routine closure',()=>{assert.deepEqual(followup.restore(rawIndex,contract.index),afterIndex);proof.assertIndexSuccessor(rawIndex,beforeIndex,contract.index);});
+
+void test('routine integration projects only committed public changes for historical proofs',()=>{
+ const project=require('../scripts/routine-integration-source-contract.cjs').projectKnown;
+ const published='f173bd2474d6070c6411736f91a5707e1e49be4b';
+ for(const file of ['public/process/index.html','public/process/fqc-master.js','AI_CONTEXT/CHANGELOG.md']){
+  const current=execFileSync('git',['show','HEAD:'+file]);
+  const prior=execFileSync('git',['show',published+':'+file]);
+  const lf=current.toString('utf8').replaceAll('\r\n','\n');
+  for(const raw of [current,Buffer.from(lf),Buffer.from(lf.replaceAll('\n','\r\n'))])
+   assert.deepEqual(project(raw,file),prior);
+  const changed=Buffer.from(current);
+  changed[0]^=1;
+  for(const raw of [changed,current.subarray(1),Buffer.concat([current,Buffer.from(' ')])])
+   assert.strictEqual(project(raw,file),raw,'source drift is never projected');
+  for(const unknown of ['./'+file,'constructor','__proto__'])assert.strictEqual(project(current,unknown),current);
+  assert.throws(()=>project(lf,file),/raw Buffer/);
+ }
+});

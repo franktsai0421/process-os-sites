@@ -6,7 +6,7 @@ import fixture from '../scripts/fqc-apply-fixture.cjs';
 
 const origin='https://synthetic.invalid', endpoint=origin+'/api/routine-iqc';
 
-test('real route: IQC four scope guards and independent multi-batch approval / follow-up', async () => {
+void test('real route: IQC four scope guards and independent multi-batch approval / follow-up', async () => {
   const f=await fixture();
   try {
     const route=f.load('app/api/routine-iqc/route.ts'), photos=f.load('app/api/routine-iqc/photo/route.ts');

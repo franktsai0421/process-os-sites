@@ -18,11 +18,11 @@ const scenarios=[
  {id:'10',first:['pass','fail'],follow:['fail','fail'],end:'disposed',reviewCycles:'disposal'},
 ];
 
-test('ten synthetic IQC cases traverse the real authenticated plan, report and follow-up routes',async t=>{
+void test('ten synthetic IQC cases traverse the real authenticated plan, report and follow-up routes',async t=>{
  t.mock.timers.enable({apis:['Date'],now:new Date('2026-11-19T09:00:00+07:00')});
  const f=await fixture();
  try{
-  const archive=f.env.STATE_ARCHIVE, readObject=archive.get, writeObject=archive.put;
+  const archive=f.env.STATE_ARCHIVE, readObject=archive.get.bind(archive), writeObject=archive.put.bind(archive);
   const metadata=new Map();
   archive.put=async (key,value,options)=>{
    await writeObject(key,value);
@@ -63,7 +63,8 @@ test('ten synthetic IQC cases traverse the real authenticated plan, report and f
   }
   const call=async(method,path=endpoint,options={})=>{
    const {actor=editor,body,handler=route,type='application/json'}=options;
-   return handler[method](new Request(path,{method,headers:{origin,cookie:cookies[actor.id],'Content-Type':type},body}));
+   const headers={origin,cookie:cookies[actor.id],'Content-Type':type};
+   return handler[method](new Request(path,method==='GET'?{headers}:{method,headers,body}));
   };
   const read=async(actor=editor)=>{
    const response=await call('GET',endpoint,{actor}), value=await response.json();
@@ -241,7 +242,7 @@ test('ten synthetic IQC cases traverse the real authenticated plan, report and f
   assert.equal(retained.iqcMasterControl,master);
   assert.equal(retained.routineFqcControl,fqc);
   assert.equal(evidence.length,10);
-  assert.deepEqual([...reviewedKinds].sort(),['disposal','plan','report','retest-plan','retest-report']);
+  assert.deepEqual([...reviewedKinds].sort((a,b)=>a.localeCompare(b)),['disposal','plan','report','retest-plan','retest-report']);
   for(const entry of evidence)console.log('IQC_ROUTINE-QA '+JSON.stringify(entry));
  }finally{f.close();}
 });

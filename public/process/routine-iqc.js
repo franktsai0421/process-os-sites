@@ -238,7 +238,7 @@
       const policy=v.data.periodRules?.[scope];
       if(policy&&policy.from>v.data.today&&!policy.until)pending.add(policy.from);
     }
-    return [...pending].sort().map(date=>`<p class="rf-notice">${t('頻率轉換期間，無須另排，新週期開始：','Giai đoạn đổi tần suất, không cần lập thêm. Kỳ mới bắt đầu: ')}${h(date)}</p>`).join('')+
+    return [...pending].sort((a,b)=>a.localeCompare(b)).map(date=>`<p class="rf-notice">${t('頻率轉換期間，無須另排，新週期開始：','Giai đoạn đổi tần suất, không cần lập thêm. Kỳ mới bắt đầu: ')}${h(date)}</p>`).join('')+
       (overlap?`<p class="rf-notice">${t('既有計畫保留原標準，新頻率任務另行安排，不能互相抵扣。','Giữ tiêu chuẩn cũ cho kế hoạch đã lập. Lập riêng công việc tần suất mới, không thay thế lẫn nhau.')}</p>`:'');
   }
   function periodState(v,job) {
@@ -1019,7 +1019,8 @@
       if(!canArrange(v)||!jobs.length||jobs.length!==v.checked.size)throw Error('IQC_WORK_NOT_AVAILABLE');
       const hidden=jobs.filter(job=>!matchesFilters(job,v));
       if(kind==='create-waiver'&&!hidden.length){await write(v,kind,{jobIds:jobs.map(job=>job.id)});return;}
-      const start=[v.data.today,...jobs.map(job=>job.start)].sort().at(-1),end=jobs.map(job=>job.end).sort()[0];
+      const byDate=(a,b)=>a.localeCompare(b);
+      const start=[v.data.today,...jobs.map(job=>job.start)].sort(byDate).at(-1),end=jobs.map(job=>job.end).sort(byDate)[0];
       const dates=`<label>${t('檢查起日','Ngày bắt đầu')}<input type="date" name="start" required value="${h(start)}" min="${h(start)}" max="${h(end)}"></label>
         <label>${t('檢查迄日','Ngày kết thúc')}<input type="date" name="end" required value="${h(end)}" min="${h(start)}" max="${h(end)}"></label>`;
       const form=document.createElement('dialog');
@@ -1106,7 +1107,7 @@
         if(index==='1')return;
         const pair=workspace;
         const ready=switchModule(pair,'fqc');
-        if(index!=='0')Promise.resolve(ready).then(()=>{
+        if(index!=='0')void Promise.resolve(ready).then(()=>{
           if(!mountedCurrent(pair)||pair.active!=='fqc')return;
           const selector=pair.review?'data-review-module':'data-module';
           pair.fqc.querySelector(`[${selector}="${index}"]`)?.click();

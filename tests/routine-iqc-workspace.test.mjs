@@ -93,7 +93,7 @@ function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirm
   expireIdentity:()=>{epoch++;},unlockFqc:()=>{allowed=true;}};
 }
 
-test('both languages keep the FQC panel mounted and fenced while using IQC in the same document',()=>{
+void test('both languages keep the FQC panel mounted and fenced while using IQC in the same document',()=>{
  for(const lang of ['zh','vi']){
   const ui=switchFixture(lang);
   assert.match(ui.errorText.nodeValue,lang==='zh'?/寫入結果仍待確認/:/chưa được xác nhận/);
@@ -116,7 +116,7 @@ test('both languages keep the FQC panel mounted and fenced while using IQC in th
  }
 });
 
-test('whole-page FQC provides one IQC entry after rendering, without replacing the editor',()=>{
+void test('whole-page FQC provides one IQC entry after rendering, without replacing the editor',()=>{
  for(const lang of ['zh','vi']){
   const ui=switchFixture(lang,{pageDraft:true});
   const entries=()=>ui.pagePanel.querySelectorAll('[data-module="1"]');
@@ -127,7 +127,7 @@ test('whole-page FQC provides one IQC entry after rendering, without replacing t
  }
 });
 
-test('only the original module control switches during lookup, and never reopens a stale owner',()=>{
+void test('only the original module control switches during lookup, and never reopens a stale owner',()=>{
  const ui=switchFixture('zh');
  ui.entry.disabled=true;ui.changed();
  assert.match(ui.loadingMarkup,/role="status"/);
@@ -141,7 +141,7 @@ test('only the original module control switches during lookup, and never reopens
 });
 
 
-test('IQC makes the plan prerequisites and empty stages accessible in both languages',async()=>{
+void test('IQC makes the plan prerequisites and empty stages accessible in both languages',async()=>{
  for(const lang of ['zh','vi']){
   const data={identity:{id:'synthetic',role:'admin'},permissions:{view:true,edit:true,create:true,settings:true},
     catalog:{version:'1',items:[],categories:[]},today:'2026-11-19',documents:[],jobs:[],cases:[],startDate:null,scheduleDue:false};
@@ -165,7 +165,7 @@ test('IQC makes the plan prerequisites and empty stages accessible in both langu
  }
 });
 
-test('IQC supplier filters keep selections visible in the summary and let users remove hidden picks',async()=>{
+void test('IQC supplier filters keep selections visible in the summary and let users remove hidden picks',async()=>{
  const jobs=[
   ['week','weekly','2026-11-16','2026-11-22',['north','shared']],
   ['month','monthly','2026-11-01','2026-11-30',['south','shared']],
@@ -226,7 +226,7 @@ function parityDoc(id,kind,status,jobs,{inspections=[],caseId=null,planId=null,p
    working:snapshot,active:{id:status==='approved'?id+'-approved':null,content:snapshot}}};
 }
 
-test('IQC plan and report queues separate approvals and find original snapshots in both languages',async()=>{
+void test('IQC plan and report queues separate approvals and find original snapshots in both languages',async()=>{
  const job=parityJob('active',{planId:'APPROVED-PLAN'});
  const docs=[parityDoc('APPROVED-PLAN','plan','approved',[job]),parityDoc('PENDING-PLAN','plan','pending',[]),
   parityDoc('RETURNED-PLAN','plan','draft',[],{prior:'returned'}),
@@ -265,7 +265,7 @@ test('IQC plan and report queues separate approvals and find original snapshots 
  }
 });
 
-test('each routine IQC document opens and filters only in routine approval IQC',async()=>{
+void test('each routine IQC document opens and filters only in routine approval IQC',async()=>{
  const kinds=['plan','report','retest-plan','retest-report','disposal','waiver'];
  const data=parityState([],kinds.map(kind=>parityDoc('IQC-PENDING-'+kind,kind,'pending',[])));
  for(const lang of ['zh','vi']){
@@ -289,7 +289,7 @@ test('each routine IQC document opens and filters only in routine approval IQC',
  }
 });
 
-test('IQC follows the FQC plan list and only exposes an applicable report overdue reason',async()=>{
+void test('IQC follows the FQC plan list and only exposes an applicable report overdue reason',async()=>{
  const job=parityJob('late-check',{planId:'DRAFT-PLAN'});
  const docs=[
   {...parityDoc('DRAFT-PLAN','plan','draft',[job]),createdAt:'2026-11-19T08:45:30.000+07:00'},
@@ -316,7 +316,7 @@ test('IQC follows the FQC plan list and only exposes an applicable report overdu
  }
 });
 
-test('shared mobile period filters use one date track at 320, 375, 390 and 430 CSS pixels',()=>{
+void test('shared mobile period filters use one date track at 320, 375, 390 and 430 CSS pixels',()=>{
  const style=postcss.parse(fs.readFileSync('public/process/routine-fqc.css','utf8'));
  for(const width of [320,375,390,430]){
   let columns;
@@ -330,7 +330,7 @@ test('shared mobile period filters use one date track at 320, 375, 390 and 430 C
  assert.match(style.toString(),/::-webkit-date-and-time-value\s*\{\s*min-width:0;\s*text-align:start/);
 });
 
-test('IQC mobile flow keeps bilingual text and separate history and refresh controls',async()=>{
+void test('IQC mobile flow keeps bilingual text and separate history and refresh controls',async()=>{
  const cases=[
   ['zh','該批復測申請核准後，回檢查報告','復測與結案說明','流程歷史','有效 IQC 主檔 · V5 · 6 個時間檢查規則','重新整理','排程開始日為 2026-11-20'],
   ['vi','Sau khi duyệt thử lại lô, quay về Báo cáo kiểm tra','Hướng dẫn thử lại và đóng hồ sơ','Lịch sử quy trình','Nguồn IQC hiện hành · V5 · 6 quy tắc theo thời gian','Tải lại','Lịch bắt đầu ngày 2026-11-20'],
@@ -386,7 +386,7 @@ test('IQC mobile flow keeps bilingual text and separate history and refresh cont
  }
 });
 
-test('IQC retains active older work and adjacent periods, and folds older overdue and closed work',async()=>{
+void test('IQC retains active older work and adjacent periods, and folds older overdue and closed work',async()=>{
  const current=parityJob('nov',{itemId:'line'});
  const stillCurrent=parityJob('nov-shared',{itemId:'shared',planId:'SEPT-EXPIRED'});
  const prev=parityJob('oct',{itemId:'line',start:'2026-10-01',end:'2026-10-31'});
@@ -419,7 +419,7 @@ test('IQC retains active older work and adjacent periods, and folds older overdu
  assert.doesNotMatch(html(),/data-ri-pick="(?:nov|oct|jul|dec)"|data-ri-older/);
 });
 
-test('IQC Back anchors the period and focuses the exact report entry when actions are duplicated',async()=>{
+void test('IQC Back anchors the period and focuses the exact report entry when actions are duplicated',async()=>{
  const job=parityJob('period-origin',{completion:{kind:'pass'}});
  const batch={partId:'part',batchNo:'0001',quantity:2,unit:'pcs'};
  const report=parityDoc('ORIGINAL-REPORT','report','approved',[job],{
@@ -473,7 +473,7 @@ test('IQC Back anchors the period and focuses the exact report entry when action
  }
 });
 
-test('IQC explains missing exemption only where no applicable period is listed',async()=>{
+void test('IQC explains missing exemption only where no applicable period is listed',async()=>{
  for(const lang of ['zh','vi']){
   const ready=parityJob('ready'), draft=parityJob('draft',{planId:'PLAN-D'}),
    pending=parityJob('pending',{planId:'PLAN-P'}), processed=parityJob('processed',{completion:{kind:'pass'}}),
@@ -490,7 +490,7 @@ test('IQC explains missing exemption only where no applicable period is listed',
  }
 });
 
-test('IQC takes follow-ups from the true inspection and batch and preserves partial retest success',async()=>{
+void test('IQC takes follow-ups from the true inspection and batch and preserves partial retest success',async()=>{
  const batch={partId:'part',batchNo:'0002',quantity:7,unit:'pcs'};
  const ids=['original-pass','retest-pass','still-fail'];
  const jobs=ids.map(id=>parityJob(id,{planId:'PLAN',completion:{kind:id==='original-pass'?'pass':'fail'}}));
@@ -529,7 +529,7 @@ test('IQC takes follow-ups from the true inspection and batch and preserves part
  after.stage('report');assert.match(afterHtml(),/data-ri-action="create-report:FOLLOWUP"/);
 });
 
-test('IQC distinguishes approved disposal, successful retest and mixed closed batches in each period',async()=>{
+void test('IQC distinguishes approved disposal, successful retest and mixed closed batches in each period',async()=>{
  const jobs=['disposed','passed-after-retest','mixed'].map(id=>
   parityJob(id,{completion:{kind:'abnormal'}}));
  const batch=(batchNo)=>({partId:'part',batchNo,quantity:7,unit:'pcs'});
@@ -558,7 +558,7 @@ test('IQC distinguishes approved disposal, successful retest and mixed closed ba
  }
 });
 
-test('IQC never resends an unknown write, keeps a missing receipt, and distinguishes confirmed write from failed readback',async()=>{
+void test('IQC never resends an unknown write, keeps a missing receipt, and distinguishes confirmed write from failed readback',async()=>{
  for(const lang of ['zh','vi']){
   const state=parityState([]);
   let configured=false,post=0,lookups=0,lastOperation=null,failReload=true,confirmed=false;
@@ -602,7 +602,7 @@ test('IQC never resends an unknown write, keeps a missing receipt, and distingui
  }
 });
 
-test('routine review badge composes FQC and IQC counts without losing either module after refresh',async()=>{
+void test('routine review badge composes FQC and IQC counts without losing either module after refresh',async()=>{
  const plan=parityDoc('PLAN','plan','pending',[]);
  const state=parityState([],[plan]);state.revision=11;
  const ui=switchFixture('zh',{data:state,review:true,fqcPending:2});
@@ -617,7 +617,7 @@ test('routine review badge composes FQC and IQC counts without losing either mod
  assert.match(ui.iqcRoot.innerHTML,/IQC 待審案件 · 0/);
 });
 
-test('same-state FQC and IQC plan and report details bind to the selected source and its saved evidence',async()=>{
+void test('same-state FQC and IQC plan and report details bind to the selected source and its saved evidence',async()=>{
  const jobs=['selected-1','selected-2','not-selected'].map(id=>parityJob(id,{planId:'PLAN'}));
  for(const job of jobs){
   Object.assign(job.source,{id:job.itemId,versionId:'approved-source',line:'Line A',errorCode:'Test code',
@@ -684,7 +684,7 @@ test('same-state FQC and IQC plan and report details bind to the selected source
  }
 });
 
-test('IQC failure detail preserves all originally failed rows and their attachments for exactly one ERP batch',async()=>{
+void test('IQC failure detail preserves all originally failed rows and their attachments for exactly one ERP batch',async()=>{
  const jobs=['earlier-recovered','still-fails','same-batch-pass'].map(id=>parityJob(id,{planId:'PLAN'}));
  const batch={partId:'part',batchNo:'0002',quantity:7,unit:'pcs'}, otherBatch={...batch,batchNo:'0003'};
  const evidence=['a','b','c','d'].map(id=>id.repeat(64));
@@ -755,7 +755,7 @@ test('IQC failure detail preserves all originally failed rows and their attachme
  }
 });
 
-test('only the active IQC inspection workspace requests the routine approval sidebar destination',async()=>{
+void test('only the active IQC inspection workspace requests the routine approval sidebar destination',async()=>{
  const plan=parityDoc('STALE-REVIEW','plan','approved',[]);
  const data=parityState([], [plan]);
  const iqc=switchFixture('zh',{data,displayDocument:plan.id});
@@ -771,7 +771,7 @@ test('only the active IQC inspection workspace requests the routine approval sid
  assert.equal(iqc.opensRoutineApproval(),false);
 });
 
-test('the ordinary IQC Save sends edited titles for each plan and report, and reads back the saved title',async()=>{
+void test('the ordinary IQC Save sends edited titles for each plan and report, and reads back the saved title',async()=>{
  for(const kind of ['plan','report','retest-plan','retest-report']){
   const doc=parityDoc('SYNTHETIC-'+kind,kind,'draft',[]);
   const data=parityState([], [doc]),writes=[];
@@ -797,7 +797,7 @@ test('the ordinary IQC Save sends edited titles for each plan and report, and re
  }
 });
 
-test('IQC checkbox rerender anchors the active period and keeps the toolbar height stable near the end of the list',async()=>{
+void test('IQC checkbox rerender anchors the active period and keeps the toolbar height stable near the end of the list',async()=>{
  const job=parityJob('scroll-last');
  for(const [lang,width,scroll,initialY,reflow] of [
   ['zh',1331,769,654,0],['zh',320,1890,118,36],['vi',390,1640,270,24],
@@ -867,7 +867,7 @@ test('IQC checkbox rerender anchors the active period and keeps the toolbar heig
  }
 });
 
-test('IQC visible outcome buttons edit only the chosen batch and preserve its other report evidence',async()=>{
+void test('IQC visible outcome buttons edit only the chosen batch and preserve its other report evidence',async()=>{
  const jobs=[parityJob('item-a'),parityJob('item-b')];
  const lot=(batchNo,quantity)=>({partId:'part',batchNo,quantity,unit:'pcs'});
  const photo='a'.repeat(64);
@@ -934,7 +934,7 @@ test('IQC visible outcome buttons edit only the chosen batch and preserve its ot
  }
 });
 
-test('IQC confirmation is compact, protects the exact saved version and submits at most once',async()=>{
+void test('IQC confirmation is compact, protects the exact saved version and submits at most once',async()=>{
  for(const lang of ['zh','vi']){
   const job=parityJob('plan-item');
   const doc=parityDoc('SYNTHETIC-PLAN','plan','draft',[job]);
@@ -978,7 +978,7 @@ test('IQC confirmation is compact, protects the exact saved version and submits 
  }
 });
 
-test('IQC controls use wrap-safe mobile tracks and FQC colors plus a non-color selected mark',()=>{
+void test('IQC controls use wrap-safe mobile tracks and FQC colors plus a non-color selected mark',()=>{
  const iqc=fs.readFileSync('public/process/routine-iqc.css','utf8'),fqc=fs.readFileSync('public/process/routine-fqc.css','utf8');
  assert.match(iqc,/\.ri-outcome-choices button\s*\{\s*flex:1 1 94px/);
  assert.match(iqc,/\.ri-submit-dialog\s*\{[^}]*width:min\(440px, calc\(100vw - 24px\)\)[^}]*overflow:auto/);

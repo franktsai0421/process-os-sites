@@ -226,7 +226,7 @@
       choose.onclick=async()=>{try{
         const claimed=await session.claim(item.key);if(!owned()||session!==matrixRecoverySession||!overlay.isConnected)return;if(!claimed.ok)throw Error(claimed.code);
         const preview=session.preview(item.key);if(!preview.ok)throw Error(preview.code);actions.replaceChildren();detail.textContent=JSON.stringify(preview.kind==='local'?preview.payload:preview.receipt,null,2);
-        const choices=preview.kind==='unknown'?[['receipt',isVi()?'Kiểm tra biên nhận':'查原回執']]:preview.kind==='resolved'?[['finalize',isVi()?'Hoàn tất dọn bản đã xác nhận':'完成已確認記錄清理']]:[];
+        const choices=preview.kind==='unknown'?[['receipt',isVi()?'Kiểm tra biên nhận':'查原回執']]:preview.kind==='resolved'?[['finalize',isVi()?'Hoàn tất dọn bản đã xác nhận':'完成已確認記錄清理']]:[['restore',isVi()?'Khôi phục cục bộ':'恢復至本機'],['discard',isVi()?'Bỏ bản này':'放棄此紀錄']];
         for(const [action,label]of choices){const button=document.createElement('button');button.type='button';button.className='button ghost';button.textContent=label;button.onclick=async()=>{if(!owned()||session!==matrixRecoverySession){overlay.remove();return;}try{
           const confirmPreview=value=>{detail.textContent=JSON.stringify(value.payload||value.receipt,null,2);return window.confirm(isVi()?'Xác nhận thao tác chỉ cho bản cục bộ đã xem? Không tự gửi.':'確認只處理預覽中的本機紀錄？不會自動共享。');};
           if(action==='restore')await restoreMatrixRecord(item.key,confirmPreview);else if(action==='discard')await discardMatrixRecord(item.key,confirmPreview);else if(action==='receipt')await resolveMatrixRecord(item.key);else await finalizeMatrixRecord(item.key,confirmPreview);
@@ -243,8 +243,7 @@
   const unappliedMessage=()=>isVi()?'Hãy lưu thay đổi trước khi gửi duyệt.':'請先按存取保存本次修改，再送審。';
   function assertNoUnapplied(){if(localDirty()||document.querySelector('.fqc-modal-overlay'))throw Error(unappliedMessage());}
   function matrixSelected(item,versionId){const row=matrixOwner()&&matrixBatch.versionId===versionId?matrixBatch.rows.get(item.id):null;return row?.codes||(Array.isArray(item.productCodes)?new Set(item.productCodes):null);}
-  function matrixToolbarHTML(){return `<section class="fqc-operation-status" hidden data-i18n-skip="true" aria-label="${isVi()?'Kết quả thao tác cần kiểm tra':'待查詢的操作結果'}"><strong id="fqc-matrix-count" role="status" hidden></strong><span id="fqc-matrix-message" role="alert"></span><button type="button" class="button ghost" id="fqc-matrix-apply" hidden></button><button type="button" class="button ghost" id="fqc-matrix-recovery" hidden>${isVi()?'Kiểm tra thao tác chưa hoàn tất':'檢查未完成操作'}</button></section>`;}
-
+  function matrixToolbarHTML(){return `<section class="fqc-matrix-actions fqc-operation-status" hidden data-i18n-skip="true" aria-label="${isVi()?'Thay đổi ma trận cục bộ, dùng chung sau khi lưu':'本機矩陣變更，按存取後共用'}"><strong id="fqc-matrix-count" role="status"></strong><span id="fqc-matrix-message" role="alert"></span><div><button type="button" class="button signal" id="fqc-matrix-apply"></button><details id="fqc-matrix-more"><summary>${isVi()?'Tùy chọn chỉnh sửa / khôi phục':'編輯／復原選項'}</summary><div><button type="button" class="button ghost" id="fqc-matrix-discard"></button><button type="button" class="button ghost" id="fqc-matrix-reconcile" hidden></button><button type="button" class="button ghost" id="fqc-matrix-recovery">${isVi()?'Xem bản khôi phục':'查看本機恢復'}</button></div></details></div></section>`;}
   const matrixCanEdit=()=>!!editable()&&!library().workflow?.pendingId&&canEditDraft()&&sharedClient?.permission('edit')!==false;
   function paintMatrixActions(){
     window.VersionDraftUI?.updateSaved?.(hostElement,library().workflow,localDirty());
@@ -261,14 +260,17 @@
     const note=matrixRecoveryNote==='MATRIX_SHARED_APPLIED'?(savedCurrent?(isVi()?'Đã cập nhật bản nháp chung; đã lưu bản chụp.':'已更新共用草稿；快照已儲存。'):(isVi()?'Đã cập nhật bản nháp chung; chưa lưu bản chụp.':'已更新共用草稿；尚未儲存快照。')):matrixRecoveryNote;
     message.textContent=[matrixRecoveryError,batch?.storageError,batch?.error,persistFailure,note,rejectedCleanup].filter(Boolean).join(' ');
     apply.hidden=!unknown;apply.textContent=unknown?(isVi()?'Kiểm tra kết quả áp dụng':'查詢套用結果'):(isVi()?'Áp dụng thiết lập ma trận mới':'套用新矩陣設定');
-    if(discard)discard.textContent=isVi()?'Bỏ lựa chọn lần này':'放棄本次勾選';
+    discard.textContent=isVi()?'Bỏ lựa chọn lần này':'放棄本次勾選';
+    discard.hidden=!count&&!hasMatrixConflicts(batch)||unknown;
+    const recovery=hostElement?.querySelector('#fqc-matrix-recovery');
+    const inventory=matrixRecoveryReady&&!ui.saving&&!count&&!unknown?matrixRecoverySession?.discover():null;
+    const needsRecovery=matrixRecoveryBlocked||!!batch?.rejectionCleanup||!!persistFailure||!!inventory?.items?.length;
+    if(recovery)recovery.hidden=!needsRecovery;
+    const panel=hostElement?.querySelector('.fqc-operation-status');
+    if(panel)panel.hidden=!(count||unknown||hasMatrixConflicts(batch)||needsRecovery||message.textContent);
     const more=hostElement?.querySelector('#fqc-matrix-more');if(more&&(unknown||batch?.error||batch?.storageError||matrixRecoveryError))more.open=true;
     if(reconcile){reconcile.textContent=isVi()?'Đối chiếu lựa chọn mới nhất':'核對最新勾選';reconcile.hidden=!!batch?.completeMatrix||!count||unknown||!batch?.error;reconcile.disabled=ui.saving||matrixRecoveryBlocked;}
-    apply.disabled=ui.saving||!count||matrixRecoveryBlocked||!matrixRecoveryReady||!unknown&&!matrixCanEdit();if(discard)discard.disabled=ui.saving||!count&&!hasMatrixConflicts(batch)||unknown;
-    const safety=hostElement?.querySelector('.fqc-operation-status'),recovery=hostElement?.querySelector('#fqc-matrix-recovery');
-    const needsRecovery=matrixRecoveryBlocked||!!batch?.rejectionCleanup||!!persistFailure;
-    if(recovery)recovery.hidden=!needsRecovery;
-    if(safety)safety.hidden=!(unknown||needsRecovery||matrixRecoveryError||batch?.storageError||batch?.error);
+    apply.disabled=ui.saving||!count||matrixRecoveryBlocked||!matrixRecoveryReady||!unknown&&!matrixCanEdit();discard.disabled=ui.saving||!count&&!hasMatrixConflicts(batch)||unknown;
   }
   function toggleMatrixChoice(button){
     if(!restoreMatrixChoices()){paintMatrixActions();return;}
@@ -303,6 +305,34 @@
     for(const row of input.items){const changed=batch.rows.get(row.id);if(changed)row.productCodes=[...changed.codes];}
     if(new TextEncoder().encode(JSON.stringify(input)).length>1_800_000)throw Error('FQC_MATRIX_TOO_LARGE');
     return {moduleAction:'replace-matrix-v1',input};
+  }
+  function confirmMatrixReconcile(rows){
+    const overlay=document.createElement('div');overlay.className='fqc-modal-overlay';
+    const label=()=>isVi()?'Đối chiếu lựa chọn mới nhất':'核對最新勾選',values=codes=>codes.length?codes.join(', '):(isVi()?'Không có':'無');
+    overlay.innerHTML=`<section class="fqc-modal" role="dialog" aria-modal="true" aria-label="${label()}"><header class="fqc-modal-header"><h3>${label()}</h3></header><div class="fqc-modal-body"><p>${isVi()?'Xác nhận chỉ cập nhật giá trị đối chiếu, giữ thay đổi của bạn và lựa chọn khác của người khác. Sau đó hãy bấm Áp dụng.':'確認只更新比對基準，保留你的變更與他人其他勾選；之後仍需按「套用勾選變更」。'}</p>${rows.map(row=>`<article><strong>${h(row.label)}</strong><dl><dt>${isVi()?'Giá trị gốc':'原值'}</dt><dd>${h(values(row.base))}</dd><dt>${isVi()?'Bản chung mới nhất':'共享最新'}</dt><dd>${h(values(row.latest))}</dd><dt>${isVi()?'Lựa chọn của tôi':'我的選擇'}</dt><dd>${h(values(row.mine))}</dd></dl></article>`).join('')}</div><footer class="fqc-modal-actions"><button class="button ghost" data-matrix-review-cancel>${isVi()?'Giữ nguyên, quay lại':'保留原狀，返回'}</button><button class="button signal" data-matrix-review-confirm>${isVi()?'Xác nhận đối chiếu, chưa áp dụng':'確認核對，尚不套用'}</button></footer></section>`;
+    document.body.append(overlay);return new Promise(resolve=>{const close=value=>{overlay.remove();resolve(value);};overlay.querySelector('[data-matrix-review-confirm]').onclick=()=>close(true);overlay.querySelector('[data-matrix-review-cancel]').onclick=()=>close(false);overlay.querySelector('[data-matrix-review-cancel]').focus();});
+  }
+  async function reconcileMatrixChoices(){
+    if(!matrixDirty()||matrixRecoveryBlocked||!matrixBatch||ui.saving)return;
+    if(matrixBatch.completeMatrix)return;
+    const batch=matrixBatch,owned=currentReadOwner(),client=transport(),choiceRevision=matrixChoiceRevision,localRevision=library().workflow?.revision,operation={owned};let refreshed=false;activeSharedAction=operation;ui.saving=true;paintMatrixActions();
+    const checkCurrent=()=>{if(!owned()||matrixBatch!==batch)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(matrixChoiceRevision!==choiceRevision||library().workflow?.revision!==localRevision||library().workflow?.generation!==batch.generation)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');if(batch.pending||client.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');};
+    const checkFlow=result=>{const flow=result?.control?.workflow;if(!flow||flow.generation!==batch.generation)throw Error('STALE_GENERATION');if(flow.pendingId)throw Error('PENDING_LOCKED');if(!result.control.versions?.some(version=>version.id===batch.versionId&&version.status==='draft'))throw Error('STALE_GENERATION');for(const id of batch.rows.keys())if(!flow.working?.items?.some(item=>item.id===id&&!item.isDeleted))throw Error(isVi()?'Hạng mục đã bị xóa; giữ lựa chọn, không thể đối chiếu tự động.':'檢查項目已刪除；勾選仍保留，無法自動核對。');return flow;};
+    try{
+      checkCurrent();if(document.querySelector('.fqc-modal-overlay'))throw Error(unappliedMessage());
+      const read=await client.read();checkCurrent();const flow=checkFlow(read),comparisons=[];
+      for(const [id,row]of batch.rows){const latest=flow.working.items.find(item=>item.id===id);comparisons.push({label:latest.checkNo||latest.name||id,base:row.base.productCodes||[],latest:latest.productCodes||[],mine:[...row.codes]});}
+      if(!await confirmMatrixReconcile(comparisons))return;checkCurrent();
+      const confirmed=await client.read();checkCurrent();const current=checkFlow(confirmed);if(current.revision!==flow.revision)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+      const rows=new Map();let count=0;
+      for(const [id,row]of batch.rows){const latest=current.working.items.find(item=>item.id===id),codes=new Set(latest.productCodes||[]),changed=new Set();for(const code of row.changed){if(row.codes.has(code))codes.add(code);else codes.delete(code);if(codes.has(code)!==(latest.productCodes||[]).includes(code))changed.add(code);}if(!changed.size)continue;const base={};for(const key of ['productCodes','productRefs','products'])base[key]=latest[key]===undefined?undefined:clone(latest[key]);rows.set(id,{base,codes,changed});count+=changed.size;}
+      const session=matrixRecoverySession,nextBase=matrixBase(current,batch.versionId);matrixRecoveryVerified={owned,flow:current,baseVersion:nextBase};
+      const rebased=await session.rebaseLocal({baseVersion:nextBase,workflow:{...current,scope:'FQC:matrix'},localRevision:matrixChoiceRevision,payload:matrixSnapshot({...batch,rows,count})});if(!rebased.ok||!rebased.durable)throw Error(rebased.code||'RECOVERY_NOT_DURABLE');
+      checkCurrent();if(session!==matrixRecoverySession)throw Error('RECOVERY_CONTEXT_CHANGED');
+      batch.rows=rows;batch.count=count;batch.error='';ui.lastError=null;matrixChoiceRevision++;matrixRecoveryNote=isVi()?'Đã đối chiếu; lựa chọn vẫn chưa gửi. Hãy bấm Áp dụng.':'已核對，勾選仍未送出；請再按「套用勾選變更」。';
+      adopt(confirmed);matrixRecoveryBase=nextBase;matrixRecoveryReady=session.status().ready===true;batch.storageError='';refreshed=true;
+    }catch(error){if(owned()&&matrixBatch===batch){batch.error=displayDraftError(error);ui.lastError=error.message;}}
+    finally{matrixRecoveryVerified=null;if(activeSharedAction===operation){activeSharedAction=null;ui.saving=false;if(owned()&&matrixBatch===batch){paintMatrixActions();if(refreshed)render();}}}
   }
   async function applyMatrixChoices(){
     if(!matrixDirty()||matrixRecoveryBlocked||!matrixBatch||ui.saving)return;
@@ -1406,6 +1436,8 @@
     root.querySelectorAll('[data-delete-item]').forEach(button => button.onclick = guardWorking(button,() => deleteItem(button.dataset.deleteItem)));
     root.querySelectorAll('[data-matrix-item]').forEach(button => button.onclick = guardWorking(button,() => toggleMatrixChoice(button)));
     root.querySelector('#fqc-matrix-apply')?.addEventListener('click',guardWorking(root.querySelector('#fqc-matrix-apply'),applyMatrixChoices));
+    root.querySelector('#fqc-matrix-discard')?.addEventListener('click',guardWorking(root.querySelector('#fqc-matrix-discard'),discardMatrixChoices));
+    root.querySelector('#fqc-matrix-reconcile')?.addEventListener('click',guardWorking(root.querySelector('#fqc-matrix-reconcile'),reconcileMatrixChoices));
     root.querySelector('#fqc-matrix-recovery')?.addEventListener('click',guardWorking(root.querySelector('#fqc-matrix-recovery'),openMatrixRecovery));
     root.querySelectorAll('[data-add-existing]').forEach(button => button.onclick = guardWorking(button,() => openExistingModal(button.dataset.addExisting)));
     root.querySelectorAll('[data-add-new-product]').forEach(button => button.onclick = guardWorking(button,() => openItemModal('', button.dataset.addNewProduct)));
