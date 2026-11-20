@@ -20,7 +20,11 @@ export async function seedRoutineCalendarFixture(fixture, secret) {
   const {companyDate, nextDate} = load('lib/routine-fqc.ts');
   const today = companyDate();
   const start = today.slice(0, 8) + '01';
-  const products = codes.map(code => ({code, name:code, category:'SYN', line:'A'}));
+  // Approval installs the complete AB routing projection. Use a valid
+  // routable catalog even though FQC period generation uses only the products.
+  const stage = {code:'A-SYN',name:'Synthetic inspection source stage',machine:'Synthetic',assetNumber:'SYN-FIXTURE',operators:1};
+  const products = codes.map(code => ({code,name:code,category:'SYN',line:'A',unit:'pcs',specification:'Synthetic sample',stages:[stage.code]}));
+  const ab={products,lines:[{code:'A',name:'Synthetic line',stages:[stage]}],categoryGroups:[{line:'A',name:'SYN'}]};
   const baseItem = {line:'A', category:'SYN', isEnabled:true, description:'Synthetic inspection standard', productCodes:codes};
   const items = [
     {...baseItem, id:'time', checkNo:'TEST-TIME', name:'Synthetic time item', rule:{cadence:'time', timeFrequency:'monthly'}},
@@ -34,7 +38,7 @@ export async function seedRoutineCalendarFixture(fixture, secret) {
   const values = {
     platformUsers:JSON.stringify(users), routineFqcEnabled:'1', backupSettings:'{"enabled":false}',
     qualityMasterControl:JSON.stringify({libraries:{fqc:{activeVersionId:version.id,versions:[version]}}}),
-    masterDataControl:JSON.stringify({active:{AB:{products,lines:[],categoryGroups:[]},C:{products:[],lines:[]},PROCESS:{}},versions:[]}),
+    masterDataControl:JSON.stringify({active:{AB:ab,C:{products:[],lines:[]},PROCESS:{}},versions:[]}),
   };
   const raw = await encodeRecordValues(bucket,values);
   await fixture.db.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').bind(raw,'synthetic').run();
