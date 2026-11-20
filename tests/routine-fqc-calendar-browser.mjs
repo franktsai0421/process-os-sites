@@ -5,6 +5,7 @@ import {createRequire} from 'node:module';
 import {createRootEntryFixture} from './root-entry-native-fixture.mjs';
 
 const endpoint = '/api/routine-fqc';
+const iqcEndpoint = '/api/routine-iqc';
 const inspection = '/process/?system=quality&view=quality-inspections&rfTab=sources';
 const require = createRequire(import.meta.url);
 const codes = ['SYN-P1', 'SYN-P2', 'SYN-P3'];
@@ -35,7 +36,17 @@ export async function seedRoutineCalendarFixture(fixture, secret) {
     ...[...writers].map(id => ({id,name:'Synthetic '+id,role:'admin',primary:id==='frank',enabled:true,authMode:'platform',authEpoch:1})),
     {id:'routine-reader',name:'Synthetic reader',role:'staff',inheritRole:false,enabled:true,authMode:'platform',authEpoch:1,accessOverrides:{'routine.view':true}},
   ];
+  const iqcSource={id:'iqc-source',number:1,status:'approved',createdAt:'2025-01-01T00:00:00.000Z',snapshot:{
+    categories:[{id:'iqc-category',nameVi:'Synthetic category'}],suppliers:[],
+    parts:[{id:'iqc-part',code:'IP1',nameVi:'Synthetic IQC part',categoryId:'iqc-category',supplierIds:[],photos:[],isEnabled:true}],
+    errors:[{id:'iqc-error',partCode:'IP1',code:'SYN-ERR'}],
+    items:[
+      {id:'iqc-item',partCode:'IP1',errorId:'iqc-error',checkNo:'SYN-IQC-TIME',nameVi:'Monthly measurement',isEnabled:true,rules:[{id:'iqc-month',cadence:'time',kind:'month',value:''}]},
+      {id:'iqc-batch',partCode:'IP1',errorId:'iqc-error',checkNo:'SYN-IQC-BATCH',nameVi:'Arrival check',isEnabled:true,rules:[{id:'iqc-arrival',cadence:'batch',kind:'fixed_count',value:'1'}]},
+    ],
+  }};
   const values = {
+    iqcMasterControl:JSON.stringify({schemaVersion:1,versions:[iqcSource],activeVersionId:iqcSource.id}),
     platformUsers:JSON.stringify(users), routineFqcEnabled:'1', backupSettings:'{"enabled":false}',
     qualityMasterControl:JSON.stringify({libraries:{fqc:{activeVersionId:version.id,versions:[version]}}}),
     masterDataControl:JSON.stringify({active:{AB:ab,C:{products:[],lines:[]},PROCESS:{}},versions:[]}),
@@ -64,7 +75,7 @@ export async function runRoutineFqcCalendarBrowser() {
     report.buildEntrySha256 = fixture.buildEntrySha256;
     stage = 'native Chromium';
     browser = await chromium.launch({headless:true});
-    const posted = [], blocked = [];
+    const posted = [], postedIqc = [], blocked = [];
     async function open(actor, viewport) {
       const context = await browser.newContext({serviceWorkers:'block',viewport});
       await context.addCookies([{name:'process_demo',value:cookie(actor),url:origin,httpOnly:true,sameSite:'Lax'}]);
@@ -72,10 +83,11 @@ export async function runRoutineFqcCalendarBrowser() {
         const req = route.request(), url = new URL(req.url()), method = req.method();
         if (url.origin !== origin) return route.abort();
         if (method === 'GET' || method === 'HEAD') return route.continue();
-        const body = method === 'POST' && url.pathname === endpoint ? req.postDataJSON() : null;
-        const command = body?.action === 'draft' ? body.command?.action : body?.action;
+        const isIqc = url.pathname===iqcEndpoint;
+        const body = method==='POST' && (isIqc||url.pathname===endpoint) ? req.postDataJSON() : null;
+        const command = body?.action==='draft' ? (isIqc ? body.draft : body.command)?.action : body?.action;
         if (writers.has(actor) && allowed.has(command)) {
-          posted.push({actor,command});
+          (isIqc ? postedIqc : posted).push({actor,command});
           return route.continue();
         }
         blocked.push({actor,method,path:url.pathname});
@@ -256,6 +268,109 @@ export async function runRoutineFqcCalendarBrowser() {
     assert.deepEqual(posted.map(item=>item.command),['configure','generate','request','save','submit','approve']);
     report.checks.push('only the selected product closes after separate approval in the routine queue; self-confirm defaults locked');
 
+
+    // Use a separate browser context and IQC records. A failed IQC assertion
+    // is reported while still allowing the remaining FQC scenario to run.
+    async function verifyIqcWrites() {
+      const iqc = await open('frank',{width:390,height:844});
+      const iqcReviewer = await open('routine-reviewer',{width:390,height:844});
+      const panel = iqc.page.locator('.ri-app:visible');
+      const click = (scope,name) => scope.locator(`[data-ri-action="${name}"]:visible`).click();
+      const readIqc = async () => {
+        const response = await iqc.context.request.get(origin+iqcEndpoint);
+        assert.equal(response.status(),200);
+        return response.json();
+      };
+      const fqcBefore = await read();
+      try {
+        await iqc.page.goto(origin+inspection+'&rfModule=iqc',{waitUntil:'domcontentloaded'});
+        const before = await readIqc();
+        assert.equal(before.startDate,null);
+        assert.equal(before.jobs.length,0);
+        await click(panel.locator('.ri-empty'),'configure');
+        const setup = iqc.page.locator('dialog.ri-admin-dialog[open]');
+        await setup.locator('[name="start"]').fill(today);
+        await setup.locator('[name="reason"]').fill('Synthetic IQC start');
+        await setup.locator('[name="ack"]').check();
+        await setup.locator('[name="confirm"]').fill('START IQC');
+        await setup.locator('button[value="confirm"]').click();
+        const group = panel.locator('.rf-period-group-toggle');
+        await group.waitFor({state:'visible'});
+        const generated = await readIqc();
+        assert.equal(generated.startDate,today);
+        assert.deepEqual(generated.jobs.map(job=>job.source.code),['SYN-IQC-TIME']);
+        assert.equal(generated.scheduleDue,false);
+        if (await group.getAttribute('aria-expanded')==='false') await group.click();
+        await panel.locator(`input[data-ri-pick=${JSON.stringify(generated.jobs[0].id)}]`).check();
+        await click(panel,'create-plan');
+        await iqc.page.locator('dialog.ri-selection-dialog[open] button[value="confirm"]').click();
+        const detail = panel.locator('.rf-document');
+        const batch = detail.locator('input[data-ri-key="batchNo"]');
+        await click(detail,'add-lot:iqc-part');
+        assert.equal(await batch.count(),1);
+        await batch.fill('0001');
+        await detail.locator('input[data-ri-key="quantity"]').fill('2');
+        await click(detail,'add-lot:iqc-part');
+        await batch.nth(1).fill('0002');
+        await detail.locator('input[data-ri-key="quantity"]').nth(1).fill('3');
+
+        async function sendAndApprove(kind) {
+          await click(detail,'save');
+          await click(detail,'submit');
+          await iqc.page.locator('dialog.ri-submit-dialog[open] button[value="confirm"]').click();
+          const review = detail.locator('[data-ri-action^="review:"]');
+          await review.waitFor({state:'visible'});
+          const pendingIqc = await readIqc();
+          const selected = pendingIqc.documents.find(item=>item.kind===kind && item.status==='pending');
+          assert(selected?.flow.pendingId);
+          assert.equal(pendingIqc.cases.length,0);
+          await review.click();
+          await iqc.page.waitForURL(url=>url.searchParams.get('approvalTab')==='routine' &&
+            url.searchParams.get('rfModule')==='iqc' && url.searchParams.get('riDocument')===selected.id);
+          await iqcReviewer.page.goto(iqc.page.url(),{waitUntil:'domcontentloaded'});
+          const approval = iqcReviewer.page.locator('.ri-app:visible .rf-approval');
+          assert.equal(await approval.locator('[data-ri-self]').count(),0);
+          await click(approval,'approve');
+          await approval.waitFor({state:'detached'});
+          const approvedIqc = await readIqc();
+          const approved = find(approvedIqc.documents,selected.id);
+          assert.equal(approved.flow.active.id,selected.flow.pendingId);
+          assert.equal(approved.status,'approved');
+          assert.equal(find(approved.flow.cases,selected.flow.pendingId).result.actor.id,'routine-reviewer');
+          return {approved,state:approvedIqc};
+        }
+        const plan = (await sendAndApprove('plan')).approved;
+        assert.deepEqual(plan.flow.active.content.lots.map(lot=>[lot.batchNo,lot.quantity]),[['0001',2],['0002',3]]);
+        await iqc.page.goto(origin+inspection+'&rfModule=iqc',{waitUntil:'domcontentloaded'});
+        await click(panel,'tab:report');
+        await click(panel,`create-report:${plan.id}`);
+        const reportRows = detail.locator('[data-ri-inspection]');
+        await reportRows.nth(1).waitFor();
+        assert.equal(await reportRows.count(),2);
+        for (const row of await reportRows.all()) {
+          const pass = row.locator('button[data-outcome="pass"]');
+          await pass.click();
+          assert.equal(await pass.getAttribute('aria-pressed'),'true');
+          await row.locator('textarea[data-ri-key="value"]').fill('Synthetic measured pass');
+        }
+        const {approved,state:finalIqc} = await sendAndApprove('report');
+        assert.deepEqual(approved.flow.active.content.inspections.map(item=>[item.batch.batchNo,item.batch.quantity,item.batch.unit,item.outcome]),
+          [['0001',2,'pcs','pass'],['0002',3,'pcs','pass']]);
+        assert.equal(finalIqc.cases.length,0);
+        assert.deepEqual(await read(),fqcBefore,'IQC mutations do not change FQC control');
+        assert.deepEqual(postedIqc.map(item=>item.command),['configure','create-plan','save','submit','approve','create-report','save','submit','approve']);
+        report.checks.push('IQC browser started schedule and approved a two-batch plan and passing report in the correct routine queue; FQC preserved');
+      } finally {
+        await iqcReviewer.context.close();
+        await iqc.context.close();
+      }
+    }
+    try {
+      await verifyIqcWrites();
+    } catch (error) {
+      report.iqcFailure = {message:String(error.message).replaceAll(secret,'[redacted]').slice(0,320),operations:postedIqc};
+    }
+
     let ordinaryEntries = 0;
     async function tab(name) {
       // Change tabs in the mounted workspace. Coming back from review is an
@@ -280,10 +395,38 @@ export async function runRoutineFqcCalendarBrowser() {
       assert.equal(await result.getAttribute('aria-pressed'),'true');
     }
     async function initialAbnormal(code) {
-      const job = state.jobs.find(item=>item.calendar.productCode===code);
       await tab('sources');
-      await root.locator('.rf-period-group').filter({hasText:code}).locator('[data-period-toggle]').click();
-      await root.locator(`[data-job="${job.id}"]`).check();
+      const live = await read();
+      const job = live.jobs.find(item=>item.calendar?.productCode===code && item.start<=today && item.end>=today && !item.calendar.retestCaseId);
+      assert(job,`Authoritative GET lost current work for ${code}`);
+      assert.equal(job.id,state.jobs.find(item=>item.calendar.productCode===code)?.id);
+      assert.deepEqual([job.planId,job.completion,job.calendar.stopped??null,job.calendar.requestId??null],[null,null,null,null],
+        'Authoritative period is still eligible');
+      const route = new URL(page.url());
+      assert.equal(route.searchParams.get('view'),'quality-inspections');
+      assert.equal(route.searchParams.get('rfTab'),'sources');
+      assert.notEqual(route.searchParams.get('rfModule'),'iqc');
+      const beforeGroups = await root.locator('[data-period-group]').evaluateAll(groups=>groups.map(node=>({
+        scope:node.dataset.periodGroup,
+        expanded:node.querySelector('[data-period-toggle]')?.getAttribute('aria-expanded')
+      })));
+      assert(beforeGroups.some(node=>node.scope===job.calendar.scope),
+        JSON.stringify({code,revision:live.revision,expectedScope:job.calendar.scope,beforeGroups}));
+      const group = root.locator(`[data-period-group=${JSON.stringify(job.calendar.scope)}]`);
+      const header = group.locator('[data-period-toggle]');
+      const pick = group.locator(`input[data-job=${JSON.stringify(job.id)}]`);
+      const expansion = await header.getAttribute('aria-expanded');
+      assert(['true','false'].includes(expansion), 'The correct product group exists on the returned page');
+      if (expansion==='false') await header.click();
+      const snapshot = await group.evaluate(node=>({
+        expanded:node.querySelector('[data-period-toggle]')?.getAttribute('aria-expanded'),
+        rows:[...node.querySelectorAll('[data-period-id]')].map(row=>[row.dataset.periodId,row.querySelector('input[data-job]')?.disabled]),
+      }));
+      console.log(JSON.stringify({fqcReturn:{code,revision:live.revision,rfTab:route.searchParams.get('rfTab'),eligible:true,expandedBefore:expansion,...snapshot}}));
+      assert.equal(snapshot.expanded,'true','Opening a collapsed product group renders its periods');
+      assert(snapshot.rows.some(([id,disabled])=>id===job.id&&disabled===false),'The eligible current job has an enabled checkbox');
+      await pick.check();
+      assert.equal(await pick.isChecked(),true,'The current period remains selected after repaint');
       await action(root,'create-plan').click();
       await page.getByRole('dialog',{name:/建立檢查計畫|Tạo kế hoạch kiểm tra/}).locator('[type="submit"]').click();
       await document.locator('[data-field="notes"]').fill('Plan for '+code);
@@ -364,7 +507,8 @@ export async function runRoutineFqcCalendarBrowser() {
       'request','save','submit','approve',
     ]);
     report.checks.push('disposition closes only its own case after approval without rewriting the original report');
-    report.status = 'PASS_NATIVE_SYNTHETIC_ROUTINE_FQC';
+    assert.equal(report.iqcFailure,undefined, 'Independent IQC browser write workflow');
+    report.status = 'PASS_NATIVE_SYNTHETIC_ROUTINE_FQC_IQC';
     return report;
   } catch (error) {
     const pageState = await activePage?.evaluate(() => {
@@ -384,7 +528,7 @@ export async function runRoutineFqcCalendarBrowser() {
         alert:document.querySelector('#view-root [role="alert"]')?.textContent?.trim().slice(0,160) ?? null,
       };
     }).catch(()=>null);
-    console.log(JSON.stringify({stage,checks:report.checks,pageState,transport}));
+    console.log(JSON.stringify({stage,checks:report.checks,iqcFailure:report.iqcFailure,pageState,transport}));
     throw new Error(`Routine FQC synthetic browser stage "${stage}": ${String(error.message).replaceAll(secret,'[redacted]').slice(0,450)}`);
   } finally {
     if (browser) await browser.close();
