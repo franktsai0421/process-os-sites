@@ -1,0 +1,319 @@
+// Native CI acceptance against the compiled Worker and a disposable synthetic database.
+import assert from 'node:assert/strict';
+import {createHmac, randomBytes} from 'node:crypto';
+import {createRequire} from 'node:module';
+import {createRootEntryFixture} from './root-entry-native-fixture.mjs';
+
+const endpoint = '/api/routine-fqc';
+const inspection = '/process/?system=quality&view=quality-inspections&rfTab=sources';
+const require = createRequire(import.meta.url);
+const codes = ['SYN-P1', 'SYN-P2', 'SYN-P3'];
+const writers = new Set(['frank', 'routine-reviewer']);
+const allowed = new Set(['configure', 'generate', 'request', 'create-plan', 'create-report', 'save', 'submit', 'approve']);
+const action = (root, name) => root.locator(`button[data-action="${name}"]:visible`);
+const find = (rows, id) => rows.find(row => row.id === id);
+
+export async function seedRoutineCalendarFixture(fixture, secret) {
+  const bucket = await fixture.mf.getR2Bucket('STATE_ARCHIVE');
+  const load = require('../scripts/ipqc-ab-import-harness.cjs')({STATE_ARCHIVE:bucket});
+  const {encodeRecordValues} = load('lib/state-records.ts');
+  const {companyDate, nextDate} = load('lib/routine-fqc.ts');
+  const today = companyDate();
+  const start = today.slice(0, 8) + '01';
+  const products = codes.map(code => ({code, name:code, category:'SYN', line:'A'}));
+  const baseItem = {line:'A', category:'SYN', isEnabled:true, description:'Synthetic inspection standard', productCodes:codes};
+  const items = [
+    {...baseItem, id:'time', checkNo:'TEST-TIME', name:'Synthetic time item', rule:{cadence:'time', timeFrequency:'monthly'}},
+    {...baseItem, id:'unresolved', checkNo:'TEST-UNRESOLVED', name:'Synthetic unresolved item', rule:{cadence:'pending_confirmation'}},
+  ];
+  const version = {id:'approved-synthetic', number:1, status:'approved', createdAt:'2025-01-01T00:00:00.000Z', snapshot:{errors:[],items}};
+  const users = [
+    ...[...writers].map(id => ({id,name:'Synthetic '+id,role:'admin',primary:id==='frank',enabled:true,authMode:'platform',authEpoch:1})),
+    {id:'routine-reader',name:'Synthetic reader',role:'staff',inheritRole:false,enabled:true,authMode:'platform',authEpoch:1,accessOverrides:{'routine.view':true}},
+  ];
+  const values = {
+    platformUsers:JSON.stringify(users), routineFqcEnabled:'1', backupSettings:'{"enabled":false}',
+    qualityMasterControl:JSON.stringify({libraries:{fqc:{activeVersionId:version.id,versions:[version]}}}),
+    masterDataControl:JSON.stringify({active:{AB:{products,lines:[],categoryGroups:[]},C:{products:[],lines:[]},PROCESS:{}},versions:[]}),
+  };
+  const raw = await encodeRecordValues(bucket,values);
+  await fixture.db.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').bind(raw,'synthetic').run();
+  function cookie(actor) {
+    const payload = Buffer.from(JSON.stringify({version:2,id:actor,sessionType:'platform',authEpoch:1,expires:Date.now()+900000,nonce:'synthetic-calendar'})).toString('base64');
+    return payload + '.' + createHmac('sha256',secret).update(payload).digest('hex');
+  }
+  return {cookie,today,start,tomorrow:nextDate(today)};
+}
+
+export async function runRoutineFqcCalendarBrowser() {
+  assert.equal(process.env.CI, 'true', 'Use the authorized native CI runner');
+  const {chromium} = await import('playwright');
+  const secret = randomBytes(32).toString('hex');
+  const report = {checks:[], programCommit:process.env.PROCESS_PROGRAM_COMMIT};
+  let fixture, browser, stage = 'isolated fixture';
+  try {
+    fixture = await createRootEntryFixture({syntheticBindings:{PROCESS_IMPORT_ENABLED:'0',PROCESS_SESSION_SECRET:secret}});
+    const origin = fixture.url.origin;
+    assert.equal(fixture.url.hostname,'127.0.0.1');
+    const {cookie,today,start,tomorrow} = await seedRoutineCalendarFixture(fixture,secret);
+    report.buildEntrySha256 = fixture.buildEntrySha256;
+    stage = 'native Chromium';
+    browser = await chromium.launch({headless:true});
+    const posted = [], blocked = [];
+    async function open(actor, viewport) {
+      const context = await browser.newContext({serviceWorkers:'block',viewport});
+      await context.addCookies([{name:'process_demo',value:cookie(actor),url:origin,httpOnly:true,sameSite:'Lax'}]);
+      await context.route('**/*',route=>{
+        const req = route.request(), url = new URL(req.url()), method = req.method();
+        if (url.origin !== origin) return route.abort();
+        if (method === 'GET' || method === 'HEAD') return route.continue();
+        const body = method === 'POST' && url.pathname === endpoint ? req.postDataJSON() : null;
+        const command = body?.action === 'draft' ? body.command?.action : body?.action;
+        if (writers.has(actor) && allowed.has(command)) {
+          posted.push({actor,command});
+          return route.continue();
+        }
+        blocked.push({actor,method,path:url.pathname});
+        return route.abort();
+      });
+      const page = await context.newPage();
+      page.setDefaultTimeout(18000);
+      return {context,page,root:page.locator('#routine-fqc-root')};
+    }
+    stage = 'phone viewer authority and pristine state';
+    const viewer = await open('routine-reader',{width:390,height:844});
+    await viewer.page.goto(origin+inspection,{waitUntil:'domcontentloaded'});
+    await viewer.root.locator('.rf-calendar-setup').waitFor();
+    assert.equal(await action(viewer.root,'settings').count(),0);
+    const refused = await viewer.context.request.get(origin+endpoint+`?preview=1&calendar=2&start=${start}`);
+    assert.equal(refused.status(),403);
+    assert.equal((await fixture.db.prepare('SELECT revision FROM shared_state WHERE id=1').first()).revision,1);
+    await viewer.context.close();
+    report.checks.push('phone read-only actor cannot preview calendar or change database');
+
+    stage = 'desktop setup and date-response fence';
+    const editor = await open('frank',{width:1280,height:800});
+    const {page,root} = editor;
+    async function read() {
+      const response = await editor.context.request.get(origin+endpoint);
+      assert.equal(response.status(),200);
+      return (await response.json()).control;
+    }
+    await page.goto(origin+inspection,{waitUntil:'domcontentloaded'});
+    await root.locator('.rf-calendar-setup').waitFor();
+    assert.deepEqual(posted,[]);
+    assert.equal((await read()).startDate,null);
+    await action(root,'settings').click();
+    const dialog = page.getByRole('dialog',{name:/設定 FQC 開始日期|Đặt ngày bắt đầu FQC/});
+    const date = dialog.locator('[name="start"]');
+    const preview = dialog.locator('[data-preview]');
+    const confirm = dialog.locator('[type="submit"]');
+    await date.fill(start);
+    assert.equal(await confirm.isDisabled(),true);
+    let release, received;
+    const held = new Promise(resolve=>{release=resolve;});
+    const fetched = new Promise(resolve=>{received=resolve;});
+    const isPreview = url => url.pathname===endpoint && url.searchParams.get('preview')==='1';
+    const delay = async route => {
+      const response = await route.fetch({timeout:15000});
+      received();
+      await held;
+      await route.fulfill({response});
+    };
+    await page.route(isPreview,delay,{times:1});
+    let oldResponse;
+    try {
+      oldResponse = page.waitForResponse(response=>isPreview(new URL(response.url())));
+      await preview.click();
+      await Promise.race([fetched, oldResponse.then(()=>{ throw new Error('First preview was not held'); })]);
+      await date.fill(tomorrow);
+    } finally {
+      release();
+    }
+    assert.equal((await oldResponse).status(),200);
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    assert.equal(await confirm.isDisabled(),true);
+    assert.equal((await dialog.locator('.rf-preview').textContent()).trim(),'');
+    await date.fill(start);
+    const nextResponse = page.waitForResponse(response=>isPreview(new URL(response.url())));
+    await preview.click();
+    const response = await nextResponse;
+    assert.equal(response.status(),200);
+    const projection = await response.json();
+    assert.deepEqual(projection.jobs.map(job=>job.calendar.productCode).sort(),codes);
+    assert.deepEqual(projection.unresolved.map(item=>item.id),['unresolved']);
+    await dialog.locator('.rf-preview').getByText(/Synthetic time item · SYN-P1/).waitFor();
+    assert.deepEqual(posted,[]);
+
+    stage = 'activation and grouped work';
+    await confirm.click();
+    await root.locator('.rf-period-group').first().waitFor();
+    const state = await read();
+    assert.equal(state.startDate,start);
+    assert.equal(state.calendarPolicy.version,2);
+    assert.deepEqual(posted.map(row=>row.command),['configure','generate']);
+    const periods = jobs => jobs.map(job=>[job.id,job.start,job.end,job.calendar.productCode]).sort();
+    assert.deepEqual(periods(state.jobs),periods(projection.jobs));
+    const target = state.jobs.find(job=>job.calendar.productCode===codes[0]);
+    assert(target && target.start===start && target.end>=today);
+    assert.equal(await root.locator('.rf-period-group').count(),codes.length);
+    await root.locator('.rf-period-group').filter({hasText:codes[0]}).locator('[data-period-toggle]').click();
+    const row = root.locator(`[data-period-id="${target.id}"]`);
+    await row.waitFor();
+    assert.equal(await row.locator('[data-job]').isEnabled(),true);
+    await root.locator('.rf-fqc-administration summary').click();
+    assert.equal(await action(root,'settings').isDisabled(),true);
+    report.checks.push('stale date response disabled; browser starts once; rendered periods equal projected jobs and lock date');
+
+
+    const reviewer = await open('routine-reviewer',{width:390,height:844});
+    async function submitDocument() {
+      await action(document,'save').click();
+      await action(document,'submit').click();
+      await page.getByRole('dialog',{name:/確認送審|Xác nhận gửi duyệt/}).locator('[type="submit"]').click();
+      await action(document,'review').waitFor();
+      return read();
+    }
+    async function review(id, pendingId, selfFence = false) {
+      await action(document,'review').click();
+      await page.waitForURL(url=>url.searchParams.get('approvalTab')==='routine' &&
+        url.searchParams.get('rfDocument')===id && url.searchParams.get('rfCase')===pendingId);
+      if (selfFence) {
+        const self = page.locator('#review-routine-fqc .rf-approval');
+        await self.locator('[data-self-review]').waitFor();
+        assert.equal(await action(self,'approve').isDisabled(),true);
+      }
+      await reviewer.page.goto(page.url(),{waitUntil:'domcontentloaded'});
+      const approval = reviewer.page.locator('#review-routine-fqc .rf-approval');
+      await action(approval,'approve').waitFor();
+      assert.equal(await approval.locator('[data-self-review]').count(),0);
+      await action(approval,'approve').click();
+      await approval.waitFor({state:'detached'});
+      const state = await read();
+      const reviewed = find(state.documents,id);
+      assert.equal(reviewed.flow.active.id,pendingId);
+      assert.equal(find(reviewed.flow.cases,pendingId).result.actor.id,'routine-reviewer');
+      return state;
+    }
+
+    stage = 'current-period waiver pending and authorized approval';
+    await row.locator('[data-period-exempt]').click();
+    const document = root.locator('.rf-document');
+    await document.locator('[data-field="reason"]').fill('Synthetic current-period waiver');
+    assert.equal(await action(document,'submit').isDisabled(),true);
+    const pending = await submitDocument();
+    const waiver = pending.documents.find(item=>item.requestKind==='skip');
+    assert(waiver?.flow.pendingId);
+    assert.equal(find(pending.jobs,target.id).completion,null);
+    const saved = waiver.flow.saved.id;
+    assert.equal(find(waiver.flow.cases,waiver.flow.pendingId).savedId,saved);
+    const waived = await review(waiver.id,waiver.flow.pendingId,true);
+    assert.equal(find(waived.jobs,target.id).completion.kind,'skip');
+    assert(waived.jobs.filter(job=>job.id!==target.id).every(job=>!job.completion), 'approval does not apply to another product');
+    assert.deepEqual(posted.map(item=>item.command),['configure','generate','request','save','submit','approve']);
+    report.checks.push('only the selected product closes after separate approval in the routine queue; self-confirm defaults locked');
+
+    async function tab(name) {
+      await page.goto(origin+inspection.replace('rfTab=sources','rfTab='+name),{waitUntil:'domcontentloaded'});
+      await root.locator('.rf-calendar-flow').waitFor();
+    }
+    async function enterReport(planId, outcome) {
+      await tab('reports');
+      await root.locator(`[data-plan-report="${planId}"]:visible`).click();
+      const result = document.locator(`[data-outcome="${outcome}"]`);
+      await result.click();
+      assert.equal(await result.getAttribute('aria-pressed'),'true');
+    }
+    async function initialAbnormal(code) {
+      const job = state.jobs.find(item=>item.calendar.productCode===code);
+      await tab('sources');
+      await root.locator('.rf-period-group').filter({hasText:code}).locator('[data-period-toggle]').click();
+      await root.locator(`[data-job="${job.id}"]`).check();
+      await action(root,'create-plan').click();
+      await page.getByRole('dialog',{name:/建立檢查計畫|Tạo kế hoạch kiểm tra/}).locator('[type="submit"]').click();
+      await document.locator('[data-field="notes"]').fill('Plan for '+code);
+      const admission = await submitDocument();
+      const plan = admission.documents.find(item=>item.kind==='plan' && !item.requestKind && item.flow.pendingId);
+      assert.equal(plan.flow.saved.content.lines[0].jobId,job.id);
+      assert.equal(admission.documents.some(item=>item.planId===plan.id),false,'pending plan has no report');
+      await review(plan.id,plan.flow.pendingId);
+      await enterReport(plan.id,'abnormal');
+      await document.locator('[data-result-field="notes"]').fill('Synthetic original abnormal report for '+code);
+      const reported = await submitDocument();
+      const original = reported.documents.find(item=>item.kind==='report'&&item.planId===plan.id);
+      assert(original?.flow.pendingId);
+      assert.equal(reported.cases.some(item=>item.originReportId===original.id),false,'pending report does not publish a case');
+      const approved = await review(original.id,original.flow.pendingId);
+      return {original:find(approved.documents,original.id), item:approved.cases.find(item=>item.originReportId===original.id)};
+    }
+
+    stage = 'plan and report approval, then retest returns to report';
+    const retestOrigin = await initialAbnormal(codes[1]);
+    await tab('cases');
+    const retestCase = root.locator(`.rf-list-panel [data-case="${retestOrigin.item.id}"]`);
+    await retestCase.click();
+    await action(root,'calendar-retest').click();
+    await document.locator('[data-field="planStart"]').fill(today);
+    await document.locator('[data-field="planEnd"]').fill(today);
+    await document.locator('[data-field="reason"]').fill('Synthetic retest after investigation');
+    const requested = await submitDocument();
+    const retest = requested.documents.find(item=>item.retestApplicationCaseId===retestOrigin.item.id);
+    assert(retest?.flow.pendingId);
+    assert.equal(find(requested.cases,retestOrigin.item.id).status,retestOrigin.item.status);
+    assert.equal(requested.documents.some(item=>item.kind==='report'&&item.planId===retest.id),false);
+    await review(retest.id,retest.flow.pendingId);
+    await tab('cases');
+    await retestCase.waitFor({state:'detached'});
+    await enterReport(retest.id,'pass');
+    await document.locator('[data-result-field="value"]').fill('Synthetic retest pass');
+    const retested = await submitDocument();
+    const retestReport = retested.documents.find(item=>item.kind==='report'&&item.planId===retest.id);
+    assert(retestReport?.flow.pendingId);
+    assert.notEqual(find(retested.cases,retestOrigin.item.id).status,'closed');
+    const closed = await review(retestReport.id,retestReport.flow.pendingId);
+    assert.equal(find(closed.cases,retestOrigin.item.id).status,'closed');
+    assert.deepEqual(find(closed.documents,retestOrigin.original.id).flow.active,retestOrigin.original.flow.active);
+    report.checks.push('approved abnormal report routes to case; approved retest opens the report; approved passing retest closes with original unchanged');
+
+    stage = 'disposition applies only after approval with original retained';
+    const dispositionOrigin = await initialAbnormal(codes[2]);
+    await tab('cases');
+    await root.locator(`.rf-list-panel [data-case="${dispositionOrigin.item.id}"]`).click();
+    await action(root,'calendar-disposal').click();
+    await document.locator('[data-field="reason"]').fill('Synthetic reason for disposition');
+    await document.locator('[data-field="disposition"]').fill('Synthetic disposition instructions');
+    const disposalPending = await submitDocument();
+    const disposal = disposalPending.documents.find(item=>item.kind==='disposal'&&item.caseId===dispositionOrigin.item.id);
+    assert(disposal?.flow.pendingId);
+    assert.equal(find(disposalPending.cases,dispositionOrigin.item.id).status,dispositionOrigin.item.status);
+    const final = await review(disposal.id,disposal.flow.pendingId);
+    assert.equal(find(final.cases,dispositionOrigin.item.id).status,'disposed');
+    assert.deepEqual(find(final.documents,dispositionOrigin.original.id).flow.active,dispositionOrigin.original.flow.active);
+    assert.equal(find(final.cases,retestOrigin.item.id).status,'closed');
+    const reviewWrites = posted.length;
+    await tab('reports');
+    await root.locator('[data-work-state="approved-history"]').click();
+    await root.locator(`[data-approved-report][data-timeline-doc="${retestOrigin.original.id}"]`).click();
+    const history = page.locator('dialog.rf-timeline-dialog[open]');
+    await history.getByText('Synthetic original abnormal report for '+codes[1]).waitFor();
+    assert.equal(await history.locator('input,textarea,select').count(),0);
+    await history.locator('[data-cancel]').click();
+    assert.equal(posted.length,reviewWrites);
+    assert.deepEqual(blocked,[]);
+    assert.deepEqual(posted.map(item=>item.command),[
+      'configure','generate','request','save','submit','approve',
+      'create-plan','save','submit','approve','create-report','save','submit','approve',
+      'request','save','submit','approve','create-report','save','submit','approve',
+      'create-plan','save','submit','approve','create-report','save','submit','approve',
+      'request','save','submit','approve',
+    ]);
+    report.checks.push('disposition closes only its own case after approval without rewriting the original report');
+    report.status = 'PASS_NATIVE_SYNTHETIC_ROUTINE_FQC';
+    return report;
+  } catch (error) {
+    throw new Error(`Routine FQC synthetic browser stage "${stage}": ${String(error.message).replaceAll(secret,'[redacted]').slice(0,450)}`);
+  } finally {
+    if (browser) await browser.close();
+    if (fixture) await fixture.close();
+  }
+}
