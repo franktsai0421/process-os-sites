@@ -24,6 +24,23 @@
 
    私人儲存庫由維護者在可信的電腦上使用已登入且有讀取權限的 GitHub CLI。指令只會送出唯讀 GET，不提示登入，也不把權杖寫進指令或證明。公開儲存庫可省略旗標以使用匿名唯讀查詢。它查證目前 PR、簽署提交、擁有人和該 PR 上的核准。舊 head 的核准、最新要求修改或被撤銷的核准、比對期間改變的證據、失敗的 API 查詢，都會中止。成功僅表示當時查到符合條件的 GitHub 審查紀錄。它不能保證此後的審查狀態、證明誰實際操作帳號、發佈資料，或讓來源 CI 接受新的檔案內容。
 
+
+## 單人私人儲存庫
+
+這個模式只接受個人擁有的私人儲存庫，且 PR 由同一位擁有者在該庫內開出。使用既有、能唯讀存取該庫的 GitHub CLI 登入狀態。模式由維護者在可信副本選擇，PR 內容或參數檔不能切換審查政策。需要獨立審查的流程繼續使用原本的 `verify`。
+
+1. 在可信副本取得 PR 當前 base、head 的 Git 物件，執行 `node scripts/routine-source-review.cjs owner-evidence OWNER/REPO PR_NUMBER BASE_SHA HEAD_SHA`。核對逐檔差異、測試結果及輸出的 `statement`。
+2. 確認差異後，由擁有人用自己的 GitHub 帳號在該 PR 的 Conversation 新增一則普通留言。留言全文只貼上 `statement`。保留原留言，修正需另發新留言。撤回時刪除該留言。本工具只查證留言，從不建立或編輯留言。
+3. 從留言的永久連結 `#issuecomment-123` 取得尾端數字，執行 `node scripts/routine-source-review.cjs owner-verify OWNER/REPO PR_NUMBER BASE_SHA HEAD_SHA COMMENT_ID`。成功會回傳 `github-owner-attestation-observed`。這是擁有人聲明紀錄。它不會計為獨立 PR 核准、發布必要狀態或改動固定來源證明。
+
+聲明摘要包含儲存庫與擁有人的穩定身分、PR、base、head、檔案原始 bytes 摘要及 GitHub 回傳的分支變更事件。換版要重新取證並留言，分支強制回到相同提交也不能重用舊聲明。程式透過既有登入的 GitHub CLI 使用 REST GET 和固定的唯讀 GraphQL query。查證必須取得 GitHub 的擁有人、原始留言、App 來源及編輯紀錄。資料缺失、留言經 App 發布、經電子郵件建立、被編輯或被隱藏都會拒絕。GitHub 只能證明記錄的帳號來源，請勿讓代理、共用帳號或自動程式代發聲明。
+
+這個模式尚未連接任何合併關卡或歷史來源驗證。即使聲明可查證，歷史固定來源仍須按既有流程審查，並通過原 byte 檢查與負例。擁有人仍需在安全環境驗證實際 GitHub 留言和新版拒絕，不在業務 PR 上演練。
+
+- [GitHub Issue comment REST API](https://docs.github.com/en/rest/issues/comments#get-an-issue-comment)
+- [GitHub GraphQL IssueComment 欄位](https://docs.github.com/en/graphql/reference/issues#issuecomment)
+- [GitHub PullRequest 時間線](https://docs.github.com/en/graphql/reference/pulls#pullrequesttimelineitemsitemtype)
+
 ## 啟用強制合併關卡的前提
 
 本提交沒有安裝 GitHub workflow 或變更儲存庫設定。若日後要把流程設為必要檢查，先由有權的維護者確認正式設定與能在測試儲存庫強制執行的結果。
