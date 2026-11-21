@@ -11,14 +11,14 @@ void test('real shell groups only expression scripts, retaining boundaries and p
   const html = combineProcessStyles(fs.readFileSync('public/process/index.html','utf8'), name => fs.readFileSync('public/process/'+name,'utf8')).html;
   const result = combineProcessScripts(html, name => fs.readFileSync('public/process/'+name,'utf8'));
   assert.equal(result.assets.length, 2);
-  assert.equal(result.assets.reduce((n,a)=>n+a.sources.length,0), 60);
+  assert.equal(result.assets.reduce((n,a)=>n+a.sources.length,0), 59);
   assertProcessScriptBundles(result.assets,name=>fs.readFileSync('public/process/'+name,'utf8'));
   assert.equal(result.assets.flatMap(asset=>asset.sources).filter(name=>name==='canvas-approved-history.js').length,1,'Canvas history is included exactly once');
-  for(const name of ['page-draft-merge.js','master-page-transfer.js','master-page-approved-history.js','master-page-editor.js','master-page-excel.js','routine-page-approved-history.js','routine-fqc-page.js','routine-reset.js','routine-iqc.js','routine-fqc.js'])assert.equal(result.assets.flatMap(a=>a.sources).filter(file=>file===name).length,1,name+' loads exactly once');
+  for(const name of ['page-draft-merge.js','master-page-transfer.js','master-page-approved-history.js','master-page-editor.js','master-page-excel.js','routine-page-approved-history.js','routine-fqc-page.js','routine-iqc.js','routine-fqc.js'])assert.equal(result.assets.flatMap(a=>a.sources).filter(file=>file===name).length,1,name+' loads exactly once');
   // Include routine IQC once before FQC, keeping the generic-history dependency
   // and both owner runtimes in exact source order.
   const routineAsset=result.assets.find(asset=>asset.sources.includes('routine-fqc.js'));
-  const routineOrder=['canvas-approved-history.js','routine-page-approved-history.js','routine-fqc-page.js','routine-reset.js','routine-iqc.js','routine-fqc.js'];
+  const routineOrder=['canvas-approved-history.js','routine-page-approved-history.js','routine-fqc-page.js','routine-iqc.js','routine-fqc.js'];
   for(const name of routineOrder)assert(routineAsset.sources.includes(name),name+' stays in the same ordered owner bundle');
   for(let i=1;i<routineOrder.length;i++)assert(routineAsset.sources.indexOf(routineOrder[i-1])<routineAsset.sources.indexOf(routineOrder[i]),routineOrder[i-1]+' precedes '+routineOrder[i]);
   const accountAsset=result.assets.find(asset=>asset.sources.includes('user-access.js'));
