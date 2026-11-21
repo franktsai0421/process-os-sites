@@ -51,7 +51,7 @@ function github(evidence) {
   return { pull, approval, commits, read };
 }
 
-test('evidence uses the exact committed bytes and rejects ambiguous scope', t => {
+void test('evidence uses the exact committed bytes and rejects ambiguous scope', t => {
   const f = fixture(t);
   assert.equal(f.evidence.files.length, 1);
   const row = f.evidence.files[0];
@@ -71,7 +71,7 @@ test('evidence uses the exact committed bytes and rejects ambiguous scope', t =>
   assert.throws(() => sourceEvidence(repo, 7, f.base, f.git('rev-parse', 'HEAD'), f.cwd), /non-executable/);
 });
 
-test('approval is observed only from the independent owner at the exact GitHub head and digest', async t => {
+void test('approval is observed only from the independent owner at the exact GitHub head and digest', async t => {
   const { evidence } = fixture(t);
   const service = github(evidence);
   assert.deepEqual(await verifySourceReview(evidence, service.read), {
@@ -88,7 +88,7 @@ test('approval is observed only from the independent owner at the exact GitHub h
   assert.equal((await verifySourceReview(evidence, paginated)).review, 100);
 });
 
-test('rejects author, collaborator, bot, copied text, stale or withdrawn approval and API loss', async t => {
+void test('rejects author, collaborator, bot, copied text, stale or withdrawn approval and API loss', async t => {
   const { evidence, base } = fixture(t);
   const { approval, read } = github(evidence);
   const denied = [
@@ -109,7 +109,7 @@ test('rejects author, collaborator, bot, copied text, stale or withdrawn approva
   await assert.rejects(verifySourceReview(evidence, () => Promise.reject(Error('Network unavailable'))), /Network unavailable/);
 });
 
-test('rejects self-review, contributor identity drift, changed PR snapshot and a dismissal during verification', async t => {
+void test('rejects self-review, contributor identity drift, changed PR snapshot and a dismissal during verification', async t => {
   const { evidence, base } = fixture(t);
   const { pull, approval, commits, read } = github(evidence);
   const withPull = changes => suffix => suffix ? read(suffix) : Promise.resolve({ ...pull, ...changes });

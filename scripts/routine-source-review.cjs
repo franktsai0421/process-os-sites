@@ -37,8 +37,9 @@ function sourceEvidence(repo, number, base, head, cwd = process.cwd()) {
   const entry = (commit, path) => {
     const line = git('ls-tree', '-z', commit, '--', path).toString();
     if (!line) return null;
-    const match = /^(100644) blob ([0-9a-f]{40})\t([^\0]+)\0$/.exec(line);
-    requireReview(match?.[3] === path, 'Expected a regular, non-executable source file: ' + path);
+    const match = /^(100644) blob ([0-9a-f]{40})/.exec(line);
+    requireReview(match && line.slice(match[0].length) === '\t' + path + '\0',
+      'Expected a regular, non-executable source file: ' + path);
     return { mode: match[1], blob: match[2] };
   };
   const digest = file => file ? { ...file, sha256: sha256(git('cat-file', 'blob', file.blob)) } : null;
