@@ -3,7 +3,7 @@ import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {expectedProcessBundleGroups} from './process-shell-bundle-oracle.mjs';
+import {expectedProcessBundleGroups,historicalProcessBundleGroups} from './process-shell-bundle-oracle.mjs';
 import {combineProcessScripts} from '../lib/process-scripts-build.mjs';
 import {combineProcessStyles} from '../lib/process-styles-build.mjs';
 
@@ -14,17 +14,18 @@ const dependencies = ['routine-reset.js', 'routine-fqc-page.js', 'routine-iqc.js
 void test('the routine reset control loads once before all three renderers on a cold boot', () => {
   const urls = Array.from(shell.matchAll(/<script data-process-src="([^"]+)"><\/script>/g), match => match[1]);
   const selected = urls.filter(url => dependencies.includes(url.split('?')[0]));
-  assert.deepEqual(selected, ['routine-reset.js?v=2', 'routine-fqc-page.js?v=20261121-reset1', 'routine-iqc.js?v=20261121-reset1', 'routine-fqc.js?v=20261121-reset1']);
+  assert.deepEqual(selected, ['routine-reset.js?v=2', 'routine-fqc-page.js?v=20261121-reset1', 'routine-iqc.js?v=20261121-reset1', 'routine-fqc.js?v=20261121-readiness1']);
   assert.deepEqual(Array.from(shell.matchAll(/href="(routine-fqc\.css\?v=[^"]+)"/g), m => m[1]),
-    ['routine-fqc.css?v=20261121-reset1']);
+    ['routine-fqc.css?v=20261121-readiness1']);
 });
 
 // Exercise the proposed added dependency independently of the historical oracle.
 void test('both distributed bundles have exactly the proposed sources, bytes and completion receipts', () => {
   const {assets, html} = combineProcessScripts(combineProcessStyles(shell, read).html, read);
-  const expected = expectedProcessBundleGroups.map(group => group.flatMap(name =>
+  const expected = historicalProcessBundleGroups.map(group => group.flatMap(name =>
     name === 'routine-fqc-page.js' ? ['routine-reset.js', name] : [name]));
   assert.equal(expected.flat().length, 60);
+  assert.deepEqual(expected, expectedProcessBundleGroups);
   const verify = bundles => {
     assert.deepEqual(bundles.map(asset => asset.sources), expected);
     for (const [index, group] of expected.entries()) {
@@ -61,10 +62,10 @@ void test('the proposed shell delta is confined to the four routine asset tags',
   const script = url => '    <script data-process-src="'+url+'"></script>';
   let expected = show(base).toString('utf8');
   for (const [from,to] of [
-    ['routine-fqc.css?v=20261120-fqc-period-history1','routine-fqc.css?v=20261121-reset1'],
+    ['routine-fqc.css?v=20261120-fqc-period-history1','routine-fqc.css?v=20261121-readiness1'],
     [script('routine-fqc-page.js?v=20261112-quality-main-joint1'),script('routine-reset.js?v=2')+'\n'+script('routine-fqc-page.js?v=20261121-reset1')],
     [script('routine-iqc.js?v=20261120-routine-refresh1'),script('routine-iqc.js?v=20261121-reset1')],
-    [script('routine-fqc.js?v=20261120-fqc-period-history1'),script('routine-fqc.js?v=20261121-reset1')],
+    [script('routine-fqc.js?v=20261120-fqc-period-history1'),script('routine-fqc.js?v=20261121-readiness1')],
   ]) {
     assert.equal(expected.split(from).length,2,from);
     expected=expected.replace(from,to);

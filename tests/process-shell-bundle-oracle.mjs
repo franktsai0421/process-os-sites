@@ -20,10 +20,15 @@ groups[1].splice(groups[1].indexOf('version-draft-ui.js'),1);
 groups[1].splice(groups[1].indexOf('master-data.js'),0,'version-draft-ui.js',...reviewedProcessBundleAdditions.slice(0,5));
 groups[1].splice(groups[1].indexOf('routine-fqc.js'),0,...reviewedProcessBundleAdditions.slice(5,8));
 groups[1].splice(groups[1].indexOf('user-access.js'),0,reviewedProcessBundleAdditions[8]);
+export const historicalProcessBundleGroups=Object.freeze(groups.map(row=>Object.freeze([...row])));
+export const proposedProcessBundleAdditions=Object.freeze(['routine-reset.js']);
+const resetAnchor='routine-fqc-page.js';
+assert.equal(groups[1].filter(name=>name===resetAnchor).length,1);
+groups[1].splice(groups[1].indexOf(resetAnchor),0,...proposedProcessBundleAdditions);
 export const expectedProcessBundleGroups=Object.freeze(groups.map(row=>Object.freeze(row)));
 export function assertProcessScriptBundles(assets,readSource){
- assert.deepEqual(assets.map(asset=>asset.sources),expectedProcessBundleGroups,'exact reviewed bundle groups and source order');
- assert.equal(new Set(assets.flatMap(asset=>asset.sources)).size,baseline.flat().length+reviewedProcessBundleAdditions.length,'each reviewed source loads once');
+ assert.deepEqual(assets.map(asset=>asset.sources),expectedProcessBundleGroups,'exact expected bundle groups and source order');
+ assert.equal(new Set(assets.flatMap(asset=>asset.sources)).size,baseline.flat().length+reviewedProcessBundleAdditions.length+proposedProcessBundleAdditions.length,'each expected source loads once');
  for(let index=0;index<expectedProcessBundleGroups.length;index++){
   const body=expectedProcessBundleGroups[index].map(name=>`;\n/* ${name} */\n${readSource(name)}\n`).join('\n');
   const id=createHash('sha256').update(body).digest('hex').slice(0,20),asset=assets[index];

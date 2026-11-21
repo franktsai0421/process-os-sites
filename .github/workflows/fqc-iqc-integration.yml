@@ -37,7 +37,7 @@ jobs:
       - run: node scripts/sites-ci-preflight.mjs
       - run: node tests/sites-ci-negative-review.test.mjs
       - name: Isolated routine start, restart and reset acceptance
-        run: node --test tests/routine-reset-assets.test.mjs tests/routine-startup-isolated-restart.test.cjs tests/routine-reset-page-layout.test.cjs tests/routine-reset-page-ui.test.mjs
+        run: node --test tests/routine-reset-assets.test.mjs tests/routine-startup-isolated-restart.test.cjs tests/routine-reset-page-layout.test.cjs tests/routine-reset-page-ui.test.mjs tests/routine-fqc-source-coverage.test.cjs tests/routine-iqc-source-coverage.test.cjs tests/routine-fqc-source-readiness.test.mjs
       - run: node --test tests/quality-integration-source-proof.test.cjs tests/access-event-main-integration.test.cjs tests/routine-fqc-source-contract.test.cjs
       - run: node --test tests/navigation-adapters.test.mjs tests/shared-draft-receipt-recovery.test.mjs
       - run: node --test tests/process-scripts-build.test.mjs tests/quality-shell-bundle-oracle.test.mjs tests/quality-submission-fences.test.mjs

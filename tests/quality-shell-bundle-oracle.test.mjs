@@ -4,12 +4,16 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {combineProcessScripts} from '../lib/process-scripts-build.mjs';
 import {combineProcessStyles} from '../lib/process-styles-build.mjs';
-import {assertProcessScriptBundles,assertServedProcessScriptBundles,expectedProcessBundleGroups,reviewedProcessBundleAdditions,processBundleBaselineCommit} from './quality-shell-bundle-oracle.mjs';
+import {assertProcessScriptBundles,assertServedProcessScriptBundles,expectedProcessBundleGroups,proposedProcessBundleAdditions,historicalProcessBundleGroups,reviewedProcessBundleAdditions,processBundleBaselineCommit} from './quality-shell-bundle-oracle.mjs';
 const read=name=>fs.readFileSync('public/process/'+name,'utf8');
 const html=combineProcessStyles(read('index.html'),read).html,result=combineProcessScripts(html,read);
 const copy=()=>result.assets.map(asset=>({...asset,sources:[...asset.sources]}));
 void test('reviewed main50 plus the named quality/PROCESS, routine IQC and account receipt modules produces the independently ordered current bundles',()=>{
  assert.equal(processBundleBaselineCommit,'9fbba823090f03da8385c8d92f5e59293d19d2f1');
+ assert.deepEqual(proposedProcessBundleAdditions,['routine-reset.js']);
+ assert.equal(historicalProcessBundleGroups.flat().length,59);
+ assert.equal(expectedProcessBundleGroups.flat().length,60);
+ assert.deepEqual(expectedProcessBundleGroups.map(group=>group.filter(name=>name!=='routine-reset.js')),historicalProcessBundleGroups);
  assert.deepEqual(reviewedProcessBundleAdditions,['canvas-approved-history.js','page-draft-merge.js','master-page-transfer.js','master-page-approved-history.js','master-page-editor.js','routine-page-approved-history.js','routine-fqc-page.js','routine-iqc.js','account-write-receipt.js']);
  assertProcessScriptBundles(result.assets,read);
  const names=[...html.matchAll(/<script data-process-src="([^"]+)"><\/script>/g)].map(match=>match[1].split('?')[0]);

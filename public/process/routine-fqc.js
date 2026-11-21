@@ -900,6 +900,19 @@
         '',
       )}<label>${t('日期類型', 'Loại ngày')}<select data-filter="dateMode"><option value="period" ${s.dateMode === 'period' ? 'selected' : ''}>${t('應檢期別', 'Kỳ kiểm tra')}</option><option value="actual" ${s.dateMode === 'actual' ? 'selected' : ''}>${t('實際檢查日', 'Ngày kiểm tra')}</option></select></label><label>${t('從', 'Từ')}<input type="date" data-filter="from" value="${h(s.from)}"></label><label>${t('至', 'Đến')}<input type="date" data-filter="to" value="${h(s.to)}"></label>${btn('clear-filter', t('清除篩選', 'Xóa bộ lọc'))}</div></details>`;
   }
+  function calendarReadiness() {
+    const timed=data.sources.filter(source=>source.frequency);
+    const mapped=timed.filter(source=>source.products.length);
+    const unmapped=timed.length-mapped.length;
+    const pairs=new Set(mapped.flatMap(source=>source.products.map(product=>
+      JSON.stringify([source.line,product.code,source.id]))));
+    const items=data.catalog?.items||[];
+    const other=items.filter(item=>item.enabled&&!['time','pending_confirmation'].includes(item.cadence)).length;
+    const disabled=items.filter(item=>!item.enabled).length;
+    const timedIds=new Set(timed.map(source=>source.id));
+    const unresolved=items.filter(item=>item.enabled&&['time','pending_confirmation'].includes(item.cadence)&&!timedIds.has(item.id)).length;
+    return `<p class="rf-source-summary">${t('FQC 正式版本','Phiên bản FQC đã duyệt')} ${h(data.catalog?.version||'—')} · ${t('已核准標準時間項目','Hạng mục có tần suất chuẩn đã duyệt')} ${timed.length} · ${t('已指定產品的項目','Hạng mục đã gán sản phẩm')} ${mapped.length} · ${t('項目與產品配對','Cặp hạng mục và sản phẩm')} ${pairs.size} · ${t('未指定產品的項目','Hạng mục chưa gán sản phẩm')} ${unmapped} · ${t('非定期','Không định kỳ')} ${other} · ${t('停用','Đã tắt')} ${disabled} · ${t('頻率待確認','Chờ xác nhận tần suất')} ${unresolved}${unmapped?`<br>${t('未指定產品的時間項目不會產生期別。請在 FQC 資料後台指定產品並核准。','Hạng mục định kỳ chưa gán sản phẩm sẽ không tạo kỳ kiểm tra. Hãy gán sản phẩm trong dữ liệu FQC và duyệt thay đổi.')}`:''}${!timed.length?`<br>${t('請在 FQC 資料後台設定標準時間頻率與適用產品，並核准版本。','Hãy đặt tần suất chuẩn, gán sản phẩm áp dụng và duyệt phiên bản trong dữ liệu FQC.')}`:''}</p>`;
+  }
   function sourceNotice() {
     if (!data.catalog) return '';
     const items = data.catalog.items.filter(withinScope),
@@ -1042,11 +1055,15 @@
     return !!c && !c.startDate && !c.calendarPolicy && !c.jobs.length && !c.documents.length && !c.cases.length;
   };
   function calendarSetup() {
-    if (!calendarSetupAvailable()) return '';
+    if (!calendarSetupAvailable()){
+      if(!calendarMode()||!['sources','jobs'].includes(s.tab))return '';
+      if(data.control.jobs.length)return `<details class="rf-source-readiness"><summary>${t('查看 FQC 排程來源','Xem nguồn lập lịch FQC')}</summary>${calendarReadiness()}</details>`;
+      return `<section class="rf-empty">${data.control.startDate>data.today?`<p>${t('尚未到開始日期','Chưa đến ngày bắt đầu')} · ${h(data.control.startDate)}</p>`:''}${calendarReadiness()}</section>`;
+    }
     return `<section class="rf-empty rf-calendar-setup">
       <h3>${t('FQC 排程尚未啟動','Lịch FQC chưa bắt đầu')}</h3>
-      <p>${t('設定開始日期後，依已核准的標準頻率產生當期檢查項目。','Sau khi đặt ngày bắt đầu, hệ thống tạo hạng mục trong kỳ từ tần suất chuẩn đã duyệt.')}</p>
-      ${sourceNotice()}
+      <p>${t('設定開始日期後，依已核准的時間頻率與指定產品產生期別。','Sau khi đặt ngày bắt đầu, hệ thống tạo kỳ theo tần suất đã duyệt và sản phẩm được gán.')}</p>
+      ${calendarReadiness()}
       ${data.permissions.settings && data.permissions.edit ? '' : `<p>${t('請由有排程設定權限的使用者設定開始日期。','Nhờ người có quyền thiết lập lịch đặt ngày bắt đầu.')}</p>`}
     </section>`;
   }
