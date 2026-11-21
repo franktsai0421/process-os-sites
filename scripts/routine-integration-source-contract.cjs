@@ -112,8 +112,33 @@ function startupPredecessor(file, entry) {
   return prior;
 }
 
+// Exact test-file revisions for the startup inventory and its cache/order expectations.
+const startupTestTree='902282dba25500f80a64ec6f1922ad1d0a09a5eb';
+const startupTests=Object.freeze({
+  'tests/account-page-entry.test.cjs':['1a84ebffc05ffaa3078850cad613398dc2a8737018bcf5f531e2c26e09ecc9be','f1d319f377de927b2132090368c92681839b1d01','332cff632d00f76254f18265f11fc1f0222166b9'],
+  'tests/navigation-adapters.test.mjs':['4b156c6a03ab764696fb4ff32ae0004755fb6ff7501834775629cff5a4b2c06c','7b7fadba1c03920c747c7149c6cb16438fc0aec6','f6c6a715b1131644eabbd1687575eec931d484f6'],
+  'tests/accounts-process-integration-source.test.mjs':['f6a458f88af4f0049453b1596a533543584a860adacb4e70e809fd2c177f6967','ef3ce8c4bca500a84f2b43841694b43c205f5a9a','ac1cf4c6021195c02c86e8a10fae42f651276b64'],
+  'tests/process-scripts-build.test.mjs':['67173b5a1531eccac8ae20924b928d5b2caba72b8bdbb76ebf03f73b2b3eaa4e','522043e278ffb538b7523887b234a1250cfb187f','fb215348fabf77ae97d9325adfc0b2e9c61b1152'],
+  'tests/process-shell-bundle-oracle.mjs':['a7a019b2f37b43c19726a900352c3aa4aa71bbbc7b81488d4d614bd3c599326f','95383f55f5d9a37ec695dc877e74d317f7f868df','fcc8b164dee86c5d84cf1d64ef809b2ea1566b3d'],
+  'tests/process-shell-bundle-oracle.test.mjs':['cfbb6d5f89df3b161236b13c73998d944d428e05cd2f69626be9d7908cb5e99a','88e4e67516b1db389caa1ef81b7b0d4a4376085d','2a708d1344c1e0c67c55c25af526b33db84ea255'],
+  'tests/quality-shell-bundle-oracle.test.mjs':['939c277082afafcfce84afe856d282cf88e2a1fa63c8a329c0455359473fc638','9e4d2114743b8acd27bf88dda935f42a250f3484','d9f255ca3214fd6f6357d106f048474175933a1f'],
+});
+
+function startupTestPreimage(bytes,file) {
+  if (!Object.hasOwn(startupTests,file)) return null;
+  const [digest,after,before]=startupTests[file];
+  if (!exactCheckout(bytes,{current:digest,currentLf:digest})) return null;
+  for (const [tree,blob] of [[startupTestTree,after],[startupBaseTree,before]]) {
+    assert.equal(git('ls-tree',tree,'--',file).toString().trimEnd(),'100644 blob '+blob+'\t'+file);
+  }
+  preimage(startupTestTree,file,digest);
+  return git('cat-file','blob',before);
+}
+
 function projectKnown(bytes, file) {
   assert(Buffer.isBuffer(bytes), 'Routine integration proof requires raw Buffer');
+  const previousTest=startupTestPreimage(bytes,file);
+  if (previousTest) return projectKnown(previousTest,file);
   const entry = startupPin(file);
   if (entry && exactCheckout(bytes, entry)) {
     return projectKnown(Buffer.from(startupPredecessor(file, entry)), file);
