@@ -38,6 +38,7 @@ void test('ten synthetic IQC cases traverse the real authenticated plan, report 
    for(const key of Object.keys(user.accessOverrides))if(key.startsWith('routine.'))user.accessOverrides[key]=true;
   }
   const admin={...editor,id:'routine-qa-isolated-admin',role:'admin'};
+  const owner={...admin,id:'frank'};
   const route=f.load('app/api/routine-iqc/route.ts'), photoRoute=f.load('app/api/routine-iqc/photo/route.ts');
   const fqcRoute=f.load('app/api/routine-fqc/route.ts'), masterRoute=f.load('app/api/iqc/workflow/route.ts');
   const reviewedKinds=new Set();
@@ -52,13 +53,13 @@ void test('ten synthetic IQC cases traverse the real authenticated plan, report 
   ],issues:[],reservedErrorCodes:[],reservedCheckNos:[]});
   const fqc=JSON.stringify({schemaVersion:1,revision:2,startDate:null,jobs:[],documents:[{id:'fqc-sentinel',cancelled:true}],cases:[]});
   await f.mutate(values=>{
-   values.platformUsers=JSON.stringify([editor,reviewer,admin]);
+   values.platformUsers=JSON.stringify([editor,reviewer,admin,owner]);
    values.iqcMasterControl=master;
    values.routineFqcControl=fqc;
    values.routineFqcEnabled='1';
   });
   const cookies={};
-  for(const user of [editor,reviewer,admin]){
+  for(const user of [editor,reviewer,admin,owner]){
    cookies[user.id]=f.core.sessionCookie(new Request(endpoint),await f.core.demoSession(new Request(endpoint),user.id,false,1)).split(';')[0];
   }
   const call=async(method,path=endpoint,options={})=>{
@@ -79,9 +80,12 @@ void test('ten synthetic IQC cases traverse the real authenticated plan, report 
    if(status===200)data=await read();
    return status===200?value.result:value.error;
   };
-  const configure=await read(admin);
-  await execute('configure',{start:today,scope:'routine-iqc-only',confirm:'START IQC',startAck:true,
-   reason:'TEST ONLY schedule ten sample rows',expectedStateRevision:configure.stateRevision},admin);
+  const configure=await read(owner);
+  const startFields={start:today,scope:'routine-iqc-only',confirm:'START IQC',startAck:true,
+   reason:'TEST ONLY schedule ten sample rows',expectedStateRevision:configure.stateRevision};
+  for(const actor of [reviewer,admin])await execute('configure',startFields,actor,403);
+  assert.deepEqual(await read(),data);
+  await execute('configure',startFields,owner);
   assert.equal(data.jobs.length,10);
   const photo=Buffer.from(await tinyPNG().arrayBuffer());
   const storedPhoto=await call('PUT',endpoint+'/photo',{body:photo,type:'image/png',handler:photoRoute});
