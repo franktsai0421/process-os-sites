@@ -68,7 +68,7 @@ async function fixture(t, { withPeer = false } = {}) {
   };
   const peer = withPeer ? { ...clone(user), id: 'fixture-route-peer', name: 'Synthetic independent peer' } : null;
   const values = {
-    platformUsers: JSON.stringify(peer ? [user, peer] : [user]),
+    platformUsers: JSON.stringify([user, ...(peer ? [peer] : []), {...user, id: 'frank'}]),
     routineFqcEnabled: '1', sentinel: JSON.stringify('unrelated synthetic module bytes'),
     qualityMasterControl: JSON.stringify({ libraries: { fqc: {
       activeVersionId: 'fixture-approved-source',
@@ -88,6 +88,7 @@ async function fixture(t, { withPeer = false } = {}) {
   const base = 'https://routine-fixture.invalid';
   const url = base + '/api/routine-fqc';
   const cookies = { owner: 'process_demo=' + await core.demoSession(new Request(url), user.id, false) };
+  cookies.scheduler = 'process_demo=' + await core.demoSession(new Request(url), 'frank', false);
   if (peer) cookies.peer = 'process_demo=' + await core.demoSession(new Request(url), peer.id, false);
   const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
     .all().map((row) => row.name);
@@ -143,7 +144,7 @@ async function fixture(t, { withPeer = false } = {}) {
     };
   };
   async function accepted(command) {
-    const response = await post(command);
+    const response = await post(command, command.action === 'configure' ? 'scheduler' : 'owner');
     assert.equal(response.status,200,command.action+' '+JSON.stringify(response.body));
     assert.match(response.body.requestId, uuid, 'original POST carries a server request UUID');
     return response.body;

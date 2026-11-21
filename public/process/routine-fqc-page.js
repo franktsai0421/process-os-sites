@@ -78,14 +78,23 @@
     return;
    }throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
   }
-  async function manage(action,input={}){history?.assertMutable();
+  async function manage(action,input={},observed){history?.assertMutable();
    if(hasPhotoUnknown())throw Error('PHOTO_UPLOAD_OUTCOME_UNKNOWN');if(client.hasUnknown()||pendingSave||pendingDomain)throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');if(action!=='generate'&&dirty())throw Error('UNSAVED_CHANGES_SAVE_REQUIRED');
-   if(action!=='generate'){interactionLock=true;render();}const fresh=await client.read();if(!current())throw Error('ACCESS_READ_SUPERSEDED');const snapshot=fresh.control.workflow;pendingDomain=true;
+   if(action!=='generate'){interactionLock=true;render();}const fresh=await client.read();if(!current())throw Error('ACCESS_READ_SUPERSEDED');const snapshot=fresh.control.workflow;
+   if(observed&&(!fresh.canConfigureStartDate||snapshot.generation!==observed.generation||snapshot.revision!==observed.revision||
+      fresh.revision!==observed.stateRevision||action==='generate'&&fresh.startDate!==observed.startDate))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+   pendingDomain=true;
    try{await client.command(snapshot.generation,'save',{expectedRevision:snapshot.revision,moduleAction:'domain-v1',input:{action,...input}});}catch(error){if(!client.hasUnknown())pendingDomain=false;throw error;}
    const accepted=await client.read();if(!current())throw Error('ACCESS_READ_SUPERSEDED');install(accepted,!dirty());pendingDomain=false;
+   if(action==='configure'){
+    const applied=accepted.control.workflow;
+    if(!accepted.canConfigureStartDate||accepted.startDate!==input.startDate||accepted.revision!==fresh.revision+1||
+       applied.generation!==snapshot.generation||applied.revision!==snapshot.revision+1)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+    await manage('generate',{}, {generation:applied.generation,revision:applied.revision,stateRevision:accepted.revision,startDate:accepted.startDate});
+   }
   }
   async function lifecycle(action){history?.assertMutable();if(dirty())throw Error('UNSAVED_CHANGES_SAVE_REQUIRED');if(hasPhotoUnknown())throw Error('PHOTO_UPLOAD_OUTCOME_UNKNOWN');if(client.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');interactionLock=true;render();await read();const snapshot=copy(flow());if(!same(base,snapshot.working))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');const reason=host.prompt(t('此操作適用本頁整份已存草稿，請輸入原因：','Áp dụng toàn bộ bản nháp đã lưu của trang. Nhập lý do:'));if(reason===null)return;if(!current())throw Error('ACCESS_READ_SUPERSEDED');const check=await client.read();if(!current()||!same(check.control.workflow,snapshot))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');const self=action==='approve'&&snapshot.cases.find(review=>review.id===snapshot.pendingId)?.actor.id===actor.id;if(self&&!host.confirm(t('確認由本人審核本次送審？','Xác nhận tự duyệt hồ sơ đã gửi?')))return;await client.command(snapshot.generation,action,{expectedRevision:snapshot.revision,reason,...(action==='submit'?{savedId:snapshot.saved?.id}:{caseId:snapshot.pendingId}),...(self?{selfReviewConfirmed:true}:{})});await read(true);}
-  function render(){if(!displayCurrent())return;if(history?.historical())return;root.replaceChildren();root.dataset.routinePage='';const panel=node('section',undefined,root);panel.setAttribute('data-routine-page-panel','');panel.style.maxWidth='100%';panel.style.overflowX='auto';node('h2',t('例行 FQC 共用草稿','Bản nháp chung FQC định kỳ'),panel);const marker=node('p','',panel);marker.dataset.routinePageStatus='';status();if(error){const e=node('p',error,panel);e.setAttribute('role','alert');}const toolbar=node('div',undefined,panel);toolbar.style.display='flex';toolbar.style.flexWrap='wrap';toolbar.style.gap='8px';
+  function render(){if(!displayCurrent())return;if(history?.historical())return;if(dialog&&root.contains(dialog))dialog.close();root.replaceChildren();root.dataset.routinePage='';const panel=node('section',undefined,root);panel.setAttribute('data-routine-page-panel','');panel.style.maxWidth='100%';panel.style.overflowX='auto';node('h2',t('例行 FQC 共用草稿','Bản nháp chung FQC định kỳ'),panel);const marker=node('p','',panel);marker.dataset.routinePageStatus='';status();if(error){const e=node('p',error,panel);e.setAttribute('role','alert');}const toolbar=node('div',undefined,panel);toolbar.style.display='flex';toolbar.style.flexWrap='wrap';toolbar.style.gap='8px';
    if(!data){node('p',t('載入中…','Đang tải…'),panel);return;}if(data.permissions.view!==true){node('p',t('目前無法讀取此頁；本機輸入仍保留。','Hiện không có quyền đọc trang; giữ nội dung cục bộ.'),panel);if(hasPhotoUnknown())button(toolbar,t('查詢原照片結果','Kiểm tra kết quả ảnh gốc'),recoverPhotos);if(client.hasUnknown()||pendingSave||pendingDomain)button(toolbar,t('查詢原操作結果','Kiểm tra thao tác gốc'),recover);return;}
    if(hasPhotoUnknown())button(toolbar,t('查詢原照片結果','Kiểm tra kết quả ảnh gốc'),recoverPhotos);if(!reviewOnly)button(toolbar,t('存取草稿','Lưu bản nháp'),save,data.permissions.save&&!flow().pendingId&&!hasPhotoUnknown());button(toolbar,t('重新讀取草稿','Đọc lại bản nháp'),async()=>{const shown=JSON.stringify(mine);if(dirty())throw Error('UNSAVED_CHANGES_SAVE_REQUIRED');const fresh=await client.read();if(!current()||dirty()||JSON.stringify(mine)!==shown)throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');install(fresh,true);},!dirty()&&!client.hasUnknown()&&!pendingSave&&!pendingDomain);
    if(client.hasUnknown()||pendingSave||pendingDomain)button(toolbar,t('查詢原操作結果','Kiểm tra thao tác gốc'),recover);
@@ -93,7 +102,48 @@
    const search=input(panel,t('搜尋文件','Tìm hồ sơ'),filter,()=>{},true);search.oninput=()=>{if(current()){filter=search.value;render();}};const select=node('select',undefined,panel);select.setAttribute('aria-label',t('目前文件','Hồ sơ hiện tại'));for(const row of mine.documents.filter(row=>!filter||[row.metadata.number,row.content.title,row.metadata.kind].some(value=>String(value).includes(filter)))){const option=node('option',(row.metadata.number||t('待儲存','Chưa lưu'))+' · '+row.content.title,select);option.value=row.id;}select.value=selected;select.onchange=()=>{selected=select.value;render();};
    if(!reviewOnly&&!flow().pendingId){const jobs=node('fieldset',undefined,panel);node('legend',t('待辦項目（建立先留本機）','Việc cần làm (tạo cục bộ trước)'),jobs);for(const job of data.jobs.filter(job=>!job.planId&&!job.completion)){const l=node('label',job.source.name+' · '+job.period+' ',jobs),box=node('input',undefined,l);box.type='checkbox';box.checked=checked.has(job.id);box.disabled=!editable()||busy;box.onchange=()=>{if(box.checked)checked.add(job.id);else checked.delete(job.id);render();};}button(jobs,t('建立計畫','Tạo kế hoạch'),()=>create('plan',{jobIds:[...checked]}),editable()&&data.permissions.create&&checked.size>0);}
    if(data.reviewContext){if(data.reviewContext.changed){const warning=node('p',t('送審後關聯資料已更新，請先撤回或發回，再重新核對送審。','Dữ liệu liên quan đã đổi sau khi gửi; hãy rút hoặc trả lại rồi kiểm tra và gửi lại.'),panel);warning.setAttribute('role','alert');}const context=node('section',undefined,panel);node('h3',t('本次送審固定的關聯資料','Dữ liệu liên quan cố định khi gửi'),context);for(const job of data.reviewContext.jobs)node('p',job.source.name+' · '+job.period+' · '+job.start+' – '+job.end,context);for(const item of data.reviewContext.cases){node('p',item.number+' · '+t('複測樣品：','Mẫu thử lại: ')+item.requiredSamples.join(', '),context);for(const improvement of item.improvements){node('p',improvement.notes,context);for(const id of improvement.photos){const image=node('img',undefined,context);image.src='/api/routine-fqc/page/photo?id='+encodeURIComponent(id);image.alt=t('改善證據','Bằng chứng cải thiện');image.style.maxWidth='160px';}}}}
-   if(!reviewOnly){button(toolbar,t('更新待辦','Cập nhật công việc'),()=>manage('generate'),data.permissions.edit);if(data.canConfigureStartDate&&!mine.documents.length){const start=input(panel,t('排程起始日','Ngày bắt đầu lịch'),data.startDate||data.today,()=>{},true,'date');button(panel,t('設定起始日','Đặt ngày bắt đầu'),()=>manage('configure',{startDate:start.value}),true);}}
+   if(!reviewOnly){
+    button(toolbar,t('更新待辦','Cập nhật công việc'),()=>manage('generate'),data.permissions.edit);
+    const settings=node('details',undefined,panel);
+    settings.className='rf-fqc-administration';
+    node('summary',t('FQC 特殊功能','Chức năng đặc biệt FQC'),settings);
+    node('p',t('目前開始日期','Ngày bắt đầu hiện tại')+' · '+(data.startDate||t('尚未設定','Chưa thiết lập')),settings);
+    const resetSafe=()=>current()&&!reviewOnly&&!busy&&!interactionLock&&!dialog&&!dirty()&&!checked.size&&
+     !pendingSave&&!pendingDomain&&!client.hasUnknown()&&!client.hasSyncFailures()&&!hasPhotoUnknown();
+    const startAllowed=data.canConfigureStartDate&&!mine.documents.length&&!flow().pendingId;
+    const startEntry=node('button',t('設定起始日','Đặt ngày bắt đầu'),settings);
+    startEntry.type='button';startEntry.className='rf-btn';startEntry.disabled=!startAllowed||!resetSafe();
+    if(!startAllowed)node('p',t('目前無法變更。設定需要專屬帳號與權限，且不能已有文件、已分派工作或待審案件。','Không thể thay đổi. Cần đúng tài khoản và quyền, chưa có hồ sơ, công việc đã phân công hoặc yêu cầu chờ duyệt.'),settings);
+    startEntry.onclick=()=>{
+     if(!startAllowed||!resetSafe())return;
+     const observed={generation:flow().generation,revision:flow().revision,stateRevision:data.revision};
+     const modal=node('dialog',undefined,settings);dialog=modal;
+     const title=t('設定 FQC 開始日期','Đặt ngày bắt đầu FQC');
+     modal.setAttribute('aria-label',title);modal.style.width='min(90vw, 32rem)';modal.style.maxHeight='80dvh';modal.style.overflow='auto';
+     node('h3',title,modal);
+     const date=input(modal,t('排程起始日','Ngày bắt đầu lịch'),data.startDate||data.today,()=>{},true,'date');
+     const reason=input(modal,t('設定原因','Lý do thiết lập'),'',()=>{},true,'textarea');
+     const ack=node('input',undefined,node('label',t('我確認以上開始日期','Tôi xác nhận ngày bắt đầu trên'),modal));ack.type='checkbox';
+     const cancel=node('button',t('取消','Hủy'),modal),submit=node('button','START FQC',modal);
+     cancel.type=submit.type='button';submit.disabled=true;
+     const valid=()=>Boolean(date.value&&reason.value.trim()&&ack.checked);
+     modal.oninput=()=>{submit.disabled=!valid();};
+     const close=()=>{if(dialog!==modal)return;dialog=null;modal.remove();if(startEntry.isConnected)startEntry.focus();};
+     modal.onclose=close;cancel.onclick=()=>modal.close();
+     submit.onclick=()=>{
+      if(!valid()||dialog!==modal)return;
+      const input={startDate:date.value,reason:reason.value.trim()};modal.close();close();
+      if(!resetSafe())return;
+      return act(()=>manage('configure',input,observed));
+     };
+     modal.showModal();date.focus();
+    };
+    host.RoutineReset?.bind(root,'fqc',actor.id,t,resetSafe,async()=>{
+     const fresh=await client.read();
+     if(!resetSafe())throw Error('ACCESS_READ_SUPERSEDED');
+     install(fresh,true);render();
+    });
+   }
    const row=mine.documents.find(row=>row.id===selected);if(row){const card=node('section',undefined,panel),canEdit=docEditable(row);node('h3',(row.metadata.number||t('待儲存文件','Hồ sơ chưa lưu'))+' · '+row.metadata.kind,card);for(const field of ['title','date','notes','reason','disposition'])input(card,({title:t('標題','Tiêu đề'),date:t('日期','Ngày'),notes:t('備註','Ghi chú'),reason:t('原因','Lý do'),disposition:t('處置','Xử lý')})[field],row.content[field],value=>{row.content[field]=value;},canEdit,field==='date'?'date':field==='notes'?'textarea':'text');
     queueFiles(card,t('證據圖片','Ảnh bằng chứng'),['documents',{id:row.id},'content','evidence'],canEdit);
     for(const line of row.content.lines){const group=node('fieldset',undefined,card);node('legend',line.source.name+' · '+line.source.code,group);for(const result of line.results){const block=node('div',undefined,group);block.style.display='flex';block.style.flexWrap='wrap';block.style.gap='8px';const sample=node('select',undefined,block);sample.setAttribute('aria-label',t('樣品','Mẫu'));for(const code of ['',...(line.requiredSamples?.length?line.requiredSamples:line.source.products.map(product=>product.code))]){const option=node('option',code||t('請選擇樣品','Chọn mẫu'),sample);option.value=code;}sample.value=result.samples[0]||'';sample.disabled=!canEdit;sample.onchange=()=>{if(docEditable(row)){result.samples=sample.value?[sample.value]:[];status();}};const outcome=node('select',undefined,block);outcome.setAttribute('aria-label',t('結果','Kết quả'));for(const value of ['','pass','fail','unable','undetermined']){const option=node('option',value||t('請選擇結果','Chọn kết quả'),outcome);option.value=value;}outcome.value=result.outcome;outcome.disabled=!canEdit;outcome.onchange=()=>{if(docEditable(row)){result.outcome=outcome.value;if(outcome.value==='unable')result.samples=[];status();}};input(block,t('實際值','Giá trị thực tế'),result.value,value=>{result.value=value;},canEdit);input(block,t('結果說明','Ghi chú kết quả'),result.notes,value=>{result.notes=value;},canEdit);queueFiles(block,t('結果圖片','Ảnh kết quả'),['documents',{id:row.id},'content','lines',{id:line.id},'results',{id:result.id},'photos'],canEdit);button(block,t('刪除結果列','Xóa dòng kết quả'),()=>{for(const [key,entry]of files)if(entry.path.some(step=>step&&typeof step==='object'&&step.id===result.id))files.delete(key);line.results=line.results.filter(item=>item.id!==result.id);render();},canEdit);}
