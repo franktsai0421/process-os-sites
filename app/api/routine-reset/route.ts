@@ -1,6 +1,8 @@
 import {env} from 'cloudflare:workers';
 import {can, encodeValues, identity, readState, responseHeaders, sameOrigin, stateRevisionIsCurrent} from '@/lib/process-state';
 import {emptyRoutine, parseRoutine, RF_KEY} from '@/lib/routine-fqc';
+import {parseRoutinePage, ROUTINE_PAGE_SCOPE, type RoutineWholePage} from '@/lib/routine-fqc-page';
+import {createSharedDraft, stableDraftJSON} from '@/lib/shared-draft';
 import {RI_KEY} from '@/lib/routine-iqc';
 import {readRoutineIqc} from '@/lib/routine-iqc-workflow';
 import {isRoutineScheduleOwner} from '@/lib/routine-schedule-owner';
@@ -13,6 +15,34 @@ const reply=(body:unknown,status:number)=>Response.json(body,{status,headers:res
 function dedicatedDatabase(){
   const dedicated=(env as typeof env & {ROUTINE_RESET_DEDICATED_TEST_DB?:D1Database}).ROUTINE_RESET_DEDICATED_TEST_DB;
   return dedicated && dedicated===env.DB ? dedicated : undefined;
+}
+
+async function sha256(value:string){
+  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function resetTarget(state:Awaited<ReturnType<typeof readState>>,scope:'fqc'|'iqc'){
+  const value=state.values[scope==='fqc'?RF_KEY:RI_KEY];
+  if(!value)return null;
+  const raw=JSON.parse(value);
+  if(Object.hasOwn(raw,'pageDraftLayout')||Object.hasOwn(raw,'page')){
+    if(scope!=='fqc'||raw.pageDraftLayout!=='page-v1')return null;
+    const current=parseRoutinePage(parseRoutine(value));
+    return {revision:current.revision,pendingCount:current.page.workflow.pendingId?1:0,wholePage:true};
+  }
+  const current=scope==='fqc'?parseRoutine(value):readRoutineIqc(state);
+  return {revision:current.revision,pendingCount:current.documents.filter(doc=>doc.flow.pendingId).length,wholePage:false};
+}
+
+async function emptyRoutinePage(){
+  const content:RoutineWholePage={documents:[]};
+  const id='routine-page-baseline:'+await sha256(stableDraftJSON(content));
+  const root={...emptyRoutine(),pageDraftLayout:'page-v1',page:{
+    baseline:{id,content},workflow:createSharedDraft(ROUTINE_PAGE_SCOPE,content,id,crypto.randomUUID()),
+    documentState:{},caseDependencies:{}
+  }};
+  return parseRoutinePage(root);
 }
 
 async function ownerFor(request:Request,state:Awaited<ReturnType<typeof readState>>,scope:string){
@@ -40,10 +70,10 @@ export async function GET(request:Request){
     if(!await stateRevisionIsCurrent(state)||!isRoutineScheduleOwner(await identity(request,state)))
       return reply({error:'RECHECK_REQUIRED'},409);
     if(capability){
-      if(!state.values[key]||raw.pageDraftLayout||raw.page)return reply({available:false},200);
-      const c=scope==='fqc'?parseRoutine(state.values[key]):readRoutineIqc(state);
+      const target=resetTarget(state,scope);
+      if(!target)return reply({available:false},200);
       return reply({available:true,scope,actorId:actor.id,revision:state.revision,
-        pendingCount:c.documents.filter(doc=>doc.flow.pendingId).length},200);
+        pendingCount:target.pendingCount},200);
     }
     return receipt?.id===id && receipt.actorId===actor.id ? reply({id,scope,revision:receipt.revision},200)
       : reply({error:'RECEIPT_NOT_FOUND'},404);
@@ -67,21 +97,19 @@ export async function POST(request:Request){
     const state=await readState(),actor=await ownerFor(request,state,scope);
     if(!actor)return reply({error:'FORBIDDEN'},403);
     const key=scope==='fqc'?RF_KEY:RI_KEY;
-    const control=scope==='fqc'?parseRoutine(state.values[key]):readRoutineIqc(state);
     const raw=JSON.parse(state.values[key]||'{}');
     const input=JSON.stringify([actor.id,scope,body.id,body.revision,body.pendingCount,body.reason]);
-    const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(input));
-    const fingerprint=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+    const fingerprint=await sha256(input);
     if(raw.resetReceipt?.id===body.id){
       if(raw.resetReceipt.fingerprint!==fingerprint)return reply({error:'OPERATION_ID_REUSED'},409);
       return reply({revision:raw.resetReceipt.revision,replayed:true},200);
     }
-    if(!state.values[key] || raw.pageDraftLayout || raw.page || state.revision!==body.revision ||
-       control.documents.filter(doc=>doc.flow.pendingId).length!==body.pendingCount)
+    const control=resetTarget(state,scope);
+    if(!control || state.revision!==body.revision || control.pendingCount!==body.pendingCount)
       return reply({error:'REVISION_CONFLICT'},409);
     if(!Number.isSafeInteger(control.revision)||control.revision<0||!Number.isSafeInteger(control.revision+1))
       return reply({error:'INVALID_CONTROL_REVISION'},409);
-    const next=scope==='fqc'?emptyRoutine():readRoutineIqc({revision:0,values:{}});
+    const next=control.wholePage?await emptyRoutinePage():scope==='fqc'?emptyRoutine():readRoutineIqc({revision:0,values:{}});
     const revision=state.revision+1;
     const replacement={...next,revision:control.revision+1,resetReceipt:{id:body.id,actorId:actor.id,fingerprint,revision}};
     const encoded=await encodeValues({...state.values,[key]:JSON.stringify(replacement)},state);

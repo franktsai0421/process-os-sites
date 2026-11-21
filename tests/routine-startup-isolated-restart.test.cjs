@@ -14,6 +14,7 @@ for(const start of [date,'2026-11-23'])void test('same pristine fixture for FQC 
   fv.snapshot.items=['weekly','monthly','quarterly','excluded'].map((cadence,i)=>({...original,id:'fqc-'+i,productCodes:['SYN-P'],rule:i===3?{cadence:'pending_confirmation'}:{cadence:'time',timeFrequency:cadence}}));
   values.qualityMasterControl=JSON.stringify(quality);
   const snapshot={categories:[{id:'cat',nameVi:'Synthetic'}],suppliers:[],parts:[{id:'part',code:'P',nameVi:'Synthetic',categoryId:'cat',supplierIds:[],photos:[],isEnabled:true}],errors:[{id:'error',partCode:'P',code:'SYN'}],items:['week','month','quarter','fixed_count'].map((kind,i)=>({id:'iqc-'+i,partCode:'P',errorId:'error',checkNo:'SYN-'+i,nameVi:'Synthetic',isEnabled:true,frequencyRaw:'',rules:[{id:'rule-'+i,cadence:i===3?'batch':'time',kind,value:i===3?'5':''}]}))};
+  snapshot.items.push({...snapshot.items[0],id:'iqc-no-frequency',rules:[]});
   values.iqcMasterControl=JSON.stringify({schemaVersion:1,versions:[{id:'iqc',status:'approved',number:1,createdAt:at,snapshot}],activeVersionId:'iqc'});
  });
  async function signOwner(){
@@ -57,10 +58,17 @@ for(const start of [date,'2026-11-23'])void test('same pristine fixture for FQC 
  }
  const fqc=(await call('fqc')).control,iqc=await call('iqc');
  assert.equal(fqc.startDate,start);assert.equal(iqc.startDate,start);
- const byPeriod=(a,b)=>a[0].localeCompare(b[0])||a[1].localeCompare(b[1]);
- const periods=list=>list.map(j=>[j.start,j.end]).sort(byPeriod);
- const expected=[[start===date?'2026-11-16':'2026-11-23',start===date?'2026-11-22':'2026-11-29'],['2026-11-01','2026-11-30'],['2026-10-01','2026-12-31']].sort(byPeriod);
- for(const jobs of [p.jobs,fqc.jobs,iqc.jobs])assert.deepEqual(periods(jobs),expected);
+ const expected=[[start===date?'2026-11-16':'2026-11-23',start===date?'2026-11-22':'2026-11-29'],['2026-11-01','2026-11-30'],['2026-10-01','2026-12-31']];
+ function checkSourcePeriods(lane,jobs){
+   const expectedRows = ['weekly','monthly','quarterly'].map((frequency,index)=>[
+     lane==='fqc'?'fqc-'+index:JSON.stringify(['iqc-'+index,'rule-'+index]),frequency,...expected[index]
+   ]);
+   const rows=jobs.map(job=>[job.itemId,job.source.frequency,job.start,job.end]);
+   const byId=(left,right)=>left[0].localeCompare(right[0]);
+   assert.deepEqual(rows.sort(byId),expectedRows.sort(byId));
+ }
+ for(const jobs of [p.jobs,fqc.jobs])checkSourcePeriods('fqc',jobs);
+ checkSourcePeriods('iqc',iqc.jobs);
  before=saved();
  assert.deepEqual(masterRefs(before),sourceBefore);
  await call('fqc','',command('admin-reset',fqc.revision),422);
@@ -134,8 +142,26 @@ for(const start of [date,'2026-11-23'])void test('same pristine fixture for FQC 
    delete f.env.ROUTINE_RESET_DEDICATED_TEST_DB;await mount();assert.equal(panel.querySelector('button'),null);
    f.env.ROUTINE_RESET_DEDICATED_TEST_DB={};await mount();assert.equal(panel.querySelector('button'),null);
    f.env.ROUTINE_RESET_DEDICATED_TEST_DB=f.env.DB;await mount();
-   panel.querySelector('button').click();
-   const form=panel.querySelector('form'),[typed,ack]=form.querySelectorAll('input');
+   const opener=panel.querySelector('button');
+   const openDialog=()=>{
+     opener.click();
+     const dialog=panel.querySelector('dialog');
+     assert.equal(dialog.open,true);
+     assert.equal(dialog.getAttribute('aria-labelledby'),dialog.querySelector('h2').id);
+     assert.equal(document.activeElement,dialog.querySelector('.rf-actions button'));
+     return dialog;
+   };
+   const cancelled=openDialog();
+   cancelled.querySelector('.rf-actions button').click();
+   assert.equal(panel.querySelector('dialog'),null);
+   assert.equal(document.activeElement,opener);
+   const escaped=openDialog();
+   escaped.oncancel({preventDefault(){}});
+   assert.equal(panel.querySelector('dialog'),null);
+   assert.equal(document.activeElement,opener);
+   assert.equal(methods.includes('POST'),false);
+   assert.equal(memory.size,0);
+   const form=openDialog().querySelector('form'),[typed,ack]=form.querySelectorAll('input');
    assert.match(form.textContent,lane==='iqc'?/lịch sử xét duyệt/:/例行送審歷史/);
    assert.equal(form.querySelectorAll('button').at(-1).disabled,true);
    typed.value='RESET '+lane.toUpperCase();ack.checked=true;form.querySelector('textarea').value=body.reason;
@@ -179,7 +205,7 @@ for(const start of [date,'2026-11-23'])void test('same pristine fixture for FQC 
    assert.equal((await lookup(body.id)).status,200);
    assert.deepEqual([freshControl.documents.length,freshControl.cases.length], [0,0]);
    assert.equal((await call(lane,'?pending-count=1')).pendingCount,0);
-   assert.deepEqual(periods(lane === 'fqc' ? reloaded.control.jobs : reloaded.jobs), expected);
+   checkSourcePeriods(lane,freshControl.jobs);
    assert.deepEqual(masterRefs(saved()), sourceBefore);
    assert.equal((await f.core.readState()).values[other], otherBefore);
  }

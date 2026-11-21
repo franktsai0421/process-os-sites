@@ -56,29 +56,46 @@
         finally{busy=false;}
       });
     }
-    function confirmation(cap){
-      if(!current()||!safe()||busy)return;
-      box.replaceChildren();
-      const form=add('form','');
+    function confirmation(cap,trigger){
+      if(!current()||!safe()||busy||box.querySelector('dialog')||sessionStorage.getItem(key))return;
+      const dialog=add('dialog','');
+      dialog.className='rf-modal';
+      const form=add('form','',dialog);
+      const title=add('h2',t('確認','Xác nhận')+' '+token,form);
+      title.id='routine-reset-title-'+scope;
+      dialog.setAttribute('aria-labelledby',title.id);
+      dialog.onclose=()=>{
+        dialog.remove();
+        if(current()&&trigger.isConnected&&!busy)trigger.focus({preventScroll:true});
+      };
+      dialog.oncancel=event=>{event.preventDefault();dialog.close();};
       add('p',scope.toUpperCase()+' · '+t('永久清除開始日期、所有期別、計畫、報告、不合格、異常、復測、免測、處置與例行送審歷史（含待審）。保留來源主檔、頻率、照片及其他模組。','Xóa vĩnh viễn ngày bắt đầu, các kỳ, kế hoạch, báo cáo, mục không đạt, bất thường, kiểm tra lại, miễn kiểm, xử lý và lịch sử xét duyệt định kỳ, kể cả hồ sơ chờ duyệt. Giữ dữ liệu nguồn, tần suất, ảnh và các mô-đun khác.'),form);
       add('p',t('將清除的待審件數','Số hồ sơ chờ duyệt sẽ bị xóa')+' · '+cap.pendingCount,form);
       const reason=add('textarea','',add('label',t('清除原因','Lý do xóa'),form));
       reason.required=true;reason.maxLength=500;
       const typed=add('input','',add('label',t('請完整輸入','Nhập chính xác')+' '+token,form));
       typed.required=true;typed.autocomplete='off';
-      const ack=add('input','',add('label',t('我確認此操作無法復原','Tôi hiểu thao tác này không thể hoàn tác'),form));
+      const ackLabel=add('label','',form);
+      ackLabel.className='rf-confirm-ack';
+      const ack=add('input','',ackLabel);
       ack.type='checkbox';ack.required=true;
-      button(t('取消','Hủy'),()=>{void show();},form);
-      const submit=add('button',t('永久清除','Xóa vĩnh viễn'),form);
+      add('span',t('我確認此操作無法復原','Tôi hiểu thao tác này không thể hoàn tác'),ackLabel);
+      const actions=add('div','',form);
+      actions.className='rf-actions';
+      const cancel=button(t('取消','Hủy'),()=>dialog.close(),actions);
+      const submit=add('button',t('永久清除','Xóa vĩnh viễn'),actions);
       submit.type='submit';submit.className='rf-btn';submit.disabled=true;
       const valid=()=>ack.checked&&typed.value===token&&reason.value.trim()&&safe();
       form.oninput=()=>{submit.disabled=!valid();};
       form.onsubmit=async event=>{
         event.preventDefault();
-        if(busy||!current()||!valid()||sessionStorage.getItem(key))return;
+        if(busy||!current()||!dialog.open||!valid()||sessionStorage.getItem(key))return;
         const id=crypto.randomUUID();
         sessionStorage.setItem(key,id);
         submit.disabled=true;busy=true;
+        dialog.close();
+        box.replaceChildren();
+        status(t('正在確認 RESET 結果…','Đang xác minh kết quả RESET…'));
         let confirmed=false;
         try{
           const result=await json(url,{method:'POST',headers:{'Content-Type':'application/json'},
@@ -95,7 +112,8 @@
         if(!confirmed||!safe()){recovery(id);return;}
         await reloadConfirmed(id);
       };
-      reason.focus();
+      dialog.showModal();
+      cancel.focus({preventScroll:true});
     }
     async function show(){
       if(busy||!current())return;
@@ -107,7 +125,7 @@
         const cap=await json(url+'&capability=1');
         if(!current()||attempt!==serial||!panel.open||cap.available!==true||cap.actorId!==actor||cap.scope!==scope||
           !Number.isSafeInteger(cap.revision)||!Number.isSafeInteger(cap.pendingCount))return;
-        const control=button(token+' · '+t('不可恢復','Không thể hoàn tác'),()=>confirmation(cap));
+        const control=button(token+' · '+t('不可恢復','Không thể hoàn tác'),()=>confirmation(cap,control));
         control.disabled=!safe();
       }catch{ /* The destructive control stays unavailable. */ }
     }
