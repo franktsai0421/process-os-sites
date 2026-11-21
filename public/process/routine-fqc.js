@@ -2095,6 +2095,9 @@
     else root.querySelector('.rf-table tr.selected')?.focus({preventScroll:true});
   }
   function bind() {
+    if(!s.reviewPlatform && data?.identity)window.RoutineReset?.bind(root,'fqc',data.identity.id,t,
+      ()=>normalWork() && !s.busy && !loading && !s.retry && !receiptInvalid && !inFlightMutation && !s.dialogOpen && !departureDocuments().length,
+      ()=>refresh(false));
     root.querySelectorAll('[data-timeline-doc]').forEach(button=>button.onclick=()=>openTimelineDocument(button));
     root.querySelector('[data-approved-report-search]')?.addEventListener('submit',event=>{
       event.preventDefault();

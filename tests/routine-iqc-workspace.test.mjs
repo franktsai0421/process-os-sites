@@ -154,6 +154,7 @@ void test('IQC makes the plan prerequisites and empty stages accessible in both 
   assert.match(html,/aria-current="page"/);
   assert.match(html,/ri-flow-return-arrow/);
   assert.match(html,lang==='zh'?/IQC 排程尚未啟動/:/Lịch IQC chưa bắt đầu/);
+  assert.match(html,lang==='zh'?/目前沒有可排程的 IQC 檢查項目/:/Hiện chưa có hạng mục IQC để lập lịch/);
   assert.match(html,lang==='zh'?/已核准的標準時間頻率/:/tần suất định kỳ chuẩn đã duyệt/);
   assert.match(html,lang==='zh'?/設定開始日期/:/Đặt ngày bắt đầu/);
   assert.match(html,lang==='zh'?/模具檢查/:/Kiểm tra khuôn/);
@@ -167,6 +168,19 @@ void test('IQC makes the plan prerequisites and empty stages accessible in both 
    assert.match(ui.iqcRoot.innerHTML,/rf-calendar-document-list/);
   }
  }
+});
+
+void test('unstarted IQC disables both start controls while an original receipt is unresolved',async()=>{
+ const data={...parityState([]),identity:{id:'synthetic',role:'admin'},startDate:null,startLocked:false};
+ data.permissions={view:true,edit:true,settings:true};
+ const ui=switchFixture('zh',{data});
+ ui.pendingWrites.set('routine-iqc-receipt:synthetic','original-operation');
+ ui.press(ui.entry);
+ await new Promise(setImmediate);
+ const controls=ui.iqcRoot.innerHTML.match(/<button[^>]*data-ri-action="configure"[^>]*>/g)||[];
+ assert.equal(controls.length,2);
+ for(const control of controls)assert.match(control,/\bdisabled\b/);
+ assert.equal(ui.pendingWrites.get('routine-iqc-receipt:synthetic'),'original-operation');
 });
 
 void test('first IQC GET failure provides a bilingual same-page, read-only recovery', async () => {

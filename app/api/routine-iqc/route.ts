@@ -79,6 +79,7 @@ export async function POST(request:Request){
       const state=await readState({deferHistory:false});
       const {actor,permissions}=await routineIqcAccess(request,state);
       if(state.values.maintenanceMode==='1')return reply({error:'MAINTENANCE'},503);
+      if(command.action==='configure'&&!permissions.settings)return reply({error:'FORBIDDEN'},403);
       const control=readRoutineIqc(state);
       const at=new Date().toISOString(),today=companyDate(new Date(at));
       const response=executeRoutineIqc(control,command,state,{at,today,

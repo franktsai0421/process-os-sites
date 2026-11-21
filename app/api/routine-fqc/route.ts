@@ -1,3 +1,4 @@
+import { isRoutineScheduleOwner } from '@/lib/routine-schedule-owner';
 import {routineApprovedQuery,routineApprovedControl,routineApprovedRows,routineApprovedVersion} from '@/lib/routine-fqc-approved-history';
 import {recordJSONResponse} from '@/lib/state-records-response';
 import { env } from 'cloudflare:workers';
@@ -166,7 +167,7 @@ export async function GET(request: Request) {
         unresolved: sources.filter((source) => !source.frequency) });
     }
     if (query.has('preview')) {
-      if (!permissions.settings) return reply({ error: 'FORBIDDEN' }, 403);
+      if (!isRoutineScheduleOwner(actor) || !permissions.settings) return reply({ error: 'FORBIDDEN' }, 403);
       if (calendarPreview) {
         if (!permissions.edit) return reply({error:'FORBIDDEN'},403);
         if (c.startDate || c.calendarPolicy || c.jobs.length || c.documents.length || c.cases.length)
@@ -268,7 +269,7 @@ export async function GET(request: Request) {
       },
       sources,
       catalog: routineCatalog(state),
-      permissions,
+      permissions: {...permissions, settings: permissions.settings && isRoutineScheduleOwner(actor)},
       identity: actor,
       today: companyDate(),
       revision: state.revision,
@@ -321,6 +322,8 @@ export async function POST(request: Request) {
         return reply({ error: 'MAINTENANCE' }, 503);
       const permissions = await access(request, state);
       if (!permissions.view) return reply({ error: 'FORBIDDEN', requestId }, 403);
+      if (command.action === 'configure' && !isRoutineScheduleOwner(actor))
+        return reply({ error: 'FORBIDDEN', requestId }, 403);
       if(['create-plan','create-report','request'].includes(command.action)&&!await can(request,state,'routine.create'))return reply({error:'FORBIDDEN',requestId},403);
       if(['discard-draft','delete-plan'].includes(command.action)&&!await can(request,state,'routine.delete'))return reply({error:'FORBIDDEN',requestId},403);
       const control = parseRoutine(state.values[RF_KEY]),

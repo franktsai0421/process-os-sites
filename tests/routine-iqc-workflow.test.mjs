@@ -13,7 +13,7 @@ void test('real route: IQC four scope guards and independent multi-batch approva
     const {companyDate}=f.load('lib/routine-fqc.ts'), today=companyDate();
     const [editor, reviewer]=f.users;
     for(const user of f.users)for(const key of Object.keys(user.accessOverrides))if(key.startsWith('routine.')||['iqc.view','approval.view','approval.approve','approval.return'].includes(key))user.accessOverrides[key]=true;
-    const admin={...editor,id:'synthetic-settings-admin',role:'admin'}, readonly={...editor,id:'readonly',accessOverrides:{'routine.view':true,'iqc.view':true}};
+    const admin={...editor,id:'frank',role:'admin'}, readonly={...editor,id:'readonly',accessOverrides:{'routine.view':true,'iqc.view':true}};
     const denied={...editor,id:'denied',accessOverrides:{'iqc.view':true}};
     const routineOnly={...editor,id:'routine-only',accessOverrides:{'routine.view':true}};
     const reviewWithoutApproval={...reviewer,id:'review-without-approval',accessOverrides:{...reviewer.accessOverrides,'approval.approve':false}};

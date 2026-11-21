@@ -394,8 +394,8 @@
       const noSources=t('請到資料後台 IQC 核對已核准的零件分類和檢查項目。例行檢查會抓取已核准的標準時間頻率。','Kiểm tra nhóm linh kiện và hạng mục đã duyệt trong Quản lý dữ liệu IQC. Lịch dùng tần suất định kỳ chuẩn đã duyệt.');
       const openMaster=window.hasPermission?.('iqc.view')?button('open-master',t('前往資料後台 IQC','Mở Quản lý dữ liệu IQC')):'';
       if(!startDate)return emptyList(t('IQC 排程尚未啟動','Lịch IQC chưa bắt đầu'),
-        !standard ? noSources : t('設定開始日期後，這裡會列出可勾選的當期檢查項目。','Sau khi đặt ngày bắt đầu, danh sách sẽ hiển thị hạng mục có thể chọn trong kỳ.'),
-        (!standard ? openMaster : '')+(canConfigure(v)?button('configure',t('設定開始日期','Đặt ngày bắt đầu'),false,true):''));
+        !standard ? t('目前沒有可排程的 IQC 檢查項目。','Hiện chưa có hạng mục IQC để lập lịch. ')+noSources : t('設定開始日期後，這裡會列出可勾選的當期檢查項目。','Sau khi đặt ngày bắt đầu, danh sách sẽ hiển thị hạng mục có thể chọn trong kỳ.'),
+        (!standard ? openMaster : '')+(canConfigure(v)?button('configure',t('設定開始日期','Đặt ngày bắt đầu'),startLocked(v)||!!v.pending||v.busy||edited(v),true):''));
       if(!standard)return emptyList(t('沒有可排程的 IQC 檢查項目','Chưa có hạng mục IQC để lập lịch'),noSources,openMaster);
       return emptyList(t('目前沒有應檢工作','Hiện chưa có công việc kiểm tra'),
         startDate>v.data.today?t('排程開始日為 ','Lịch bắt đầu ngày ')+startDate:
@@ -867,7 +867,11 @@
         <section class="rf-panel rf-detail-panel"><div class="rf-detail">${doc||v.target?button('back',v.listReturn?.tab==='sources'||doc?.kind==='waiver'&&!v.review?t('返回檢查項目','Về hạng mục kiểm tra'):t('返回清單','Về danh sách')):''}
           ${doc?documentDetail(v,doc):v.target?caseDetail(v,data.cases.find(item=>item.id===v.target)):
             `<div class="rf-empty"><span class="rf-icon">▤</span><b>${t('選擇一筆工作開始','Chọn một hồ sơ')}</b>${t('明細、照片與歷史會顯示在這裡','Chi tiết, hình ảnh và lịch sử hiển thị tại đây')}</div>`}</div></section></div>`)}</div>`;
-    if(!v.review)drawWorkflow(v);
+    if(!v.review){
+      window.RoutineReset?.bind(v.root,'iqc',data.identity.id,t,
+        ()=>current(v)&&!v.busy&&!v.pending&&!v.adminDialog&&!edited(v),()=>load(v));
+      drawWorkflow(v);
+    }
     if(v.busy)v.root.querySelectorAll('button:not([data-ri-action^="module:"]),input,select,textarea').forEach(el=>el.disabled=true);
   }
   function draftFor(v) {
