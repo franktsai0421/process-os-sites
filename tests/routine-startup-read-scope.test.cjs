@@ -169,3 +169,45 @@ for(const shape of ['divergent users','divergent maintenance','unknown envelope'
   f.hooks.get=key=>{if(key===blocked.other){hit=true;throw Error('full reader fault');}};
   assert.equal((await call('iqc','',cmd)).status,503);assert.ok(hit);assert.deepEqual(row(),before);
 });
+void test('historical startup projection matches each exact tree path and leaves unknown bytes untouched',()=>{
+  const {execFileSync}=require('node:child_process');
+  const {projectKnown,base,sourceTree,blobs}=require('./routine-startup-read-successor.cjs');
+  const paths=[...Object.keys(blobs),'tests/accounts-process-integration-source.test.mjs',
+    'tests/ipqc-operation-speed-integration-source.test.cjs','tests/source-normalization-cache.test.cjs'];
+  const read=(tree,path)=>execFileSync('git',['show',tree+':'+path]);
+  for(const path of paths){
+    const after=read(sourceTree,path),before=read(base,path),lf=after.toString().replaceAll('\r\n','\n');
+    for(const input of [after,Buffer.from(lf),Buffer.from(lf.replaceAll('\n','\r\n'))]){
+      assert.deepEqual(projectKnown(input,path),before);
+      projectKnown(input,path).fill(0);
+      assert.deepEqual(projectKnown(input,path),before);
+    }
+    const changed=Buffer.from(after);
+    changed[Math.floor(changed.length/2)]^=1;
+    for(const unknown of [changed,after.subarray(1),Buffer.concat([after,after]),before])
+      assert.strictEqual(projectKnown(unknown,path),unknown);
+    assert.strictEqual(projectKnown(after,'./'+path),after);
+    assert.throws(()=>projectKnown(after.toString(),path),/raw Buffer/);
+  }
+});
+
+void test('account and routine raw Git proofs reject substituted EOL before checkout projection',()=>{
+  const git=(...args)=>require('node:child_process').execFileSync('git',args);
+  const proof=require('../scripts/routine-integration-source-contract.cjs');
+  const reads=require('./routine-startup-read-successor.cjs');
+  for(const file of ['app/api/routine-fqc/route.ts','app/api/routine-iqc/route.ts','lib/routine-iqc-access.ts']){
+    const raw=git('show','HEAD:'+file);
+    const prior=git('cat-file','blob',reads.blobs[file][0]);
+    proof.assertRoutineHeadBlob(raw,file);
+    proof.assertRoutineHeadBlob(prior,file);
+    const text=raw.toString().replaceAll('\r\n','\n');
+    for(const altered of [Buffer.from(text.replaceAll('\n','\r\n')),Buffer.from(text.replace('\n','\r\n'))]){
+      assert(!altered.equals(raw));
+      assert.throws(()=>proof.assertRoutineHeadBlob(altered,file),{code:'ERR_ASSERTION'});
+      assert.throws(()=>proof.assertRawRoutineEncoding(altered,file,'raw EOL substitution'),/raw EOL substitution/);
+    }
+    const changed=Buffer.from(raw);
+    changed[0]^=1;
+    assert.throws(()=>proof.assertRoutineHeadBlob(changed,file),{code:'ERR_ASSERTION'});
+  }
+});
