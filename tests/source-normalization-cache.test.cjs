@@ -55,7 +55,17 @@ void test('original JSON manifests, approved product changes and reviewed Routin
  }
  const uploaded=sourceProof.followup.uploaded;
  const approved=readDiff(main,uploaded);
- assert.equal(readDiff(main,'HEAD'),approved,'Routine product paths and change status must match the uploaded PR');
+ const startupBase='0149cf21fd2e46e83f8eab99a8426bc8c9df6b47';
+ const startupTree='4d8f6e6fde010b560b75d580f2382ceeae520f89';
+ assert.equal(readDiff(main,startupBase),approved,'Routine product paths and change status must match the uploaded PR');
+ const startupDelta=[
+  'M\tapp/api/routine-fqc/page/route.ts','M\tapp/api/routine-fqc/route.ts','M\tapp/api/routine-iqc/route.ts',
+  'A\tapp/api/routine-reset/route.ts','M\tlib/routine-iqc-access.ts','A\tlib/routine-schedule-owner.ts',
+  'M\tpublic/process/index.html','M\tpublic/process/routine-fqc-page.js','M\tpublic/process/routine-fqc.js',
+  'M\tpublic/process/routine-iqc.js','A\tpublic/process/routine-reset.js',
+ ].join('\n');
+ assert.equal(readDiff(startupBase,startupTree),startupDelta,'exact startup paths and change kinds');
+ assert.equal(readDiff(startupTree,'HEAD'),'','no unverified product content after the exact startup tree');
  assert.equal(readDiff('HEAD'),'','tracked product checkout must match its commit');
  for(const row of approved.split('\n')){
   const [,file]=row.split('\t');

@@ -115,6 +115,7 @@ function startupPredecessor(file, entry) {
 // Exact test-file revisions for the startup inventory and its cache/order expectations.
 const startupTestTree='902282dba25500f80a64ec6f1922ad1d0a09a5eb';
 const startupTests=Object.freeze({
+  'tests/source-normalization-cache.test.cjs':['ab2574cb66de26ab4e48686fdb81f48453a5bb878dcd1190e7f44911c8e97b0b','f0e3dff8e7dc164f9bd372e46977c4fa7f47c4c6','6bb917eccb0c7960a815037582db5a129f1d36a3','HEAD'],
   'tests/account-page-entry.test.cjs':['1a84ebffc05ffaa3078850cad613398dc2a8737018bcf5f531e2c26e09ecc9be','f1d319f377de927b2132090368c92681839b1d01','332cff632d00f76254f18265f11fc1f0222166b9'],
   'tests/navigation-adapters.test.mjs':['4b156c6a03ab764696fb4ff32ae0004755fb6ff7501834775629cff5a4b2c06c','7b7fadba1c03920c747c7149c6cb16438fc0aec6','f6c6a715b1131644eabbd1687575eec931d484f6'],
   'tests/accounts-process-integration-source.test.mjs':['f6a458f88af4f0049453b1596a533543584a860adacb4e70e809fd2c177f6967','ef3ce8c4bca500a84f2b43841694b43c205f5a9a','ac1cf4c6021195c02c86e8a10fae42f651276b64'],
@@ -126,12 +127,12 @@ const startupTests=Object.freeze({
 
 function startupTestPreimage(bytes,file) {
   if (!Object.hasOwn(startupTests,file)) return null;
-  const [digest,after,before]=startupTests[file];
+  const [digest,after,before,treeOfChange=startupTestTree]=startupTests[file];
   if (!exactCheckout(bytes,{current:digest,currentLf:digest})) return null;
-  for (const [tree,blob] of [[startupTestTree,after],[startupBaseTree,before]]) {
+  for (const [tree,blob] of [[treeOfChange,after],[startupBaseTree,before]]) {
     assert.equal(git('ls-tree',tree,'--',file).toString().trimEnd(),'100644 blob '+blob+'\t'+file);
   }
-  preimage(startupTestTree,file,digest);
+  assert.equal(hash(git('cat-file','blob',after)),digest);
   return git('cat-file','blob',before);
 }
 

@@ -28,7 +28,8 @@ try {
     assert.match(await page.locator('.wf-source').textContent(),/不含各裝置/);await page.locator('[data-pick]').first().check();
     await page.locator('[data-queue-tab=access]').click();await page.getByText(/集中事件來源尚未接通/).waitFor();
     assert.equal(await page.locator('[data-issue],[data-pick],[data-note]').count(),0);assert.equal(await page.locator('.wf-access-controls button:disabled').count(),5);
-    await screenshotBoard(page,out+'/access-1365-zh.png');assert.equal(await page.locator('[data-counts]').count(),0);assert.match(await page.locator('.wf-muted').first().textContent(),/尚無證據/);
+    await screenshotBoard(page,out+'/access-1365-zh.png');assert.equal(await page.locator('[data-counts]').count(),0);const scope=page.locator('.wf-admin .wf-board-body > [role=status] + .wf-muted');
+    assert.equal(await scope.count(),1);assert.match(await scope.textContent(),/來源範圍：未接通 · 最後同步：尚無證據/);
     await page.locator('[data-queue-tab=helper]').click();assert.equal(await page.locator('[data-pick]:checked').count(),1);await assertGuards();
   });
   await check('note ownership, unsaved switch guard, HTML escaping, one double-click write, completion and restore',async()=>{
