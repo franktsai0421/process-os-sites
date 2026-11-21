@@ -75,7 +75,7 @@ void test('routine startup adds exactly three fixed runtime blobs to the histori
   ['lib/routine-schedule-owner.ts','19f741ca55a186ef203453bfce1bbe50fa8d8748',297],
   ['public/process/routine-reset.js','a460dc3966f71d9d7c829c1d64f7a3a3245391d0',7366],
  ];
- const expected=[...historical,...resetRuntime.map(([file])=>file)].sort();
+ const expected=[...historical,...resetRuntime.map(([file])=>file)].sort((a,b)=>a<b?-1:a>b?1:0);
  const actual=inventory('HEAD');
  assert.deepEqual(actual,expected);
  assert.throws(()=>assert.deepEqual([...actual,'public/process/unexpected.js'],expected),{code:'ERR_ASSERTION'});
