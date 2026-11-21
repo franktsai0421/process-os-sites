@@ -46,7 +46,10 @@ void test('reviewed account/process runtime union retains every installed file w
   'lib/routine-iqc.ts','lib/time-frequency-policy.ts',
   'public/process/routine-iqc.css','public/process/routine-iqc.js',
  ];
- assert.deepEqual(git('ls-tree','-r','--name-only','HEAD','--','app','lib','public').toString().trim().split('\n'),[...files,...additions,catalogAddition,helper,inventoryHelper,...accountHelpers,...routineAdditions].sort());
+ const base='0149cf21fd2e46e83f8eab99a8426bc8c9df6b47';
+ const inventory=rev=>git('ls-tree','-r','--name-only',rev,'--','app','lib','public').toString().trim().split('\n');
+ const historical=[...files,...additions,catalogAddition,helper,inventoryHelper,...accountHelpers,...routineAdditions].sort();
+ assert.deepEqual(inventory(base),historical);
  const routineProof=createRequire(import.meta.url)('../scripts/routine-integration-source-contract.cjs');
  assert.equal(git('rev-parse',routineProof.followup.uploaded+'^{tree}').toString().trim(),routineProof.followup.tree);
  for(const file of routineAdditions){
@@ -62,6 +65,45 @@ void test('reviewed account/process runtime union retains every installed file w
   assert.equal(hash(published(git('show','HEAD:'+row.path),row.path)),row.sha256);
   assert.equal(hash(git('show',manifest.sources.pr104.commit+':'+row.path)),row.processSha256);
   assert.notEqual(row.sha256,row.processSha256);
+ }
+});
+void test('routine startup adds exactly three fixed runtime blobs to the historical inventory',()=>{
+ const inventory=rev=>git('ls-tree','-r','--name-only',rev,'--','app','lib','public').toString().trim().split('\n');
+ const historical=inventory('0149cf21fd2e46e83f8eab99a8426bc8c9df6b47');
+ const resetRuntime=[
+  ['app/api/routine-reset/route.ts','41de8a0b4044dd863d8e1f803d00c14927c05c40',7456],
+  ['lib/routine-schedule-owner.ts','19f741ca55a186ef203453bfce1bbe50fa8d8748',297],
+  ['public/process/routine-reset.js','a460dc3966f71d9d7c829c1d64f7a3a3245391d0',7366],
+ ];
+ const expected=[...historical,...resetRuntime.map(([file])=>file)].sort();
+ const actual=inventory('HEAD');
+ assert.deepEqual(actual,expected);
+ assert.throws(()=>assert.deepEqual([...actual,'public/process/unexpected.js'],expected),{code:'ERR_ASSERTION'});
+ for(const [file,blob,length] of resetRuntime){
+  assert.equal(git('ls-tree','HEAD','--',file).toString().trimEnd(),`100644 blob ${blob}\t${file}`);
+  const pinned=git('cat-file','blob',blob);
+  assert.equal(pinned.length,length,file);
+  const verify=bytes=>assert.deepEqual(bytes,pinned,file);
+  const raw=git('show','HEAD:'+file);
+  verify(raw);
+  const changed=Buffer.from(raw);
+  changed[0]^=1;
+  assert.throws(()=>verify(changed),{code:'ERR_ASSERTION'});
+ }
+});
+void test('startup path projections reject substituted raw objects and preserve exact predecessor behavior',()=>{
+ const proof=createRequire(import.meta.url)('../scripts/routine-integration-source-contract.cjs');
+ for(const file of ['app/api/routine-fqc/page/route.ts','app/api/routine-fqc/route.ts','public/process/routine-fqc-page.js',
+                    'app/api/routine-iqc/route.ts','lib/routine-iqc-access.ts','public/process/routine-iqc.js']){
+  const head=git('show','HEAD:'+file);
+  const base=git('show','0149cf21fd2e46e83f8eab99a8426bc8c9df6b47:'+file);
+  assert.notDeepEqual(head,base,file);
+  proof.assertRoutineHeadBlob(head,file);
+  assert.deepEqual(proof.projectKnown(head,file),proof.projectKnown(base,file),file);
+  const mutation=Buffer.from(head);
+  mutation[0]^=1;
+  for(const other of [base,mutation,head.subarray(1)])assert.throws(()=>proof.assertRoutineHeadBlob(other,file),{code:'ERR_ASSERTION'});
+  assert.strictEqual(proof.projectKnown(mutation,file),mutation,file);
  }
 });
 void test('joint contract rejects byte drift and keeps original native timeouts and safety assertions',()=>{
