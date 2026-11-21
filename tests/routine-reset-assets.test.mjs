@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {expectedProcessBundleGroups} from './process-shell-bundle-oracle.mjs';
@@ -17,36 +19,57 @@ void test('the routine reset control loads once before all three renderers on a 
     ['routine-fqc.css?v=20261121-reset1']);
 });
 
-void test('the distributable contains the exact reset helper and all three consumers once in order', () => {
+// Exercise the proposed added dependency independently of the historical oracle.
+void test('both distributed bundles have exactly the proposed sources, bytes and completion receipts', () => {
   const {assets, html} = combineProcessScripts(combineProcessStyles(shell, read).html, read);
-  const bundle = assets.find(asset => asset.sources.includes(dependencies[0]));
-  assert.ok(bundle);
-  assert.ok(html.includes(bundle.name));
-  const files = assets.flatMap(asset => asset.sources);
-  let offset = 0;
-  for (const name of dependencies) {
-    assert.equal(files.filter(file => file === name).length, 1, name);
-    const bytes = read(name);
-    const position = bundle.source.indexOf(bytes, offset);
-    assert.ok(position >= offset, name);
-    offset = position + bytes.length;
+  const expected = expectedProcessBundleGroups.map(group => group.flatMap(name =>
+    name === 'routine-fqc-page.js' ? ['routine-reset.js', name] : [name]));
+  assert.equal(expected.flat().length, 60);
+  const verify = bundles => {
+    assert.deepEqual(bundles.map(asset => asset.sources), expected);
+    for (const [index, group] of expected.entries()) {
+      const body = group.map(name => `;\n/* ${name} */\n${read(name)}\n`).join('\n');
+      const id = createHash('sha256').update(body).digest('hex').slice(0,20);
+      const asset = bundles[index];
+      assert.equal(asset.id, id);
+      assert.equal(asset.name, `shell-scripts.${id}.js`);
+      assert.ok(html.includes(asset.name));
+      assert.equal(asset.source, body + `\n;(window.ProcessRuntimeBundles ||= Object.create(null))["${id}"] = true;\n`);
+    }
+  };
+  verify(assets);
+  const index = expected.findIndex(group => group.includes('routine-reset.js'));
+  const at = expected[index].indexOf('routine-reset.js');
+  for (const mutate of [
+    asset => asset.sources.splice(at,1),
+    asset => asset.sources.splice(at,0,'routine-reset.js'),
+    asset => asset.sources.splice(at,2,'routine-fqc-page.js','routine-reset.js'),
+    asset => { asset.source += ' '; },
+    asset => { asset.source = asset.source.slice(0,asset.source.lastIndexOf('\n;(window.ProcessRuntimeBundles')); },
+  ]) {
+    const altered=structuredClone(assets);
+    mutate(altered[index]);
+    assert.throws(() => verify(altered), {code:'ERR_ASSERTION'});
   }
 });
 
-// Proposed successor coverage; the existing historical oracle remains independently executable.
-void test('the reset helper adds exactly one source to the two existing groups', () => {
-  const {assets} = combineProcessScripts(combineProcessStyles(shell, read).html, read);
-  const expected = expectedProcessBundleGroups.map(group => group.flatMap(name =>
-    name === 'routine-fqc-page.js' ? ['routine-reset.js', name] : [name]));
-  const actual = assets.map(asset => asset.sources);
-  assert.equal(expected.flat().length, 60);
-  assert.deepEqual(actual, expected);
-  const group = actual.findIndex(names => names.includes('routine-reset.js'));
-  const at = actual[group].indexOf('routine-reset.js');
-  for (const replacement of [[], ['routine-reset.js', 'routine-reset.js'], ['routine-iqc.js']]) {
-    const changed = actual.map((names, index) => index === group ? names.toSpliced(at, 1, ...replacement) : names);
-    assert.notDeepEqual(changed, expected);
+// Compare the exact Git bytes; checkout line-ending conversion is irrelevant.
+void test('the proposed shell delta is confined to the four routine asset tags', () => {
+  const path = 'public/process/index.html';
+  const base = '0149cf21fd2e46e83f8eab99a8426bc8c9df6b47';
+  const show = rev => execFileSync('git',['show',rev+':'+path]);
+  const script = url => '    <script data-process-src="'+url+'"></script>';
+  let expected = show(base).toString('utf8');
+  for (const [from,to] of [
+    ['routine-fqc.css?v=20261120-fqc-period-history1','routine-fqc.css?v=20261121-reset1'],
+    [script('routine-fqc-page.js?v=20261112-quality-main-joint1'),script('routine-reset.js?v=2')+'\n'+script('routine-fqc-page.js?v=20261121-reset1')],
+    [script('routine-iqc.js?v=20261120-routine-refresh1'),script('routine-iqc.js?v=20261121-reset1')],
+    [script('routine-fqc.js?v=20261120-fqc-period-history1'),script('routine-fqc.js?v=20261121-reset1')],
+  ]) {
+    assert.equal(expected.split(from).length,2,from);
+    expected=expected.replace(from,to);
   }
+  assert.deepEqual(show('HEAD'),Buffer.from(expected));
 });
 
 void test('both account cache tags retain their main versions and order', () => {
