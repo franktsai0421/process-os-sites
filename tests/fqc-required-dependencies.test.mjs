@@ -358,42 +358,41 @@ void test('FQC malformed patches preserve merged-848 error ordering without an a
  }
 });
 
-void test('FQC early denials preserve exact merged-848 DTO and authorization precedence',async()=>{
- const variants=[
-  ...['apply','save'].map(action=>({name:`absent ${action}`,action,actor:'absent',status:401,error:'LOGIN_REQUIRED',id:false})),
-  ...['apply','save'].map(action=>({name:`revoked ${action}`,action,revoke:true,status:401,error:'LOGIN_REQUIRED',id:false})),
-  ...['apply','save'].map(action=>({name:`maintenance ${action}`,action,maintenance:true,status:503,error:'MAINTENANCE',id:false})),
-  {name:'create denied',detail:'create',deny:['create'],id:false},
-  {name:'delete denied',detail:'delete',deny:['delete'],id:false},
-  {name:'view denied',deny:['view'],id:true},
-  {name:'edit denied',deny:['edit'],id:true},
-  {name:'save and edit denied',action:'save',deny:['save','edit'],id:true},
-  {name:'raw create allowed while edit denied',detail:'create',deny:['edit'],id:true},
-  {name:'create and edit denied',detail:'create',deny:['create','edit'],id:false},
-  {name:'delete raw allowed while edit denied',detail:'delete',deny:['edit'],id:false},
-  {name:'mixed create and delete denied',detail:'both',deny:['create','delete'],id:false},
-  {name:'mixed create denied before kernel view denial',detail:'both',deny:['create','view'],id:false},
- ];
- for(const variant of variants){
-  const results=[];
-  for(const sourceRef of ['848be13da54c7ae747bcdd96df19e01129fe980a',undefined]){
-   const context=await setup(sourceRef?{sourceRef}:undefined),{f,a,generation}=context;try{
-    if(variant.maintenance||variant.deny)await f.mutate(values=>{if(variant.maintenance)values.maintenanceMode='1';if(variant.deny){const accounts=JSON.parse(values.platformUsers);for(const cell of variant.deny)accounts[0].accessOverrides['fqc.'+cell]=false;values.platformUsers=JSON.stringify(accounts);}});
-    if(variant.revoke)f.revoke();
-    const insert={op:'insert',path:['errors'],value:{id:'new-synthetic-error',name:'New synthetic error',category:'SYN',line:'A'}},remove={op:'set',path:['items',{id:'item'},'isDeleted'],value:true};
-    const action=variant.action||'apply',detail=variant.detail?{patches:variant.detail==='both'?[insert,remove]:[variant.detail==='create'?insert:remove],guards:variant.detail==='create'?[]:[{path:remove.path}]}:action==='save'?{}:nameEdit();
-    const command=a.client.prepare(generation,action,detail),before=storedRow(f),business=businessRefSet(f);resetEvents(f);
-    const response=await f.call(endpoint,{method:'POST',body:JSON.stringify({command})},variant.actor||'editor'),body=await response.json(),error=variant.error||'FORBIDDEN';
-    assert.equal(response.status,variant.status||403,variant.name);
-    if(variant.id)assert.match(body.requestId,/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,`${variant.name}: kernel error retains a real request id`);
-    assert.deepEqual(body,variant.id?{error,requestId:body.requestId}:{error},`${variant.name}: exact DTO keys, not requestId-stripped normalization`);
-    noMutation(f,before);
-    if(!sourceRef)assert(!f.events.some(event=>event.kind==='get'&&business.has(event.key)),`${variant.name}: admission must precede business hydration`);
-    results.push({status:response.status,error,keys:Object.keys(body).sort(),headers:Object.fromEntries(response.headers)});
-   }finally{f.close();}
-  }
-  assert.deepEqual(results[1],results[0],`${variant.name}: paired exact status/header/DTO shape`);
+// Each denial independently compares the historical and current handlers.
+const earlyDenialCases=[
+ ...['apply','save'].map(action=>({name:`absent ${action}`,action,actor:'absent',status:401,error:'LOGIN_REQUIRED',id:false})),
+ ...['apply','save'].map(action=>({name:`revoked ${action}`,action,revoke:true,status:401,error:'LOGIN_REQUIRED',id:false})),
+ ...['apply','save'].map(action=>({name:`maintenance ${action}`,action,maintenance:true,status:503,error:'MAINTENANCE',id:false})),
+ {name:'create denied',detail:'create',deny:['create'],id:false},
+ {name:'delete denied',detail:'delete',deny:['delete'],id:false},
+ {name:'view denied',deny:['view'],id:true},
+ {name:'edit denied',deny:['edit'],id:true},
+ {name:'save and edit denied',action:'save',deny:['save','edit'],id:true},
+ {name:'raw create allowed while edit denied',detail:'create',deny:['edit'],id:true},
+ {name:'create and edit denied',detail:'create',deny:['create','edit'],id:false},
+ {name:'delete raw allowed while edit denied',detail:'delete',deny:['edit'],id:false},
+ {name:'mixed create and delete denied',detail:'both',deny:['create','delete'],id:false},
+ {name:'mixed create denied before kernel view denial',detail:'both',deny:['create','view'],id:false},
+];
+for(const variant of earlyDenialCases)void test(`FQC early denials preserve exact merged-848 DTO and authorization precedence: ${variant.name}`,async()=>{
+ const results=[];
+ for(const sourceRef of ['848be13da54c7ae747bcdd96df19e01129fe980a',undefined]){
+  const context=await setup(sourceRef?{sourceRef}:undefined),{f,a,generation}=context;try{
+   if(variant.maintenance||variant.deny)await f.mutate(values=>{if(variant.maintenance)values.maintenanceMode='1';if(variant.deny){const accounts=JSON.parse(values.platformUsers);for(const cell of variant.deny)accounts[0].accessOverrides['fqc.'+cell]=false;values.platformUsers=JSON.stringify(accounts);}});
+   if(variant.revoke)f.revoke();
+   const insert={op:'insert',path:['errors'],value:{id:'new-synthetic-error',name:'New synthetic error',category:'SYN',line:'A'}},remove={op:'set',path:['items',{id:'item'},'isDeleted'],value:true};
+   const action=variant.action||'apply',detail=variant.detail?{patches:variant.detail==='both'?[insert,remove]:[variant.detail==='create'?insert:remove],guards:variant.detail==='create'?[]:[{path:remove.path}]}:action==='save'?{}:nameEdit();
+   const command=a.client.prepare(generation,action,detail),before=storedRow(f),business=businessRefSet(f);resetEvents(f);
+   const response=await f.call(endpoint,{method:'POST',body:JSON.stringify({command})},variant.actor||'editor'),body=await response.json(),error=variant.error||'FORBIDDEN';
+   assert.equal(response.status,variant.status||403,variant.name);
+   if(variant.id)assert.match(body.requestId,/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,`${variant.name}: kernel error retains a real request id`);
+   assert.deepEqual(body,variant.id?{error,requestId:body.requestId}:{error},`${variant.name}: exact DTO keys, not requestId-stripped normalization`);
+   noMutation(f,before);
+   if(!sourceRef)assert(!f.events.some(event=>event.kind==='get'&&business.has(event.key)),`${variant.name}: admission must precede business hydration`);
+   results.push({status:response.status,error,keys:Object.keys(body).sort(),headers:Object.fromEntries(response.headers)});
+  }finally{f.close();}
  }
+ assert.deepEqual(results[1],results[0],`${variant.name}: paired exact status/header/DTO shape`);
 });
 
 void test('FQC outer unknown fields retain the original unrelated-fault fallback',async()=>{
