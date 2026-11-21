@@ -65,11 +65,13 @@ void test('original JSON manifests, approved product changes and reviewed Routin
   'M\tpublic/process/routine-iqc.js','A\tpublic/process/routine-reset.js',
  ].join('\n');
  assert.equal(readDiff(startupBase,startupTree),startupDelta,'exact startup paths and change kinds');
- assert.equal(readDiff(startupTree,'HEAD'),'','no unverified product content after the exact startup tree');
+ const reads=require('./routine-startup-read-successor.cjs');
+ assert.equal(readDiff(startupTree,reads.base),'','no unverified product content before the exact startup read change');
+ reads.verify();
  assert.equal(readDiff('HEAD'),'','tracked product checkout must match its commit');
  for(const row of approved.split('\n')){
   const [,file]=row.split('\t');
-  sourceProof.assertUploadedOrFollowup(fs.readFileSync(file),file);
+  sourceProof.assertUploadedOrFollowup(reads.predecessor(fs.readFileSync(file),file,{checkout:true}),file);
  }
  assert.equal(git('diff',base,'0f2c8ec5b3bc8f6a5625ef049782fab1f96988b1','--',...scope).length,0,'merged #121 main itself preserves the approved cache-only runtime boundary');
  assert.equal(fs.existsSync('lib/iqc-body-read-ahead.mjs'),false);

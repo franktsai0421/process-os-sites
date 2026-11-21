@@ -1,6 +1,7 @@
 import {env} from 'cloudflare:workers';
+import {prepareRoutineIqcStart} from '@/lib/state-records';
 import { boundedJson } from '@/lib/site-security.mjs';
-import { readState, identity, sameOrigin, encodeValues, stateRevisionIsCurrent, responseHeaders } from '@/lib/process-state';
+import { readState, identity, routineStartupPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, responseHeaders } from '@/lib/process-state';
 import { companyDate } from '@/lib/routine-fqc';
 import { RI_KEY, routineIqcCatalog, routineIqcTimeline } from '@/lib/routine-iqc';
 import { routineIqcAccess, routineIqcAuthorityKeys } from '@/lib/routine-iqc-access';
@@ -30,9 +31,9 @@ export async function GET(request:Request){
     const q=new URL(request.url).searchParams,operationId=q.get('operationId'),pendingOnly=q.get('pending-count')==='1';
     const validSelector=q.size===0||q.size===1&&(pendingOnly||operationId!==null&&/^[\w-]{8,100}$/.test(operationId));
     if(!validSelector)throw new DraftConflict('IQC_SELECTOR_INVALID',422);
-    const keys=[...routineIqcAuthorityKeys,RI_KEY,...(operationId?['iqcMasterControl']:[])];
+    const keys=[...routineIqcAuthorityKeys,RI_KEY];
     const state=await readState({keys,deferHistory:false});
-    const {actor,permissions}=await routineIqcAccess(request,state),c=readRoutineIqc(state),today=companyDate();
+    const {actor,permissions}=await routineIqcAccess(request,state,operationId?await routineStartupPermissionPhase(request,state):undefined),c=readRoutineIqc(state),today=companyDate();
     let body:unknown;
     if(pendingOnly){
       body={pendingCount:c.documents.filter(doc=>iqcDocStatus(doc)==='pending').length,revision:c.revision,identityId:actor.id};
@@ -76,15 +77,25 @@ export async function POST(request:Request){
         : ['action','operationId','expectedRevision','documentId','caseId','jobIds','start','end','draft','fields'];
     if(!command||typeof command!=='object'||Object.keys(command).some(key=>!fields.includes(key)))return reply({error:'IQC_ACTION_INVALID'},422);
     for(let attempt=0;attempt<3;attempt++){
-      const state=await readState({deferHistory:false});
-      const {actor,permissions}=await routineIqcAccess(request,state);
+      const starting=command.action==='configure'&&!new URL(request.url).search;
+      const row=starting?await env.DB.prepare('SELECT revision,"values" FROM shared_state WHERE id=1')
+        .first<{revision:number;values:string}>():null;
+      const selected=row?await prepareRoutineIqcStart(env.STATE_ARCHIVE,row.values,routineIqcAuthorityKeys):null;
+      const state=selected&&row?{revision:row.revision,values:selected.values}:await readState({deferHistory:false});
+      const phase=starting?await routineStartupPermissionPhase(request,state):undefined;
+      const {actor,permissions}=await routineIqcAccess(request,state,phase);
       if(state.values.maintenanceMode==='1')return reply({error:'MAINTENANCE'},503);
       if(command.action==='configure'&&!permissions.settings)return reply({error:'FORBIDDEN'},403);
       const control=readRoutineIqc(state);
       const at=new Date().toISOString(),today=companyDate(new Date(at));
       const response=executeRoutineIqc(control,command,state,{at,today,
         actor:{id:actor.id,name:actor.name,admin:actor.role==='admin'},permissions,id:()=>crypto.randomUUID()});
-      if(response.replayed)return reply({...response,revision:control.revision});
+      if(response.replayed){
+        const replay=reply({...response,revision:control.revision});
+        if(!await stateRevisionIsCurrent(state))return reply({error:'REVISION_CONFLICT'},409);
+        const current=phase?await phase.current():(await identity(request,state))?.id===actor.id;
+        return current?replay:reply({error:'LOGIN_REQUIRED'},401);
+      }
       const doc=control.documents.find(doc=>doc.id===command.documentId);
       if(doc&&command.action==='draft'){
         const photos=[...new Set(iqcContentPhotos(iqcDocContent(doc)))];
@@ -94,7 +105,7 @@ export async function POST(request:Request){
         }
       }
       const values={...state.values,[RI_KEY]:JSON.stringify(control)};
-      const encoded=await encodeValues(values,state);
+      const encoded=selected?await selected.encode(values[RI_KEY]):await encodeValues(values,state);
       if((await identity(request,state))?.id!==actor.id)return reply({error:'LOGIN_REQUIRED'},401);
       if(!await stateRevisionIsCurrent(state))continue;
       const write=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?')

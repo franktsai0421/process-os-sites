@@ -7,6 +7,7 @@ for(const file of Object.keys(proof.contract.files))for(const [target,commit]of 
  for(const bad of [Buffer.concat([bytes,Buffer.from(' ')]),bytes.subarray(1)]){assert.throws(()=>proof.restore(bad,file,target));assert.deepEqual(proof.projectKnown(bad,file,target),bad);}
  assert.throws(()=>proof.restore(bytes,'wrong',target));assert.throws(()=>proof.restore(bytes,file,'wrong'));assert.throws(()=>proof.restore(bytes.toString(),file,target));assert.deepEqual(proof.projectKnown(bytes,'wrong',target),bytes);assert.deepEqual(proof.projectKnown(bytes,file,'wrong'),bytes);assert.equal(proof.hash(prior),proof.contract.files[file].parents[target].hash);
 });
+const startupReads=require('./routine-startup-read-successor.cjs');
 const preserved={
  assignment118:['public/process/index.html','public/process/process-ipqc.css','public/process/process-ipqc.js'],
  speed119:['app/api/ipqc-ab/route.ts','app/api/ipqc-c/route.ts','app/api/ipqc-c/workflow/route.ts','lib/process-state.ts','lib/versioned-shared-workflow.ts'],
@@ -14,5 +15,5 @@ const preserved={
 for(const [target,files]of Object.entries(preserved))void test('complete changed runtime from '+target+' remains intact',()=>{
  const commit=proof.contract.parents[target],base='8bfc03679b0e53889c604e110ad843a2fc7b3ae5';
  assert.deepEqual(git('diff','--name-only',base,commit,'--','lib','app','public').toString().trim().split('\n').sort(),[...files].sort(),'independently enumerated parent runtime scope');
- for(const file of files)assert.deepEqual(normalized(require('../scripts/process-platform-adopt-source-contract.cjs').projectKnown(require('../scripts/inventory-speed-source-contract.cjs').projectKnown(require('../scripts/quality-root-source-contract.cjs').projectKnown(fs.readFileSync(file),file),file),file)),normalized(git('show',commit+':'+file)),file+' retains full parent runtime; both exact inventory/adoption inverses then checkout LF/CRLF normalization allowed');
+ for(const file of files)assert.deepEqual(normalized(require('../scripts/process-platform-adopt-source-contract.cjs').projectKnown(require('../scripts/inventory-speed-source-contract.cjs').projectKnown(require('../scripts/quality-root-source-contract.cjs').projectKnown(startupReads.predecessor(fs.readFileSync(file),file,{checkout:true}),file),file),file)),normalized(git('show',commit+':'+file)),file+' retains full parent runtime; both exact inventory/adoption inverses then checkout LF/CRLF normalization allowed');
 });

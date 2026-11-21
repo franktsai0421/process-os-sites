@@ -270,6 +270,35 @@ async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:Re
   return{values,recordStorage:{envelope,originalValues:{...values},known,partial:!!bodyKeys||!!options.keys||!!options.effectiveOnly||!!options.projectValue,models,allocations} satisfies RecordStorage};
 }
 
+// Prepare only the IQC calendar target. Keep other modules' immutable refs
+// intact. The general encoder continues to reject partial state writes.
+export async function prepareRoutineIqcStart(bucket:Bucket,raw:string,authority:string[]){
+ const original:Envelope=JSON.parse(raw), manifest=original.__processRecords;
+ if(!manifest)return null;
+ // Only the canonical records-v1 writer's envelope can be overlaid. Older or
+ // extended envelopes and divergent mirrors retain the existing full writer.
+ if(!object(original)||Object.keys(original).some(k=>!['__processRecords','platformUsers','maintenanceMode'].includes(k))||
+   !object(manifest)||manifest.version!==1||Object.keys(manifest).some(k=>!['version','values','allocations','legacySources'].includes(k))||
+   !object(manifest.values)||!object(manifest.legacySources)||!valid(manifest.values.platformUsers)||
+   typeof original.platformUsers!=='string'||await hash(original.platformUsers)!==manifest.values.platformUsers.sha256)return null;
+ const maintenance=manifest.values.maintenanceMode;
+ if(maintenance!==undefined||original.maintenanceMode!==undefined){
+   if(!valid(maintenance)||typeof original.maintenanceMode!=='string'||await hash(original.maintenanceMode)!==maintenance.sha256)return null;
+ }
+ for(const refs of [manifest.values,manifest.allocations,manifest.legacySources]){
+   if(refs!==undefined&&(!object(refs)||!Object.values(refs).every(valid)))throw Error('Invalid record manifest');
+ }
+ const key='routineIqcControl';
+ const selected=await decodeRecordValuesCore(bucket,original,{keys:[...authority,key,'iqcMasterControl'],aggregateReadAhead:true});
+ let consumed=false;
+ return {values:selected.values,async encode(control:string){
+   if(consumed||/"__(?:immutableBody|liveContent)":/.test(control))throw Error('Invalid IQC start encoding');
+   consumed=true;
+   const encoded:Envelope=JSON.parse(await encodeRecordValuesCore(bucket,{[key]:control},selected.recordStorage));
+   return JSON.stringify({...original,__processRecords:{...manifest,values:{...manifest.values,[key]:encoded.__processRecords.values[key]}}});
+ }};
+}
+
 // B0 mutation boundary: all aggregates are verified, but only the fixed FQC
 // dependency closure hydrates bodies. This is not a general partial-state writer.
 const fqcMutationKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','qualityMasterControl','masterDataControl','routineEquipmentControl'];
