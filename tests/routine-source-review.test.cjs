@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { test } = require('node:test');
-const { sourceEvidence, verifySourceReview } = require('../scripts/routine-source-review.cjs');
+const { sourceEvidence, verifySourceReview, githubCliReader } = require('../scripts/routine-source-review.cjs');
 
 const repo = 'owner/project';
 const file = 'app/api/routine-fqc/route.ts';
@@ -130,4 +130,42 @@ void test('rejects self-review, contributor identity drift, changed PR snapshot 
   await assert.rejects(verifySourceReview(evidence, suffix =>
     read(suffix, suffix.startsWith('/reviews') && ++reads === 2 ? [{ ...approval, state: 'DISMISSED' }] : [approval])),
   /No current independent/);
+});
+
+void test('authenticated review transport uses only GET on GitHub and fails closed on CLI errors', () => {
+  const evidence = { repo, number: 7 };
+  const read = githubCliReader(evidence, (command, args, options) => {
+    assert.equal(command, 'gh');
+    assert.deepEqual(args, ['api', '--hostname', 'github.com', '--method', 'GET',
+      '-H', 'Accept: application/vnd.github+json', '-H', 'X-GitHub-Api-Version: 2022-11-28',
+      'repos/owner/project/pulls/7/reviews?per_page=100&page=1']);
+    assert.equal(options.env.GH_PROMPT_DISABLED, '1');
+    assert.equal(options.timeout, 10_000);
+    return Buffer.from('[]');
+  });
+  assert.deepEqual(read('/reviews?per_page=100&page=1'), []);
+  for (const exec of [() => { throw Error('synthetic private diagnostics'); }, () => 'invalid JSON']) {
+    assert.throws(() => githubCliReader(evidence, exec)(''),
+      /^Error: GitHub CLI review lookup failed\. Use an existing account with read access to the repository\.$/);
+  }
+});
+
+void test('a new committed revision invalidates the previous approval until the new digest is approved', async t => {
+  const f = fixture(t);
+  const previous = github(f.evidence);
+  await verifySourceReview(f.evidence, previous.read);
+  f.update('after a second push\n');
+  const next = sourceEvidence(repo, 7, f.base, f.save(), f.cwd);
+  const current = github(next);
+  current.pull.commits = 2;
+  current.commits.unshift(previous.commits[0]);
+  const readWith = reviews => suffix => current.read(suffix, reviews);
+  await assert.rejects(verifySourceReview(f.evidence, readWith([previous.approval])), /live pull request/);
+  await assert.rejects(verifySourceReview(next, readWith([previous.approval])), /No current independent/);
+  const copied = { ...current.approval, body: previous.approval.body };
+  await assert.rejects(verifySourceReview(next, readWith([copied])), /exact review digest/);
+  const approved = { ...current.approval, id: 101 };
+  assert.deepEqual(await verifySourceReview(next, readWith([previous.approval, approved])), {
+    state: 'github-review-observed', review: 101, reviewer: 'owner', ...next,
+  });
 });

@@ -128,11 +128,29 @@ async function verifySourceReview(evidence, read) {
   return { state: 'github-review-observed', review, reviewer: identities.ownerLogin, ...evidence };
 }
 
+function githubCliReader(evidence, exec = execFileSync) {
+  return suffix => {
+    const endpoint = 'repos/' + evidence.repo + '/pulls/' + evidence.number + suffix;
+    try {
+      return JSON.parse(exec('gh', [
+        'api', '--hostname', 'github.com', '--method', 'GET',
+        '-H', 'Accept: application/vnd.github+json', '-H', 'X-GitHub-Api-Version: 2022-11-28', endpoint,
+      ], {
+        timeout: 10_000, stdio: ['ignore', 'pipe', 'ignore'],
+        env: { ...process.env, GH_PROMPT_DISABLED: '1', GH_NO_UPDATE_NOTIFIER: '1' },
+      }));
+    } catch {
+      throw new Error('GitHub CLI review lookup failed. Use an existing account with read access to the repository.');
+    }
+  };
+}
+
 async function run([command, repo, pr, base, head, ...extra]) {
-  requireReview(['evidence', 'verify'].includes(command) && extra.length === 0 && /^\d+$/.test(pr),
-    'Usage: node scripts/routine-source-review.cjs <evidence|verify> <owner/repo> <PR> <base SHA> <head SHA>');
+  const githubCli = command === 'verify' && extra.length === 1 && extra[0] === '--github-cli';
+  requireReview(['evidence', 'verify'].includes(command) && (extra.length === 0 || githubCli) && /^\d+$/.test(pr),
+    'Usage: node scripts/routine-source-review.cjs <evidence|verify> <owner/repo> <PR> <base SHA> <head SHA> [--github-cli]');
   const evidence = sourceEvidence(repo, Number(pr), base, head);
-  const read = async suffix => {
+  const read = githubCli ? githubCliReader(evidence) : async suffix => {
     const url = 'https://api.github.com/repos/' + evidence.repo + '/pulls/' + evidence.number + suffix;
     const response = await fetch(url, {
       redirect: 'error', signal: AbortSignal.timeout(10_000),
@@ -151,4 +169,4 @@ if (require.main === module) {
     process.exitCode = 1;
   });
 }
-module.exports = { sourceEvidence, verifySourceReview };
+module.exports = { sourceEvidence, verifySourceReview, githubCliReader };

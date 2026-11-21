@@ -19,10 +19,10 @@
 5. 執行：
 
    ```sh
-   node scripts/routine-source-review.cjs verify OWNER/REPO PR_NUMBER BASE_SHA HEAD_SHA
+   node scripts/routine-source-review.cjs verify OWNER/REPO PR_NUMBER BASE_SHA HEAD_SHA --github-cli
    ```
 
-   指令只向公開 GitHub API 做唯讀查詢，無須權杖。它查證目前 PR、簽署提交、擁有人和該 PR 上的核准。舊 head 的核准、最新要求修改或被撤銷的核准、比對期間改變的證據、失敗的 API 查詢，都會中止。成功僅表示當時查到符合條件的 GitHub 審查紀錄。它不能保證此後的審查狀態、證明誰實際操作帳號、發佈資料，或讓來源 CI 接受新的檔案內容。
+   私人儲存庫由維護者在可信的電腦上使用已登入且有讀取權限的 GitHub CLI。指令只會送出唯讀 GET，不提示登入，也不把權杖寫進指令或證明。公開儲存庫可省略旗標以使用匿名唯讀查詢。它查證目前 PR、簽署提交、擁有人和該 PR 上的核准。舊 head 的核准、最新要求修改或被撤銷的核准、比對期間改變的證據、失敗的 API 查詢，都會中止。成功僅表示當時查到符合條件的 GitHub 審查紀錄。它不能保證此後的審查狀態、證明誰實際操作帳號、發佈資料，或讓來源 CI 接受新的檔案內容。
 
 ## 啟用強制合併關卡的前提
 
@@ -38,6 +38,13 @@
 - [Pull request reviews REST API](https://docs.github.com/en/rest/pulls/reviews#list-reviews-for-a-pull-request)
 - [Displaying verification for all of your commits](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification)
 - [About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
+
+## 更版演練與來源驗證交接
+
+1. 在已核准的獨立測試儲存庫使用無業務資料的練習檔。獨立貢獻者提交一個有簽名的例行來源變更，Frank 用自己的帳號審查，先記錄原 PR head 與原始檔案摘要。Frank 的自開 PR 應維持拒絕。
+2. 在 GitHub 審查精確的差異和測試證據，核准並貼上當前摘要。先確認腳本回報該 review ID，再由原貢獻者簽署第二個提交。重跑時，舊 head 與舊核准都應被拒絕。Frank 審查新版並貼上新摘要後再比對。
+3. 若測試儲存庫已核准且啟用強制檢查，由受信任的檢查執行環境比對精確 PR head、基底和 GitHub 審查。用可丟棄的候選確認自報成功的同名狀態無法解除合併檢查。審查撤銷或 PR 更新後，可信狀態必須失效。唯讀腳本本身沒有發布狀態的功能。
+4. 核准紀錄留作維護者的審查證據。依正式來源維護流程審查新增的精確來源證明，核對真正的公開前身與原始 blob，保留現有歷史證明的負面案例。對最終候選重跑固定來源與功能測試，驗證一個位元組變動或使用非目前版本的來源仍被拒絕。任何來源檔或證明更新若使 PR head 改變，都須以最終 head 重新取證及人審。不得用腳本輸出的 JSON 自動接受來源。
 
 ## 合成回歸及目前限制
 
