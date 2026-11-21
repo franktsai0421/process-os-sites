@@ -89,3 +89,43 @@ void test('routine integration projects only committed public changes for histor
   assert.throws(()=>project(lf,file),/raw Buffer/);
  }
 });
+
+for (const file of [contract.index, contract.file]) {
+ void test('routine startup successor binds raw HEAD and preserves the historical projection for '+file,()=>{
+  const gate=require('../scripts/routine-integration-source-contract.cjs');
+  const gitBytes=revision=>execFileSync('git',['show',revision+':'+file]);
+  const main='0149cf21fd2e46e83f8eab99a8426bc8c9df6b47';
+  const historical='f173bd2474d6070c6411736f91a5707e1e49be4b';
+  execFileSync('git',['merge-base','--is-ancestor',historical,main]);
+  execFileSync('git',['merge-base','--is-ancestor',main,'HEAD']);
+  const current=gitBytes('HEAD'),prior=gitBytes(main),old=gitBytes(historical);
+  assert(!current.equals(prior));assert(!prior.equals(old));
+  assert.deepEqual(gate.projectKnown(prior,file),old);
+  gate.assertRoutineHeadBlob(current,file);
+  const lf=current.toString('utf8').replaceAll('\r\n','\n');
+  const windows=Buffer.from(lf.replaceAll('\n','\r\n'));
+  assert(!windows.equals(current),'the substituted raw Git object must be different');
+  const mixed=Buffer.from(lf.replace('\n','\r\n'));
+  assert(!mixed.equals(current)&&!mixed.equals(windows));
+  // Only a checkout may change LF to CRLF; independently authenticate the object first.
+  const checked=proof.canonicalCheckout(windows,current);
+  assert.deepEqual(checked,current);
+  assert.deepEqual(gate.projectKnown(checked,file),old);
+  assert.deepEqual(gate.projectKnown(windows,file),old);
+  for(const candidate of [windows,mixed])assert.throws(
+   ()=>gate.assertRawRoutineEncoding(candidate,file,'substituted raw Git object'),{code:'ERR_ASSERTION'});
+  gate.assertRawRoutineEncoding(current,file,'exact raw object');
+  const swapped=Buffer.from(current);
+  const pos=swapped.findIndex((byte,i)=>i+1<swapped.length&&byte!==swapped[i+1]);
+  assert(pos>=0);[swapped[pos],swapped[pos+1]]=[swapped[pos+1],swapped[pos]];
+  for(const mutation of [windows,mixed,Buffer.concat([current,Buffer.from(' ')]),current.subarray(0,-1),swapped,prior]){
+   assert.throws(()=>gate.assertRoutineHeadBlob(mutation,file),{code:'ERR_ASSERTION'});
+  }
+  for(const mutation of [mixed,current.subarray(0,-1),swapped]){
+   assert.strictEqual(gate.projectKnown(mutation,file),mutation);
+  }
+  const other=file===contract.index?contract.file:contract.index;
+  assert.throws(()=>gate.assertRoutineHeadBlob(current,other),{code:'ERR_ASSERTION'});
+  assert.strictEqual(gate.projectKnown(current,'./'+file),current);
+ });
+}
