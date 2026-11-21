@@ -274,6 +274,15 @@ export async function createRoutineEntryPermissionPhase(request:Request,state:St
   if(request.method!=='GET'||url.pathname!=='/api/routine-fqc'||!(query.size===0||query.size===1&&query.get('availability')==='1'))return null;
   return createWorkflowPermissionPhase(request,state);
 }
+// Only routine startup and the IQC receipt lookup use this request-local
+// permission snapshot. The route still checks the session before delivery/CAS.
+export function routineStartupPermissionPhase(request:Request,state:State){
+  const {pathname,searchParams:q}=new URL(request.url);
+  const preview=request.method==='GET'&&pathname==='/api/routine-fqc'&&q.size===3&&q.get('preview')==='1'&&q.get('calendar')==='2'&&q.has('start');
+  const iqc=pathname==='/api/routine-iqc'&&(request.method==='POST'&&!q.size||request.method==='GET'&&q.size===1&&q.has('operationId'));
+  if(!preview&&!iqc)throw Error('INVALID_PERMISSION_PHASE');
+  return createWorkflowPermissionPhase(request,state);
+}
 // Exact A/B workflow only. Each selected snapshot and CAS retry gets its own
 // phase; the shared route retains fresh checks before returning/persisting.
 export async function createIpqcABPermissionPhase(request:Request,state:State){

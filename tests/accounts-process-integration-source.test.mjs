@@ -1,11 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 const followup=createRequire(import.meta.url)('../scripts/account-process-followup-source-contract.cjs');
-const published=(bytes,file)=>followup.projectKnown(bytes,file);
+const reads=createRequire(import.meta.url)('./routine-startup-read-successor.cjs');
+const published=(bytes,file)=>followup.projectKnown(reads.predecessor(bytes,file),file);
 const manifest=JSON.parse(fs.readFileSync('docs/acceptance/accounts-process-joint-20261112/sources.json','utf8'));
 const git=(...args)=>execFileSync('git',args),hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 void test('fixed latest public origins and main are preserved in joint ancestry',()=>{
@@ -54,8 +57,9 @@ void test('reviewed account/process runtime union retains every installed file w
  assert.equal(git('rev-parse',routineProof.followup.uploaded+'^{tree}').toString().trim(),routineProof.followup.tree);
  for(const file of routineAdditions){
   const supplied=git('show','HEAD:'+file);
-  routineProof.assertUploadedOrFollowup(supplied,file);
-  assert.throws(()=>routineProof.assertUploadedOrFollowup(Buffer.concat([supplied,Buffer.from(' ')]),file));
+  const verify=bytes=>routineProof.assertUploadedOrFollowup(reads.predecessor(bytes,file),file);
+  verify(supplied);
+  assert.throws(()=>verify(Buffer.concat([supplied,Buffer.from(' ')])));
  }
  for(const file of additions)assert.deepEqual(createRequire(import.meta.url)('../scripts/quality-main-source-contract.cjs').projectKnown(git('show','HEAD:'+file),file,'quality'),git('show','0850a46732ce4d468a2238450d83c3f2f8fb3d07:'+file),file);
  // Preserve exact quality-parent bytes; C return semantics have an independently tested narrow inverse.
@@ -98,11 +102,12 @@ void test('startup path projections reject substituted raw objects and preserve 
   const head=git('show','HEAD:'+file);
   const base=git('show','0149cf21fd2e46e83f8eab99a8426bc8c9df6b47:'+file);
   assert.notDeepEqual(head,base,file);
-  proof.assertRoutineHeadBlob(head,file);
-  assert.deepEqual(proof.projectKnown(head,file),proof.projectKnown(base,file),file);
+  const verify=bytes=>proof.assertRoutineHeadBlob(reads.predecessor(bytes,file),file);
+  verify(head);
+  assert.deepEqual(proof.projectKnown(reads.predecessor(head,file),file),proof.projectKnown(base,file),file);
   const mutation=Buffer.from(head);
   mutation[0]^=1;
-  for(const other of [base,mutation,head.subarray(1)])assert.throws(()=>proof.assertRoutineHeadBlob(other,file),{code:'ERR_ASSERTION'});
+  for(const other of [base,mutation,head.subarray(1)])assert.throws(()=>verify(other),{code:'ERR_ASSERTION'});
   assert.strictEqual(proof.projectKnown(mutation,file),mutation,file);
  }
 });
@@ -110,4 +115,28 @@ void test('joint contract rejects byte drift and keeps original native timeouts 
  for(const row of manifest.runtimeDecisions){const bytes=git('show','HEAD:'+row.path);assert.notEqual(hash(Buffer.concat([bytes,Buffer.from('\n// drift')])),row.sha256);}
  for(const file of ['tests/begin-recovery-browser.mjs','tests/process-draft-lifecycle-browser.mjs'])assert.deepEqual(published(git('show','HEAD:'+file),file),git('show',manifest.sources.pr104.commit+':'+file));
  assert.deepEqual(published(git('show','HEAD:.github/workflows/local-safety.yml'),'.github/workflows/local-safety.yml'),git('show',manifest.sources.main.commit+':.github/workflows/local-safety.yml'));
+});
+void test('startup read successor applies forward and inverse with exact raw path, mode and content',t=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'routine-start-index-'));
+ t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+ const isolated=(args,input)=>execFileSync('git',args,{env:{...process.env,GIT_INDEX_FILE:path.join(dir,'index')},input});
+ reads.verify();
+ const patch=git('diff','--no-ext-diff','--no-textconv','--binary','--full-index',reads.base,'HEAD','--',...reads.scope);
+ isolated(['read-tree',reads.base]);
+ isolated(['apply','--cached','--whitespace=nowarn','-'],patch);
+ for(const [file,[before,after]] of Object.entries(reads.blobs)){
+   const bytes=git('cat-file','blob',after);
+   assert.deepEqual(isolated(['show',':'+file]),bytes);
+   assert.deepEqual(reads.predecessor(bytes,file),git('cat-file','blob',before));
+   for(const bad of [git('cat-file','blob',before),bytes.subarray(1),Buffer.concat([bytes,Buffer.from(' ')])])
+     assert.throws(()=>reads.predecessor(bad,file));
+   const crlf=Buffer.from(bytes.toString().replace(/\r?\n/g,'\r\n'));
+   if(!crlf.equals(bytes))assert.throws(()=>reads.predecessor(crlf,file));
+   assert.deepEqual(reads.predecessor(crlf,file,{checkout:true}),git('cat-file','blob',before));
+ }
+ isolated(['apply','-R','--cached','--whitespace=nowarn','-'],patch);
+ assert.equal(isolated(['write-tree']).toString().trim(),git('rev-parse',reads.base+'^{tree}').toString().trim());
+ const inventory=git('diff','--raw','--no-abbrev','--no-renames',reads.base,'HEAD','--',...reads.scope).toString();
+ for(const change of [inventory.replace('100644','100755'),inventory.replace('route.ts','other.ts'),inventory+inventory])
+   assert.throws(()=>reads.inventory(change));
 });
