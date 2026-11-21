@@ -446,3 +446,15 @@ void test('FQC absent optional dependency keys preserve merged-848 defaults and 
   assert.deepEqual(results[1],results[0],`${variant.name}: paired defaults/guard semantics`);
  }
 });
+
+void test('FQC fixture compilation keeps source overrides, Worker bindings and module state isolated',()=>{
+ const loader=createRequire(import.meta.url)('../scripts/fqc-bootstrap-projection-fixture.cjs');
+ const file='synthetic.ts';
+ const source="import {env} from 'cloudflare:workers'; let count:number=0; export const next=()=>[env.label,++count].join(':');";
+ const isolate=(label,raw)=>loader(process.cwd(),{label},{},{[file]:raw}).load(file);
+ const a=isolate('first',source),b=isolate('second',source);
+ assert.equal(a.next(),'first:1');assert.equal(a.next(),'first:2');
+ assert.equal(b.next(),'second:1');
+ assert.equal(isolate('override',source.replace('++count','count+=10')).next(),'override:10');
+ assert.equal(isolate('original',source).next(),'original:1');
+});

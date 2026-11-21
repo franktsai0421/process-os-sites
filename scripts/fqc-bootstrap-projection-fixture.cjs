@@ -1,9 +1,19 @@
 /* Actual TS loader; exact normalized route override only, synthetic ports, no network. */
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),ts=require('typescript'),{webcrypto,createHash}=require('node:crypto');
+// This loader always uses the same compiler options and no filename. Cache only
+// emitted text for exact input text; evaluate it in each fixture's own VM below.
+const emittedBySource=new Map();
+function compiledSource(raw){
+ if(emittedBySource.has(raw))return emittedBySource.get(raw);
+ const emitted=ts.transpileModule(raw,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
+ if(emittedBySource.size>=64)emittedBySource.delete(emittedBySource.keys().next().value);
+ emittedBySource.set(raw,emitted);
+ return emitted;
+}
 module.exports=(root,env,probe,overrides={})=>{const cache=new Map(),bindings={},used=[];
  function load(file){file=path.resolve(root,file);if(cache.has(file))return cache.get(file);const relative=path.relative(root,file).split(path.sep).join('/'),m={exports:{}};cache.set(file,m.exports);
  const raw=Object.hasOwn(overrides,relative)?(used.push(relative),overrides[relative]):fs.readFileSync(file,'utf8');bindings[relative]=createHash('sha256').update(raw).digest('hex');
- const code=ts.transpileModule(raw,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
+ const code=compiledSource(raw);
  vm.runInNewContext(code,{module:m,exports:m.exports,require(id){if(id==='cloudflare:workers')return{env};if(id.startsWith('node:'))return require(id);const target=id.startsWith('@/')?path.join(root,id.slice(2)):path.resolve(path.dirname(file),id);if(target.endsWith('.json'))return JSON.parse(fs.readFileSync(target));return target.endsWith('.mjs')?require(target):load(target.endsWith('.ts')?target:target+'.ts');},Error,TypeError,SyntaxError,Request,Response,ReadableStream,Headers,URL,crypto:webcrypto,Date,TextEncoder,TextDecoder,atob,btoa,structuredClone,console});cache.set(file,m.exports);return m.exports;}
  return{load,bindings,overrideUsed:used};};
 
