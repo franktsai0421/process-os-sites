@@ -273,6 +273,44 @@ async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:Re
 // Prepare only the IQC calendar target. Keep other modules' immutable refs
 // intact. The general encoder continues to reject partial state writes.
 export async function prepareRoutineIqcStart(bucket:Bucket,raw:string,authority:string[]){
+ return prepareRoutineStart(bucket,raw,'routineIqcControl',{keys:[...authority,'routineIqcControl','iqcMasterControl'],aggregateReadAhead:true,projectValue:(key,value)=>{
+  if(key!=='iqcMasterControl')return value;
+  const master=JSON.parse(value);
+  if(!Array.isArray(master?.versions)||master.workflow&&!Array.isArray(master.workflow.cases))return value;
+  // Timeline resolution still needs retired versions and their case metadata,
+  // including rejected cases which must never establish an approved baseline.
+  const versions=master.versions.filter((v:{id:string;status:string})=>v.id===master.activeVersionId||v.status==='approved'||v.status==='superseded');
+  const ids=new Set(versions.map((v:{id:string})=>v.id));
+  return JSON.stringify({activeVersionId:master.activeVersionId,versions,
+   ...(master.workflow?{workflow:{cases:master.workflow.cases.filter((c:{id:string})=>ids.has(c.id))}}:{})});
+ }});
+}
+
+// Legacy routine schedules consume the effective AB product catalog. Page-v1
+// resolves both AB and LINES approvals and their unique version identities.
+export function routineFqcStartMaster(raw:string){
+ const master=JSON.parse(raw);
+ if(!object(master)||'pageDraftLayout' in master||!object(master.active))return raw;
+ const active=master.active,ab=active.AB;
+ if(Object.keys(active).some(key=>key.includes('.'))||!object(ab)||(!Array.isArray(ab.products)&&!reference(ab)))return raw;
+ return JSON.stringify({active:{AB:ab}});
+}
+
+export function prepareRoutineFqcStart(bucket:Bucket,raw:string,action:'configure'|'generate'='configure'){
+ const keys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','routineFqcEnabled','routineFqcControl','qualityMasterControl','masterDataControl'];
+ return prepareRoutineStart(bucket,raw,'routineFqcControl',{keys,aggregateReadAhead:true,projectValue:(key,raw)=>{
+  if(key==='masterDataControl')return routineFqcStartMaster(raw);
+  if(key!=='qualityMasterControl')return raw;
+  const lib=JSON.parse(raw)?.libraries?.fqc;
+  if(!Array.isArray(lib?.versions))return raw;
+  const versions=lib.versions.filter((v:{id:string;status:string})=>action==='generate'
+    ? v.status==='approved'||v.status==='superseded'
+    : v.id===lib.activeVersionId&&v.status==='approved');
+  return JSON.stringify({libraries:{fqc:{activeVersionId:lib.activeVersionId,versions}}});
+ }},action==='generate');
+}
+
+async function prepareRoutineStart(bucket:Bucket,raw:string,key:'routineIqcControl'|'routineFqcControl',options:RecordRead,calendarGeneration=false){
  const original:Envelope=JSON.parse(raw), manifest=original.__processRecords;
  if(!manifest)return null;
  // Only the canonical records-v1 writer's envelope can be overlaid. Older or
@@ -288,11 +326,20 @@ export async function prepareRoutineIqcStart(bucket:Bucket,raw:string,authority:
  for(const refs of [manifest.values,manifest.allocations,manifest.legacySources]){
    if(refs!==undefined&&(!object(refs)||!Object.values(refs).every(valid)))throw Error('Invalid record manifest');
  }
- const key='routineIqcControl';
- const selected=await decodeRecordValuesCore(bucket,original,{keys:[...authority,key,'iqcMasterControl'],aggregateReadAhead:true});
+ if(calendarGeneration){
+  // Inspect the control covered by this exact shared_state revision before
+  // selecting calendar dependencies. Legacy/page layouts retain their reader.
+  const ref=manifest.values[key];
+  if(!ref)return null;
+  const control=JSON.parse(await read(bucket,ref));
+  if(!object(control)||control.schemaVersion!==1||'pageDraftLayout' in control||'page' in control||
+    !object(control.calendarPolicy)||control.calendarPolicy.version!==2||
+    !Array.isArray(control.jobs)||!Array.isArray(control.documents)||!Array.isArray(control.cases))return null;
+ }
+ const selected=await decodeRecordValuesCore(bucket,original,options);
  let consumed=false;
  return {values:selected.values,async encode(control:string){
-   if(consumed||/"__(?:immutableBody|liveContent)":/.test(control))throw Error('Invalid IQC start encoding');
+   if(consumed||/"__(?:immutableBody|liveContent)":/.test(control))throw Error('Invalid routine start encoding');
    consumed=true;
    const encoded:Envelope=JSON.parse(await encodeRecordValuesCore(bucket,{[key]:control},selected.recordStorage));
    return JSON.stringify({...original,__processRecords:{...manifest,values:{...manifest.values,[key]:encoded.__processRecords.values[key]}}});

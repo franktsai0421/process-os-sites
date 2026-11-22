@@ -157,6 +157,22 @@ void test('FQC preview preserves previously approved periods and active-version 
   assert.ok(jobs.some(j=>j.source.version==='2'&&j.start==='2026-11-01'&&j.end==='2026-11-30'));
   assert.ok(jobs.every(j=>j.itemId==='f-0'&&j.source.versionId!=='unapproved'));
   assert.deepEqual(row(),before);
+  const start={...fqcStart(),startDate:'2026-11-01'};
+  const configure=await call('fqc','',start);assert.equal(configure.status,200);
+  const gen={action:'generate',operationId:'historical-generate',expectedRevision:(await configure.json()).revision};
+  const configured=row(),ref=JSON.parse(configured.values).__processRecords.values.qualityMasterControl;
+  const retired=JSON.parse(f.objects.get(ref.key)).libraries.fqc.versions[0].snapshot.__immutableBody.key;
+  let hits=0;f.hooks.get=k=>{if(k===retired){hits++;throw Error('missing historical approval');}};
+  assert.equal((await call('fqc','',gen)).status,500);assert(hits>0);
+  assert.deepEqual(row(),configured);assert.equal((await call('fqc','?operationId='+gen.operationId)).status,404);
+  delete f.hooks.get;
+  assert.equal((await call('fqc','',gen)).status,200);
+  const persisted=JSON.parse((await f.core.readState({keys:['routineFqcControl']})).values.routineFqcControl);
+  const periods=list=>list.map(j=>[j.itemId,j.source.versionId,j.start,j.end]).sort();
+  assert.deepEqual(periods(persisted.jobs.filter(j=>!j.calendar?.stopped)),periods(jobs));
+  const stopped=persisted.jobs.filter(j=>j.calendar?.stopped);
+  assert.deepEqual(periods(stopped),[['f-0','old-approval','2026-11-16','2026-11-22']]);
+  assert.equal(stopped[0].calendar.stopped.reason,'frequency-changed');
 });
 for(const shape of ['divergent users','divergent maintenance','unknown envelope','legacy manifest'])void test('IQC configure retains full-read fallback for '+shape,async t=>{
   const {f,call,row,cmd,blocked}=await setup(t),root=JSON.parse(row().values);
@@ -210,4 +226,215 @@ void test('account and routine raw Git proofs reject substituted EOL before chec
     changed[0]^=1;
     assert.throws(()=>proof.assertRoutineHeadBlob(changed,file),{code:'ERR_ASSERTION'});
   }
+});
+
+const fqcStart=()=>({action:'configure',startDate:day,calendarVersion:2,operationId:'synthetic-fqc-start',expectedRevision:0});
+void test('FQC configure avoids unrelated and draft I/O, persists one receipt, then generates exact eligible rows',async t=>{
+ const {f,call,row,blocked}=await setup(t),cmd=fqcStart(),before=row();
+ const bindings=JSON.parse(before.values).__processRecords;
+ let waits=0;
+ f.hooks.get=async key=>{
+   if([bindings.values.syntheticUnrelated.key,blocked.other,blocked.draft].includes(key))throw Error('unavailable unrelated archive');
+   waits++;await new Promise(resolve=>setTimeout(resolve,2));
+ };
+ const response=await call('fqc','',cmd);
+ assert.equal(response.status,200);assert(waits>0);
+ assert.equal(f.events.filter(e=>e.sql?.includes('process_revoked_sessions')).length,2);
+ const result=await response.json(),after=row();assert.equal(after.revision,before.revision+1);
+ const persisted=async()=>JSON.parse((await f.core.readState({keys:['routineFqcControl']})).values.routineFqcControl);
+ const configured=await persisted();assert.equal(configured.startDate,day);assert.equal(configured.jobs.length,0);
+ const initialItems=await (await call('fqc')).json();assert.equal(initialItems.control.jobs.length,0);
+ assert.deepEqual(row(),after);
+ const compared=JSON.parse(after.values).__processRecords,old={...bindings.values};
+ delete old.routineFqcControl;delete compared.values.routineFqcControl;
+ assert.deepEqual(compared,{...bindings,values:old});
+ const lookup=await call('fqc','?operationId='+cmd.operationId);
+ assert.equal(lookup.status,200);assert.deepEqual((await lookup.json()).result,result.result);
+ assert.equal((await call('fqc','',cmd)).status,200);assert.deepEqual(row(),after);
+ const generate=await call('fqc','',{action:'generate',expectedRevision:result.revision,operationId:'synthetic-fqc-gen'});
+ assert.equal(generate.status,200);
+ const state=await (await call('fqc')).json();
+ assert.equal(state.control.jobs.length,62);assert.deepEqual(new Set(state.control.jobs.map(j=>j.itemId)),new Set(Array.from({length:62},(_,i)=>'f-'+i)));
+ assert.ok(state.control.jobs.every(j=>j.start==='2026-11-16'&&j.end===day));
+ const recorded=await persisted();assert.deepEqual(recorded.jobs.map(j=>j.id),state.control.jobs.map(j=>j.id));
+ const saved=row();assert.deepEqual((await (await call('fqc')).json()).control.jobs,state.control.jobs);
+ const generateReceipt=await call('fqc','?operationId=synthetic-fqc-gen');
+ assert.equal(generateReceipt.status,200);
+ assert.deepEqual((await generateReceipt.json()).result,(await generate.json()).result);
+ assert.deepEqual(recorded.receipts[cmd.operationId].result,result.result);
+ // Reconciliation adds the 62 rows before the final generation pass; its
+ // return count describes only additional rows from that last pass.
+ assert.equal(recorded.receipts['synthetic-fqc-gen'].result.generated,0);
+ assert.deepEqual(row(),saved);
+});
+async function scheduleCommand(call,action){
+ if(action==='configure')return fqcStart();
+ const configured=await call('fqc','',fqcStart());assert.equal(configured.status,200);
+ return {action,expectedRevision:(await configured.json()).revision,operationId:'synthetic-gen-fault'};
+}
+for(const action of ['configure','generate'])void test('FQC '+action+' loses acknowledgement after commit; later lookup recovers with one durable write',async t=>{
+ const {f,call,row}=await setup(t),cmd=await scheduleCommand(call,action),before=row();let writes=0;
+ f.hooks.run=(sql,args)=>{if(sql.startsWith('UPDATE shared_state')){
+   writes++;assert.equal(f.db.prepare(sql).run(...args).changes,1);throw Error('synthetic late acknowledgement');
+ }};
+ assert.equal((await call('fqc','',cmd)).status,500);
+ assert.equal(row().revision,before.revision+1);
+ assert.equal((await call('fqc','?operationId='+cmd.operationId)).status,200);assert.equal(writes,1);
+ if(action==='generate'){
+  const saved=row();assert.equal((await call('fqc','?operationId='+fqcStart().operationId)).status,200);
+  const replay=await call('fqc','',cmd);assert.equal(replay.status,200);assert.equal((await replay.json()).replayed,true);
+  assert.equal((await (await call('fqc')).json()).control.jobs.length,62);assert.deepEqual(row(),saved);assert.equal(writes,1);
+ }
+});
+for(const action of ['configure','generate'])void test('FQC '+action+' fences revocation after R2 preparation and rejects a raced shared-state CAS',async t=>{
+ for(const mode of ['revoked','raced'])await t.test(mode,async t=>{
+  const {f,call,row}=await setup(t),cmd=await scheduleCommand(call,action),before=row();let revokedKey;let attempts=0;
+  f.hooks.sql=(sql,args)=>{if(sql.includes('process_revoked_sessions'))revokedKey=args[0];};
+  f.hooks.put=()=>{if(mode==='revoked')f.db.prepare('INSERT OR REPLACE INTO process_revoked_sessions VALUES(?,?,?)').run(revokedKey,Date.now()+3600000,Date.now());};
+  f.hooks.run=(sql)=>{if(mode==='raced'&&sql.startsWith('UPDATE shared_state')){
+    attempts++;f.db.prepare('UPDATE shared_state SET revision=revision+1').run();
+  }};
+  const res=await call('fqc','',cmd);assert.equal(res.status,mode==='revoked'?401:409);
+  assert.equal(row().values,before.values);
+  if(mode==='raced'){assert(attempts>0);assert.equal((await call('fqc','?operationId='+cmd.operationId)).status,404);}
+ });
+});
+
+for(const action of ['configure','generate'])void test('FQC '+action+' response abandoned before CAS: missing receipt first, one confirmed result after release',async t=>{
+ const {f,call,row}=await setup(t),cmd=await scheduleCommand(call,action),before=row();
+ let release,entered;
+ const paused=new Promise(resolve=>{release=resolve;}),arrived=new Promise(resolve=>{entered=resolve;});
+ let writes=0;
+ f.hooks.run=async sql=>{if(sql.startsWith('UPDATE shared_state')){writes++;entered();await paused;}};
+ const inFlight=call('fqc','',cmd);
+ await arrived;
+ try{
+  const missing=await call('fqc','?operationId='+cmd.operationId);
+  assert.equal(missing.status,404);assert.deepEqual(row(),before);
+ }finally{release();}
+ assert.equal((await inFlight).status,200);
+ assert.equal((await call('fqc','?operationId='+cmd.operationId)).status,200);
+ assert.equal(row().revision,before.revision+1);assert.equal(writes,1);
+ if(action==='generate'){
+  const saved=row();assert.equal((await call('fqc','?operationId='+fqcStart().operationId)).status,200);
+  const replay=await call('fqc','',cmd);assert.equal(replay.status,200);assert.equal((await replay.json()).replayed,true);
+  assert.equal((await (await call('fqc')).json()).control.jobs.length,62);assert.deepEqual(row(),saved);assert.equal(writes,1);
+ }
+});
+void test('IQC receipt lookup reads its aggregate without opening unrelated document evidence',async t=>{
+ const {f,call,cmd,row}=await setup(t);
+ assert.equal((await call('iqc','',cmd)).status,200);
+ await f.mutate(values=>{
+  const c=JSON.parse(values.routineIqcControl);
+  c.documents.push({id:'synthetic-evidence',flow:{working:{text:'synthetic proof'}}});
+  values.routineIqcControl=JSON.stringify(c);
+ });
+ const before=row(),ref=JSON.parse(before.values).__processRecords.values.routineIqcControl;
+ const blocked=JSON.parse(f.objects.get(ref.key)).documents.at(-1).flow.working.__immutableBody.key;
+ f.hooks.get=key=>{if(key===blocked)throw Error('synthetic attachment archive unavailable');};
+ assert.equal((await call('iqc','?operationId='+cmd.operationId)).status,200);
+ assert.equal((await call('iqc','?operationId=synthetic-missing')).status,404);
+ assert.deepEqual(row(),before);
+});
+
+void test('IQC configure skips archived draft-only source content and retains the live catalog byte for byte',async t=>{
+ const {f,call,cmd,row}=await setup(t);
+ await f.mutate(values=>{
+  const c=JSON.parse(values.iqcMasterControl);
+  c.versions.push({id:'synthetic-unapproved',status:'draft',snapshot:{draftPadding:'unused'.repeat(90000)}});
+  values.iqcMasterControl=JSON.stringify(c);
+ });
+ const before=row(),master=JSON.parse(before.values).__processRecords.values.iqcMasterControl;
+ const draft=JSON.parse(f.objects.get(master.key)).versions.at(-1).snapshot.__immutableBody.key;
+ f.hooks.get=key=>{if(key===draft)throw Error('draft-only archive unavailable');};
+ const res=await call('iqc','',{...cmd,expectedStateRevision:before.revision});
+ assert.equal(res.status,200);
+ assert.deepEqual(JSON.parse(row().values).__processRecords.values.iqcMasterControl,master);
+ assert.equal((await call('iqc','?operationId='+cmd.operationId)).status,200);
+});
+
+void test('FQC preview and configure retain the legacy AB catalog without unrelated master drafts',async t=>{
+ const {f,call,row}=await setup(t);
+ await f.mutate(values=>{
+  const master=JSON.parse(values.masterDataControl);
+  master.working={unrelated:'synthetic-only'.repeat(80000)};
+  values.masterDataControl=JSON.stringify(master);
+ });
+ const before=row(),master=JSON.parse(before.values).__processRecords.values.masterDataControl;
+ const blocked=JSON.parse(f.objects.get(master.key)).working.__immutableBody.key;
+ f.hooks.get=key=>{if(key===blocked)throw Error('unrelated master draft unavailable');};
+ const preview=await call('fqc','?preview=1&calendar=2&start='+day);
+ assert.equal(preview.status,200);assert.equal((await preview.json()).jobs.length,62);
+ assert.deepEqual(row(),before);
+ assert.equal((await call('fqc','',fqcStart())).status,200);
+ assert.deepEqual(JSON.parse(row().values).__processRecords.values.masterDataControl,master);
+ const page=JSON.stringify({pageDraftLayout:'page-v1',active:{},versions:[{id:'duplicate'},{id:'duplicate'}]});
+ assert.equal(f.load('lib/state-records.ts').routineFqcStartMaster(page),page);
+});
+
+void test('legacy AB projection preserves product names and leaves split or unrecognized input untouched',async t=>{
+ const {f}=await setup(t),project=f.load('lib/state-records.ts').routineFqcStartMaster;
+ const sources=f.load('lib/routine-fqc.ts').routineSources;
+ const base=await f.core.readState();
+ const legacy={active:{AB:{products:[{code:'synthetic-P',name:'Synthetic product label'}]},C:{products:[]}},working:{unused:true}};
+ const full=JSON.stringify(legacy),reduced=project(full);
+ assert.notEqual(reduced,full);
+ const rows=raw=>sources({...base,values:{...base.values,masterDataControl:raw}});
+ assert.deepEqual(rows(reduced),rows(full));
+ assert.equal(rows(reduced)[0].products[0].name,'Synthetic product label');
+ for(const value of [null,{},[],{active:{'AB.catalog':legacy.active.AB}}, {...legacy,active:{...legacy.active,'AB.catalog':{}}},{...legacy,pageDraftLayout:'future-layout'},{active:{AB:{products:'invalid'}}}]){
+  const raw=JSON.stringify(value);assert.equal(project(raw),raw);
+ }
+ assert.throws(()=>project('{'));
+});
+
+void test('raw startup proof rejects the merged rollback, altered bytes, truncation and newline substitution for each updated path',()=>{
+ const proof=require('./routine-startup-read-successor.cjs');
+ const git=(...args)=>require('node:child_process').execFileSync('git',args);
+ proof.verify();
+ for(const file of Object.keys(proof.originalBlobs)){
+  const prior=git('show','1e8469ee1a15c929bc8683ea353f7e93aca558df:'+file),head=git('show','HEAD:'+file);
+  if(prior.equals(head))continue;
+  const changed=Buffer.from(head);changed[changed.length>>1]^=1;
+  const crlf=Buffer.from(head.toString().replace(/\r?\n/g,'\r\n'));
+  assert(!head.equals(crlf));
+  for(const other of [prior,changed,head.subarray(1),Buffer.concat([head,head]),crlf]){
+   assert.throws(()=>proof.predecessor(other,file),{code:'ERR_ASSERTION'});
+  }
+  assert.deepEqual(proof.predecessor(head,file),git('show',proof.base+':'+file));
+ }
+});
+
+void test('FQC existing calendar policy reads the separate authoritative timeline before accepting configuration',async t=>{
+ const {f,call,row}=await setup(t);
+ await f.mutate(values=>{
+  const c=f.load('lib/routine-fqc.ts').emptyRoutine();
+  c.calendarPolicy={version:2,adoptedAt:'2026-10-01T00:00:00.000Z',scopes:{}};
+  values.routineFqcControl=JSON.stringify(c);
+  const q=JSON.parse(values.qualityMasterControl),lib=q.libraries.fqc,active=lib.versions[0];
+  const past={...active,id:'old-formal',status:'superseded',reviewedAt:'2026-10-02T00:00:00.000Z',
+    snapshot:{...active.snapshot,items:active.snapshot.items.slice(0,1)}};
+  lib.versions.unshift(past);values.qualityMasterControl=JSON.stringify(q);
+ });
+ const before=row(),ref=JSON.parse(before.values).__processRecords.values.qualityMasterControl;
+ const past=JSON.parse(f.objects.get(ref.key)).libraries.fqc.versions[0].snapshot.__immutableBody.key;
+ let reads=0;f.hooks.get=k=>{if(k===past){reads++;throw Error('synthetic prior approval unavailable');}};
+ assert.equal((await call('fqc','',fqcStart())).status,500);assert(reads>0);assert.deepEqual(row(),before);
+ assert.equal((await call('fqc','?operationId='+fqcStart().operationId)).status,404);
+ delete f.hooks.get;
+ assert.equal((await call('fqc','',fqcStart())).status,200);
+ assert.equal((await call('fqc','?operationId='+fqcStart().operationId)).status,200);
+});
+
+for(const mode of ['unknown envelope','no calendar policy'])void test('FQC generate retains full-read fallback for '+mode,async t=>{
+ const {f,call,row,blocked}=await setup(t),gen=await scheduleCommand(call,'generate');
+ if(mode==='unknown envelope'){
+  const root=JSON.parse(row().values);root.extension={version:2};
+  f.db.prepare('UPDATE shared_state SET "values"=? WHERE id=1').run(JSON.stringify(root));
+ }else await f.mutate(values=>{
+  const c=JSON.parse(values.routineFqcControl);delete c.calendarPolicy;values.routineFqcControl=JSON.stringify(c);
+ });
+ const before=row();let hits=0;
+ f.hooks.get=key=>{if(key===blocked.other){hits++;throw Error('full reader fault');}};
+ assert.equal((await call('fqc','',gen)).status,500);assert(hits>0);assert.deepEqual(before,row());
 });
