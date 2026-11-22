@@ -83,7 +83,10 @@ export async function POST(request:Request){
     if(!command||typeof command!=='object'||Object.keys(command).some(key=>!fields.includes(key)))return reply({error:'IQC_ACTION_INVALID'},422);
     for(let attempt=0;attempt<3;attempt++){
       const starting=command.action==='configure'&&!new URL(request.url).search;
-      const row=starting?await env.DB.prepare('SELECT revision,"values" FROM shared_state WHERE id=1')
+      // Creating a plan consumes the same full routine aggregate and approved
+      // IQC timeline as setup. Other modules' archived bodies are not inputs.
+      const planCreation=command.action==='create-plan'&&!new URL(request.url).search;
+      const row=starting||planCreation?await env.DB.prepare('SELECT revision,"values" FROM shared_state WHERE id=1')
         .first<{revision:number;values:string}>():null;
       const selected=row?await prepareRoutineIqcStart(env.STATE_ARCHIVE,row.values,routineIqcAuthorityKeys):null;
       const state=selected&&row?{revision:row.revision,values:selected.values}:await readState({deferHistory:false});

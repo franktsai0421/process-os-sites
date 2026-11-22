@@ -8,7 +8,8 @@ const base='413614eaf83f466c7dfeb9d99d635f306115fee7';
 void test('retirement successor pins the exact diff in both directions, modes, additions and all changed bytes',()=>{
  const opts=['--raw','--no-abbrev','--no-renames'];
  const delta=(a,b)=>git('diff',...opts,a,b,'--',...proof.scope).toString();
- const raw=delta(base,'HEAD');
+ const merged='23cc486120d6b3f175e805958b4a69a3b6235e38';
+ const raw=delta(base,merged);
  proof.verify();proof.checkRecovery(raw);
  const inverse=[];
  for(const row of raw.trimEnd().split('\n')){
@@ -29,7 +30,7 @@ void test('retirement successor pins the exact diff in both directions, modes, a
    assert.throws(()=>proof.predecessor(altered,file),{code:'ERR_ASSERTION'});
   }
  }
- assert.equal(delta('HEAD',base),inverse.join('\n')+'\n');
+ assert.equal(delta(merged,base),inverse.join('\n')+'\n');
  for(const invalid of [inverse.join('\n')+'\n',raw+raw,raw.replace(/^[^\n]+\n/,''),raw+'extra\n'])
   assert.throws(()=>proof.checkRecovery(invalid),{code:'ERR_ASSERTION'});
 });

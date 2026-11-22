@@ -438,3 +438,37 @@ for(const mode of ['unknown envelope','no calendar policy'])void test('FQC gener
  f.hooks.get=key=>{if(key===blocked.other){hits++;throw Error('full reader fault');}};
  assert.equal((await call('fqc','',gen)).status,500);assert(hits>0);assert.deepEqual(before,row());
 });
+
+void test('IQC plan creation depends on the current IQC job and its approved source, not an unrelated archived module',async t=>{
+ const {f,call,row,cmd,blocked}=await setup(t);
+ await f.mutate(values=>{
+   const source=JSON.parse(values.iqcMasterControl),snapshot=source.versions[0].snapshot;
+   snapshot.parts=[{id:'part',code:'P',nameVi:'Synthetic part',supplierIds:[],isEnabled:true}];
+   snapshot.errors=[{id:'defect',partCode:'P',code:'ERR'}];
+   snapshot.items=[{id:'item',partCode:'P',errorId:'defect',checkNo:'SYN-W',nameVi:'Synthetic weekly check',isEnabled:true,rules:[{id:'weekly',cadence:'time',kind:'week',value:''}]}];
+   values.iqcMasterControl=JSON.stringify(source);
+ });
+ assert.equal((await call('iqc','',{...cmd,expectedStateRevision:row().revision})).status,200);
+ const state=await (await call('iqc')).json();
+ assert.equal(state.jobs.length,1);assert.equal(state.jobs[0].end,day);
+ const plan={action:'create-plan',start:day,end:day,expectedRevision:state.revision,jobIds:[state.jobs[0].id],operationId:'synthetic-plan-only'};
+ const before=row(),manifest=JSON.parse(before.values);
+ const required=manifest.__processRecords.values.iqcMasterControl.key;
+ f.hooks.get=key=>{if(key===required)throw Error('required IQC input unavailable');};
+ assert.equal((await call('iqc','',plan)).status,503);assert.deepEqual(row(),before);
+ assert.equal((await call('iqc','?operationId='+plan.operationId)).status,404);
+ let unrelatedReads=0;
+ f.hooks.get=key=>{if(key===blocked.other){unrelatedReads++;throw Error('unrelated archived body unavailable');}};
+ const created=await call('iqc','',plan);
+ assert.equal(created.status,200,'valid job; unrelated R2 reads='+unrelatedReads);assert.equal(unrelatedReads,0);
+ const foreign=await call('iqc','',{...plan,operationId:'synthetic-foreign',expectedRevision:state.revision+1,jobIds:['not-a-member']});
+ assert.equal(foreign.status,409);assert.equal((await foreign.json()).error,'IQC_WORK_NOT_AVAILABLE');
+ const documentId=(await created.json()).result.documentId;
+ const after=row(),preserved=JSON.parse(after.values);
+ delete preserved.__processRecords.values.routineIqcControl;delete manifest.__processRecords.values.routineIqcControl;
+ assert.deepEqual(preserved,manifest);assert.equal(after.revision,before.revision+1);
+ const current=await (await call('iqc')).json();
+ assert.deepEqual(current.documents.map(d=>d.id),[documentId]);assert.equal(current.jobs[0].planId,documentId);
+ assert.equal((await (await call('iqc','?operationId='+plan.operationId)).json()).result.documentId,documentId);
+ assert.equal((await (await call('iqc','',plan)).json()).replayed,true);assert.deepEqual(row(),after);
+});
