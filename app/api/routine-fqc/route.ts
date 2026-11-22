@@ -1,5 +1,6 @@
 import { isRoutineScheduleOwner } from '@/lib/routine-schedule-owner';
 import {routineApprovedQuery,routineApprovedControl,routineApprovedRows,routineApprovedVersion} from '@/lib/routine-fqc-approved-history';
+import { prepareRoutineFqcStart, routineFqcStartMaster } from '@/lib/state-records';
 import {recordJSONResponse} from '@/lib/state-records-response';
 import { env } from 'cloudflare:workers';
 import {workflowAccess} from '@/lib/versioned-shared-workflow';
@@ -87,6 +88,7 @@ export async function GET(request: Request) {
         ...(approved?{keys:[...authorityKeys,RF_KEY],modelKey:RF_KEY}:{}),
         ...(calendarPreview ? {keys:[...entryKeys,'qualityMasterControl','masterDataControl'],aggregateReadAhead:true,
           projectValue:(key:string,raw:string)=>{
+            if(key==='masterDataControl')return routineFqcStartMaster(raw);
             if(key!=='qualityMasterControl')return raw;
             const fqc=JSON.parse(raw)?.libraries?.fqc;
             if(!Array.isArray(fqc?.versions))return raw;
@@ -99,7 +101,7 @@ export async function GET(request: Request) {
       }),
       entryPhase = availability || query.size === 0
         ? await createRoutineEntryPermissionPhase(request, state)
-        : calendarPreview ? await routineStartupPermissionPhase(request,state) : null,
+        : (calendarPreview || operationId && query.size===1) ? await routineStartupPermissionPhase(request,state) : null,
       actor = entryPhase ? entryPhase.actor : await identity(request, state);
     if (!actor) return reply({ error: 'LOGIN_REQUIRED' }, 401);
     const permissions = await access(request, state, entryPhase?.allowed);
@@ -211,10 +213,10 @@ export async function GET(request: Request) {
     }
     if (query.has('operationId')) {
       const receipt = c.receipts[query.get('operationId')!];
-      if (!receipt || receipt.actorId !== actor.id)
-        return reply({ error: 'OPERATION_NOT_FOUND' }, 404);
-      const response=reply({ result: receipt.result, revision: c.revision });
-      if(!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);
+      const response=receipt && receipt.actorId === actor.id
+        ? reply({ result: receipt.result, revision: c.revision })
+        : reply({ error: 'OPERATION_NOT_FOUND' },404);
+      if(!(entryPhase ? await entryPhase.current() : (await identity(request,state))?.id===actor.id))return reply({error:'LOGIN_REQUIRED'},401);
       if(!await stateRevisionIsCurrent(state))return reply({error:'CONCURRENT_CHANGE_RETRY'},409);
       return response;
     }
@@ -319,16 +321,23 @@ export async function POST(request: Request) {
     if (/__immutableBody|__liveContent|__proto__/.test(raw))
       throw new DraftConflict('RESERVED_CONTENT', 422);
     const command = JSON.parse(raw) as RoutineCommand;
+    const scheduleAction = !new URL(request.url).search &&
+      (command.action === 'configure' || command.action === 'generate') ? command.action : null;
     for (let attempt = 0; attempt < 5; attempt++) {
-      const state = await readState({
+      const row = scheduleAction ? await env.DB.prepare('SELECT revision,"values" FROM shared_state WHERE id=1')
+        .first<{revision:number;values:string}>() : null;
+      const selected = row && scheduleAction ? await prepareRoutineFqcStart(env.STATE_ARCHIVE,row.values,scheduleAction) : null;
+      const schedulePhase = scheduleAction === 'configure' || selected !== null;
+      const state = selected && row ? {revision:row.revision,values:selected.values} : await readState({
           deferHistory: true,
           deferDependencyHistory: true,
         }),
-        actor = await identity(request, state);
+        phase = schedulePhase ? await routineStartupPermissionPhase(request,state) : null,
+        actor = phase ? phase.actor : await identity(request, state);
       if (!actor) return reply({ error: 'LOGIN_REQUIRED' }, 401);
       if (state.values.maintenanceMode === '1')
         return reply({ error: 'MAINTENANCE' }, 503);
-      const permissions = await access(request, state);
+      const permissions = await access(request, state, phase?.allowed);
       if (!permissions.view) return reply({ error: 'FORBIDDEN', requestId }, 403);
       if (command.action === 'configure' && !isRoutineScheduleOwner(actor))
         return reply({ error: 'FORBIDDEN', requestId }, 403);
@@ -373,7 +382,7 @@ export async function POST(request: Request) {
       // Calendar writes need the approved transition snapshots. Keep the
       // ordinary GET path on its bounded, active-version-only projection.
       let sourceState = state;
-      if (!existing && control.calendarPolicy) {
+      if (!existing && control.calendarPolicy && !(selected && scheduleAction === 'generate')) {
         const source = await readState({keys:['qualityMasterControl','masterDataControl'],deferHistory:false});
         if (source.revision !== state.revision) continue;
         sourceState = {...state,values:{...state.values,...source.values}};
@@ -392,8 +401,11 @@ export async function POST(request: Request) {
         revoke: permissions.revoke,
         revise: permissions.revise,
       });
-      if (existing)
+      if (existing) {
+        if (phase && !await stateRevisionIsCurrent(state)) return reply({error:'CONCURRENT_CHANGE_RETRY',requestId},409);
+        if (phase && !await phase.current()) return reply({error:'LOGIN_REQUIRED',requestId},401);
         return reply({ result, revision: control.revision, replayed: true });
+      }
       const doc = control.documents.find((d) => d.id === command.documentId);
       const photos = new Set([
         ...(doc
@@ -415,15 +427,17 @@ export async function POST(request: Request) {
         !(await stateRevisionIsCurrent(state))
       )
         continue;
-      const currentActor = await identity(request,state);
-      if (!currentActor || currentActor.id !== actor.id || currentActor.sessionType !== actor.sessionType) return reply({error:'LOGIN_REQUIRED',requestId},401);
       const values = { ...state.values, [RF_KEY]: JSON.stringify(control) };
+      const encoded = schedulePhase ? (selected ? await selected.encode(values[RF_KEY]) : await encodeValues(values,state)) : undefined;
+      const currentActor = phase ? null : await identity(request,state);
+      const current = phase ? await phase.current() : currentActor?.id === actor.id && currentActor.sessionType === actor.sessionType;
+      if (!current) return reply({error:'LOGIN_REQUIRED',requestId},401);
       const changed = await env.DB.prepare(
         'UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?',
       )
         .bind(
           state.revision + 1,
-          await encodeValues(values, state),
+          encoded ?? await encodeValues(values, state),
           at,
           state.revision,
         )

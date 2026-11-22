@@ -32,15 +32,20 @@ export async function GET(request:Request){
     const validSelector=q.size===0||q.size===1&&(pendingOnly||operationId!==null&&/^[\w-]{8,100}$/.test(operationId));
     if(!validSelector)throw new DraftConflict('IQC_SELECTOR_INVALID',422);
     const keys=[...routineIqcAuthorityKeys,RI_KEY];
-    const state=await readState({keys,deferHistory:false});
+    const state=await readState({keys,deferHistory:false,...(operationId?{aggregateReadAhead:true,projectValue:(key:string,raw:string)=>{
+      if(key!==RI_KEY)return raw;
+      const c=readRoutineIqc({revision:0,values:{[RI_KEY]:raw}});
+      return JSON.stringify({schemaVersion:c.schemaVersion,revision:c.revision,calendar:{schemaVersion:c.calendar.schemaVersion,jobs:[]},
+        documents:[],cases:[],receipts:Object.hasOwn(c.receipts,operationId)?{[operationId]:c.receipts[operationId]}:{}});
+    }}:{})});
     const {actor,permissions}=await routineIqcAccess(request,state,operationId?await routineStartupPermissionPhase(request,state):undefined),c=readRoutineIqc(state),today=companyDate();
-    let body:unknown;
+    let body:unknown,status=200;
     if(pendingOnly){
       body={pendingCount:c.documents.filter(doc=>iqcDocStatus(doc)==='pending').length,revision:c.revision,identityId:actor.id};
     }else if(operationId){
       const receipt=c.receipts[operationId];
-      if(!receipt||receipt.actorId!==actor.id)return reply({error:'RECEIPT_NOT_FOUND'},404);
-      body={result:receipt.result,revision:c.revision};
+      if(!receipt||receipt.actorId!==actor.id){body={error:'RECEIPT_NOT_FOUND'};status=404;}
+      else body={result:receipt.result,revision:c.revision};
     }else{
       const {calendar,documents,cases}=c;
       const dateStarted=!!calendar.startDate&&calendar.startDate<=today;
@@ -63,7 +68,7 @@ export async function GET(request:Request){
     }
     if((await identity(request,state))?.id!==actor.id)return reply({error:'LOGIN_REQUIRED'},401);
     if(!await stateRevisionIsCurrent(state))return reply({error:'REVISION_CONFLICT'},409);
-    return reply(body);
+    return reply(body,status);
   }catch(error){return whenFailed(error);}
 }
 

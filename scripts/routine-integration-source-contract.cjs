@@ -175,10 +175,12 @@ function assertRawRoutineEncoding(bytes, file, message) {
   const raw = hash(bytes);
   const lf = hash(Buffer.from(bytes.toString('utf8').replaceAll('\r\n', '\n')));
   if (startupRead.has(file)) {
-    const successor = git('cat-file', 'blob', startupRead.blobs[file][1]);
-    if (lf === hash(Buffer.from(successor.toString('utf8').replaceAll('\r\n', '\n')))) {
-      assert(bytes.equals(successor), message);
-      return;
+    for(const id of new Set([startupRead.blobs[file][1],startupRead.originalBlobs[file][1]])){
+      const successor = git('cat-file', 'blob', id);
+      if (lf === hash(Buffer.from(successor.toString('utf8').replaceAll('\r\n', '\n')))) {
+        assert(bytes.equals(successor), message);
+        return;
+      }
     }
   }
   if (lf === startupPin(file)?.current) {
