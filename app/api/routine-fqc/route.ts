@@ -321,8 +321,12 @@ export async function POST(request: Request) {
     if (/__immutableBody|__liveContent|__proto__/.test(raw))
       throw new DraftConflict('RESERVED_CONTENT', 422);
     const command = JSON.parse(raw) as RoutineCommand;
-    const scheduleAction = !new URL(request.url).search &&
-      (command.action === 'configure' || command.action === 'generate') ? command.action : null;
+    // These calendar document transitions consume the same approved timeline as
+    // generation. Unknown and legacy storage layouts keep the full reader.
+    const calendarDocument = ['create-plan','create-report','request','draft'].includes(command.action);
+    const scheduleAction = new URL(request.url).search ? null :
+      command.action === 'configure' ? 'configure' :
+      command.action === 'generate' || calendarDocument ? 'generate' : null;
     for (let attempt = 0; attempt < 5; attempt++) {
       const row = scheduleAction ? await env.DB.prepare('SELECT revision,"values" FROM shared_state WHERE id=1')
         .first<{revision:number;values:string}>() : null;

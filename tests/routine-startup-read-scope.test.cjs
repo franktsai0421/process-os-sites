@@ -270,9 +270,14 @@ void test('FQC configure avoids unrelated and draft I/O, persists one receipt, t
 async function scheduleCommand(call,action){
  if(action==='configure')return fqcStart();
  const configured=await call('fqc','',fqcStart());assert.equal(configured.status,200);
- return {action,expectedRevision:(await configured.json()).revision,operationId:'synthetic-gen-fault'};
+ const generation={action:'generate',expectedRevision:(await configured.json()).revision,operationId:'synthetic-gen-fault'};
+ if(action==='generate')return generation;
+ assert.equal(action,'create-plan');
+ assert.equal((await call('fqc','',generation)).status,200);
+ const {control}=await (await call('fqc')).json();assert.equal(control.jobs.length,62);
+ return {action,expectedRevision:control.revision,jobIds:[control.jobs[0].id],startDate:day,endDate:day,operationId:'synthetic-plan-fault'};
 }
-for(const action of ['configure','generate'])void test('FQC '+action+' loses acknowledgement after commit; later lookup recovers with one durable write',async t=>{
+for(const action of ['configure','generate','create-plan'])void test('FQC '+action+' loses acknowledgement after commit; later lookup recovers with one durable write',async t=>{
  const {f,call,row}=await setup(t),cmd=await scheduleCommand(call,action),before=row();let writes=0;
  f.hooks.run=(sql,args)=>{if(sql.startsWith('UPDATE shared_state')){
    writes++;assert.equal(f.db.prepare(sql).run(...args).changes,1);throw Error('synthetic late acknowledgement');
@@ -286,7 +291,7 @@ for(const action of ['configure','generate'])void test('FQC '+action+' loses ack
   assert.equal((await (await call('fqc')).json()).control.jobs.length,62);assert.deepEqual(row(),saved);assert.equal(writes,1);
  }
 });
-for(const action of ['configure','generate'])void test('FQC '+action+' fences revocation after R2 preparation and rejects a raced shared-state CAS',async t=>{
+for(const action of ['configure','generate','create-plan'])void test('FQC '+action+' fences revocation after R2 preparation and rejects a raced shared-state CAS',async t=>{
  for(const mode of ['revoked','raced'])await t.test(mode,async t=>{
   const {f,call,row}=await setup(t),cmd=await scheduleCommand(call,action),before=row();let revokedKey;let attempts=0;
   f.hooks.sql=(sql,args)=>{if(sql.includes('process_revoked_sessions'))revokedKey=args[0];};
@@ -300,7 +305,7 @@ for(const action of ['configure','generate'])void test('FQC '+action+' fences re
  });
 });
 
-for(const action of ['configure','generate'])void test('FQC '+action+' response abandoned before CAS: missing receipt first, one confirmed result after release',async t=>{
+for(const action of ['configure','generate','create-plan'])void test('FQC '+action+' response abandoned before CAS: missing receipt first, one confirmed result after release',async t=>{
  const {f,call,row}=await setup(t),cmd=await scheduleCommand(call,action),before=row();
  let release,entered;
  const paused=new Promise(resolve=>{release=resolve;}),arrived=new Promise(resolve=>{entered=resolve;});
@@ -437,4 +442,38 @@ for(const mode of ['unknown envelope','no calendar policy'])void test('FQC gener
  const before=row();let hits=0;
  f.hooks.get=key=>{if(key===blocked.other){hits++;throw Error('full reader fault');}};
  assert.equal((await call('fqc','',gen)).status,500);assert(hits>0);assert.deepEqual(before,row());
+});
+
+void test('IQC plan creation depends on the current IQC job and its approved source, not an unrelated archived module',async t=>{
+ const {f,call,row,cmd,blocked}=await setup(t);
+ await f.mutate(values=>{
+   const source=JSON.parse(values.iqcMasterControl),snapshot=source.versions[0].snapshot;
+   snapshot.parts=[{id:'part',code:'P',nameVi:'Synthetic part',supplierIds:[],isEnabled:true}];
+   snapshot.errors=[{id:'defect',partCode:'P',code:'ERR'}];
+   snapshot.items=[{id:'item',partCode:'P',errorId:'defect',checkNo:'SYN-W',nameVi:'Synthetic weekly check',isEnabled:true,rules:[{id:'weekly',cadence:'time',kind:'week',value:''}]}];
+   values.iqcMasterControl=JSON.stringify(source);
+ });
+ assert.equal((await call('iqc','',{...cmd,expectedStateRevision:row().revision})).status,200);
+ const state=await (await call('iqc')).json();
+ assert.equal(state.jobs.length,1);assert.equal(state.jobs[0].end,day);
+ const plan={action:'create-plan',start:day,end:day,expectedRevision:state.revision,jobIds:[state.jobs[0].id],operationId:'synthetic-plan-only'};
+ const before=row(),manifest=JSON.parse(before.values);
+ const required=manifest.__processRecords.values.iqcMasterControl.key;
+ f.hooks.get=key=>{if(key===required)throw Error('required IQC input unavailable');};
+ assert.equal((await call('iqc','',plan)).status,503);assert.deepEqual(row(),before);
+ assert.equal((await call('iqc','?operationId='+plan.operationId)).status,404);
+ let unrelatedReads=0;
+ f.hooks.get=key=>{if(key===blocked.other){unrelatedReads++;throw Error('unrelated archived body unavailable');}};
+ const created=await call('iqc','',plan);
+ assert.equal(created.status,200,'valid job; unrelated R2 reads='+unrelatedReads);assert.equal(unrelatedReads,0);
+ const foreign=await call('iqc','',{...plan,operationId:'synthetic-foreign',expectedRevision:state.revision+1,jobIds:['not-a-member']});
+ assert.equal(foreign.status,409);assert.equal((await foreign.json()).error,'IQC_WORK_NOT_AVAILABLE');
+ const documentId=(await created.json()).result.documentId;
+ const after=row(),preserved=JSON.parse(after.values);
+ delete preserved.__processRecords.values.routineIqcControl;delete manifest.__processRecords.values.routineIqcControl;
+ assert.deepEqual(preserved,manifest);assert.equal(after.revision,before.revision+1);
+ const current=await (await call('iqc')).json();
+ assert.deepEqual(current.documents.map(d=>d.id),[documentId]);assert.equal(current.jobs[0].planId,documentId);
+ assert.equal((await (await call('iqc','?operationId='+plan.operationId)).json()).result.documentId,documentId);
+ assert.equal((await (await call('iqc','',plan)).json()).replayed,true);assert.deepEqual(row(),after);
 });
