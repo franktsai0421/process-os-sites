@@ -191,6 +191,13 @@ function assertRawRoutineEncoding(bytes, file, message) {
       return;
     }
   }
+  if(file==='public/process/index.html'){
+    const current=git('cat-file','blob',startupRead.intent[file][1]);
+    if(lf===hash(current.toString('utf8').replaceAll('\r\n','\n'))){
+      assert(bytes.equals(current),message);
+      return;
+    }
+  }
   if(Object.hasOwn(startupRead.recovery,file)){
     const next=git('cat-file','blob',startupRead.recovery[file][1]);
     if(lf===hash(Buffer.from(next.toString().replaceAll('\r\n','\n')))){
@@ -221,6 +228,7 @@ function assertRoutineHeadBlob(bytes, file) {
   const pin = startupPin(file);
   if (!pin) return;
   assert(Buffer.isBuffer(bytes), 'Routine integration proof requires raw Buffer');
+  if(file==='public/process/index.html')bytes=startupRead.predecessor(bytes,file);
   if(!startupRead.has(file)&&Object.hasOwn(startupRead.recovery,file)){
     const [old,next]=startupRead.recovery[file];
     assert.equal(git('ls-tree','HEAD','--',file).toString().trimEnd(),'100644 blob '+next+'\t'+file);

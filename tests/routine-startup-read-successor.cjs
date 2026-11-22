@@ -72,9 +72,14 @@ function withIntentEnd(entries){
    [file,Object.hasOwn(intent,file)?[pair[0],intent[file][1]]:pair]));
 }
 const has=file=>Object.hasOwn(blobs,file);
+const cacheTestBlobs=Object.freeze({
+ 'tests/navigation-adapters.test.mjs':['7b7fadba1c03920c747c7149c6cb16438fc0aec6','94f199b610b9e336c382aed5b8f2494e0b1e338e'],
+ 'tests/account-page-entry.test.cjs':['f1d319f377de927b2132090368c92681839b1d01','b5d3e35fbac1483555bad4d4eda507fd60359e08'],
+});
 const originals=new Map();
 function projectKnown(bytes,file){
  assert(Buffer.isBuffer(bytes),'Startup read proof requires raw Buffer');
+ if(Object.hasOwn(cacheTestBlobs,file))bytes=checkoutPreimage(bytes,file,cacheTestBlobs[file],planTree,'HEAD');
  if(Object.hasOwn(intent,file)&&intent[file][0])bytes=checkoutPreimage(bytes,file,intent[file],planTree,'HEAD');
  if(Object.hasOwn(planChanges,file))bytes=checkoutPreimage(bytes,file,planChanges[file],planBaseTree,planTree);
  if(file==='tests/accounts-process-integration-source.test.mjs'){

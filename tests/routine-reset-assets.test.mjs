@@ -14,7 +14,7 @@ const dependencies = ['routine-reset.js', 'routine-fqc-page.js', 'routine-iqc.js
 void test('the routine reset control loads once before all three renderers on a cold boot', () => {
   const urls = Array.from(shell.matchAll(/<script data-process-src="([^"]+)"><\/script>/g), match => match[1]);
   const selected = urls.filter(url => dependencies.includes(url.split('?')[0]));
-  assert.deepEqual(selected, ['routine-reset.js?v=2', 'routine-fqc-page.js?v=20261121-reset1', 'routine-iqc.js?v=20261121-reset1', 'routine-fqc.js?v=20261121-readiness1']);
+  assert.deepEqual(selected, ['routine-reset.js?v=2', 'routine-fqc-page.js?v=20261121-reset1', 'routine-iqc.js?v=20261122-plan-intent1', 'routine-fqc.js?v=20261122-plan-intent1']);
   assert.deepEqual(Array.from(shell.matchAll(/href="(routine-fqc\.css\?v=[^"]+)"/g), m => m[1]),
     ['routine-fqc.css?v=20261121-readiness1']);
 });
@@ -69,6 +69,14 @@ void test('the proposed shell delta is confined to the four routine asset tags',
   ]) {
     assert.equal(expected.split(from).length,2,from);
     expected=expected.replace(from,to);
+  }
+  const merged = 'c80b3fa748143613ad218a2db814704966f0a5ba';
+  execFileSync('git',['merge-base','--is-ancestor',merged,'HEAD']);
+  assert.deepEqual(show(merged),Buffer.from(expected));
+  for (const [file,old] of [['routine-fqc.js','20261121-readiness1'],['routine-iqc.js','20261121-reset1']]) {
+    const from=script(file+'?v='+old);
+    assert.equal(expected.split(from).length,2,from);
+    expected=expected.replace(from,script(file+'?v=20261122-plan-intent1'));
   }
   assert.deepEqual(show('HEAD'),Buffer.from(expected));
 });
