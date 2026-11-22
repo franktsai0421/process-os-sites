@@ -8,6 +8,7 @@ import {
   identity,
   can,
   createRoutineEntryPermissionPhase,
+  routineStartupPermissionPhase,
   sameOrigin,
   encodeValues,
   stateRevisionIsCurrent,
@@ -84,14 +85,21 @@ export async function GET(request: Request) {
           : query.size === 0 ? {keys: [...entryKeys, 'qualityMasterControl', 'masterDataControl'], aggregateReadAhead: true, projectValue: entryCatalog} : {}),
         ...(pendingOnly ? {keys: entryKeys, aggregateReadAhead: true} : {}),
         ...(approved?{keys:[...authorityKeys,RF_KEY],modelKey:RF_KEY}:{}),
-        ...(calendarPreview ? {keys:[...entryKeys,'qualityMasterControl','masterDataControl']} : {}),
+        ...(calendarPreview ? {keys:[...entryKeys,'qualityMasterControl','masterDataControl'],aggregateReadAhead:true,
+          projectValue:(key:string,raw:string)=>{
+            if(key!=='qualityMasterControl')return raw;
+            const fqc=JSON.parse(raw)?.libraries?.fqc;
+            if(!Array.isArray(fqc?.versions))return raw;
+            return JSON.stringify({libraries:{fqc:{activeVersionId:fqc.activeVersionId,
+              versions:fqc.versions.filter((v:{status:string})=>v.status==='approved'||v.status==='superseded')}}});
+          }} : {}),
         deferHistory: !calendarPreview,
         deferDependencyHistory: !calendarPreview,
         ...(operationId?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','routineFqcEnabled',RF_KEY],projectValue:(key:string,raw:string)=>{if(key!==RF_KEY)return raw;const root=JSON.parse(raw);return JSON.stringify({schemaVersion:root.schemaVersion,revision:root.revision,documents:[],jobs:[],cases:[],receipts:root.receipts&&Object.hasOwn(root.receipts,operationId)?{[operationId]:root.receipts[operationId]}:{}});}}:{}),
       }),
       entryPhase = availability || query.size === 0
         ? await createRoutineEntryPermissionPhase(request, state)
-        : null,
+        : calendarPreview ? await routineStartupPermissionPhase(request,state) : null,
       actor = entryPhase ? entryPhase.actor : await identity(request, state);
     if (!actor) return reply({ error: 'LOGIN_REQUIRED' }, 401);
     const permissions = await access(request, state, entryPhase?.allowed);

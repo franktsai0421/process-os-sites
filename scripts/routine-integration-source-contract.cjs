@@ -125,20 +125,23 @@ const startupTests=Object.freeze({
   'tests/quality-shell-bundle-oracle.test.mjs':['939c277082afafcfce84afe856d282cf88e2a1fa63c8a329c0455359473fc638','9e4d2114743b8acd27bf88dda935f42a250f3484','d9f255ca3214fd6f6357d106f048474175933a1f'],
 });
 
-function startupTestPreimage(bytes,file) {
+function startupTestPreimage(bytes,file,readChange=false) {
   if (!Object.hasOwn(startupTests,file)) return null;
   const [digest,after,before,treeOfChange=startupTestTree]=startupTests[file];
   if (!exactCheckout(bytes,{current:digest,currentLf:digest})) return null;
-  for (const [tree,blob] of [[treeOfChange,after],[startupBaseTree,before]]) {
+  for (const [tree,blob] of [[readChange&&treeOfChange==='HEAD'?startupRead.base:treeOfChange,after],[startupBaseTree,before]]) {
     assert.equal(git('ls-tree',tree,'--',file).toString().trimEnd(),'100644 blob '+blob+'\t'+file);
   }
   assert.equal(hash(git('cat-file','blob',after)),digest);
   return git('cat-file','blob',before);
 }
 
+const startupRead=require('../tests/routine-startup-read-successor.cjs');
 function projectKnown(bytes, file) {
   assert(Buffer.isBuffer(bytes), 'Routine integration proof requires raw Buffer');
-  const previousTest=startupTestPreimage(bytes,file);
+  const prior=startupRead.projectKnown(bytes,file);
+  const previousTest=startupTestPreimage(prior,file,prior!==bytes);
+  bytes=prior;
   if (previousTest) return projectKnown(previousTest,file);
   const entry = startupPin(file);
   if (entry && exactCheckout(bytes, entry)) {
@@ -171,6 +174,13 @@ function assertRawRoutineEncoding(bytes, file, message) {
   assert(Buffer.isBuffer(bytes), 'Routine integration proof requires raw Buffer');
   const raw = hash(bytes);
   const lf = hash(Buffer.from(bytes.toString('utf8').replaceAll('\r\n', '\n')));
+  if (startupRead.has(file)) {
+    const successor = git('cat-file', 'blob', startupRead.blobs[file][1]);
+    if (lf === hash(Buffer.from(successor.toString('utf8').replaceAll('\r\n', '\n')))) {
+      assert(bytes.equals(successor), message);
+      return;
+    }
+  }
   if (lf === startupPin(file)?.current) {
     assert.equal(raw, lf, message);
     assert.equal(bytes.length, startupPin(file).length, message);
@@ -185,6 +195,15 @@ function assertRoutineHeadBlob(bytes, file) {
   const pin = startupPin(file);
   if (!pin) return;
   assert(Buffer.isBuffer(bytes), 'Routine integration proof requires raw Buffer');
+  if (startupRead.has(file)) {
+    // A historical caller can supply the exact predecessor after its own inverse.
+    // Independently fence the committed object in both cases, including rollback.
+    const [before, after] = startupRead.blobs[file];
+    assert.equal(pin.blob, before);
+    assert.equal(git('ls-tree', 'HEAD', '--', file).toString().trimEnd(),
+      '100644 blob ' + after + '\t' + file, 'Routine HEAD differs from the reviewed raw bytes');
+    if (hash(bytes) !== pin.current) bytes = startupRead.predecessor(bytes, file);
+  }
   assert.equal(bytes.length, pin.length, 'Routine attested Git blob length differs from the reviewed raw bytes');
   assert.equal(hash(bytes), pin.current, 'Routine attested Git blob differs from the reviewed raw bytes');
 }
