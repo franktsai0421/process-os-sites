@@ -22,9 +22,9 @@ const fixture=await createRootEntryFixture({syntheticBindings:{PROCESS_SESSION_S
 try{
   const {cookie}=await seedRoutineCalendarFixture(fixture,secret);
   let quote='';
-  async function req(path,method='GET',body,scope='fqc',status=200,who=actor){
+  async function req(path,method='GET',body,scope='fqc',status=200,who=actor,expectedActor=who){
     const r=await fixture.mf.dispatchFetch(origin+path,{method,headers:{origin,cookie:'process_demo='+cookie(who),
-      'X-Process-Expected-Actor':who,'X-Original-Operation':grant[scope].oldId,'X-Plan-Scope':scope,
+      'X-Process-Expected-Actor':expectedActor,'X-Original-Operation':grant[scope].oldId,'X-Plan-Scope':scope,
       'X-Confirm-Plan-Reconciliation':'RECONCILE FQC PLAN','X-FQC-Assessment':quote,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
     const value=await r.json();assert.equal(r.status,status,String(value.error));return value;
   }
@@ -38,7 +38,17 @@ try{
   await req(route,'POST',{action:'generate',operationId:randomUUID(),expectedRevision:(await req(route)).control.revision});
   await req(path,'POST',null,'fqc',403,'routine-reviewer');
   const assessed=await req(path);assert.equal(assessed.status,'assessment');
-  await req(path,'POST',null,'fqc',409);quote=assessed.assessment;
+  quote=assessed.assessment;
+  const rejected=await req(path,'POST',null,'fqc',403,'routine-reviewer',actor);
+  assert.equal(rejected.error,'FORBIDDEN');
+  const rev=await db.prepare('SELECT revision FROM shared_state WHERE id=1').first('revision');
+  assert.equal(rev,assessed.revision);
+  await db.prepare('UPDATE shared_state SET revision=revision+1 WHERE id=1 AND revision=?').bind(rev).run();
+  const stale=await req(path,'POST',null,'fqc',409);
+  assert.equal(stale.error,'ASSESSMENT_CHANGED');
+  assert.equal(await db.prepare('SELECT count(*) AS n FROM fqc_plan_reconciliation_journal').first('n'),0);
+  assert.equal((await req(route)).control.documents.length,0);
+  quote=(await req(path)).assessment;
   assert.equal((await req(path,'POST')).status,'independent-readback-required');
   const proof=await req(path),view=(await req(route)).control;
   assert.equal(proof.status,'verified-current');assert.equal(proof.id,grant.fqc.oldId);

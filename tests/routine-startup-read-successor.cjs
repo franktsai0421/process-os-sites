@@ -111,7 +111,8 @@ function projectKnown(bytes,file){
  if(Object.hasOwn(intent,file)&&intent[file][0])bytes=checkoutPreimage(bytes,file,intent[file],planTree,intentMerge);
  if(Object.hasOwn(planChanges,file))bytes=checkoutPreimage(bytes,file,planChanges[file],planBaseTree,planTree);
  if(file==='tests/accounts-process-integration-source.test.mjs'){
-   bytes=checkoutPreimage(bytes,file,['b160cd40d6025480ad956e832f487c80f21e6dd0','dead943e4bb86538f25033de9ba95e5dbaa05921'],planTree,'HEAD');
+   bytes=checkoutPreimage(bytes,file,['dead943e4bb86538f25033de9ba95e5dbaa05921','8f93642633f46de08d9cf48cfc49b2ea619b9384'],intentMerge,'HEAD');
+   bytes=checkoutPreimage(bytes,file,['b160cd40d6025480ad956e832f487c80f21e6dd0','dead943e4bb86538f25033de9ba95e5dbaa05921'],planTree,intentMerge);
    bytes=checkoutPreimage(bytes,file,['a313841a1724218964e925e6010f1f5be7cdcbcb','b160cd40d6025480ad956e832f487c80f21e6dd0'],publishedTree,planTree);
  }
  if(Object.hasOwn(recovery,file)&&recovery[file][0])bytes=checkoutPreimage(bytes,file,recovery[file],publishedTree,planTree);
