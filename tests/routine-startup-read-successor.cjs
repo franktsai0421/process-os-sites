@@ -35,12 +35,17 @@ const changes=Object.fromEntries(Object.entries(updated).map(([file,after])=>[fi
 const historicalBlobs=Object.freeze(Object.fromEntries(Object.entries(originalBlobs).map(([file,[before,after]])=>[file,[before,updated[file]||after]])));
 const published='413614eaf83f466c7dfeb9d99d635f306115fee7';
 const publishedTree='91d474db7ee8b3496f5135034385dabf3cc10e27';
-const recovery=Object.freeze({
+const mergedRecovery=Object.freeze({
  'app/api/routine-start-retirement/route.ts':[null,'48212e674bd2c19b6c9effc8d207116aac0936f9'],
  'lib/state-records.ts':['8d3f155d71fb887dea34f27892c27009c5f8fe19','a92b7636fdbcd7cdc6fd2747cab4beb01bc0f035'],
  'public/process/routine-fqc.js':['a51874b45f9926737a94c6443dc26589597a6e79','daf81f5725cc07818efc18665aef02fdcb684f0c'],
  'public/process/routine-iqc.js':['8ff0e22114e903648e89cd91cd29f2455c980173','a6501295bb2df46450ce5434ac162648c50be743']
 });
+const recoveryMerge='7b36dbf264b7273edd16a0557a236015ccc0b576';
+const recoveryTree='44252355177fe26c5850c534aa3df51a9455ffba';
+const recoveryUi='public/process/routine-fqc.js';
+const adoptedUi='400b054c25547c5f23555f92657c748e567614e6';
+const recovery=Object.freeze({...mergedRecovery,[recoveryUi]:[mergedRecovery[recoveryUi][0],adoptedUi]});
 const blobs=Object.freeze({...historicalBlobs,'lib/state-records.ts':[historicalBlobs['lib/state-records.ts'][0],recovery['lib/state-records.ts'][1]]});
 const has=file=>Object.hasOwn(blobs,file);
 const originals=new Map();
@@ -87,10 +92,17 @@ function verify(){
  git('merge-base','--is-ancestor',published,'HEAD');
  checkInventory(delta(mergedTree,publishedTree),changes);
  checkInventory(delta(base,publishedTree),historicalBlobs);
+ assert.equal(git('rev-parse',recoveryMerge+'^{tree}').toString().trim(),recoveryTree);
+ git('merge-base','--is-ancestor',recoveryMerge,'HEAD');
+ checkRecoveryInventory(delta(publishedTree,recoveryTree),mergedRecovery);
+ checkInventory(delta(recoveryTree,'HEAD'),{[recoveryUi]:[mergedRecovery[recoveryUi][1],adoptedUi]});
  checkRecovery(delta(publishedTree,'HEAD'));
 }
 function checkRecovery(raw){
- const expected=Object.entries(recovery).map(([file,[old,next]])=>old?
+ return checkRecoveryInventory(raw,recovery);
+}
+function checkRecoveryInventory(raw,entries){
+ const expected=Object.entries(entries).map(([file,[old,next]])=>old?
    ':100644 100644 '+old+' '+next+' M\t'+file+'\n':
    ':000000 100644 '+'0'.repeat(40)+' '+next+' A\t'+file+'\n').join('');
  assert.equal(raw,expected,'complete recovery successor inventory');
