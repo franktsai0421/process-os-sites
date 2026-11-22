@@ -67,6 +67,33 @@ const intent=Object.freeze({
  'public/process/routine-fqc.js':['400b054c25547c5f23555f92657c748e567614e6','5acee65940f70316c73cf3a50c68eb651efe5e35'],
  'public/process/routine-iqc.js':['a6501295bb2df46450ce5434ac162648c50be743','ff93d4d89b54a17cc8d8d109ccdf85bdee53fa87'],
 });
+const intentMerge='d7288eb0ccc54df4817f50de36e6900cd6615678';
+const fqcReconciliationChanges=Object.freeze({
+  "app/api/routine-plan-maintenance/route.ts": [
+    null,
+    "fa6cf50b8f8a90cca2e517d7ec4a7c7892397360"
+  ],
+  "lib/routine-plan-maintenance.ts": [
+    null,
+    "293127145e1c1ee0fe638415cddb225d4bc51aff"
+  ],
+  "public/process/index.html": [
+    "b420518d069a540fec2c236ff3a985f0a149d8ea",
+    "f629d55147e1de37edcdcf18b88b68362545fd3d"
+  ],
+  "public/process/routine-fqc.js": [
+    "5acee65940f70316c73cf3a50c68eb651efe5e35",
+    "79d508472a10693a2c4e20e6880e912188bd56ba"
+  ],
+  "tests/account-page-entry.test.cjs": [
+    "b5d3e35fbac1483555bad4d4eda507fd60359e08",
+    "7efe4a050218ce067bcbe7fa186a866b99431960"
+  ],
+  "tests/navigation-adapters.test.mjs": [
+    "94f199b610b9e336c382aed5b8f2494e0b1e338e",
+    "8fa5b6acad3b4ff6a466c875440f8dfd585dfe74"
+  ]
+});
 function withIntentEnd(entries){
  return Object.fromEntries(Object.entries(entries).map(([file,pair])=>
    [file,Object.hasOwn(intent,file)?[pair[0],intent[file][1]]:pair]));
@@ -79,8 +106,9 @@ const cacheTestBlobs=Object.freeze({
 const originals=new Map();
 function projectKnown(bytes,file){
  assert(Buffer.isBuffer(bytes),'Startup read proof requires raw Buffer');
- if(Object.hasOwn(cacheTestBlobs,file))bytes=checkoutPreimage(bytes,file,cacheTestBlobs[file],planTree,'HEAD');
- if(Object.hasOwn(intent,file)&&intent[file][0])bytes=checkoutPreimage(bytes,file,intent[file],planTree,'HEAD');
+ if(Object.hasOwn(fqcReconciliationChanges,file)&&fqcReconciliationChanges[file][0])bytes=checkoutPreimage(bytes,file,fqcReconciliationChanges[file],intentMerge,'HEAD');
+ if(Object.hasOwn(cacheTestBlobs,file))bytes=checkoutPreimage(bytes,file,cacheTestBlobs[file],planTree,intentMerge);
+ if(Object.hasOwn(intent,file)&&intent[file][0])bytes=checkoutPreimage(bytes,file,intent[file],planTree,intentMerge);
  if(Object.hasOwn(planChanges,file))bytes=checkoutPreimage(bytes,file,planChanges[file],planBaseTree,planTree);
  if(file==='tests/accounts-process-integration-source.test.mjs'){
    bytes=checkoutPreimage(bytes,file,['b160cd40d6025480ad956e832f487c80f21e6dd0','dead943e4bb86538f25033de9ba95e5dbaa05921'],planTree,'HEAD');
@@ -134,7 +162,10 @@ function verify(){
  assert.equal(git('rev-parse',planMerge+'^{tree}').toString().trim(),planTree);
  git('merge-base','--is-ancestor',planMerge,'HEAD');
  checkInventory(delta(planBaseTree,planTree),planChanges);
- checkRecoveryInventory(delta(planTree,'HEAD'),intent);
+ assert.equal(git('rev-parse',intentMerge+'^{tree}').toString().trim(),'a033e7dc215a1f1063f706b33241567138a6342a');
+ git('merge-base','--is-ancestor',intentMerge,'HEAD');
+ checkRecoveryInventory(delta(planTree,intentMerge),intent);
+ checkRecoveryInventory(delta(intentMerge,'HEAD'),Object.fromEntries(Object.entries(fqcReconciliationChanges).filter(([path])=>!path.startsWith('tests/'))));
  checkInventory(delta(recoveryTree,planBaseTree),{[recoveryUi]:[mergedRecovery[recoveryUi][1],adoptedUi]});
  checkRecovery(delta(publishedTree,planBaseTree));
 }
@@ -149,10 +180,18 @@ function checkRecoveryInventory(raw,entries){
 
 }
 function predecessor(bytes,file,{checkout=false}={}){
+ if(Object.hasOwn(fqcReconciliationChanges,file)&&fqcReconciliationChanges[file][0]){
+   const [old,next]=fqcReconciliationChanges[file];
+   assert.equal(git('ls-tree','HEAD','--',file).toString().trimEnd(),'100644 blob '+next+'\t'+file);
+   const current=git('cat-file','blob',next);
+   assert(Buffer.isBuffer(bytes)&&(bytes.equals(current)||(checkout&&bytes.equals(Buffer.from(current.toString().replace(/\r?\n/g,'\r\n'))))),'Raw paired reconciliation blob differs');
+   bytes=git('show',intentMerge+':'+file);
+   assert.deepEqual(bytes,git('cat-file','blob',old));
+ }
  if(Object.hasOwn(intent,file)&&intent[file][0]){
    const [old,next]=intent[file];
    assert(Buffer.isBuffer(bytes));
-   assert.equal(git('ls-tree','HEAD','--',file).toString().trimEnd(),'100644 blob '+next+'\t'+file);
+   assert.equal(git('ls-tree',intentMerge,'--',file).toString().trimEnd(),'100644 blob '+next+'\t'+file);
    assert.equal(git('ls-tree',planTree,'--',file).toString().trimEnd(),'100644 blob '+old+'\t'+file);
    const current=git('cat-file','blob',next);
    if(!bytes.equals(current))assert(checkout&&bytes.equals(Buffer.from(current.toString().replace(/\r?\n/g,'\r\n'))),'Raw plan intent source differs: '+file);
@@ -191,4 +230,4 @@ function historicalPredecessor(bytes,file,{checkout=false}={}){
  }else assert(bytes.equals(after),'Raw Git blob differs: '+file);
  return git('cat-file','blob',old);
 }
-module.exports={historicalPredecessor,intent,planTree,checkIntent:raw=>checkRecoveryInventory(raw,intent),recovery:withIntentEnd(recovery),checkRecovery,originalBlobs,base,sourceTree,projectKnown,scope,blobs:withIntentEnd(blobs),verify,inventory,predecessor,has};
+module.exports={fqcReconciliationChanges,intentMerge,historicalPredecessor,intent,planTree,checkIntent:raw=>checkRecoveryInventory(raw,intent),recovery:withIntentEnd(recovery),checkRecovery,originalBlobs,base,sourceTree,projectKnown,scope,blobs:withIntentEnd(blobs),verify,inventory,predecessor,has};

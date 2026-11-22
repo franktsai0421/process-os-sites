@@ -56,6 +56,7 @@ export default defineConfig(async ({ command }) => {
   const { cloudflare } = await import('@cloudflare/vite-plugin');
 
   return {
+    define: { __ROUTINE_BUILD_COMMIT__: JSON.stringify(local?'':process.env.PROCESS_PROGRAM_COMMIT) },
     css: { postcss: { plugins: [tailwindcss()] } },
     server: { host: '127.0.0.1', strictPort: true, hmr: false, headers: {'Content-Security-Policy': "connect-src 'self'; font-src 'self' data:; img-src 'self' data: blob:; media-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; frame-src 'self'"}, watch: { ignored: ['**/.wrangler/**','**/local-backup.*.json','**/AI_CONTEXT/**','**/docs/**'], ...(isCodexSeatbeltSandbox ? {useFsEvents:false,usePolling:true} : {}) } },
     plugins: [

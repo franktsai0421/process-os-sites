@@ -75,7 +75,7 @@ function publishedSourcePin(file) {
 }
 function currentSourcePin(file) {
   if (Object.hasOwn(startupRead.recovery, file) && startupPin(file)) {
-    const blob = startupRead.recovery[file][1];
+    const blob = (startupRead.fqcReconciliationChanges[file] || startupRead.recovery[file])[1];
     const bytes = git('cat-file', 'blob', blob);
     return {blob, length: bytes.length, current: hash(bytes), currentLf: hash(bytes.toString().replaceAll('\r\n', '\n'))};
   }
@@ -183,6 +183,10 @@ function assertRawRoutineEncoding(bytes, file, message) {
   const raw = hash(bytes);
   const lf = hash(Buffer.from(bytes.toString('utf8').replaceAll('\r\n', '\n')));
   // The #138 predecessor remains a raw Git boundary after adding the plan intent.
+  if(Object.hasOwn(startupRead.fqcReconciliationChanges,file)){
+    const current=git('cat-file','blob',startupRead.fqcReconciliationChanges[file][1]);
+    if(lf===hash(current.toString().replaceAll('\r\n','\n'))){assert(bytes.equals(current),message);return;}
+  }
   const priorBlob = startupRead.intent[file]?.[0];
   if (priorBlob) {
     const prior = git('cat-file', 'blob', priorBlob);
@@ -230,7 +234,8 @@ function assertRoutineHeadBlob(bytes, file) {
   assert(Buffer.isBuffer(bytes), 'Routine integration proof requires raw Buffer');
   if(file==='public/process/index.html')bytes=startupRead.predecessor(bytes,file);
   if(!startupRead.has(file)&&Object.hasOwn(startupRead.recovery,file)){
-    const [old,next]=startupRead.recovery[file];
+    const [old,historicalNext]=startupRead.recovery[file];
+    const next=startupRead.fqcReconciliationChanges[file]?.[1]||historicalNext;
     assert.equal(git('ls-tree','HEAD','--',file).toString().trimEnd(),'100644 blob '+next+'\t'+file);
     if (!bytes.equals(git('cat-file','blob',old))) {
       assert(bytes.equals(git('cat-file','blob',next)), 'Routine attested Git blob differs from the reviewed raw bytes');
