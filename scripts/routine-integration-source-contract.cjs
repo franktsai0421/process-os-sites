@@ -70,8 +70,16 @@ const startup = Object.freeze({
   }),
 });
 const startupPin = file => Object.hasOwn(startup,file) ? startup[file] : null;
-function currentSourcePin(file) {
+function publishedSourcePin(file) {
   return startupPin(file) || parityPin(file) || (Object.hasOwn(followup.files, file) ? followup.files[file] : null);
+}
+function currentSourcePin(file) {
+  if (Object.hasOwn(startupRead.recovery, file) && startupPin(file)) {
+    const blob = startupRead.recovery[file][1];
+    const bytes = git('cat-file', 'blob', blob);
+    return {blob, length: bytes.length, current: hash(bytes), currentLf: hash(bytes.toString().replaceAll('\r\n', '\n'))};
+  }
+  return publishedSourcePin(file);
 }
 
 const hash = value => createHash('sha256').update(value).digest('hex');
@@ -174,6 +182,13 @@ function assertRawRoutineEncoding(bytes, file, message) {
   assert(Buffer.isBuffer(bytes), 'Routine integration proof requires raw Buffer');
   const raw = hash(bytes);
   const lf = hash(Buffer.from(bytes.toString('utf8').replaceAll('\r\n', '\n')));
+  if(Object.hasOwn(startupRead.recovery,file)){
+    const next=git('cat-file','blob',startupRead.recovery[file][1]);
+    if(lf===hash(Buffer.from(next.toString().replaceAll('\r\n','\n')))){
+      assert(bytes.equals(next),message);
+      return;
+    }
+  }
   if (startupRead.has(file)) {
     for(const id of new Set([startupRead.blobs[file][1],startupRead.originalBlobs[file][1]])){
       const successor = git('cat-file', 'blob', id);
@@ -197,6 +212,14 @@ function assertRoutineHeadBlob(bytes, file) {
   const pin = startupPin(file);
   if (!pin) return;
   assert(Buffer.isBuffer(bytes), 'Routine integration proof requires raw Buffer');
+  if(!startupRead.has(file)&&Object.hasOwn(startupRead.recovery,file)){
+    const [old,next]=startupRead.recovery[file];
+    assert.equal(git('ls-tree','HEAD','--',file).toString().trimEnd(),'100644 blob '+next+'\t'+file);
+    if (!bytes.equals(git('cat-file','blob',old))) {
+      assert(bytes.equals(git('cat-file','blob',next)), 'Routine attested Git blob differs from the reviewed raw bytes');
+      bytes = startupRead.predecessor(bytes,file);
+    }
+  }
   if (startupRead.has(file)) {
     // A historical caller can supply the exact predecessor after its own inverse.
     // Independently fence the committed object in both cases, including rollback.
@@ -217,7 +240,7 @@ function assertUploadedOrFollowup(bytes, file) {
     assert(exactCheckout(bytes,entry),'Routine startup bytes changed: '+file);
     bytes=startupPredecessor(file,entry);
   }
-  const pin = entry?.baseHash ? parityPin(file) || followup.files[file] : currentSourcePin(file);
+  const pin = entry?.baseHash ? parityPin(file) || followup.files[file] : publishedSourcePin(file);
   if (pin) {
     assert(exactCheckout(bytes, pin), 'Routine follow-up reviewed bytes changed: ' + file);
   } else {

@@ -203,6 +203,7 @@ void test('initial v2 FQC preview matches generated per-product periods and prot
     const users = JSON.parse(values.platformUsers);
     Object.assign(users[0].accessOverrides, {'routine.view':true,'routine.edit':true,'routine.settings':true});
     users[1].accessOverrides['routine.view'] = true;
+    users.push({...users[0], id:'frank', role:'admin'});
     values.platformUsers = JSON.stringify(users);
     values.routineFqcEnabled = '1';
     const quality = JSON.parse(values.qualityMasterControl), version = quality.libraries.fqc.versions[0];
@@ -214,7 +215,9 @@ void test('initial v2 FQC preview matches generated per-product periods and prot
     values.qualityMasterControl = JSON.stringify(quality);
   });
   const api = f.load(route), endpoint = 'https://fixture.invalid/api/routine-fqc';
-  async function call(query = '', command, actor = 'editor') {
+  const login = new Request(endpoint);
+  f.cookies.frank = f.core.sessionCookie(login, await f.core.demoSession(login,'frank',false,1)).split(';')[0];
+  async function call(query = '', command, actor = 'frank') {
     const method = command ? 'POST' : 'GET';
     const result = await api[method](new Request(endpoint+query,{method,headers:{
       origin:'https://fixture.invalid',cookie:f.cookies[actor],'Content-Type':'application/json'},
@@ -225,6 +228,7 @@ void test('initial v2 FQC preview matches generated per-product periods and prot
   const before = store();
   const query = '?preview=1&start='+today+'&calendar=2';
   assert.equal((await call(query,undefined,'other')).status,403);
+  assert.equal((await call(query,undefined,'editor')).status,403);
   assert.equal((await call('?preview=1&start=2026-02-30&calendar=2')).status,422);
   assert.equal((await call(query+'&start='+today)).status,422);
   const combined = await call('?preview=1&start='+today);
