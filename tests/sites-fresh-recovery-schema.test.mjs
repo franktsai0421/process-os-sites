@@ -21,10 +21,10 @@ void test('fresh journal preserves the 24 predecessor tables and adds only the e
   assert.ok(!predecessor.includes(journal));
   apply(migrations[10]);
   const tables=tableNames();
-  assert.deepEqual(tables,[...predecessor,journal].sort());
+  assert.deepEqual(tables,[...predecessor,journal].sort((a,b)=>a<b?-1:a>b?1:0));
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM fqc_plan_reconciliation_journal').get().n,0);
   const models=Object.values(schema).map(getTableConfig);
-  assert.equal(models.length,25);assert.deepEqual(tables,models.map(m=>m.name).sort());
+  assert.equal(models.length,25);assert.deepEqual(tables,models.map(m=>m.name).sort((a,b)=>a<b?-1:a>b?1:0));
   for(const model of models){
    const actual=db.prepare('PRAGMA table_info("'+model.name+'")').all();
    assert.deepEqual(actual.map(c=>({name:c.name,type:c.type,notNull:Boolean(c.notnull)})),model.columns.map(c=>({name:c.name,type:c.getSQLType().toUpperCase(),notNull:c.notNull})),model.name);
