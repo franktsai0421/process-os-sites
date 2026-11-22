@@ -6,17 +6,25 @@ import {readMigrationFiles} from 'drizzle-orm/migrator';
 import {getTableConfig} from 'drizzle-orm/sqlite-core';
 import * as schema from '../db/sites-fresh-schema.ts';
 
-void test('fresh journal applies all ten schema-only migrations and matches all 24 model tables',()=>{
+void test('fresh journal preserves the 24 predecessor tables and adds only the empty FQC plan reconciliation journal',()=>{
  const migrations=readMigrationFiles({migrationsFolder:'drizzle-sites-fresh'}),db=new DatabaseSync(':memory:');
  try{
-  assert.equal(migrations.length,10);
-  for(const migration of migrations)for(const statement of migration.sql){
+  const tableNames=()=>db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT GLOB 'sqlite_*' ORDER BY name").all().map(r=>r.name);
+  assert.equal(migrations.length,11);
+  const apply=migration=>{for(const statement of migration.sql){
    assert.doesNotMatch(statement,/\b(INSERT|UPDATE|DELETE|REPLACE|DROP)\b/i);
    db.exec(statement);
-  }
-  const tables=db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map(r=>r.name);
+  }};
+  migrations.slice(0,10).forEach(apply);
+  const predecessor=tableNames(),journal='fqc_plan_reconciliation_journal';
+  assert.equal(predecessor.length,24);
+  assert.ok(!predecessor.includes(journal));
+  apply(migrations[10]);
+  const tables=tableNames();
+  assert.deepEqual(tables,[...predecessor,journal].sort());
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM fqc_plan_reconciliation_journal').get().n,0);
   const models=Object.values(schema).map(getTableConfig);
-  assert.equal(models.length,24);assert.deepEqual(tables,models.map(m=>m.name).sort());
+  assert.equal(models.length,25);assert.deepEqual(tables,models.map(m=>m.name).sort());
   for(const model of models){
    const actual=db.prepare('PRAGMA table_info("'+model.name+'")').all();
    assert.deepEqual(actual.map(c=>({name:c.name,type:c.type,notNull:Boolean(c.notnull)})),model.columns.map(c=>({name:c.name,type:c.getSQLType().toUpperCase(),notNull:c.notNull})),model.name);
