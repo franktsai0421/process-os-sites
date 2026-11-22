@@ -2617,9 +2617,13 @@
         if(!response.ok||!await check())throw Error(t('請再查原啟動與處理結果。','Kiểm tra lại biên nhận khởi động và kết quả xử lý.'));
       }
       const next=await read('',current);
-      if(!current()||next.identity?.id!==pin.actor||!Number.isSafeInteger(next.control?.revision)||next.control.revision<1)
+      if(!current()||next.identity?.id!==pin.actor||!Number.isSafeInteger(next.control?.revision)||
+        next.control.revision<Math.max(1,data.control.revision)||!Number.isSafeInteger(next.revision)||next.revision<data.revision)
         throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
-      record.confirmed=null;receiptClear(record,pin);adopt(next);reconcileSelection();
+      record.confirmed=null;
+      receiptClear(record,pin);
+      data=next;
+      reconcileSelection();
       s.error=s.retry?receiptNotice():'';
     }catch(error){if(current())fault(error,true);}
     finally{s.busy=false;if(display()&&receiptOwnedPin(pin))paint();}
