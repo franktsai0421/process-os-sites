@@ -1129,3 +1129,31 @@ void test('IQC controls use wrap-safe mobile tracks and FQC colors plus a non-co
   assert.match(fqc,new RegExp('#'+hex));
  }
 });
+
+for(const mode of ['lost tab','legacy ID','cancel','conflict','wrong actor','wrong ID','lost reply']){
+ void test('IQC owner first-start recovery UI: '+mode,async()=>{
+  const state={...parityState([]),revision:0,startDate:null};state.permissions.settings=true;
+  const id=mode==='lost tab'?null:'synthetic-legacy-id',slot='routine-iqc-receipt:synthetic';
+  let posts=0,retired=false;
+  const ui=switchFixture('zh',{data:state,confirmAction:mode!=='cancel',simulateRequest:async(url,options)=>{
+   if(!url.includes('routine-start-retirement')){assert.notEqual(options?.method,'POST');return Response.json(state);}
+   if(options?.method==='POST'){
+    posts++;const body=JSON.parse(options.body);
+    assert.equal(body.operationId,id);assert.equal(body.action,'retire-first-start');retired=true;state.revision=1;
+    if(mode==='lost reply')throw Error('interrupted acknowledgement');
+   }else{
+    const query=new URL(url,fixtureOrigin).searchParams;assert.equal(query.has('operationId'),id!==null);assert.equal(query.get('operationId'),id);
+   }
+   if(mode==='conflict')return Response.json({error:'FIRST_START_STATE_CHANGED'},{status:409});
+   return Response.json({status:retired?'retired':'eligible',scope:'iqc',actorId:mode==='wrong actor'?'other':'synthetic',
+    id:mode==='wrong ID'?'other-id':id,expectedRevision:0,...(retired?{fencedRevision:1}:{})});
+  }});
+  if(id)ui.pendingWrites.set(slot,id);
+  ui.press(ui.entry);await new Promise(resolve=>setImmediate(resolve));
+  assert.match(ui.iqcRoot.innerHTML,/recover-first-start/);
+  ui.action('recover-first-start');await new Promise(resolve=>setImmediate(resolve));
+  if(mode==='lost reply'){assert.equal(ui.pendingWrites.get(slot),id);ui.action('recover-first-start');await new Promise(resolve=>setImmediate(resolve));}
+  const ok=['lost tab','legacy ID','lost reply'].includes(mode);
+  assert.equal(posts,ok?1:0);assert.equal(ui.pendingWrites.get(slot),ok?undefined:id);
+ });
+}

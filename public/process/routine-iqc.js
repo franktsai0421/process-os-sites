@@ -700,12 +700,41 @@
   const startLocked=v=>v.data.startLocked??!!(v.data.documents.length||v.data.cases.length||
     v.data.jobs.some(job=>job.planId||job.completion||job.calendar?.stopped));
   const receiptNotice=()=>t('請先查上一筆操作結果。','Kiểm tra biên nhận trước.');
+  async function recoverFirstStart(v){
+    if(v.review||v.busy||edited(v)||!canConfigure(v)||v.data.startDate)return;
+    const actor=v.data.identity.id,id=v.pending||null,slot=key+actor;
+    const owns=()=>current(v)&&window.ProcessSync?.identity?.id===actor&&v.data.identity.id===actor&&
+      (sessionStorage.getItem(slot)||null)===id&&(v.pending||null)===id;
+    if(!owns())return;
+    const endpoint='/api/routine-start-retirement',query='?scope=iqc&assessment=1'+(id?'&operationId='+encodeURIComponent(id):'');
+    const assess=async()=>{
+      const result=await call(v,endpoint+query);
+      if(!owns()||result.actorId!==actor||result.scope!=='iqc'||result.id!==id||result.expectedRevision!==0||
+        !(result.status==='eligible'||result.status==='retired'&&result.fencedRevision===1))throw Error('RECOVERY_UNVERIFIED');
+      return result.status;
+    };
+    v.busy=true;
+    try{
+      if(await assess()==='eligible'){
+        if(!confirm(t('終止所有使用版本 0 的 IQC 首次啟動？其他分頁的舊請求也會失效。此操作不設定日期。','Chấm dứt mọi yêu cầu khởi động IQC phiên bản 0, kể cả từ thẻ khác? Ngày bắt đầu sẽ không được đặt.'))||!owns())return;
+        await call(v,endpoint,{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({scope:'iqc',operationId:id,expectedRevision:0,action:'retire-first-start',confirm:'RETIRE IQC START'})});
+        if(!owns()||await assess()!=='retired')throw Error('RECOVERY_UNVERIFIED');
+      }
+      const next=await call(v);
+      if(!owns()||next.identity?.id!==actor||!Number.isSafeInteger(next.revision)||next.revision<1)throw Error('RECOVERY_UNVERIFIED');
+      if(id!==null)sessionStorage.removeItem(slot);
+      v.pending=null;v.data=next;v.reloadNeeded=false;
+      v.error=t('版本 0 的 IQC 首次啟動已終止，請核對目前開始日期。','Các yêu cầu khởi động IQC phiên bản 0 đã bị chặn. Hãy kiểm tra ngày bắt đầu hiện tại.');
+    }finally{v.busy=false;if(current(v))render(v);}
+  }
   function administration(v){
     if(!canConfigure(v))return '';
     const locked=startLocked(v),busy=!!v.pending||v.busy||edited(v);
     return `<details class="rf-fqc-administration" ${v.adminOpen?'open':''}><summary>${t('IQC 特殊功能','Chức năng đặc biệt IQC')}</summary>
       <p>${t('開始日期','Ngày bắt đầu')}：${h(v.data.startDate||t('尚未啟動','Chưa bắt đầu'))}</p>
       <p>${t('僅管理例行 IQC 流程，保留來源主檔、頻率、照片及其他模組。','Chỉ quản lý IQC định kỳ, giữ dữ liệu nguồn, tần suất, ảnh và mô-đun khác.')}</p>
+      ${!v.data.startDate&&[0,1].includes(v.data.revision)?button('recover-first-start',t('查證舊的首次啟動','Xác minh yêu cầu khởi động đầu cũ'),v.busy||edited(v)):''}
       <div class="rf-actions"><button type="button" class="rf-btn" data-ri-action="configure" aria-haspopup="dialog" ${locked||busy?'disabled':''}>${locked?
         t('已啟動 · 日期鎖定','Đã khởi động · Khóa ngày'):t('設定開始日期並啟動','Đặt ngày bắt đầu và khởi động')}</button>
       </div>${locked?`<small>${errorText('START_DATE_LOCKED')}</small>`: ''}</details>`;
@@ -1026,6 +1055,7 @@
         throw Error(t('先處理保留中的工作，再前往版本確認平台。','Hoàn tất công việc đang giữ trước khi mở nền tảng duyệt.'));
       const target=route(true,true);target.searchParams.set('riDocument',id);location.assign(target);return;
     }
+    if(kind==='recover-first-start'){await recoverFirstStart(v);return;}
     if(kind==='receipt'){
       v.busy=true;
       try{

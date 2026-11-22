@@ -167,6 +167,7 @@
     if(minimize&&feedback.collapsed)
       return `<section class="rf-notice rf-receipt-compact" data-rf-receipt-panel aria-label="${t('FQC 操作待查證','Thao tác FQC cần xác minh')}"><span role="status">${t('有 1 筆操作待查證','Có 1 thao tác cần xác minh')}</span><button type="button" class="rf-btn" data-action="receipt-show" aria-expanded="false">${t('查看','Xem')}</button>${reference}</section>`;
     const expanding=minimize?`<button type="button" class="rf-btn" data-action="receipt-minimize" aria-expanded="true">${t('稍後查證／收起提示','Xác minh sau / Thu gọn')}</button>`:'';
+    const retire=minimize&&recoverableFirstStart()?btn('retire-first-start',t('處理未確認的首次啟動','Xử lý lần khởi động đầu chưa xác nhận')):'';
     const lookup=s.retry?btn('retry',t('查原操作收據（不重送）','Kiểm tra biên nhận (không gửi lại)')):'';
     let message=s.error||(receiptInvalid?receiptStorageNotice():receiptNotice());
     switch(feedback?.status){
@@ -177,7 +178,7 @@
       case 'readback': message=receiptReadbackNotice(); break;
       case 'failed': message=t('收據查詢失敗，原操作仍待查證。請稍後再查詢，不會重送。','Không thể tra biên nhận; thao tác gốc vẫn cần xác minh. Tra lại sau, không gửi lại.'); break;
     }
-    return `<div class="rf-notice ${feedback?.status==='querying'?'':'error'}" data-rf-receipt-panel><span role="${s.retry||feedback?.status==='querying'?'status':'alert'}">${h(message)}</span> ${lookup}${expanding}${reference}</div>`;
+    return `<div class="rf-notice ${feedback?.status==='querying'?'':'error'}" data-rf-receipt-panel><span role="${s.retry||feedback?.status==='querying'?'status':'alert'}">${h(message)}</span> ${lookup}${retire}${expanding}${reference}</div>`;
   }
   function html() {
     return '<section id="routine-fqc-root" class="rf-app" data-i18n-skip="true"><div class="rf-empty" role="status">FQC · 載入中 / Đang tải…</div></section>';
@@ -2584,9 +2585,49 @@
     );
     return f?.get('reason')?.trim();
   }
+  function recoverableFirstStart(){
+    const meta=receiptRecord?.meta;
+    return !s.reviewPlatform&&receiptFeedback()?.status==='missing'&&meta?.action==='configure'&&
+      meta.requestedRevision===0&&meta.aggregateRevision===0&&data?.permissions?.settings&&data?.permissions?.edit&&
+      receiptOwnedPin(receiptPin())&&meta.actor===data.identity.id;
+  }
+  async function resolveFirstStart(){
+    if(!recoverableFirstStart())return;
+    const record=receiptRecord,pin=receiptPin(),display=captureHistoryDisplay(),id=record.meta.operationId;
+    const current=()=>display()&&receiptOwnedPin(pin)&&record===receiptRecord;
+    const url='/api/routine-start-retirement',query='?scope=fqc&assessment=1&operationId='+encodeURIComponent(id);
+    const check=async()=>{
+      const {response,value}=await routineJSON(url+query,{cache:'no-store'});
+      if(!current())throw Error('DELIVERY_SUPERSEDED');
+      if(response.ok&&value?.status==='eligible'&&value.actorId===pin.actor&&value.scope==='fqc'&&value.id===id&&value.expectedRevision===0)return false;
+      if(!response.ok||value?.status!=='retired'||value.id!==id||value.scope!=='fqc'||value.actorId!==pin.actor||
+        value.expectedRevision!==0||value.fencedRevision!==1)throw Error(t('請再查原啟動與處理結果。','Kiểm tra lại biên nhận khởi động và kết quả xử lý.'));
+      return true;
+    };
+    s.busy=true;
+    try{
+      if(!await check()){
+        const confirmed=await dialog(t('終止舊的首次啟動請求','Chấm dứt yêu cầu khởi động đầu cũ'),
+          '<p>'+t('若舊請求已生效，請查原收據。若尚未啟動，這將阻止所有基於同一舊版本的 FQC 首次啟動請求，包括其他分頁的請求。完成後需另行設定日期。','Nếu yêu cầu cũ đã có hiệu lực, hãy kiểm tra biên nhận gốc. Nếu chưa khởi động, mọi yêu cầu khởi động FQC lần đầu dựa trên cùng phiên bản cũ, kể cả từ thẻ khác, sẽ bị chặn. Sau đó cần đặt ngày riêng.')+'</p><code>'+h(id)+'</code>',
+          t('終止舊啟動','Chấm dứt yêu cầu cũ'));
+        if(!confirmed||!current())return;
+        const {response}=await routineJSON(url,{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({scope:'fqc',operationId:id,expectedRevision:0,action:'retire-first-start',confirm:'RETIRE FQC START'})});
+        if(!current())throw Error('DELIVERY_SUPERSEDED');
+        if(!response.ok||!await check())throw Error(t('請再查原啟動與處理結果。','Kiểm tra lại biên nhận khởi động và kết quả xử lý.'));
+      }
+      const next=await read('',current);
+      if(!current()||next.identity?.id!==pin.actor||!Number.isSafeInteger(next.control?.revision)||next.control.revision<1)
+        throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+      record.confirmed=null;receiptClear(record,pin);adopt(next);reconcileSelection();
+      s.error=s.retry?receiptNotice():'';
+    }catch(error){if(current())fault(error,true);}
+    finally{s.busy=false;if(display()&&receiptOwnedPin(pin))paint();}
+  }
   async function act(action, el) {
     assertCurrentDisplay();
     if (s.busy || s.dialogOpen || generationRefresh?.current()) return;
+    if(action==='retire-first-start')return resolveFirstStart();
     if(action==='receipt-minimize'||action==='receipt-show'){
       const feedback=receiptFeedback();
       if(feedback?.status!=='missing')return;

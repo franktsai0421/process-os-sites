@@ -32,13 +32,24 @@ const updated=Object.freeze({
  'lib/state-records.ts':'8d3f155d71fb887dea34f27892c27009c5f8fe19',
 });
 const changes=Object.fromEntries(Object.entries(updated).map(([file,after])=>[file,[originalBlobs[file][1],after]]));
-const blobs=Object.freeze(Object.fromEntries(Object.entries(originalBlobs).map(([file,[before,after]])=>[file,[before,updated[file]||after]])));
+const historicalBlobs=Object.freeze(Object.fromEntries(Object.entries(originalBlobs).map(([file,[before,after]])=>[file,[before,updated[file]||after]])));
+const published='413614eaf83f466c7dfeb9d99d635f306115fee7';
+const publishedTree='91d474db7ee8b3496f5135034385dabf3cc10e27';
+const recovery=Object.freeze({
+ 'app/api/routine-start-retirement/route.ts':[null,'48212e674bd2c19b6c9effc8d207116aac0936f9'],
+ 'lib/state-records.ts':['8d3f155d71fb887dea34f27892c27009c5f8fe19','a92b7636fdbcd7cdc6fd2747cab4beb01bc0f035'],
+ 'public/process/routine-fqc.js':['a51874b45f9926737a94c6443dc26589597a6e79','daf81f5725cc07818efc18665aef02fdcb684f0c'],
+ 'public/process/routine-iqc.js':['8ff0e22114e903648e89cd91cd29f2455c980173','a6501295bb2df46450ce5434ac162648c50be743']
+});
+const blobs=Object.freeze({...historicalBlobs,'lib/state-records.ts':[historicalBlobs['lib/state-records.ts'][0],recovery['lib/state-records.ts'][1]]});
 const has=file=>Object.hasOwn(blobs,file);
 const originals=new Map();
 function projectKnown(bytes,file){
  assert(Buffer.isBuffer(bytes),'Startup read proof requires raw Buffer');
+ if(file==='tests/accounts-process-integration-source.test.mjs')bytes=checkoutPreimage(bytes,file,['a313841a1724218964e925e6010f1f5be7cdcbcb','b160cd40d6025480ad956e832f487c80f21e6dd0'],publishedTree,'HEAD');
+ if(Object.hasOwn(recovery,file)&&recovery[file][0])bytes=checkoutPreimage(bytes,file,recovery[file],publishedTree,'HEAD');
  if(Object.hasOwn(changes,file)){
-   const old=checkoutPreimage(bytes,file,changes[file],mergedTree,'HEAD');
+   const old=checkoutPreimage(bytes,file,changes[file],mergedTree,publishedTree);
    if(old!==bytes)bytes=old;
  }
  const pair=has(file)?originalBlobs[file]:Object.hasOwn(testBlobs,file)?testBlobs[file]:null;
@@ -56,7 +67,10 @@ function checkoutPreimage(bytes,file,pair,beforeTree,afterTree){
  const {before,after,lf,crlf}=originals.get(key);
  return bytes.equals(after)||bytes.equals(lf)||bytes.equals(crlf)?Buffer.from(before):bytes;
 }
-function inventory(raw){ checkInventory(raw,blobs); }
+function inventory(raw){
+ verify();
+ assert.equal(raw,git('diff','--raw','--no-abbrev','--no-renames',base,'HEAD','--',...scope).toString());
+}
 function checkInventory(raw,entries){
  const expected=Object.entries(entries).map(([file,[old,next]])=>':100644 100644 '+old+' '+next+' M\t'+file+'\n').join('');
  assert.equal(raw,expected,'complete startup runtime change, path, mode, and both blob IDs');
@@ -69,14 +83,35 @@ function verify(){
  const delta=(left,right)=>git('diff','--raw','--no-abbrev','--no-renames',left,right,'--',...scope).toString();
  checkInventory(delta(base,sourceTree),originalBlobs);
  assert.equal(delta(sourceTree,mergedTree),'');
- checkInventory(delta(mergedTree,'HEAD'),changes);
- inventory(git('diff','--raw','--no-abbrev','--no-renames',base,'HEAD','--',...scope).toString());
+ assert.equal(git('rev-parse',published+'^{tree}').toString().trim(),publishedTree);
+ git('merge-base','--is-ancestor',published,'HEAD');
+ checkInventory(delta(mergedTree,publishedTree),changes);
+ checkInventory(delta(base,publishedTree),historicalBlobs);
+ checkRecovery(delta(publishedTree,'HEAD'));
+}
+function checkRecovery(raw){
+ const expected=Object.entries(recovery).map(([file,[old,next]])=>old?
+   ':100644 100644 '+old+' '+next+' M\t'+file+'\n':
+   ':000000 100644 '+'0'.repeat(40)+' '+next+' A\t'+file+'\n').join('');
+ assert.equal(raw,expected,'complete recovery successor inventory');
+
 }
 function predecessor(bytes,file,{checkout=false}={}){
+ if(Object.hasOwn(recovery,file)&&recovery[file][0]){
+   const [old,next]=recovery[file];
+   assert(Buffer.isBuffer(bytes));
+   assert.equal(git('ls-tree','HEAD','--',file).toString().trimEnd(),'100644 blob '+next+'\t'+file);
+   assert.equal(git('ls-tree',publishedTree,'--',file).toString().trimEnd(),'100644 blob '+old+'\t'+file);
+   const raw=git('cat-file','blob',next);
+   if(!bytes.equals(raw)){
+     assert(checkout&&bytes.equals(Buffer.from(raw.toString().replace(/\r?\n/g,'\r\n'))),'Raw recovery blob differs: '+file);
+   }
+   bytes=git('cat-file','blob',old);
+ }
  if(!has(file))return bytes;
  assert(Buffer.isBuffer(bytes));
- const [old,next]=blobs[file],after=git('cat-file','blob',next);
- assert.equal(git('ls-tree','HEAD','--',file).toString().trimEnd(),'100644 blob '+next+'\t'+file);
+ const [old,next]=historicalBlobs[file],after=git('cat-file','blob',next);
+ assert.equal(git('ls-tree',publishedTree,'--',file).toString().trimEnd(),'100644 blob '+next+'\t'+file);
  assert.equal(git('ls-tree',baseTree,'--',file).toString().trimEnd(),'100644 blob '+old+'\t'+file);
  if(checkout&&!bytes.equals(after)){
    // Accept the whole-file Git CRLF checkout only; compare raw HEAD independently.
@@ -84,4 +119,4 @@ function predecessor(bytes,file,{checkout=false}={}){
  }else assert(bytes.equals(after),'Raw Git blob differs: '+file);
  return git('cat-file','blob',old);
 }
-module.exports={originalBlobs,base,sourceTree,projectKnown,scope,blobs,verify,inventory,predecessor,has};
+module.exports={recovery,checkRecovery,originalBlobs,base,sourceTree,projectKnown,scope,blobs,verify,inventory,predecessor,has};

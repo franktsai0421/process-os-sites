@@ -80,9 +80,14 @@ void test('routine startup adds exactly three fixed runtime blobs to the histori
   ['public/process/routine-reset.js','a460dc3966f71d9d7c829c1d64f7a3a3245391d0',7366],
  ];
  const expected=[...historical,...resetRuntime.map(([file])=>file)].sort((a,b)=>a<b?-1:a>b?1:0);
+ const beforeRecovery='413614eaf83f466c7dfeb9d99d635f306115fee7';
+ assert.deepEqual(inventory(beforeRecovery),expected);
+ const recoveryRoute='app/api/routine-start-retirement/route.ts';
+ reads.verify();
  const actual=inventory('HEAD');
- assert.deepEqual(actual,expected);
- assert.throws(()=>assert.deepEqual([...actual,'public/process/unexpected.js'],expected),{code:'ERR_ASSERTION'});
+ const withRecovery=[...expected,recoveryRoute].sort((a,b)=>a<b?-1:a>b?1:0);
+ assert.deepEqual(actual,withRecovery);
+ assert.throws(()=>assert.deepEqual([...actual,'public/process/unexpected.js'],withRecovery),{code:'ERR_ASSERTION'});
  for(const [file,blob,length] of resetRuntime){
   assert.equal(git('ls-tree','HEAD','--',file).toString().trimEnd(),`100644 blob ${blob}\t${file}`);
   const pinned=git('cat-file','blob',blob);
@@ -137,6 +142,7 @@ void test('startup read successor applies forward and inverse with exact raw pat
  isolated(['apply','-R','--cached','--whitespace=nowarn','-'],patch);
  assert.equal(isolated(['write-tree']).toString().trim(),git('rev-parse',reads.base+'^{tree}').toString().trim());
  const inventory=git('diff','--raw','--no-abbrev','--no-renames',reads.base,'HEAD','--',...reads.scope).toString();
+ reads.inventory(inventory);
  for(const change of [inventory.replace('100644','100755'),inventory.replace('route.ts','other.ts'),inventory+inventory])
    assert.throws(()=>reads.inventory(change));
 });

@@ -310,6 +310,13 @@ export function prepareRoutineFqcStart(bucket:Bucket,raw:string,action:'configur
  }},action==='generate');
 }
 
+// Retirement advances the routine revision only. No catalog or document from
+// another module is a dependency of this single-key canonical overlay.
+export function prepareFirstStartRetirement(bucket:Bucket,raw:string,scope:'fqc'|'iqc'){
+ const key=scope==='fqc'?'routineFqcControl':'routineIqcControl';
+ return prepareRoutineStart(bucket,raw,key,{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','routineFqcEnabled',key],aggregateReadAhead:true});
+}
+
 async function prepareRoutineStart(bucket:Bucket,raw:string,key:'routineIqcControl'|'routineFqcControl',options:RecordRead,calendarGeneration=false){
  const original:Envelope=JSON.parse(raw), manifest=original.__processRecords;
  if(!manifest)return null;
