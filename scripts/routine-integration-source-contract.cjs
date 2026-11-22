@@ -182,6 +182,15 @@ function assertRawRoutineEncoding(bytes, file, message) {
   assert(Buffer.isBuffer(bytes), 'Routine integration proof requires raw Buffer');
   const raw = hash(bytes);
   const lf = hash(Buffer.from(bytes.toString('utf8').replaceAll('\r\n', '\n')));
+  // The #138 predecessor remains a raw Git boundary after adding the plan intent.
+  const priorBlob = startupRead.intent[file]?.[0];
+  if (priorBlob) {
+    const prior = git('cat-file', 'blob', priorBlob);
+    if (lf === hash(prior.toString('utf8').replaceAll('\r\n', '\n'))) {
+      assert(bytes.equals(prior), message);
+      return;
+    }
+  }
   if(Object.hasOwn(startupRead.recovery,file)){
     const next=git('cat-file','blob',startupRead.recovery[file][1]);
     if(lf===hash(Buffer.from(next.toString().replaceAll('\r\n','\n')))){

@@ -167,7 +167,7 @@
     if(minimize&&feedback.collapsed)
       return `<section class="rf-notice rf-receipt-compact" data-rf-receipt-panel aria-label="${t('FQC 操作待查證','Thao tác FQC cần xác minh')}"><span role="status">${t('有 1 筆操作待查證','Có 1 thao tác cần xác minh')}</span><button type="button" class="rf-btn" data-action="receipt-show" aria-expanded="false">${t('查看','Xem')}</button>${reference}</section>`;
     const expanding=minimize?`<button type="button" class="rf-btn" data-action="receipt-minimize" aria-expanded="true">${t('稍後查證／收起提示','Xác minh sau / Thu gọn')}</button>`:'';
-    const retire=minimize&&recoverableFirstStart()?btn('retire-first-start',t('處理未確認的首次啟動','Xử lý lần khởi động đầu chưa xác nhận')):'';
+    const retire=minimize&&receiptRecord?.meta.action==='create-plan'&&receiptRecord.meta.operationId.startsWith('plan-fqc-')?btn('recover-plan',t('查證或終止這筆建計畫','Kiểm tra hoặc dừng yêu cầu lập kế hoạch này')):minimize&&recoverableFirstStart()?btn('retire-first-start',t('處理未確認的首次啟動','Xử lý lần khởi động đầu chưa xác nhận')):'';
     const lookup=s.retry?btn('retry',t('查原操作收據（不重送）','Kiểm tra biên nhận (không gửi lại)')):'';
     let message=s.error||(receiptInvalid?receiptStorageNotice():receiptNotice());
     switch(feedback?.status){
@@ -541,6 +541,15 @@
       return receiptTerminal(original,found,pin);
     }
     const body=clone({...command,operationId:command.operationId||id()});if(!receiptWriteAllowed(body))throw Error('FORBIDDEN');
+    if(body.action==='create-plan'&&calendarMode()){
+      body.operationId='plan-fqc-'+crypto.randomUUID();
+      const {response,value}=await routineJSON('/api/routine-plan-intent?scope=fqc&id='+encodeURIComponent(body.operationId),{
+        method:'POST',headers:{'Content-Type':'application/json','X-Process-Expected-Actor':pin.actor},body:JSON.stringify({action:'register',command:body})});
+      if(!response.ok||value?.status!=='registered'||value.id!==body.operationId||value.scope!=='fqc'||value.actorId!==pin.actor||
+        value.expectedRevision!==body.expectedRevision||!displayCurrent()||!receiptOwnedPin(pin))throw Error(value?.error||'PLAN_REGISTRATION_UNCONFIRMED');
+      receiptInstall(pin.actor);
+      if(receiptRecord||receiptInvalid)throw Error('PREVIOUS_OPERATION_UNKNOWN');
+    }
     const record=receiptCreate(body,pin),current=()=>displayCurrent()&&receiptOwnedPin(pin)&&receiptRecord===record;
     const departureOwner=window.SharedDraftDeparture?.capture?.(),scope='routine-fqc:'+body.documentId;
     record.confirmed=result=>{const live=data?.control?.documents?.find(d=>d.id===body.documentId)?.flow;
@@ -2591,6 +2600,34 @@
       meta.requestedRevision===0&&meta.aggregateRevision===0&&data?.permissions?.settings&&data?.permissions?.edit&&
       receiptOwnedPin(receiptPin())&&meta.actor===data.identity.id;
   }
+  async function recoverPlan(){
+    const record=receiptRecord,pin=receiptPin(),display=captureHistoryDisplay(),meta=record?.meta;
+    if(s.busy||meta?.action!=='create-plan'||!meta.operationId.startsWith('plan-fqc-')||!receiptOwnedPin(pin))return;
+    const owns=()=>display()&&receiptOwnedPin(pin)&&receiptRecord===record&&receiptStore().getItem(record.key)===record.raw;
+    const url='/api/routine-plan-intent?scope=fqc&id='+encodeURIComponent(meta.operationId);
+    const readIntent=async(options={})=>{
+      const {response,value}=await routineJSON(url,{cache:'no-store',headers:{'Content-Type':'application/json','X-Process-Expected-Actor':pin.actor},...options});
+      if(!owns()||!response.ok||value?.scope!=='fqc'||value.id!==meta.operationId||value.actorId!==pin.actor||value.expectedRevision!==meta.requestedRevision)throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+      return value.status;
+    };
+    s.busy=true;
+    try{
+      let status=await readIntent();
+      if(status==='registered'){
+        const yes=await dialog(t('終止這筆建計畫？','Dừng yêu cầu lập kế hoạch này?'),'<p>'+t('若原請求先完成，保留其計畫與收據；否則阻止該筆請求生效。','Nếu yêu cầu đã hoàn tất, kế hoạch và biên nhận được giữ lại. Nếu chưa, yêu cầu sẽ bị chặn.')+'</p>',t('確認終止','Xác nhận dừng'));
+        if(!yes||!owns())return;
+        await readIntent({method:'POST',body:JSON.stringify({action:'retire',confirm:'RETIRE FQC PLAN',expectedRevision:meta.requestedRevision})});
+        status=await readIntent();
+      }
+      if(status==='committed'){const original=await read('?operationId='+encodeURIComponent(meta.operationId),owns);receiptTerminal(record,original,pin);}
+      else if(status!=='retired')throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+      const next=await read('',owns);
+      if(!owns()||next.identity?.id!==pin.actor||!Number.isSafeInteger(next.control?.revision)||next.control.revision<meta.requestedRevision)throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+      if(status==='retired'){receiptClear(record,pin);}else{receiptObserveRead(next,pin);}
+      data=next;reconcileSelection();s.error=s.retry?receiptNotice():'';
+    }catch(error){if(owns())fault(error,true);}
+    finally{s.busy=false;if(display()&&receiptOwnedPin(pin))paint();}
+  }
   async function resolveFirstStart(){
     if(!recoverableFirstStart())return;
     const record=receiptRecord,pin=receiptPin(),display=captureHistoryDisplay(),id=record.meta.operationId;
@@ -2631,6 +2668,7 @@
   async function act(action, el) {
     assertCurrentDisplay();
     if (s.busy || s.dialogOpen || generationRefresh?.current()) return;
+    if(action==='recover-plan')return recoverPlan();
     if(action==='retire-first-start')return resolveFirstStart();
     if(action==='receipt-minimize'||action==='receipt-show'){
       const feedback=receiptFeedback();

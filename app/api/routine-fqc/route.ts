@@ -1,3 +1,4 @@
+import {checkPlanIntent} from '@/lib/routine-plan-intent';
 import { isRoutineScheduleOwner } from '@/lib/routine-schedule-owner';
 import {routineApprovedQuery,routineApprovedControl,routineApprovedRows,routineApprovedVersion} from '@/lib/routine-fqc-approved-history';
 import { prepareRoutineFqcStart, routineFqcStartMaster } from '@/lib/state-records';
@@ -63,6 +64,7 @@ export async function GET(request: Request) {
     const approved=routineApprovedQuery(request);
     const authorityKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','routineFqcEnabled'];
     const query = new URL(request.url).searchParams, operationId=query.get('operationId');
+    if(operationId?.startsWith('~plan-intent~'))return reply({error:'INVALID_SELECTOR'},422);
     const calendarPreview = query.get('preview') === '1' && query.get('calendar') === '2';
     if (calendarPreview && (query.size !== 3 || !query.has('start')))
       return reply({error:'DATE_INVALID'},422);
@@ -351,6 +353,7 @@ export async function POST(request: Request) {
         existing = control.receipts[command.operationId];
       if ((control as typeof control & {pageDraftLayout?:string}).pageDraftLayout === 'page-v1' && !existing)
         return reply({error:'ROUTINE_LEGACY_WRITER_RETIRED',requestId},409);
+      await checkPlanIntent(control,'fqc',command,actor,state.values);
       const at = new Date().toISOString();
       if (command.action === 'enable') {
         if (

@@ -1157,3 +1157,19 @@ for(const mode of ['lost tab','legacy ID','cancel','conflict','wrong actor','wro
   assert.equal(posts,ok?1:0);assert.equal(ui.pendingWrites.get(slot),ok?undefined:id);
  });
 }
+
+for(const mode of ['retire','decline','different owner','legacy'])void test('IQC reload and owner-bound plan intent: '+mode,async()=>{
+ const state={...parityState([]),revision:4},id=mode==='legacy'?'ordinary-old-id':'plan-iqc-bfbdd67b-bddc-49db-90cb-c442ba2b5733';
+ const key='routine-iqc-receipt:synthetic';
+ let retired=false,writes=0;
+ const ui=switchFixture('zh',{data:state,confirmAction:mode!=='decline',simulateRequest:async(url,options)=>{
+   if(!url.includes('/api/routine-plan-intent')){assert.notEqual(options?.method,'POST');return Response.json(state);}
+   if(options?.method==='POST'){writes++;assert.equal(JSON.parse(options.body).confirm,'RETIRE IQC PLAN');retired=true;}
+   return Response.json({scope:'iqc',id,status:retired?'retired':'registered',expectedRevision:state.revision,actorId:mode==='different owner'?'other':'synthetic'});
+ }});
+ ui.pendingWrites.set(key,id);
+ ui.press(ui.entry);await new Promise(resolve=>setImmediate(resolve));
+ if(mode==='legacy')assert.doesNotMatch(ui.iqcRoot.innerHTML,/data-ri-action="recover-plan"/);
+ else {assert.match(ui.iqcRoot.innerHTML,/data-ri-action="recover-plan"/);ui.action('recover-plan');await new Promise(resolve=>setImmediate(resolve));}
+ assert.equal(writes,mode==='retire'?1:0);assert.equal(ui.pendingWrites.get(key),mode==='retire'?undefined:id);
+});

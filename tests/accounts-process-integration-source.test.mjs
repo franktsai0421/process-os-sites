@@ -84,10 +84,14 @@ void test('routine startup adds exactly three fixed runtime blobs to the histori
  assert.deepEqual(inventory(beforeRecovery),expected);
  const recoveryRoute='app/api/routine-start-retirement/route.ts';
  reads.verify();
- const actual=inventory('HEAD');
+ const actual=inventory(reads.planTree);
  const withRecovery=[...expected,recoveryRoute].sort((a,b)=>a<b?-1:a>b?1:0);
  assert.deepEqual(actual,withRecovery);
  assert.throws(()=>assert.deepEqual([...actual,'public/process/unexpected.js'],withRecovery),{code:'ERR_ASSERTION'});
+ const current=[...withRecovery,'app/api/routine-plan-intent/route.ts','lib/routine-plan-intent.ts'].sort((a,b)=>a<b?-1:a>b?1:0);
+ assert.deepEqual(inventory('HEAD'),current);
+ for(const other of [withRecovery,[...current,current[0]],[...current,'lib/unexpected.ts']])
+   assert.throws(()=>assert.deepEqual(other,current),{code:'ERR_ASSERTION'});
  for(const [file,blob,length] of resetRuntime){
   assert.equal(git('ls-tree','HEAD','--',file).toString().trimEnd(),`100644 blob ${blob}\t${file}`);
   const pinned=git('cat-file','blob',blob);
