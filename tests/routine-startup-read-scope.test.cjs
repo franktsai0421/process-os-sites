@@ -270,9 +270,14 @@ void test('FQC configure avoids unrelated and draft I/O, persists one receipt, t
 async function scheduleCommand(call,action){
  if(action==='configure')return fqcStart();
  const configured=await call('fqc','',fqcStart());assert.equal(configured.status,200);
- return {action,expectedRevision:(await configured.json()).revision,operationId:'synthetic-gen-fault'};
+ const generation={action:'generate',expectedRevision:(await configured.json()).revision,operationId:'synthetic-gen-fault'};
+ if(action==='generate')return generation;
+ assert.equal(action,'create-plan');
+ assert.equal((await call('fqc','',generation)).status,200);
+ const {control}=await (await call('fqc')).json();assert.equal(control.jobs.length,62);
+ return {action,expectedRevision:control.revision,jobIds:[control.jobs[0].id],startDate:day,endDate:day,operationId:'synthetic-plan-fault'};
 }
-for(const action of ['configure','generate'])void test('FQC '+action+' loses acknowledgement after commit; later lookup recovers with one durable write',async t=>{
+for(const action of ['configure','generate','create-plan'])void test('FQC '+action+' loses acknowledgement after commit; later lookup recovers with one durable write',async t=>{
  const {f,call,row}=await setup(t),cmd=await scheduleCommand(call,action),before=row();let writes=0;
  f.hooks.run=(sql,args)=>{if(sql.startsWith('UPDATE shared_state')){
    writes++;assert.equal(f.db.prepare(sql).run(...args).changes,1);throw Error('synthetic late acknowledgement');
@@ -286,7 +291,7 @@ for(const action of ['configure','generate'])void test('FQC '+action+' loses ack
   assert.equal((await (await call('fqc')).json()).control.jobs.length,62);assert.deepEqual(row(),saved);assert.equal(writes,1);
  }
 });
-for(const action of ['configure','generate'])void test('FQC '+action+' fences revocation after R2 preparation and rejects a raced shared-state CAS',async t=>{
+for(const action of ['configure','generate','create-plan'])void test('FQC '+action+' fences revocation after R2 preparation and rejects a raced shared-state CAS',async t=>{
  for(const mode of ['revoked','raced'])await t.test(mode,async t=>{
   const {f,call,row}=await setup(t),cmd=await scheduleCommand(call,action),before=row();let revokedKey;let attempts=0;
   f.hooks.sql=(sql,args)=>{if(sql.includes('process_revoked_sessions'))revokedKey=args[0];};
@@ -300,7 +305,7 @@ for(const action of ['configure','generate'])void test('FQC '+action+' fences re
  });
 });
 
-for(const action of ['configure','generate'])void test('FQC '+action+' response abandoned before CAS: missing receipt first, one confirmed result after release',async t=>{
+for(const action of ['configure','generate','create-plan'])void test('FQC '+action+' response abandoned before CAS: missing receipt first, one confirmed result after release',async t=>{
  const {f,call,row}=await setup(t),cmd=await scheduleCommand(call,action),before=row();
  let release,entered;
  const paused=new Promise(resolve=>{release=resolve;}),arrived=new Promise(resolve=>{entered=resolve;});

@@ -48,14 +48,17 @@ const adoptedUi='400b054c25547c5f23555f92657c748e567614e6';
 const recovery=Object.freeze({...mergedRecovery,[recoveryUi]:[mergedRecovery[recoveryUi][0],adoptedUi]});
 const planBase='23cc486120d6b3f175e805958b4a69a3b6235e38';
 const planBaseTree='1836ff64d5987030b3d92614db61ab2e12f48b1f';
-const planRoute='app/api/routine-iqc/route.ts';
-const planChange=[historicalBlobs[planRoute][1],'838bd4f40768e22519493519faef8938b0692399'];
-const blobs=Object.freeze({...historicalBlobs,[planRoute]:[historicalBlobs[planRoute][0],planChange[1]],'lib/state-records.ts':[historicalBlobs['lib/state-records.ts'][0],recovery['lib/state-records.ts'][1]]});
+const planChanges=Object.freeze({
+ 'app/api/routine-fqc/route.ts':[historicalBlobs['app/api/routine-fqc/route.ts'][1],'4b9fcb859e162a60b4f42c78166fcaac2128447e'],
+ 'app/api/routine-iqc/route.ts':[historicalBlobs['app/api/routine-iqc/route.ts'][1],'6538d4d03ff2c346f15c3c3d3ce8be24b3fcb2a2'],
+});
+const planBlobs=Object.fromEntries(Object.entries(planChanges).map(([path,pair])=>[path,[historicalBlobs[path][0],pair[1]]]));
+const blobs=Object.freeze({...historicalBlobs,...planBlobs,'lib/state-records.ts':[historicalBlobs['lib/state-records.ts'][0],recovery['lib/state-records.ts'][1]]});
 const has=file=>Object.hasOwn(blobs,file);
 const originals=new Map();
 function projectKnown(bytes,file){
  assert(Buffer.isBuffer(bytes),'Startup read proof requires raw Buffer');
- if(file===planRoute)bytes=checkoutPreimage(bytes,file,planChange,planBaseTree,'HEAD');
+ if(Object.hasOwn(planChanges,file))bytes=checkoutPreimage(bytes,file,planChanges[file],planBaseTree,'HEAD');
  if(file==='tests/accounts-process-integration-source.test.mjs')bytes=checkoutPreimage(bytes,file,['a313841a1724218964e925e6010f1f5be7cdcbcb','b160cd40d6025480ad956e832f487c80f21e6dd0'],publishedTree,'HEAD');
  if(Object.hasOwn(recovery,file)&&recovery[file][0])bytes=checkoutPreimage(bytes,file,recovery[file],publishedTree,'HEAD');
  if(Object.hasOwn(changes,file)){
@@ -102,7 +105,7 @@ function verify(){
  checkRecoveryInventory(delta(publishedTree,recoveryTree),mergedRecovery);
  assert.equal(git('rev-parse',planBase+'^{tree}').toString().trim(),planBaseTree);
  git('merge-base','--is-ancestor',planBase,'HEAD');
- checkInventory(delta(planBaseTree,'HEAD'),{[planRoute]:planChange});
+ checkInventory(delta(planBaseTree,'HEAD'),planChanges);
  checkInventory(delta(recoveryTree,planBaseTree),{[recoveryUi]:[mergedRecovery[recoveryUi][1],adoptedUi]});
  checkRecovery(delta(publishedTree,planBaseTree));
 }
@@ -117,11 +120,12 @@ function checkRecoveryInventory(raw,entries){
 
 }
 function predecessor(bytes,file,{checkout=false}={}){
- if(file===planRoute){
+ if(Object.hasOwn(planChanges,file)){
+   const planChange=planChanges[file];
    assert(Buffer.isBuffer(bytes));
    assert.equal(git('ls-tree','HEAD','--',file).toString().trimEnd(),'100644 blob '+planChange[1]+'\t'+file);
    const current=git('cat-file','blob',planChange[1]);
-   if(!bytes.equals(current))assert(checkout&&bytes.equals(Buffer.from(current.toString().replace(/\r?\n/g,'\r\n'))),'Raw IQC plan route differs');
+   if(!bytes.equals(current))assert(checkout&&bytes.equals(Buffer.from(current.toString().replace(/\r?\n/g,'\r\n'))),'Raw routine document route differs');
    bytes=git('show',planBase+':'+file);
  }
  if(Object.hasOwn(recovery,file)&&recovery[file][0]){
