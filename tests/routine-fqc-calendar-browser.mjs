@@ -79,14 +79,29 @@ export async function runRoutineFqcCalendarBrowser() {
     async function open(actor, viewport) {
       const context = await browser.newContext({serviceWorkers:'block',viewport});
       await context.addCookies([{name:'process_demo',value:cookie(actor),url:origin,httpOnly:true,sameSite:'Lax'}]);
+      const registered = new Map();
       await context.route('**/*',route=>{
         const req = route.request(), url = new URL(req.url()), method = req.method();
         if (url.origin !== origin) return route.abort();
         if (method === 'GET' || method === 'HEAD') return route.continue();
+        if (method==='POST' && url.pathname==='/api/routine-plan-intent' && actor==='frank') {
+          const body=req.postDataJSON(), scope=url.searchParams.get('scope'), id=url.searchParams.get('id');
+          if (url.searchParams.size===2 && ['fqc','iqc'].includes(scope) && id?.startsWith('plan-'+scope+'-') &&
+              req.headers()['x-process-expected-actor']===actor && body?.action==='register' &&
+              body.command?.action==='create-plan' && body.command.operationId===id && !registered.has(id)) {
+            registered.set(id,body.command);
+            (scope==='iqc'?postedIqc:posted).push({actor,command:'register-plan'});
+            return route.continue();
+          }
+        }
         const isIqc = url.pathname===iqcEndpoint;
         const body = method==='POST' && (isIqc||url.pathname===endpoint) ? req.postDataJSON() : null;
         const command = body?.action==='draft' ? (isIqc ? body.draft : body.command)?.action : body?.action;
         if (writers.has(actor) && allowed.has(command)) {
+          if (command==='create-plan') {
+            assert.deepEqual(body,registered.get(body.operationId),'dispatch matches this context’s registered plan');
+            registered.delete(body.operationId);
+          }
           (isIqc ? postedIqc : posted).push({actor,command});
           return route.continue();
         }
@@ -358,7 +373,7 @@ export async function runRoutineFqcCalendarBrowser() {
           [['0001',2,'pcs','pass'],['0002',3,'pcs','pass']]);
         assert.equal(finalIqc.cases.length,0);
         assert.deepEqual(await read(),fqcBefore,'IQC mutations do not change FQC control');
-        assert.deepEqual(postedIqc.map(item=>item.command),['configure','create-plan','save','submit','approve','create-report','save','submit','approve']);
+        assert.deepEqual(postedIqc.map(item=>item.command),['configure','register-plan','create-plan','save','submit','approve','create-report','save','submit','approve']);
         report.checks.push('IQC browser started schedule and approved a two-batch plan and passing report in the correct routine queue; FQC preserved');
       } finally {
         await iqcReviewer.context.close();
@@ -503,9 +518,9 @@ export async function runRoutineFqcCalendarBrowser() {
     assert.equal(posted.filter(item=>item.command==='generate').length,1+ordinaryEntries);
     assert.deepEqual(posted.filter(item=>item.command!=='generate').map(item=>item.command),[
       'configure','request','save','submit','approve',
-      'create-plan','save','submit','approve','create-report','save','submit','approve',
+      'register-plan','create-plan','save','submit','approve','create-report','save','submit','approve',
       'request','save','submit','approve','create-report','save','submit','approve',
-      'create-plan','save','submit','approve','create-report','save','submit','approve',
+      'register-plan','create-plan','save','submit','approve','create-report','save','submit','approve',
       'request','save','submit','approve',
     ]);
     report.checks.push('disposition closes only its own case after approval without rewriting the original report');

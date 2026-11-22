@@ -148,12 +148,22 @@
     if(result.documentId){v.doc=result.documentId;v.target=null;v.readOnly=false;}
   }
   async function write(v,action,fields={},draftAction=null) {
-    const id=crypto.randomUUID(), doc=docOf(v), actor=v.data.identity.id;
+    const id=(action==='create-plan'?'plan-iqc-':'')+crypto.randomUUID(), doc=docOf(v), actor=v.data.identity.id;
     if(v.pending)throw Error(t('請先查上一筆操作結果。','Kiểm tra biên nhận trước.'));
     const draft=draftAction ? {action:draftAction,operationId:id,clientId:v.client,sequence:++v.sequence,
       generation:doc.flow.generation,expectedRevision:doc.flow.revision,...(draftAction==='submit'?{savedId:doc.flow.saved.id}:
         ['approve','withdraw','return'].includes(draftAction)?{caseId:doc.flow.pendingId}:{}),...fields.draft} : null;
     const payload={...fields,action,operationId:id,expectedRevision:v.data.revision,...(draft?{draft,documentId:doc.id}:{})};
+    if(action==='create-plan'){
+      if(v.busy)return;
+      v.busy=true;
+      try{
+        const info=await call(v,'/api/routine-plan-intent?scope=iqc&id='+encodeURIComponent(id),{method:'POST',
+          headers:{'Content-Type':'application/json','X-Process-Expected-Actor':actor},body:JSON.stringify({action:'register',command:payload})});
+        if(info.status!=='registered'||info.scope!=='iqc'||info.id!==id||info.actorId!==actor||info.expectedRevision!==payload.expectedRevision||
+          v.pending||sessionStorage.getItem(key+actor))throw Error('PLAN_REGISTRATION_UNCONFIRMED');
+      }finally{v.busy=false;}
+    }
     sessionStorage.setItem(key+actor,id);v.pending=id;v.busy=true;
     try{
       const result=await call(v,endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
@@ -165,7 +175,7 @@
       v.draft=v.base=null;
       await load(v);
     }catch(error){
-      if(!v.reloadNeeded&&error.status>=400&&error.status<500){sessionStorage.removeItem(key+actor);v.pending=null;}
+      if(action!=='create-plan'&&!v.reloadNeeded&&error.status>=400&&error.status<500){sessionStorage.removeItem(key+actor);v.pending=null;}
       throw error;
     }finally{v.busy=false;if(current(v))render(v);}
   }
@@ -884,7 +894,7 @@
       <div class="rf-main rf-calendar">
       ${!v.review?workflowNavigation(v):''}
       ${v.error?`<p class="rf-notice error" role="alert">${h(v.error)}</p>`:''}
-      ${v.pending&&!v.busy?`<p class="rf-notice" role="status">${t('操作結果待確認。','Chưa xác định kết quả thao tác.')} ${button('receipt',t('查原操作回執','Kiểm tra biên nhận'))}</p>`:''}
+      ${v.pending&&!v.busy?`<p class="rf-notice" role="status">${t('操作結果待確認。','Chưa xác định kết quả thao tác.')} ${button('receipt',t('查原操作回執','Kiểm tra biên nhận'))} ${v.pending.startsWith('plan-iqc-')?button('recover-plan',t('查證或終止這筆建計畫','Kiểm tra hoặc dừng yêu cầu lập kế hoạch này')):''}</p>`:''}
       <div class="ri-work-context"><p class="rf-subtle">${v.review?`${t('IQC 待審案件','Hồ sơ IQC chờ duyệt')} · ${pending.length}`:
         `${t('有效 IQC 主檔','Nguồn IQC hiện hành')} · V${h(data.catalog.version||'—')} · ${data.catalog.items.length} ${t('個時間檢查規則','quy tắc theo thời gian')}`}</p>
         ${button('refresh',t('重新整理','Tải lại'))}</div>
@@ -1054,6 +1064,35 @@
       if(!window.RoutineFQCUI.navigation.canLeave()||window.ProcessDeliveryNavigation?.pending?.())
         throw Error(t('先處理保留中的工作，再前往版本確認平台。','Hoàn tất công việc đang giữ trước khi mở nền tảng duyệt.'));
       const target=route(true,true);target.searchParams.set('riDocument',id);location.assign(target);return;
+    }
+    if(kind==='recover-plan'){
+      const id=v.pending,actor=v.data.identity.id;
+      if(v.busy||!id?.startsWith('plan-iqc-'))return;
+      const owns=()=>current(v)&&v.data.identity.id===actor&&v.pending===id&&sessionStorage.getItem(key+actor)===id;
+      const verify=async(body)=>{
+        const info=await call(v,'/api/routine-plan-intent?scope=iqc&id='+encodeURIComponent(id),{method:body?'POST':'GET',
+          headers:{'Content-Type':'application/json','X-Process-Expected-Actor':actor},...(body?{body:JSON.stringify(body)}:{})});
+        if(!owns()||info.scope!=='iqc'||info.id!==id||info.actorId!==actor||!Number.isSafeInteger(info.expectedRevision))throw Error('RECOVERY_UNVERIFIED');
+        return info;
+      };
+      v.busy=true;
+      try{
+        let info=await verify();
+        if(info.status==='registered'){
+          if(!confirm(t('終止這筆建計畫？若已完成，將保留原計畫及收據。','Dừng yêu cầu lập kế hoạch này? Nếu đã hoàn tất, kế hoạch và biên nhận sẽ được giữ lại.'))||!owns())return;
+          await verify({action:'retire',expectedRevision:info.expectedRevision,confirm:'RETIRE IQC PLAN'});info=await verify();
+        }
+        const next=await call(v);
+        if(!owns()||next.identity?.id!==actor||!Number.isSafeInteger(next.revision)||next.revision<info.expectedRevision)throw Error('RECOVERY_UNVERIFIED');
+        if(info.status==='committed'){
+          const original=await call(v,endpoint+'?operationId='+encodeURIComponent(id));
+          if(!owns()||!original.result?.documentId||!next.documents.some(d=>d.id===original.result.documentId))throw Error('RECOVERY_UNVERIFIED');
+          confirmWrite(v,original.result);
+        }else if(info.status==='retired'){sessionStorage.removeItem(key+actor);v.pending=null;}
+        else throw Error('RECOVERY_UNVERIFIED');
+        v.data=next;v.reloadNeeded=false;v.error='';
+      }finally{v.busy=false;if(current(v))render(v);}
+      return;
     }
     if(kind==='recover-first-start'){await recoverFirstStart(v);return;}
     if(kind==='receipt'){

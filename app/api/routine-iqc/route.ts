@@ -1,3 +1,4 @@
+import {checkPlanIntent} from '@/lib/routine-plan-intent';
 import {env} from 'cloudflare:workers';
 import {prepareRoutineIqcStart} from '@/lib/state-records';
 import { boundedJson } from '@/lib/site-security.mjs';
@@ -95,6 +96,7 @@ export async function POST(request:Request){
       if(state.values.maintenanceMode==='1')return reply({error:'MAINTENANCE'},503);
       if(command.action==='configure'&&!permissions.settings)return reply({error:'FORBIDDEN'},403);
       const control=readRoutineIqc(state);
+      await checkPlanIntent(control,'iqc',command,actor,state.values);
       const at=new Date().toISOString(),today=companyDate(new Date(at));
       const response=executeRoutineIqc(control,command,state,{at,today,
         actor:{id:actor.id,name:actor.name,admin:actor.role==='admin'},permissions,id:()=>crypto.randomUUID()});
