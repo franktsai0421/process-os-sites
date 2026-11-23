@@ -6,7 +6,11 @@ type Ref={key:string;sha256:string};
 export type AllocationIndex={version:1;errors:Record<string,string>[];items:Record<string,string>[];equipment:{assetCode:string;pieceMark:string}[];categories:{code:string}[]};
 type Envelope={__processRecords:{version:1;values:Record<string,Ref>;legacySources?:Record<string,Ref>;allocations?:Record<string,Ref>};platformUsers?:string;maintenanceMode?:string};
 export type RecordStorage={envelope:Envelope;originalValues:Record<string,string>;known:Set<string>;partial:boolean;models:Map<string,unknown>;allocations:Map<string,AllocationIndex>};
-export type RecordRead={deferHistory?:boolean;caseId?:string|null;saveId?:string|null;versionId?:string|null;keys?:string[];modelKey?:string;
+export type RecordRead={
+ // Optional accounting for expanded bodies during the bounded diagnostic.
+ chargeBodyUse?:(key:string)=>void;
+ onInvalidBodyJson?:()=>void;
+ deferHistory?:boolean;caseId?:string|null;saveId?:string|null;versionId?:string|null;keys?:string[];modelKey?:string;
  // Server-owned, read-only projection after aggregate SHA verification, before
  // body hydration. It is never accepted from HTTP input or a write adapter.
  projectValue?:(key:string,raw:string)=>string|undefined|Promise<string|undefined>;
@@ -192,7 +196,16 @@ async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:Re
  // never skip their validation merely to report lower memory consumption.
  const fullVersionReaders=new Set(['qualityMasterControl','iqcMasterControl','ipqcCMasterControl','ipqcABMasterControl','routineEquipmentControl']);
  let deferVersions=true;
- async function body(ref:Ref){known.add(ref.sha256);if(!cache.has(ref.sha256))cache.set(ref.sha256,JSON.parse(await read(bucket,ref)));return cache.get(ref.sha256);}
+ async function body(ref:Ref){
+  known.add(ref.sha256);
+  if(!cache.has(ref.sha256)){
+   const raw=await read(bucket,ref);
+   try{cache.set(ref.sha256,JSON.parse(raw));}
+   catch(error){options.onInvalidBodyJson?.();throw error;}
+  }
+  options.chargeBodyUse?.(ref.key);
+  return cache.get(ref.sha256);
+ }
  async function visit(v:unknown,parent='',activeIds:string[]=[],inheritedDeferred=false):Promise<unknown>{
   if(reference(v)){if(inheritedDeferred){known.add(v.__immutableBody.sha256);return v;}return body(v.__immutableBody);}
   if(Array.isArray(v)){const next=[];for(const item of v){if(!object(item)){next.push(item);continue;}
