@@ -1,3 +1,7 @@
+## 2026-11-23 — Reset diagnostic-only candidate
+
+Allowlisted server exception stage/category logging; no public response, authority, receipt or persistence changes. Local 233-test and TypeScript verification; root cause still unknown, no hosted retry or deployment. [Evidence and limits](../../docs/acceptance/routine-reset-diagnostics-20261123.md).
+
 ## 2026-11-12 — 整頁單一草稿候選；正式資料未切換
 
 `routineFqcControl` 在明確採用 `pageDraftLayout:'page-v1'` 的資料副本中，使用 `page.baseline`、單一 `page.workflow`、`page.documentState` 與 `page.caseDependencies`，整頁內容由 `RoutineWholePage` 管理；Save／Submit／Withdraw／Return／Approve 經獨立 page API、原收據與 CAS，歷史讀取不改寫舊 document ID／內容。整頁 controller 保留 File／晚回應 owner 與同頁唯讀核准歷史。既有 document layout 保留 main Apply → read → Save → read，相容舊資料及收據；不由 GET 自動切換。

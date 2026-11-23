@@ -1,3 +1,7 @@
+## 2026-11-23 — Reset diagnostic-only candidate
+
+Allowlisted server exception stage/category logging; no public response, authority, receipt or persistence changes. Local 233-test and TypeScript verification; root cause still unknown, no hosted retry or deployment. [Evidence and limits](docs/acceptance/routine-reset-diagnostics-20261123.md).
+
 ## 2026-11-23 — Separate Admin Reset/date candidate (local)
 
 New branch from #141 merge b6d9b3fd: both module viewers see disabled controls unless current application Admin and applicable permissions allow them. Reset retains original-site/DB proof and default OFF; version-2 activation needs no individual owner enrollment. Date locks, independent reset/pending fences and unrelated owner controls remain. [Evidence and next off-main review step](docs/acceptance/routine-admin-reset-20261123.md). No live actions or remote upload.
