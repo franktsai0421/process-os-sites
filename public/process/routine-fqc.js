@@ -734,7 +734,7 @@
     if (d.kind === 'report' && status(d) === 'draft') for (const line of working.lines) {
       const required = requiredForLine(d,line);
       const used = new Set(line.results.flatMap(r => r.samples));
-      for (const row of line.results) if (!row.samples.length && !['unable','dispose'].includes(row.outcome)) {
+      for (const row of line.results) if (!row.samples.length && !['abnormal','unable','dispose'].includes(row.outcome)) {
         const original = required.find(code => !used.has(code));
         if (original) { row.samples = [original]; used.add(original); }
       }

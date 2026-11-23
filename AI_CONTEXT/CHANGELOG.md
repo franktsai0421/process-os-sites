@@ -1,3 +1,7 @@
+## FQC abnormal retest drafts
+
+Selecting abnormal handling on a calendar retest leaves the current measured-sample list empty across repaint and Save. The original failed sample and its report remain available through case history.
+
 ## FQC Reset record storage
 
 Canonical records-v1 FQC Reset reads the FQC control and its authorization dependencies, then replaces its single manifest reference with the existing global revision and database proof. Missing referenced FQC content blocks the write. Unrelated record bodies retain their references without being fetched; this operation does not validate their contents. Supported legacy containers retain full decoding. IQC storage and the optional read probe are unchanged.
