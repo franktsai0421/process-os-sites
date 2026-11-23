@@ -1,3 +1,7 @@
+## 2026-11-23 — Reset diagnostic-only candidate
+
+Allowlisted server exception stage/category logging; no public response, authority, receipt or persistence changes. Local 233-test and TypeScript verification; root cause still unknown, no hosted retry or deployment. [Evidence and limits](../docs/acceptance/routine-reset-diagnostics-20261123.md).
+
 ## 2026-11-23 — Local Admin Reset and start-date access
 
 Separate FQC/IQC Reset and date controls stay visible to module viewers and disabled for non-Admins in both languages. Server checks current platform Admin plus module permissions; default-OFF Reset retains exact Site/DB protection without individual owner enrollment for explicit version-2 activation. Date locks and unrelated owner-only operations remain. [Tests, limits and review path](../docs/acceptance/routine-admin-reset-20261123.md). No live changes.
