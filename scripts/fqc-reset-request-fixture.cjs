@@ -1,0 +1,9 @@
+const fixture=require('./fqc-apply-fixture.cjs'),a=require('./routine-reset-authority-fixture.cjs');
+module.exports=async function setup(t,options){
+ const f=await fixture(options);t.after(()=>f.close());
+ await f.mutate(v=>{const u=JSON.parse(v.platformUsers)[0];u.authMode='platform';u.accessOverrides={...u.accessOverrides,'routine.view':true,'routine.edit':true,'routine.settings':true,'routine.delete':true,'iqc.view':true};v.platformUsers=JSON.stringify(['frank','admin-two','staff','disabled'].map(id=>({...u,id,name:id==='staff'?'ADMIN FRANK':id,role:id==='staff'?'staff':'admin',enabled:id!=='disabled'})));const q=JSON.parse(v.qualityMasterControl);q.libraries.fqc.versions[0].createdAt=q.libraries.fqc.versions[0].updatedAt='2026-01-01T00:00:00+07:00';v.qualityMasterControl=JSON.stringify(q);v.routineFqcEnabled='1';v.routineFqcControl=JSON.stringify(f.load('lib/routine-fqc.ts').emptyRoutine());v.routineIqcControl=JSON.stringify(f.load('lib/routine-iqc-workflow.ts').readRoutineIqc({revision:0,values:{}}));});
+ const {siteOwnerIdSha256,...old}=JSON.parse(a.enable(f));const config={...old,version:2,authorization:'application-admin'};f.env.PROCESS_ROUTINE_RESET_ACTIVATION=JSON.stringify(config);
+ const cookie=async(id,demo=false)=>f.core.sessionCookie(new Request(a.origin),await f.core.demoSession(new Request(a.origin),id,demo,1)).split(';')[0];
+ async function call(scope,id,body,overrides={}){const method=body?'POST':'GET';const r=await f.load('app/api/routine-reset/route.ts')[method](new Request((overrides.urlOrigin||a.origin)+'/api/routine-reset?scope='+scope+(body?'':'&capability=1'),{method,headers:{origin:a.origin,'content-type':'application/json',cookie:id?await cookie(id):'',...overrides.headers},...(body?{body:JSON.stringify(body)}:{})}));return {status:r.status,body:await r.json()};}
+ return {f,config,cookie,call};
+};

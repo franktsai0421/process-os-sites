@@ -1,8 +1,10 @@
+import {env} from 'cloudflare:workers';
+import {prepareFirstStartRetirement} from '@/lib/state-records';
 import {resetDiagnostic,type ResetStage} from '@/lib/routine-reset-diagnostics';
 import {resetAuthority,resetDbProofSQL} from '@/lib/routine-reset-authority';
 import {findResetEntry,makeResetLedger,validResetPending} from '@/lib/routine-reset-ledger';
 import {DraftConflict} from '@/lib/shared-draft';
-import {can, verifiedSession, encodeValues, identity, readState, responseHeaders, stateRevisionIsCurrent} from '@/lib/process-state';
+import {can, verifiedSession, encodeValues, identity, readSharedStateRow, readState, responseHeaders, stateRevisionIsCurrent} from '@/lib/process-state';
 import {emptyRoutine, parseRoutine, RF_KEY} from '@/lib/routine-fqc';
 import {parseRoutinePage, ROUTINE_PAGE_SCOPE, type RoutineWholePage} from '@/lib/routine-fqc-page';
 import {createSharedDraft, stableDraftJSON} from '@/lib/shared-draft';
@@ -112,6 +114,35 @@ export async function GET(request:Request){
   }catch(error){resetDiagnostic('read',stage,error);return reply({error:'RECEIPT_UNAVAILABLE'},503);}
 }
 
+// Only the immutable-record envelope has a single-key encoder. Legacy formats
+// retain their full writer. Never fall back after a record integrity failure.
+async function readResetInput(scope:'fqc'|'iqc'){
+  if(scope==='fqc'){
+    const row=await readSharedStateRow();
+    if(!row)throw Error('Missing shared state');
+    const envelope=JSON.parse(row.values);
+    if(Object.hasOwn(envelope,'__processRecords')){
+      const selected=await prepareFirstStartRetirement(env.STATE_ARCHIVE,row.values,'fqc');
+      if(!selected)throw Error('Unsupported reset manifest');
+      return {state:{revision:row.revision,values:selected.values},encode:selected.encode};
+    }
+    const wrapper=Object.hasOwn(envelope,'__processChunks')?'__processChunks':Object.hasOwn(envelope,'__processR2')?'__processR2':null;
+    if(wrapper?Object.keys(envelope).some(key=>![wrapper,'platformUsers','maintenanceMode'].includes(key)):
+       Object.entries(envelope).some(([key,value])=>key.startsWith('__')||typeof value!=='string'))
+      throw Error('Unsupported reset envelope');
+    if(wrapper){
+      const ref=envelope[wrapper];
+      const fields=wrapper==='__processChunks'?['key','sha256','version']:['key','sha256'];
+      if(!ref||Object.keys(ref).sort().join(',')!==fields.join(','))throw Error('Unsupported reset reference');
+    }
+    const state=await readState();
+    if(state.revision!==row.revision)throw new DraftConflict('REVISION_CONFLICT',409);
+    return {state,encode:(control:string)=>encodeValues({...state.values,[RF_KEY]:control},state)};
+  }
+  const state=await readState();
+  return {state,encode:(control:string)=>encodeValues({...state.values,[RI_KEY]:control},state)};
+}
+
 export async function POST(request:Request){
   const query=new URL(request.url).searchParams,scope=query.get('scope');
   if(query.size!==1 || scope!=='fqc'&&scope!=='iqc')return reply({error:'INVALID_SCOPE'},422);
@@ -128,13 +159,18 @@ export async function POST(request:Request){
      !Number.isSafeInteger(body.pendingCount) || body.pendingCount<0)return reply({error:'INVALID_CONFIRMATION'},422);
   let stage:ResetStage='read_state';
   try {
-    const state=await readState();
+    const {state,encode}=await readResetInput(scope);
     stage='authorize';
     const actor=await ownerFor(request,state,scope,authority.adminActivation);
     if(!actor||(!authority.adminActivation&&actor.id!==authority.ownerId))return reply({error:'FORBIDDEN'},403);
     const key=scope==='fqc'?RF_KEY:RI_KEY;
     stage='receipt';
-    const raw=JSON.parse(state.values[key]||'{}');
+    // A fully hydrated target cannot contain a storage placeholder. Reject
+    // malformed and nested unresolved references before consuming any receipt.
+    const raw=JSON.parse(state.values[key]||'{}',scope==='fqc'?(field,value)=>{
+      if(field==='__immutableBody'||field==='__liveContent')throw Error('Unresolved FQC content');
+      return value;
+    }:undefined);
     const input=JSON.stringify([actor.id,scope,body.id,body.revision,body.pendingCount,body.reason,...(body.pending!==undefined?[body.pending]:[])]);
     const fingerprint=await sha256(input);
     const previous=findResetEntry(raw,body.id)||(raw.resetReceipt?.id===body.id?raw.resetReceipt:null);
@@ -154,7 +190,7 @@ export async function POST(request:Request){
     const resetLedger=await makeResetLedger(raw,{id:body.id,scope,actorId:actor.id,fingerprint,revision,generationRevision:control.revision+1,at:new Date().toISOString(),reason:body.reason},body.pending||[]);
     const replacement={...next,resetLedger,revision:control.revision+1,resetGenerationRevision:control.revision+1,resetReceipt:{id:body.id,actorId:actor.id,fingerprint,revision}};
     stage='encode_state';
-    const encoded=await encodeValues({...state.values,[key]:JSON.stringify(replacement)},state);
+    const encoded=await encode(JSON.stringify(replacement));
     stage='recheck';
     const currentActor=await identity(request,state);
     if(!await ownerFor(request,state,scope,authority.adminActivation)||currentActor?.id!==actor.id||(await resetAuthority(request,scope))?.raw!==authority.raw)return reply({error:'FORBIDDEN'},403);

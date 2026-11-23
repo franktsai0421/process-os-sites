@@ -1,3 +1,7 @@
+## FQC Reset record storage
+
+Canonical records-v1 FQC Reset reads the FQC control and its authorization dependencies, then replaces its single manifest reference with the existing global revision and database proof. Missing referenced FQC content blocks the write. Unrelated record bodies retain their references without being fetched; this operation does not validate their contents. Supported legacy containers retain full decoding. IQC storage and the optional read probe are unchanged.
+
 ## 2026-11-23 — Operator diagnostic for the FQC Reset state read
 
 [Temporary Admin access, read limits and fixed diagnostic results](../docs/acceptance/fqc-reset-read-probe.md).
