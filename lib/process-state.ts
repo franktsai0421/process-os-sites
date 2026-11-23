@@ -42,7 +42,7 @@ async function signedSession(request: Request, report?:AuthDiagnostic): Promise<
     return { id: value.id, sessionType, expires: value.expires,authEpoch:Number.isSafeInteger(value.authEpoch)?value.authEpoch:0 };
   } catch {authDiagnostic(report,'SESSION_VALIDATION_FAILED');return null; }
 }
-async function verifiedSession(request: Request, report?:AuthDiagnostic): Promise<SessionIdentity | null> {
+export async function verifiedSession(request: Request, report?:AuthDiagnostic): Promise<SessionIdentity | null> {
   try {
     const session = await signedSession(request,report);
     if (!session) return null;
@@ -136,13 +136,16 @@ export async function decodeValues(raw:string):Promise<Record<string,string>> {
   return values;
 }
 const normalizeUserId = (value: unknown) => legacyJsonValueText((value || '') as JsonValue).trim().toLowerCase();
+export async function readSharedStateRow() {
+  // Schema is owned by the checked-in Drizzle migrations, never by public reads.
+  return env.DB.prepare(
+    'SELECT revision,"values" FROM shared_state WHERE id=1',
+  ).first<{ revision: number; values: string }>();
+}
 export async function readState(options:RecordRead={}): Promise<State> {
   if(options.keys?.includes('platformUsers')&&!options.keys.includes('processAccessControl'))options={...options,keys:[...options.keys,'processAccessControl']};
   const deliver=(state:State):State=>options.effectiveOnly?{...state,values:effectiveDeliveryValues(state.values),deliveryOnly:true}:state;
-  // Schema is owned by the checked-in Drizzle migrations, never by public reads.
-  const row = await env.DB.prepare(
-    'SELECT revision,"values" FROM shared_state WHERE id=1',
-  ).first<{ revision: number; values: string }>();
+  const row = await readSharedStateRow();
   if (!row) throw Error('Current state is missing; explicit initialization is required');
   const stored=JSON.parse(row.values);
   if(stored.__processRecords){pinIdentityReadToken(options.identityReadToken,row.revision,row.values,env.STATE_ARCHIVE);return deliver({revision:row.revision,...await decodeRecordValues(env.STATE_ARCHIVE,stored,options)});}

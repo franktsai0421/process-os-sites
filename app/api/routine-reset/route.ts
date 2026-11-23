@@ -2,7 +2,7 @@ import {resetDiagnostic,type ResetStage} from '@/lib/routine-reset-diagnostics';
 import {resetAuthority,resetDbProofSQL} from '@/lib/routine-reset-authority';
 import {findResetEntry,makeResetLedger,validResetPending} from '@/lib/routine-reset-ledger';
 import {DraftConflict} from '@/lib/shared-draft';
-import {can, encodeValues, identity, readState, responseHeaders, stateRevisionIsCurrent} from '@/lib/process-state';
+import {can, verifiedSession, encodeValues, identity, readState, responseHeaders, stateRevisionIsCurrent} from '@/lib/process-state';
 import {emptyRoutine, parseRoutine, RF_KEY} from '@/lib/routine-fqc';
 import {parseRoutinePage, ROUTINE_PAGE_SCOPE, type RoutineWholePage} from '@/lib/routine-fqc-page';
 import {createSharedDraft, stableDraftJSON} from '@/lib/shared-draft';
@@ -10,6 +10,8 @@ import {RI_KEY} from '@/lib/routine-iqc';
 import {readRoutineIqc} from '@/lib/routine-iqc-workflow';
 import {isRoutineScheduleOwner,isRoutineAdmin} from '@/lib/routine-schedule-owner';
 import {boundedJson} from '@/lib/site-security.mjs';
+
+import {createResetReadProbe,probeDeadline} from '@/lib/routine-reset-read-probe';
 
 const reply=(body:unknown,status:number)=>Response.json(body,{status,headers:responseHeaders});
 
@@ -50,9 +52,37 @@ async function ownerFor(request:Request,state:Awaited<ReturnType<typeof readStat
   return actor;
 }
 
+// Only an explicit top-level address-bar navigation can start the operator probe.
+// One full read per configured window per Worker isolate. No durable counters.
+let lastProbeWindow=0;
+async function diagnoseFqcRead(request:Request){
+  const denied=()=>reply({error:'DIAGNOSTIC_UNAVAILABLE'},403);
+  const h=request.headers;
+  if(request.method!=='GET'||h.get('Sec-Fetch-Site')!=='none'||h.get('Sec-Fetch-Mode')!=='navigate'||
+     h.get('Sec-Fetch-Dest')!=='document'||h.get('Sec-Fetch-User')!=='?1'||h.has('Purpose')||h.has('Sec-Purpose'))return denied();
+  try{
+    const authority=await resetAuthority(request,'fqc');
+    if(!authority?.adminActivation)return denied();
+    const windowEnd=probeDeadline(authority.config.expiresAt);
+    if(!windowEnd||(await verifiedSession(request))?.sessionType!=='platform')return denied();
+    const probe=createResetReadProbe(windowEnd);
+    const state=await probe.authorizeState();
+    const actor=await ownerFor(request,state,'fqc',true);
+    if(!actor||probeDeadline(authority.config.expiresAt)!==windowEnd)return denied();
+    if(lastProbeWindow===windowEnd)return reply({error:'DIAGNOSTIC_ALREADY_RUN'},409);
+    lastProbeWindow=windowEnd;
+    const result=await probe.run(state.revision);
+    try{console.info(JSON.stringify({event:'routine_reset_read_probe',...result}));}catch{/* logging is optional */}
+    if(!await stateRevisionIsCurrent(state)||(await resetAuthority(request,'fqc'))?.raw!==authority.raw||
+       (await ownerFor(request,state,'fqc',true))?.id!==actor.id||probeDeadline(authority.config.expiresAt)!==windowEnd)return denied();
+    return reply(result,200);
+  }catch{return denied();}
+}
+
 // Read-only lookup of the most recent reset. Missing evidence leaves the operation unresolved.
 export async function GET(request:Request){
   const query=new URL(request.url).searchParams,scope=query.get('scope'),id=query.get('operationId');
+  if(query.size===2&&scope==='fqc'&&query.get('diagnostic')==='read-state')return diagnoseFqcRead(request);
   const capability=query.size===2 && query.get('capability')==='1';
   if(query.size!==2 || scope!=='fqc'&&scope!=='iqc' || !capability&&(!id||!/^[\w-]{8,100}$/.test(id)))
     return reply({error:'INVALID_SELECTOR'},422);

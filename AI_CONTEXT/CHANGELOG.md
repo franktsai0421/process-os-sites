@@ -1,3 +1,7 @@
+## 2026-11-23 — Operator diagnostic for the FQC Reset state read
+
+[Temporary Admin access, read limits and fixed diagnostic results](../docs/acceptance/fqc-reset-read-probe.md).
+
 ## 2026-11-23 — Reset diagnostic-only candidate
 
 Allowlisted server exception stage/category logging; no public response, authority, receipt or persistence changes. Local 233-test and TypeScript verification; root cause still unknown, no hosted retry or deployment. [Evidence and limits](../docs/acceptance/routine-reset-diagnostics-20261123.md).
