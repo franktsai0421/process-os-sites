@@ -1,3 +1,7 @@
+## 2026-11-23 — Admin authorization, unchanged reset storage
+
+Optional native activation version 2 selects application-Admin authorization with the same exact Site/DB lineage and expiry. It is not a stored business record. Existing module reset generations, audit/tombstones and actor-bound receipts are unchanged; no new SQL, JSON business fields or migration. [Contract](../docs/acceptance/routine-admin-reset-20261123.md).
+
 ## 2026-11-23 — Rebuilt scoped owner Reset
 
 Optional protected routineResetEnrollments JSON key stores bounded one-use pending/confirmed hash proofs. Public projection omits it and generic writers cannot mutate it. Per-module resetGenerationRevision/resetLedger remain independent. No SQL/schema/binding migration. [Evidence](../docs/acceptance/routine-reset-local-20261123.md).

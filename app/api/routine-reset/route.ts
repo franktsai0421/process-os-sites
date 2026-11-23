@@ -7,7 +7,7 @@ import {parseRoutinePage, ROUTINE_PAGE_SCOPE, type RoutineWholePage} from '@/lib
 import {createSharedDraft, stableDraftJSON} from '@/lib/shared-draft';
 import {RI_KEY} from '@/lib/routine-iqc';
 import {readRoutineIqc} from '@/lib/routine-iqc-workflow';
-import {isRoutineScheduleOwner} from '@/lib/routine-schedule-owner';
+import {isRoutineScheduleOwner,isRoutineAdmin} from '@/lib/routine-schedule-owner';
 import {boundedJson} from '@/lib/site-security.mjs';
 
 const reply=(body:unknown,status:number)=>Response.json(body,{status,headers:responseHeaders});
@@ -40,9 +40,9 @@ async function emptyRoutinePage(){
   return parseRoutinePage(root);
 }
 
-async function ownerFor(request:Request,state:Awaited<ReturnType<typeof readState>>,scope:string){
+async function ownerFor(request:Request,state:Awaited<ReturnType<typeof readState>>,scope:string,adminActivation=false){
   const actor=await identity(request,state);
-  if(!actor || !isRoutineScheduleOwner(actor) || state.values.maintenanceMode==='1' ||
+  if(!actor || !isRoutineAdmin(actor) || (!adminActivation&&!isRoutineScheduleOwner(actor)) || state.values.maintenanceMode==='1' ||
      state.values.routineFqcEnabled!=='1')return null;
   for(const permission of ['routine.view','routine.edit','routine.settings','routine.delete',...(scope==='iqc'?['iqc.view']:[])])
     if(!await can(request,state,permission))return null;
@@ -60,10 +60,10 @@ export async function GET(request:Request){
   try{
     const key=scope==='fqc'?RF_KEY:RI_KEY;
     const state=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','routineFqcEnabled','maintenanceMode',key]});
-    const actor=await ownerFor(request,state,scope);
-    if(!actor||actor.id!==authority.ownerId)return reply({error:'FORBIDDEN'},403);
+    const actor=await ownerFor(request,state,scope,authority.adminActivation);
+    if(!actor||(!authority.adminActivation&&actor.id!==authority.ownerId))return reply({error:'FORBIDDEN'},403);
     const raw=JSON.parse(state.values[key]||'{}'),receipt=findResetEntry(raw,id||'')||raw.resetReceipt;
-    if(!await stateRevisionIsCurrent(state)||(await resetAuthority(request,scope))?.raw!==authority.raw||!isRoutineScheduleOwner(await identity(request,state)))
+    if(!await stateRevisionIsCurrent(state)||(await resetAuthority(request,scope))?.raw!==authority.raw||!await ownerFor(request,state,scope,authority.adminActivation))
       return reply({error:'RECHECK_REQUIRED'},409);
     if(capability){
       const target=resetTarget(state,scope);
@@ -91,8 +91,8 @@ export async function POST(request:Request){
      !/^[\w-]{8,100}$/.test(body.id) || !Number.isSafeInteger(body.revision) || body.revision<0 ||
      !Number.isSafeInteger(body.pendingCount) || body.pendingCount<0)return reply({error:'INVALID_CONFIRMATION'},422);
   try {
-    const state=await readState(),actor=await ownerFor(request,state,scope);
-    if(!actor||actor.id!==authority.ownerId)return reply({error:'FORBIDDEN'},403);
+    const state=await readState(),actor=await ownerFor(request,state,scope,authority.adminActivation);
+    if(!actor||(!authority.adminActivation&&actor.id!==authority.ownerId))return reply({error:'FORBIDDEN'},403);
     const key=scope==='fqc'?RF_KEY:RI_KEY;
     const raw=JSON.parse(state.values[key]||'{}');
     const input=JSON.stringify([actor.id,scope,body.id,body.revision,body.pendingCount,body.reason,...(body.pending!==undefined?[body.pending]:[])]);
@@ -113,7 +113,7 @@ export async function POST(request:Request){
     const replacement={...next,resetLedger,revision:control.revision+1,resetGenerationRevision:control.revision+1,resetReceipt:{id:body.id,actorId:actor.id,fingerprint,revision}};
     const encoded=await encodeValues({...state.values,[key]:JSON.stringify(replacement)},state);
     const currentActor=await identity(request,state);
-    if(!isRoutineScheduleOwner(currentActor)||currentActor?.id!==authority.ownerId||(await resetAuthority(request,scope))?.raw!==authority.raw)return reply({error:'FORBIDDEN'},403);
+    if(!await ownerFor(request,state,scope,authority.adminActivation)||currentActor?.id!==actor.id||(await resetAuthority(request,scope))?.raw!==authority.raw)return reply({error:'FORBIDDEN'},403);
     const result=await database.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=? AND EXISTS ('+resetDbProofSQL+')')
       .bind(revision,encoded,new Date().toISOString(),state.revision,...authority.guardArgs).run();
     return result.meta.changes===1?reply({revision,replayed:false},200):reply({error:'REVISION_CONFLICT'},409);

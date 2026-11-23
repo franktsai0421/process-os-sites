@@ -113,7 +113,8 @@
     const startAllowed=data.canConfigureStartDate&&!mine.documents.length&&!flow().pendingId;
     const startEntry=node('button',t('設定起始日','Đặt ngày bắt đầu'),settings);
     startEntry.type='button';startEntry.className='rf-btn';startEntry.disabled=!startAllowed||!resetSafe();
-    if(!startAllowed)node('p',t('目前無法變更。設定需要專屬帳號與權限，且不能已有文件、已分派工作或待審案件。','Không thể thay đổi. Cần đúng tài khoản và quyền, chưa có hồ sơ, công việc đã phân công hoặc yêu cầu chờ duyệt.'),settings);
+    if(actor.role!=='admin')node('p',t('僅 Admin 可操作','Chỉ Admin được sử dụng'),settings);
+    if(!startAllowed)node('p',t('目前無法變更。設定需要 Admin 與模組權限，且不能已有文件、已分派工作或待審案件。','Không thể thay đổi. Cần Admin và quyền mô-đun, chưa có hồ sơ, công việc đã phân công hoặc yêu cầu chờ duyệt.'),settings);
     startEntry.onclick=()=>{
      if(!startAllowed||!resetSafe())return;
      const observed={generation:flow().generation,revision:flow().revision,stateRevision:data.revision};

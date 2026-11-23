@@ -153,17 +153,21 @@
       if(busy||!current())return;
       const attempt=++serial;
       box.replaceChildren();
+      const unavailable=button(token,()=>{});unavailable.disabled=true;
+      const hint=add('small',t('僅 Admin 可操作；Reset 尚未啟用或缺少權限','Chỉ Admin được sử dụng; RESET chưa bật hoặc thiếu quyền'));
       const pendingReset=sessionStorage.getItem(key);
       if(pendingReset){recovery(pendingReset);return;}
       try{
         const cap=await json(url+'&capability=1');
+        if(current()&&attempt===serial&&cap.available!==true)hint.textContent=t('Reset 尚未啟用；僅 Admin 可操作','RESET chưa được bật; chỉ Admin được sử dụng');
         if(!current()||attempt!==serial||!panel.open||cap.available!==true||cap.actorId!==actor||cap.scope!==scope||
           !Number.isSafeInteger(cap.revision)||!Number.isSafeInteger(cap.pendingCount))return;
         if(pending)cap.pending=await pending.capture();
         if(!current()||attempt!==serial)return;
+        unavailable.remove();hint.remove();
         const control=button(token+' · '+t('不可恢復','Không thể hoàn tác'),()=>confirmation(cap,control));
         control.disabled=!safe();
-      }catch{ /* The destructive control stays unavailable. */ }
+      }catch{hint.textContent=t('僅 Admin 可操作；需要模組權限','Chỉ Admin được sử dụng; cần quyền mô-đun');}
     }
     panel.addEventListener('toggle',()=>{if(panel.open)void show();else{serial++;box.replaceChildren();}});
     if(panel.open)return show();

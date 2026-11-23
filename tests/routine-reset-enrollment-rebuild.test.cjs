@@ -70,3 +70,7 @@ test('unknown request origin and client identity injection are rejected',async t
  const s=await setup(t),before=s.saved(),body={action:'begin',confirm:'BEGIN OWNER ENROLLMENT'};
  assert.equal((await s.call(body,{origin:'https://production.invalid'})).status,403);assert.equal((await s.call({...body,siteOwnerId:'frank'})).status,422);assert.deepEqual(s.saved(),before);
 });
+
+test('challenge uses one creation timestamp across millisecond boundaries',async t=>{
+ let now=Date.now();t.mock.method(Date,'now',()=>now++);const s=await setup(t),r=await s.begin();assert.equal(r.status,200);const ledger=JSON.parse((await s.f.core.readState()).values[KEY]);assert.equal(ledger.entries[0].expiresAt-ledger.entries[0].createdAt,300000);assert.equal((await s.confirm(r.value.token)).status,200);
+});

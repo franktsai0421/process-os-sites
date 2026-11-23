@@ -4,3 +4,8 @@ import type { identity } from './process-state';
 export function isRoutineScheduleOwner(actor: Awaited<ReturnType<typeof identity>>) {
   return actor?.primary === true && actor.sessionType === 'platform';
 }
+
+// Current stored role plus a verified application session; never a client claim.
+export function isRoutineAdmin(actor: Awaited<ReturnType<typeof identity>>) {
+  return actor?.role === 'admin' && actor.sessionType === 'platform';
+}

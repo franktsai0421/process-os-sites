@@ -28,22 +28,24 @@ export async function resetContext(request:Request,kind:'activation'|'enrollment
   const e=env as typeof env & {PROCESS_ROUTINE_RESET_ACTIVATION?:string;PROCESS_ROUTINE_RESET_ENROLLMENT?:string;PROCESS_PROGRAM_COMMIT?:string};
   const raw=kind==='activation'?e.PROCESS_ROUTINE_RESET_ACTIVATION:e.PROCESS_ROUTINE_RESET_ENROLLMENT;
   if(typeof raw!=='string'||raw.length>4096)return null;const c=JSON.parse(raw),u=new URL(request.url);
-  const extra=kind==='enrollment'?['enrollmentId','secret']:['scopes',Object.hasOwn(c,'enrollmentId')?'enrollmentId':'siteOwnerIdSha256'];
-  if(!c||Object.keys(c).sort().join()!==['version','testOnly','projectId','origin','ownerId','dbTarget','transferId','bootstrapAttemptId','programCommit','expiresAt',...extra].sort().join()||c.version!==1||c.testOnly!==true||hosting.project_id!==RESET_PROJECT||c.projectId!==RESET_PROJECT||c.origin!==RESET_ORIGIN||u.origin!==RESET_ORIGIN||u.pathname!==(kind==='activation'?'/api/routine-reset':'/api/routine-reset-enrollment')||typeof c.ownerId!=='string'||!c.ownerId||c.ownerId.length>100||!hash(c.dbTarget)||typeof c.transferId!=='string'||!c.transferId||c.transferId.length>200||typeof c.bootstrapAttemptId!=='string'||!c.bootstrapAttemptId||c.bootstrapAttemptId.length>200||typeof c.programCommit!=='string'||!/^[a-f0-9]{40}$/.test(c.programCommit)||/^0+$/.test(c.programCommit)||c.programCommit!==e.PROCESS_PROGRAM_COMMIT||typeof c.expiresAt!=='string'||!Number.isFinite(Date.parse(c.expiresAt))||Date.parse(c.expiresAt)<=Date.now())return null;
+  const adminActivation=kind==='activation'&&c.version===2&&c.authorization==='application-admin';
+  const extra=adminActivation?['scopes','authorization']:kind==='enrollment'?['enrollmentId','secret']:['scopes',Object.hasOwn(c,'enrollmentId')?'enrollmentId':'siteOwnerIdSha256'];
+  if(!c||Object.keys(c).sort().join()!==['version','testOnly','projectId','origin','ownerId','dbTarget','transferId','bootstrapAttemptId','programCommit','expiresAt',...extra].sort().join()||(!adminActivation&&c.version!==1)||c.testOnly!==true||hosting.project_id!==RESET_PROJECT||c.projectId!==RESET_PROJECT||c.origin!==RESET_ORIGIN||u.origin!==RESET_ORIGIN||u.pathname!==(kind==='activation'?'/api/routine-reset':'/api/routine-reset-enrollment')||typeof c.ownerId!=='string'||!c.ownerId||c.ownerId.length>100||!hash(c.dbTarget)||typeof c.transferId!=='string'||!c.transferId||c.transferId.length>200||typeof c.bootstrapAttemptId!=='string'||!c.bootstrapAttemptId||c.bootstrapAttemptId.length>200||typeof c.programCommit!=='string'||!/^[a-f0-9]{40}$/.test(c.programCommit)||/^0+$/.test(c.programCommit)||c.programCommit!==e.PROCESS_PROGRAM_COMMIT||typeof c.expiresAt!=='string'||!Number.isFinite(Date.parse(c.expiresAt))||Date.parse(c.expiresAt)<=Date.now())return null;
   const origin=request.headers.get('Origin');if(request.headers.get('Sec-Fetch-Site')==='cross-site'||origin!==null&&origin!==RESET_ORIGIN||request.method==='POST'&&(origin!==RESET_ORIGIN||request.headers.get('Content-Type')?.split(';')[0]!=='application/json'))return null;
-  const native=request.headers.get('oai-authenticated-user-id');if(!native&&!(kind==='enrollment'&&request.method==='GET')||native&&(native.length>512||native.trim()!==native))return null;
+  const native=request.headers.get('oai-authenticated-user-id');if(!native&&!adminActivation&&!(kind==='enrollment'&&request.method==='GET')||native&&(native.length>512||native.trim()!==native))return null;
   if(kind==='enrollment'&&(!hash(c.secret)||/^0+$/.test(c.secret)))return null;
   if(Object.hasOwn(c,'enrollmentId')&&(typeof c.enrollmentId!=='string'||!/^[-\w]{8,100}$/.test(c.enrollmentId)))return null;
   const guardArgs=[c.dbTarget,c.transferId,c.projectId,c.ownerId,c.bootstrapAttemptId];
   if((await env.DB.prepare(resetDbProofSQL).bind(...guardArgs).first<{ok:number}>())?.ok!==1)return null;
   const contextHash=await digest(JSON.stringify([c.projectId,c.origin,c.ownerId,c.dbTarget,c.transferId,c.bootstrapAttemptId,c.programCommit]));
-  return {raw,config:c,ownerId:c.ownerId,guardArgs,contextHash,siteHash:native?await digest(native):null,database:env.DB};
+  return {raw,adminActivation,config:c,ownerId:c.ownerId,guardArgs,contextHash,siteHash:native?await digest(native):null,database:env.DB};
  }catch{return null;}
 }
 export async function resetAuthority(request:Request,scope:'fqc'|'iqc'){
  try{
   const a=await resetContext(request,'activation');if(!a)return null;const c=a.config;
   if(!c.scopes||Object.keys(c.scopes).sort().join()!=='fqc,iqc'||typeof c.scopes.fqc!=='boolean'||typeof c.scopes.iqc!=='boolean'||!c.scopes[scope])return null;
+  if(a.adminActivation)return a; // Route must still verify the current application Admin and permissions.
   let expected=c.siteOwnerIdSha256;
   if(c.enrollmentId){const state=await readState({keys:[ENROLLMENTS]}),row=enrollmentLedger(state.values[ENROLLMENTS]).entries.find(e=>e.id===c.enrollmentId);if(!row||row.status!=='confirmed'||row.ownerId!==a.ownerId||row.contextHash!==a.contextHash)return null;expected=row.siteHash;}
   return hash(expected)&&expected===a.siteHash?a:null;

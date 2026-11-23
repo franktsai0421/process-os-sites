@@ -1,4 +1,4 @@
-import { isRoutineScheduleOwner } from '@/lib/routine-schedule-owner';
+import { isRoutineAdmin } from '@/lib/routine-schedule-owner';
 import { can, identity, readState, type State } from './process-state';
 import { DraftConflict } from './shared-draft';
 export const routineIqcAuthorityKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','routineFqcEnabled'];
@@ -14,6 +14,6 @@ export async function routineIqcAccess(request:Request,state:State,phase?:{actor
   return {actor,permissions:{view:true,edit,save,submit,withdraw,
     approve:review&&approve&&await check('approval.approve'),
     return:review&&returned&&await check('approval.return'),
-    create,delete:remove,settings:settings&&isRoutineScheduleOwner(actor),history:true}};
+    create,delete:remove,settings:settings&&isRoutineAdmin(actor),history:true}};
 }
 export const readRoutineIqcAuthority=()=>readState({keys:routineIqcAuthorityKeys});
