@@ -1,0 +1,48 @@
+name: Scoped Reset review (head only)
+on:
+  pull_request:
+    branches: ['review/v68-reset-base-20261123']
+permissions:
+  contents: read
+concurrency:
+  group: scoped-reset-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  isolated-reset:
+    if: github.repository == 'franktsai0421/process-os-sites' && github.event.pull_request.number == 141 && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'fix/scoped-reset-rebuild-20261123'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      PROCESS_PROGRAM_COMMIT: ${{ github.event.pull_request.head.sha }}
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify reviewed source and unchanged migration baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          test "$BASE_SHA" = d7288eb0ccc54df4817f50de36e6900cd6615678
+          git merge-base --is-ancestor 21d27f79dcda353638dc94e196713206eabe4624 HEAD
+          # Only this workflow may differ from the already reviewed candidate.
+          git diff --exit-code 21d27f79dcda353638dc94e196713206eabe4624 HEAD -- . ':(exclude).github/workflows/scoped-reset-review.yml'
+          # No schema, migration journal, hosting or manifest change is permitted.
+          git diff --exit-code "$BASE_SHA" HEAD -- drizzle drizzle-sites-fresh db .openai SOURCE-PROFILE.json
+          printf "Tested HEAD: %s\nTree: %s\nReview base: %s\n" "$HEAD_SHA" "$(git rev-parse HEAD^{tree})" "$BASE_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: TypeScript
+        run: npx tsc --noEmit --incremental false
+      - name: Isolated Reset, enrollment, pending and period regressions
+        run: node --test tests/routine-reset*.test.cjs tests/routine-reset*.test.mjs tests/routine-startup-isolated-restart.test.cjs tests/routine-iqc-workflow.test.mjs tests/routine-fqc-calendar.test.cjs tests/routine-iqc-workspace.test.mjs tests/routine-fqc-durable-receipt.test.mjs
