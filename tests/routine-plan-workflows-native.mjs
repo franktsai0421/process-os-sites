@@ -4,7 +4,33 @@ import {createHash, randomBytes, randomUUID} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {createRootEntryFixture} from './root-entry-native-fixture.mjs';
 import {seedRoutineCalendarFixture} from './routine-fqc-calendar-browser.mjs';
+import {fixture as editorFixture} from './fixtures/routine-fqc-durable.mjs';
 import {tinyPNG} from './quality-filter-dom-ports.mjs';
+
+// Use the shipped outcome handler and the same draft buffer that Save clones.
+function editAbnormalRetest(state, reportId) {
+  const {api}=editorFixture();
+  api.setData({control:structuredClone(state),permissions:{view:true,edit:true,save:true}});
+  api.s.selected=reportId;
+  const doc=api.getData().control.documents.find(d=>d.id===reportId);
+  const required=doc.flow.working.lines[0].source.products[0].code;
+  const choices=['abnormal','pass','fail'].map(outcome=>({
+    dataset:{outcome},closest:()=>({dataset:{line:'0',result:'0'}})
+  }));
+  api.setRoot({isConnected:true,querySelector:()=>null,
+    querySelectorAll:selector=>selector==='[data-outcome]'?choices:[],addEventListener(){}});
+  api.bind();
+  for(const outcome of ['abnormal','pass','fail','abnormal']){
+    choices.find(button=>button.dataset.outcome===outcome).onclick();
+    const row=api.buffer(doc).lines[0].results[0];
+    assert.equal(row.outcome,outcome);
+    assert.deepEqual(Array.from(row.samples),outcome==='abnormal'?[]:[required]);
+  }
+  const rows=api.buffer(doc).lines[0].results;
+  rows[0].notes='Synthetic abnormal finding';
+  assert.equal(rows[0].value,'');
+  return structuredClone(rows);
+}
 
 async function scenario(outcomes) {
   const secret=randomBytes(32).toString('hex');
@@ -81,11 +107,31 @@ async function scenario(outcomes) {
         }
         const report=(await write('create-report',{documentId:nextPlan})).documentId;
         const content=document(report).flow.working;
-        const results=(iqc?content.inspections:content.lines[0].results).map(r=>({...r,...(!iqc&&outcome==='abnormal'?{samples:[]}:{}),outcome,value:'Synthetic reading',notes:'Synthetic observation',photos:outcome==='fail'?[photo]:[]}));
+        const results=!iqc&&caseId&&outcome==='abnormal'?editAbnormalRetest(state,report):(iqc?content.inspections:content.lines[0].results).map(r=>({...r,...(!iqc&&outcome==='abnormal'?{samples:[]}:{}),outcome,value:'Synthetic reading',notes:'Synthetic observation',photos:outcome==='fail'?[photo]:[]}));
+        if(!iqc&&caseId&&outcome==='abnormal'){
+          const line=content.lines[0], path=['lines',{id:line.id},'results'];
+          const invalid=structuredClone(results);
+          invalid[0].samples=[job.source.products[0].code];
+          const flow=document(report).flow, operationId=randomUUID(), before=await row();
+          const rejected=await call({action:'draft',documentId:report,expectedRevision:state.revision,operationId,
+            command:{action:'apply',operationId,generation:flow.generation,clientId:randomUUID(),sequence:1,
+              expectedRevision:flow.revision,patches:[{op:'set',path,value:invalid}],guards:[{path,value:line.results}]}},'frank','',422);
+          assert.equal(rejected.error,'UNABLE_MUST_NOT_HAVE_SAMPLES');
+          assert.deepEqual(await row(),before);
+        }
         await finalize(report,iqc?{inspections:results}:{},iqc?undefined:results);
         if(!originalId){originalId=report;originalContent=document(report).flow.active.content;caseId=state.cases.find(c=>c.originReportId===report)?.id;}
         assert.deepEqual(document(originalId).flow.active.content,originalContent);
         if(outcome==='fail')assert(caseId);
+        if(!iqc&&outcome==='abnormal'){
+          const active=document(report).flow.active.content.lines[0].results[0];
+          assert.deepEqual(active.samples,[]);
+          assert.equal(active.notes,'Synthetic abnormal finding');
+          assert.equal(state.cases.length,1);
+          assert.equal(state.cases[0].id,caseId);
+          assert(state.cases[0].requiredSamples.includes(job.source.products[0].code));
+          assert.deepEqual(document(originalId).flow.active.content.lines[0].results[0].photos,[photo]);
+        }
       }
       const currentCase=()=>state.cases.find(c=>c.id===caseId);
       if(outcomes.at(-1)==='pass'){
@@ -107,4 +153,4 @@ async function scenario(outcomes) {
     }
   } finally {await fixture.close();}
 }
-for(const outcomes of [['pass'],['fail','pass'],['fail','fail'],['fail','fail','abnormal']])await scenario(outcomes);
+for(const outcomes of [['pass'],['fail','pass'],['fail','fail'],['fail','abnormal'],['fail','fail','abnormal']])await scenario(outcomes);

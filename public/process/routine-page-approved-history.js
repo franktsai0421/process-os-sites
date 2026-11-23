@@ -2,13 +2,26 @@
  'use strict';
  const text=(zh,vi)=>document.documentElement.lang==='vi'?vi:zh,prefix='legacy-routine-page:';
  const legacy=id=>{if(!id.startsWith(prefix))return null;try{const row=JSON.parse(id.slice(prefix.length));return Array.isArray(row)&&row.length===2&&row.every(v=>typeof v==='string'&&!!v)?row:null;}catch{return null;}};
- host.RoutinePageApprovedHistory={create(context){
+ function displayLine(line){
+  const {products=[],standardSnapshot,...source}=line.source||{};
+  if(standardSnapshot){
+   const {products,productCodes,productRefs,...inspection}=standardSnapshot;
+   source.standardSnapshot=inspection;
+  }
+  const sample=code=>{const index=products.findIndex(product=>product.code===code);return text('樣品','Mẫu')+(index>=0?' '+(index+1):'');};
+  const {jobId,...visible}=line;
+  return {...visible,source,...(line.requiredSamples&&{requiredSamples:line.requiredSamples.map(sample)}),results:(line.results||[]).map(result=>({...result,samples:(result.samples||[]).map(sample)}))};
+ }
+ function displaySnapshot(snapshot){
+  return {...snapshot,documents:snapshot.documents.map(doc=>({...doc,content:{...doc.content,lines:doc.content.lines.map(displayLine)}}))};
+ }
+ host.RoutinePageApprovedHistory={displayLine,create(context){
   const {client}=context,numbers=new Map();let view=null,epoch=0,root=null;
   const mutable=()=>!view?.historical,assertMutable=()=>{if(!mutable())throw Error('APPROVED_HISTORY_READ_ONLY');};
   const retire=()=>{epoch++;view?.retire();view=null;root=null;},stamp=()=>epoch,current=ticket=>ticket===epoch&&mutable()&&context.owner();
   const permissions=()=>Object.fromEntries(['view','create','edit','delete','save','submit','withdraw','approve','return','history','settings','revise','revoke'].map(key=>[key,client.permission(key)===true]));
   const validate=snapshot=>snapshot&&Array.isArray(snapshot.documents)&&snapshot.documents.every(row=>row&&typeof row.id==='string'&&row.metadata&&row.metadata.id===row.id&&['plan','report','waiver','disposal'].includes(row.metadata.kind)&&row.content&&Array.isArray(row.content.lines));
-  function mount(container){
+   function mount(container){
    if(!container?.isConnected||!context.owner()||!context.data()||context.reviewOnly())return;
    view?.retire();view=null;root=container;const data=context.data(),flow=data.control.workflow;
    const header=document.createElement('section');header.className='routine-page-version';container.querySelector('[data-routine-page-panel]')?.prepend(header);
@@ -24,7 +37,7 @@
      renderSnapshot(target,snapshot,isCurrent){
       const note=document.createElement('p');note.textContent=text('整頁核准與舊文件核准各自保留原來源；舊文件版本只代表該文件。','Giữ nguồn duyệt cả trang và hồ sơ cũ riêng biệt; bản cũ chỉ đại diện hồ sơ đó.');target.append(note);
       const fields={documents:['文件','Hồ sơ'],metadata:['固定文件資料','Thông tin hồ sơ cố định'],content:['核准內容','Nội dung đã duyệt'],id:['識別碼','Mã'],number:['文件編號','Số hồ sơ'],kind:['文件類型','Loại hồ sơ'],title:['標題','Tiêu đề'],date:['日期','Ngày'],notes:['備註','Ghi chú'],reason:['原因','Lý do'],disposition:['處置','Xử lý'],evidence:['證據圖片','Ảnh bằng chứng'],photos:['結果圖片','Ảnh kết quả'],lines:['檢查項目','Hạng mục kiểm tra'],results:['結果','Kết quả'],samples:['樣品','Mẫu'],outcome:['結果','Kết quả'],value:['實際值','Giá trị thực tế'],cancelled:['取消標記','Đánh dấu hủy'],source:['固定來源','Nguồn cố định']};
-      host.ProcessCanvasHistory.renderApprovedCollections(target,snapshot,{collections:['documents'],fields,mediaFields:['evidence'],mediaURL:photo=>{const id=typeof photo==='string'?photo:photo?.id;return /^[a-f0-9]{64}$/.test(id||'')?'/api/routine-fqc/page/photo?id='+id:'';}},isCurrent);
+      host.ProcessCanvasHistory.renderApprovedCollections(target,displaySnapshot(snapshot),{collections:['documents'],fields,mediaFields:['evidence'],mediaURL:photo=>{const id=typeof photo==='string'?photo:photo?.id;return /^[a-f0-9]{64}$/.test(id||'')?'/api/routine-fqc/page/photo?id='+id:'';}},isCurrent);
      }
     });
    }});
