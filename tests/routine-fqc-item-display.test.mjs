@@ -40,11 +40,11 @@ for(const lang of ['zh','vi']){
     const before=structuredClone(line);
     const html=f.api.resultHTML(line,r,0,true);
     assert.match(html,/data-sample="PART-B" checked/);
-    assert.match(html.replace(/<[^>]+>/g,''),lang==='vi'?/Mẫu 2/:/樣品 2/);
+    assert.doesNotMatch(html, /樣品 ?[0-9]|Mẫu ?[0-9]|原樣品固定|Kiểm tra bằng mẫu gốc/);
     assert.doesNotMatch(html.replace(/<[^>]+>/g,''),/PART-[AB]|Linked model|Linked company/);
     const fixed={...line,requiredSamples:['PART-B']};
-    assert.doesNotMatch(f.api.resultHTML(fixed,r,0,true),/data-sample=|PART-B|Linked model/);
-    assert.doesNotMatch(f.api.resultHTML(fixed,{...r,samples:[],outcome:'abnormal'},0,true),/data-sample=|PART-B|Linked model/);
+    assert.doesNotMatch(f.api.resultHTML(fixed,r,0,true),/data-sample=|PART-B|Linked model|原樣品|mẫu gốc|樣品 ?[0-9]|Mẫu ?[0-9]/i);
+    assert.doesNotMatch(f.api.resultHTML(fixed,{...r,samples:[],outcome:'abnormal'},0,true),/data-sample=|PART-B|Linked model|原樣品|mẫu gốc|樣品 ?[0-9]|Mẫu ?[0-9]/i);
     const projected=JSON.stringify(f.win.RoutinePageApprovedHistory.displayLine(fixed));
     assert.doesNotMatch(projected,/PART-[AB]|Linked model|Linked company/);
     assert.match(projected,/literal PART in standard/);assert.match(projected,/literal PART in notes/);

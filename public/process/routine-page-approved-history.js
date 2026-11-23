@@ -8,9 +8,8 @@
    const {products,productCodes,productRefs,...inspection}=standardSnapshot;
    source.standardSnapshot=inspection;
   }
-  const sample=code=>{const index=products.findIndex(product=>product.code===code);return text('樣品','Mẫu')+(index>=0?' '+(index+1):'');};
-  const {jobId,...visible}=line;
-  return {...visible,source,...(line.requiredSamples&&{requiredSamples:line.requiredSamples.map(sample)}),results:(line.results||[]).map(result=>({...result,samples:(result.samples||[]).map(sample)}))};
+  const {jobId,requiredSamples,...visible}=line;
+  return {...visible,source,results:(line.results||[]).map(({samples,...result})=>result)};
  }
  function displaySnapshot(snapshot){
   return {...snapshot,documents:snapshot.documents.map(doc=>({...doc,content:{...doc.content,lines:doc.content.lines.map(displayLine)}}))};

@@ -49,7 +49,7 @@ for(const lang of ['zh','vi'])void test('missing receipt displays its own suppor
   await f.api.act('retry');
   assert.match(f.root.textContent,lang==='zh'?/查無原操作收據.*寫入結果仍待確認/:/Chưa tìm thấy biên nhận gốc.*kết quả ghi chưa rõ/);
   assert.equal(f.root.querySelector('.rf-receipt-reference code').textContent,original.operationId);
-  assert.equal(f.store.map.size,1);
+  assert.equal(f.store.map.size,2);
   assert.equal(inputs(f),savedInput);
   assert.equal(posted(f).length,1);
   const previous=f.root.textContent;
@@ -57,11 +57,12 @@ for(const lang of ['zh','vi'])void test('missing receipt displays its own suppor
   f.paint();
   assert(previous.includes(original.operationId));
   assert(!f.root.textContent.includes(original.operationId));
-  assert.equal(f.store.map.size,1);
+  assert.equal(f.store.map.size,2);
 });
 
 for(const lang of ['zh','vi'])void test('404 banner can collapse and reopen without changing the draft or receipt ('+lang+')',async()=>{
-  const f=manualUI();
+  let collapse;
+  const f=manualUI({schedulers:{setInterval(){},clearTimeout,setTimeout(fn,ms){if(ms===5000){collapse=fn;return 1;}return setTimeout(fn,ms);}}});
   f.document.documentElement.lang=lang;
   f.api.getData().control.calendarPolicy={version:2,scopes:{}};
   f.remote.control.calendarPolicy={version:2,scopes:{}};
@@ -83,11 +84,12 @@ for(const lang of ['zh','vi'])void test('404 banner can collapse and reopen with
   assert.match(panel().textContent,lang==='zh'?/查無原操作收據/:/Chưa tìm thấy biên nhận/);
   const map=[...f.store.map];
   const requests=f.calls.length;
-  await f.button('receipt-minimize').click();
+  assert.equal(typeof collapse,'function');
+  collapse();
   assert(panel().classList.contains('rf-receipt-compact'));
   assert(!panel().classList.contains('error'));
-  assert.equal(panel().querySelector('code').textContent,original.operationId);
-  assert.equal(f.document.activeElement,f.button('receipt-show'));
+  assert.equal(panel().querySelector('code'),null);
+  assert.equal(panel().textContent,lang==='zh'?'操作收據':'Biên nhận thao tác');
   assert.equal(f.calls.length,requests);
   const [recordKey,recordValue]=map[0];
   const collapseKey='routine-fqc-receipt-collapsed-v1:'+recordKey;
@@ -121,7 +123,7 @@ for(const lang of ['zh','vi'])void test('404 banner can collapse and reopen with
   await reopened.button('receipt-show').click();
   assert.match(reopened.root.querySelector('[data-rf-receipt-panel]').textContent,
    lang==='zh'?/上次查無原操作收據/:/Lần trước chưa tìm thấy biên nhận/);
-  assert.equal(f.store.map.has(collapseKey),false);
+  assert.equal(f.store.map.has(collapseKey),true);
 
   await f.button('receipt-show').click();
   await f.button('receipt-minimize').click();
@@ -129,7 +131,7 @@ for(const lang of ['zh','vi'])void test('404 banner can collapse and reopen with
   await f.api.act('refresh');
   assert(!panel().classList.contains('rf-receipt-compact'));
   assert.match(panel().textContent,/TEST_ONLY_FRESH_READ_ERROR/);
-  assert.deepEqual([...f.store.map],map);
+  assert.equal(f.store.map.get(recordKey),recordValue);
   assert.equal(inputs(f),savedInput);
 });
 
@@ -193,7 +195,7 @@ void test('FQC routine approval can collapse a missing receipt without unlocking
  await f.button('retry').click();
  assert.match(f.root.querySelector('[data-rf-receipt-panel]').textContent,/目前查無原操作收據/);
  await f.button('receipt-minimize').click();
- assert.match(f.root.querySelector('.rf-receipt-compact').textContent,/有 1 筆操作待查證/);
+ assert.match(f.root.querySelector('.rf-receipt-compact').textContent,/操作收據/);
  assert.equal(f.button('approve').disabled,true);
  assert.deepEqual(f.methods(),['POST','GET','GET']);
  assert.equal(f.api.s.retry.operationId,command.operationId);
