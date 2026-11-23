@@ -1,3 +1,4 @@
+import {assertNotResetRetired} from '@/lib/routine-reset-ledger';
 import {env} from 'cloudflare:workers';
 import {can,identity,responseHeaders,sameOrigin,stateRevisionIsCurrent} from '@/lib/process-state';
 import {prepareFirstStartRetirement} from '@/lib/state-records';
@@ -27,6 +28,7 @@ async function handle(request:Request){
     const raw=JSON.parse(state.values[key]||'null');
     if(!raw||'page' in raw||'pageDraftLayout' in raw)return reply({error:'UNSUPPORTED_LAYOUT'},409);
     const control=scope==='fqc'?parseRoutine(state.values[key]):readRoutineIqc(state);
+    if(request.method==='POST')assertNotResetRetired(control,id);
     const original=control.receipts[id];
     let changed=false;
     if(body?.action==='register'){

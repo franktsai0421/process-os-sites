@@ -116,7 +116,7 @@
   const historyClients=new Map();
   const historyAllowsMutation=()=>!approvedHistoryView?.blocked;
   const assertCurrentDisplay=()=>{if(!historyAllowsMutation())throw Error('APPROVED_HISTORY_READ_ONLY');};
-  const captureHistoryDisplay=()=>{const epoch=historyDisplayEpoch,page=root;return()=>epoch===historyDisplayEpoch&&page===root&&historyAllowsMutation();};
+  const captureHistoryDisplay=()=>{const epoch=historyDisplayEpoch,page=root,actor=data?.identity?.id,resetEpoch=window.RoutineReset?.epoch?.('fqc',actor);return()=>resetEpoch===window.RoutineReset?.epoch?.('fqc',actor)&&epoch===historyDisplayEpoch&&page===root&&historyAllowsMutation();};
   function retireApprovedHistory(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;historyDocument=null;}
   function guardWorking(node,callback){const current=captureHistoryDisplay();return function(...args){if(!node?.isConnected||!current())return;const result=callback.apply(this,args);if(result&&typeof result.finally==='function')return result.finally(()=>approvedHistoryView?.refreshControls());approvedHistoryView?.refreshControls();return result;};}
   function guardDocumentCallbacks(){for(const node of root?.querySelector('.rf-document')?.querySelectorAll('input,select,textarea,button')||[])for(const property of ['onclick','oninput','onchange','onkeydown','oncompositionstart','oncompositionend'])if(typeof node[property]==='function')node[property]=guardWorking(node,node[property]);}
@@ -200,8 +200,8 @@
   // A user can retain the compact view of the last missing lookup. This preference
   // is separate from the original receipt and does not alter the write fence.
   let receiptPresentation=null;
-  function receiptPin(actor=data?.identity?.id||window.ProcessSync?.identity?.id){const sync=window.ProcessSync;return {actor,epoch:sync?.identityGeneration?.(),delivery:sync?.captureDelivery?.(),page:root,life:receiptLifecycle};}
-  function receiptCurrent(pin){const sync=window.ProcessSync;return !receiptSuspended&&pin.life===receiptLifecycle&&pin.page===root&&receiptText(pin.actor)&&(!data?.identity||data.identity.id===pin.actor)&&(!sync?.identity||sync.identity.id===pin.actor)&&!sync?.requiresReload&&pin.epoch===sync?.identityGeneration?.()&&(!pin.delivery||typeof sync?.isCurrentDelivery==='function'&&sync.isCurrentDelivery(pin.delivery)===true);}
+  function receiptPin(actor=data?.identity?.id||window.ProcessSync?.identity?.id){const sync=window.ProcessSync;return {actor,epoch:sync?.identityGeneration?.(),delivery:sync?.captureDelivery?.(),page:root,life:receiptLifecycle,resetEpoch:window.RoutineReset?.epoch?.('fqc',actor)};}
+  function receiptCurrent(pin){const sync=window.ProcessSync;return pin.resetEpoch===window.RoutineReset?.epoch?.('fqc',pin.actor)&&!receiptSuspended&&pin.life===receiptLifecycle&&pin.page===root&&receiptText(pin.actor)&&(!data?.identity||data.identity.id===pin.actor)&&(!sync?.identity||sync.identity.id===pin.actor)&&!sync?.requiresReload&&pin.epoch===sync?.identityGeneration?.()&&(!pin.delivery||typeof sync?.isCurrentDelivery==='function'&&sync.isCurrentDelivery(pin.delivery)===true);}
   function receiptOwnedPin(pin){const sync=window.ProcessSync;return receiptCurrent(pin)&&sync?.identity?.id===pin.actor&&receiptInt(pin.epoch)&&pin.delivery!==null&&pin.delivery!==undefined&&typeof sync?.isCurrentDelivery==='function'&&sync.isCurrentDelivery(pin.delivery)===true;}
   function receiptStore(){const storage=window.localStorage;if(!storage||!Number.isSafeInteger(storage.length)||storage.length<0||typeof storage.key!=='function')throw Error('ROUTINE_RECEIPT_STORAGE_UNAVAILABLE');return storage;}
   function receiptCollapsePreference(record,collapsed){
@@ -540,7 +540,7 @@
       const found=await read('?operationId='+encodeURIComponent(original.meta.operationId), accepts);
       return receiptTerminal(original,found,pin);
     }
-    const body=clone({...command,operationId:command.operationId||id()});if(!receiptWriteAllowed(body))throw Error('FORBIDDEN');
+    const body=clone({...command,...(data?.control?.resetGenerationRevision!==undefined&&command.expectedRevision===undefined?{expectedRevision:data.control.revision}:{}),operationId:command.operationId||id()});if(!receiptWriteAllowed(body))throw Error('FORBIDDEN');
     if(body.action==='create-plan'&&calendarMode()){
       body.operationId='plan-fqc-'+crypto.randomUUID();
       const {response,value}=await routineJSON('/api/routine-plan-intent?scope=fqc&id='+encodeURIComponent(body.operationId),{
@@ -2123,8 +2123,17 @@
   }
   function bind() {
     if(!s.reviewPlatform && data?.identity)window.RoutineReset?.bind(root,'fqc',data.identity.id,t,
-      ()=>normalWork() && !s.busy && !loading && !s.retry && !receiptInvalid && !inFlightMutation && !s.dialogOpen && !departureDocuments().length,
-      ()=>refresh(false));
+      ()=>normalWork() && !s.busy && !loading && !receiptInvalid && !inFlightMutation && !s.dialogOpen && !departureDocuments().length,
+      ()=>refresh(false),{
+        capture:()=>window.RoutineReset.markers(receiptDiscover(data.identity.id).map(row=>({...row,operationId:row.meta.operationId}))),
+        invalidate:()=>{receiptLifecycle++;historyDisplayEpoch++;refreshSequence++;if(receiptRecord){receiptRecord.terminal=null;receiptRecord.confirmed=null;}},
+        settle:async receipt=>{
+          const actor=data.identity.id,rows=receiptDiscover(actor).map(row=>({...row,operationId:row.meta.operationId,storage:receiptStore()}));
+          await window.RoutineReset.settle('fqc',actor,receipt,()=>read(''),rows);
+          if(receiptRecord&&receiptStore().getItem(receiptRecord.key)===null){receiptRecord=null;s.retry=null;s.retryOwner=null;s.retryDeparture=null;}
+          receiptInstall(actor);
+        }
+      });
     root.querySelectorAll('[data-timeline-doc]').forEach(button=>button.onclick=()=>openTimelineDocument(button));
     root.querySelector('[data-approved-report-search]')?.addEventListener('submit',event=>{
       event.preventDefault();
@@ -2375,6 +2384,7 @@
     root.querySelectorAll('[data-upload]').forEach(
       (el) =>
         (el.onchange = async () => {
+          const uploadCurrent=captureHistoryDisplay(),uploadPin=receiptPin();
           const file = el.files[0];
           if (!file) return;
           const photos = el.dataset.upload === 'evidence' ? c.evidence : row(el).photos;
@@ -2387,11 +2397,13 @@
                 body: file,
               }),
               v = await r.json();
+            if(!uploadCurrent()||!receiptCurrent(uploadPin))return;
             if (!r.ok) throw Error(v.error || 'UPLOAD_FAILED');
             if (!photos.includes(v.id)) photos.push(v.id);
             touch();
             s.error = '';
           } catch (e) {
+            if(!uploadCurrent()||!receiptCurrent(uploadPin))return;
             s.error =
               t(
                 '照片上傳失敗，輸入保留：',
@@ -2399,7 +2411,7 @@
               ) + e.message;
           } finally {
             s.busy = false;
-            paint();
+            if(uploadCurrent()&&receiptCurrent(uploadPin))paint();
           }
         }),
     );

@@ -87,10 +87,12 @@
     `<textarea data-ri-field="${name}" ${edit?'':'readonly'}>${h(value)}</textarea>`:
     `<input data-ri-field="${name}" type="${type}" value="${h(value)}" ${edit?'':'readonly'}>`}</label>`;
 
+  function resetPendingRows(v){const k=key+v.data.identity.id,raw=sessionStorage.getItem(k);return raw?[{key:k,raw,operationId:raw,storage:sessionStorage}]:[];}
   async function call(v, url=endpoint, options={}) {
+    const resetEpoch=window.RoutineReset?.epoch?.('iqc',v.owner.actor);
     const res=await fetch(url,{cache:'no-store',...options});
     const data=await res.json();
-    if(!current(v))throw Error('DELIVERY_SUPERSEDED');
+    if(!current(v)||resetEpoch!==window.RoutineReset?.epoch?.('iqc',v.owner.actor))throw Error('DELIVERY_SUPERSEDED');
     if(!res.ok)throw Object.assign(Error(data.error||'IQC_UNAVAILABLE'),{status:res.status,details:data.details});
     return data;
   }
@@ -908,7 +910,14 @@
             `<div class="rf-empty"><span class="rf-icon">▤</span><b>${t('選擇一筆工作開始','Chọn một hồ sơ')}</b>${t('明細、照片與歷史會顯示在這裡','Chi tiết, hình ảnh và lịch sử hiển thị tại đây')}</div>`}</div></section></div>`)}</div>`;
     if(!v.review){
       window.RoutineReset?.bind(v.root,'iqc',data.identity.id,t,
-        ()=>current(v)&&!v.busy&&!v.pending&&!v.adminDialog&&!edited(v),()=>load(v));
+        ()=>current(v)&&!v.busy&&!v.adminDialog&&!edited(v),()=>load(v),{
+          capture:()=>window.RoutineReset.markers(resetPendingRows(v)),
+          invalidate:()=>{v.resetSerial=(v.resetSerial||0)+1;},
+          settle:async receipt=>{
+            await window.RoutineReset.settle('iqc',v.data.identity.id,receipt,()=>call(v),resetPendingRows(v));
+            v.pending=sessionStorage.getItem(key+v.data.identity.id);
+          }
+        });
       drawWorkflow(v);
     }
     if(v.busy)v.root.querySelectorAll('button:not([data-ri-action^="module:"]),input,select,textarea').forEach(el=>el.disabled=true);

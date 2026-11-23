@@ -56,7 +56,7 @@ export async function GET(request:Request){
       const policy=calendar.calendarPolicy;
       const scheduleDue=dateStarted&&(c.lastScheduleDay!==today||routineIqcTimeline(master).some(v=>
         v.day<=today&&v.at>=(policy?.adoptedAt||'')&&!policy?.appliedVersions?.includes(v.id)));
-      body={today,identity:{id:actor.id,role:actor.role,name:actor.name},permissions,revision:c.revision,
+      body={resetGenerationRevision:(c as typeof c & {resetGenerationRevision?:number}).resetGenerationRevision,today,identity:{id:actor.id,role:actor.role,name:actor.name},permissions,revision:c.revision,
         startDate:calendar.startDate,scheduleDue,jobs:calendar.jobs,
         cases:cases.map(item=>({...item,disposalAvailable:iqcCanDispose(c,item)})),catalog:routineIqcCatalog(master),
         periodRules:Object.fromEntries(Object.entries(policy?.scopes||{}).map(([scope,rule])=>

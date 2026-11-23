@@ -1,3 +1,4 @@
+import {assertRoutineResetFence} from './routine-reset-fence';
 import {reconcileCalendar,type CalendarTimelineEntry,generateCalendar,calendarCanArrange,validatePlanDates,validCalendarDate,calendarNextSelection,type CalendarPolicy,type CalendarWork} from './routine-fqc-calendar';
 import {approvedMasterPageCatalog} from './master-approved-pages';
 import {legacyJsonValueText,type JsonValue} from './legacy-login-json';
@@ -140,6 +141,7 @@ export type Case = {
   }[];
 };
 export type RoutineFqc = {
+  resetGenerationRevision?: number;
   calendarPolicy?: CalendarPolicy;
   schemaVersion: 1;
   revision: number;
@@ -1003,6 +1005,7 @@ export function executeRoutine(
     'OPERATION_ID_REQUIRED',
   );
   demand(ctx.allowed('view'), 'FORBIDDEN', 403);
+  assertRoutineResetFence(c,cmd.expectedRevision,cmd.operationId);
   const fingerprint = stableDraftJSON(cmd),
     old = c.receipts[cmd.operationId];
   if (old) {

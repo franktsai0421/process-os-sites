@@ -30,3 +30,15 @@ for(const bad of ['array','object','number'])void test('original refusal '+bad+'
 for(const epoch of [undefined,null,{},-1])void test('fresh dispatch refuses missing or malformed identity epoch '+JSON.stringify(epoch),async()=>{const f=fixture();f.sync.identityGeneration=()=>epoch;await assert.rejects(f.api.postOwned(f.draft()),/ACCOUNT_CHANGED/);assert.equal(f.posts(),0);assert.equal(f.store.map.size,0);});
 for(const port of ['identity','captureDelivery','isCurrentDelivery'])void test('fresh dispatch requires real current '+port+' proof',async()=>{const f=fixture();delete f.sync[port];await assert.rejects(f.api.postOwned(f.draft()),/ACCOUNT_CHANGED/);assert.equal(f.posts(),0);assert.equal(f.store.map.size,0);});
 void test('peer Save may advance same-generation savedId before fresh GET and guarded atomic Save',async()=>{const f=fixture(),d=f.api.getData().control.documents[0];f.api.buffer(d).title='Mine';const peer=f.remote.control.documents[0].flow;peer.saved={id:'peer-saved',revision:peer.revision,content:structuredClone(peer.working)};peer.revision++;f.remote.control.revision++;f.remote.revision++;await f.api.save(d);assert.deepEqual(f.methods(),['GET','POST','GET']);assert.equal(f.api.s.retry,null);assert.equal(f.remote.control.documents[0].flow.saved.content.title,'Mine');});
+
+void test('new FQC draft after reset carries module revision; unknown retry never upgrades its old command',async()=>{
+ const f=fixture();f.remote.control.resetGenerationRevision=9;f.api.setData(structuredClone(f.remote));
+ await f.api.postOwned(f.draft());
+ const posted=JSON.parse(f.calls.find(c=>c.method==='POST').body);assert.equal(posted.expectedRevision,10);
+ await f.api.read();
+ f.setMode('lost');const old=f.draft();await assert.rejects(f.api.postOwned(old));
+ const before=f.posts(),metadata=f.api.record().raw;
+ f.remote.control.revision=20;f.remote.control.resetGenerationRevision=20;
+ await assert.rejects(f.api.postOwned(f.api.s.retry));
+ assert.equal(f.posts(),before);assert.equal(f.api.record().raw,metadata);
+});

@@ -1,3 +1,4 @@
+import {assertRoutineResetFence} from './routine-reset-fence';
 import type { State } from './process-state';
 import { emptyRoutine, type Job, type RoutineFqc } from './routine-fqc';
 import { calendarCanArrange, reconcileCalendar, validatePlanDates, validCalendarDate } from './routine-fqc-calendar';
@@ -18,7 +19,7 @@ type IqcCase = { id: string; batch: Batch; planId: string; originReportId: strin
   result: 'fail'|'abnormal'; status: 'open'|'retest'|'closed'|'disposed'; jobIds: string[] };
 type OperationResult = { documentId?: string };
 type Receipt = { actorId: string; fingerprint: string; result: OperationResult };
-export type RoutineIqc = {schemaVersion:1; revision:number; calendar:RoutineFqc; lastScheduleDay?:string; documents:IqcDocument[];
+export type RoutineIqc = {resetGenerationRevision?:number;schemaVersion:1; revision:number; calendar:RoutineFqc; lastScheduleDay?:string; documents:IqcDocument[];
   cases:IqcCase[]; receipts:Record<string,Receipt>;
   lastStart?:{actorId:string;at:string;reason:string;date:string}};
 export type Command = { action: string; operationId: string; expectedRevision: number; documentId?: string;
@@ -195,6 +196,7 @@ export function executeRoutineIqc(state:RoutineIqc, command:Command, sourceState
   requireThat(ctx.permissions.view&&ctx.permissions[permission],'FORBIDDEN',403);
   if(['settings','create','delete','save'].includes(permission))requireThat(ctx.permissions.edit,'FORBIDDEN',403);
   if(command.action==='configure')requireThat(ctx.actor.admin,'FORBIDDEN',403);
+  assertRoutineResetFence(state,command.expectedRevision,command.operationId);
   const fingerprint=stableDraftJSON(command), old=state.receipts[command.operationId];
   if(old){requireThat(old.actorId===ctx.actor.id&&old.fingerprint===fingerprint,'OPERATION_ID_REUSED',409);return {replayed:true,result:old.result};}
   requireThat(command.expectedRevision===state.revision,'REVISION_CONFLICT',409);

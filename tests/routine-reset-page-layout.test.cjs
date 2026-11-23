@@ -1,3 +1,4 @@
+const authorityFixture=require('../scripts/routine-reset-authority-fixture.cjs');
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const createStore = require('../scripts/fqc-apply-fixture.cjs');
@@ -45,13 +46,13 @@ void test('whole-page RESET removes every review state, fences old page writes a
     version.snapshot.items = [{ ...version.snapshot.items[0], id: 'synthetic-weekly', productCodes: ['SYN-P'], rule: { cadence: 'time', timeFrequency: 'weekly' } }];
     values.qualityMasterControl = JSON.stringify(master);
   });
-  const origin = 'https://synthetic.invalid', login = new Request(origin);
+  const origin = authorityFixture.origin, login = new Request(origin);
   const cookie = store.core.sessionCookie(login, await store.core.demoSession(login, 'frank', false, 1)).split(';')[0];
   const reset = '/api/routine-reset?scope=fqc', endpoint = '/api/routine-fqc/page';
   async function call(url, body, status = 200) {
     const method = body ? 'POST' : 'GET';
     const handler = store.load('app' + url.split('?')[0] + '/route.ts');
-    const res = await handler[method](new Request(origin + url, { method, headers: { cookie, origin, 'content-type': 'application/json' },
+    const res = await handler[method](new Request(origin + url, { method, headers: { ...authorityFixture.headers, cookie, origin, 'content-type': 'application/json' },
       ...(body ? { body: JSON.stringify(body) } : {}) }));
     const result = await res.json(); assert.equal(res.status, status, JSON.stringify(result));
     return result;
@@ -60,7 +61,7 @@ void test('whole-page RESET removes every review state, fences old page writes a
   const unrelated = values => Object.fromEntries(Object.entries(values).filter(([key]) => key !== 'routineFqcControl'));
   const before = await state();
   assert.equal((await call(reset + '&capability=1')).available, false);
-  store.env.ROUTINE_RESET_DEDICATED_TEST_DB = store.env.DB;
+  authorityFixture.enable(store);
   const cap = await call(reset + '&capability=1');
   assert.equal(cap.available, true); assert.equal(cap.pendingCount, 1);
   const body = { scope: 'fqc', revision: cap.revision, pendingCount: 1, id: crypto.randomUUID(),

@@ -1,0 +1,23 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import fs from 'node:fs';
+import {fixture} from './fixtures/routine-fqc-durable.mjs';
+test('actual FQC Reset adapter settles its discovered legacy marker without changing peer storage',async()=>{
+ const f=fixture();f.box.TextEncoder=TextEncoder;f.box.Uint8Array=Uint8Array;
+ vm.runInContext(fs.readFileSync('public/process/routine-reset.js','utf8'),f.box);
+ let binding;f.win.RoutineReset.bind=(...args)=>binding=args;
+ const root={isConnected:true,matches:()=>true,querySelectorAll:()=>[],querySelector:()=>null,addEventListener(){}};
+ f.api.setRoot(root);f.api.s.tab='jobs';f.api.s.module='FQC';
+ f.setMode('lost');await assert.rejects(f.api.postOwned({action:'generate',expectedRevision:10}));
+ f.store.map.set('routine-iqc-receipt:owner','peer-pending');
+ f.api.bind();assert(binding);assert.equal(binding[1],'fqc');assert.equal(binding[4](),true,'matching unknown does not disable Reset');
+ const adapter=binding[6],pending=await adapter.capture();assert.equal(pending.length,1);
+ adapter.invalidate();
+ f.remote.control={...f.remote.control,revision:11,resetGenerationRevision:11,documents:[],jobs:[],cases:[]};f.remote.revision++;
+ f.setMode('ok');
+ await adapter.settle({id:'reset-operation',actorId:'owner',scope:'fqc',generationRevision:11,settlements:pending.map(x=>({...x,status:'superseded-by-reset',priorOutcome:'unknown'}))});
+ assert.equal(f.api.s.retry,null);assert.equal(f.api.record(),null);
+ assert.deepEqual([...f.store.map.entries()],[['routine-iqc-receipt:owner','peer-pending']]);
+ assert.equal(f.posts(),1,'settlement never resends the old command');
+});
