@@ -146,3 +146,88 @@ for(const lane of ['fqc','iqc'])void test(lane+' a revoked session during retire
  assert.equal((await call('plan-intent',path,stop)).status,403);
  assert.deepEqual(row(),before);
 });
+
+for(const winner of ['maintenance','original'])void test('FQC exact plan maintenance, '+winner+' commits first',async t=>{
+  const {f,call,read:fqc,plan,row}=await scheduled(t,'fqc');
+  const fj=(await fqc()).jobs[0];
+  function target(job,oldId){return {oldId,jobId:job.id,sourceId:job.itemId,product:job.calendar.productCode,start:job.start,end:job.end,planStart:day,planEnd:day};}
+  const project='synthetic-project',build='1'.repeat(40),dbTarget='2'.repeat(64),transfer='3'.repeat(64);
+  const grant={origin,project,release:build,dbTarget,transfer,actor:(await (await call('fqc')).json()).identity.id,from:Date.now(),until:Date.now()+3600000,newId:'plan-fqc-'+require('node:crypto').randomUUID(),
+    fqc:target(fj,plan.operationId)};
+  const handler=f.load('lib/routine-plan-maintenance.ts').reconcileRoutinePlans;
+  let quote='';
+  async function invoke(method,actor=grant.actor){
+    const req=new Request(origin+'/process/'),cookie=f.core.sessionCookie(req,await f.core.demoSession(req,actor,false,1)).split(';')[0];
+    return handler(new Request(origin+'/maintenance',{method,headers:{cookie,origin,'X-Process-Expected-Actor':actor,'X-Plan-Scope':'fqc','X-Original-Operation':grant.fqc.oldId,'X-Confirm-Plan-Reconciliation':'RECONCILE FQC PLAN','X-FQC-Assessment':quote}}),project,build);
+  }
+  assert.equal((await invoke('POST')).status,404);
+
+  f.env.DB.batch=async statements=>{
+    f.db.exec('BEGIN');
+    try{const results=[];for(const statement of statements)results.push({success:true,...await statement.run()});
+      f.db.exec('COMMIT');return results;
+    }catch(error){f.db.exec('ROLLBACK');throw error;}
+  };
+  const snapshot=f.db.prepare('SELECT "values" FROM shared_state WHERE id=1').get().values;
+  f.db.function('unixepoch',()=>Math.floor(Date.now()/1000));
+  f.env.FQC_PLAN_ONE_TIME=JSON.stringify(grant);
+  assert.equal((await invoke('GET')).status,403);
+  f.env.PROCESS_PROGRAM_COMMIT=build;
+  assert.equal((await invoke('GET')).status,403);
+  f.db.prepare('INSERT INTO process_snapshot_target VALUES(1,?,?)').run(dbTarget,transfer);
+  f.db.prepare('INSERT INTO process_snapshot_transfers VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').run(transfer,project,dbTarget,'hash','key',grant.actor,'integrity-verified',1,1,1,1,1,2);
+  f.db.prepare("UPDATE process_snapshot_transfers SET phase='receiving' WHERE id=?").run(transfer);
+  assert.equal((await invoke('POST')).status,403);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM fqc_plan_reconciliation_journal').get().n,0);
+  f.db.prepare("UPDATE process_snapshot_transfers SET phase='integrity-verified' WHERE id=?").run(transfer);
+  assert.equal((await invoke('POST','other-admin')).status,403);
+  const layoutKey=f.load('lib/routine-fqc.ts').RF_KEY;
+  let previous;
+  await f.mutate(values=>{previous=values[layoutKey];values[layoutKey]=JSON.stringify({pageDraftLayout:'page-v1'});});
+  assert.equal((await (await invoke('GET')).json()).error,'UNSUPPORTED_LAYOUT');
+  await f.mutate(values=>{values[layoutKey]=previous;});
+  const baseline=row();
+  for(const changed of [{sourceId:'another-source'},{end:'2099-01-01'}]){
+    f.env.FQC_PLAN_ONE_TIME=JSON.stringify({...grant,fqc:{...grant.fqc,...changed}});
+    assert.equal((await invoke('GET')).status,409);
+    assert.deepEqual(row(),baseline);
+  }
+  f.env.FQC_PLAN_ONE_TIME=JSON.stringify(grant);
+  const candidate=await invoke('GET');assert.equal(candidate.status,200);
+  quote=(await candidate.json()).assessment;
+  let enter,release;const reached=new Promise(r=>{enter=r;}),pause=new Promise(r=>{release=r;});
+  f.hooks.run=async sql=>{if(sql.startsWith('UPDATE shared_state')){enter();await pause;}};
+  const old=call('fqc','',plan);
+  await Promise.race([reached,old.then(()=>{throw Error('expected old request paused at CAS')})]);
+  delete f.hooks.run;
+  try{
+    if(winner==='original'){
+      release();assert.equal((await old).status,200);
+      const saved=row();
+      f.env.FQC_PLAN_ONE_TIME=JSON.stringify({...grant,fqc:{...grant.fqc,planStart:'2099-01-01'}});
+      assert.equal((await (await invoke('GET')).json()).error,'ORIGINAL_MISMATCH');
+      assert.deepEqual(row(),saved);
+      f.env.FQC_PLAN_ONE_TIME=JSON.stringify(grant);
+      assert.equal((await (await invoke('POST')).json()).error,'ASSESSMENT_CHANGED');
+      quote=(await (await invoke('GET')).json()).assessment;
+    }
+    f.db.function('unixepoch',()=>Math.ceil(grant.until/1000)+1);
+    assert.equal((await invoke('POST')).status,409);
+    assert.equal(f.db.prepare('SELECT count(*) AS n FROM fqc_plan_reconciliation_journal').get().n,0);
+    f.db.function('unixepoch',()=>Math.floor(Date.now()/1000));
+    const post=await invoke('POST');assert.equal(post.status,200,JSON.stringify(await post.clone().json()));
+    assert.equal((await post.json()).status,'independent-readback-required');
+  }finally{release();}
+  if(winner==='maintenance'){const late=await old;assert.equal(late.status,409);assert.equal((await fqc()).documents.length,1);}
+  const verified=await invoke('GET');assert.equal(verified.status,200);
+  const result=await verified.json();assert.equal(result.status,'verified-current');
+  assert.equal((await fqc()).jobs.find(j=>j.id===fj.id).planId,result.planId);
+  assert.equal(result.id,grant.fqc.oldId);
+  assert.equal((await call('fqc','?operationId='+grant.fqc.oldId)).status,winner==='original'?200:404);
+  assert.equal((await invoke('POST')).status,200);assert.equal((await fqc()).documents.length,1);
+  f.db.prepare('UPDATE shared_state SET "values"=?,revision=revision+1 WHERE id=1').run(snapshot);
+  for(const method of ['GET','POST']){
+    const restored=await invoke(method);assert.equal(restored.status,409);assert.equal((await restored.json()).error,'RESTORE_OR_GRANT_CHANGED');
+  }
+  assert.equal((await fqc()).documents.length,0);
+});

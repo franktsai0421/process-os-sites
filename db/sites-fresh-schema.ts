@@ -67,3 +67,7 @@ export const accessEventExports = sqliteTable('access_event_exports', {
   ids: text('ids').notNull(), count: integer('count').notNull(),
   size: integer('size').notNull(), sha256: text('sha256').notNull(),
 }, table => [uniqueIndex('access_event_exports_actor_operation').on(table.actorId,table.operationId)]);
+
+export const fqcPlanReconciliationJournal=sqliteTable('fqc_plan_reconciliation_journal',{
+  singleton:integer('singleton').primaryKey().notNull(),grantHash:text('grant_hash').notNull(),nonce:text('nonce').notNull(),
+},table=>[check('fqc_plan_reconciliation_singleton',sql`${table.singleton}=1`)]);

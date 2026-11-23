@@ -71,6 +71,13 @@
       "when": 1793928606630,
       "tag": "0009_access_events_candidate",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1795368327935,
+      "tag": "0010_fqc_plan_reconciliation_journal",
+      "breakpoints": true
     }
   ]
 }
