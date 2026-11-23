@@ -40,7 +40,8 @@ export async function POST(request:Request){
    if(row)return reply({error:'ALREADY_STARTED',...status(row,id)},409);if(ledger.entries.length>=32)return reply({error:'CAPACITY'},409);
    const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(a.config.secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);
    token=Array.from(new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(JSON.stringify([crypto.randomUUID(),id,a.siteHash,sessionHash])))),v=>v.toString(16).padStart(2,'0')).join('');
-   ledger.entries.push({id,ownerId:actor.id,contextHash:a.contextHash,siteHash:a.siteHash,grantHash,sessionHash,tokenHash:await digest(token),createdAt:Date.now(),expiresAt:Math.min(Date.now()+300000,Date.parse(a.config.expiresAt)),status:'pending'});
+   const createdAt=Date.now();
+   ledger.entries.push({id,ownerId:actor.id,contextHash:a.contextHash,siteHash:a.siteHash,grantHash,sessionHash,tokenHash:await digest(token),createdAt,expiresAt:Math.min(createdAt+300000,Date.parse(a.config.expiresAt)),status:'pending'});
   }else{
    if(!row||row.status!=='pending'||row.expiresAt<=Date.now()||row.ownerId!==actor.id||row.contextHash!==a.contextHash||row.siteHash!==a.siteHash||row.grantHash!==grantHash||row.sessionHash!==sessionHash||row.tokenHash!==await digest(b.token))return reply({error:'INVALID_PROOF'},409);
    row.status='confirmed';row.confirmedAt=Date.now();

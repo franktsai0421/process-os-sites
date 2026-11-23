@@ -741,15 +741,15 @@
     }finally{v.busy=false;if(current(v))render(v);}
   }
   function administration(v){
-    if(!canConfigure(v))return '';
+    if(!permissions(v).view)return '';
     const locked=startLocked(v),busy=!!v.pending||v.busy||edited(v);
     return `<details class="rf-fqc-administration" ${v.adminOpen?'open':''}><summary>${t('IQC 特殊功能','Chức năng đặc biệt IQC')}</summary>
       <p>${t('開始日期','Ngày bắt đầu')}：${h(v.data.startDate||t('尚未啟動','Chưa bắt đầu'))}</p>
       <p>${t('僅管理例行 IQC 流程，保留來源主檔、頻率、照片及其他模組。','Chỉ quản lý IQC định kỳ, giữ dữ liệu nguồn, tần suất, ảnh và mô-đun khác.')}</p>
       ${!v.data.startDate&&[0,1].includes(v.data.revision)?button('recover-first-start',t('查證舊的首次啟動','Xác minh yêu cầu khởi động đầu cũ'),v.busy||edited(v)):''}
-      <div class="rf-actions"><button type="button" class="rf-btn" data-ri-action="configure" aria-haspopup="dialog" ${locked||busy?'disabled':''}>${locked?
+      <div class="rf-actions"><button type="button" class="rf-btn" data-ri-action="configure" aria-haspopup="dialog" ${locked||busy||!canConfigure(v)?'disabled':''}>${locked?
         t('已啟動 · 日期鎖定','Đã khởi động · Khóa ngày'):t('設定開始日期並啟動','Đặt ngày bắt đầu và khởi động')}</button>
-      </div>${locked?`<small>${errorText('START_DATE_LOCKED')}</small>`: ''}</details>`;
+      </div>${!canConfigure(v)?`<small>${t(v.data.identity.role!=='admin'?'僅 Admin 可操作':'缺少模組設定權限',v.data.identity.role!=='admin'?'Chỉ Admin được sử dụng':'Thiếu quyền thiết lập mô-đun')}</small>`:''}${locked?`<small>${errorText('START_DATE_LOCKED')}</small>`: ''}</details>`;
   }
   function checkAdministration(v) {
     if(v.review||!canConfigure(v))throw Error('FORBIDDEN');

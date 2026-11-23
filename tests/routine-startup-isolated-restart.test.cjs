@@ -1,7 +1,7 @@
 const authorityFixture=require('../scripts/routine-reset-authority-fixture.cjs');
 const assert=require('node:assert/strict'),{test}=require('node:test'),fixture=require('../scripts/fqc-apply-fixture.cjs');
 const date='2026-11-21',origin=authorityFixture.origin;
-for(const start of [date,'2026-11-23'])void test('same pristine fixture for FQC and IQC, start '+start,async t=>{
+for(const activation of ['owner','admin'])for(const start of [date,'2026-11-23'])void test(activation+' activation: same pristine fixture for FQC and IQC, start '+start,async t=>{
  t.mock.timers.enable({apis:['Date'],now:new Date(date+'T01:09:00+07:00')});
  const f=await fixture();
  t.after(()=>f.close());
@@ -23,6 +23,7 @@ for(const start of [date,'2026-11-23'])void test('same pristine fixture for FQC 
    f.cookies.frank=f.core.sessionCookie(req,await f.core.demoSession(req,'frank',false,1)).split(';')[0];
  }
  await signOwner();
+ const enable=()=>{const raw=authorityFixture.enable(f);if(activation==='admin'){const {siteOwnerIdSha256,...c}=JSON.parse(raw);f.env.PROCESS_ROUTINE_RESET_ACTIVATION=JSON.stringify({...c,version:2,authorization:'application-admin'});}};
  const saved=()=>f.db.prepare('SELECT revision,"values" FROM shared_state WHERE id=1').get();
  const command=(action,revision,fields={})=>({action,expectedRevision:revision,operationId:'parity-'+action+'-'+crypto.randomUUID(),...fields});
  async function call(lane,query='',cmd,status=200,cookie=f.cookies.frank){
@@ -34,7 +35,7 @@ for(const start of [date,'2026-11-23'])void test('same pristine fixture for FQC 
  const masterRefs=state=>Object.fromEntries(Object.entries(JSON.parse(state.values).__processRecords.values).filter(([key])=>!['routineFqcControl','routineIqcControl'].includes(key)));
  const sourceBefore=masterRefs(before);
  for(const lane of ['fqc','iqc']){
-   for(const cookie of [f.cookies.editor,f.cookies.other,'']){
+   for(const cookie of [f.cookies.other,'']){
      const denied=cookie?403:401;
      if(cookie)assert.equal((await call(lane,'',undefined,200,cookie)).permissions.settings,false);
      await call(lane,'',command('configure',0,lane==='fqc'?{startDate:start,calendarVersion:2}:{start,scope:'routine-iqc-only',confirm:'START IQC',startAck:true,reason:'synthetic',expectedStateRevision:before.revision}),denied,cookie);
@@ -108,12 +109,12 @@ for(const start of [date,'2026-11-23'])void test('same pristine fixture for FQC 
    assert.equal((await request(body)).status,403);
    f.env.ROUTINE_RESET_DEDICATED_TEST_DB={};
    assert.equal((await request(body)).status,403);
-   authorityFixture.enable(f);
+   enable();
    assert.deepEqual(saved(),beforeReset);
    assert.equal((await request({...body,scope:'other'})).status,422);
    assert.equal((await request({...body,pendingCount:0})).status,409);
    assert.equal((await request({...body,revision:body.revision-1})).status,409);
-   for(const cookie of [f.cookies.editor,f.cookies.other,''])assert.equal((await request(body,cookie)).status,403);
+   for(const cookie of [...(activation==='owner'?[f.cookies.editor]:[]),f.cookies.other,''])assert.equal((await request(body,cookie)).status,403);
    assert.deepEqual(saved(),beforeReset);
    const {canvasDOM}=await import('../scripts/login-reentry-dom.mjs');
    const {document}=canvasDOM(),panel=document.createElement('details');
@@ -140,9 +141,9 @@ for(const start of [date,'2026-11-23'])void test('same pristine fixture for FQC 
        async()=>{readback=await call(lane);});
      assert.equal(panel.children.length,1);
    };
-   delete f.env.PROCESS_ROUTINE_RESET_ACTIVATION;await mount();assert.equal(panel.querySelector('button'),null);
-   f.env.ROUTINE_RESET_DEDICATED_TEST_DB={};await mount();assert.equal(panel.querySelector('button'),null);
-   authorityFixture.enable(f);await mount();
+   delete f.env.PROCESS_ROUTINE_RESET_ACTIVATION;await mount();assert.equal(panel.querySelector('button').disabled,true);
+   f.env.ROUTINE_RESET_DEDICATED_TEST_DB={};await mount();assert.equal(panel.querySelector('button').disabled,true);
+   enable();await mount();
    const opener=panel.querySelector('button');
    const openDialog=()=>{
      opener.click();
@@ -192,6 +193,10 @@ for(const start of [date,'2026-11-23'])void test('same pristine fixture for FQC 
    assert.deepEqual(f.objects.get(photoKey),originalPhoto);
    assert(!control.startDate);
    assert.equal(control.jobs.length, 0);
+   const resetTime=Date.now();t.mock.timers.setTime(resetTime+86400000);await signOwner();
+   const nextDay=await call(lane),nextControl=lane==='fqc'?nextDay.control:nextDay;
+   assert(!nextControl.startDate);assert.equal(nextControl.jobs.length,0);if(lane==='iqc')assert.equal(nextDay.scheduleDue,false);assert.deepEqual(saved(),once);
+   t.mock.timers.setTime(resetTime);await signOwner();
    const fields = lane === 'fqc'
      ? {startDate:restartDate, calendarVersion:2}
      : {scope:'routine-iqc-only', start:restartDate, reason:'Synthetic restart', confirm:'START IQC', startAck:true,

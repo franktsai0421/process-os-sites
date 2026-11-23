@@ -14,7 +14,7 @@ for(const lang of ['zh','vi'])void test('whole-page FQC reset and guarded recove
   const snapshot={today:'2026-11-21',startDate:'2026-11-20',revision:10,canConfigureStartDate:false,
     permissions:{view:true,edit:true,create:true},jobs:[{id:'job-1',source:{name:'Synthetic'},period:'week'}],
     documents:[],cases:[],control:{workflow:{generation:'old',revision:5,working:{documents:[]}}}};
-  const context={document,crypto,ProcessSync:{identity:{id:'frank'}},
+  const context={document,crypto,ProcessSync:{identity:{id:'frank',role:'admin'}},
     sessionStorage:{get length(){return storage.size;},key:i=>[...storage.keys()][i],getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
     createSharedDraftClient:()=>({read:()=>{reads++;return structuredClone(snapshot);},command:(generation,action,command)=>{commands.push(command);snapshot.revision++;snapshot.control.workflow.revision++;
       if(command.input.action==='configure'){snapshot.startDate=command.input.startDate;afterConfigure?.();}
@@ -37,7 +37,7 @@ for(const lang of ['zh','vi'])void test('whole-page FQC reset and guarded recove
   const page=context.RoutineFqcPage;
   const open=async()=>{const panel=root.querySelector('details');assert(panel);panel.open=true;panel.dispatchEvent({type:'toggle'});await new Promise(resolve=>setImmediate(resolve));return panel;};
   const resetButton=panel=>panel.querySelectorAll('button').find(b=>b.textContent.startsWith('RESET FQC'));
-  await page.mount(root);assert.equal(resetButton(await open()),undefined);
+  await page.mount(root);assert.equal(resetButton(await open()).disabled,true);
   assert.equal(root.querySelector('details button').disabled,true);
   available=true;page.repaint();uncertain=true;assert.equal(resetButton(await open()).disabled,true);
   uncertain=false;const choice=root.querySelector('fieldset input');choice.checked=true;choice.onchange();
@@ -71,4 +71,13 @@ for(const lang of ['zh','vi'])void test('whole-page FQC reset and guarded recove
   prepareDate();await buttons(modal).at(-1).click();
   assert.deepEqual(commands.map(c=>c.input.action),['configure','generate','configure','configure']);
   await page.mount(root,{review:true});assert.equal(root.querySelector('details'),null);
+});
+
+for(const lang of ['zh','vi'])void test('whole-page FQC viewer sees disabled Admin controls in '+lang,async()=>{
+ const {document}=canvasDOM();document.documentElement.lang=lang;const root=document.createElement('main');document.body.append(root);
+ const snapshot={today:'2026-11-23',startDate:null,revision:0,canConfigureStartDate:false,permissions:{view:true,edit:false,create:false},jobs:[],documents:[],cases:[],control:{workflow:{generation:'synthetic',revision:0,working:{documents:[]}}}};
+ const context={document,crypto,ProcessSync:{identity:{id:'staff',role:'staff'}},sessionStorage:{getItem:()=>null},createSharedDraftClient:()=>({read:()=>structuredClone(snapshot),hasUnknown:()=>false,hasSyncFailures:()=>false}),fetch:async()=>Response.json({available:false})};context.window=context;
+ for(const name of ['routine-reset.js','routine-fqc-page.js'])runInNewContext(readFileSync('public/process/'+name,'utf8'),context);
+ await context.RoutineFqcPage.mount(root);const panel=root.querySelector('details');panel.open=true;panel.dispatchEvent({type:'toggle'});await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(panel.querySelector('button').disabled,true);assert.equal(panel.querySelectorAll('button').find(b=>b.textContent.startsWith('RESET FQC')).disabled,true);assert.match(panel.textContent,lang==='vi'?/Chỉ Admin được sử dụng/:/僅 Admin 可操作/);
 });

@@ -1082,13 +1082,14 @@
     return !!(documents.length || cases.length || (calendarPolicy && startDate) || jobs.some(j => j.planId || j.completion));
   }
   function calendarAdministration() {
-    if (!data.permissions.settings || !data.permissions.edit) return '';
+    if (!data.permissions.view) return '';
     const {startDate} = data.control;
-    const locked = startDateLocked();
+    const locked = startDateLocked(), allowed=data.identity.role==='admin'&&data.permissions.settings&&data.permissions.edit;
     return `<details class="rf-fqc-administration" ${calendarSetupAvailable() ? 'open' : ''}>
       <summary>${t('FQC 特殊功能','Chức năng đặc biệt FQC')}</summary>
       <p>${t('開始日期','Ngày bắt đầu')}：${h(startDate || t('尚未啟動','Chưa bắt đầu'))}</p>
-      ${btn('settings', locked ? t('已啟動 · 日期鎖定','Đã khởi động · Khóa ngày') : t('設定開始日期並啟動','Đặt ngày bắt đầu và khởi động'),locked,'primary')}
+      ${btn('settings', locked ? t('已啟動 · 日期鎖定','Đã khởi động · Khóa ngày') : t('設定開始日期並啟動','Đặt ngày bắt đầu và khởi động'),locked||!allowed,'primary')}
+      ${!allowed?`<small>${t(data.identity.role!=='admin'?'僅 Admin 可操作':'缺少模組設定權限',data.identity.role!=='admin'?'Chỉ Admin được sử dụng':'Thiếu quyền thiết lập mô-đun')}</small>`:''}
       ${locked ? `<small>${t('既有排程的開始日期已鎖定。頻率請在資料後台 FQC 變更並送審。','Ngày bắt đầu của lịch hiện có đã khóa. Thay đổi tần suất tại Quản lý dữ liệu FQC rồi gửi duyệt.')}</small>` : ''}
     </details>`;
   }

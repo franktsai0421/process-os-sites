@@ -1,3 +1,5 @@
+Current local Admin Reset/date candidate supersedes owner-only access for these two operations; all module viewers see controls. See [acceptance and boundaries](../docs/acceptance/routine-admin-reset-20261123.md). Unrelated owner enrollment/retirement remains protected; no activation or release is implied.
+
 Current Sites derivative: see [HANDOFF](../HANDOFF.md) and [current import/build contract](../docs/sites/PHASE_SEVENTEEN_IMPORT_BUILD.md). The selected test Site ID is preserved. Protected initial import is default-off and uses exact owner/origin/target/manifest pins, persistent CAS receipts and gated activation. A separate fresh-target schema-only migration profile is generated but not adopted by the standard publication packager. Current phase-seventeen checks/build have separate source/commit receipts; old deb0e90/efaedbd runtime results remain historical. No true credentials/data or hosted acceptance. The accepted phase-nine R1 output and inherited E permissions remain unchanged. Business specifications below are retained.
 
 # PROCESS OS — 實作現況入口

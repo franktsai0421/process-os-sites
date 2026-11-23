@@ -1,3 +1,7 @@
+## 2026-11-23 — Local Admin Reset and start-date access
+
+Separate FQC/IQC Reset and date controls stay visible to module viewers and disabled for non-Admins in both languages. Server checks current platform Admin plus module permissions; default-OFF Reset retains exact Site/DB protection without individual owner enrollment for explicit version-2 activation. Date locks and unrelated owner-only operations remain. [Tests, limits and review path](../docs/acceptance/routine-admin-reset-20261123.md). No live changes.
+
 ## 2026-11-23 — Rebuilt scoped owner Reset
 
 Rebuilt default-off owner Reset and non-destructive native identity enrollment from surviving scoped Reset implementation. Separate FQC/IQC controls, durable pending settlement and replay fencing retained. New validation and source-only draft; no live activation or SQL changes. [Evidence](../docs/acceptance/routine-reset-local-20261123.md).

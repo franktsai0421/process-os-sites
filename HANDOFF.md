@@ -1,3 +1,7 @@
+## 2026-11-23 — Separate Admin Reset/date candidate (local)
+
+New branch from #141 merge b6d9b3fd: both module viewers see disabled controls unless current application Admin and applicable permissions allow them. Reset retains original-site/DB proof and default OFF; version-2 activation needs no individual owner enrollment. Date locks, independent reset/pending fences and unrelated owner controls remain. [Evidence and next off-main review step](docs/acceptance/routine-admin-reset-20261123.md). No live actions or remote upload.
+
 ## 2026-11-23 — Rebuilt scoped owner Reset
 
 New reconstruction on `fix/scoped-reset-rebuild-20261123` from surviving #139 work. Owner-only public-entry Reset plus separate protected enrollment rebuilt; 210 fresh isolated tests and TypeScript. Not the lost c8b0c198 candidate. No live changes; private recovery bundle required before draft upload. [Evidence](docs/acceptance/routine-reset-local-20261123.md).

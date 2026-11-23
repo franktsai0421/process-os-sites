@@ -1173,3 +1173,11 @@ for(const mode of ['retire','decline','different owner','legacy'])void test('IQC
  else {assert.match(ui.iqcRoot.innerHTML,/data-ri-action="recover-plan"/);ui.action('recover-plan');await new Promise(resolve=>setImmediate(resolve));}
  assert.equal(writes,mode==='retire'?1:0);assert.equal(ui.pendingWrites.get(key),mode==='retire'?undefined:id);
 });
+
+for(const lang of ['zh','vi'])void test('non-Admin sees disabled IQC date controls with Admin hint '+lang,async()=>{
+ const data={...parityState([]),identity:{id:'synthetic',role:'staff'},startDate:null,startLocked:false};data.permissions={view:true,edit:true,settings:false};
+ const ui=switchFixture(lang,{data});ui.press(ui.entry);await new Promise(setImmediate);
+ const html=ui.iqcRoot.innerHTML,controls=html.match(/<button[^>]*data-ri-action="configure"[^>]*>/g)||[];
+ assert(controls.length>0);for(const control of controls)assert.match(control,/\bdisabled\b/);
+ assert.match(html,lang==='zh'?/僅 Admin 可操作/:/Chỉ Admin được sử dụng/);assert.match(html,/rf-fqc-administration/);
+});
