@@ -1,5 +1,6 @@
+const authorityFixture=require('../scripts/routine-reset-authority-fixture.cjs');
 const assert=require('node:assert/strict'),{test}=require('node:test'),fixture=require('../scripts/fqc-apply-fixture.cjs');
-const date='2026-11-21',origin='https://synthetic.invalid';
+const date='2026-11-21',origin=authorityFixture.origin;
 for(const start of [date,'2026-11-23'])void test('same pristine fixture for FQC and IQC, start '+start,async t=>{
  t.mock.timers.enable({apis:['Date'],now:new Date(date+'T01:09:00+07:00')});
  const f=await fixture();
@@ -26,7 +27,7 @@ for(const start of [date,'2026-11-23'])void test('same pristine fixture for FQC 
  const command=(action,revision,fields={})=>({action,expectedRevision:revision,operationId:'parity-'+action+'-'+crypto.randomUUID(),...fields});
  async function call(lane,query='',cmd,status=200,cookie=f.cookies.frank){
   const method=cmd?'POST':'GET',route=f.load('app/api/routine-'+lane+'/route.ts');
-  const r=await route[method](new Request(origin+'/api/routine-'+lane+query,{method,headers:{origin,cookie,'x-process-admin-id':'frank','content-type':'application/json'},...(cmd?{body:JSON.stringify(cmd)}:{})}));
+  const r=await route[method](new Request(origin+'/api/routine-'+lane+query,{method,headers:{...authorityFixture.headers,origin,cookie,'x-process-admin-id':'frank','content-type':'application/json'},...(cmd?{body:JSON.stringify(cmd)}:{})}));
   const body=await r.json();assert.equal(r.status,status,JSON.stringify({lane,action:cmd?.action,error:body.error}));return body;
  }
  let before=saved();
@@ -101,13 +102,13 @@ for(const start of [date,'2026-11-23'])void test('same pristine fixture for FQC 
    const body={id:crypto.randomUUID(),scope:lane,confirm:'RESET '+lane.toUpperCase(),irreversibleAck:true,
      reason:'Disposable restart test',pendingCount:1,revision:saved().revision};
    const request=(payload,cookie=f.cookies.frank)=>reset(new Request(origin+'/api/routine-reset?scope='+lane,
-     {method:'POST',headers:{origin,cookie},body:JSON.stringify(payload)}));
+     {method:'POST',headers:{...authorityFixture.headers,origin,cookie},body:JSON.stringify(payload)}));
    const beforeReset=saved();
-   delete f.env.ROUTINE_RESET_DEDICATED_TEST_DB;
+   delete f.env.PROCESS_ROUTINE_RESET_ACTIVATION;
    assert.equal((await request(body)).status,403);
    f.env.ROUTINE_RESET_DEDICATED_TEST_DB={};
    assert.equal((await request(body)).status,403);
-   f.env.ROUTINE_RESET_DEDICATED_TEST_DB=f.env.DB;
+   authorityFixture.enable(f);
    assert.deepEqual(saved(),beforeReset);
    assert.equal((await request({...body,scope:'other'})).status,422);
    assert.equal((await request({...body,pendingCount:0})).status,409);
@@ -123,7 +124,7 @@ for(const start of [date,'2026-11-23'])void test('same pristine fixture for FQC 
      fetch:async(url,options)=>{
        const method=options.method||'GET';methods.push(method);
        const response=await f.load('app/api/routine-reset/route.ts')[method](new Request(origin+url,
-         {...options,method,headers:{...options.headers,origin,cookie:f.cookies.frank}}));
+         {...options,method,headers:{'oai-authenticated-user-id':authorityFixture.siteIdentity,...options.headers,origin,cookie:f.cookies.frank}}));
        if(method==='POST'){
          assert.equal(response.status,200);
          Object.assign(body,JSON.parse(options.body));
@@ -139,9 +140,9 @@ for(const start of [date,'2026-11-23'])void test('same pristine fixture for FQC 
        async()=>{readback=await call(lane);});
      assert.equal(panel.children.length,1);
    };
-   delete f.env.ROUTINE_RESET_DEDICATED_TEST_DB;await mount();assert.equal(panel.querySelector('button'),null);
+   delete f.env.PROCESS_ROUTINE_RESET_ACTIVATION;await mount();assert.equal(panel.querySelector('button'),null);
    f.env.ROUTINE_RESET_DEDICATED_TEST_DB={};await mount();assert.equal(panel.querySelector('button'),null);
-   f.env.ROUTINE_RESET_DEDICATED_TEST_DB=f.env.DB;await mount();
+   authorityFixture.enable(f);await mount();
    const opener=panel.querySelector('button');
    const openDialog=()=>{
      opener.click();
@@ -175,7 +176,7 @@ for(const start of [date,'2026-11-23'])void test('same pristine fixture for FQC 
    assert.equal((lane==='fqc'?readback.control:readback).jobs.length,0);
    const once=saved();
    const lookup=(id,cookie=f.cookies.frank)=>f.load('app/api/routine-reset/route.ts').GET(
-     new Request(origin+'/api/routine-reset?scope='+lane+'&operationId='+id,{headers:{cookie}}));
+     new Request(origin+'/api/routine-reset?scope='+lane+'&operationId='+id,{headers:{...authorityFixture.headers,cookie}}));
    assert.equal((await lookup(body.id)).status,200);
    assert.equal((await lookup(body.id,f.cookies.editor)).status,403);
    assert.equal((await lookup(crypto.randomUUID())).status,404);
@@ -219,7 +220,7 @@ void test('missing owner mapping and forged primary claims cannot set either sch
   for(const path of ['routine-fqc','routine-fqc/page','routine-iqc']){
     const route=f.load('app/api/'+path+'/route.ts');
     const command=path.endsWith('/page')?{command:{action:'save',moduleAction:'domain-v1',input:{action:'configure',startDate:date}}}:{action:'configure',operationId:crypto.randomUUID(),expectedRevision:0};
-    const result=await route.POST(new Request(origin+'/api/'+path,{method:'POST',headers:{origin,cookie,'x-process-admin-id':'frank','x-process-primary':'true'},body:JSON.stringify(command)}));
+    const result=await route.POST(new Request(origin+'/api/'+path,{method:'POST',headers:{...authorityFixture.headers,origin,cookie,'x-process-admin-id':'frank','x-process-primary':'true'},body:JSON.stringify(command)}));
     assert.equal(result.status,401,path);assert.deepEqual(stored(),before);
   }
 });

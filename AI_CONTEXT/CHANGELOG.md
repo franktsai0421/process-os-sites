@@ -1,3 +1,7 @@
+## 2026-11-23 — Rebuilt scoped owner Reset
+
+Rebuilt default-off owner Reset and non-destructive native identity enrollment from surviving scoped Reset implementation. Separate FQC/IQC controls, durable pending settlement and replay fencing retained. New validation and source-only draft; no live activation or SQL changes. [Evidence](../docs/acceptance/routine-reset-local-20261123.md).
+
 ## 2026-11-20 — 版本確認的例行檢查待審數
 
 先確認例行檢查啟用與模組權限，再讀取 FQC／IQC 待審數。PROCESS 審核的非預期請求錯誤仍保留，原操作、待審資料及審核歷史沿用既有流程。

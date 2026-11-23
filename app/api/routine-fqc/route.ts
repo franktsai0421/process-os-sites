@@ -278,6 +278,7 @@ export async function GET(request: Request) {
           ...(c.calendarPolicy ? {workflowOutcome: routineCaseOutcome(c, item)} : {}),
         })),
         receipts: {},
+        resetLedger: undefined,
       },
       sources,
       catalog: routineCatalog(state),

@@ -1,3 +1,7 @@
+## 2026-11-23 — Rebuilt scoped owner Reset
+
+Optional protected routineResetEnrollments JSON key stores bounded one-use pending/confirmed hash proofs. Public projection omits it and generic writers cannot mutate it. Per-module resetGenerationRevision/resetLedger remain independent. No SQL/schema/binding migration. [Evidence](../docs/acceptance/routine-reset-local-20261123.md).
+
 ## 2026-11-15 帳號操作回執
 
 既有 processAccessControl.audit 的非密碼帳號/角色操作可增加 optional requestId、revision；與同次帳號/角色 CAS 原子保存。只讀查證依最新 actor 與原 requestId，回傳原操作是否已 commit 及目前 raw target 是否仍等於原 after，不暴露 credential。account-only overlay 保留其他 records/allocations/legacy refs，generic partial writer 仍禁止；無 SQL/schema/migration/binding 新增或實帳回填。詳見[驗證與限制](../docs/acceptance/account-role-save-20261115/README.md)。

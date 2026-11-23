@@ -1,11 +1,34 @@
 (() => {
+  const epochKey=(scope,actor)=>'routine-reset-client-epoch:'+scope+':'+encodeURIComponent(actor);
+  const epoch=(scope,actor)=>window.localStorage?.getItem(epochKey(scope,actor))||'';
+  async function markers(rows){
+    return Promise.all(rows.map(async row=>({operationId:row.operationId,clientEvidence:Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(row.key+'\0'+row.raw))),b=>b.toString(16).padStart(2,'0')).join('')})));
+  }
+  async function settle(scope,actor,receipt,readback,rows){
+    const capturedEpoch=epoch(scope,actor),current=()=>capturedEpoch===epoch(scope,actor)&&(!window.ProcessSync?.identity||window.ProcessSync.identity.id===actor);
+    if(!current())throw Error('RESET_SETTLEMENT_SUPERSEDED');
+    if(!['fqc','iqc'].includes(scope)||receipt?.scope!==scope||receipt.actorId!==actor||!Number.isSafeInteger(receipt.generationRevision)||receipt.generationRevision<1||!Array.isArray(receipt.settlements))throw Error('RESET_SETTLEMENT_INVALID');
+    const next=await readback(),floor=scope==='fqc'?next.control?.resetGenerationRevision:next.resetGenerationRevision;
+    if(next.identity?.id!==actor||!Number.isSafeInteger(floor)||floor<receipt.generationRevision)throw Error('RESET_READBACK_REQUIRED');
+    const descriptors=await markers(rows),selected=[];
+    for(const proof of receipt.settlements){
+      if(proof.status!=='superseded-by-reset'||!['committed','registered','unknown'].includes(proof.priorOutcome))throw Error('RESET_SETTLEMENT_INVALID');
+      const i=descriptors.findIndex(d=>d.operationId===proof.operationId&&d.clientEvidence===proof.clientEvidence);
+      if(i<0){if(descriptors.some(d=>d.operationId===proof.operationId))throw Error('RESET_PENDING_CHANGED');continue;} // Already-cleared evidence is replayable; changed evidence stays blocked.
+      const row=rows[i];if(row.storage.getItem(row.key)!==row.raw)throw Error('RESET_PENDING_CHANGED');selected.push(row);
+    }
+    if(!current())throw Error('RESET_SETTLEMENT_SUPERSEDED');
+    // No awaits between final matching and removal. A storage failure keeps reset recovery.
+    for(const row of selected){if(row.storage.getItem(row.key)!==row.raw)throw Error('RESET_PENDING_CHANGED');row.storage.removeItem(row.key);if(row.storage.getItem(row.key)!==null)throw Error('RESET_PENDING_CHANGED');}
+    return next;
+  }
   async function json(url, options) {
     const res = await fetch(url, {cache:'no-store', ...options});
     const data = await res.json();
     if (!res.ok) throw Object.assign(new Error(data.error), {status:res.status});
     return data;
   }
-  function bind(root, scope, actor, t, safe, reload) {
+  function bind(root, scope, actor, t, safe, reload, pending) {
     const panel=root.querySelector('details.rf-fqc-administration');
     if(!panel || panel.querySelector('[data-reset-panel]'))return;
     const box=document.createElement('section');
@@ -34,9 +57,16 @@
     }
     async function reloadConfirmed(id){
       if(sessionStorage.getItem(key)!==id)return;
-      sessionStorage.removeItem(key);
-      try{await reload();}
-      catch{
+      try{
+        if(pending){
+          const receipt=await json(url+'&operationId='+encodeURIComponent(id));
+          if(receipt.id!==id||receipt.scope!==scope||receipt.actorId!==actor)throw Error('RESET_SETTLEMENT_INVALID');
+          await pending.settle(receipt);
+        }else await reload();
+        if(sessionStorage.getItem(key)!==id)throw Error('RESET_PENDING_CHANGED');
+        sessionStorage.removeItem(key);
+        if(pending)await reload();
+      }catch{
         if(!sessionStorage.getItem(key))sessionStorage.setItem(key,id);
         if(current())recovery(id);
       }
@@ -70,6 +100,7 @@
       };
       dialog.oncancel=event=>{event.preventDefault();dialog.close();};
       add('p',scope.toUpperCase()+' · '+t('永久清除開始日期、所有期別、計畫、報告、不合格、異常、復測、免測、處置與例行送審歷史（含待審）。保留來源主檔、頻率、照片及其他模組。','Xóa vĩnh viễn ngày bắt đầu, các kỳ, kế hoạch, báo cáo, mục không đạt, bất thường, kiểm tra lại, miễn kiểm, xử lý và lịch sử xét duyệt định kỳ, kể cả hồ sơ chờ duyệt. Giữ dữ liệu nguồn, tần suất, ảnh và các mô-đun khác.'),form);
+      if(pending)add('p',t('已列入的待確認操作將由本次 RESET 結案；查無回執不代表原操作失敗。','Các thao tác chưa xác định được kết thúc bởi RESET; thiếu biên nhận không có nghĩa thao tác đã thất bại.')+' · '+cap.pending.length,form);
       add('p',t('將清除的待審件數','Số hồ sơ chờ duyệt sẽ bị xóa')+' · '+cap.pendingCount,form);
       const reason=add('textarea','',add('label',t('清除原因','Lý do xóa'),form));
       reason.required=true;reason.maxLength=500;
@@ -90,7 +121,10 @@
       form.onsubmit=async event=>{
         event.preventDefault();
         if(busy||!current()||!dialog.open||!valid()||sessionStorage.getItem(key))return;
+        if(pending&&JSON.stringify(await pending.capture())!==JSON.stringify(cap.pending))return;
+        if(busy||!current()||!dialog.open||!valid()||sessionStorage.getItem(key))return;
         const id=crypto.randomUUID();
+        if(pending){const storage=window.localStorage,k=epochKey(scope,actor);storage.setItem(k,id);if(storage.getItem(k)!==id)return;pending.invalidate();}
         sessionStorage.setItem(key,id);
         submit.disabled=true;busy=true;
         dialog.close();
@@ -99,7 +133,7 @@
         let confirmed=false;
         try{
           const result=await json(url,{method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({scope,id,confirm:token,irreversibleAck:true,reason:reason.value.trim(),pendingCount:cap.pendingCount,revision:cap.revision})});
+            body:JSON.stringify({scope,id,confirm:token,irreversibleAck:true,reason:reason.value.trim(),pendingCount:cap.pendingCount,revision:cap.revision,...(pending?{pending:cap.pending}:{})})});
           confirmed=result.revision===cap.revision+1;
         }catch(error){
           if(current()&&['RESET_UNAVAILABLE','FORBIDDEN','INVALID_SCOPE','INVALID_CONFIRMATION','REVISION_CONFLICT','INVALID_CONTROL_REVISION'].includes(error.message)){
@@ -119,12 +153,14 @@
       if(busy||!current())return;
       const attempt=++serial;
       box.replaceChildren();
-      const pending=sessionStorage.getItem(key);
-      if(pending){recovery(pending);return;}
+      const pendingReset=sessionStorage.getItem(key);
+      if(pendingReset){recovery(pendingReset);return;}
       try{
         const cap=await json(url+'&capability=1');
         if(!current()||attempt!==serial||!panel.open||cap.available!==true||cap.actorId!==actor||cap.scope!==scope||
           !Number.isSafeInteger(cap.revision)||!Number.isSafeInteger(cap.pendingCount))return;
+        if(pending)cap.pending=await pending.capture();
+        if(!current()||attempt!==serial)return;
         const control=button(token+' · '+t('不可恢復','Không thể hoàn tác'),()=>confirmation(cap,control));
         control.disabled=!safe();
       }catch{ /* The destructive control stays unavailable. */ }
@@ -132,5 +168,5 @@
     panel.addEventListener('toggle',()=>{if(panel.open)void show();else{serial++;box.replaceChildren();}});
     if(panel.open)return show();
   }
-  window.RoutineReset={bind};
+  window.RoutineReset={bind,epoch,markers,settle};
 })();

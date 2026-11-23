@@ -1,3 +1,7 @@
+## 2026-11-23 — Rebuilt scoped owner Reset
+
+New reconstruction on `fix/scoped-reset-rebuild-20261123` from surviving #139 work. Owner-only public-entry Reset plus separate protected enrollment rebuilt; 210 fresh isolated tests and TypeScript. Not the lost c8b0c198 candidate. No live changes; private recovery bundle required before draft upload. [Evidence](docs/acceptance/routine-reset-local-20261123.md).
+
 ## 2026-11-16 — 辦公室Chrome功能續修
 
 獨立clone／fix/quality-office-fqc-ab-20261116，自最新main a1775a8（#123已合併）開始；與速度工作分開。AB provisional版本與模組儲存資訊分開顯示；FQC新增入口回歸擴至中越文與未碰取樣選單的原生預設。[根因、測試及未確認實站條件](docs/acceptance/quality-office-followup-20261116.md)。未操作Diem／業務草稿、帳號、實站API、合併或部署；公開靜態資產GET403，無法驗實際部署版本。
