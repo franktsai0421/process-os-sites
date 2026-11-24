@@ -110,7 +110,7 @@
   }
   const holdsPlan=(job,v)=>job.planId&&
     !v.data.documents.some(doc=>doc.id===job.planId&&doc.kind==='waiver'&&doc.status==='draft');
-  const available=(job,v)=>job&&job.start<=v.data.today&&job.end>=v.data.today&&!holdsPlan(job,v)&&
+  const available=(job,v)=>job&&job.canPlan!==false&&job.start<=v.data.today&&job.end>=v.data.today&&!holdsPlan(job,v)&&
     !job.completion&&!job.calendar?.stopped&&!job.calendar?.requestId&&!job.calendar?.retestCaseId;
   const canExempt=(job,v)=>available(job,v)&&!v.data.cases.some(item=>openCase(item)&&item.jobIds.includes(job.id));
   const exemptLabel=()=>t('申請當期免測','Xin miễn kiểm tra kỳ này');

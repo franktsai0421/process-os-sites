@@ -61,6 +61,11 @@ function canRequestWaiver(state:RoutineIqc,job:Job|undefined,today:string,waiver
   return !!job?.calendar&&job.start<=today&&!job.completion&&!job.calendar.stopped&&!job.calendar.retestCaseId&&
     waiverLockAvailable(state,job,waiverId)&&!state.cases.some(item=>item.jobIds.includes(job.id)&&!['closed','disposed'].includes(item.status));
 }
+// A job can remain in the calendar for history after its source changes.
+export function iqcPlanEligibility(state:RoutineIqc,latest:ReadonlyMap<string,Pick<IqcRoutineSource,'frequency'>>,today:string){
+  return (job:Job|undefined):job is Job=>!!job&&job.end>=today&&canRequestWaiver(state,job,today)&&
+    calendarCanArrange({...job,planId:null},today)&&latest.get(job.itemId)?.frequency===job.calendar?.frequency;
+}
 function releaseWaiver(state:RoutineIqc,doc:IqcDocument){
   for(const job of state.calendar.jobs.filter(job=>doc.jobs.some(line=>line.id===job.id))){
     if(job.planId===doc.id)job.planId=null;
@@ -230,8 +235,7 @@ export function executeRoutineIqc(state:RoutineIqc, command:Command, sourceState
       requireThat(Array.isArray(ids)&&ids.length>0&&ids.length<=200&&new Set(ids).size===ids.length,'IQC_WORK_REQUIRED');
       const latest=new Map(routineIqcSources(sourceState).map(source=>[source.id,source]));
       const jobs=ids.map(id=>calendar.jobs.find(job=>job.id===id));
-      requireThat(jobs.every((job):job is Job=>!!job&&job.end>=ctx.today&&canRequestWaiver(state,job,ctx.today)&&
-        calendarCanArrange({...job,planId:null},ctx.today)&&latest.get(job.itemId)?.frequency===job.calendar?.frequency),'IQC_WORK_NOT_AVAILABLE',409);
+      requireThat(jobs.every(iqcPlanEligibility(state,latest,ctx.today)),'IQC_WORK_NOT_AVAILABLE',409);
       if(command.action==='create-plan')validatePlanDates(jobs.map(job=>({...job,planId:null})),command.start||'',command.end||'',ctx.today);
       const content={...emptyContent(ctx.today),start:command.start||'',end:command.end||''};
       const kind=command.action==='create-plan'?'plan':'waiver';

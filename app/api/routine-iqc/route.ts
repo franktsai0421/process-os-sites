@@ -6,9 +6,9 @@ import {prepareRoutineIqcStart} from '@/lib/state-records';
 import { boundedJson } from '@/lib/site-security.mjs';
 import { readState, identity, routineStartupPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, responseHeaders } from '@/lib/process-state';
 import { companyDate } from '@/lib/routine-fqc';
-import { RI_KEY, routineIqcCatalog, routineIqcTimeline } from '@/lib/routine-iqc';
+import { RI_KEY, routineIqcCatalog, routineIqcSources, routineIqcTimeline } from '@/lib/routine-iqc';
 import { routineIqcAccess, routineIqcAuthorityKeys } from '@/lib/routine-iqc-access';
-import { initializeIqcCalendar, readRoutineIqc, executeRoutineIqc, iqcContentPhotos, iqcDocStatus, iqcDocContent, iqcDraftIssues, iqcCanDispose, iqcExpired, iqcStartLocked, type Command } from '@/lib/routine-iqc-workflow';
+import { iqcPlanEligibility, initializeIqcCalendar, readRoutineIqc, executeRoutineIqc, iqcContentPhotos, iqcDocStatus, iqcDocContent, iqcDraftIssues, iqcCanDispose, iqcExpired, iqcStartLocked, type Command } from '@/lib/routine-iqc-workflow';
 import { DraftConflict } from '@/lib/shared-draft';
 
 const reply=(data:unknown,status=200)=>Response.json(data,{status,headers:responseHeaders});
@@ -52,13 +52,15 @@ export async function GET(request:Request){
       const master=await readState({keys:['iqcMasterControl'],deferHistory:false});
       if(master.revision!==state.revision)throw new DraftConflict('REVISION_CONFLICT',409);
       initializeIqcCalendar(c.calendar,start,routineIqcTimeline(master),today,new Date().toISOString());
+      const latest=new Map(routineIqcSources(master).map(source=>[source.id,source]));
+      const available=c.calendar.jobs.filter(iqcPlanEligibility(c,latest,today));
       const periods=new Map<string,number>();
-      for(const job of c.calendar.jobs){
+      for(const job of available){
         const period=job.start+' ~ '+job.end;
         periods.set(period,(periods.get(period)||0)+1);
       }
-      body={start,actorId:actor.id,stateRevision:state.revision,total:c.calendar.jobs.length,periods:Array.from(periods),
-        jobs:c.calendar.jobs.map(({source,start,end})=>({code:source.code,name:source.name,start,end}))};
+      body={start,actorId:actor.id,stateRevision:state.revision,total:available.length,periods:Array.from(periods),
+        jobs:available.map(({source,start,end})=>({code:source.code,name:source.name,start,end}))};
     }else if(pendingOnly){
       body={pendingCount:c.documents.filter(doc=>iqcDocStatus(doc)==='pending').length,revision:c.revision,identityId:actor.id};
     }else if(operationId){
@@ -79,12 +81,14 @@ export async function GET(request:Request){
       const master=await readState({keys:['iqcMasterControl'],deferHistory:false,
         ...(!dateStarted?{projectValue:unstartedMaster}:{})});
       if(master.revision!==state.revision)return reply({error:'REVISION_CONFLICT'},409);
+      const catalog=routineIqcCatalog(master);
+      const eligible=iqcPlanEligibility(c,new Map(catalog.items.map(item=>[item.id,item])),today);
       const policy=calendar.calendarPolicy;
       const scheduleDue=dateStarted&&(c.lastScheduleDay!==today||routineIqcTimeline(master).some(v=>
         v.day<=today&&v.at>=(policy?.adoptedAt||'')&&!policy?.appliedVersions?.includes(v.id)));
       body={resetGenerationRevision:(c as typeof c & {resetGenerationRevision?:number}).resetGenerationRevision,today,identity:{id:actor.id,role:actor.role,name:actor.name},permissions,revision:c.revision,
-        startDate:calendar.startDate,scheduleDue,jobs:calendar.jobs,
-        cases:cases.map(item=>({...item,disposalAvailable:iqcCanDispose(c,item)})),catalog:routineIqcCatalog(master),
+        startDate:calendar.startDate,scheduleDue,jobs:calendar.jobs.map(job=>({...job,canPlan:eligible(job)})),
+        cases:cases.map(item=>({...item,disposalAvailable:iqcCanDispose(c,item)})),catalog,
         periodRules:Object.fromEntries(Object.entries(policy?.scopes||{}).map(([scope,rule])=>
           [scope,{from:rule.from,until:rule.until,frequency:rule.source.frequency}])),
         ...(actor.role==='admin'&&permissions.settings&&permissions.edit?{stateRevision:state.revision,startLocked:iqcStartLocked(c)}:{}),

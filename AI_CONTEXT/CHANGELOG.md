@@ -1,3 +1,7 @@
+## IQC start preview and selectable periods
+
+The start preview, calendar selection and plan writer apply the same job eligibility check. Superseded or expired periods remain in calendar history and existing plans keep their jobs.
+
 ## IQC date preview and Reset receipt recovery
 
 The IQC date dialog requires a successful read-only preview of the selected date and shared revision before enabling confirmation. Preview and activation use the same approved-source timeline and natural calendar periods. The normal generation command and IQC Reset can replace just the IQC record on canonical immutable storage. Legacy envelopes retain revision-checked full writes. A returning IQC tab can settle an explicitly Reset-retired operation after the server matches its account, operation and scoped ledger evidence and the tab reads the current generation. An absent receipt stays unresolved.
