@@ -441,6 +441,29 @@
         return `<button type="button" data-ri-action="facet:${key}" aria-pressed="${v.facet===key}" ${disabled?'disabled':''}>${t(zh,vi)} <b>${disabled?'—':counts.get(key).size}</b></button>`;
       }).join('')}</div></section>`;
   }
+  function repaintItemFilters(v,focusSelector){
+    const section=()=>v.root.querySelector('.rf-status-filters');
+    const focus=()=>v.root.querySelector(focusSelector);
+    const restore=window.RoutineFQCUI.keepListAnchor?.(section(),section,focus);
+    const positions=[];
+    for(let node=v.root;node;node=node.parentElement){
+      if(node.scrollTop>0)positions.push([node,node.scrollTop]);
+    }
+    render(v);
+    // A shorter list can clamp a scrolled panel or the document. Reserve only
+    // its missing scroll range; the next render naturally removes this space.
+    for(const [node,top] of positions){
+      const missing=top-Math.max(0,node.scrollHeight-node.clientHeight);
+      if(missing>0){
+        const space=document.createElement('div');
+        space.setAttribute('aria-hidden','true');
+        space.style.height=Math.ceil(missing)+'px';
+        v.root.append(space);
+      }
+      node.scrollTop=top;
+    }
+    if(restore)restore();else focus()?.focus({preventScroll:true});
+  }
   function periodFilters(v) {
     return `<form class="rf-period-search" data-ri-period-search>
       <label class="rf-period-query">${t('搜尋檢查項目','Tìm hạng mục kiểm tra')}
@@ -1144,11 +1167,12 @@
     }
     if(kind==='facet'){
       if(!facetLabels.some(([key])=>key===id)||(id!=='overdue'&&!permissions(v).history))return;
-      v.facet=v.facet===id?'':id;v.periodPages.clear();render(v);
-      v.root.querySelector('[data-ri-action="facet:'+id+'"]')?.focus({preventScroll:true});return;
+      v.facet=v.facet===id?'':id;v.periodPages.clear();
+      repaintItemFilters(v,'[data-ri-action="facet:'+id+'"]');return;
     }
     if(kind==='clear-period-filters'){
-      v.range=v.facet=v.search=v.periodFrom=v.periodTo=v.category=v.supplier=v.part='';v.periodPages.clear();render(v);return;
+      v.range=v.facet=v.search=v.periodFrom=v.periodTo=v.category=v.supplier=v.part='';v.periodPages.clear();
+      repaintItemFilters(v,'[data-ri-action="clear-period-filters"]');return;
     }
     if(['toggle-group','toggle-older','more-periods','close-older'].includes(kind)){
       const target=kind==='close-older'?'toggle-older:'+id:kind==='more-periods'?(periodFiltersActive(v)?'toggle-group:':'toggle-older:')+id:action;
@@ -1390,8 +1414,7 @@
       if(data.riSelf!==undefined)updateDecisionControls(v);
       if(data.riFilter!==undefined){
         v[data.riFilter]=el.value;v.periodPages.clear();
-        render(v);
-        v.root.querySelector(`[data-ri-filter="${data.riFilter}"]`)?.focus({preventScroll:true});
+        repaintItemFilters(v,`[data-ri-filter="${data.riFilter}"]`);
       }
       if(data.riPick!==undefined){
         const find=()=>[...v.root.querySelectorAll?.('[data-ri-pick]')||[]].find(input=>input.dataset.riPick===data.riPick);
@@ -1423,8 +1446,10 @@
           error.setAttribute('role','alert');error.textContent=t('期別起日不得晚於迄日。','Ngày đầu kỳ không được sau ngày cuối kỳ.');error.hidden=false;return;
         }
         Object.assign(v,{search:search.value,periodFrom:periodFrom.value,periodTo:periodTo.value});
-        v.periodPages.clear();render(v);
-        v.root.querySelector('[data-ri-period-search] [name="search"]')?.focus({preventScroll:true});
+        const active=document.activeElement;
+        const field=[search,periodFrom,periodTo].find(input=>input===active);
+        const selector=field?'[name="'+field.name+'"]':'[type="submit"]';
+        v.periodPages.clear();repaintItemFilters(v,'[data-ri-period-search] '+selector);
         return;
       }
       if(!form.matches('[data-ri-report-search]'))return;

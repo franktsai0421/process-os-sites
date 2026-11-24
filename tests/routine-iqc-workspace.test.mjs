@@ -39,6 +39,7 @@ function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirm
  const document={documentElement:{lang},querySelector:()=>pendingBadge,addEventListener(_name,handler){onClick=handler;},
    createElement(tag){
     if(pageDraft&&tag!=='dialog')return pageDom.document.createElement(tag);
+    if(tag==='div')return {style:{},setAttribute(){}};
     assert.equal(tag,'dialog');
     const elements={start:{value:'2026-11-19',addEventListener(){}},reason:{value:'TEST ONLY reason'},confirm:{value:'START IQC'},ack:{checked:true}};
     const help={}, submit={},preview={addEventListener(kind,handler){if(kind==='click')clickPreview=handler;}};
@@ -84,7 +85,8 @@ function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirm
   input(key,value){listeners.input({target:{dataset:{riField:key},value}});},
   filter(key,value){iqcChange({target:{dataset:{riFilter:key},value}});},
   queryReports(value){listeners.submit({target:{matches:selector=>selector==='[data-ri-report-search]',elements:{query:{value}}},preventDefault(){}});},
-  queryPeriods(values){const elements=Object.fromEntries(['search','periodFrom','periodTo'].map(key=>[key,{value:values[key]||''}]));
+  queryPeriods(values,activeField){const elements=Object.fromEntries(['search','periodFrom','periodTo'].map(key=>[key,{name:key,value:values[key]||''}]));
+   document.activeElement=elements[activeField];
    listeners.submit({target:{matches:selector=>selector==='[data-ri-period-search]',elements},preventDefault(){}});},
   preview:()=>clickPreview(),changeDate:value=>changeDate(value),adminMarkup:()=>adminModal?.innerHTML,
   dialogCount:()=>dialogCount, closeDialog:value=>closeDialog(value),
@@ -1399,3 +1401,49 @@ test('A history-disabled viewer cannot activate the historical facet on a popula
  assert.match(ui.iqcRoot.innerHTML,/data-ri-group="other"/);
  assert.doesNotMatch(ui.iqcRoot.innerHTML,/name="outcome"/);
 });
+
+
+for(const [lang,width,height,windowTop,paneTop] of [['zh',1280,900,380,0],['vi',390,844,140,520]]){
+ test('IQC filter repaint keeps viewport, scroller, selection and initiating focus at '+width+'px',async()=>{
+  const shared=manualUI(),requests=[],focus=[];
+  const jobs=Array.from({length:16},(_,i)=>parityJob('item-'+i));
+  jobs.forEach(job=>{job.source.iqc.supplierIds=['qa'];});
+  const data=parityState(jobs);
+  const ui=switchFixture(lang,{data,listNavigation:{keepListAnchor:shared.win.RoutineFQCUI.keepListAnchor},
+    simulateRequest:async(url,options)=>{requests.push(options?.method||'GET');return Response.json(data);}});
+  ui.press(ui.entry);await new Promise(resolve=>setImmediate(resolve));
+  ui.pick('item-0');
+  const root=ui.iqcRoot,doc={clientHeight:height,scrollTop:windowTop,scrollHeight:height+1000};
+  const pane={parentElement:doc,clientHeight:580,scrollTop:paneTop,scrollHeight:1800};
+  root.parentElement=pane;
+  let markup=root.innerHTML;
+  const scroller=paneTop?pane:doc;
+  const anchorTop=()=>height/2+(windowTop-doc.scrollTop)+(paneTop-pane.scrollTop);
+  root.querySelector=selector=>selector==='.rf-status-filters'?{getBoundingClientRect:()=>({top:anchorTop()})}:
+    /^(?:\[data-ri-(?:action=|filter=|period-search\]))/.test(selector)?{focus:options=>focus.push([selector,options?.preventScroll])}:null;
+  // Simulate layout clipping the old scroll offset as soon as the short DOM replaces the list.
+  Object.defineProperty(root,'innerHTML',{get:()=>markup,set:html=>{
+    markup=html;
+    scroller.scrollHeight=scroller.clientHeight+(html.includes('data-ri-group=')?1800:20);
+    scroller.scrollTop=Math.min(scroller.scrollTop,scroller.scrollHeight-scroller.clientHeight);
+  }});
+  root.append=space=>{scroller.scrollHeight+=Number.parseInt(space.style.height,10);};
+  const verify=(apply,selector,count)=>{
+    const before=anchorTop();apply();
+    assert.equal((markup.match(/data-ri-group=/g)||[]).length,count);
+    assert.equal(anchorTop(),before);
+    assert.equal(pane.scrollTop,paneTop);assert.equal(doc.scrollTop,windowTop);
+    assert.deepEqual(focus.at(-1),[selector,true]);
+  };
+  const clear=()=>verify(()=>ui.action('clear-period-filters'),'[data-ri-action="clear-period-filters"]',16);
+  verify(()=>ui.action('facet:fail'),'[data-ri-action="facet:fail"]',0);clear();
+  verify(()=>ui.filter('range','week'),'[data-ri-filter="range"]',0);clear();
+  for(const [key,value] of [['supplier','qa'],['category','cat'],['part','part']]){
+    verify(()=>ui.filter(key,value),'[data-ri-filter="'+key+'"]',16);
+  }
+  verify(()=>ui.queryPeriods({search:'absent'},'search'),'[data-ri-period-search] [name="search"]',0);
+  verify(()=>ui.queryPeriods({}),'[data-ri-period-search] [type="submit"]',16);
+  assert.match(markup,/data-ri-pick="item-0"\s+checked/);
+  assert.deepEqual(requests,['GET']);
+ });
+}
