@@ -272,7 +272,7 @@
     return [...pending].sort((a,b)=>a.localeCompare(b)).map(date=>`<p class="rf-notice">${t('頻率轉換期間，無須另排，新週期開始：','Giai đoạn đổi tần suất, không cần lập thêm. Kỳ mới bắt đầu: ')}${h(date)}</p>`).join('')+
       (overlap?`<p class="rf-notice">${t('既有計畫保留原標準，新頻率任務另行安排，不能互相抵扣。','Giữ tiêu chuẩn cũ cho kế hoạch đã lập. Lập riêng công việc tần suất mới, không thay thế lẫn nhau.')}</p>`:'');
   }
-  function periodState(v,job) {
+  function periodState(v,job,matched) {
     const history=v.data.documents.filter(doc=>doc.jobs.some(line=>line.id===job.id));
     const plan=history.find(doc=>doc.id===job.planId&&!doc.cancelledAt),report=initialReport(v,job);
     const currentDocs=history.filter(doc=>activeDoc(doc)&&!doc.caseId);
@@ -297,7 +297,7 @@
       plan?.expired?t('既有計畫含逾期項目，只能查看','Kế hoạch có hạng mục quá hạn, chỉ được xem'):
       active?.kind==='waiver'&&active.status==='pending'?t('免測申請待審','Đề nghị miễn đang chờ duyệt'):
       job.completion?t('此期已有處理紀錄','Kỳ này đã được xử lý'):holdsPlan(job,v)?t('已加入既有計畫','Đã có trong kế hoạch'):'';
-    const destinations=followups.map(item=>{
+    const destinations=followups.filter(item=>!matched||matched.get(batchKey(item.batch))?.flags.has(v.facet)).map(item=>{
       const stage=item.status==='retest'?'report':item.result;
       const action=item.status==='retest'?'tab:report':'case:'+item.id;
       return periodLink(action,label(stage)+' · ERP '+item.batch.batchNo);
@@ -335,7 +335,7 @@
     (!v.supplier||job.source.iqc.supplierIds?.includes(v.supplier));
   const normalized = value => String(value??'').normalize('NFKC').toLocaleLowerCase();
   const matchesQuery=(value,query)=>normalized(query).trim().split(/\s+/).every(term=>normalized(value).includes(term));
-  const periodFiltersActive=v=>!!(v.periodFrom||v.periodTo||v.outcome);
+  const periodFiltersActive=v=>!!(v.periodFrom||v.periodTo||v.outcome||v.range||v.facet||v.supplier||v.part||v.category||v.search);
   function matchesOutcome(v,job) {
     if(!v.outcome)return true;
     return periodResults(v,job,initialReport(v,job)).some(({item,attempts,passed})=>
@@ -346,6 +346,108 @@
   const matchesFilters=(job,v)=>inPartScope(job,v)&&(!v.part||job.source.iqc.partId===v.part)&&
     (!v.periodFrom||job.end>=v.periodFrom)&&(!v.periodTo||job.start<=v.periodTo)&&matchesOutcome(v,job)&&
     matchesQuery([job.source.name,job.source.code,job.source.category,...job.source.products.flatMap(part=>[part.code,part.name])].join(' '),v.search);
+  const facetLabels=[
+    ['overdue','目前逾期','Hiện quá hạn'],['initial-pass','初測合格','Đạt lần đầu'],
+    ['fail','曾不合格','Từng không đạt'],['retest-pass','曾復測合格','Từng thử lại đạt'],
+    ['retest-fail','曾復測不合格','Từng thử lại không đạt'],['disposal','曾申請處置','Từng gửi đề nghị xử lý']
+  ];
+  function sourceOptions(v){
+    const categories=new Map(v.data.catalog.categories.map(c=>[c.id,c.name]));
+    const supplierNames=new Map((v.data.catalog.suppliers||[]).map(s=>[s.id,s.name]));
+    const parts=new Map();
+    for(const job of v.data.jobs){
+      const src=job.source.iqc;
+      if(src.categoryId&&!categories.has(src.categoryId))categories.set(src.categoryId,job.source.category||src.categoryId);
+      for(const id of src.supplierIds||[])if(!supplierNames.has(id))supplierNames.set(id,id);
+      parts.set(src.partId,job.source.products[0]);
+    }
+    const options=map=>Array.from(map,([id,name])=>({id,name}));
+    return {cats:options(categories),suppliers:options(supplierNames),parts,supplierNames};
+  }
+  function rangeStart(today,range){
+    if(!range)return '';
+    const date=new Date(today+'T00:00:00Z'),day=date.getUTCDate();
+    if(range==='week')date.setUTCDate(day-7);
+    else{
+      if(!['1','3','6','12'].includes(range))return '';
+      date.setUTCDate(1);date.setUTCMonth(date.getUTCMonth()-Number(range));
+      const end=new Date(date);end.setUTCMonth(end.getUTCMonth()+1,0);
+      date.setUTCDate(Math.min(day,end.getUTCDate()));
+    }
+    return date.toISOString().slice(0,10);
+  }
+  // Keep evidence at its recorded original inspection and ERP batch. A case can
+  // contain several inspections initially and cover fewer after each retest.
+  function batchEvidence(v){
+    const evidence=new Map(),cases=new Map(v.data.cases.map(c=>[c.id,c]));
+    if(!permissions(v).history)return evidence;
+    function entry(jobId,batch,create){
+      if(!jobId||!batch?.batchNo||!batch.partId)return;
+      if(create&&!evidence.has(jobId))evidence.set(jobId,new Map());
+      const rows=evidence.get(jobId),key=batchKey(batch);
+      if(create&&!rows.has(key))rows.set(key,{batch,flags:new Set(),attempts:[],origins:new Set(),reviews:[]});
+      return rows?.get(key);
+    }
+    for(const doc of v.data.documents){
+      if(doc.kind!=='report'||doc.status!=='approved'||doc.cancelledAt)continue;
+      const jobIds=new Set(doc.jobs.map(job=>job.id));
+      for(const row of doc.flow.active?.content?.inspections||[]){
+        if(!jobIds.has(row.jobId))continue;
+        const e=entry(row.jobId,row.batch,true);if(!e)continue;
+        e.origins.add(doc.id);e.attempts.push(row.outcome);
+        if(row.outcome==='pass')e.flags.add('initial-pass');
+        if(row.outcome==='fail')e.flags.add('fail');
+      }
+    }
+    for(const doc of v.data.documents){
+      const c=cases.get(doc.caseId);if(!c?.batch)continue;
+      if(doc.kind==='retest-report'&&doc.status==='approved'&&!doc.cancelledAt){
+        const jobIds=new Set(doc.jobs.map(job=>job.id));
+        for(const row of doc.flow.active?.content?.inspections||[]){
+          const e=entry(row.jobId,row.batch,false);
+          if(!e?.origins.has(c.originReportId)||batchKey(row.batch)!==batchKey(c.batch)||!jobIds.has(row.jobId))continue;
+          e.attempts.push(row.outcome);
+          if(row.outcome==='fail'){e.flags.add('fail');e.flags.add('retest-fail');}
+          if(row.outcome==='pass')e.flags.add('retest-pass');
+        }
+      }
+      if(doc.kind==='disposal'){
+        const review=doc.flow.cases?.filter(r=>['pending','approved','returned','withdrawn'].includes(r.status)).at(-1);
+        if(!review)continue;
+        for(const job of doc.jobs){
+          const e=entry(job.id,c.batch,false);
+          if(e?.origins.has(c.originReportId)){e.flags.add('disposal');e.reviews.push(review.status);}
+        }
+      }
+    }
+    return evidence;
+  }
+  function matchedBatches(rows,facet){
+    return [...(rows?.values()||[])].filter(e=>e.flags.has(facet)).map(e=>
+      `<p>${batchLabel(e.batch)} · ${e.attempts.map((x,i)=>t(i?'複測':'初測',i?'Thử lại · ':'Lần đầu · ')+h(label(x))).join(' → ')}${facet==='disposal'?' · '+e.reviews.map(x=>h(label(x))).join(', '):''}</p>`).join('');
+  }
+  function facetList(v){
+    const cutoff=rangeStart(v.data.today,v.range),counts=new Map(facetLabels.map(([key])=>[key,new Set()]));
+    const filtered=[],evidence=batchEvidence(v);
+    for(const job of v.data.jobs){
+      if(!matchesFilters(job,v)||cutoff&&(job.end<=cutoff||job.end>v.data.today))continue;
+      const flags=new Set();
+      if(job.end<v.data.today&&!job.completion&&!job.calendar?.stopped&&!job.calendar?.retestCaseId&&!holdsPlan(job,v))flags.add('overdue');
+      for(const e of evidence.get(job.id)?.values()||[])for(const flag of e.flags)flags.add(flag);
+      for(const flag of flags)counts.get(flag).add(job.source.iqc.itemId||job.itemId);
+      if(!v.facet||flags.has(v.facet))filtered.push(job);
+    }
+    return {counts,filtered,evidence};
+  }
+  function statusFilters(v,counts){
+    const ranges=[['','全部','Tất cả'],['week','最近一週','Một tuần qua'],['1','最近一個月','Một tháng qua'],['3','最近一季','Ba tháng qua'],['6','最近半年','Sáu tháng qua'],['12','最近一年','Một năm qua']];
+    return `<section class="rf-status-filters"><header><strong>${t('狀態篩選','Lọc trạng thái')}</strong>${button('clear-period-filters',t('清除所有篩選','Xóa tất cả bộ lọc'))}</header>
+      <label>${t('期別範圍','Phạm vi kỳ')}<select data-ri-filter="range">${ranges.map(([id,zh,vi])=>`<option value="${id}" ${id===v.range?'selected':''}>${t(zh,vi)}</option>`).join('')}</select></label>
+      <div class="rf-status-tiles">${facetLabels.map(([key,zh,vi])=>{
+        const disabled=key!=='overdue'&&!permissions(v).history;
+        return `<button type="button" data-ri-action="facet:${key}" aria-pressed="${v.facet===key}" ${disabled?'disabled':''}>${t(zh,vi)} <b>${disabled?'—':counts.get(key).size}</b></button>`;
+      }).join('')}</div></section>`;
+  }
   function periodFilters(v) {
     const outcomes=[['',t('全部結果','Tất cả kết quả')],['ever-fail',t('曾有不合格','Từng không đạt')],
       ['retest-pass',t('不合格後復測合格','Thử lại đạt sau khi không đạt')],
@@ -358,11 +460,14 @@
       <label class="rf-period-outcome">${t('歷史結果','Kết quả lịch sử')}<select name="outcome">${outcomes.map(([value,title])=>
         `<option value="${value}" ${value===v.outcome?'selected':''}>${title}</option>`).join('')}</select></label>
       <div class="rf-period-filter-actions"><button type="submit" class="rf-btn">${t('搜尋','Tìm')}</button>
-      ${v.search||periodFiltersActive(v)||v.category||v.supplier||v.part?button('clear-period-filters',t('清除篩選','Xóa bộ lọc')):''}</div>
-      <p role="alert" data-ri-period-error hidden></p></form>`;
+      </div>
+      <p data-ri-period-error hidden></p></form>`;
   }
   const selections=v=>v.data.jobs.filter(job=>v.checked.has(job.id));
-  const hiddenSelections=v=>selections(v).filter(job=>!matchesFilters(job,v));
+  const hiddenSelections=v=>{
+    const shown=new Set(facetList(v).filtered.map(job=>job.id));
+    return selections(v).filter(job=>!shown.has(job.id));
+  };
   const periodOf=job=>`${h(label(job.source.frequency))} · ${h(job.start)} — ${h(job.end)}`;
   function periodCaption(job){
     const year=job.start.slice(0,4),month=Number(job.start.slice(5,7)),frequency=job.calendar?.frequency||job.source.frequency;
@@ -393,12 +498,15 @@
     </section>`;
   }
   function jobList(v) {
-    const cats=v.data.catalog.categories;
-    const filtered=v.data.jobs.filter(job=>matchesFilters(job,v));
-    const suppliers=v.data.catalog.suppliers||[];
-    const parts=new Map(v.data.jobs.filter(job=>inPartScope(job,v)).map(job=>[job.source.iqc.partId,job.source.products[0]]));
-    const hidden=hiddenSelections(v);
-    const states=new Map(filtered.map(job=>[job.id,periodState(v,job)]));
+    const {filtered,counts,evidence}=facetList(v);
+    const {cats,suppliers,parts,supplierNames}=sourceOptions(v);
+    const filters=`<div class="rf-source-filters"><label>${t('零件類別','Nhóm linh kiện')}<select data-ri-filter="category"><option value="">${t('全部','Tất cả')}</option>${cats.map(c=>`<option value="${h(c.id)}" ${c.id===v.category?'selected':''}>${h(c.name)}</option>`).join('')}</select></label>
+      <label>${t('供應商','Nhà cung cấp')}<select data-ri-filter="supplier"><option value="">${t('全部','Tất cả')}</option>
+        ${suppliers.map(supplier=>`<option value="${h(supplier.id)}" ${supplier.id===v.supplier?'selected':''}>${h(supplier.name)}</option>`).join('')}</select></label>
+      <label>${t('零件','Linh kiện')}<select data-ri-filter="part"><option value="">${t('全部','Tất cả')}</option>${[...parts].map(([id,p])=>`<option value="${h(id)}" ${id===v.part?'selected':''}>${h(p.code+' · '+p.name)}</option>`).join('')}</select></label></div>${statusFilters(v,counts)}`;
+    const matchedIds=new Set(filtered.map(job=>job.id));
+    const hidden=selections(v).filter(job=>!matchedIds.has(job.id));
+    const states=new Map(filtered.map(job=>[job.id,periodState(v,job,v.facet?evidence.get(job.id):null)]));
     const row=job=>{
       const {history,results,state,reason,next,tone,waived}=states.get(job.id);
       const canPick=available(job,v)&&canArrange(v);
@@ -410,11 +518,13 @@
           <span class="rf-period-overview"><b title="${periodOf(job)}">${h(periodCaption(job))}</b>
           <span class="rf-period-lock" id="${h(reasonId)}">${canPick?t('可勾選','Có thể chọn'):t('不可勾選','Không thể chọn')+' · '+h(shownReason)}</span></span>
         </label>
+        <p>${t('當期核准來源供應商','Nhà cung cấp theo nguồn đã duyệt của kỳ')} · ${h(job.source.iqc.supplierIds?.map(id=>supplierNames.get(id)||id).join(', ')||t('未記錄','Chưa ghi nhận'))}</p>
+        ${v.facet==='overdue'?`<p class="rf-period-late">${t('到期日','Hạn kiểm tra')} ${h(job.end)} · ${Math.round((Date.parse(v.data.today)-Date.parse(job.end))/86400000)} ${t('天逾期','ngày quá hạn')}</p>`:''}
         <div class="rf-period-location"><small>${t('目前狀態','Trạng thái hiện tại')}</small>
           <span class="rf-period-chip ${tone}">${h(state)}</span><span>${t('接續頁面','Trang tiếp tục')}：${next||h(canPick?
           t('檢查項目勾選後建立檢查計畫','Chọn hạng mục rồi tạo kế hoạch kiểm tra'):t('流程歷史（唯讀）','Lịch sử (chỉ đọc)'))}</span></div>
         <div class="rf-period-results"><small>${t('核准結果與結案','Kết quả đã duyệt và đóng hồ sơ')}</small>
-          <div>${waived?h(t('當期已核准免測 · 已結案','Đã duyệt miễn kỳ này · Đã đóng')):inspectionResults(v,results)||
+          <div>${waived?h(t('當期已核准免測 · 已結案','Đã duyệt miễn kỳ này · Đã đóng')):(v.facet&&v.facet!=='overdue'?matchedBatches(evidence.get(job.id),v.facet):inspectionResults(v,results))||
             h(t('尚無已核准正式結果','Chưa có kết quả chính thức được duyệt'))}</div></div>
         ${canExempt(job,v)?`<div class="rf-period-exemption">${button('waive-period:'+job.id,exemptLabel(),!canArrange(v))}</div>`:''}
         ${permissions(v).history?`<details class="rf-period-history" data-ri-period-history="${h(job.id)}" ${v.openHistories.has(job.id)?'open':''}><summary>${t('流程歷史與結果（唯讀）','Lịch sử và kết quả (chỉ đọc)')}</summary>
@@ -424,22 +534,22 @@
     if(!v.data.jobs.length){
       const noSources=t('請到資料後台 IQC 核對已核准的零件分類和檢查項目。例行檢查會抓取已核准的標準時間頻率。','Kiểm tra nhóm linh kiện và hạng mục đã duyệt trong Quản lý dữ liệu IQC. Lịch dùng tần suất định kỳ chuẩn đã duyệt.');
       const openMaster=window.hasPermission?.('iqc.view')?button('open-master',t('前往資料後台 IQC','Mở Quản lý dữ liệu IQC')):'';
-      if(!startDate)return emptyList(t('IQC 排程尚未啟動','Lịch IQC chưa bắt đầu'),
+      if(!startDate)return filters+periodFilters(v)+emptyList(t('IQC 排程尚未啟動','Lịch IQC chưa bắt đầu'),
         !standard ? t('目前沒有可排程的 IQC 檢查項目。','Hiện chưa có hạng mục IQC để lập lịch. ')+noSources : t('設定開始日期後，這裡會列出可勾選的當期檢查項目。','Sau khi đặt ngày bắt đầu, danh sách sẽ hiển thị hạng mục có thể chọn trong kỳ.'),
         (!standard ? openMaster : '')+(canConfigure(v)?button('configure',t('設定開始日期','Đặt ngày bắt đầu'),startLocked(v)||!!v.pending||v.busy||edited(v),true):''));
-      if(!standard)return emptyList(t('沒有可排程的 IQC 檢查項目','Chưa có hạng mục IQC để lập lịch'),noSources,openMaster);
-      return emptyList(t('目前沒有應檢工作','Hiện chưa có công việc kiểm tra'),
+      if(!standard)return filters+periodFilters(v)+emptyList(t('沒有可排程的 IQC 檢查項目','Chưa có hạng mục IQC để lập lịch'),noSources,openMaster);
+      return filters+periodFilters(v)+emptyList(t('目前沒有應檢工作','Hiện chưa có công việc kiểm tra'),
         startDate>v.data.today?t('排程開始日為 ','Lịch bắt đầu ngày ')+startDate:
           t('請核對頻率與期別，或重新整理以讀取最新工作。','Kiểm tra tần suất và kỳ hoặc tải lại công việc mới nhất.'));
     }
     const groups=new Map();
-    for(const job of filtered.slice().sort((a,b)=>b.start.localeCompare(a.start)||b.end.localeCompare(a.end))){
+    for(const job of filtered.slice().sort((a,b)=>v.facet==='overdue'?a.end.localeCompare(b.end):b.start.localeCompare(a.start)||b.end.localeCompare(a.end))){
       const id=job.source.iqc.itemId||job.itemId;
       if(!groups.has(id))groups.set(id,[]);
       groups.get(id).push(job);
     }
     const group=([id,jobs])=>{
-      const latest=jobs.find(job=>job.start<=v.data.today&&!job.calendar?.stopped)||jobs[0];
+      const latest=(v.facet==='overdue'?jobs.at(-1):jobs.find(job=>job.start<=v.data.today&&!job.calendar?.stopped))||jobs[0];
       const {state,tone}=states.get(latest.id);
       const {current,older}=periodFiltersActive(v)?{current:jobs,older:[]}:groupPeriods(v,jobs,states);
       const picked=jobs.filter(job=>v.checked.has(job.id)).length,expanded=v.openGroups.has(id);
@@ -470,10 +580,7 @@
     };
     return `<section class="ri-pick-work">
       ${!permissions(v).create||!permissions(v).edit?`<p class="rf-notice">${t('此帳號可查看項目。建立計畫需要編輯及新增權限。','Tài khoản có thể xem. Cần quyền sửa và tạo để lập kế hoạch.')}</p>`:''}
-      <div class="rf-source-filters"><label>${t('零件類別','Nhóm linh kiện')}<select data-ri-filter="category"><option value="">${t('全部','Tất cả')}</option>${cats.map(c=>`<option value="${h(c.id)}" ${c.id===v.category?'selected':''}>${h(c.name)}</option>`).join('')}</select></label>
-      <label>${t('供應商','Nhà cung cấp')}<select data-ri-filter="supplier"><option value="">${t('全部','Tất cả')}</option>
-        ${suppliers.map(supplier=>`<option value="${h(supplier.id)}" ${supplier.id===v.supplier?'selected':''}>${h(supplier.name)}</option>`).join('')}</select></label>
-      <label>${t('零件','Linh kiện')}<select data-ri-filter="part"><option value="">${t('全部','Tất cả')}</option>${[...parts].map(([id,p])=>`<option value="${h(id)}" ${id===v.part?'selected':''}>${h(p.code+' · '+p.name)}</option>`).join('')}</select></label></div>
+      ${filters}
       <div class="rf-calendar-toolbar"><b data-ri-pick-count role="status">${t('已選','Đã chọn')} ${v.checked.size} ${t('項','hạng mục')}</b>
         ${button('create-plan',t('建立檢查計畫','Tạo kế hoạch kiểm tra'),!v.checked.size||!canArrange(v),true)}
         ${button('create-waiver',exemptLabel(),!v.checked.size||!canArrange(v)||!selections(v).every(job=>canExempt(job,v)))}
@@ -1047,8 +1154,13 @@
       if(window.hasPermission?.('iqc.view'))await window.ProcessDeliveryNavigation?.navigate?.('data','quality-iqc','quality');
       return;
     }
+    if(kind==='facet'){
+      if(!facetLabels.some(([key])=>key===id)||(id!=='overdue'&&!permissions(v).history))return;
+      v.facet=v.facet===id?'':id;v.periodPages.clear();render(v);
+      v.root.querySelector('[data-ri-action="facet:'+id+'"]')?.focus({preventScroll:true});return;
+    }
     if(kind==='clear-period-filters'){
-      v.search=v.periodFrom=v.periodTo=v.outcome=v.category=v.supplier=v.part='';v.periodPages.clear();render(v);return;
+      v.range=v.facet=v.search=v.periodFrom=v.periodTo=v.outcome=v.category=v.supplier=v.part='';v.periodPages.clear();render(v);return;
     }
     if(['toggle-group','toggle-older','more-periods','close-older'].includes(kind)){
       const target=kind==='close-older'?'toggle-older:'+id:kind==='more-periods'?(periodFiltersActive(v)?'toggle-group:':'toggle-older:')+id:action;
@@ -1289,9 +1401,7 @@
       const el=event.target, data=el.dataset;
       if(data.riSelf!==undefined)updateDecisionControls(v);
       if(data.riFilter!==undefined){
-        v[data.riFilter]=el.value;
-        if(['category','supplier'].includes(data.riFilter)&&v.part&&
-          !v.data.jobs.some(job=>inPartScope(job,v)&&job.source.iqc.partId===v.part))v.part='';
+        v[data.riFilter]=el.value;v.periodPages.clear();
         render(v);
         v.root.querySelector(`[data-ri-filter="${data.riFilter}"]`)?.focus({preventScroll:true});
       }
@@ -1322,7 +1432,7 @@
         const {search,periodFrom,periodTo,outcome}=form.elements;
         if(periodFrom.value&&periodTo.value&&periodFrom.value>periodTo.value){
           const error=form.querySelector('[data-ri-period-error]');
-          error.textContent=t('期別起日不得晚於迄日。','Ngày đầu kỳ không được sau ngày cuối kỳ.');error.hidden=false;return;
+          error.setAttribute('role','alert');error.textContent=t('期別起日不得晚於迄日。','Ngày đầu kỳ không được sau ngày cuối kỳ.');error.hidden=false;return;
         }
         Object.assign(v,{search:search.value,periodFrom:periodFrom.value,periodTo:periodTo.value,outcome:outcome.value});
         v.periodPages.clear();render(v);
@@ -1354,7 +1464,7 @@
     if(!root)return;
     const v={root,review,owner:owner(),client:crypto.randomUUID(),sequence:0,
       data:null,tab:'sources',doc:review?new URL(location.href).searchParams.get('riDocument'):null,target:null,
-      checked:new Set(),openGroups:new Set(),openOlder:new Set(),openHistories:new Set(),periodPages:new Map(),workState:'',category:'',supplier:'',part:'',search:'',periodFrom:'',periodTo:'',outcome:'',adminOpen:false,reviewHistory:false,reviewKind:'',reportQuery:'',showHidden:false,removedPicks:0,draft:null,base:null,error:'',pending:null,busy:false};
+      checked:new Set(),openGroups:new Set(),openOlder:new Set(),openHistories:new Set(),periodPages:new Map(),workState:'',range:'',facet:'',category:'',supplier:'',part:'',search:'',periodFrom:'',periodTo:'',outcome:'',adminOpen:false,reviewHistory:false,reviewKind:'',reportQuery:'',showHidden:false,removedPicks:0,draft:null,base:null,error:'',pending:null,busy:false};
     view=v;bind(v);render(v);
     try{await load(v);if(!review&&v.data.scheduleDue&&permissions(v).edit&&!v.pending)await generateSchedule(v);}
     catch(error){if(current(v)){v.error=errorText(error.message);render(v);}}
