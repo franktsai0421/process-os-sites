@@ -165,7 +165,7 @@
       ? `<small class="rf-receipt-reference">${t('原操作編號','Mã thao tác gốc')} · <code>${h(meta.operationId)}</code></small>` : '';
     const minimize=feedback?.status==='missing';
     if(minimize&&feedback.collapsed)
-      return `<section class="rf-notice rf-receipt-compact" data-rf-receipt-panel aria-label="${t('FQC 操作待查證','Thao tác FQC cần xác minh')}"><span role="status">${t('有 1 筆操作待查證','Có 1 thao tác cần xác minh')}</span><button type="button" class="rf-btn" data-action="receipt-show" aria-expanded="false">${t('查看','Xem')}</button>${reference}</section>`;
+      return `<div class="rf-receipt-compact" data-rf-receipt-panel><button type="button" class="rf-btn" data-action="receipt-show" aria-expanded="false">${t('操作收據','Biên nhận thao tác')}</button></div>`;
     const expanding=minimize?`<button type="button" class="rf-btn" data-action="receipt-minimize" aria-expanded="true">${t('稍後查證／收起提示','Xác minh sau / Thu gọn')}</button>`:'';
     const retire=minimize&&receiptRecord?.meta.action==='draft'&&['apply','save','submit'].includes(receiptRecord.meta.innerAction)?btn('reconcile-draft',t('核對最新文件並處理舊請求','Đối chiếu hồ sơ và xử lý yêu cầu cũ')):minimize&&receiptRecord?.meta.action==='create-plan'&&receiptRecord.meta.operationId.startsWith('plan-fqc-')?btn('recover-plan',t('查證或終止這筆建計畫','Kiểm tra hoặc dừng yêu cầu lập kế hoạch này')):minimize&&recoverableFirstStart()?btn('retire-first-start',t('處理未確認的首次啟動','Xử lý lần khởi động đầu chưa xác nhận')):'';
     const lookup=s.retry?btn('retry',t('查原操作收據（不重送）','Kiểm tra biên nhận (không gửi lại)')):'';
@@ -507,7 +507,7 @@
   function sampleNames(l, samples) {
     return samples.map(code => {
       const index = l.source.products.findIndex(product => product.code === code);
-      return t('樣品','Mẫu') + (index >= 0 ? ' ' + (index + 1) : '');
+      return index >= 0 ? String(index+1) : '—';
     }).join(' / ');
   }
   function issueText(issue) {
@@ -515,10 +515,8 @@
       d = doc(), line = (s.buffers.get(d?.id) || d?.flow.working)?.lines.find((l) => l.id === ids[0]),
       row = line?.results.findIndex((r) => r.id === ids[1]);
     const prefix = line ? line.source.name + (row >= 0 ? ' · ' + t('結果列', 'Dòng kết quả') + ' ' + (row + 1) : '') + '：' : '';
-    if (issue.message === 'RETEST_REQUIRED_SAMPLES' && line) {
-      const missing = requiredForLine(d, line).filter((code) => !line.results.flatMap((r) => r.samples).includes(code));
-      return prefix + t('尚未涵蓋上次未通過樣品：', 'Chưa bao gồm mẫu chưa đạt lần trước: ') + sampleNames(line, missing) + t('。請在此項目建立複測結果列，再填本次結果。', '. Tạo dòng thử lại của hạng mục rồi nhập kết quả lần này.');
-    }
+    if (issue.message === 'RETEST_REQUIRED_SAMPLES' && line)
+      return prefix + t('請補齊此項目的複測結果列。','Hãy hoàn tất các dòng kết quả thử lại của hạng mục này.');
     return prefix + (issueNames[issue.message] ? t(...issueNames[issue.message]) : issue.message || issue.code);
   }
   function fault(e,receiptAttempt=false) {
@@ -538,10 +536,10 @@
           ? receiptReadbackNotice()
           : e.message==='OPERATION_NOT_FOUND'&&s.retry
             ? receiptMissingNotice()
-            : (issueNames[e.message] ? t(...issueNames[e.message]) : e.message) || String(e);
+            : e.message==='PREVIOUS_OPERATION_UNKNOWN' ? receiptNotice() : (issueNames[e.message] ? t(...issueNames[e.message]) : e.message) || String(e);
     s.issues = e.details?.issues || e.details || [];
     if (!Array.isArray(s.issues)) s.issues = [];
-    if (!s.issues.length && e.message !== 'VALIDATION_FAILED') s.issues = [{ message: s.error, path: [] }];
+    if (!s.issues.length && e.message !== 'VALIDATION_FAILED' && !(receiptAttempt && e.status===404 && e.message==='OPERATION_NOT_FOUND')) s.issues = [{ message: s.error, path: [] }];
     paint();
   }
   async function post(command, accepts) {
@@ -679,7 +677,7 @@
   let historySearch, historyLanguage, pendingHistoryItem;
   async function ensureHistorySearch() {
     if (!historySearch) {
-      const workflowModule = await import('/process/routine-fqc-search.mjs?v=20261123-item-display1');
+      const workflowModule = await import('/process/routine-fqc-search.mjs?v=20261124-receipt-display1');
       historySearch = workflowModule.createHistorySearch({getData: () => data, readPreview: () => read('?search-preview=1')});
     }
   }
@@ -1373,7 +1371,7 @@
   }
   function historyDocumentBody(d, snapshot, lineage, stamp){
     const field = (name,value) => value ? `<div><dt>${name}</dt><dd>${h(value)}</dd></div>` : '';
-    const row = (l,r) => `<li><strong>${h(label(r.outcome))}</strong>${r.samples?.length?`<span>${h(sampleNames(l,r.samples))}</span>`:''} ${r.value?`<p>${h(r.value)}</p>`:''}${r.disposalReason?`<p>${t('處置原因','Lý do xử lý')} · ${h(r.disposalReason)}</p>`:''}${r.notes?`<p>${h(r.notes)}</p>`:''}<div class="rf-photos">${(r.photos||[]).map(photo).join('')}</div></li>`;
+    const row = r => `<li><strong>${h(label(r.outcome))}</strong> ${r.value?`<p>${h(r.value)}</p>`:''}${r.disposalReason?`<p>${t('處置原因','Lý do xử lý')} · ${h(r.disposalReason)}</p>`:''}${r.notes?`<p>${h(r.notes)}</p>`:''}<div class="rf-photos">${(r.photos||[]).map(photo).join('')}</div></li>`;
     return `<section class="rf-history-snapshot"><h3>${h(snapshot.title||displayNumber(d))}</h3>
       <p>${h(reportLabel(d))} · ${h(stamp)}</p>
       <dl class="rf-plan-facts">
@@ -1386,7 +1384,7 @@
       ${field(t('跳過原因','Lý do bỏ qua'),snapshot.skipReason)}${field(t('逾期原因','Lý do quá hạn'),snapshot.overdueReason)}
       ${field(t('備註','Ghi chú'),snapshot.notes)}</dl>
       ${snapshot.lines.filter(l=>!lineage||lineage.has(l.jobId)).map(l=>`<article class="rf-period-record"><header><strong>${h(l.source.name)}</strong><small>${h(l.source.code)} · ${t('版本','Phiên bản')} ${h(l.source.version)}</small></header>
-      <p>${h(l.source.description)}</p>${l.results.length?`<ol>${l.results.map(r=>row(l,r)).join('')}</ol>`:''}</article>`).join('')}
+      <p>${h(l.source.description)}</p>${l.results.length?`<ol>${l.results.map(row).join('')}</ol>`:''}</article>`).join('')}
       <div class="rf-photos">${(snapshot.evidence||[]).map(photo).join('')}</div></section>`;
   }
   function openTimelineDocument(button){
@@ -2052,11 +2050,9 @@
     const jobs = c.lines.map((l) =>
       data.control.jobs.find((j) => j.id === l.jobId),
     );
-    const linkedCase = d.caseId && data.control.cases.find(item=>item.id===d.caseId);
-    const caseLine = linkedCase && c.lines.find(line=>line.jobId===linkedCase.jobId);
     const complete = jobs.filter((j) => j.completion).length;
     const _pending = d.flow.cases.find((a) => a.id === d.flow.pendingId);
-    return `<article class="rf-document">${frozen?`<p class="rf-notice" role="status">${t('已逾期 · 計畫僅供查看，不能修改、刪除或重新送審；已保存內容與操作紀錄保留，下一期依原頻率安排。','Quá hạn · Kế hoạch chỉ đọc, không sửa, xóa hoặc gửi lại; giữ nội dung đã lưu và lịch sử, kỳ tiếp theo theo tần suất hiện có.')}</p>`:''}<div class="rf-draft-header"></div>${issuePanels(d, c)}<div class="rf-operation-log"><ol>${(d.lifecycle || []).map((a) => `<li>${h(a.at)} · ${h(a.actor.name)} · ${h(label(a.action))}</li>`).join('')}${d.flow.cases.map((a) => `<li>${h(a.at)} · ${h(a.actor.name)} · ${h(a.reason)} · ${h(a.status)}${a.result ? ` · ${h(a.result.actor?.name)} · ${h(a.result.at)}` : ''}</li>`).join('')}</ol></div><div class="rf-actions">${status(d) === 'draft' ? btn('save', t('儲存', 'Lưu'), !p.save, 'primary') + btn('submit', t('送審', 'Gửi duyệt'), !p.submit || !d.flow.saved || legacyCalendarFollowup(d) || (calendarMode()&&d.calendarVersion!==2)) : ''}${status(d) === 'draft' ? btn('discard', t('捨棄草稿', 'Bỏ bản nháp'), !p.edit || (!!d.flow.active.id && !p.revoke), 'danger') : ''}${status(d) === 'pending' ? btn('review', t('審核', 'Duyệt'), !p.approve && !p.return) + btn('withdraw', t('撤回', 'Rút lại'), !p.withdraw) : ''}</div>${cancellationPanel(d)}${approvalPanel(d)}<h3 class="rf-number ${reportType(d)}">${h(displayNumber(d))}</h3>${legacyNumber(d)}${retestLinks(d)}${btn('expand-report', s.wide ? t('回到左右明細', 'Về bố cục hai cột') : t('展開完整報告', 'Mở rộng báo cáo'))}<p class="rf-subtle">${reportLabel(d)} · ${h(d.owner.name)} · ${h(d.createdAt.slice(0, 16).replace('T', ' '))}</p>${d.correctionOf ? `<p>${t('更正來源', 'Sửa từ')} <button class="rf-report-link" data-doc="${h(d.correctionOf)}">${h(docs().find((o) => o.id === d.correctionOf)?.number)}</button></p>` : ''}${integratedPlan(d)}${approvedReportRouting(d)}${d.caseId ? `<div class="rf-notice"><button class="rf-report-link" data-case="${h(d.caseId)}">${h(data.control.cases.find((a) => a.id === d.caseId)?.number)} →</button><p>${t('應複測樣品（尚待驗證；不是本次實測）', 'Mẫu cần thử lại (chờ xác minh; không phải mẫu đã thử lần này)')}：${h(linkedCase ? sampleNames(caseLine||{source:{products:[]}},linkedCase.requiredSamples||[])||'—' : '—')}</p></div>` : ''}${d.kind === 'plan' ? `<div class="rf-progress"><span style="width:${(100 * complete) / Math.max(1, jobs.length)}%"></span></div><p class="rf-subtle">${t('計畫完成', 'Tiến độ kế hoạch')} ${complete}/${jobs.length} · ${d.calendarVersion===2?t('正式結果於報告核准後更新','Cập nhật kết quả sau khi báo cáo được duyệt'):t('異常是否結案另行確認', 'Đóng bất thường được xác nhận riêng')}</p>` : ''}<div class="rf-input-grid"><label>${t('文件名稱', 'Tên hồ sơ')}<input data-field="title" value="${h(c.title)}" ${edit ? '' : 'disabled'}></label>${d.kind==='plan'&&calendarMode()?'':`<label>${t('實際日期', 'Ngày thực tế')}<input type="date" data-field="date" value="${h(c.date)}" ${edit ? '' : 'disabled'}></label>`}</div>${calendarFields(d,c,edit)}${correctionEvidence(d,c)}${c.lines.map((l, index) => lineHTML(l, index, d, edit)).join('')}<div class="rf-edit"><label>${t('備註', 'Ghi chú')}<textarea data-field="notes" ${edit ? '' : 'disabled'}>${h(c.notes)}</textarea></label>${['waiver', 'disposal'].includes(d.kind) ? `<label>${d.disposalPolicy==='skip-period'?t('處置原因（必填）','Lý do xử lý (bắt buộc)'):t('申請原因','Lý do đề nghị')}<textarea data-field="reason" ${edit ? '' : 'disabled'}>${h(c.reason)}</textarea></label>` : ''}${d.kind === 'disposal' ? `<label>${d.disposalPolicy==='skip-period'?t('問題說明（必填）','Mô tả vấn đề (bắt buộc)'):t('處置內容','Nội dung xử lý')}<textarea data-field="disposition" ${edit ? '' : 'disabled'}>${h(c.disposition)}</textarea></label><div><label>${(d.calendarVersion===2?t('處置照片（選填）','Ảnh xử lý (không bắt buộc)'):t('處置照片（必填，至少一張成功上傳）', 'Ảnh xử lý (bắt buộc, tải thành công ít nhất một ảnh)'))}</label><div class="rf-photos">${c.evidence.map(p => draftPhoto(p,edit)).join('')}${edit ? upload('evidence') : ''}</div></div>` : ''}</div><div class="rf-actions">${status(d) === 'approved' ? btn('export', t('↓ 匯出正式文件', '↓ Xuất hồ sơ chính thức'), !p.history) : ''}${d.kind === 'plan' && status(d) === 'approved' ? planActions(d) : ''}</div>${d.impact?.length ? `<div class="rf-notice error">${t('下游影響追蹤', 'Theo dõi ảnh hưởng')} ${d.impact.map((a) => `<p><button class="rf-report-link" data-doc="${a.id}">${h(a.id)}</button> ${h(issueNames[a.reason]?t(...issueNames[a.reason]):a.reason)} ${a.resolvedAt ? '✓' : ''}</p>`).join('')}${btn('resolve-impact', t('確認影響處理', 'Xác nhận xử lý ảnh hưởng'), !p.approve || d.impact.every((a) => a.resolvedAt))}</div>` : ''}${data.control.cases
+    return `<article class="rf-document">${frozen?`<p class="rf-notice" role="status">${t('已逾期 · 計畫僅供查看，不能修改、刪除或重新送審；已保存內容與操作紀錄保留，下一期依原頻率安排。','Quá hạn · Kế hoạch chỉ đọc, không sửa, xóa hoặc gửi lại; giữ nội dung đã lưu và lịch sử, kỳ tiếp theo theo tần suất hiện có.')}</p>`:''}<div class="rf-draft-header"></div>${issuePanels(d, c)}<div class="rf-operation-log"><ol>${(d.lifecycle || []).map((a) => `<li>${h(a.at)} · ${h(a.actor.name)} · ${h(label(a.action))}</li>`).join('')}${d.flow.cases.map((a) => `<li>${h(a.at)} · ${h(a.actor.name)} · ${h(a.reason)} · ${h(a.status)}${a.result ? ` · ${h(a.result.actor?.name)} · ${h(a.result.at)}` : ''}</li>`).join('')}</ol></div><div class="rf-actions">${status(d) === 'draft' ? btn('save', t('儲存', 'Lưu'), !p.save, 'primary') + btn('submit', t('送審', 'Gửi duyệt'), !p.submit || !d.flow.saved || legacyCalendarFollowup(d) || (calendarMode()&&d.calendarVersion!==2)) : ''}${status(d) === 'draft' ? btn('discard', t('捨棄草稿', 'Bỏ bản nháp'), !p.edit || (!!d.flow.active.id && !p.revoke), 'danger') : ''}${status(d) === 'pending' ? btn('review', t('審核', 'Duyệt'), !p.approve && !p.return) + btn('withdraw', t('撤回', 'Rút lại'), !p.withdraw) : ''}</div>${cancellationPanel(d)}${approvalPanel(d)}<h3 class="rf-number ${reportType(d)}">${h(displayNumber(d))}</h3>${legacyNumber(d)}${retestLinks(d)}${btn('expand-report', s.wide ? t('回到左右明細', 'Về bố cục hai cột') : t('展開完整報告', 'Mở rộng báo cáo'))}<p class="rf-subtle">${reportLabel(d)} · ${h(d.owner.name)} · ${h(d.createdAt.slice(0, 16).replace('T', ' '))}</p>${d.correctionOf ? `<p>${t('更正來源', 'Sửa từ')} <button class="rf-report-link" data-doc="${h(d.correctionOf)}">${h(docs().find((o) => o.id === d.correctionOf)?.number)}</button></p>` : ''}${integratedPlan(d)}${approvedReportRouting(d)}${d.caseId ? `<div class="rf-notice"><button class="rf-report-link" data-case="${h(d.caseId)}">${h(data.control.cases.find((a) => a.id === d.caseId)?.number)} →</button></div>` : ''}${d.kind === 'plan' ? `<div class="rf-progress"><span style="width:${(100 * complete) / Math.max(1, jobs.length)}%"></span></div><p class="rf-subtle">${t('計畫完成', 'Tiến độ kế hoạch')} ${complete}/${jobs.length} · ${d.calendarVersion===2?t('正式結果於報告核准後更新','Cập nhật kết quả sau khi báo cáo được duyệt'):t('異常是否結案另行確認', 'Đóng bất thường được xác nhận riêng')}</p>` : ''}<div class="rf-input-grid"><label>${t('文件名稱', 'Tên hồ sơ')}<input data-field="title" value="${h(c.title)}" ${edit ? '' : 'disabled'}></label>${d.kind==='plan'&&calendarMode()?'':`<label>${t('實際日期', 'Ngày thực tế')}<input type="date" data-field="date" value="${h(c.date)}" ${edit ? '' : 'disabled'}></label>`}</div>${calendarFields(d,c,edit)}${correctionEvidence(d,c)}${c.lines.map((l, index) => lineHTML(l, index, d, edit)).join('')}<div class="rf-edit"><label>${t('備註', 'Ghi chú')}<textarea data-field="notes" ${edit ? '' : 'disabled'}>${h(c.notes)}</textarea></label>${['waiver', 'disposal'].includes(d.kind) ? `<label>${d.disposalPolicy==='skip-period'?t('處置原因（必填）','Lý do xử lý (bắt buộc)'):t('申請原因','Lý do đề nghị')}<textarea data-field="reason" ${edit ? '' : 'disabled'}>${h(c.reason)}</textarea></label>` : ''}${d.kind === 'disposal' ? `<label>${d.disposalPolicy==='skip-period'?t('問題說明（必填）','Mô tả vấn đề (bắt buộc)'):t('處置內容','Nội dung xử lý')}<textarea data-field="disposition" ${edit ? '' : 'disabled'}>${h(c.disposition)}</textarea></label><div><label>${(d.calendarVersion===2?t('處置照片（選填）','Ảnh xử lý (không bắt buộc)'):t('處置照片（必填，至少一張成功上傳）', 'Ảnh xử lý (bắt buộc, tải thành công ít nhất một ảnh)'))}</label><div class="rf-photos">${c.evidence.map(p => draftPhoto(p,edit)).join('')}${edit ? upload('evidence') : ''}</div></div>` : ''}</div><div class="rf-actions">${status(d) === 'approved' ? btn('export', t('↓ 匯出正式文件', '↓ Xuất hồ sơ chính thức'), !p.history) : ''}${d.kind === 'plan' && status(d) === 'approved' ? planActions(d) : ''}</div>${d.impact?.length ? `<div class="rf-notice error">${t('下游影響追蹤', 'Theo dõi ảnh hưởng')} ${d.impact.map((a) => `<p><button class="rf-report-link" data-doc="${a.id}">${h(a.id)}</button> ${h(issueNames[a.reason]?t(...issueNames[a.reason]):a.reason)} ${a.resolvedAt ? '✓' : ''}</p>`).join('')}${btn('resolve-impact', t('確認影響處理', 'Xác nhận xử lý ảnh hưởng'), !p.approve || d.impact.every((a) => a.resolvedAt))}</div>` : ''}${data.control.cases
       .filter((a) => a.reportIds.includes(d.id))
       .map(
         (a) =>
@@ -2079,7 +2075,7 @@
     const used=new Set(l.results.filter(row=>row.id!==r.id).flatMap(row=>row.samples));
     const abnormal=r.outcome==='abnormal', correction=!!report?.correctionOf;
     const outcomes=calendarMode()?['pass','fail','abnormal',...(disposing&&(!edit||correction)?['dispose']:[])]:['pass','fail','unable','undetermined'];
-    const choices = disposing || abnormal ? '' : fixed ? '<p class="rf-fixed-sample">' + t('請用原樣品檢查：','Kiểm tra bằng mẫu gốc: ') + h(sampleNames(l,r.samples.length ? r.samples : required)) + '</p>' : '<details class="rf-samples" data-sample-key="' + h(r.id) + '" ' + (s.sampleOpen.get(r.id) ? 'open' : '') + '><summary>' + (edit ? t('實測樣品（只能選一個）','Mẫu thực thử (chọn một)') : t('實測樣品','Mẫu thực thử')) + ': ' + h(sampleNames(l,r.samples) || t('尚未選取','Chưa chọn')) + '</summary>' + (edit && r.outcome !== 'unable' ? '<input data-sample-search placeholder="' + t('搜尋樣品','Tìm mẫu') + '"><div class="rf-sample-options">' + l.source.products.map(p => '<label data-product-label><input type="radio" name="rf-sample-' + h(l.id + '-' + r.id) + '" data-sample="' + h(p.code) + '" ' + (r.samples.includes(p.code) ? 'checked ' : '') + (used.has(p.code) ? 'disabled ' : '') + '>' + h(sampleNames(l,[p.code])) + (used.has(p.code) ? ' · ' + t('其他結果列已選','Đã chọn ở dòng khác') : '') + '</label>').join('') + '</div>' : '<p>' + h(sampleNames(l,r.samples) || '—') + '</p>') + '</details>';
+    const choices = !edit || fixed || disposing || abnormal || r.outcome==='unable' ? '' : '<details class="rf-samples" data-sample-key="' + h(r.id) + '" ' + (s.sampleOpen.get(r.id) ? 'open' : '') + '><summary>' + t('選擇實測樣品','Chọn mẫu thực thử') + '</summary>' + '<input data-sample-search placeholder="' + t('搜尋樣品','Tìm mẫu') + '"><div class="rf-sample-options">' + l.source.products.map((p,index) => '<label data-product-label><input type="radio" name="rf-sample-' + h(l.id + '-' + r.id) + '" data-sample="' + h(p.code) + '" ' + (r.samples.includes(p.code) ? 'checked ' : '') + (used.has(p.code) ? 'disabled ' : '') + '>' + String(index+1) + (used.has(p.code) ? ' · ' + t('其他結果列已選','Đã chọn ở dòng khác') : '') + '</label>').join('') + '</div>' + '</details>';
     const textarea=(field,title,value)=>`<label>${title}<textarea data-result-field="${field}" ${edit?'':'disabled'}>${h(value||'')}</textarea></label>`;
     const options=outcomes.map(outcome=>{
       const locked=!edit||(!v2&&outcome==='abnormal')||(correction&&(outcome==='dispose')!==disposing);
@@ -2097,7 +2093,7 @@
       ['fail','undetermined'].includes(r.outcome)?(v2?t('送審需至少一張成功上傳照片。缺漏可先儲存。','Cần ít nhất một ảnh tải thành công để gửi duyệt. Có thể lưu khi còn thiếu.'):
         t('送審需說明及至少一張成功上傳照片。缺漏可先儲存。','Cần mô tả và ít nhất một ảnh tải thành công để gửi duyệt. Có thể lưu khi còn thiếu.')):'';
     return `<details class="rf-result" data-result="${ri}" data-result-id="${h(r.id)}" ${(s.resultOpen.get(r.id)??ri===0)?'open':''}>
-      <summary class="rf-result-top"><b>${t('結果列','Dòng kết quả')} ${ri+1} · ${h((disposing||abnormal)?label(r.outcome):sampleNames(l,r.samples)||t('尚未選樣','Chưa chọn mẫu'))}</b></summary>
+      <summary class="rf-result-top"><b>${t('結果列','Dòng kết quả')} ${ri+1}</b></summary>
       <div class="rf-result-body">${edit&&l.results.length>1?btn('remove-result',t('移除列','Xóa dòng')):''}
         ${edit?`<p class="rf-select-hint">${t('請選取檢查結果','Vui lòng chọn kết quả kiểm tra')}</p>`:''}
         ${v2&&r.outcome==='undetermined'?`<p class="rf-notice">${t('原紀錄：無法判定（保留）；重新送審前請選擇新制結果。','Bản ghi gốc: chưa xác định (giữ nguyên); chọn kết quả mới trước khi gửi lại.')}</p>`:''}
@@ -2421,7 +2417,6 @@
         const own = row(input), ownLine = c.lines[Number(input.closest('[data-line]').dataset.line)];
         input.disabled = ownLine.results.some(other => other.id !== own.id && other.samples.includes(input.dataset.sample));
       });
-      el.closest('details').querySelector('summary').textContent = t('實測樣品（只能選一個）','Mẫu thực thử (chọn một)') + ': ' + sampleNames(line,r.samples);
     });
     root.querySelectorAll('[data-remove-photo]').forEach(el => el.onclick = () => {
       const photos = el.closest('[data-result]') ? row(el).photos : c.evidence;
@@ -2788,7 +2783,7 @@
       const feedback=receiptFeedback();
       if(feedback?.status!=='missing')return;
       feedback.collapsed=action==='receipt-minimize';
-      receiptCollapsePreference(receiptRecord,feedback.collapsed);
+      feedback.detailsOpen=!feedback.collapsed;
       paint();
       root.querySelector(feedback.collapsed?'[data-action="receipt-show"]':'[data-action="retry"]')?.focus({preventScroll:true});
       return;
@@ -2996,7 +2991,7 @@
           if (followupState(a).open || followupState(a).retest) throw Error('FOLLOWUP_OPEN');
           const f = await dialog(
             t('改善並建立複測', 'Cải thiện và tạo thử lại'),
-            '<p>' + t('原不合格、原樣品與歷次報告保留；確認後同時記錄改善並建立複測草稿。', 'Giữ kết quả không đạt, mẫu gốc và các báo cáo; xác nhận để ghi cải thiện và tạo nháp thử lại cùng lúc.') + '</p><label>' + t('本次改善措施／複測準備（必填）', 'Biện pháp cải thiện / chuẩn bị thử lại (bắt buộc)') + '<textarea name="notes" required rows="4"></textarea></label>',
+            '<p>' + t('確認後將記錄改善措施並建立複測草稿。', 'Xác nhận để ghi cải thiện và tạo nháp thử lại.') + '</p><label>' + t('本次改善措施／複測準備（必填）', 'Biện pháp cải thiện / chuẩn bị thử lại (bắt buộc)') + '<textarea name="notes" required rows="4"></textarea></label>',
             t('記錄改善並建立複測', 'Ghi cải thiện và tạo thử lại'),
           );
           notes = f?.get('notes')?.trim();
@@ -3082,7 +3077,15 @@
     } catch (e) {
       if(lookup&&receiptPresentation===lookup&&receiptOwnedPin(lookupOwner)){
         if(receiptRecord?.key!==lookup.key)receiptPresentation=null;
-        else if(e.message==='OPERATION_NOT_FOUND'&&e.status===404)lookup.status='missing';
+        else if(e.message==='OPERATION_NOT_FOUND'&&e.status===404){
+          lookup.status='missing';
+          receiptCollapsePreference(receiptRecord,true);
+          setTimeout(()=>{
+            if(receiptFeedback()!==lookup||lookup.collapsed||lookup.detailsOpen||!receiptOwnedPin(lookupOwner))return;
+            lookup.collapsed=true;
+            paint();
+          },5000);
+        }
         else lookup.status=receiptRecord.terminal?'readback':'failed';
       }
       if (['JOB_ALREADY_ASSIGNED','FOLLOWUP_OPEN','IMPROVEMENT_REQUIRED','REVISION_CONFLICT','REPORT_ALREADY_EXISTS'].includes(e.message)) {
@@ -3226,9 +3229,8 @@
   }
   function retestGuidance(d,l) {
     if (d.kind !== 'report') return '';
-    const samples = requiredForLine(d,l), a = caseForLine(d,l), previous = docs().find(o => o.id === a?.originReportId || o.id === d.correctionOf);
-    if (!samples.length && !previous) return '';
-    return '<div class="rf-notice rf-required-samples"><b>' + t('請用原樣品檢查：','Kiểm tra bằng mẫu gốc: ') + h(sampleNames(l,samples) || '—') + '</b>' + (previous ? '<button class="rf-report-link" data-doc="' + h(previous.id) + '">' + t('查看原報告','Xem báo cáo gốc') + ' · ' + h(displayNumber(previous)) + '</button>' : '') + '<small>' + t('原樣品固定；本次結果另填，原報告保留。無法測試請填原因。','Giữ nguyên mẫu gốc; nhập kết quả lần này riêng, giữ báo cáo cũ. Nếu không thể thử, ghi lý do.') + '</small></div>';
+    const a = caseForLine(d,l), previous = docs().find(o => o.id === a?.originReportId || o.id === d.correctionOf);
+    return previous ? '<button class="rf-report-link" data-doc="' + h(previous.id) + '">' + t('查看原報告','Xem báo cáo gốc') + ' · ' + h(displayNumber(previous)) + '</button>' : '';
   }
   function preferredReport(key) {
     const original = docs().find((o) => o.id === key);
