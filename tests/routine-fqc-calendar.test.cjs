@@ -365,3 +365,18 @@ void test('calendar v2 activates only through first setup and never converts leg
   assert.deepEqual([c.jobs[0].start,c.jobs[0].end],['2026-11-16','2026-11-22']);
  }
 });
+
+test('source lookups retain first-match names and error codes, missing codes and Vietnam approval date',()=>{
+ const rule={cadence:'time',timeFrequency:'weekly'};
+ const item={id:'one',isEnabled:true,rule,productCodes:['dup','absent','dup'],errorId:'e'};
+ const snapshot={items:[item,{...item,id:'two',errorId:'absent'},{...item,id:'off',isEnabled:false}],
+   errors:[{id:'e',code:'first'},{id:'e',code:'second'}]};
+ const library={activeVersionId:'v',versions:[{id:'v',number:1,status:'approved',reviewedAt:'2026-11-23T18:00:00Z',snapshot}]};
+ const values={qualityMasterControl:JSON.stringify({libraries:{fqc:library}}),
+   masterDataControl:JSON.stringify({active:{AB:{products:[{code:'dup',name:''},{code:'dup',name:'later'}]}}})};
+ const rows=r.routineSources({revision:1,values});
+ assert.deepEqual(copy(rows.map(s=>[s.id,s.errorCode,s.effectiveDate,s.products.map(p=>p.name)])),[
+   ['one','first','2026-11-24',['dup','absent','dup']],
+   ['two','','2026-11-24',['dup','absent','dup']]
+ ]);
+});

@@ -236,13 +236,20 @@ export function routineSources(state: State): Source[] {
       code: string;
       name: string;
     }[];
+  // Preserve the first matching record used by legacy catalogs with duplicate keys.
+  const productNames = new Map<string, string>();
+  for (const product of products) {
+    if (!productNames.has(product.code)) productNames.set(product.code, product.name);
+  }
+  const errorCodes = new Map<string, string>();
+  for (const error of version.snapshot?.errors || []) {
+    if (!errorCodes.has(error.id)) errorCodes.set(error.id, error.code);
+  }
+  let effectiveDate: string | undefined;
   return (version.snapshot?.items || [])
     .filter((i: Record<string, unknown>) => !i.isDeleted && i.isEnabled)
     .map((i: RoutineSourceItem) => {
-      const err = version.snapshot.errors?.find(
-          (e: { id: string }) => e.id === i.errorId,
-        ),
-        rawFrequency = i.rule?.cadence === 'time' ? i.rule.timeFrequency : null,
+      const rawFrequency = i.rule?.cadence === 'time' ? i.rule.timeFrequency : null,
         f = rawFrequency === 'half_yearly' ? 'semiannual' : rawFrequency;
       const frequency = typeof f === 'string' && [
         'weekly',
@@ -260,11 +267,11 @@ export function routineSources(state: State): Source[] {
         code: i.checkNo || '',
         line: i.line || '',
         category: i.category || '',
-        errorCode: err?.code || '',
+        errorCode: errorCodes.get(i.errorId) || '',
         description: i.description || '',
         versionId: version.id,
         version: String(version.number),
-        effectiveDate: companyDate(
+        effectiveDate: effectiveDate ??= companyDate(
           new Date(
             version.reviewedAt ||
               version.updatedAt ||
@@ -281,7 +288,7 @@ export function routineSources(state: State): Source[] {
               : '',
         products: (i.productCodes || []).map((code: string) => ({
           code,
-          name: products.find((p) => p.code === code)?.name || code,
+          name: productNames.get(code) || code,
         })),
       };
     })
