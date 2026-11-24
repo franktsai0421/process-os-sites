@@ -42,7 +42,9 @@ for(const lane of ['fqc','iqc'])test(lane+' matched pending settlement retains u
  require('node:vm').runInNewContext(require('node:fs').readFileSync('public/process/routine-reset.js','utf8'),c);
  const client=c.window.RoutineReset;
  const rows=['own-known','own-unknown'].map(key=>({key,raw:storage.getItem(key),operationId:storage.getItem(key),storage}));
+ const legacy=crypto.randomUUID();
  const pending=await client.markers(rows);
+ if(lane==='fqc')pending.push(...await client.markers([{operationId:legacy,key:'old-browser-key',raw:'old-browser-marker'}]));
  authorityFixture.enable(f);
  const resetRoute=f.load('app/api/routine-reset/route.ts');
  const invoke=async(body,status=200)=>{
@@ -57,7 +59,7 @@ for(const lane of ['fqc','iqc'])test(lane+' matched pending settlement retains u
  await invoke(payload);
  const receipt=await lookup(payload.id),after=await f.core.readState();
  assert.equal(after.values[peerKey],before.values[peerKey]);
- assert.deepEqual(receipt.settlements.map(s=>s.priorOutcome),['committed','unknown']);
+ assert.deepEqual(receipt.settlements.map(s=>s.priorOutcome),lane==='fqc'?['committed','unknown','unknown']:['committed','unknown']);
  assert(receipt.settlements.every(s=>s.status==='superseded-by-reset'));
  const raw=JSON.parse(after.values[moduleKey]);assert.equal(raw.resetLedger.entries.length,1);
  assert.equal(raw.resetLedger.retired[unknown].outcome,'unknown');
@@ -86,6 +88,15 @@ for(const lane of ['fqc','iqc'])test(lane+' matched pending settlement retains u
  assert.equal(rr.status,409);assert.equal((await rr.json()).error,'FIRST_START_STATE_CHANGED');
  const nextPayload={...payload,id:crypto.randomUUID(),revision:(await f.core.readState()).revision,pending:[]};
  await invoke(nextPayload);
+ if(lane==='fqc'){
+   const result=await call(lane,'?operationId='+legacy);
+   assert.deepEqual(result.resetSettlement,{scope:lane,actorId:'frank',operationId:legacy,generationRevision:receipt.generationRevision});
+   assert.equal(result.result,undefined);
+   await call(lane,'?operationId='+legacy,undefined,404,f.cookies.editor);
+   await call(lane,'?operationId=unlisted-operation',undefined,404);
+   const late=await call(lane,'',command('generate',result.revision,{operationId:legacy}),409);
+   assert.equal(late.error,'OPERATION_SUPERSEDED_BY_RESET');
+ }
  assert.deepEqual(await lookup(payload.id),receipt,'historic matched proof survives repeated reset');
  assert.equal((await invoke(payload)).replayed,true);
  assert.equal(JSON.parse((await f.core.readState()).values[moduleKey]).resetLedger.retired[unknown].outcome,'unknown');
