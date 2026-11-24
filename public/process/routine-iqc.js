@@ -261,7 +261,7 @@
     const results=periodResults(v,job,report);
     const followups=[...new Map(results.filter(({item,passed})=>item&&!passed&&openCase(item)).map(({item})=>[item.id,item])).values()];
     const unresolved=followups.length>0;
-    const overdue=job.end<v.data.today&&!job.completion&&!job.calendar?.stopped&&(!plan||plan.status==='draft');
+    const overdue=job.end<v.data.today&&!job.completion&&!job.calendar?.stopped&&(!plan||plan.kind==='waiver'&&plan.status==='draft');
     const stopped=job.calendar?.stopped;
     const tone=stopped||job.start>v.data.today?'neutral':overdue?'alert':active?.status==='pending'?'pending':
       active||unresolved||plan?.status==='approved'&&!job.completion?'progress':job.completion?'done':'ready';
