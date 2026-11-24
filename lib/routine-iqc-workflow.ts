@@ -190,6 +190,13 @@ const requiredAction=(cmd:Command): DraftPermission|'create'|'delete'|'settings'
   return 'edit';
 };
 
+export function initializeIqcCalendar(calendar:RoutineFqc,start:string,timeline:ReturnType<typeof routineIqcTimeline>,today:string,at:string){
+  calendar.startDate=start;
+  calendar.jobs=[];
+  calendar.calendarPolicy={version:2,adoptedAt:new Date(start+'T00:00:00+07:00').toISOString(),scopes:{}};
+  reconcileCalendar(calendar,timeline,today,at);
+}
+
 export function executeRoutineIqc(state:RoutineIqc, command:Command, sourceState:State, ctx:IqcContext) {
   requireThat(command&&typeof command.action==='string'&&/^[\w-]{8,100}$/.test(command.operationId),'IQC_OPERATION_INVALID');
   const permission=requiredAction(command);
@@ -212,10 +219,7 @@ export function executeRoutineIqc(state:RoutineIqc, command:Command, sourceState
       requireThat(validCalendarDate(command.start),'IQC_DATE_REQUIRED');
       requireThat(!iqcStartLocked(state),'START_DATE_LOCKED',409);
       state.lastStart={actorId:ctx.actor.id,at:ctx.at,reason:command.reason.trim(),date:command.start};
-      calendar.startDate=command.start;
-      calendar.jobs=[];
-      calendar.calendarPolicy={version:2,adoptedAt:new Date(command.start+'T00:00:00+07:00').toISOString(),scopes:{}};
-      reconcileCalendar(calendar,timeline,ctx.today,ctx.at);
+      initializeIqcCalendar(calendar,command.start,timeline,ctx.today,ctx.at);
       break;
     }
     case 'generate':

@@ -117,30 +117,26 @@ export async function GET(request:Request){
 // Only the immutable-record envelope has a single-key encoder. Legacy formats
 // retain their full writer. Never fall back after a record integrity failure.
 async function readResetInput(scope:'fqc'|'iqc'){
-  if(scope==='fqc'){
-    const row=await readSharedStateRow();
-    if(!row)throw Error('Missing shared state');
-    const envelope=JSON.parse(row.values);
-    if(Object.hasOwn(envelope,'__processRecords')){
-      const selected=await prepareFirstStartRetirement(env.STATE_ARCHIVE,row.values,'fqc');
-      if(!selected)throw Error('Unsupported reset manifest');
-      return {state:{revision:row.revision,values:selected.values},encode:selected.encode};
-    }
-    const wrapper=Object.hasOwn(envelope,'__processChunks')?'__processChunks':Object.hasOwn(envelope,'__processR2')?'__processR2':null;
-    if(wrapper?Object.keys(envelope).some(key=>![wrapper,'platformUsers','maintenanceMode'].includes(key)):
-       Object.entries(envelope).some(([key,value])=>key.startsWith('__')||typeof value!=='string'))
-      throw Error('Unsupported reset envelope');
-    if(wrapper){
-      const ref=envelope[wrapper];
-      const fields=wrapper==='__processChunks'?['key','sha256','version']:['key','sha256'];
-      if(!ref||Object.keys(ref).sort().join(',')!==fields.join(','))throw Error('Unsupported reset reference');
-    }
-    const state=await readState();
-    if(state.revision!==row.revision)throw new DraftConflict('REVISION_CONFLICT',409);
-    return {state,encode:(control:string)=>encodeValues({...state.values,[RF_KEY]:control},state)};
+  const row=await readSharedStateRow();
+  if(!row)throw Error('Missing shared state');
+  const envelope=JSON.parse(row.values);
+  if(Object.hasOwn(envelope,'__processRecords')){
+    const selected=await prepareFirstStartRetirement(env.STATE_ARCHIVE,row.values,scope);
+    if(!selected)throw Error('Unsupported reset manifest');
+    return {state:{revision:row.revision,values:selected.values},encode:selected.encode};
+  }
+  const wrapper=Object.hasOwn(envelope,'__processChunks')?'__processChunks':Object.hasOwn(envelope,'__processR2')?'__processR2':null;
+  if(wrapper?Object.keys(envelope).some(key=>![wrapper,'platformUsers','maintenanceMode'].includes(key)):
+     Object.entries(envelope).some(([key,value])=>key.startsWith('__')||typeof value!=='string'))
+    throw Error('Unsupported reset envelope');
+  if(wrapper){
+    const ref=envelope[wrapper];
+    const fields=wrapper==='__processChunks'?['key','sha256','version']:['key','sha256'];
+    if(!ref||Object.keys(ref).sort().join(',')!==fields.join(','))throw Error('Unsupported reset reference');
   }
   const state=await readState();
-  return {state,encode:(control:string)=>encodeValues({...state.values,[RI_KEY]:control},state)};
+  if(state.revision!==row.revision)throw new DraftConflict('REVISION_CONFLICT',409);
+  return {state,encode:(control:string)=>encodeValues({...state.values,[scope==='fqc'?RF_KEY:RI_KEY]:control},state)};
 }
 
 export async function POST(request:Request){
@@ -167,10 +163,10 @@ export async function POST(request:Request){
     stage='receipt';
     // A fully hydrated target cannot contain a storage placeholder. Reject
     // malformed and nested unresolved references before consuming any receipt.
-    const raw=JSON.parse(state.values[key]||'{}',scope==='fqc'?(field,value)=>{
-      if(field==='__immutableBody'||field==='__liveContent')throw Error('Unresolved FQC content');
+    const raw=JSON.parse(state.values[key]||'{}',(field,value)=>{
+      if(field==='__immutableBody'||field==='__liveContent')throw Error('Unresolved routine content');
       return value;
-    }:undefined);
+    });
     const input=JSON.stringify([actor.id,scope,body.id,body.revision,body.pendingCount,body.reason,...(body.pending!==undefined?[body.pending]:[])]);
     const fingerprint=await sha256(input);
     const previous=findResetEntry(raw,body.id)||(raw.resetReceipt?.id===body.id?raw.resetReceipt:null);
