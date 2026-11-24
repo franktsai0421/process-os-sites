@@ -93,3 +93,56 @@ test('all rolling windows use original due dates and hide unknown historical evi
   }
   assert.deepEqual(posted(f),[]);
 });
+
+test('repaint retains focus on the FQC filter that was used, including clear after zero matches',()=>{
+  const f=setup('zh'), q=selector=>f.root.querySelector(selector);
+  const focused=selector=>assert.equal(f.document.activeElement,q(selector),selector);
+  const status='[data-period-status="fail"]', range='[data-period-range]';
+  const source='[data-source-filter="sourceLine"]', reset='[data-period-search-reset]';
+  q(status).click();focused(status);
+  q(range).value='week';q(range).onchange();focused(range);
+  q(source).value='B';q(source).onchange();focused(source);
+  assert.equal(q('[data-period-group]'),null);
+  q(reset).click();focused(reset);
+  assert.ok(q('[data-period-group]'));
+  assert.deepEqual(posted(f),[]);
+});
+
+for(const height of [844,900])for(const nested of [false,true]){
+  test('clamped FQC results restore '+height+'px '+(nested?'panel':'window')+' scroll',()=>{
+    const f=setup('zh'), q=selector=>f.root.querySelector(selector);
+    const {root,win,document}=f, panel=root.parentElement;
+    const main=()=>q('.rf-calendar'), groups=()=>root.querySelectorAll('[data-period-group]').length;
+    const naturalHeight=()=>groups()?4800:400;
+    const renderedHeight=()=>Math.max(naturalHeight(),parseInt(main()?.style.minHeight)||0);
+    let offset=1400;
+    const scrollTo=y=>{offset=Math.max(0,Math.min(y,renderedHeight()-height));};
+    win.innerHeight=height;win.scrollX=0;
+    Object.defineProperty(win,'scrollY',{get:()=>nested?0:offset});
+    win.scrollTo=(_x,y)=>{if(!nested)scrollTo(y);};
+    document.scrollingElement=document.documentElement;
+    if(nested){
+      panel.clientTop=0;
+      Object.defineProperty(panel,'clientHeight',{value:height});
+      Object.defineProperty(panel,'scrollTop',{get:()=>offset,set:scrollTo});
+    }
+    win.getComputedStyle=node=>({overflowY:nested&&node===panel?'auto':'visible'});
+    const prototype=Object.getPrototypeOf(root),rect=prototype.getBoundingClientRect;
+    prototype.getBoundingClientRect=function(){
+      return this.matches('.rf-calendar')?{top:-offset,height:renderedHeight()}:rect.call(this);
+    };
+    f.api.s.checked.add('current');
+    const select=(selector,value)=>{q(selector).value=value;q(selector).onchange();};
+    select('[data-source-filter="sourceLine"]','B');
+    q('[data-period-status="fail"]').click();
+    assert.equal(groups(),0);
+    assert.equal(offset,1400);
+    assert.equal(document.activeElement,q('[data-period-status="fail"]'));
+    q('[data-period-search-reset]').click();
+    assert.equal(groups(),3);
+    assert.equal(offset,1400);
+    assert.equal(main().style.minHeight,undefined);
+    assert.deepEqual([...f.api.s.checked],['current']);
+    assert.deepEqual(posted(f),[]);
+  });
+}

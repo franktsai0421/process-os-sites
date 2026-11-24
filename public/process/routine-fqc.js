@@ -1001,6 +1001,29 @@
       window.scrollTo(x, y);
     };
   }
+  function repaintCalendarFilter(focusSelector) {
+    const main = root.querySelector('.rf-calendar');
+    if (!main) { paint(); return; }
+    // A shorter results list can clamp scrollTop during paint. Reserve just
+    // enough of the calendar to reach the old scrollport bottom in that case.
+    let bottom = window.innerHeight;
+    for (let node = main.parentElement; node && node !== document.scrollingElement; node = node.parentElement) {
+      if (['auto','scroll'].includes(window.getComputedStyle?.(node).overflowY)) {
+        bottom = node.getBoundingClientRect().top + node.clientTop + node.clientHeight;
+        break;
+      }
+    }
+    const bounds = main.getBoundingClientRect();
+    const needed = Math.min(bounds.height, bottom - bounds.top);
+    const restore = preserveRoutineView();
+    const top = root.scrollTop;
+    paint();
+    const next = root.querySelector('.rf-calendar');
+    if (next && needed > next.getBoundingClientRect().height) next.style.minHeight = Math.ceil(needed) + 'px';
+    restore();
+    root.scrollTop = top;
+    root.querySelector(focusSelector)?.focus?.({preventScroll:true});
+  }
   function keepListAnchor(control, resolve, resolveFocus) {
     if (!control?.getBoundingClientRect) return;
     const top = control.getBoundingClientRect().top;
@@ -2342,22 +2365,21 @@
       s.periodSearch=form.querySelector('[name="query"]').value.trim();
       s.periodFrom=from;s.periodTo=to;s.periodOutcome=form.querySelector('[name="outcome"]').value;
       s.periodMore.clear();
-      paint();
-      root.querySelector('[data-period-search] input')?.focus?.({preventScroll:true});
+      const field = form.contains(document.activeElement) && document.activeElement.name;
+      repaintCalendarFilter(field ? '[data-period-search] [name="' + field + '"]' : '[data-period-search] [type="submit"]');
     });
     root.querySelectorAll('[data-period-range]').forEach(el=>el.onchange=()=>{
-      s.periodRange=el.value;s.periodMore.clear();paint();root.querySelector('[data-period-range]')?.focus();
+      s.periodRange=el.value;s.periodMore.clear();repaintCalendarFilter('[data-period-range]');
     });
     root.querySelectorAll('[data-period-status]').forEach(el=>el.onclick=()=>{
       const key=el.dataset.periodStatus;s.periodStatus=s.periodStatus===key?'':key;
-      s.periodMore.clear();paint();root.querySelector('[data-period-status="'+key+'"]')?.focus();
+      s.periodMore.clear();repaintCalendarFilter('[data-period-status="'+key+'"]');
     });
     root.querySelectorAll('[data-period-search-reset]').forEach(button => button.onclick = () => {
       s.sourceLine=s.sourceCategory=s.sourceProduct='';
       s.periodRange=s.periodStatus=s.periodSearch=s.periodFrom=s.periodTo=s.periodOutcome='';
       s.periodMore.clear();
-      paint();
-      root.querySelector('[data-period-search] input')?.focus?.({preventScroll:true});
+      repaintCalendarFilter('[data-period-search-reset]');
     });
     root.querySelectorAll('[data-period-next]').forEach(b=>b.onclick=()=>{const j=data.control.jobs.find(j=>j.id===b.dataset.periodNext);if(!j||!arrangeable(j)||!data.permissions.edit)return;s.checked=new Set([j.id]);void act('create-plan');});
     root.querySelectorAll('[data-period-overdue-skip]').forEach(b=>b.onclick=()=>{const j=data.control.jobs.find(j=>j.id===b.dataset.periodOverdueSkip);if(!canSkipOverdue(j)||!data.permissions.edit)return;s.checked=new Set([j.id]);void act('calendar-overdue-skip');});
@@ -2372,7 +2394,7 @@
         if(b.dataset.sourceFilter==='sourceLine')s.sourceCategory='';
         if(b.dataset.sourceFilter!=='sourceProduct')s.sourceProduct='';
       }
-      paint();
+      repaintCalendarFilter('[data-source-filter="' + b.dataset.sourceFilter + '"]');
     });
     root.querySelectorAll('[data-doc],[data-review-doc]').forEach(el => {
       const linked = docs().find(d => d.id === (el.dataset.doc || el.dataset.reviewDoc));
