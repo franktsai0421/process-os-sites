@@ -1672,3 +1672,21 @@
 .rf-status-tiles button[aria-pressed=true]{background:#075e57;color:white}
 .rf-period-late{color:#833b31;font-weight:600}
 @media(max-width:640px){.rf-status-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+@media (max-width: 760px) {
+  #review-routine-fqc .rf-approval .rf-btn { min-height:44px; white-space:normal; }
+  /* Keep counts outside the 46px feedback launcher and its 12px right inset. */
+  body:has(#wf-launcher) .rf-app .rf-status-filters { margin-right:60px; }
+}
+@media (max-width: 480px) {
+  html:lang(vi) main:has(> #view-root .rf-app) > .topbar {
+    display:grid; grid-template-columns:auto minmax(0,1fr); gap:4px 8px;
+    height:auto; min-height:0; padding:6px 12px;
+  }
+  html:lang(vi) main:has(> #view-root .rf-app) > .topbar .top-actions {
+    grid-column:1/-1; justify-content:flex-end; flex-wrap:wrap; gap:8px;
+  }
+  html:lang(vi) main:has(> #view-root .rf-app) > .topbar #page-title {
+    font-size:20px; line-height:1.25; overflow-wrap:anywhere;
+  }
+}

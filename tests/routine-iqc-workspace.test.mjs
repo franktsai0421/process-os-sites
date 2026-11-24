@@ -1447,3 +1447,21 @@ for(const [lang,width,height,windowTop,paneTop] of [['zh',1280,900,380,0],['vi',
   assert.deepEqual(requests,['GET']);
  });
 }
+
+void test('draft report validation names the actual date and explains the plan row limit in both languages', async()=>{
+ const job=parityJob('quality-layout');
+ const report=parityDoc('QA-report','report','draft',[job]);
+ const plan=parityDoc('QA-plan','plan','draft',[job]);
+ report.issues=[{path:['date'],code:'IQC_DATE_REQUIRED'}];
+ plan.issues=[{path:['lots'],code:'IQC_REPORT_TOO_LARGE'}];
+ for(const [lang,date,size] of [['vi','Chọn ngày thực tế hợp lệ.','Số dòng kết hợp hạng mục và lô vượt quá 1.000.'],
+                                ['zh','請選擇有效的實際日期。','項目與批號組合超過 1,000 列。']]){
+  const ui=switchFixture(lang,{data:parityState([job],[report,plan])});
+  ui.press(ui.entry);await new Promise(resolve=>setImmediate(resolve));
+  for(const [doc,text] of [[report,date],[plan,size]]){
+   ui.stage(doc.kind);ui.action('doc:'+doc.id);
+   assert.ok(ui.iqcRoot.innerHTML.includes(text),lang+' '+doc.kind);
+   assert.doesNotMatch(ui.iqcRoot.innerHTML,/IQC_DATE_REQUIRED|IQC_REPORT_TOO_LARGE/);
+  }
+ }
+});
