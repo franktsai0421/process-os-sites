@@ -14,7 +14,7 @@ const dependencies = ['routine-reset.js', 'routine-fqc-page.js', 'routine-iqc.js
 void test('the routine reset control loads once before all three renderers on a cold boot', () => {
   const urls = Array.from(shell.matchAll(/<script data-process-src="([^"]+)"><\/script>/g), match => match[1]);
   const selected = urls.filter(url => dependencies.includes(url.split('?')[0]));
-  assert.deepEqual(selected, ['routine-reset.js?v=20261123-admin-reset1', 'routine-fqc-page.js?v=20261124-receipt-display1', 'routine-iqc.js?v=20261123-admin-reset1', 'routine-fqc.js?v=20261124-receipt-display1']);
+  assert.deepEqual(selected, ['routine-reset.js?v=20261123-admin-reset1', 'routine-fqc-page.js?v=20261124-receipt-display1', 'routine-iqc.js?v=20261123-admin-reset1', 'routine-fqc.js?v=20261124-integrated-receipt-display1']);
   assert.deepEqual(Array.from(shell.matchAll(/href="(routine-fqc\.css\?v=[^"]+)"/g), m => m[1]),
     ['routine-fqc.css?v=20261121-readiness1']);
 });
@@ -82,7 +82,7 @@ void test('the proposed shell delta is confined to the four routine asset tags',
   expected=expected.replace('routine-reset.js?v=2','routine-reset.js?v=20261123-scoped-reset1').replace('routine-iqc.js?v=20261122-plan-intent1','routine-iqc.js?v=20261123-scoped-reset1').replace('routine-fqc.js?v=20261122-plan-intent1','routine-fqc.js?v=20261123-scoped-reset1');
   expected=expected.replaceAll('20261123-scoped-reset1','20261123-admin-reset1').replace('routine-fqc-page.js?v=20261121-reset1','routine-fqc-page.js?v=20261123-admin-reset1');
   expected=expected.replace('routine-fqc-page.js?v=20261123-admin-reset1','routine-fqc-page.js?v=20261124-receipt-display1').replace('routine-page-approved-history.js?v=20261112-quality-main-joint1','routine-page-approved-history.js?v=20261124-receipt-display1');
-  expected=expected.replace('routine-fqc.js?v=20261123-admin-reset1','routine-fqc.js?v=20261124-receipt-display1');
+  expected=expected.replace('routine-fqc.js?v=20261123-admin-reset1','routine-fqc.js?v=20261124-integrated-receipt-display1');
   assert.equal(shell.replace(/\r\n/g,'\n'),expected.replace(/\r\n/g,'\n'));
 });
 

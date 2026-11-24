@@ -167,7 +167,7 @@
     if(minimize&&feedback.collapsed)
       return `<div class="rf-receipt-compact" data-rf-receipt-panel><button type="button" class="rf-btn" data-action="receipt-show" aria-expanded="false">${t('操作收據','Biên nhận thao tác')}</button></div>`;
     const expanding=minimize?`<button type="button" class="rf-btn" data-action="receipt-minimize" aria-expanded="true">${t('稍後查證／收起提示','Xác minh sau / Thu gọn')}</button>`:'';
-    const retire=minimize&&receiptRecord?.meta.action==='create-plan'&&receiptRecord.meta.operationId.startsWith('plan-fqc-')?btn('recover-plan',t('查證或終止這筆建計畫','Kiểm tra hoặc dừng yêu cầu lập kế hoạch này')):minimize&&recoverableFirstStart()?btn('retire-first-start',t('處理未確認的首次啟動','Xử lý lần khởi động đầu chưa xác nhận')):'';
+    const retire=minimize&&receiptRecord?.meta.action==='draft'&&['apply','save','submit'].includes(receiptRecord.meta.innerAction)?btn('reconcile-draft',t('核對最新文件並處理舊請求','Đối chiếu hồ sơ và xử lý yêu cầu cũ')):minimize&&receiptRecord?.meta.action==='create-plan'&&receiptRecord.meta.operationId.startsWith('plan-fqc-')?btn('recover-plan',t('查證或終止這筆建計畫','Kiểm tra hoặc dừng yêu cầu lập kế hoạch này')):minimize&&recoverableFirstStart()?btn('retire-first-start',t('處理未確認的首次啟動','Xử lý lần khởi động đầu chưa xác nhận')):'';
     const lookup=s.retry?btn('retry',t('查原操作收據（不重送）','Kiểm tra biên nhận (không gửi lại)')):'';
     let message=s.error||(receiptInvalid?receiptStorageNotice():receiptNotice());
     switch(feedback?.status){
@@ -230,10 +230,22 @@
     for(const key of keys){const raw=storage.getItem(key);if(typeof raw!=='string'||raw.length>4096)throw Error('ROUTINE_RECEIPT_STORAGE_INVALID');let meta;try{meta=JSON.parse(raw);}catch{throw Error('ROUTINE_RECEIPT_STORAGE_INVALID');}if(!receiptValid(meta,key)||meta.actor!==actor)throw Error('ROUTINE_RECEIPT_STORAGE_INVALID');records.push({key,raw,meta,ram:null,terminal:null,pin:null,confirmed:null});}
     return records;
   }
+  const parkedReceipts=new Map();
+  let activeDeliveries=0;
+  function independentReferences(command,records){
+    if(!records.length||records.length>32||command.action!=='draft'||!['save','submit'].includes(command.command?.action))return null;
+    const refs=[];
+    for(const {meta} of records){
+      if(meta.action!=='draft'||!['apply','save','submit'].includes(meta.innerAction)||
+        meta.documentId===command.documentId||meta.operationId===command.operationId)return null;
+      refs.push({documentId:meta.documentId,generation:meta.generation,action:meta.innerAction,operationId:meta.operationId});
+    }
+    return refs;
+  }
   function receiptInstall(actor){
-    if(receiptRecord&&receiptRecord.meta.actor!==actor){receiptPresentation=null;receiptRecord=null;s.retry=null;s.retryOwner=null;s.retryDeparture=null;}
+    if(receiptRecord&&receiptRecord.meta.actor!==actor){parkedReceipts.clear();receiptPresentation=null;receiptRecord=null;s.retry=null;s.retryOwner=null;s.retryDeparture=null;}
     try{const records=receiptDiscover(actor);if(receiptRecord&&!records.some(row=>row.key===receiptRecord.key&&row.raw===receiptRecord.raw)&&receiptStore().getItem(receiptRecord.key)!==null)throw Error('ROUTINE_RECEIPT_STORAGE_CHANGED');receiptInvalid=false;
-      if(!receiptRecord){receiptRecord=records[0]||null;s.retry=receiptRecord?receiptRetry(receiptRecord.meta):null;s.retryOwner=null;s.retryDeparture=null;}
+      if(!receiptRecord){receiptRecord=records[0]||null;s.retry=receiptRecord?(receiptRecord.ram||receiptRetry(receiptRecord.meta)):null;s.retryOwner=null;s.retryDeparture=null;}
     }catch(error){receiptInvalid=true;if(!s.retry)s.retry={action:'receipt-unavailable'};throw error;}
   }
   function receiptWriteAllowed(body){const action=body.action==='draft'?(['apply','restore'].includes(body.command?.action)?'edit':body.command?.action):['close','resolve-impact'].includes(body.action)?'approve':'edit';return data?.permissions?.view===true&&data.permissions[action]===true;}
@@ -268,7 +280,9 @@
     // A failed next-key discovery must keep the global unknown gate closed.
     let remaining;try{remaining=receiptDiscover(pin.actor);}catch(error){receiptRecord=null;receiptInvalid=true;s.retry={action:'receipt-unavailable'};throw error;}
     if(!receiptOwnedPin(pin))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
-    record.confirmed?.(record.terminal?.result);receiptRecord=remaining[0]||null;receiptInvalid=false;s.retry=receiptRecord?receiptRetry(receiptRecord.meta):null;s.retryOwner=null;s.retryDeparture=null;
+    record.confirmed?.(record.terminal?.result);parkedReceipts.delete(record.key);
+    const next=remaining[0],held=next&&parkedReceipts.get(next.key);
+    receiptRecord=held&&held.raw===next.raw?held:next||null;receiptInvalid=false;s.retry=receiptRecord?(receiptRecord.ram||receiptRetry(receiptRecord.meta)):null;s.retryOwner=null;s.retryDeparture=null;
   }
   function receiptSubmissionReviewed(meta,receipt,flow){
     if(meta.innerAction!=='submit'||!receiptText(receipt.savedId)||flow.revision<=receipt.revision||
@@ -304,6 +318,7 @@
   function receiptRejected(body,response,value){
     if(!receiptUUID(value?.requestId))return false;
     const status=response.status,code=value.error,has=(n,list)=>status===n&&list.split(',').includes(code),action=body.action,cmd=body.command;
+    if(body.independentOf&&has(409,'FQC_SCOPE_CONFLICT'))return true;
     if(has(422,'BODY_REQUIRED,RESERVED_CONTENT,OPERATION_ID_REQUIRED,FQC_DATA_INVALID')||has(409,'CONCURRENT_CHANGE_RETRY,DOCUMENT_CANCELLED')||has(403,'FORBIDDEN'))return true;
     if(has(409,'WAIVER_CONVERSION_PENDING'))return true;
     if(body.documentId&&has(409,'EXPIRED_PLAN_READ_ONLY'))return true;
@@ -333,7 +348,7 @@
     const table={queue:[['REVISION_CONFLICT','CALENDAR_POLICY_REQUIRED','JOB_NOT_ARRANGEABLE'],['ITEM_REQUIRED']],request:[['REVISION_CONFLICT','CALENDAR_POLICY_REQUIRED','JOB_ALREADY_ASSIGNED','CASE_CLOSED','FOLLOWUP_OPEN','WITHDRAW_REPORT_BEFORE_VOID','APPROVED_REPORT_USE_CORRECTION','APPROVED_PLAN_REQUIRED'],['KIND_INVALID','ITEM_REQUIRED','APPROVED_PLAN_REQUIRED']],configure:[['REVISION_CONFLICT','START_DATE_LOCKED'],['DATE_INVALID']],generate:[[],['DATE_INVALID','SCHEDULE_RANGE_TOO_LARGE']],'create-plan':[['REVISION_CONFLICT','JOB_ALREADY_ASSIGNED','EXPIRED_PERIOD_NO_NEW_PLAN','JOB_NOT_ARRANGEABLE','SOURCE_CHANGED_RELOAD'],['ITEM_REQUIRED','PLAN_DATES_REQUIRED','PLAN_DATES_OUTSIDE_PERIOD']],'create-report':[['REVISION_CONFLICT','LEGACY_DOCUMENT_MAPPING_REQUIRED','APPROVED_PLAN_REQUIRED','PLAN_NOT_CURRENTLY_ASSIGNED','REPORT_ALREADY_EXISTS'],['PLAN_ITEM_INVALID','WHOLE_PLAN_REPORT_REQUIRED']],improve:[['REVISION_CONFLICT','CASE_CLOSED'],['REASON_REQUIRED']],followup:[['REVISION_CONFLICT','CASE_CLOSED','FOLLOWUP_OPEN'],['KIND_INVALID','WAIVER_ONLY_UNABLE','OPEN_FAILURE_REQUIRES_RETEST_OR_DISPOSAL','DISPOSAL_ONLY_FAIL','IMPROVEMENT_REQUIRED']],close:[['REVISION_CONFLICT','APPROVED_PASS_RETEST_REQUIRED'],['REASON_REQUIRED']],'revoke-plan':[['REVISION_CONFLICT','USE_VOID_REQUEST','USE_CORRECTION_WITH_REPORTS'],['APPROVED_PLAN_REQUIRED','REASON_REQUIRED']],'discard-draft':[['REVISION_CONFLICT','WITHDRAW_BEFORE_DISCARD','DOCUMENT_HAS_DEPENDENCIES','DRAFT_ONLY'],[]],'delete-plan':[['REVISION_CONFLICT','USE_VOID_REQUEST','WITHDRAW_BEFORE_DISCARD','DOCUMENT_HAS_DEPENDENCIES'],['APPROVED_PLAN_REQUIRED']],'restore-document':[['REVISION_CONFLICT','RESTORE_DISABLED'],[]],correct:[['REVISION_CONFLICT','CORRECTION_OPEN','CASE_CHANGED_USE_CURRENT_FLOW'],['FORMAL_DOCUMENT_REQUIRED','REASON_REQUIRED','CASE_LINK_REQUIRED','CASE_LINK_INVALID']],'resolve-impact':[['REVISION_CONFLICT'],['REASON_REQUIRED','NO_OPEN_IMPACT']]};
     return !!table[action]&&(status===409&&table[action][0].includes(code)||status===422&&table[action][1].includes(code))||['discard-draft','delete-plan'].includes(action)&&receiptText(body.documentId)&&has(404,'DOCUMENT_NOT_FOUND');
   }
-  window.addEventListener('pagehide',()=>{receiptSuspended=true;receiptLifecycle++;if(receiptRecord){receiptRecord.terminal=null;receiptRecord.confirmed=null;}});
+  window.addEventListener('pagehide',()=>{parkedReceipts.clear();receiptSuspended=true;receiptLifecycle++;if(receiptRecord){receiptRecord.terminal=null;receiptRecord.confirmed=null;}});
   window.addEventListener('pageshow',()=>{receiptSuspended=false;});
   let inFlightMutation=0,navigationError=null;
   const readPause=window.createScopedReadPause('例行 FQC / FQC định kỳ');
@@ -364,7 +379,7 @@
       clearTimeout(timer);
     }
   }
-  async function read(query = '', accepts = () => true, options = {}) {
+  async function read(query = '', accepts = () => true, options = {}, observeReceipt = true) {
     assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();
     const owner=receiptPin(),delivery=window.ProcessSync?.captureDelivery?.(),pauseOwner=readPause.capture(),kind=query.includes('operationId=')?'receipt':query?'auxiliary':'state';
     const assertCurrent = () => {
@@ -386,13 +401,14 @@
     assertCurrent();
     if (!r.ok){readPause.denied(kind,r.status,pauseOwner,()=>read(query));throw Object.assign(Error(v.error || 'FQC_READ_FAILED'),{status:r.status});}
     readPause.success(kind,pauseOwner);
-    if(kind==='state')receiptObserveRead(v,owner);
+    if(kind==='state'&&observeReceipt)receiptObserveRead(v,owner);
     // Observing a document enables per-tab attribution, but never claims its
     // existing contributors (including another tab using the same account).
     if(kind==='state')for(const d of v.control?.documents||[])if(d.flow?.scope==='routine-fqc:'+d.id)window.SharedDraftDeparture?.register?.(d.flow.scope);
     return v;
   }
   const issueNames = {
+    FQC_OLD_OPERATION_RESET:['已核對最新 FQC 清單。這筆舊請求已由 Reset 停用；請重新選取要辦理的項目。','Đã kiểm tra danh sách FQC mới nhất. Yêu cầu cũ đã bị dừng khi Reset; vui lòng chọn lại hạng mục.'],
     FQC_CONFIRMATION_REQUIRED:['確認文字不符，未執行操作。','Nội dung xác nhận không khớp; chưa thực hiện.'],
     FQC_BACKUP_VERIFY_FAILED:['備份驗證失敗，沒有重置現有資料。','Không xác minh được bản sao lưu; chưa đặt lại dữ liệu.'],
     FQC_BACKUP_INTEGRITY_FAILED:['備份完整性檢查失敗，沒有還原。','Bản sao lưu không toàn vẹn; chưa khôi phục.'],
@@ -530,18 +546,47 @@
     inFlightMutation++;try{return await postOwned(command, accepts);}finally{inFlightMutation--;}
   }
   async function postOwned(command, accepts = () => true) {
+    activeDeliveries++;
+    try{return await dispatchOwned(command,accepts);}finally{activeDeliveries--;}
+  }
+  async function dispatchOwned(command,accepts){
     assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();
     const pin=receiptPin();if(!receiptOwnedPin(pin))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
     receiptInstall(pin.actor);if(receiptInvalid)throw Error('ROUTINE_RECEIPT_STORAGE_INVALID');
-    const original=receiptRecord;
+    let original=receiptRecord,refs=null;
+    if(original&&command?.operationId!==original.meta.operationId){
+      const records=receiptDiscover(pin.actor);
+      refs=independentReferences(command,records);
+      if(!refs||activeDeliveries!==1||original.terminal||!records.some(row=>row.raw===original.raw&&row.key===original.key))throw Error('PREVIOUS_OPERATION_UNKNOWN');
+      parkedReceipts.set(original.key,original);
+      original=null;
+    }
     if(original){
       if(command?.operationId!==original.meta.operationId)throw Error('PREVIOUS_OPERATION_UNKNOWN');
       if(original.ram&&JSON.stringify(command)!==JSON.stringify(original.ram))throw Error('OPERATION_ID_PAYLOAD_MISMATCH');
       if(original.notSent||original.rejectedCode){const message=original.rejectedCode||'ROUTINE_OPERATION_NOT_SENT_RETRY_ACTION';receiptClear(original,pin);throw Error(message);}
-      const found=await read('?operationId='+encodeURIComponent(original.meta.operationId), accepts);
+      const found=await read('?'+(original.meta.action==='draft'?'receiptDocument='+encodeURIComponent(original.meta.documentId)+'&':'')+'operationId='+encodeURIComponent(original.meta.operationId), accepts);
+      if(found?.resetSettlement){
+        const proof=found.resetSettlement;
+        const owns=()=>accepts()&&displayCurrent()&&receiptOwnedPin(pin)&&receiptRecord===original&&receiptStore().getItem(original.key)===original.raw;
+        if(!owns()||proof.scope!=='fqc'||proof.actorId!==pin.actor||proof.operationId!==original.meta.operationId||
+          !receiptInt(proof.generationRevision)||proof.generationRevision<1||!receiptInt(found.revision)||found.revision<proof.generationRevision)
+          throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+        const next=await read('',owns,{},false);
+        if(!owns()||next.identity?.id!==pin.actor||next.permissions?.view!==true||
+          !receiptInt(next.control?.resetGenerationRevision)||next.control.resetGenerationRevision<proof.generationRevision||
+          !receiptInt(next.control.revision)||next.control.revision<Math.max(found.revision,next.control.resetGenerationRevision,data.control.revision)||
+          !receiptInt(next.revision)||next.revision<data.revision)throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+        original.confirmed=null;
+        receiptClear(original,pin);
+        data=next;
+        reconcileSelection();
+        // Stop here: ordinary success handling could apply the old edit locally.
+        throw Error('FQC_OLD_OPERATION_RESET');
+      }
       return receiptTerminal(original,found,pin);
     }
-    const body=clone({...command,...(data?.control?.resetGenerationRevision!==undefined&&command.expectedRevision===undefined?{expectedRevision:data.control.revision}:{}),operationId:command.operationId||id()});if(!receiptWriteAllowed(body))throw Error('FORBIDDEN');
+    const body=clone({...command,...(refs?{independentOf:refs,expectedRevision:data.control.revision}:{}),...(data?.control?.resetGenerationRevision!==undefined&&command.expectedRevision===undefined?{expectedRevision:data.control.revision}:{}),operationId:command.operationId||id()});if(!receiptWriteAllowed(body))throw Error('FORBIDDEN');
     if(body.action==='create-plan'&&calendarMode()){
       body.operationId='plan-fqc-'+crypto.randomUUID();
       const {response,value}=await routineJSON('/api/routine-plan-intent?scope=fqc&id='+encodeURIComponent(body.operationId),{
@@ -1595,34 +1640,37 @@
     const tab=s.tab==='documents'?documentTab(doc()):s.tab;
     const rows=docs().filter(d=>tab==='history'||!d.cancelled&&(tab==='plans'?d.kind==='plan'&&!d.requestKind&&(!d.retestApplicationCaseId||status(d)==='approved'):d.kind==='report'&&(!d.planId||!docs().some(p=>p.id===d.planId&&(p.requestKind||status(p)!=='approved'||p.cancelled)))));
     const queue=tab==='reports'?rows.filter(d=>status(d)!=='approved'):rows;
-    const filters=[['',tab==='reports'?t('全部待辦','Tất cả việc cần xử lý'):t('全部','Tất cả')],
+    const waiting=new Set(tab==='reports'?docs().filter(d=>!d.cancelled&&d.kind==='plan'&&!d.requestKind&&d.calendarVersion===2&&status(d)==='approved'&&reportSlots(d).some(a=>a.assigned&&!a.reportIds.length)):[]);
+    const readyJobs=tab==='plans'?data.control.jobs.filter(j=>j.calendar?.retestCaseId&&arrangeable(j)):[];
+    const cards=[...queue,...waiting].flatMap(document=>calendarOriginKeys(document).map(origin=>({
+      document,origin,state:waiting.has(document)?'waiting':status(document)
+    })));
+    const matches=(card,key)=>key?card.state===key:tab!=='plans'||card.state!=='approved';
+    const count=key=>cards.filter(card=>matches(card,key)).length+(key?0:readyJobs.length);
+    const filters=[['',tab==='reports'||tab==='plans'?t('全部待辦','Tất cả việc cần xử lý'):t('全部','Tất cả')],
       ['draft',t('草稿','Bản nháp')],['pending',t('待審核','Chờ duyệt')]];
     if(tab!=='reports')filters.push(['approved',tab==='plans'?t('已核准歷史','Lịch sử đã duyệt'):t('已核准','Đã duyệt')]);
     const canReadHistory=tab==='reports'&&data.permissions.history;
     const state=tab==='reports'&&(s.workState==='approved'||!canReadHistory&&s.workState==='approved-history')?'':s.workState;
     const history=state==='approved-history'&&canReadHistory;
     const filterBar=`<nav class="rf-calendar-tools rf-work-states" aria-label="${t('文件狀態','Trạng thái hồ sơ')}">
-      ${filters.map(([key,title])=>`<button type="button" class="rf-btn ${state===key?'primary':''}" data-work-state="${key}">${title} · ${queue.filter(d=>!key||status(d)===key).length}</button>`).join('')}
+      ${filters.map(([key,title])=>`<button type="button" class="rf-btn ${state===key?'primary':''}" data-work-state="${key}">${title} · ${count(key)}</button>`).join('')}
       ${canReadHistory?`<button type="button" class="rf-btn ${history?'primary':''}" data-work-state="approved-history">${t('已核准報告歷史','Lịch sử báo cáo đã duyệt')}</button>`:''}
     </nav>`;
     if(history)return filterBar+approvedReportList();
-    const visible=queue.filter(d=>state?status(d)===state:tab!=='plans'||status(d)!=='approved');
-    const waiting=tab==='reports'&&!state?docs().filter(d=>!d.cancelled&&d.kind==='plan'&&!d.requestKind&&d.calendarVersion===2&&status(d)==='approved'&&reportSlots(d).some(a=>a.assigned&&!a.reportIds.length)):[];
     const groups=new Map();
-    for(const d of [...visible,...waiting])for(const key of calendarOriginKeys(d)){
-      if(!groups.has(key))groups.set(key,[]);
-      if(!groups.get(key).some(x=>x.id===d.id))groups.get(key).push(d);
+    for(const card of cards.filter(card=>matches(card,state))){
+      if(!groups.has(card.origin))groups.set(card.origin,[]);
+      groups.get(card.origin).push(card.document);
     }
-    return filterBar+calendarRetestQueue(tab,state)+`<div class="rf-calendar-document-list">${[...groups].reverse().map(([key,items])=>{
+    return filterBar+calendarRetestQueue(state?[]:readyJobs)+`<div class="rf-calendar-document-list">${[...groups].reverse().map(([key,items])=>{
       items.sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||'')||a.id.localeCompare(b.id));
       const origin=docs().find(d=>d.id===key),followups=items.filter(d=>retestCases(d).length),initial=items.filter(d=>!retestCases(d).length);
-      const render=d=>calendarDocumentCard(d,waiting.includes(d),key);
+      const render=d=>calendarDocumentCard(d,waiting.has(d),key);
       return `<article class="rf-document-family" data-family-origin="${h(key)}">${followups.length?`<header><b>${t('初測與再測','Lần đầu và thử lại')}</b>${origin?`<button class="rf-btn" ${status(origin)==='approved'?`data-timeline-doc="${h(origin.id)}" data-timeline-formal aria-haspopup="dialog"`:`data-doc="${h(origin.id)}"`} ${status(origin)==='approved'&&!data.permissions.history?'disabled':''}>${t('初測來源（查看）','Nguồn lần đầu (xem)')} · ${h(displayNumber(origin))} · ${h(label(status(origin)))}</button>`:`<span>${t('來源文件','Hồ sơ nguồn')} · ${h(key)}</span>`}</header>`:''}${initial.map(render).join('')}${followups.length?`<details open><summary>${t('再測及後續文件','Thử lại và hồ sơ tiếp theo')} · ${followups.length}</summary>${followups.map(render).join('')}</details>`:''}</article>`;
     }).join('')||empty()}</div>`;
   }
-  function calendarRetestQueue(tab,state) {
-    if(tab!=='plans'||state)return '';
-    const jobs=data.control.jobs.filter(j=>j.calendar?.retestCaseId&&arrangeable(j));
+  function calendarRetestQueue(jobs) {
     if(!jobs.length)return '';
     return `<section class="rf-retest-queue"><h3>${t('再測待建計畫','Thử lại chờ lập kế hoạch')} · ${jobs.length}</h3>${jobs.map(j=>`<article class="rf-family-entry" data-retest-work="${h(j.id)}"><strong>${h(j.source.name)}</strong><p>${t('再測申請已核准，請設定計畫起迄後繼續送審。','Đề nghị thử lại đã duyệt; đặt thời hạn kế hoạch rồi gửi duyệt.')}</p><button type="button" class="rf-btn primary" data-period-next="${h(j.id)}" ${data.permissions.edit?'':'disabled'}>${t('建立再測計畫','Lập kế hoạch thử lại')}</button><button type="button" class="rf-btn" data-case="${h(j.calendar.retestCaseId)}">${t('查看原不合格與申請歷史','Xem lịch sử không đạt và đề nghị')}</button></article>`).join('')}</section>`;
   }
@@ -2105,6 +2153,15 @@
     retireApprovedHistory();
     const leavingReviewForCase = s.reviewPlatform && ['cases','failed'].includes(tab);
     if (tab !== s.tab) s.highlight = '';
+    if(receiptRecord&&!receiptRecord.terminal&&!receiptInvalid&&!activeDeliveries&&!s.busy&&receiptOwnedPin(receiptPin())){
+      const match=receiptDiscover(data.identity.id).find(row=>row.meta.documentId===value);
+      if(match&&match.key!==receiptRecord.key){
+        parkedReceipts.set(receiptRecord.key,receiptRecord);
+        const held=parkedReceipts.get(match.key);
+        receiptRecord=held?.raw===match.raw?held:match;receiptPresentation=null;
+        s.retry=receiptRecord.ram||receiptRetry(receiptRecord.meta);s.retryDeparture=null;s.retryOwner=null;
+      }
+    }
     s.selected = value;
     s.tab = tab === 'documents' ? documentTab(docs().find((d) => d.id === value)) : tab;
     s.cancelConfirm = null;
@@ -2127,7 +2184,7 @@
       ()=>normalWork() && !s.busy && !loading && !receiptInvalid && !inFlightMutation && !s.dialogOpen && !departureDocuments().length,
       ()=>refresh(false),{
         capture:()=>window.RoutineReset.markers(receiptDiscover(data.identity.id).map(row=>({...row,operationId:row.meta.operationId}))),
-        invalidate:()=>{receiptLifecycle++;historyDisplayEpoch++;refreshSequence++;if(receiptRecord){receiptRecord.terminal=null;receiptRecord.confirmed=null;}},
+        invalidate:()=>{parkedReceipts.clear();receiptLifecycle++;historyDisplayEpoch++;refreshSequence++;if(receiptRecord){receiptRecord.terminal=null;receiptRecord.confirmed=null;}},
         settle:async receipt=>{
           const actor=data.identity.id,rows=receiptDiscover(actor).map(row=>({...row,operationId:row.meta.operationId,storage:receiptStore()}));
           await window.RoutineReset.settle('fqc',actor,receipt,()=>read(''),rows);
@@ -2610,6 +2667,47 @@
       meta.requestedRevision===0&&meta.aggregateRevision===0&&data?.permissions?.settings&&data?.permissions?.edit&&
       receiptOwnedPin(receiptPin())&&meta.actor===data.identity.id;
   }
+  async function reconcileDraft(){
+    const record=receiptRecord,m=record?.meta,pin=receiptPin(),display=captureHistoryDisplay();
+    const owns=()=>display()&&receiptOwnedPin(pin)&&record===receiptRecord&&receiptStore().getItem(record.key)===record.raw;
+    if(s.busy||!record||m.action!=='draft'||!['apply','save','submit'].includes(m.innerAction)||!owns())return;
+    s.busy=true;
+    try{
+      const latest=await read('',owns),d=latest.control.documents.find(v=>v.id===m.documentId);
+      if(!d||d.flow.scope!=='routine-fqc:'+m.documentId||latest.identity.id!==pin.actor||latest.control.revision<m.aggregateRevision)
+        throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+      const saved=d.flow.saved?.content;
+      const rows=(saved?.lines||[]).map(l=>'<li>'+h(l.source?.name||'')+' · '+h(l.source?.code||'')+'<ul>'+
+        (l.results||[]).map(r=>'<li>'+h(label(r.outcome))+' '+h(r.value||'')+' '+h(r.notes||'')+'</li>').join('')+'</ul></li>').join('');
+      const savedView=saved?'<details><summary>'+t('查看已存內容','Xem nội dung đã lưu')+'</summary><p>'+h(saved.title)+' · '+h(saved.date)+'</p><p>'+h(saved.notes||'')+'</p><ul>'+rows+'</ul></details>':'';
+      const confirm=await dialog(t('核對最新 FQC 文件','Đối chiếu hồ sơ FQC mới nhất'),
+        '<p>'+h(d.number||d.id)+' · '+h(d.flow.working.title)+' · '+h(label(status(d)))+'</p><p>'+t('目前修訂','Phiên bản hiện tại')+' '+h(d.flow.revision)+' · '+h(d.flow.saved?.at||'—')+'</p>'+savedView+'<p>'+
+        t('原操作結果待確認。確認後只停止這筆舊請求；請核對已存內容，再決定是否需要新的操作。','Kết quả cũ chưa rõ. Chỉ dừng yêu cầu này; hãy kiểm tra nội dung đã lưu trước khi thực hiện thao tác mới.')+'</p>',
+        t('已核對，處理舊請求','Đã đối chiếu, xử lý yêu cầu'));
+      if(confirm===null||!owns())return;
+      const stop={operationId:m.operationId,documentId:m.documentId,action:m.innerAction,generation:m.generation};
+      const {response,value}=await routineJSON(endpoint,{method:'POST',headers:{'Content-Type':'application/json','X-Process-Expected-Actor':pin.actor},
+        body:JSON.stringify({action:'reconcile-draft',operationId:id(),documentId:m.documentId,expectedRevision:latest.control.revision,
+          reviewedGeneration:d.flow.generation,reviewedDocumentRevision:d.flow.revision,stop})});
+      if(!owns()||!response.ok)throw Error(value?.error||'ROUTINE_RECEIPT_READBACK_REQUIRED');
+      const proof=value.result;
+      if(proof?.actorId!==pin.actor||!receiptInt(value.revision)||value.revision<latest.control.revision||
+        Object.keys(stop).some(k=>proof[k]!==stop[k]))throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+      if(proof.status==='committed')receiptTerminal(record,{result:proof.result,revision:value.revision},pin);
+      else if(proof.status!=='fenced'||proof.priorOutcome!=='unknown')throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+      const next=await read('',owns),after=next.control.documents.find(v=>v.id===d.id);
+      if(!display()||!receiptOwnedPin(pin)||next.identity.id!==pin.actor||next.control.revision<value.revision||!after)
+        throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+      if(proof.status==='fenced'){
+        if(!owns()||after.flow.generation!==d.flow.generation||after.flow.revision!==d.flow.revision||
+          after.flow.saved?.id!==d.flow.saved?.id||after.flow.pendingId!==d.flow.pendingId)throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+        receiptClear(record,pin);
+      }
+      data=next;reconcileSelection();s.issues=[];
+      s.error=proof.status==='fenced'?t('舊請求已停止，先前結果仍未知。請核對最新文件後再操作。','Đã dừng yêu cầu cũ; kết quả trước đây vẫn chưa rõ. Kiểm tra hồ sơ mới nhất trước khi tiếp tục.'):t('原操作已確認。','Đã xác nhận thao tác gốc.');
+    }catch(e){if(display()&&receiptOwnedPin(pin))fault(e,true);}
+    finally{s.busy=false;if(display()&&receiptOwnedPin(pin))paint();}
+  }
   async function recoverPlan(){
     const record=receiptRecord,pin=receiptPin(),display=captureHistoryDisplay(),meta=record?.meta;
     if(s.busy||meta?.action!=='create-plan'||!meta.operationId.startsWith('plan-fqc-')||!receiptOwnedPin(pin))return;
@@ -2678,6 +2776,7 @@
   async function act(action, el) {
     assertCurrentDisplay();
     if (s.busy || s.dialogOpen || generationRefresh?.current()) return;
+    if(action==='reconcile-draft')return reconcileDraft();
     if(action==='recover-plan')return recoverPlan();
     if(action==='retire-first-start')return resolveFirstStart();
     if(action==='receipt-minimize'||action==='receipt-show'){
@@ -2694,6 +2793,7 @@
       if(expiredPlan(doc())&&['save','submit','discard','confirm-discard','delete-plan','restore-document','apply'].includes(action))throw Error('EXPIRED_PLAN_READ_ONLY');
       if (
         s.retry &&
+        !(doc()&&!receiptInvalid&&independentReferences({action:'draft',documentId:doc().id,command:{action}},receiptDiscover(data.identity.id))) &&
         ![
           'retry',
           'back',

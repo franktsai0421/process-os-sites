@@ -1,3 +1,4 @@
+import {resetLedger} from '@/lib/routine-reset-ledger';
 import {checkPlanIntent} from '@/lib/routine-plan-intent';
 import { isRoutineAdmin } from '@/lib/routine-schedule-owner';
 import {routineApprovedQuery,routineApprovedControl,routineApprovedRows,routineApprovedVersion} from '@/lib/routine-fqc-approved-history';
@@ -59,11 +60,33 @@ const enabled = (
   (['localhost', '127.0.0.1'].includes(new URL(request.url).hostname) &&
     new URL(request.url).port === '3040') ||
   state.values.routineFqcEnabled === '1';
+function findReceipt(control:ReturnType<typeof parseRoutine>,id:string,documentId:string|null){
+  const aggregate=control.receipts&&Object.hasOwn(control.receipts,id)?control.receipts[id]:null;
+  if(aggregate||!documentId)return aggregate;
+  const flow=control.documents?.find(row=>row.id===documentId)?.flow;
+  if(flow?.scope!=='routine-fqc:'+documentId||!flow.receipts||!Object.hasOwn(flow.receipts,id))return null;
+  const inner=flow.receipts[id];
+  return inner?.result?.operationId===id?inner:null;
+}
+// The retired index blocks replay by operation ID regardless of command payload.
+function fqcResetProof(control: ReturnType<typeof parseRoutine>, id: string) {
+  const ledger = resetLedger(control);
+  if (!Object.hasOwn(ledger.retired, id)) return null;
+  const actorId = ledger.retired[id].actorId;
+  const floor = control.resetGenerationRevision;
+  if (typeof floor !== 'number' || !Number.isSafeInteger(floor) || floor < 1 || floor > control.revision) return null;
+  const entry = ledger.entries.find(e => e.scope === 'fqc' && e.actorId === actorId &&
+    e.generationRevision > 0 && e.generationRevision <= floor &&
+    e.settlements.some(p => p.operationId === id && p.priorOutcome === ledger.retired[id].outcome));
+  return entry ? {scope:'fqc', actorId, operationId:id, generationRevision:entry.generationRevision} : null;
+}
 export async function GET(request: Request) {
   try {
     const approved=routineApprovedQuery(request);
     const authorityKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','routineFqcEnabled'];
     const query = new URL(request.url).searchParams, operationId=query.get('operationId');
+    const receiptDocument=query.get('receiptDocument');
+    if(query.has('receiptDocument')&&(!operationId||query.size!==2||!receiptDocument||!/^[a-zA-Z0-9_-]{1,160}$/.test(receiptDocument)))return reply({error:'INVALID_SELECTOR'},422);
     if(operationId?.startsWith('~plan-intent~'))return reply({error:'INVALID_SELECTOR'},422);
     const calendarPreview = query.get('preview') === '1' && query.get('calendar') === '2';
     if (calendarPreview && (query.size !== 3 || !query.has('start')))
@@ -83,6 +106,7 @@ export async function GET(request: Request) {
         row.id === library.activeVersionId && row.status === 'approved');
       return JSON.stringify({libraries: {fqc: {activeVersionId: library.activeVersionId, versions: version ? [version] : []}}});
     };
+    let projectedReset: ReturnType<typeof fqcResetProof> | undefined;
     const state = await readState({
         ...(availability ? {keys: entryKeys, aggregateReadAhead: true}
           : query.size === 0 ? {keys: [...entryKeys, 'qualityMasterControl', 'masterDataControl'], aggregateReadAhead: true, projectValue: entryCatalog} : {}),
@@ -99,11 +123,14 @@ export async function GET(request: Request) {
           }} : {}),
         deferHistory: !calendarPreview,
         deferDependencyHistory: !calendarPreview,
-        ...(operationId?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','routineFqcEnabled',RF_KEY],projectValue:(key:string,raw:string)=>{if(key!==RF_KEY)return raw;const root=JSON.parse(raw);return JSON.stringify({schemaVersion:root.schemaVersion,revision:root.revision,documents:[],jobs:[],cases:[],receipts:root.receipts&&Object.hasOwn(root.receipts,operationId)?{[operationId]:root.receipts[operationId]}:{}});}}:{}),
+        ...(operationId?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','routineFqcEnabled',RF_KEY],projectValue:(key:string,raw:string)=>{if(key!==RF_KEY)return raw;const root=JSON.parse(raw);
+          const receipt=findReceipt(root,operationId,receiptDocument);
+          projectedReset = receipt ? null : fqcResetProof(root,operationId);
+          return JSON.stringify({schemaVersion:root.schemaVersion,revision:root.revision,documents:[],jobs:[],cases:[],receipts:receipt?{[operationId]:receipt}:{}});}}:{}),
       }),
       entryPhase = availability || query.size === 0
         ? await createRoutineEntryPermissionPhase(request, state)
-        : (calendarPreview || operationId && query.size===1) ? await routineStartupPermissionPhase(request,state) : null,
+        : (calendarPreview || operationId && (query.size===1||!!receiptDocument)) ? await routineStartupPermissionPhase(request,state) : null,
       actor = entryPhase ? entryPhase.actor : await identity(request, state);
     if (!actor) return reply({ error: 'LOGIN_REQUIRED' }, 401);
     const permissions = await access(request, state, entryPhase?.allowed);
@@ -214,10 +241,11 @@ export async function GET(request: Request) {
       return reply({ jobs, unresolved: sources.filter((s) => !s.frequency) });
     }
     if (query.has('operationId')) {
-      const receipt = c.receipts[query.get('operationId')!];
+      const receipt = findReceipt(c,query.get('operationId')!,receiptDocument);
+      const resetSettlement = !receipt && operationId ? (projectedReset === undefined ? fqcResetProof(c,operationId) : projectedReset) : null;
       const response=receipt && receipt.actorId === actor.id
         ? reply({ result: receipt.result, revision: c.revision })
-        : reply({ error: 'OPERATION_NOT_FOUND' },404);
+        : resetSettlement?.actorId === actor.id ? reply({resetSettlement, revision:c.revision}) : reply({ error: 'OPERATION_NOT_FOUND' },404);
       if(!(entryPhase ? await entryPhase.current() : (await identity(request,state))?.id===actor.id))return reply({error:'LOGIN_REQUIRED'},401);
       if(!await stateRevisionIsCurrent(state))return reply({error:'CONCURRENT_CHANGE_RETRY'},409);
       return response;
@@ -279,6 +307,7 @@ export async function GET(request: Request) {
         })),
         receipts: {},
         resetLedger: undefined,
+        draftStops: undefined,
       },
       sources,
       catalog: routineCatalog(state),
@@ -326,7 +355,7 @@ export async function POST(request: Request) {
     const command = JSON.parse(raw) as RoutineCommand;
     // These calendar document transitions consume the same approved timeline as
     // generation. Unknown and legacy storage layouts keep the full reader.
-    const calendarDocument = ['create-plan','create-report','request','draft'].includes(command.action);
+    const calendarDocument = ['create-plan','create-report','request','draft','reconcile-draft'].includes(command.action);
     const scheduleAction = new URL(request.url).search ? null :
       command.action === 'configure' ? 'configure' :
       command.action === 'generate' || calendarDocument ? 'generate' : null;
@@ -342,6 +371,8 @@ export async function POST(request: Request) {
         phase = schedulePhase ? await routineStartupPermissionPhase(request,state) : null,
         actor = phase ? phase.actor : await identity(request, state);
       if (!actor) return reply({ error: 'LOGIN_REQUIRED' }, 401);
+      if(command.action==='reconcile-draft'&&request.headers.get('X-Process-Expected-Actor')!==actor.id)
+        return reply({error:'FORBIDDEN',requestId},403);
       if (state.values.maintenanceMode === '1')
         return reply({ error: 'MAINTENANCE' }, 503);
       const permissions = await access(request, state, phase?.allowed);
@@ -390,12 +421,13 @@ export async function POST(request: Request) {
       // Calendar writes need the approved transition snapshots. Keep the
       // ordinary GET path on its bounded, active-version-only projection.
       let sourceState = state;
-      if (!existing && control.calendarPolicy && !(selected && scheduleAction === 'generate')) {
+      if (command.action!=='reconcile-draft'&&!existing && control.calendarPolicy && !(selected && scheduleAction === 'generate')) {
         const source = await readState({keys:['qualityMasterControl','masterDataControl'],deferHistory:false});
         if (source.revision !== state.revision) continue;
         sourceState = {...state,values:{...state.values,...source.values}};
       }
-      const result = executeRoutine(control, command, routineSources(sourceState), {
+      const previousRevision=control.revision;
+      const result = executeRoutine(control, command, command.action==='reconcile-draft'?[]:routineSources(sourceState), {
         actor: {
           id: actor.id,
           name: actor.name,
@@ -403,18 +435,23 @@ export async function POST(request: Request) {
         },
         at,
         today: companyDate(),
-        sourceTimeline:!existing&&control.calendarPolicy?routineSourceTimeline(sourceState):undefined,
+        sourceTimeline:command.action!=='reconcile-draft'&&!existing&&control.calendarPolicy?routineSourceTimeline(sourceState):undefined,
         allowed: (p) => permissions[p],
         settings: permissions.settings,
         revoke: permissions.revoke,
         revise: permissions.revise,
       });
-      if (existing) {
+      if (existing||command.action==='reconcile-draft'&&control.revision===previousRevision) {
+        if(command.action==='reconcile-draft'&&!phase){
+          const current=await identity(request,state);
+          if(current?.id!==actor.id||current.sessionType!==actor.sessionType)return reply({error:'LOGIN_REQUIRED',requestId},401);
+          if(!await stateRevisionIsCurrent(state))continue;
+        }
         if (phase && !await stateRevisionIsCurrent(state)) return reply({error:'CONCURRENT_CHANGE_RETRY',requestId},409);
         if (phase && !await phase.current()) return reply({error:'LOGIN_REQUIRED',requestId},401);
         return reply({ result, revision: control.revision, replayed: true });
       }
-      const doc = control.documents.find((d) => d.id === command.documentId);
+      const doc = command.action==='reconcile-draft'?null:control.documents.find((d) => d.id === command.documentId);
       const photos = new Set([
         ...(doc
           ? [...photoIds(doc.flow.working), ...photoIds(docContent(doc))]

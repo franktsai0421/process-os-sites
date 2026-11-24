@@ -233,3 +233,33 @@ void test('durable collapse belongs to a single operation and verified readback 
  assert.equal(f.api.s.retry,null);
  assert.equal(f.posts(),1);
 });
+
+void test('a returning browser settles only its reset-retired operation after live generation readback',async()=>{
+  const first=fixture(), operation=first.draft();
+  first.setMode('lost');
+  await assert.rejects(first.api.postOwned(operation));
+  const returning=fixture();
+  for(const [key,raw] of first.store.map)returning.store.setItem(key,raw);
+  await returning.api.read();
+  const lookup=returning.api.s.retry;
+  const normal=returning.box.fetch;
+  const proof={scope:'fqc',operationId:operation.operationId,actorId:'owner',generationRevision:11};
+  returning.box.fetch=(url,options)=>String(url).includes('operationId=')
+    ? Response.json({resetSettlement:proof,revision:12}) : normal(url,options);
+  await assert.rejects(returning.api.postOwned(lookup),/READBACK_REQUIRED/);
+  assert.equal(returning.store.map.size,1,'stale full read does not release');
+  returning.remote.control.revision=13;
+  returning.remote.revision+=3;
+  returning.remote.control.resetGenerationRevision=12;
+  proof.actorId='peer';
+  await assert.rejects(returning.api.postOwned(lookup),/READBACK_REQUIRED/);
+  proof.actorId='owner';
+  await returning.api.act('retry');
+  assert.equal(returning.api.s.retry,null);
+  assert.match(returning.api.s.error,/舊請求已由 Reset 停用/);
+  assert.equal(returning.posts(),0);
+  assert.equal(returning.store.map.size,0);
+  assert.equal(first.store.map.size,1,'other browser marker untouched');
+  await returning.api.postOwned(returning.draft('save',{expectedRevision:returning.remote.control.documents[0].flow.revision}));
+  assert.equal(returning.posts(),1,'only the explicit new operation writes');
+});

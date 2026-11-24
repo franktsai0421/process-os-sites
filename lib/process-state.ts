@@ -283,7 +283,8 @@ export function routineStartupPermissionPhase(request:Request,state:State){
   const {pathname,searchParams:q}=new URL(request.url);
   const preview=request.method==='GET'&&pathname==='/api/routine-fqc'&&q.size===3&&q.get('preview')==='1'&&q.get('calendar')==='2'&&q.has('start');
   const iqc=pathname==='/api/routine-iqc'&&(request.method==='POST'&&!q.size||request.method==='GET'&&q.size===1&&q.has('operationId'));
-  const fqc=pathname==='/api/routine-fqc'&&(request.method==='POST'&&!q.size||request.method==='GET'&&q.size===1&&q.has('operationId'));
+  const documentReceipt=q.size===2&&q.has('operationId')&&/^[a-zA-Z0-9_-]{1,160}$/.test(q.get('receiptDocument')||'');
+  const fqc=pathname==='/api/routine-fqc'&&(request.method==='POST'&&!q.size||request.method==='GET'&&(q.size===1&&q.has('operationId')||documentReceipt));
   if(!preview&&!iqc&&!fqc)throw Error('INVALID_PERMISSION_PHASE');
   return createWorkflowPermissionPhase(request,state);
 }

@@ -1,0 +1,55 @@
+name: FQC queue count PR150 review (head only)
+on:
+  pull_request:
+    branches: ['review/v68-reset-base-20261123']
+    types: [synchronize]
+    paths: ['.github/workflows/fqc-queue-count-pr150-review.yml']
+permissions:
+  contents: read
+concurrency:
+  group: fqc-queue-count-pr150-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  isolated-fqc:
+    if: github.repository == 'franktsai0421/process-os-sites' && github.event.pull_request.number == 150 && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'fix/fqc-visible-queue-count' && github.base_ref == 'review/v68-reset-base-20261123'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      PROCESS_PROGRAM_COMMIT: ${{ github.event.pull_request.head.sha }}
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify reviewed source and unchanged migration baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          test "$BASE_SHA" = ff96f43577d786ee1ec1170afe7da07f4627a653
+          test "$(git rev-parse 711baf76361e614de648d83798417489aa8ea887^{tree})" = feafe6c9f899193e010682cb48b88279221840ba
+          test "$(git rev-parse HEAD^)" = 711baf76361e614de648d83798417489aa8ea887
+          git merge-base --is-ancestor "$BASE_SHA" 711baf76361e614de648d83798417489aa8ea887
+          # Only this workflow may differ from the already reviewed candidate.
+          git diff --exit-code 711baf76361e614de648d83798417489aa8ea887 HEAD -- . ':(exclude).github/workflows/fqc-queue-count-pr150-review.yml'
+          # No schema, migration journal, hosting or manifest change is permitted.
+          git diff --exit-code "$BASE_SHA" HEAD -- drizzle drizzle-sites-fresh db .openai SOURCE-PROFILE.json package.json package-lock.json
+          printf "Tested HEAD: %s\nTree: %s\nReview base: %s\n" "$HEAD_SHA" "$(git rev-parse HEAD^{tree})" "$BASE_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - run: npm ci --no-audit --no-fund
+      - name: TypeScript
+        run: npx --no-install tsc --noEmit --incremental false
+      - name: Build local worker
+        run: npm run build
+      - name: Reset settlement, cross-browser readback and independent FQC writes
+        run: node --test tests/routine-reset-pending-settlement.test.cjs tests/routine-fqc-receipt-only.test.mjs tests/routine-fqc-durable-route.test.mjs tests/routine-fqc-durable-receipt.test.mjs
+      - name: Visible plan and report card counts in Chinese and Vietnamese
+        run: node --test --test-name-pattern='visible FQC plan and report' tests/routine-fqc-manual-generation.test.mjs
