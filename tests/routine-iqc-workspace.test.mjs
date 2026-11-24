@@ -84,7 +84,7 @@ function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirm
   input(key,value){listeners.input({target:{dataset:{riField:key},value}});},
   filter(key,value){iqcChange({target:{dataset:{riFilter:key},value}});},
   queryReports(value){listeners.submit({target:{matches:selector=>selector==='[data-ri-report-search]',elements:{query:{value}}},preventDefault(){}});},
-  queryPeriods(values){const elements=Object.fromEntries(['search','periodFrom','periodTo','outcome'].map(key=>[key,{value:values[key]||''}]));
+  queryPeriods(values){const elements=Object.fromEntries(['search','periodFrom','periodTo'].map(key=>[key,{value:values[key]||''}]));
    listeners.submit({target:{matches:selector=>selector==='[data-ri-period-search]',elements},preventDefault(){}});},
   preview:()=>clickPreview(),changeDate:value=>changeDate(value),adminMarkup:()=>adminModal?.innerHTML,
   dialogCount:()=>dialogCount, closeDialog:value=>closeDialog(value),
@@ -629,7 +629,7 @@ void test('IQC takes follow-ups from the true inspection and batch and preserves
  assert.match(result('still-fail'),/rf-location-link" data-ri-action="case:failure">不合格 · ERP 0002/);
  assert.doesNotMatch(result('still-fail'),/waive-period:/);
 
- ui.queryPeriods({outcome:'retest-pass'});
+ ui.action('facet:retest-pass');
  assert.match(html(),/data-ri-pick="retest-pass"/);
  assert.doesNotMatch(html(),/data-ri-pick="(?:original-pass|still-fail)"/);
  ui.stage('plan');assert.doesNotMatch(html(),/FOLLOWUP/);
@@ -1357,4 +1357,45 @@ test('IQC unstarted and empty lists retain filter controls, and history permissi
    });
    assert.equal(actual,'repeat('+columns+',minmax(0,1fr))');
  }
+});
+
+
+for(const lang of ['zh','vi'])test('Source and text filters preserve frequency notices and the older-period disclosure: '+lang,async()=>{
+ const current=parityJob('nov',{itemId:'same'});
+ const prior=parityJob('oct',{itemId:'same',start:'2026-10-01',end:'2026-10-31',planId:'approved'});
+ const older=parityJob('jun',{itemId:'same',start:'2026-06-01',end:'2026-06-30',completion:{kind:'pass'}});
+ for(const job of [current,prior,older]){
+   job.source.iqc.supplierIds=['A'];
+   job.calendar={scope:'same'};
+ }
+ prior.source.frequency='weekly';
+ const data=parityState([current,prior,older]);
+ data.periodRules={same:{frequency:'monthly',from:'2026-12-01'}};
+ const ui=switchFixture(lang,{data}),html=()=>ui.iqcRoot.innerHTML;
+ ui.press(ui.entry);await new Promise(resolve=>setImmediate(resolve));
+ ui.action('toggle-group:same');
+ ui.filter('supplier','A');
+ const verify=()=>{
+   assert.match(html(),/data-ri-period="nov"[\s\S]*data-ri-period="oct"[\s\S]*data-ri-older="same"[\s\S]*<div hidden>[\s\S]*data-ri-period="jun"/);
+   assert.match(html(),lang==='zh'?/既有計畫保留原標準/:/Giữ tiêu chuẩn cũ/);
+   assert.match(html(),/2026-12-01/);
+   assert.doesNotMatch(html(),/name="outcome"/);
+ };
+ verify();
+ ui.queryPeriods({search:'CHECK-same'});verify();
+ ui.queryPeriods({periodFrom:'2026-06-01',periodTo:'2026-06-30'});
+ assert.match(html(),/data-ri-period="jun"/);
+ assert.doesNotMatch(html(),/data-ri-older="same"|data-ri-period="nov"/);
+});
+
+test('A history-disabled viewer cannot activate the historical facet on a populated list',async()=>{
+ const job=parityJob('current'),other=parityJob('other');
+ const batch={partId:'part',batchNo:'A',quantity:1};
+ const data=parityState([job,other],[parityDoc('original','report','approved',[job],{inspections:[{jobId:job.id,batch,outcome:'fail'}]})]);
+ data.permissions.history=false;
+ const ui=switchFixture('zh',{data});ui.press(ui.entry);await new Promise(resolve=>setImmediate(resolve));
+ ui.action('facet:fail');
+ assert.match(ui.iqcRoot.innerHTML,/facet:fail" aria-pressed="false" disabled[^>]*>[^<]*<b>—/);
+ assert.match(ui.iqcRoot.innerHTML,/data-ri-group="other"/);
+ assert.doesNotMatch(ui.iqcRoot.innerHTML,/name="outcome"/);
 });

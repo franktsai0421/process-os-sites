@@ -1,0 +1,97 @@
+name: Routine FQC / IQC review
+
+on:
+  pull_request:
+    branches: ['review/v68-reset-base-20261123']
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: routine-test-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  routine-review:
+    name: Routine FQC / IQC review gate
+    if: >-
+      github.repository == 'franktsai0421/process-os-sites' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.base_ref == 'review/v68-reset-base-20261123'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      PROCESS_PROGRAM_COMMIT: ${{ github.event.pull_request.head.sha }}
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Verify exact PR head and base availability
+        id: identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ && "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          git cat-file -e "$BASE_SHA^{commit}"
+      - name: Select module suites
+        id: classify
+        run: node scripts/review-routine-ci.mjs scope
+      - name: Common classifier, TypeScript and local build
+        id: common
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-reporter=tap tests/review-routine-ci.test.mjs | tee "$RUNNER_TEMP/routine-classifier.tap"
+          grep -Eq '^# pass ([3-9]|[1-9][0-9]+)$' "$RUNNER_TEMP/routine-classifier.tap"
+          npm ci --no-audit --no-fund
+          npx --no-install tsc --noEmit --incremental false
+          npm run build
+      - name: FQC targeted regression suite
+        id: fqc
+        if: ${{ !cancelled() && steps.common.outcome == 'success' && steps.classify.outputs.fqc == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_tests() {
+            local minimum="$1" log
+            shift
+            log=$(mktemp)
+            node --test --test-reporter=tap "$@" | tee "$log"
+            awk -v minimum="$minimum" '/^# pass [0-9]+$/ {count++; passed=$3} END {exit !(count==1 && passed>=minimum)}' "$log"
+          }
+          run_tests 55 tests/routine-fqc-status-filters.test.mjs tests/routine-fqc-calendar.test.cjs tests/routine-reset-assets.test.mjs
+          run_tests 4 --test-name-pattern='normal Update and separate|deferred terminal case bodies|visible FQC plan and report' tests/routine-fqc-explicit-refresh.test.mjs tests/routine-fqc-manual-generation.test.mjs
+          node scripts/test-routine-whole-page-route.cjs | tee "$RUNNER_TEMP/routine-route.json"
+          node -e 'const r = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")); if (r.status !== "PASS" || !Array.isArray(r.checks) || new Set(r.checks).size < 16) process.exit(1)' "$RUNNER_TEMP/routine-route.json"
+      - name: IQC targeted regression suite
+        id: iqc
+        if: ${{ !cancelled() && steps.common.outcome == 'success' && steps.classify.outputs.iqc == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          log=$(mktemp)
+          node --test --test-reporter=tap tests/routine-iqc-workspace.test.mjs tests/routine-iqc-source.test.mjs tests/routine-iqc-workflow.test.mjs tests/routine-reset-assets.test.mjs | tee "$log"
+          awk '/^# pass [0-9]+$/ {count++; passed=$3} END {exit !(count==1 && passed>=71)}' "$log"
+      - name: Summarize and enforce test results
+        if: ${{ always() }}
+        env:
+          RUN_FQC: ${{ steps.classify.outputs.fqc }}
+          RUN_IQC: ${{ steps.classify.outputs.iqc }}
+          IDENTITY_RESULT: ${{ steps.identity.outcome }}
+          CLASSIFIER_RESULT: ${{ steps.classify.outcome }}
+          COMMON_RESULT: ${{ steps.common.outcome }}
+          FQC_RESULT: ${{ steps.fqc.outcome }}
+          IQC_RESULT: ${{ steps.iqc.outcome }}
+        run: node scripts/review-routine-ci.mjs gate

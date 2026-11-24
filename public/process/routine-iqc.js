@@ -335,16 +335,9 @@
     (!v.supplier||job.source.iqc.supplierIds?.includes(v.supplier));
   const normalized = value => String(value??'').normalize('NFKC').toLocaleLowerCase();
   const matchesQuery=(value,query)=>normalized(query).trim().split(/\s+/).every(term=>normalized(value).includes(term));
-  const periodFiltersActive=v=>!!(v.periodFrom||v.periodTo||v.outcome||v.range||v.facet||v.supplier||v.part||v.category||v.search);
-  function matchesOutcome(v,job) {
-    if(!v.outcome)return true;
-    return periodResults(v,job,initialReport(v,job)).some(({item,attempts,passed})=>
-      (v.outcome==='ever-fail'&&attempts.some(attempt=>attempt.outcome==='fail'))||
-      (v.outcome==='retest-pass'&&passed&&attempts.some(attempt=>attempt.outcome==='fail'))||
-      (v.outcome==='disposed-after-fail'&&item?.status==='disposed'&&!passed&&attempts.some(attempt=>attempt.outcome==='fail')));
-  }
+  const periodFiltersActive=v=>!!(v.periodFrom||v.periodTo||v.range||v.facet);
   const matchesFilters=(job,v)=>inPartScope(job,v)&&(!v.part||job.source.iqc.partId===v.part)&&
-    (!v.periodFrom||job.end>=v.periodFrom)&&(!v.periodTo||job.start<=v.periodTo)&&matchesOutcome(v,job)&&
+    (!v.periodFrom||job.end>=v.periodFrom)&&(!v.periodTo||job.start<=v.periodTo)&&
     matchesQuery([job.source.name,job.source.code,job.source.category,...job.source.products.flatMap(part=>[part.code,part.name])].join(' '),v.search);
   const facetLabels=[
     ['overdue','目前逾期','Hiện quá hạn'],['initial-pass','初測合格','Đạt lần đầu'],
@@ -449,16 +442,11 @@
       }).join('')}</div></section>`;
   }
   function periodFilters(v) {
-    const outcomes=[['',t('全部結果','Tất cả kết quả')],['ever-fail',t('曾有不合格','Từng không đạt')],
-      ['retest-pass',t('不合格後復測合格','Thử lại đạt sau khi không đạt')],
-      ['disposed-after-fail',t('不合格後處置結案','Đã xử lý và đóng sau khi không đạt')]];
     return `<form class="rf-period-search" data-ri-period-search>
       <label class="rf-period-query">${t('搜尋檢查項目','Tìm hạng mục kiểm tra')}
       <input name="search" type="search" value="${h(v.search)}" placeholder="${t('項目名稱、項目或零件編號','Tên hạng mục, mã hạng mục hoặc linh kiện')}"></label>
       <label>${t('檢查期別自','Kỳ kiểm tra từ')}<input type="date" name="periodFrom" value="${h(v.periodFrom)}"></label>
       <label>${t('檢查期別至','Kỳ kiểm tra đến')}<input type="date" name="periodTo" value="${h(v.periodTo)}"></label>
-      <label class="rf-period-outcome">${t('歷史結果','Kết quả lịch sử')}<select name="outcome">${outcomes.map(([value,title])=>
-        `<option value="${value}" ${value===v.outcome?'selected':''}>${title}</option>`).join('')}</select></label>
       <div class="rf-period-filter-actions"><button type="submit" class="rf-btn">${t('搜尋','Tìm')}</button>
       </div>
       <p data-ri-period-error hidden></p></form>`;
@@ -1160,7 +1148,7 @@
       v.root.querySelector('[data-ri-action="facet:'+id+'"]')?.focus({preventScroll:true});return;
     }
     if(kind==='clear-period-filters'){
-      v.range=v.facet=v.search=v.periodFrom=v.periodTo=v.outcome=v.category=v.supplier=v.part='';v.periodPages.clear();render(v);return;
+      v.range=v.facet=v.search=v.periodFrom=v.periodTo=v.category=v.supplier=v.part='';v.periodPages.clear();render(v);return;
     }
     if(['toggle-group','toggle-older','more-periods','close-older'].includes(kind)){
       const target=kind==='close-older'?'toggle-older:'+id:kind==='more-periods'?(periodFiltersActive(v)?'toggle-group:':'toggle-older:')+id:action;
@@ -1429,12 +1417,12 @@
       const form=event.target;
       if(form.matches('[data-ri-period-search]')){
         event.preventDefault();
-        const {search,periodFrom,periodTo,outcome}=form.elements;
+        const {search,periodFrom,periodTo}=form.elements;
         if(periodFrom.value&&periodTo.value&&periodFrom.value>periodTo.value){
           const error=form.querySelector('[data-ri-period-error]');
           error.setAttribute('role','alert');error.textContent=t('期別起日不得晚於迄日。','Ngày đầu kỳ không được sau ngày cuối kỳ.');error.hidden=false;return;
         }
-        Object.assign(v,{search:search.value,periodFrom:periodFrom.value,periodTo:periodTo.value,outcome:outcome.value});
+        Object.assign(v,{search:search.value,periodFrom:periodFrom.value,periodTo:periodTo.value});
         v.periodPages.clear();render(v);
         v.root.querySelector('[data-ri-period-search] [name="search"]')?.focus({preventScroll:true});
         return;
@@ -1464,7 +1452,7 @@
     if(!root)return;
     const v={root,review,owner:owner(),client:crypto.randomUUID(),sequence:0,
       data:null,tab:'sources',doc:review?new URL(location.href).searchParams.get('riDocument'):null,target:null,
-      checked:new Set(),openGroups:new Set(),openOlder:new Set(),openHistories:new Set(),periodPages:new Map(),workState:'',range:'',facet:'',category:'',supplier:'',part:'',search:'',periodFrom:'',periodTo:'',outcome:'',adminOpen:false,reviewHistory:false,reviewKind:'',reportQuery:'',showHidden:false,removedPicks:0,draft:null,base:null,error:'',pending:null,busy:false};
+      checked:new Set(),openGroups:new Set(),openOlder:new Set(),openHistories:new Set(),periodPages:new Map(),workState:'',range:'',facet:'',category:'',supplier:'',part:'',search:'',periodFrom:'',periodTo:'',adminOpen:false,reviewHistory:false,reviewKind:'',reportQuery:'',showHidden:false,removedPicks:0,draft:null,base:null,error:'',pending:null,busy:false};
     view=v;bind(v);render(v);
     try{await load(v);if(!review&&v.data.scheduleDue&&permissions(v).edit&&!v.pending)await generateSchedule(v);}
     catch(error){if(current(v)){v.error=errorText(error.message);render(v);}}
