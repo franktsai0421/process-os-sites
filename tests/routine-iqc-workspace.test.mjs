@@ -503,10 +503,12 @@ void test('IQC retains active older work and adjacent periods, and folds older o
  const expired=parityJob('sept',{itemId:'line',start:'2026-09-01',end:'2026-09-30',planId:'SEPT-EXPIRED'});
  const active=parityJob('aug',{itemId:'line',start:'2026-08-01',end:'2026-08-31',planId:'AUG-PENDING'});
  const closed=parityJob('jul',{itemId:'line',start:'2026-07-01',end:'2026-07-31',planId:'JUL-WAIVER',completion:{kind:'skip'}});
+ const discarded=parityJob('jun',{itemId:'line',start:'2026-06-01',end:'2026-06-30',planId:null});
  const future=parityJob('dec',{itemId:'future',start:'2026-12-01',end:'2026-12-31'});
  const docs=[parityDoc('SEPT-EXPIRED','plan','draft',[expired,stillCurrent],{expired:true}),parityDoc('AUG-PENDING','plan','pending',[active]),
-  parityDoc('JUL-WAIVER','waiver','approved',[closed])];
- const ui=switchFixture('zh',{data:parityState([current,stillCurrent,prev,expired,active,closed,future],docs)}),html=()=>ui.iqcRoot.innerHTML;
+  parityDoc('JUL-WAIVER','waiver','approved',[closed]),
+  parityDoc('JUN-DISCARDED','plan','cancelled',[discarded],{cancelledAt:'2026-06-15'})];
+ const ui=switchFixture('zh',{data:parityState([current,stillCurrent,prev,expired,active,closed,discarded,future],docs)}),html=()=>ui.iqcRoot.innerHTML;
  ui.press(ui.entry);await new Promise(resolve=>setImmediate(resolve));
  const [regular,older]=html().split('data-ri-older="line"');
  assert.match(regular,/data-ri-pick="nov"\s*>/);
@@ -516,8 +518,15 @@ void test('IQC retains active older work and adjacent periods, and folds older o
  assert.match(html(),/rf-period-group-toggle/);
  assert.match(regular,/data-ri-pick="oct"\s+disabled[\s\S]*已逾期/);
  assert.match(regular,/data-ri-pick="aug"\s+disabled[\s\S]*待審核/);
- assert.doesNotMatch(regular,/data-ri-pick="(?:sept|jul)"/);
- assert.match(older,/data-ri-pick="sept"\s+disabled[\s\S]*已逾期/);
+ const reserved=regular.match(/data-ri-pick="sept"[\s\S]*?<\/article>/)?.[0];
+ assert.match(reserved,/data-ri-pick="sept"\s+disabled/);
+ assert.match(reserved,/檢查計畫 · 草稿 · 唯讀/);
+ assert.doesNotMatch(reserved,/rf-period-chip alert[^>]*>已逾期/);
+ assert.doesNotMatch(older,/data-ri-pick="sept"/);
+ assert.doesNotMatch(regular,/data-ri-pick="jul"/);
+ const discardedRow=older.match(/data-ri-pick="jun"[\s\S]*?<\/article>/)?.[0];
+ assert.match(discardedRow,/data-ri-pick="jun"\s+disabled/);
+ assert.match(discardedRow,/rf-period-chip alert[^>]*>已逾期/);
  assert.match(older,/data-ri-pick="jul"\s+disabled[\s\S]*當期已核准免測/);
  assert.match(html(),/data-ri-pick="dec"\s+disabled[\s\S]*未到開始日/);
  const ongoing=html().match(/data-ri-pick="nov-shared"[\s\S]*?<\/article>/)?.[0];
