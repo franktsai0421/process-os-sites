@@ -1642,34 +1642,37 @@
     const tab=s.tab==='documents'?documentTab(doc()):s.tab;
     const rows=docs().filter(d=>tab==='history'||!d.cancelled&&(tab==='plans'?d.kind==='plan'&&!d.requestKind&&(!d.retestApplicationCaseId||status(d)==='approved'):d.kind==='report'&&(!d.planId||!docs().some(p=>p.id===d.planId&&(p.requestKind||status(p)!=='approved'||p.cancelled)))));
     const queue=tab==='reports'?rows.filter(d=>status(d)!=='approved'):rows;
-    const filters=[['',tab==='reports'?t('全部待辦','Tất cả việc cần xử lý'):t('全部','Tất cả')],
+    const waiting=new Set(tab==='reports'?docs().filter(d=>!d.cancelled&&d.kind==='plan'&&!d.requestKind&&d.calendarVersion===2&&status(d)==='approved'&&reportSlots(d).some(a=>a.assigned&&!a.reportIds.length)):[]);
+    const readyJobs=tab==='plans'?data.control.jobs.filter(j=>j.calendar?.retestCaseId&&arrangeable(j)):[];
+    const cards=[...queue,...waiting].flatMap(document=>calendarOriginKeys(document).map(origin=>({
+      document,origin,state:waiting.has(document)?'waiting':status(document)
+    })));
+    const matches=(card,key)=>key?card.state===key:tab!=='plans'||card.state!=='approved';
+    const count=key=>cards.filter(card=>matches(card,key)).length+(key?0:readyJobs.length);
+    const filters=[['',tab==='reports'||tab==='plans'?t('全部待辦','Tất cả việc cần xử lý'):t('全部','Tất cả')],
       ['draft',t('草稿','Bản nháp')],['pending',t('待審核','Chờ duyệt')]];
     if(tab!=='reports')filters.push(['approved',tab==='plans'?t('已核准歷史','Lịch sử đã duyệt'):t('已核准','Đã duyệt')]);
     const canReadHistory=tab==='reports'&&data.permissions.history;
     const state=tab==='reports'&&(s.workState==='approved'||!canReadHistory&&s.workState==='approved-history')?'':s.workState;
     const history=state==='approved-history'&&canReadHistory;
     const filterBar=`<nav class="rf-calendar-tools rf-work-states" aria-label="${t('文件狀態','Trạng thái hồ sơ')}">
-      ${filters.map(([key,title])=>`<button type="button" class="rf-btn ${state===key?'primary':''}" data-work-state="${key}">${title} · ${queue.filter(d=>!key||status(d)===key).length}</button>`).join('')}
+      ${filters.map(([key,title])=>`<button type="button" class="rf-btn ${state===key?'primary':''}" data-work-state="${key}">${title} · ${count(key)}</button>`).join('')}
       ${canReadHistory?`<button type="button" class="rf-btn ${history?'primary':''}" data-work-state="approved-history">${t('已核准報告歷史','Lịch sử báo cáo đã duyệt')}</button>`:''}
     </nav>`;
     if(history)return filterBar+approvedReportList();
-    const visible=queue.filter(d=>state?status(d)===state:tab!=='plans'||status(d)!=='approved');
-    const waiting=tab==='reports'&&!state?docs().filter(d=>!d.cancelled&&d.kind==='plan'&&!d.requestKind&&d.calendarVersion===2&&status(d)==='approved'&&reportSlots(d).some(a=>a.assigned&&!a.reportIds.length)):[];
     const groups=new Map();
-    for(const d of [...visible,...waiting])for(const key of calendarOriginKeys(d)){
-      if(!groups.has(key))groups.set(key,[]);
-      if(!groups.get(key).some(x=>x.id===d.id))groups.get(key).push(d);
+    for(const card of cards.filter(card=>matches(card,state))){
+      if(!groups.has(card.origin))groups.set(card.origin,[]);
+      groups.get(card.origin).push(card.document);
     }
-    return filterBar+calendarRetestQueue(tab,state)+`<div class="rf-calendar-document-list">${[...groups].reverse().map(([key,items])=>{
+    return filterBar+calendarRetestQueue(state?[]:readyJobs)+`<div class="rf-calendar-document-list">${[...groups].reverse().map(([key,items])=>{
       items.sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||'')||a.id.localeCompare(b.id));
       const origin=docs().find(d=>d.id===key),followups=items.filter(d=>retestCases(d).length),initial=items.filter(d=>!retestCases(d).length);
-      const render=d=>calendarDocumentCard(d,waiting.includes(d),key);
+      const render=d=>calendarDocumentCard(d,waiting.has(d),key);
       return `<article class="rf-document-family" data-family-origin="${h(key)}">${followups.length?`<header><b>${t('初測與再測','Lần đầu và thử lại')}</b>${origin?`<button class="rf-btn" ${status(origin)==='approved'?`data-timeline-doc="${h(origin.id)}" data-timeline-formal aria-haspopup="dialog"`:`data-doc="${h(origin.id)}"`} ${status(origin)==='approved'&&!data.permissions.history?'disabled':''}>${t('初測來源（查看）','Nguồn lần đầu (xem)')} · ${h(displayNumber(origin))} · ${h(label(status(origin)))}</button>`:`<span>${t('來源文件','Hồ sơ nguồn')} · ${h(key)}</span>`}</header>`:''}${initial.map(render).join('')}${followups.length?`<details open><summary>${t('再測及後續文件','Thử lại và hồ sơ tiếp theo')} · ${followups.length}</summary>${followups.map(render).join('')}</details>`:''}</article>`;
     }).join('')||empty()}</div>`;
   }
-  function calendarRetestQueue(tab,state) {
-    if(tab!=='plans'||state)return '';
-    const jobs=data.control.jobs.filter(j=>j.calendar?.retestCaseId&&arrangeable(j));
+  function calendarRetestQueue(jobs) {
     if(!jobs.length)return '';
     return `<section class="rf-retest-queue"><h3>${t('再測待建計畫','Thử lại chờ lập kế hoạch')} · ${jobs.length}</h3>${jobs.map(j=>`<article class="rf-family-entry" data-retest-work="${h(j.id)}"><strong>${h(j.source.name)}</strong><p>${t('再測申請已核准，請設定計畫起迄後繼續送審。','Đề nghị thử lại đã duyệt; đặt thời hạn kế hoạch rồi gửi duyệt.')}</p><button type="button" class="rf-btn primary" data-period-next="${h(j.id)}" ${data.permissions.edit?'':'disabled'}>${t('建立再測計畫','Lập kế hoạch thử lại')}</button><button type="button" class="rf-btn" data-case="${h(j.calendar.retestCaseId)}">${t('查看原不合格與申請歷史','Xem lịch sử không đạt và đề nghị')}</button></article>`).join('')}</section>`;
   }
