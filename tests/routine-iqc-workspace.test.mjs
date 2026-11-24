@@ -11,7 +11,7 @@ const fixtureOrigin = 'https://synthetic.invalid';
 function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirmAction=false,fqcPending=null,listNavigation={},displayDocument=null,manualDialog=false,pageDraft=false,badgeAvailability={fqc:false,iqc:false}}={}){
  let onClick, changed, iqcClick, iqcChange, fqcMounts=0, epoch=1, allowed=false;
  let recoveryText={textContent:''}, badgeChanged, adminModal;
- let dialogCount=0, closeDialog;
+ let dialogCount=0, closeDialog,clickPreview,changeDate;
  const pendingBadge=fqcPending===null?null:{textContent:String(fqcPending)}, fqcBadgeReads=[], badgeErrors=[];
  const visits=[],confirmations=[],localForm={value:'TEST ONLY unsaved notes'}, originalReceipt='synthetic-receipt';
  const switchButton={focus(){}};
@@ -40,9 +40,10 @@ function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirm
    createElement(tag){
     if(pageDraft&&tag!=='dialog')return pageDom.document.createElement(tag);
     assert.equal(tag,'dialog');
-    const elements={start:{value:'2026-11-19'},reason:{value:'TEST ONLY reason'},confirm:{value:'START IQC'},ack:{checked:true}};
-    const help={}, submit={};
-    const form={elements,querySelector:selector=>selector.includes('confirm')?submit:help,addEventListener(){}};
+    const elements={start:{value:'2026-11-19',addEventListener(){}},reason:{value:'TEST ONLY reason'},confirm:{value:'START IQC'},ack:{checked:true}};
+    const help={}, submit={},preview={addEventListener(kind,handler){if(kind==='click')clickPreview=handler;}};
+    elements.start.addEventListener=(_,handler)=>{changeDate=date=>{elements.start.value=date;handler();};};
+    const form={elements,querySelector:selector=>selector==='[data-ri-preview]'?preview:selector.includes('confirm')?submit:help,addEventListener(){}};
     dialogCount++;
     adminModal={querySelector:()=>form,setAttribute(){},showModal(){},remove(){},
       addEventListener(_event,listener){
@@ -85,7 +86,7 @@ function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirm
   queryReports(value){listeners.submit({target:{matches:selector=>selector==='[data-ri-report-search]',elements:{query:{value}}},preventDefault(){}});},
   queryPeriods(values){const elements=Object.fromEntries(['search','periodFrom','periodTo','outcome'].map(key=>[key,{value:values[key]||''}]));
    listeners.submit({target:{matches:selector=>selector==='[data-ri-period-search]',elements},preventDefault(){}});},
-  adminMarkup:()=>adminModal?.innerHTML,
+  preview:()=>clickPreview(),changeDate:value=>changeDate(value),adminMarkup:()=>adminModal?.innerHTML,
   dialogCount:()=>dialogCount, closeDialog:value=>closeDialog(value),
   pick(id){iqcChange({target:{dataset:{riPick:id},checked:true}});},
   changePick(target,checked){target.checked=checked;iqcChange({target});},
@@ -678,6 +679,7 @@ void test('IQC never resends an unknown write, keeps a missing receipt, and dist
     ++post;lastOperation=JSON.parse(options.body).operationId;
     throw new Error('TEST ONLY interrupted response');
    }
+   if(url.includes('?preview='))return Response.json({actorId:'synthetic',start:'2026-11-19',stateRevision:state.stateRevision,periods:[],jobs:[],total:0});
    if(url.includes('?operationId=')){
     assert.equal(new URL(url,fixtureOrigin).searchParams.get('operationId'),lastOperation);
     if(++lookups===1)return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});
@@ -691,10 +693,10 @@ void test('IQC never resends an unknown write, keeps a missing receipt, and dist
    configured=confirmed;
    return Response.json({...state,startDate:configured?'2026-11-19':null});
   };
-  const ui=switchFixture(lang,{simulateRequest,confirmAction:true}),html=()=>ui.iqcRoot.innerHTML;
+  const ui=switchFixture(lang,{simulateRequest,confirmAction:true,manualDialog:true}),html=()=>ui.iqcRoot.innerHTML;
   const flush=()=>new Promise(resolve=>setImmediate(resolve));
   ui.press(ui.entry);await flush();
-  ui.action('configure');await flush();
+  ui.action('configure');await flush();await ui.preview();ui.closeDialog('confirm');await flush();
   assert.match(html(),lang==='zh'?/操作結果待確認/:/Chưa xác định kết quả thao tác/);
   assert.equal(ui.pendingWrites.get('routine-iqc-receipt:synthetic'),lastOperation);
   ui.action('receipt');await flush();
@@ -1181,3 +1183,44 @@ for(const lang of ['zh','vi'])void test('non-Admin sees disabled IQC date contro
  assert(controls.length>0);for(const control of controls)assert.match(control,/\bdisabled\b/);
  assert.match(html,lang==='zh'?/僅 Admin 可操作/:/Chỉ Admin được sử dụng/);assert.match(html,/rf-fqc-administration/);
 });
+
+for(const scenario of ['later reset','stale readback','wrong actor','different marker','404']){
+ void test('returning IQC tab resolves only a proven matching Reset settlement: '+scenario,async()=>{
+  const id='synthetic-old-generate',slot='routine-iqc-receipt:synthetic';
+  const state={...parityState([]),revision:9,resetGenerationRevision:scenario==='stale readback'?3:8};
+  const ui=switchFixture('zh',{data:state,simulateRequest:async(url,options)=>{
+   assert.notEqual(options?.method,'POST');
+   if(!url.includes('?operationId'))return Response.json(state);
+   if(scenario==='404')return Response.json({error:'RECEIPT_NOT_FOUND'},{status:404});
+   if(scenario==='different marker')ui.pendingWrites.set(slot,'new-marker');
+   return Response.json({supersededByReset:{scope:'iqc',actorId:scenario==='wrong actor'?'other':'synthetic',operationId:id,generationRevision:4}});
+  }});
+  ui.pendingWrites.set(slot,id);ui.press(ui.entry);await new Promise(setImmediate);
+  ui.action('receipt');await new Promise(setImmediate);
+  assert.equal(ui.pendingWrites.get(slot),scenario==='later reset'?undefined:scenario==='different marker'?'new-marker':id);
+ });
+}
+
+for(const mode of ['no preview','date changed','stale revision','preview arrives late']){
+ void test('IQC activation requires current date preview: '+mode,async()=>{
+  const state={...parityState([]),startDate:null,stateRevision:8};state.permissions.settings=true;
+  let posts=0,finish;
+  const ui=switchFixture('zh',{manualDialog:true,simulateRequest:async(url,opts)=>{
+   if(opts?.method==='POST')posts++;
+   if(url.includes('?preview=')){
+    if(mode==='preview arrives late')await new Promise(resolve=>{finish=resolve;});
+    return Response.json({actorId:'synthetic',start:'2026-11-19',stateRevision:mode==='stale revision'?7:8,total:0,jobs:[],periods:[]});
+   }
+   return Response.json(state);
+  }});
+  ui.press(ui.entry);await new Promise(setImmediate);ui.action('configure');await new Promise(setImmediate);
+  if(mode!=='no preview'){
+   const pending=ui.preview();
+   if(mode==='preview arrives late'){ui.changeDate('2026-11-24');finish();}
+   await pending;
+  }
+  if(mode==='date changed')ui.changeDate('2026-11-24');
+  ui.closeDialog('confirm');await new Promise(setImmediate);
+  assert.equal(posts,0);assert.equal(ui.pendingWrites.size,0);
+ });
+}

@@ -86,6 +86,16 @@ void test('IQC approved catalog and persisted jobs reconcile by part, item, rule
     await call({action,operationId:randomUUID(),expectedRevision:current.revision,...fields});
     current = await call();
   }
+  const preview=await route.GET(new Request(url+'?preview=1&start='+today,{headers:{cookie}}));
+  assert.equal(preview.status,200);
+  const projected=await preview.json(),expectedCounts=new Map();
+  for(const row of expected){
+    const period=row[4]+' ~ '+row[5];
+    expectedCounts.set(period,(expectedCounts.get(period)||0)+1);
+  }
+  assert.deepEqual(sorted(projected.periods),sorted(expectedCounts.entries()));assert.equal(projected.total,expected.length);
+  assert.deepEqual(sorted(projected.jobs.map(j=>[j.code,j.start,j.end])),sorted(expected.map(r=>['TEST-'+r[1],r[4],r[5]])));
+  assert.equal((await call()).stateRevision,current.stateRevision);
   await command('configure',{start:today,reason:'TEST ONLY',confirm:'START IQC',scope:'routine-iqc-only',startAck:true,expectedStateRevision:current.stateRevision});
   const jobRows = jobs => sorted(jobs.map(({source,start,end}) => {
     assert.equal(source.versionId,'approved');

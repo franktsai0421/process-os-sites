@@ -477,3 +477,33 @@ void test('IQC plan creation depends on the current IQC job and its approved sou
  assert.equal((await (await call('iqc','?operationId='+plan.operationId)).json()).result.documentId,documentId);
  assert.equal((await (await call('iqc','',plan)).json()).replayed,true);assert.deepEqual(row(),after);
 });
+
+test('IQC generation keeps the full approved timeline while isolating unavailable peer storage',async t=>{
+  const {f,call,row,blocked,cmd}=await setup(t);
+  assert.equal((await call('iqc','',cmd)).status,200);
+  const before=row(),op={action:'generate',operationId:'synthetic-iqc-generation',expectedRevision:1};
+  f.hooks.get=k=>{if(k===blocked.other)throw Error('synthetic peer read failed');};
+  await assert.rejects(f.core.readState({deferHistory:false}));
+  const generated=await call('iqc','',op);
+  assert.equal(generated.status,200);
+  const after=row(),refs=v=>JSON.parse(v.values).__processRecords.values;
+  assert.equal(after.revision,before.revision+1);
+  for(const [key,ref] of Object.entries(refs(before)))if(key!=='routineIqcControl')assert.deepEqual(refs(after)[key],ref);
+  const receipt=await call('iqc','?operationId='+op.operationId);
+  assert.deepEqual((await receipt.json()).result,(await generated.json()).result);
+  f.hooks.get=k=>{if(k===blocked.iqc)throw Error('required IQC master unavailable');};
+  assert.equal((await call('iqc','',{...op,operationId:'another-synthetic-generation',expectedRevision:2})).status,503);
+  assert.deepEqual(row(),after);
+});
+
+test('IQC start preview is read-only, requires a valid date, and locks after activation',async t=>{
+  const {call,cmd,row}=await setup(t),before=row();
+  assert.equal((await call('iqc','?preview=1&start=2026-02-30')).status,422);
+  const preview=await call('iqc','?preview=1&start='+cmd.start);
+  assert.equal(preview.status,200);const value=await preview.json();
+  assert.equal(value.start,cmd.start);assert.equal(value.stateRevision,before.revision);assert.deepEqual(row(),before);
+  assert.equal((await call('iqc','',cmd)).status,200);
+  const active=await (await call('iqc')).json();
+  assert.equal(active.jobs.length,value.total);
+  assert.equal((await call('iqc','?preview=1&start='+cmd.start)).status,409);
+});

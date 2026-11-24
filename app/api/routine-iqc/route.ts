@@ -1,3 +1,5 @@
+import {validCalendarDate} from '@/lib/routine-fqc-calendar';
+import {resetLedger} from '@/lib/routine-reset-ledger';
 import {checkPlanIntent} from '@/lib/routine-plan-intent';
 import {env} from 'cloudflare:workers';
 import {prepareRoutineIqcStart} from '@/lib/state-records';
@@ -6,7 +8,7 @@ import { readState, identity, routineStartupPermissionPhase, sameOrigin, encodeV
 import { companyDate } from '@/lib/routine-fqc';
 import { RI_KEY, routineIqcCatalog, routineIqcTimeline } from '@/lib/routine-iqc';
 import { routineIqcAccess, routineIqcAuthorityKeys } from '@/lib/routine-iqc-access';
-import { readRoutineIqc, executeRoutineIqc, iqcContentPhotos, iqcDocStatus, iqcDocContent, iqcDraftIssues, iqcCanDispose, iqcExpired, iqcStartLocked, type Command } from '@/lib/routine-iqc-workflow';
+import { initializeIqcCalendar, readRoutineIqc, executeRoutineIqc, iqcContentPhotos, iqcDocStatus, iqcDocContent, iqcDraftIssues, iqcCanDispose, iqcExpired, iqcStartLocked, type Command } from '@/lib/routine-iqc-workflow';
 import { DraftConflict } from '@/lib/shared-draft';
 
 const reply=(data:unknown,status=200)=>Response.json(data,{status,headers:responseHeaders});
@@ -30,23 +32,47 @@ function unstartedMaster(key:string,raw:string){
 export async function GET(request:Request){
   try{
     const q=new URL(request.url).searchParams,operationId=q.get('operationId'),pendingOnly=q.get('pending-count')==='1';
-    const validSelector=q.size===0||q.size===1&&(pendingOnly||operationId!==null&&/^[\w-]{8,100}$/.test(operationId));
+    const preview=q.size===2&&q.get('preview')==='1'&&q.has('start'),start=q.get('start');
+    if(preview&&!validCalendarDate(start))throw new DraftConflict('IQC_DATE_REQUIRED',422);
+    const validSelector=preview||q.size===0||q.size===1&&(pendingOnly||operationId!==null&&/^[\w-]{8,100}$/.test(operationId));
     if(!validSelector)throw new DraftConflict('IQC_SELECTOR_INVALID',422);
     const keys=[...routineIqcAuthorityKeys,RI_KEY];
     const state=await readState({keys,deferHistory:false,...(operationId?{aggregateReadAhead:true,projectValue:(key:string,raw:string)=>{
       if(key!==RI_KEY)return raw;
       const c=readRoutineIqc({revision:0,values:{[RI_KEY]:raw}});
       return JSON.stringify({schemaVersion:c.schemaVersion,revision:c.revision,calendar:{schemaVersion:c.calendar.schemaVersion,jobs:[]},
-        documents:[],cases:[],receipts:Object.hasOwn(c.receipts,operationId)?{[operationId]:c.receipts[operationId]}:{}});
+        resetGenerationRevision:c.resetGenerationRevision,resetLedger:resetLedger(c),documents:[],cases:[],receipts:Object.hasOwn(c.receipts,operationId)?{[operationId]:c.receipts[operationId]}:{}});
     }}:{})});
     const {actor,permissions}=await routineIqcAccess(request,state,operationId?await routineStartupPermissionPhase(request,state):undefined),c=readRoutineIqc(state),today=companyDate();
     let body:unknown,status=200;
-    if(pendingOnly){
+    if(preview&&start){
+      if(actor.role!=='admin'||!permissions.edit||!permissions.settings)throw new DraftConflict('FORBIDDEN',403);
+      if(state.values.maintenanceMode==='1')throw new DraftConflict('MAINTENANCE',503);
+      if(iqcStartLocked(c))throw new DraftConflict('START_DATE_LOCKED',409);
+      const master=await readState({keys:['iqcMasterControl'],deferHistory:false});
+      if(master.revision!==state.revision)throw new DraftConflict('REVISION_CONFLICT',409);
+      initializeIqcCalendar(c.calendar,start,routineIqcTimeline(master),today,new Date().toISOString());
+      const periods=new Map<string,number>();
+      for(const job of c.calendar.jobs){
+        const period=job.start+' ~ '+job.end;
+        periods.set(period,(periods.get(period)||0)+1);
+      }
+      body={start,actorId:actor.id,stateRevision:state.revision,total:c.calendar.jobs.length,periods:Array.from(periods),
+        jobs:c.calendar.jobs.map(({source,start,end})=>({code:source.code,name:source.name,start,end}))};
+    }else if(pendingOnly){
       body={pendingCount:c.documents.filter(doc=>iqcDocStatus(doc)==='pending').length,revision:c.revision,identityId:actor.id};
     }else if(operationId){
-      const receipt=c.receipts[operationId];
-      if(!receipt||receipt.actorId!==actor.id){body={error:'RECEIPT_NOT_FOUND'};status=404;}
-      else body={result:receipt.result,revision:c.revision};
+      const receipt=Object.hasOwn(c.receipts,operationId)?c.receipts[operationId]:null;
+      if(receipt?.actorId===actor.id)body={result:receipt.result,revision:c.revision};
+      else{
+        const ledger=resetLedger(c),floor=c.resetGenerationRevision;
+        const retired=Object.hasOwn(ledger.retired,operationId)?ledger.retired[operationId]:null;
+        const entry=!receipt&&retired?.actorId===actor.id&&typeof floor==='number'&&Number.isSafeInteger(floor)&&floor<=c.revision&&
+          ledger.entries.find(e=>e.scope==='iqc'&&e.actorId===actor.id&&e.generationRevision>0&&e.generationRevision<=floor&&
+            e.settlements.some(p=>p.operationId===operationId&&p.priorOutcome===retired.outcome));
+        if(entry)body={supersededByReset:{scope:'iqc',operationId,actorId:actor.id,generationRevision:entry.generationRevision}};
+        else{body={error:'RECEIPT_NOT_FOUND'};status=404;}
+      }
     }else{
       const {calendar,documents,cases}=c;
       const dateStarted=!!calendar.startDate&&calendar.startDate<=today;
@@ -86,7 +112,7 @@ export async function POST(request:Request){
       const starting=command.action==='configure'&&!new URL(request.url).search;
       // Each transition in the inspection workflow reads the complete routine
       // aggregate and the approved IQC timeline, and writes only this module.
-      const documentWrite=['create-plan','create-report','create-retest','create-disposal','draft'].includes(command.action);
+      const documentWrite=['generate','create-plan','create-report','create-retest','create-disposal','draft'].includes(command.action);
       const row=starting||(documentWrite&&!new URL(request.url).search)?await env.DB.prepare('SELECT revision,"values" FROM shared_state WHERE id=1')
         .first<{revision:number;values:string}>():null;
       const selected=row?await prepareRoutineIqcStart(env.STATE_ARCHIVE,row.values,routineIqcAuthorityKeys):null;

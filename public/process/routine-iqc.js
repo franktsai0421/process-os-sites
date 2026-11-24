@@ -769,6 +769,8 @@
     modal.innerHTML=`<form method="dialog">
       <h2 id="ri-admin-title">${t('設定 IQC 開始日期','Đặt ngày bắt đầu IQC')}</h2>
       ${startScope}
+      <button type="button" class="rf-btn" data-ri-preview>${t('預覽期別與項目數','Xem trước kỳ và số hạng mục')}</button>
+      <div data-ri-preview-result role="status"></div>
       <label>${t('操作原因','Lý do thao tác')}<textarea name="reason" maxlength="2000" required></textarea></label>
       <label class="rf-confirm-ack"><input type="checkbox" name="ack" value="yes" required><span>${t('我已核對開始日期與適用來源，確認啟動 IQC 排程','Tôi đã kiểm tra ngày bắt đầu và nguồn áp dụng, xác nhận khởi động lịch IQC')}</span></label>
       <label>${t('確認文字（請完整輸入）','Chuỗi xác nhận (nhập chính xác)')} <strong>${startToken}</strong>
@@ -777,8 +779,10 @@
       <div class="rf-actions"><button class="rf-btn" value="cancel" formnovalidate autofocus>${t('取消，不變更資料','Hủy, không thay đổi dữ liệu')}</button>
         <button class="rf-btn primary" value="confirm" disabled>${t('確認執行','Xác nhận thực hiện')}</button></div></form>`;
     const form=modal.querySelector('form'), fields=form.elements;
+    let previewedDate=null;
     const update=()=>{
       const missing=[];
+      if(!previewedDate||previewedDate!==fields.start.value)missing.push(t('先預覽選取日期的期別','Xem trước các kỳ của ngày đã chọn'));
       if(!fields.start.value)missing.push(t('選擇開始日期','Chọn ngày bắt đầu'));
       if(!fields.reason.value.trim())missing.push(t('填寫操作原因','Điền lý do thao tác'));
       if(!fields.ack.checked)missing.push(t('勾選確認開始日期與排程範圍','Đánh dấu xác nhận ngày bắt đầu và phạm vi lịch'));
@@ -786,6 +790,25 @@
       form.querySelector('[value="confirm"]').disabled=missing.length>0;
       form.querySelector('#ri-admin-help').textContent=missing.join(' · ');
     };
+    const previewButton=form.querySelector('[data-ri-preview]'),previewResult=form.querySelector('[data-ri-preview-result]');
+    let previewSequence=0;
+    fields.start.addEventListener('input',()=>{previewSequence++;previewedDate=null;previewResult.textContent='';previewButton.disabled=false;update();});
+    previewButton.addEventListener('click',async()=>{
+      const date=fields.start.value,sequence=++previewSequence;
+      const live=()=>current(v)&&v.adminDialog===modal&&sequence===previewSequence&&fields.start.value===date;
+      previewedDate=null;update();previewButton.disabled=true;
+      try{
+        const result=await call(v,endpoint+'?preview=1&start='+encodeURIComponent(date));
+        if(!live())return;
+        if(result.start!==date||result.actorId!==v.data.identity.id||result.stateRevision!==stateRevision)throw Error('REVISION_CONFLICT');
+        if(!Array.isArray(result.jobs)||result.jobs.length!==result.total)throw Error('IQC_PREVIEW_INVALID');
+        previewResult.innerHTML='<p>'+t('項目數','Số hạng mục')+' '+result.jobs.length+'</p>'+
+          (result.jobs.length?'<table class="rf-table"><thead><tr><th>'+t('檢查項目','Hạng mục kiểm tra')+'</th><th>'+t('適用期別','Kỳ áp dụng')+'</th></tr></thead><tbody>'+
+          result.jobs.map(job=>'<tr><td>'+h(job.code)+' '+h(job.name)+'</td><td>'+h(job.start)+' — '+h(job.end)+'</td></tr>').join('')+'</tbody></table>':'');
+        previewedDate=date;update();
+      }catch(error){if(live())previewResult.textContent=errorText(error.message);}
+      finally{if(live())previewButton.disabled=false;}
+    });
     form.addEventListener('input',update);update();
     v.root.append(modal);modal.showModal();v.adminDialog=modal;
     const accepted=await new Promise(resolve=>modal.addEventListener('close',()=>resolve(modal.returnValue==='confirm'),{once:true}));
@@ -795,7 +818,7 @@
     if(!accepted||!current(v))return;
     if(v.data.revision!==revision||v.data.stateRevision!==stateRevision)throw Error('REVISION_CONFLICT');
     checkAdministration(v);
-    if(!reason||confirm!==startToken||!ack||!start)throw Error('IQC_START_CONFIRMATION_REQUIRED');
+    if(!reason||confirm!==startToken||!ack||!start||previewedDate!==start)throw Error('IQC_START_CONFIRMATION_REQUIRED');
     await write(v,'configure',{scope:'routine-iqc-only',expectedStateRevision:stateRevision,reason,confirm,startAck:ack,start});
   }
   function render(v) {
@@ -1107,7 +1130,21 @@
     if(kind==='receipt'){
       v.busy=true;
       try{
-        const result=await call(v,endpoint+'?operationId='+encodeURIComponent(v.pending));
+        const id=v.pending,actor=v.data.identity.id,slot=key+actor;
+        const result=await call(v,endpoint+'?operationId='+encodeURIComponent(id));
+        if(id!==v.pending||sessionStorage.getItem(slot)!==id)throw Error('DELIVERY_SUPERSEDED');
+        if(result.supersededByReset){
+          const proof=result.supersededByReset;
+          if(proof.scope!=='iqc'||proof.actorId!==actor||proof.operationId!==id||
+            !Number.isSafeInteger(proof.generationRevision)||proof.generationRevision<1)throw Error('IQC_RESET_READBACK_REQUIRED');
+          await load(v);
+          if(!current(v)||v.data.identity.id!==actor||v.pending!==id||sessionStorage.getItem(slot)!==id||
+            !Number.isSafeInteger(v.data.resetGenerationRevision)||v.data.resetGenerationRevision<proof.generationRevision||
+            !Number.isSafeInteger(v.data.revision)||v.data.revision<v.data.resetGenerationRevision)throw Error('IQC_RESET_READBACK_REQUIRED');
+          sessionStorage.removeItem(slot);v.pending=null;v.draft=v.base=null;
+          v.error=t('原操作已由 IQC Reset 停用，已讀取最新文件。','Thao tác cũ đã bị Reset IQC vô hiệu hóa. Đã đọc hồ sơ mới nhất.');
+          return;
+        }
         confirmWrite(v,result.result);v.draft=v.base=null;
         await load(v);
       }catch(error){
