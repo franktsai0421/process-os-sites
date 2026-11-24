@@ -1224,3 +1224,13 @@ for(const mode of ['no preview','date changed','stale revision','preview arrives
   assert.equal(posts,0);assert.equal(ui.pendingWrites.size,0);
  });
 }
+
+for(const lang of ['zh','vi'])test('server-ineligible IQC period stays visible and cannot be selected in '+lang,async()=>{
+ const stopped={...parityJob('old-frequency'),canPlan:false},active={...parityJob('current-frequency'),canPlan:true};
+ const ui=switchFixture(lang,{data:parityState([stopped,active])});
+ ui.press(ui.entry);await new Promise(setImmediate);
+ assert.match(ui.iqcRoot.innerHTML,/data-ri-pick="old-frequency"\s+disabled/);
+ assert.match(ui.iqcRoot.innerHTML,/data-ri-pick="current-frequency"\s*>/);
+ ui.pick(stopped.id,true);
+ assert.doesNotMatch(ui.iqcRoot.innerHTML,/data-ri-pick="old-frequency"\s+checked/);
+});

@@ -114,3 +114,53 @@ void test('IQC approved catalog and persisted jobs reconcile by part, item, rule
   assert.deepEqual(jobRows(JSON.parse(persisted.values.routineIqcControl).calendar.jobs),sorted(expected));
   assert.equal(persisted.values.iqcMasterControl,master);
 });
+
+test('after IQC Reset, same-day frequency approval previews only jobs a new plan can use',async t=>{
+  const {origin}=require('../scripts/routine-reset-authority-fixture.cjs');
+  const day='2026-11-24';
+  t.mock.timers.enable({apis:['Date'],now:new Date(day+'T12:00:00+07:00')});
+  const {f,cookie,call:reset}=await require('../scripts/fqc-reset-request-fixture.cjs')(t,{format:'records'});
+  const before=()=>f.db.prepare('SELECT revision,"values" FROM shared_state WHERE id=1').get();
+  await f.mutate(values=>{
+    const parts=['a','b','c'].map(id=>part(id));
+    const snapshot={categories:[],suppliers:[],parts,errors:parts.map(p=>({id:'error-'+p.id,partCode:p.code,code:p.id})),
+      items:['a','b'].map(id=>item(id,id,[rule('rule-'+id,'week')]))};
+    const current=structuredClone(snapshot);
+    for(const i of current.items)i.rules[0].kind='half_year';
+    current.items.push(item('c','c',[rule('rule-c','month')]));
+    const old={id:'old',number:1,status:'superseded',createdAt:'2026-09-01T00:00:00+07:00',snapshot,
+      history:[{action:'approve',actorId:'reviewer',at:'2026-09-01T01:00:00+07:00'}]};
+    values.iqcMasterControl=JSON.stringify({activeVersionId:'current',versions:[old,
+      {id:'current',number:2,status:'approved',createdAt:day+'T09:00:00+07:00',snapshot:current}]});
+  });
+  const done=await reset('iqc','frank',{id:'reset-synthetic-freq',scope:'iqc',confirm:'RESET IQC',irreversibleAck:true,
+    reason:'synthetic',revision:before().revision,pendingCount:0});
+  assert.equal(done.status,200);
+  const route=f.load('app/api/routine-iqc/route.ts'),headers={origin,cookie:await cookie('frank'),'content-type':'application/json'};
+  async function request(query='',body){
+    const method=body?'POST':'GET';
+    return route[method](new Request(origin+'/api/routine-iqc'+query,{method,headers,...(body?{body:JSON.stringify(body)}:{})}));
+  }
+  const initial=await (await request()).json(),stored=before();
+  const preview=await (await request('?preview=1&start='+day)).json();
+  const columns=j=>[j.code,j.start,j.end];
+  const expected=[['TEST-a','2026-07-01','2026-12-31'],['TEST-b','2026-07-01','2026-12-31'],['TEST-c','2026-11-01','2026-11-30']];
+  assert.deepEqual(sorted(preview.jobs.map(columns)),sorted(expected));assert.equal(preview.total,3);
+  assert.deepEqual(sorted(preview.periods),sorted([['2026-07-01 ~ 2026-12-31',2],['2026-11-01 ~ 2026-11-30',1]]));
+  assert.deepEqual(before(),stored);
+  const start=await request('',{action:'configure',operationId:randomUUID(),expectedRevision:initial.revision,
+    expectedStateRevision:initial.stateRevision,start:day,scope:'routine-iqc-only',confirm:'START IQC',reason:'synthetic restart',startAck:true});
+  assert.equal(start.status,200);
+  const live=await (await request()).json();assert.equal(live.jobs.length,5);
+  const stopped=live.jobs.filter(j=>j.calendar.stopped);
+  assert.equal(stopped.length,2);assert(stopped.every(j=>j.start==='2026-11-23'&&j.end==='2026-11-29'));
+  assert(stopped.every(j=>j.canPlan===false));
+  const selectable=live.jobs.filter(j=>j.canPlan);
+  assert.deepEqual(sorted(selectable.map(j=>columns({...j,code:j.source.code}))),sorted(expected));
+  const plan=ids=>request('',{action:'create-plan',operationId:randomUUID(),expectedRevision:live.revision,jobIds:ids,start:day,end:day});
+  assert.equal((await plan([stopped[0].id])).status,409);
+  assert.equal((await plan(selectable.map(j=>j.id))).status,200);
+  const planned=await (await request()).json();
+  assert.equal(planned.documents.length,1);assert(planned.jobs.every(j=>j.canPlan===false));
+  assert.equal(planned.jobs.filter(j=>j.planId===planned.documents[0].id).length,3);
+});
