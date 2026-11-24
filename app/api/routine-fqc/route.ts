@@ -1,3 +1,4 @@
+import {resetLedger} from '@/lib/routine-reset-ledger';
 import {checkPlanIntent} from '@/lib/routine-plan-intent';
 import { isRoutineAdmin } from '@/lib/routine-schedule-owner';
 import {routineApprovedQuery,routineApprovedControl,routineApprovedRows,routineApprovedVersion} from '@/lib/routine-fqc-approved-history';
@@ -67,6 +68,18 @@ function findReceipt(control:ReturnType<typeof parseRoutine>,id:string,documentI
   const inner=flow.receipts[id];
   return inner?.result?.operationId===id?inner:null;
 }
+// The retired index blocks replay by operation ID regardless of command payload.
+function fqcResetProof(control: ReturnType<typeof parseRoutine>, id: string) {
+  const ledger = resetLedger(control);
+  if (!Object.hasOwn(ledger.retired, id)) return null;
+  const actorId = ledger.retired[id].actorId;
+  const floor = control.resetGenerationRevision;
+  if (typeof floor !== 'number' || !Number.isSafeInteger(floor) || floor < 1 || floor > control.revision) return null;
+  const entry = ledger.entries.find(e => e.scope === 'fqc' && e.actorId === actorId &&
+    e.generationRevision > 0 && e.generationRevision <= floor &&
+    e.settlements.some(p => p.operationId === id && p.priorOutcome === ledger.retired[id].outcome));
+  return entry ? {scope:'fqc', actorId, operationId:id, generationRevision:entry.generationRevision} : null;
+}
 export async function GET(request: Request) {
   try {
     const approved=routineApprovedQuery(request);
@@ -93,6 +106,7 @@ export async function GET(request: Request) {
         row.id === library.activeVersionId && row.status === 'approved');
       return JSON.stringify({libraries: {fqc: {activeVersionId: library.activeVersionId, versions: version ? [version] : []}}});
     };
+    let projectedReset: ReturnType<typeof fqcResetProof> | undefined;
     const state = await readState({
         ...(availability ? {keys: entryKeys, aggregateReadAhead: true}
           : query.size === 0 ? {keys: [...entryKeys, 'qualityMasterControl', 'masterDataControl'], aggregateReadAhead: true, projectValue: entryCatalog} : {}),
@@ -111,6 +125,7 @@ export async function GET(request: Request) {
         deferDependencyHistory: !calendarPreview,
         ...(operationId?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','routineFqcEnabled',RF_KEY],projectValue:(key:string,raw:string)=>{if(key!==RF_KEY)return raw;const root=JSON.parse(raw);
           const receipt=findReceipt(root,operationId,receiptDocument);
+          projectedReset = receipt ? null : fqcResetProof(root,operationId);
           return JSON.stringify({schemaVersion:root.schemaVersion,revision:root.revision,documents:[],jobs:[],cases:[],receipts:receipt?{[operationId]:receipt}:{}});}}:{}),
       }),
       entryPhase = availability || query.size === 0
@@ -227,9 +242,10 @@ export async function GET(request: Request) {
     }
     if (query.has('operationId')) {
       const receipt = findReceipt(c,query.get('operationId')!,receiptDocument);
+      const resetSettlement = !receipt && operationId ? (projectedReset === undefined ? fqcResetProof(c,operationId) : projectedReset) : null;
       const response=receipt && receipt.actorId === actor.id
         ? reply({ result: receipt.result, revision: c.revision })
-        : reply({ error: 'OPERATION_NOT_FOUND' },404);
+        : resetSettlement?.actorId === actor.id ? reply({resetSettlement, revision:c.revision}) : reply({ error: 'OPERATION_NOT_FOUND' },404);
       if(!(entryPhase ? await entryPhase.current() : (await identity(request,state))?.id===actor.id))return reply({error:'LOGIN_REQUIRED'},401);
       if(!await stateRevisionIsCurrent(state))return reply({error:'CONCURRENT_CHANGE_RETRY'},409);
       return response;

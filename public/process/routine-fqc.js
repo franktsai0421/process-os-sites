@@ -379,7 +379,7 @@
       clearTimeout(timer);
     }
   }
-  async function read(query = '', accepts = () => true, options = {}) {
+  async function read(query = '', accepts = () => true, options = {}, observeReceipt = true) {
     assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();
     const owner=receiptPin(),delivery=window.ProcessSync?.captureDelivery?.(),pauseOwner=readPause.capture(),kind=query.includes('operationId=')?'receipt':query?'auxiliary':'state';
     const assertCurrent = () => {
@@ -401,13 +401,14 @@
     assertCurrent();
     if (!r.ok){readPause.denied(kind,r.status,pauseOwner,()=>read(query));throw Object.assign(Error(v.error || 'FQC_READ_FAILED'),{status:r.status});}
     readPause.success(kind,pauseOwner);
-    if(kind==='state')receiptObserveRead(v,owner);
+    if(kind==='state'&&observeReceipt)receiptObserveRead(v,owner);
     // Observing a document enables per-tab attribution, but never claims its
     // existing contributors (including another tab using the same account).
     if(kind==='state')for(const d of v.control?.documents||[])if(d.flow?.scope==='routine-fqc:'+d.id)window.SharedDraftDeparture?.register?.(d.flow.scope);
     return v;
   }
   const issueNames = {
+    FQC_OLD_OPERATION_RESET:['已核對最新 FQC 清單。這筆舊請求已由 Reset 停用；請重新選取要辦理的項目。','Đã kiểm tra danh sách FQC mới nhất. Yêu cầu cũ đã bị dừng khi Reset; vui lòng chọn lại hạng mục.'],
     FQC_CONFIRMATION_REQUIRED:['確認文字不符，未執行操作。','Nội dung xác nhận không khớp; chưa thực hiện.'],
     FQC_BACKUP_VERIFY_FAILED:['備份驗證失敗，沒有重置現有資料。','Không xác minh được bản sao lưu; chưa đặt lại dữ liệu.'],
     FQC_BACKUP_INTEGRITY_FAILED:['備份完整性檢查失敗，沒有還原。','Bản sao lưu không toàn vẹn; chưa khôi phục.'],
@@ -567,6 +568,24 @@
       if(original.ram&&JSON.stringify(command)!==JSON.stringify(original.ram))throw Error('OPERATION_ID_PAYLOAD_MISMATCH');
       if(original.notSent||original.rejectedCode){const message=original.rejectedCode||'ROUTINE_OPERATION_NOT_SENT_RETRY_ACTION';receiptClear(original,pin);throw Error(message);}
       const found=await read('?'+(original.meta.action==='draft'?'receiptDocument='+encodeURIComponent(original.meta.documentId)+'&':'')+'operationId='+encodeURIComponent(original.meta.operationId), accepts);
+      if(found?.resetSettlement){
+        const proof=found.resetSettlement;
+        const owns=()=>accepts()&&displayCurrent()&&receiptOwnedPin(pin)&&receiptRecord===original&&receiptStore().getItem(original.key)===original.raw;
+        if(!owns()||proof.scope!=='fqc'||proof.actorId!==pin.actor||proof.operationId!==original.meta.operationId||
+          !receiptInt(proof.generationRevision)||proof.generationRevision<1||!receiptInt(found.revision)||found.revision<proof.generationRevision)
+          throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+        const next=await read('',owns,{},false);
+        if(!owns()||next.identity?.id!==pin.actor||next.permissions?.view!==true||
+          !receiptInt(next.control?.resetGenerationRevision)||next.control.resetGenerationRevision<proof.generationRevision||
+          !receiptInt(next.control.revision)||next.control.revision<Math.max(found.revision,next.control.resetGenerationRevision,data.control.revision)||
+          !receiptInt(next.revision)||next.revision<data.revision)throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+        original.confirmed=null;
+        receiptClear(original,pin);
+        data=next;
+        reconcileSelection();
+        // Stop here: ordinary success handling could apply the old edit locally.
+        throw Error('FQC_OLD_OPERATION_RESET');
+      }
       return receiptTerminal(original,found,pin);
     }
     const body=clone({...command,...(refs?{independentOf:refs,expectedRevision:data.control.revision}:{}),...(data?.control?.resetGenerationRevision!==undefined&&command.expectedRevision===undefined?{expectedRevision:data.control.revision}:{}),operationId:command.operationId||id()});if(!receiptWriteAllowed(body))throw Error('FORBIDDEN');
