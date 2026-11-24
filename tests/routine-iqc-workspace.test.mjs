@@ -39,6 +39,7 @@ function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirm
  const document={documentElement:{lang},querySelector:()=>pendingBadge,addEventListener(_name,handler){onClick=handler;},
    createElement(tag){
     if(pageDraft&&tag!=='dialog')return pageDom.document.createElement(tag);
+    if(tag==='div')return {style:{},setAttribute(){}};
     assert.equal(tag,'dialog');
     const elements={start:{value:'2026-11-19',addEventListener(){}},reason:{value:'TEST ONLY reason'},confirm:{value:'START IQC'},ack:{checked:true}};
     const help={}, submit={},preview={addEventListener(kind,handler){if(kind==='click')clickPreview=handler;}};
@@ -84,7 +85,8 @@ function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirm
   input(key,value){listeners.input({target:{dataset:{riField:key},value}});},
   filter(key,value){iqcChange({target:{dataset:{riFilter:key},value}});},
   queryReports(value){listeners.submit({target:{matches:selector=>selector==='[data-ri-report-search]',elements:{query:{value}}},preventDefault(){}});},
-  queryPeriods(values){const elements=Object.fromEntries(['search','periodFrom','periodTo','outcome'].map(key=>[key,{value:values[key]||''}]));
+  queryPeriods(values,activeField){const elements=Object.fromEntries(['search','periodFrom','periodTo'].map(key=>[key,{name:key,value:values[key]||''}]));
+   document.activeElement=elements[activeField];
    listeners.submit({target:{matches:selector=>selector==='[data-ri-period-search]',elements},preventDefault(){}});},
   preview:()=>clickPreview(),changeDate:value=>changeDate(value),adminMarkup:()=>adminModal?.innerHTML,
   dialogCount:()=>dialogCount, closeDialog:value=>closeDialog(value),
@@ -629,7 +631,7 @@ void test('IQC takes follow-ups from the true inspection and batch and preserves
  assert.match(result('still-fail'),/rf-location-link" data-ri-action="case:failure">不合格 · ERP 0002/);
  assert.doesNotMatch(result('still-fail'),/waive-period:/);
 
- ui.queryPeriods({outcome:'retest-pass'});
+ ui.action('facet:retest-pass');
  assert.match(html(),/data-ri-pick="retest-pass"/);
  assert.doesNotMatch(html(),/data-ri-pick="(?:original-pass|still-fail)"/);
  ui.stage('plan');assert.doesNotMatch(html(),/FOLLOWUP/);
@@ -1279,5 +1281,169 @@ for(const outcome of ['committed','not delivered','readback unavailable','anothe
    assert.doesNotMatch(ui.iqcRoot.innerHTML,/操作結果待確認/);
   }
   assert.match(ui.iqcRoot.innerHTML,outcome==='committed'?/TEST check confirmed/:/有待產生的應檢工作/);
+ });
+}
+
+for(const lang of ['zh','vi'])test('IQC status filters keep period suppliers and match the submitted disposition to its own check and batch: '+lang,async()=>{
+ const old=(id,itemId)=>parityJob(id,{itemId,start:'2026-10-01',end:'2026-10-31',planId:'p'});
+ const left=old('a-oct','a'),right=old('b-oct','b'),direct=old('c-oct','c');
+ const current=parityJob('a-nov',{itemId:'a'}),unknown=parityJob('old-jun',{itemId:'a',start:'2026-06-01',end:'2026-06-30'});
+ const old2=parityJob('old-jul',{itemId:'a',start:'2026-07-01',end:'2026-07-31'});
+ const waiver=old('waived','d');waiver.completion={kind:'skip'};
+ for(const job of [left,right,direct,old2])job.source.iqc.supplierIds=['A'];
+ current.source.iqc.supplierIds=['B'];
+ const lot=batchNo=>({partId:'part',batchNo,quantity:2});
+ const row=(job,batchNo,outcome)=>({jobId:job.id,batch:lot(batchNo),outcome});
+ const original=parityDoc('first','report','approved',[left,right,direct],{inspections:[
+   row(left,'L1','fail'),row(right,'L1','fail'),row(direct,'L3','abnormal'),row(left,'L2','pass')]});
+ const retest=parityDoc('again','retest-report','approved',[left,right],{caseId:'split',inspections:[row(left,'L1','pass'),row(right,'L1','fail')]});
+ const doc=(id,job,caseId,prior)=>parityDoc(id,'disposal',prior==='pending'?'pending':'draft',[job],{caseId,prior});
+ const cases=[{id:'split',originReportId:'first',batch:lot('L1'),status:'open',result:'fail',reports:['first','again'],jobIds:[right.id]},
+   {id:'ab',originReportId:'first',batch:lot('L3'),status:'open',result:'abnormal',reports:['first'],jobIds:[direct.id]}];
+ const jobs=[current,left,right,direct,old2,unknown,waiver];
+ const data=parityState(jobs,[original,retest,doc('withdraw',right,'split','withdrawn'),doc('pending',direct,'ab','pending'),doc('draft',left,'split')],cases);
+ data.catalog.suppliers=[{id:'B',name:'Supplier B'}];
+ const calls=[],ui=switchFixture(lang,{data,simulateRequest:async(_url,options)=>{calls.push(options?.method||'GET');return Response.json(data);}});
+ ui.press(ui.entry);await new Promise(resolve=>setImmediate(resolve));
+ const html=()=>ui.iqcRoot.innerHTML,groups=()=>[...html().matchAll(/data-ri-group="([^"]+)"/g)].map(m=>m[1]).sort();
+ const counts=()=>[...html().matchAll(/data-ri-action="facet:[^"]+"[^>]*>[^<]+<b>(\d+)<\/b>/g)].map(m=>Number(m[1]));
+ assert.deepEqual(counts(),[1,1,2,1,1,2]);
+ ui.pick(current.id);
+ for(const [facet,expected] of [['initial-pass',['a']],['fail',['a','b']],['retest-pass',['a']],['retest-fail',['b']],['disposal',['b','c']]]){
+   ui.action('facet:'+facet);assert.deepEqual(groups(),expected);assert.deepEqual(counts(),[1,1,2,1,1,2]);
+   if(facet==='retest-pass'){assert.match(html(),/ERP L1/);assert.doesNotMatch(html(),/ERP L2|ERP L3/);}
+ }
+ assert.match(html(),lang==='zh'?/已撤回/:/Đã rút/);assert.match(html(),/ERP L3/);
+ ui.action('facet:disposal');assert.deepEqual(groups(),['a','b','c','d']);
+ ui.filter('supplier','B');assert.deepEqual(groups(),['a']);assert.doesNotMatch(html(),/data-ri-period="a-oct"/);
+ ui.filter('supplier','A');assert.match(html(),/data-ri-period="a-oct"/);assert.doesNotMatch(html(),/data-ri-period="a-nov"/);
+ ui.filter('supplier','');ui.action('facet:overdue');assert.deepEqual(groups(),['a']);
+ assert.match(html(),/data-ri-period="old-jun"[\s\S]+data-ri-period="old-jul"/);
+ assert.match(html(),lang==='zh'?/未記錄/:/Chưa ghi nhận/);
+ ui.filter('range','week');assert.deepEqual(groups(),[]);
+ ui.action('clear-period-filters');assert.match(html(),/data-ri-pick="a-nov"\s+checked/);
+ assert.ok(calls.length&&calls.every(method=>method==='GET'));
+});
+
+test('IQC rolling due-date boundaries, overlapping precise dates and source constraints compose independently',async()=>{
+ const days=['2025-11-19','2025-11-20','2026-05-20','2026-08-20','2026-10-20','2026-11-13','2026-11-19','2026-11-22'];
+ const jobs=days.map((end,i)=>parityJob('j'+i,{start:end.slice(0,8)+'01',end}));
+ const ui=switchFixture('vi',{data:parityState(jobs)});
+ ui.press(ui.entry);await new Promise(resolve=>setImmediate(resolve));
+ const visible=()=>[...ui.iqcRoot.innerHTML.matchAll(/data-ri-group="([^"]+)"/g)].map(m=>m[1]).sort();
+ for(const [range,earliest] of [['week',5],['1',4],['3',3],['6',2],['12',1]]){
+   ui.filter('range',range);assert.deepEqual(visible(),jobs.slice(earliest,7).map(job=>job.id));
+ }
+ ui.filter('range','week');ui.queryPeriods({periodFrom:'2026-11-08',periodTo:'2026-11-10',search:'check j5'});
+ assert.deepEqual(visible(),['j5']);
+ ui.filter('category','cat');ui.filter('part','part');assert.deepEqual(visible(),['j5']);
+ ui.filter('supplier','absent');assert.deepEqual(visible(),[]);
+ ui.action('clear-period-filters');assert.equal(visible().length,8);
+});
+
+test('IQC unstarted and empty lists retain filter controls, and history permission gates historical counts',async()=>{
+ for(const lang of ['zh','vi'])for(const startDate of [null,'2026-01-01']){
+   const data=parityState([]);data.startDate=startDate;data.permissions.history=false;
+   const ui=switchFixture(lang,{data});ui.press(ui.entry);await new Promise(resolve=>setImmediate(resolve));
+   const html=ui.iqcRoot.innerHTML;
+   assert.match(html,/data-ri-filter="part"[\s\S]+rf-status-filters[\s\S]+data-ri-filter="range"/);
+   assert.equal((html.match(/data-ri-action="facet:[^"]+" aria-pressed="false" disabled/g)||[]).length,5);
+   assert.match(html,lang==='zh'?(startDate?/沒有可排程/:/尚未啟動/):(startDate?/Chưa có hạng mục/:/chưa bắt đầu/));
+ }
+ const style=postcss.parse(fs.readFileSync('public/process/routine-fqc.css','utf8'));
+ for(const [width,columns] of [[320,2],[390,2],[1024,3]]){
+   let actual;
+   style.walkRules('.rf-status-tiles',rule=>{
+     const limit=rule.parent.type==='atrule'?Number(rule.parent.params.match(/max-width:\s*(\d+)px/)[1]):Infinity;
+     if(width<=limit)rule.walkDecls('grid-template-columns',d=>actual=d.value);
+   });
+   assert.equal(actual,'repeat('+columns+',minmax(0,1fr))');
+ }
+});
+
+
+for(const lang of ['zh','vi'])test('Source and text filters preserve frequency notices and the older-period disclosure: '+lang,async()=>{
+ const current=parityJob('nov',{itemId:'same'});
+ const prior=parityJob('oct',{itemId:'same',start:'2026-10-01',end:'2026-10-31',planId:'approved'});
+ const older=parityJob('jun',{itemId:'same',start:'2026-06-01',end:'2026-06-30',completion:{kind:'pass'}});
+ for(const job of [current,prior,older]){
+   job.source.iqc.supplierIds=['A'];
+   job.calendar={scope:'same'};
+ }
+ prior.source.frequency='weekly';
+ const data=parityState([current,prior,older]);
+ data.periodRules={same:{frequency:'monthly',from:'2026-12-01'}};
+ const ui=switchFixture(lang,{data}),html=()=>ui.iqcRoot.innerHTML;
+ ui.press(ui.entry);await new Promise(resolve=>setImmediate(resolve));
+ ui.action('toggle-group:same');
+ ui.filter('supplier','A');
+ const verify=()=>{
+   assert.match(html(),/data-ri-period="nov"[\s\S]*data-ri-period="oct"[\s\S]*data-ri-older="same"[\s\S]*<div hidden>[\s\S]*data-ri-period="jun"/);
+   assert.match(html(),lang==='zh'?/既有計畫保留原標準/:/Giữ tiêu chuẩn cũ/);
+   assert.match(html(),/2026-12-01/);
+   assert.doesNotMatch(html(),/name="outcome"/);
+ };
+ verify();
+ ui.queryPeriods({search:'CHECK-same'});verify();
+ ui.queryPeriods({periodFrom:'2026-06-01',periodTo:'2026-06-30'});
+ assert.match(html(),/data-ri-period="jun"/);
+ assert.doesNotMatch(html(),/data-ri-older="same"|data-ri-period="nov"/);
+});
+
+test('A history-disabled viewer cannot activate the historical facet on a populated list',async()=>{
+ const job=parityJob('current'),other=parityJob('other');
+ const batch={partId:'part',batchNo:'A',quantity:1};
+ const data=parityState([job,other],[parityDoc('original','report','approved',[job],{inspections:[{jobId:job.id,batch,outcome:'fail'}]})]);
+ data.permissions.history=false;
+ const ui=switchFixture('zh',{data});ui.press(ui.entry);await new Promise(resolve=>setImmediate(resolve));
+ ui.action('facet:fail');
+ assert.match(ui.iqcRoot.innerHTML,/facet:fail" aria-pressed="false" disabled[^>]*>[^<]*<b>—/);
+ assert.match(ui.iqcRoot.innerHTML,/data-ri-group="other"/);
+ assert.doesNotMatch(ui.iqcRoot.innerHTML,/name="outcome"/);
+});
+
+
+for(const [lang,width,height,windowTop,paneTop] of [['zh',1280,900,380,0],['vi',390,844,140,520]]){
+ test('IQC filter repaint keeps viewport, scroller, selection and initiating focus at '+width+'px',async()=>{
+  const shared=manualUI(),requests=[],focus=[];
+  const jobs=Array.from({length:16},(_,i)=>parityJob('item-'+i));
+  jobs.forEach(job=>{job.source.iqc.supplierIds=['qa'];});
+  const data=parityState(jobs);
+  const ui=switchFixture(lang,{data,listNavigation:{keepListAnchor:shared.win.RoutineFQCUI.keepListAnchor},
+    simulateRequest:async(url,options)=>{requests.push(options?.method||'GET');return Response.json(data);}});
+  ui.press(ui.entry);await new Promise(resolve=>setImmediate(resolve));
+  ui.pick('item-0');
+  const root=ui.iqcRoot,doc={clientHeight:height,scrollTop:windowTop,scrollHeight:height+1000};
+  const pane={parentElement:doc,clientHeight:580,scrollTop:paneTop,scrollHeight:1800};
+  root.parentElement=pane;
+  let markup=root.innerHTML;
+  const scroller=paneTop?pane:doc;
+  const anchorTop=()=>height/2+(windowTop-doc.scrollTop)+(paneTop-pane.scrollTop);
+  root.querySelector=selector=>selector==='.rf-status-filters'?{getBoundingClientRect:()=>({top:anchorTop()})}:
+    /^(?:\[data-ri-(?:action=|filter=|period-search\]))/.test(selector)?{focus:options=>focus.push([selector,options?.preventScroll])}:null;
+  // Simulate layout clipping the old scroll offset as soon as the short DOM replaces the list.
+  Object.defineProperty(root,'innerHTML',{get:()=>markup,set:html=>{
+    markup=html;
+    scroller.scrollHeight=scroller.clientHeight+(html.includes('data-ri-group=')?1800:20);
+    scroller.scrollTop=Math.min(scroller.scrollTop,scroller.scrollHeight-scroller.clientHeight);
+  }});
+  root.append=space=>{scroller.scrollHeight+=Number.parseInt(space.style.height,10);};
+  const verify=(apply,selector,count)=>{
+    const before=anchorTop();apply();
+    assert.equal((markup.match(/data-ri-group=/g)||[]).length,count);
+    assert.equal(anchorTop(),before);
+    assert.equal(pane.scrollTop,paneTop);assert.equal(doc.scrollTop,windowTop);
+    assert.deepEqual(focus.at(-1),[selector,true]);
+  };
+  const clear=()=>verify(()=>ui.action('clear-period-filters'),'[data-ri-action="clear-period-filters"]',16);
+  verify(()=>ui.action('facet:fail'),'[data-ri-action="facet:fail"]',0);clear();
+  verify(()=>ui.filter('range','week'),'[data-ri-filter="range"]',0);clear();
+  for(const [key,value] of [['supplier','qa'],['category','cat'],['part','part']]){
+    verify(()=>ui.filter(key,value),'[data-ri-filter="'+key+'"]',16);
+  }
+  verify(()=>ui.queryPeriods({search:'absent'},'search'),'[data-ri-period-search] [name="search"]',0);
+  verify(()=>ui.queryPeriods({}),'[data-ri-period-search] [type="submit"]',16);
+  assert.match(markup,/data-ri-pick="item-0"\s+checked/);
+  assert.deepEqual(requests,['GET']);
  });
 }
