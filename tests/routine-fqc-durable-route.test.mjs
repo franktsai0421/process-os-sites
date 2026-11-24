@@ -183,7 +183,20 @@ async function fixture(t, { withPeer = false } = {}) {
       caseId: document(id).flow.pendingId, reason: 'Synthetic review', selfReviewConfirmed: true,
     }));
   }
-  return { counts, persisted, verifyBackups, storedValues, control, document, dispatch, get, post, command, draft, accepted, delta, createPlan, approve, beforeCAS: hook => { beforeCAS = hook; } };
+  function seedPair(id,mode){
+    const values=storedValues(), c=control(), a=c.documents.find(row=>row.id===id), b=clone(a);
+    const job=c.jobs.find(row=>row.planId===id), next=clone(job);
+    next.id=randomUUID();if(mode!=='shared-period')next.itemId+='-B';if(mode==='skip')b.requestKind='skip';if(mode==='disposition')b.kind='disposal';next.planId=randomUUID();b.id=next.planId;b.flow.scope='routine-fqc:'+b.id;
+    b.flow.working.lines[0].jobId=next.id;
+    a.calendarVersion=b.calendarVersion=2;for(const d of [a,b])Object.assign(d.flow.working,{planStart:today,planEnd:today});c.documents.push(b);c.jobs.push(next);
+    values[model.RF_KEY]=JSON.stringify(c);db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(JSON.stringify(values));
+    return b.id;
+  }
+  function omitAggregateReceipt(id,documentId=null){
+    const values=storedValues(), c=control();delete c.receipts[id];if(documentId)delete c.documents.find(d=>d.id===documentId).flow.receipts[id];values[model.RF_KEY]=JSON.stringify(c);
+    db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(JSON.stringify(values));
+  }
+  return { seedPair, omitAggregateReceipt, counts, persisted, verifyBackups, storedValues, control, document, dispatch, get, post, command, draft, accepted, delta, createPlan, approve, beforeCAS: hook => { beforeCAS = hook; } };
 }
 
 async function rejectedWithoutCommit(f, command, status, code) {
@@ -374,7 +387,7 @@ function actualUI(f, source, identity, { durableStorage = true } = {}) {
   const exportPoint = '  window.RoutineFQCUI = {';
   assert.equal(source.split(exportPoint).length, 2, 'one exact test-only export injection point');
   vm.runInContext(source.replace(exportPoint,
-    exportPoint + '\n    __test: { s, save, read, doc, setData(value) { data = value; } },'), context,
+    exportPoint + '\n    __test: { s, save, read, postOwned, doc, setData(value) { data = value; } },'), context,
   { filename: 'public/process/routine-fqc.js' });
   return {
     ui: window.RoutineFQCUI.__test, calls, localStorage, sessionStorage,
@@ -688,4 +701,155 @@ void test('actual painted Update → route CAS race recomputes against latest st
   assert.notEqual(post.body.operationId, peerOperation.operationId);
   assert(f.control().receipts[post.body.operationId]); assert(f.control().receipts[peerOperation.operationId]);
   f.verifyBackups();
+});
+
+test('a retained document receipt proves commitment only to the original actor',async t=>{
+  const f=await fixture(t,{withPeer:true}),doc=await f.createPlan(),cmd=f.draft(doc,'save');
+  const committed=await f.accepted(cmd);
+  f.omitAggregateReceipt(cmd.operationId);
+  const before=f.persisted(), query='?receiptDocument='+doc+'&operationId='+cmd.operationId;
+  assert.equal((await f.get('?operationId='+cmd.operationId)).status,404);
+  const found=await f.get(query);
+  assert.equal(found.status,200,JSON.stringify(found.body));
+  assert.deepEqual(found.body.result,committed.result);
+  assert.equal((await f.get(query.replace(doc,'other-document'))).status,404);
+  const peer=await f.dispatch('/api/routine-fqc'+query,{},'peer');
+  assert.equal(peer.status,404);
+  assert.deepEqual(f.persisted(),before);
+});
+
+test('unanswered A stays protected while unrelated B saves and submits through the actual FQC route',async t=>{
+  const f=await fixture(t), a=await f.createPlan(), b=f.seedPair(a), initial=(await f.get()).body;
+  const original=f.draft(a,'save'), seen=[];
+  const tab=actualUI({...f,async dispatch(url,options){
+    if(options.method==='POST'){
+      const command=JSON.parse(options.body);seen.push(command.operationId);
+      if(command.operationId===original.operationId)throw Error('Synthetic dropped request');
+    }
+    return f.dispatch(url,options);
+  }},routineUISource,initial.identity);
+  const ui=tab.ui;ui.setData(initial);
+  await assert.rejects(ui.postOwned(original));
+  const marker=tab.localStorage.snapshot().find(([key])=>key.startsWith('routine-fqc-receipt-v1:'));
+  const docA=f.document(a);
+  for(const action of ['save','submit']){
+    const cmd=f.draft(b,action,action==='submit'?{savedId:f.document(b).flow.saved.id,reason:'Synthetic submission'}:{});
+    try{await ui.postOwned(cmd);}catch(e){assert.fail(JSON.stringify({action,error:e.message,details:e.details}));}ui.setData(await ui.read());
+    assert.equal(tab.localStorage.getItem(marker[0]),marker[1]);assert.deepEqual(f.document(a),docA);
+  }
+  assert.ok(f.document(b).flow.pendingId);
+  await assert.rejects(ui.postOwned(original),/OPERATION_NOT_FOUND/);
+  assert.equal(seen.filter(id=>id===original.operationId).length,1);
+  assert.equal(seen.length,3);
+  for(const invalid of [{documentId:b}, {action:'approve'},{documentId:'missing'}]){
+    const cmd=f.draft(a,'save');
+    cmd.expectedRevision=f.control().revision;
+    cmd.independentOf=[{documentId:a,generation:docA.flow.generation,action:'save',operationId:original.operationId,...invalid}];
+    if(invalid.documentId===b)cmd.documentId=b;
+    await rejectedWithoutCommit(f,cmd,409,'FQC_SCOPE_CONFLICT');
+  }
+});
+
+for(const mode of ['shared-period','skip','disposition'])test('independent admission rejects '+mode+' before persistence',async t=>{
+  const f=await fixture(t),a=await f.createPlan(),b=f.seedPair(a,mode),cmd=f.draft(b,'save');
+  cmd.expectedRevision=f.control().revision;
+  cmd.independentOf=[{action:'save',operationId:randomUUID(),documentId:a,generation:f.document(a).flow.generation}];
+  await rejectedWithoutCommit(f,cmd,409,'FQC_SCOPE_CONFLICT');
+});
+
+async function recovery(f,original,actor='owner',expectedActor='fixture-route-admin'){
+  const d=f.document(original.documentId);
+  const command=f.command('reconcile-draft',{documentId:d.id,reviewedGeneration:d.flow.generation,reviewedDocumentRevision:d.flow.revision,
+    stop:{operationId:original.operationId,documentId:d.id,generation:original.command.generation,action:original.command.action}});
+  const res=await f.dispatch('/api/routine-fqc',{method:'POST',body:JSON.stringify(command),headers:{'X-Process-Expected-Actor':expectedActor}},actor);
+  return {status:res.status,body:await res.json()};
+}
+test('same-document commit wins CAS race, recovery returns original receipt and adds no stop',async t=>{
+ const f=await fixture(t),doc=await f.createPlan(),original=f.draft(doc,'save');
+ let known;
+ f.beforeCAS(async()=>{known=await f.accepted(original);});
+ const result=await recovery(f,original);
+ assert.equal(result.status,200,JSON.stringify(result.body));
+ assert.equal(result.body.result.status,'committed');assert.deepEqual(result.body.result.result,known.result);
+ assert.equal(f.control().draftStops,undefined);
+});
+test('same-document stop wins CAS race; late original, replay and timeout remain safe, fresh save succeeds',async t=>{
+ const f=await fixture(t,{withPeer:true}),doc=await f.createPlan(),original=f.draft(doc,'save');
+ const before=f.document(doc);
+ let stop;
+ f.beforeCAS(async()=>{stop=await recovery(f,original);});
+ const late=await f.post(original);
+ assert.equal(stop.status,200,JSON.stringify(stop.body));assert.equal(stop.body.result.priorOutcome,'unknown');
+ assert.equal(late.status,409);assert.equal(late.body.error,'DRAFT_OPERATION_FENCED');
+ assert.deepEqual(f.document(doc),before);
+ const snapshot=f.persisted();assert.equal((await f.post(original)).body.error,'DRAFT_OPERATION_FENCED');
+ assert.equal((await recovery(f,original)).body.result.status,'fenced');
+ assert.deepEqual(f.persisted(),snapshot,'lost stop reply is recoverable without another commit');
+ const state=await f.get();assert.equal(Object.hasOwn(state.body.control,'draftStops'),false);
+ assert.equal((await recovery(f,original,'peer')).status,403,'mismatched account pin');
+ assert.deepEqual(f.persisted(),snapshot);
+ const saved=await f.accepted(f.draft(doc,'save'));assert.ok(saved.result.savedId);
+});
+test('another account cannot reconcile a committed operation or prevent its owner writing',async t=>{
+ const f=await fixture(t,{withPeer:true}),doc=await f.createPlan(),cmd=f.draft(doc,'save');
+ const selfOnly=await recovery(f,cmd,'peer','fixture-route-peer');assert.equal(selfOnly.status,200);
+ const saved=await f.accepted(cmd);assert.ok(saved.result.savedId);
+ const snapshot=f.persisted();
+ assert.equal((await recovery(f,cmd,'peer','fixture-route-peer')).status,403);
+ assert.deepEqual(f.persisted(),snapshot);
+});
+
+test('original v74 pending marker survives cancellation and lost settlement response; verified readback unlocks a fresh write',async t=>{
+ const f=await fixture(t),doc=await f.createPlan(),tab=await generatingUI(f),cmd=f.draft(doc,'save');
+ const fetch=tab.box.fetch,actions=[];
+ let dropStop=true;
+ tab.box.fetch=async(url,opts={})=>{
+   const body=opts.body&&JSON.parse(opts.body);
+   if(body){actions.push(body);if(body.operationId===cmd.operationId)throw Error('Synthetic original never delivered');}
+   const response=await fetch(url,opts);
+   if(body?.action==='reconcile-draft'&&dropStop){dropStop=false;throw Error('Synthetic lost settlement response');}
+   return response;
+ };
+ await assert.rejects(tab.api.postOwned(cmd));await tab.api.act('retry');
+ const marker=[...tab.store.map].find(([key])=>key.startsWith('routine-fqc-receipt-v1:'));
+ assert.ok(marker);const before=f.persisted();
+ tab.api.setDialog(async()=>null);await tab.api.act('reconcile-draft');assert.deepEqual(f.persisted(),before);
+ tab.api.setDialog(async()=>({}));await tab.api.act('reconcile-draft');
+ assert.equal(tab.store.map.get(marker[0]),marker[1]);assert.equal(tab.api.s.retry.operationId,cmd.operationId);
+ assert.equal(f.control().draftStops.length,1);const stopped=f.persisted();
+ await tab.api.act('reconcile-draft');
+ assert.equal(tab.api.s.retry,null);assert.deepEqual(f.persisted(),stopped);
+ assert.match(tab.api.s.error,/先前結果仍未知/);
+ await tab.api.postOwned(f.draft(doc,'save'));await tab.api.read();assert.ok(f.document(doc).flow.saved.id);
+ assert.equal(actions.filter(c=>c.operationId===cmd.operationId).length,1);
+});
+
+test('if both receipts were pruned the stop acknowledges uncertainty and never repeats the original save',async t=>{
+ const f=await fixture(t),doc=await f.createPlan(),cmd=f.draft(doc,'save'),saved=await f.accepted(cmd);
+ f.omitAggregateReceipt(cmd.operationId,doc);const before=f.document(doc);
+ const stop=await recovery(f,cmd);assert.equal(stop.body.result.status,'fenced');assert.equal(stop.body.result.priorOutcome,'unknown');
+ assert.deepEqual(f.document(doc),before);assert.equal(f.document(doc).flow.saved.id,saved.result.savedId);
+ assert.equal((await f.post(cmd)).body.error,'DRAFT_OPERATION_FENCED');
+});
+
+test('normal Save and Submit controls persist B while an A receipt remains unknown',async t=>{
+ const f=await fixture(t),a=await f.createPlan(),b=f.seedPair(a),tab=await generatingUI(f);
+ const original=f.draft(a,'save'), fetch=tab.box.fetch;
+ tab.box.fetch=async(url,opts={})=>{
+   if(opts.method==='POST'&&JSON.parse(opts.body).operationId===original.operationId)throw Error('Synthetic lost request');
+   return fetch(url,opts);
+ };
+ await assert.rejects(tab.api.postOwned(original));
+ const marker=[...tab.store.map][0];
+ tab.api.s.selected=b;tab.api.s.tab='plans';
+ const doc=tab.api.getData().control.documents.find(d=>d.id===b);
+ const content=tab.api.buffer(doc);content.title='Independent synthetic B';
+ tab.api.setDialog(async()=>new Map([['reason','Synthetic B submission']]));
+ tab.paint();
+ await tab.api.act('save');
+ assert.equal(f.document(b).flow.saved?.content.title,'Independent synthetic B',String(tab.api.s.error));
+ await tab.api.act('submit');
+ assert.ok(f.document(b).flow.pendingId,String(tab.api.s.error));
+ assert.equal(tab.store.map.get(marker[0]),marker[1]);
+ assert.equal(f.document(a).flow.pendingId,null);
 });
