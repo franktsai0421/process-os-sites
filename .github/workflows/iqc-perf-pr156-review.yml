@@ -16,7 +16,8 @@ jobs:
     timeout-minutes: 20
     env:
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      EVENT_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      BASE_SHA: 80d59b89e4ade103efee5e2c9d51499949bdc70c
       PROCESS_PROGRAM_COMMIT: ${{ github.event.pull_request.head.sha }}
       CLOUDFLARE_CF_FETCH_ENABLED: 'false'
       WRANGLER_SEND_METRICS: 'false'
@@ -32,9 +33,11 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$HEAD_SHA"
-          test "$BASE_SHA" = 80d59b89e4ade103efee5e2c9d51499949bdc70c
+          test "$(git rev-parse refs/remotes/origin/review/v68-reset-base-20261123)" = "$BASE_SHA"
+          case "$EVENT_BASE_SHA" in "$BASE_SHA"|37d76cc958152dd6049484bf14a5f34c4bd0428c) ;; *) exit 1 ;; esac
           test "$(git rev-parse aab60512f831eca887210a276aec1bbbac37e25b^{tree})" = 099424f49e6064a692c0498a928775bca73a54c1
-          test "$(git rev-parse HEAD^)" = aab60512f831eca887210a276aec1bbbac37e25b
+          test "$(git rev-parse HEAD^)" = 04a74308c619e89a0e381e0271ff3f581085dde3
+          test "$(git rev-parse HEAD^^)" = aab60512f831eca887210a276aec1bbbac37e25b
           test "$(git merge-base "$BASE_SHA" aab60512f831eca887210a276aec1bbbac37e25b)" = 37d76cc958152dd6049484bf14a5f34c4bd0428c
           test "$(git merge-tree --write-tree "$BASE_SHA" aab60512f831eca887210a276aec1bbbac37e25b)" = 30f9f4333a1676aa87dd657cea76c6b57df68aaa
           # Only this workflow may differ from the already reviewed candidate.
