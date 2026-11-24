@@ -30,12 +30,11 @@ function stamp(version: SourceVersion) {
   if (!value || !Number.isFinite(Date.parse(value))) throw new DraftConflict('SOURCE_TIMELINE_INCOMPLETE', 409);
   return new Date(value).toISOString();
 }
-function project(version: SourceVersion): IqcRoutineSource[] {
+function project(version: SourceVersion, effectiveDate = companyDate(new Date(stamp(version)))): IqcRoutineSource[] {
   const { categories, parts, errors, items } = version.snapshot;
   const byPart = new Map(parts.filter(part => !part.isDeleted && part.isEnabled !== false).map(part => [part.code, part]));
   const byError = new Map(errors.filter(error => !error.isDeleted).map(error => [error.id, error]));
   const byCategory = new Map(categories.map(category => [category.id, category.nameVi]));
-  const effectiveDate = companyDate(new Date(stamp(version)));
   return items.flatMap(item => {
     const part = byPart.get(item.partCode), error = byError.get(item.errorId);
     if (!item.isEnabled || item.isDeleted || !part || error?.partCode !== part.code) return [];
@@ -79,7 +78,8 @@ export function routineIqcTimeline(state: State): CalendarTimelineEntry[] {
     !(control.workflow?.cases || []).some(review=>review.id===version.id));
   return [...reviewed,...baselines].map(version => {
     const at = stamp(version);
-    return {id: version.id, at, day: companyDate(new Date(at)), sources: project(version)};
+    const day = companyDate(new Date(at));
+    return {id: version.id, at, day, sources: project(version, day)};
   });
 }
 export function routineIqcCatalog(state: State) {
@@ -87,7 +87,7 @@ export function routineIqcCatalog(state: State) {
   return {versionId: version?.id || null, version: version ? String(version.number) : null, lines: [],
     categories: (version?.snapshot.categories || []).map(category => ({id: category.id, name: category.nameVi, line: ''})),
     suppliers: (version?.snapshot.suppliers || []).map(supplier => ({id: supplier.id, name: supplier.nameVi})),
-    items: routineIqcSources(state).map(source => ({id: source.id, code: source.code, name: source.name,
+    items: (version ? project(version) : []).map(source => ({id: source.id, code: source.code, name: source.name,
       line: '', category: source.category, enabled: true, productCodes: source.products.map(part => part.code),
       cadence: 'time', frequency: source.frequency}))};
 }

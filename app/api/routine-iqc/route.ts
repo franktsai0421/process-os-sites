@@ -43,7 +43,8 @@ export async function GET(request:Request){
       return JSON.stringify({schemaVersion:c.schemaVersion,revision:c.revision,calendar:{schemaVersion:c.calendar.schemaVersion,jobs:[]},
         resetGenerationRevision:c.resetGenerationRevision,resetLedger:resetLedger(c),documents:[],cases:[],receipts:Object.hasOwn(c.receipts,operationId)?{[operationId]:c.receipts[operationId]}:{}});
     }}:{})});
-    const {actor,permissions}=await routineIqcAccess(request,state,operationId?await routineStartupPermissionPhase(request,state):undefined),c=readRoutineIqc(state),today=companyDate();
+    const phase=operationId||!q.size?await routineStartupPermissionPhase(request,state):undefined;
+    const {actor,permissions}=await routineIqcAccess(request,state,phase),c=readRoutineIqc(state),today=companyDate();
     let body:unknown,status=200;
     if(preview&&start){
       if(actor.role!=='admin'||!permissions.edit||!permissions.settings)throw new DraftConflict('FORBIDDEN',403);
@@ -97,7 +98,8 @@ export async function GET(request:Request){
           savedIssues:doc.flow.saved?iqcDraftIssues(doc,doc.flow.saved.content,today):[],
           flow:{...doc.flow,receipts:{},sequences:{}}}))};
     }
-    if((await identity(request,state))?.id!==actor.id)return reply({error:'LOGIN_REQUIRED'},401);
+    const current=phase?await phase.current():(await identity(request,state))?.id===actor.id;
+    if(!current)return reply({error:'LOGIN_REQUIRED'},401);
     if(!await stateRevisionIsCurrent(state))return reply({error:'REVISION_CONFLICT'},409);
     return reply(body,status);
   }catch(error){return whenFailed(error);}
@@ -121,7 +123,8 @@ export async function POST(request:Request){
         .first<{revision:number;values:string}>():null;
       const selected=row?await prepareRoutineIqcStart(env.STATE_ARCHIVE,row.values,routineIqcAuthorityKeys):null;
       const state=selected&&row?{revision:row.revision,values:selected.values}:await readState({deferHistory:false});
-      const phase=starting?await routineStartupPermissionPhase(request,state):undefined;
+      const draftWrite=command.action==='draft'&&(command.draft?.action==='save'||command.draft?.action==='submit')&&!new URL(request.url).search;
+      const phase=starting||draftWrite?await routineStartupPermissionPhase(request,state):undefined;
       const {actor,permissions}=await routineIqcAccess(request,state,phase);
       if(state.values.maintenanceMode==='1')return reply({error:'MAINTENANCE'},503);
       if(command.action==='configure'&&!permissions.settings)return reply({error:'FORBIDDEN'},403);
@@ -146,7 +149,8 @@ export async function POST(request:Request){
       }
       const values={...state.values,[RI_KEY]:JSON.stringify(control)};
       const encoded=selected?await selected.encode(values[RI_KEY]):await encodeValues(values,state);
-      if((await identity(request,state))?.id!==actor.id)return reply({error:'LOGIN_REQUIRED'},401);
+      const current=phase?await phase.current():(await identity(request,state))?.id===actor.id;
+      if(!current)return reply({error:'LOGIN_REQUIRED'},401);
       if(!await stateRevisionIsCurrent(state))continue;
       const write=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?')
         .bind(state.revision+1,encoded,at,state.revision).run();
