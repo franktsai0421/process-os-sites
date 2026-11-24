@@ -86,3 +86,22 @@
   margin:0; padding:12px 16px max(12px, env(safe-area-inset-bottom)); border-top:1px solid #d5e1ef;
 }
 .ri-app .ri-submit-dialog .rf-actions .rf-btn { min-width:0; min-height:44px; white-space:normal; overflow-wrap:anywhere; }
+
+@media (max-width: 600px) {
+  .ri-app .ri-outcome-choices {
+    display:flex; flex-direction:column; align-items:stretch;
+  }
+  .ri-app .ri-outcome-choices button {
+    box-sizing:border-box; flex:none; min-width:0!important; width:auto;
+  }
+  .ri-app .rf-period-group .rf-period-single {
+    display:flex; flex-direction:column; align-items:stretch;
+  }
+  .ri-app .rf-period-group .rf-period-single > .rf-period-history {
+    min-width:0; max-width:100%; box-sizing:border-box; flex:none;
+  }
+  .ri-app .rf-period-history-body { display:flex; flex-direction:column; align-items:stretch; }
+  .ri-app .rf-period-history-body > button {
+    flex:none; min-width:0; white-space:normal; overflow-wrap:anywhere;
+  }
+}

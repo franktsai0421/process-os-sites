@@ -38,10 +38,13 @@
     PHOTO_NOT_UPLOADED:['照片尚未保存。','Ảnh chưa được lưu.'],
     START_DATE_LOCKED:['已有計畫、報告或處理紀錄，不能重算開始日期。','Đã có kế hoạch, báo cáo hoặc hồ sơ xử lý, không thể tính lại ngày bắt đầu.'],
     IQC_TITLE_REQUIRED:['請填寫文件名稱。','Điền tên hồ sơ.'],
+    IQC_REPORT_TOO_LARGE:['項目與批號組合超過 1,000 列。請減少本計畫的項目或批號。','Số dòng kết hợp hạng mục và lô vượt quá 1.000. Hãy giảm số hạng mục hoặc lô trong kế hoạch.'],
     IQC_DATE_REQUIRED:['請選擇有效的開始日期。','Chọn ngày bắt đầu hợp lệ.'],
     IQC_START_CONFIRMATION_REQUIRED:['請核對範圍、勾選確認，並輸入 START IQC。','Kiểm tra phạm vi, đánh dấu xác nhận và nhập START IQC.'],
     IQC_START_REASON_REQUIRED:['請填寫啟動原因，最多 2,000 字。','Điền lý do khởi động, tối đa 2.000 ký tự.'],
   }, errorText = value => errors[value] ? t(...errors[value]) : value;
+  const issueText = issue => issue?.code==='IQC_DATE_REQUIRED'&&issue.path?.[0]==='date'
+    ? t('請選擇有效的實際日期。','Chọn ngày thực tế hợp lệ.') : errorText(issue?.code);
   let view = null, workspace = null, approvalBadge = null;
   const button = (action, text, disabled = false, primary = false) =>
     `<button type="button" class="rf-btn ${primary?'primary':''}" data-ri-action="${h(action)}" ${disabled?'disabled':''}>${h(text)}</button>`;
@@ -716,7 +719,7 @@
       ${report?`<div data-ri-overdue-reason ${reportNeedsLateReason(c,v.data.today)?'':'hidden'}>${input('reason',t('逾期送審原因','Lý do gửi quá hạn'),c.reason,edit,'textarea')}</div>`:
         doc.kind!=='plan'?input('reason',t('申請原因','Lý do đề nghị'),c.reason,edit,'textarea'):''}
       ${doc.kind==='disposal'?input('disposition',t('處置內容','Nội dung xử lý'),c.disposition,edit,'textarea')+c.photos.map(photo).join('')+(edit?`<label>${t('上傳照片','Tải ảnh')}<input data-ri-photo="document" type="file" accept="image/*"></label>`:''):''}
-      ${doc.status==='draft'&&doc.issues.length?`<ul class="rf-notice">${doc.issues.map(issue=>`<li>${h(errorText(issue.code))}</li>`).join('')}</ul>`:''}
+      ${doc.status==='draft'&&doc.issues.length?`<ul class="rf-notice">${doc.issues.map(issue=>`<li>${h(issueText(issue))}</li>`).join('')}</ul>`:''}
       <div class="rf-actions">${edit?button('save',t('儲存草稿','Lưu bản nháp'),disable||!p.save,true)+button('submit',t('送出審核','Gửi duyệt'),disable||!p.submit||!doc.flow.saved||doc.savedIssues.length>0)+button('dispose-draft',t('捨棄草稿','Bỏ bản nháp'),disable||!p.delete):''}
       ${!v.review&&!v.readOnly&&bookReport(v,doc)?button('create-report:'+doc.id,t('填寫檢查報告','Nhập báo cáo'),disable||!p.create,true):''}
       ${pending&&!v.review&&!v.readOnly?button('review:'+doc.id,t('查看送審案件 · 例行 IQC','Xem hồ sơ gửi duyệt · IQC định kỳ'))+button('withdraw',t('撤回送審','Rút hồ sơ'),disable||!p.withdraw):''}</div>
@@ -1399,7 +1402,7 @@
       }
       if(v.busy||v.adminDialog)return;
       v.error='';
-      act(v,action,control).catch(error=>{if(current(v)){v.error=errorText(error.details?.issues?.[0]?.code||error.message);render(v);}});
+      act(v,action,control).catch(error=>{if(current(v)){v.error=issueText(error.details?.issues?.[0])||errorText(error.message);render(v);}});
     });
     v.root.addEventListener('toggle',event=>{
       if(event.target.dataset.riPanel==='review')v.reviewHistory=event.target.open;
