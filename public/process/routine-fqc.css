@@ -1662,3 +1662,13 @@
 .rf-receipt-compact { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
 .rf-receipt-compact .rf-receipt-reference { flex-basis:100%; margin-top:0; }
 .rf-receipt-compact button { min-height:44px; }
+
+.rf-status-filters{display:grid;gap:.75rem;padding:1rem;border:1px solid #c4d1d5;border-radius:.7rem;background:white}
+.rf-status-filters header{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.rf-status-filters label{display:grid;gap:.25rem}
+.rf-status-filters select,.rf-status-tiles button{min-height:44px;color:inherit;border:1px solid #a9bac0;border-radius:.4rem;background:white;padding:.45rem .7rem;font:inherit}
+.rf-status-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem}
+.rf-status-tiles button{display:flex;align-items:center;justify-content:space-between;text-align:start;gap:.3rem;overflow-wrap:anywhere}
+.rf-status-tiles button[aria-pressed=true]{background:#075e57;color:white}
+.rf-period-late{color:#833b31;font-weight:600}
+@media(max-width:640px){.rf-status-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}

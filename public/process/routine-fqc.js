@@ -73,7 +73,7 @@
   const s = {
     tab: 'sources',
     sourceLine: '', sourceCategory: '', sourceProduct: '',
-    periodSearch: '', periodFrom: '', periodTo: '', periodOutcome: '',
+    periodRange: '', periodStatus: '', periodSearch: '', periodFrom: '', periodTo: '', periodOutcome: '',
     periodExpanded: new Set(), periodMore: new Map(),
     module: 'FQC',
     selected: null,
@@ -1266,7 +1266,7 @@
     }).sort((a,b)=>(a.review.result?.at||a.doc.createdAt||'').localeCompare(b.review.result?.at||b.doc.createdAt||''));
   }
   const dateMatchesPeriod = j => (!s.periodFrom||j.end>=s.periodFrom)&&(!s.periodTo||j.start<=s.periodTo);
-  const periodFiltersActive = () => !!(s.periodFrom||s.periodTo||s.periodOutcome);
+  const periodFiltersActive = () => !!(s.periodRange||s.periodStatus||s.periodFrom||s.periodTo||s.periodOutcome);
   function matchesPeriodOutcome(j) {
     if(!s.periodOutcome)return true;
     // Result filters list the origin period once. Its timeline includes all retests.
@@ -1419,13 +1419,95 @@
   ]);
   const periodKey = j => j.start + ':' + j.end;
   const periodsPerPage = 6;
+  const statusTiles = [
+    ['overdue','目前逾期','Hiện quá hạn'], ['initial-pass','初測合格','Đạt lần đầu'],
+    ['fail','曾不合格','Từng không đạt'], ['retest-pass','曾復測合格','Từng thử lại đạt'],
+    ['retest-fail','曾復測不合格','Từng thử lại không đạt'], ['disposal','曾申請處置','Từng gửi đề nghị xử lý'],
+  ];
+  // Window (anniversary, today], clamping month/year anniversaries at month end.
+  function rangeBoundary(today,range) {
+    if(!range)return '';
+    const date=new Date(today+'T00:00:00Z'),day=date.getUTCDate();
+    if(range==='week')date.setUTCDate(day-7);
+    else {
+      date.setUTCDate(1);
+      date.setUTCMonth(date.getUTCMonth()-Number(range));
+      const end=new Date(date);end.setUTCMonth(end.getUTCMonth()+1,0);
+      date.setUTCDate(Math.min(day,end.getUTCDate()));
+    }
+    return date.toISOString().slice(0,10);
+  }
+  const lateDays = job => Math.round((Date.parse(data.today)-Date.parse(job.end))/86400000);
+  function calendarFacets(){
+    const jobs=new Map(data.control.jobs.map(j=>[j.id,j]));
+    const cases=new Map(data.control.cases.map(c=>[c.id,c]));
+    const parents=new Map();
+    for(const c of cases.values())for(const id of c.lineageJobIds||[]){
+      if(id!==c.jobId&&jobs.has(c.jobId))parents.set(id,c.jobId);
+    }
+    for(const j of jobs.values()){
+      const origin=j.calendar?.originJobId||cases.get(j.calendar?.retestCaseId)?.jobId;
+      if(origin&&origin!==j.id&&jobs.has(origin))parents.set(j.id,origin);
+    }
+    const documents=new Map(docs().map(d=>[d.id,d]));
+    const flags=new Map(),disposals=new Map();
+    function flag(id,key){
+      if(!flags.has(id))flags.set(id,new Set());
+      flags.get(id).add(key);
+    }
+    for(const j of jobs.values()){
+      if(j.end<data.today&&!j.planId&&!j.completion&&!j.calendar?.stopped&&!j.calendar?.retestCaseId)
+        flag(j.id,'overdue');
+    }
+    if(data.permissions.history)for(const d of documents.values()){
+      if(d.kind==='disposal'){
+        const origin=cases.get(d.caseId)?.jobId;
+        for(const review of d.flow.cases){
+          if(!['pending','returned','withdrawn','approved'].includes(review.status))continue;
+          const ids=origin?[origin]:(periodReviewSnapshot(d,review)?.lines||[]).map(l=>l.jobId);
+          for(const id of ids){
+            flag(id,'disposal');
+            const prev=disposals.get(id);
+            if(!prev||String(review.at)>=String(prev.at))disposals.set(id,review);
+          }
+        }
+      }
+      if(d.kind!=='report'||d.cancelled)continue;
+      let original=d;
+      const seen=new Set();
+      while(original?.correctionOf&&!seen.has(original.id)){
+        seen.add(original.id);original=documents.get(original.correctionOf);
+      }
+      const snapshots=d.flow.cases.filter(r=>r.status==='approved'&&r.id!==d.flow.active?.id).map(r=>r.content);
+      if(d.flow.active?.id)snapshots.push(d.flow.active.content);
+      for(const snapshot of snapshots)for(const line of snapshot?.lines||[]){
+        if(d.cancelledJobIds?.includes(line.jobId))continue;
+        const origin=parents.get(line.jobId)||line.jobId;
+        const outcomes=(line.results||[]).map(r=>r.outcome);
+        if(outcomes.includes('fail'))flag(origin,'fail');
+        if(!original||original.correctionOf)continue;
+        const retest=!!((original.caseId&&cases.get(original.caseId)?.originReportId!==original.id)||
+          jobs.get(line.jobId)?.calendar?.retestCaseId||parents.has(line.jobId));
+        if(retest&&outcomes.includes('fail'))flag(origin,'retest-fail');
+        if(outcomes.length&&outcomes.every(x=>x==='pass'))flag(origin,retest?'retest-pass':'initial-pass');
+      }
+    }
+    return {flags,parents,disposals};
+  }
+  function statusFilters(counts){
+    const ranges=[['','全部','Tất cả'],['week','最近一週','Một tuần qua'],['1','最近一個月','Một tháng qua'],['3','最近一季','Ba tháng qua'],['6','最近半年','Sáu tháng qua'],['12','最近一年','Một năm qua']];
+    return `<section class="rf-status-filters"><header><strong>${t('狀態篩選','Lọc trạng thái')}</strong><button type="button" class="rf-btn" data-period-search-reset>${t('清除所有篩選','Xóa tất cả bộ lọc')}</button></header>
+      <label>${t('期別範圍','Phạm vi kỳ')}<select data-period-range>${ranges.map(([v,zh,vi])=>`<option value="${v}" ${s.periodRange===v?'selected':''}>${t(zh,vi)}</option>`).join('')}</select></label>
+      <div class="rf-status-tiles">${statusTiles.map(([key,zh,vi])=>`<button type="button" data-period-status="${key}" aria-pressed="${key===s.periodStatus}" ${key!=='overdue'&&!data.permissions.history?'disabled':''}>${t(zh,vi)} <b>${key!=='overdue'&&!data.permissions.history?'—':counts.get(key).size}</b></button>`).join('')}</div></section>`;
+  }
   function calendarPeriodGroups() {
     const normalized = s.periodSearch.trim().normalize('NFKC').toLocaleLowerCase();
-    const groups = new Map();
+    const groups = new Map(), facets=calendarFacets(),counts=new Map(statusTiles.map(([k])=>[k,new Set()]));
+    const cutoff=rangeBoundary(data.today,s.periodRange);
     for (const j of data.control.jobs) {
       // Retest attempts belong to the original period row; retain orphan history visibly.
-      const origin=j.calendar?.originJobId||data.control.cases.find(a=>a.id===j.calendar?.retestCaseId)?.jobId;
-      if(j.calendar?.retestCaseId&&data.control.jobs.some(parent=>parent.id===origin&&parent.id!==j.id))continue;
+      if(j.calendar?.retestCaseId&&facets.parents.has(j.id))continue;
+      if(cutoff&&(j.end<=cutoff||j.end>data.today))continue;
       const {source} = j;
       if (!(j.calendar || j.planId || j.completion) || !dateMatchesPeriod(j) || !matchesPeriodOutcome(j) ||
         s.sourceLine && source.line !== s.sourceLine ||
@@ -1434,15 +1516,22 @@
       const searchText = [source.name,source.code,source.line,source.category,...source.products.flatMap(p => [p.code,p.name])]
         .join(' ').normalize('NFKC').toLocaleLowerCase();
       if (normalized && !normalized.split(/\s+/).every(word => searchText.includes(word))) continue;
-      const key = periodGroupKey(j);
+      const key = periodGroupKey(j), flags=facets.flags.get(j.id);
+      for(const flag of flags||[])counts.get(flag).add(key);
+      if(s.periodStatus&&!flags?.has(s.periodStatus))continue;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(j);
     }
-    return groups;
+    const rows=[...groups];
+    if(s.periodStatus==='overdue'){
+      for(const [,jobs] of rows)jobs.sort((a,b)=>a.end.localeCompare(b.end));
+      rows.sort((a,b)=>a[1][0].end.localeCompare(b[1][0].end));
+    }
+    return {rows,counts,disposals:facets.disposals};
   }
 
-  function calendarWorkTable() {
-    const groups = [...calendarPeriodGroups()];
+  function calendarWorkTable(model) {
+    const groups = model.rows;
     const labels=[['',t('全部結果','Tất cả kết quả')],
       ['ever-fail',t('曾有不合格','Từng không đạt')],
       ['retest-pass',t('不合格後復測合格','Thử lại đạt sau khi không đạt')],
@@ -1457,16 +1546,15 @@
         `<option value="${value}" ${value===s.periodOutcome?'selected':''}>${label}</option>`).join('')}</select></label>
       <div class="rf-period-filter-actions">
         <button class="rf-btn" type="submit">${t('搜尋','Tìm')}</button>
-        ${s.periodSearch||periodFiltersActive()||s.sourceLine||s.sourceCategory||s.sourceProduct?`<button class="rf-btn" type="button" data-period-search-reset>${t('清除篩選','Xóa bộ lọc')}</button>`:''}
       </div><p data-period-filter-error role="alert" hidden></p>
     </form>${periodFiltersActive()?`<p class="rf-period-match">${t('符合篩選','Khớp bộ lọc')} · ${groups.length} ${t('項','hạng mục')}</p>`:''}`;
-    return controls + `<div class="rf-calendar-work">${groups.map(([key,jobs])=>calendarPeriodGroup(key,jobs)).join('') ||
+    return controls + `<div class="rf-calendar-work">${groups.map(([key,jobs])=>calendarPeriodGroup(key,jobs,model.disposals)).join('') ||
       `<div class="rf-empty">${t('此範圍沒有項目','Không có hạng mục trong phạm vi này')}</div>`}</div>`;
   }
 
   function readablePeriodText(value,limit=140){const text=String(value||'');return text.length>limit?`<details class="rf-long-text"><summary>${h(text.slice(0,limit))}… <span>${t('展開全文','Xem đầy đủ')}</span></summary><p>${h(text)}</p></details>`:h(text);}
-  function calendarPeriodGroup(key, jobs) {
-    jobs.sort((a,b) => b.start.localeCompare(a.start) || b.end.localeCompare(a.end));
+  function calendarPeriodGroup(key, jobs, disposals) {
+    if(s.periodStatus!=='overdue')jobs.sort((a,b) => b.start.localeCompare(a.start) || b.end.localeCompare(a.end));
     const filtered=periodFiltersActive();
     const byPeriod = [...new Set(jobs.filter(j => j.start <= data.today).map(periodKey))];
     const recent=new Set(byPeriod.slice(0,2));
@@ -1478,7 +1566,7 @@
     const visible=filtered?jobs:jobs.filter(j=>unfinished.has(j)||!periodSelectionReason(j)||periodKey(j)===currentKey||periodKey(j)===previousKey);
     const shown=new Set(visible);
     const older=filtered?[]:jobs.filter(j=>!shown.has(j));
-    const candidates=filtered?visible:jobs;
+    const candidates=s.periodStatus==='overdue'?[...visible].reverse():filtered?visible:jobs;
     const latest=candidates.find(j=>j.start<=data.today&&!j.calendar?.stopped)||candidates.find(j=>j.start<=data.today)||jobs[0];
     const source=latest.source,{tone,stage}=periodCurrentWork(latest),expanded=s.periodExpanded.has(key);
     const sourceMeta=source.code+' · '+source.line+' / '+source.category,longSource=source.name.length>64||sourceMeta.length>100;
@@ -1491,7 +1579,7 @@
     </div>`:'';
     const showPage=(rows,limit)=>{
       const inPage=new Set([...new Set(rows.map(periodKey))].slice(0,limit));
-      return rows.filter(j=>inPage.has(periodKey(j))).map(periodRow).join('');
+      return rows.filter(j=>inPage.has(periodKey(j))).map(j=>periodRow(j,disposals)).join('');
     };
     const count=s.periodMore.get(key)||0,matchedCount=Math.max(periodsPerPage,count);
     const more=`<button class="rf-btn" data-period-more="${h(key)}">${t('載入更多','Xem thêm')}</button>`;
@@ -1501,7 +1589,7 @@
     const olderLabel=count?collapseLabel:t('顯示更多之前的列表','Hiển thị thêm danh sách trước đây')+' · '+olderCount;
     const body=!expanded?'':filtered
       ? showPage(visible,matchedCount)+(periodCount>matchedCount?more:'')
-      : calendarTransition(jobs)+visible.map(periodRow).join('')+(olderCount?`<section class="rf-period-older">
+      : calendarTransition(jobs)+visible.map(j=>periodRow(j,disposals)).join('')+(olderCount?`<section class="rf-period-older">
         <div class="rf-period-older-actions">
           <button class="rf-btn" data-period-older-toggle="${h(key)}" aria-expanded="${count>0}">${olderLabel}</button>
         </div>
@@ -1513,7 +1601,7 @@
     return `<article class="rf-calendar-card rf-period-group" data-period-group="${h(key)}">
       <button class="rf-period-group-toggle" data-period-toggle="${h(key)}" aria-expanded="${expanded}">
         <span class="rf-period-group-title"><strong>${h(source.name.length>64?source.name.slice(0,64)+'…':source.name)}</strong><small>${h(sourceMeta.length>100?sourceMeta.slice(0,100)+'…':sourceMeta)}</small></span>
-        <span class="rf-period-group-summary">
+        <span class="rf-period-group-summary">${s.periodStatus==='overdue'?dueSummary(jobs[0]):''}
           <span>${countLabel} ${periodCount} ${t('期','kỳ')}</span>
           <span class="rf-period-chip ${tone}">${t('最新狀態','Mới nhất')} · ${h(stage)}</span>
           <span class="${selectionCount?'rf-period-picked':''}">${t('已選','Đã chọn')} ${selectionCount}</span>
@@ -1522,13 +1610,17 @@
     </article>`;
   }
 
-  function periodRow(j) {
+  function dueSummary(j){
+    return `<span class="rf-period-late">${t('到期日','Hạn kiểm tra')} ${h(j.end)} · ${t('逾期','Quá hạn')} ${lateDays(j)} ${t('天','ngày')}</span>`;
+  }
+  function periodRow(j,disposals) {
     const reason=periodSelectionReason(j),reasonId='rf-period-lock-'+j.id,current=periodCurrentWork(j);
     return `<section class="rf-calendar-period rf-period-single" data-period-id="${h(j.id)}">
       <label class="rf-period-choice ${reason?'is-locked':''}">
         <input type="checkbox" data-job="${h(j.id)}" ${reason?`disabled aria-describedby="${h(reasonId)}"`:s.checked.has(j.id)?'checked':''}>
         <span class="rf-period-overview"><b>${h(periodLabel(j))}</b><span class="rf-period-lock" id="${h(reasonId)}">${reason?t('不可勾選','Không thể chọn')+' · '+h(reason):t('可勾選','Có thể chọn')}</span></span>
       </label>
+      ${s.periodStatus==='overdue'?dueSummary(j):''}${s.periodStatus==='disposal'&&disposals.has(j.id)?`<p>${t('處置申請','Đề nghị xử lý')} · ${h(historyAction(disposals.get(j.id).status))}</p>`:''}
       <div class="rf-period-location"><small>${t('目前狀態','Trạng thái hiện tại')}</small><span class="rf-period-chip ${current.tone}">${h(current.stage)}</span>${current.page?`<span>${t('接續頁面','Trang tiếp tục')}：${current.documentId?`<a href="#routine-document" class="rf-location-link" data-doc="${h(current.documentId)}">${h(current.page)}</a>`:current.caseId?`<button class="rf-btn rf-location-link" data-case="${h(current.caseId)}">${h(current.page)}</button>`:current.tab?`<button class="rf-btn rf-location-link" data-tab="${h(current.tab)}">${h(current.page)}</button>`:h(current.page)}</span>`:''}</div>
       <div class="rf-period-results"><small>${t('核准結果與結案','Kết quả đã duyệt và đóng hồ sơ')}</small><div>${readablePeriodText(periodResultSequence(j))}</div></div>
       ${s.tab==='sources'&&canExempt(j)?`<div class="rf-period-exemption"><button class="rf-btn" data-period-exempt="${h(j.id)}" ${data.permissions.edit?'':'disabled'}>${t('申請當期免測','Xin miễn kiểm tra kỳ này')}</button></div>`:''}
@@ -1738,8 +1830,9 @@
     const scoped=filterJobs.filter(j=>!s.sourceLine||j.source.line===s.sourceLine),cats=[...new Set(scoped.map(j=>j.source.category))].sort((a,b)=>a.localeCompare(b));
     const products=[...new Map(scoped.filter(j=>!s.sourceCategory||j.source.category===s.sourceCategory).flatMap(j=>j.source.products).map(p=>[p.code,p])).values()];
     const select=(key,title,values)=>`<label>${title}<select data-source-filter="${key}"><option value="">${t('全部','Tất cả')}</option>${values.map(([value,text])=>`<option value="${h(value)}" ${s[key]===value?'selected':''}>${h(text)}</option>`).join('')}</select></label>`;
+    const model=['sources','jobs'].includes(s.tab)?calendarPeriodGroups():null;
     const picked=[...s.checked].map(id=>jobs.find(j=>j.id===id)).filter(Boolean),canQueue=picked.length&&picked.every(arrangeable),canPlan=canQueue&&new Set(picked.map(j=>!!j.calendar.retestCaseId)).size===1;
-    return `<header class="rf-calendar-hero"><div><span>FQC · ${t('例行品質管理','Quản lý chất lượng định kỳ')}</span><h2>${t('每項檢查，進度清楚','Theo dõi rõ từng hạng mục')}</h2></div><details><summary>${t('如何操作','Cách sử dụng')}</summary><p>${t('檢查項目勾選建計畫 → 計畫審核 → 填報 → 報告審核。審核前不寫入正式結果。','Chọn hạng mục lập kế hoạch → duyệt kế hoạch → báo cáo → duyệt kết quả. Chưa duyệt không đổi kết quả chính thức.')}</p><p>${t('舊期未安排不能補建；已建計畫可跨期填報，逾期送審需原因。','Không tạo bù kế hoạch kỳ cũ; kế hoạch đã tạo được báo cáo qua kỳ, gửi muộn cần lý do.')}</p></details>${calendarAdministration()}</header><nav class="rf-modules">${['FQC','IQC',t('模具檢查','Kiểm tra khuôn'),t('檢具與測試設備校準','Hiệu chuẩn thiết bị')].map((m,i)=>`<button data-module="${i}" class="${i===0?'active':''}">${m}</button>`).join('')}</nav><div class="rf-main rf-calendar">${calendarWorkflowNavigation(tab)}${routineErrorBanner()}${calendarSetup()}${s.busy&&receiptFeedback()?.status!=='querying'?`<p role="status">${t('正在保存，請稍候…','Đang lưu, vui lòng chờ…')}</p>`:''}${request?`<section class="rf-panel rf-detail-panel"><div class="rf-detail">${btn('back',t('返回來源','Về mục gốc'))}${documentDetail(request)}</div></section>`:['sources','jobs'].includes(s.tab)?`<div class="rf-source-filters">${select('sourceLine',t('線別','Dây chuyền'),lines.map(x=>[x,x]))}${select('sourceCategory',t('類別','Nhóm'),cats.map(x=>[x,x]))}${select('sourceProduct',t('產品','Sản phẩm'),products.map(p=>[p.code,p.code+' · '+p.name]))}</div><div class="rf-calendar-toolbar"><b>${t('已選','Đã chọn')} ${picked.length}</b>${btn('create-plan',t('建立檢查計畫','Tạo kế hoạch kiểm tra'),!canPlan||!data.permissions.edit,'primary')}${canQueue&&!canPlan?'<p>'+t('初測與復測請分開建立計畫。','Lập riêng kế hoạch lần đầu và thử lại.')+'</p>':''}${s.tab==='sources'?btn('calendar-skip',t('申請當期免測','Xin miễn kiểm tra kỳ này'),!picked.length||picked.some(j=>!canExempt(j))||!data.permissions.edit):''}${btn('clear-selection',t('清除選取','Bỏ chọn'),!picked.length)}</div>${calendarWorkTable()}`:`<div class="rf-layout ${s.wide?'rf-wide':''} ${s.tab==='reports'&&s.workState==='approved-history'&&data.permissions.history?'rf-approved-layout':''} ${s.selected?'has-selection':''}"><section class="rf-panel rf-list-panel">${calendarDocumentList()}</section><section class="rf-panel rf-detail-panel"><div class="rf-detail">${btn('back',s.listReturn?.tab==='sources'&&s.listReturn.selection===s.selected?t('返回檢查項目','Về hạng mục kiểm tra'):t('返回清單','Về danh sách'),false,s.listReturn?.selection===s.selected?'':'rf-back')}${detail()}</div></section></div>`}</div>`;
+    return `<header class="rf-calendar-hero"><div><span>FQC · ${t('例行品質管理','Quản lý chất lượng định kỳ')}</span><h2>${t('每項檢查，進度清楚','Theo dõi rõ từng hạng mục')}</h2></div><details><summary>${t('如何操作','Cách sử dụng')}</summary><p>${t('檢查項目勾選建計畫 → 計畫審核 → 填報 → 報告審核。審核前不寫入正式結果。','Chọn hạng mục lập kế hoạch → duyệt kế hoạch → báo cáo → duyệt kết quả. Chưa duyệt không đổi kết quả chính thức.')}</p><p>${t('舊期未安排不能補建；已建計畫可跨期填報，逾期送審需原因。','Không tạo bù kế hoạch kỳ cũ; kế hoạch đã tạo được báo cáo qua kỳ, gửi muộn cần lý do.')}</p></details>${calendarAdministration()}</header><nav class="rf-modules">${['FQC','IQC',t('模具檢查','Kiểm tra khuôn'),t('檢具與測試設備校準','Hiệu chuẩn thiết bị')].map((m,i)=>`<button data-module="${i}" class="${i===0?'active':''}">${m}</button>`).join('')}</nav><div class="rf-main rf-calendar">${calendarWorkflowNavigation(tab)}${routineErrorBanner()}${calendarSetup()}${s.busy&&receiptFeedback()?.status!=='querying'?`<p role="status">${t('正在保存，請稍候…','Đang lưu, vui lòng chờ…')}</p>`:''}${request?`<section class="rf-panel rf-detail-panel"><div class="rf-detail">${btn('back',t('返回來源','Về mục gốc'))}${documentDetail(request)}</div></section>`:['sources','jobs'].includes(s.tab)?`<div class="rf-source-filters">${select('sourceLine',t('線別','Dây chuyền'),lines.map(x=>[x,x]))}${select('sourceCategory',t('類別','Nhóm'),cats.map(x=>[x,x]))}${select('sourceProduct',t('產品','Sản phẩm'),products.map(p=>[p.code,p.code+' · '+p.name]))}</div>${statusFilters(model.counts)}<div class="rf-calendar-toolbar"><b>${t('已選','Đã chọn')} ${picked.length}</b>${btn('create-plan',t('建立檢查計畫','Tạo kế hoạch kiểm tra'),!canPlan||!data.permissions.edit,'primary')}${canQueue&&!canPlan?'<p>'+t('初測與復測請分開建立計畫。','Lập riêng kế hoạch lần đầu và thử lại.')+'</p>':''}${s.tab==='sources'?btn('calendar-skip',t('申請當期免測','Xin miễn kiểm tra kỳ này'),!picked.length||picked.some(j=>!canExempt(j))||!data.permissions.edit):''}${btn('clear-selection',t('清除選取','Bỏ chọn'),!picked.length)}</div>${calendarWorkTable(model)}`:`<div class="rf-layout ${s.wide?'rf-wide':''} ${s.tab==='reports'&&s.workState==='approved-history'&&data.permissions.history?'rf-approved-layout':''} ${s.selected?'has-selection':''}"><section class="rf-panel rf-list-panel">${calendarDocumentList()}</section><section class="rf-panel rf-detail-panel"><div class="rf-detail">${btn('back',s.listReturn?.tab==='sources'&&s.listReturn.selection===s.selected?t('返回檢查項目','Về hạng mục kiểm tra'):t('返回清單','Về danh sách'),false,s.listReturn?.selection===s.selected?'':'rf-back')}${detail()}</div></section></div>`}</div>`;
   }
   function correctionEvidence(d,c){
     if(d.waiverRetests?.jobIds?.length)return '<div class="rf-notice">'+t('轉免做：核准後終止以下復測；原不合格、照片與歷史保留。','Chuyển miễn: chỉ dừng các lần thử lại sau khi duyệt; giữ kết quả không đạt, ảnh và lịch sử.')+'<ul>'+d.waiverRetests.documents.map(p=>'<li>'+h(docs().find(x=>x.id===p.id)?.number||p.id)+'</li>').join('')+'</ul>'+h(d.waiverRetests.jobIds.length)+' '+t('項復測工作（含尚未建立計畫）','công việc thử lại (kể cả chưa lập kế hoạch)')+'</div>';
@@ -2252,9 +2345,16 @@
       paint();
       root.querySelector('[data-period-search] input')?.focus?.({preventScroll:true});
     });
+    root.querySelectorAll('[data-period-range]').forEach(el=>el.onchange=()=>{
+      s.periodRange=el.value;s.periodMore.clear();paint();root.querySelector('[data-period-range]')?.focus();
+    });
+    root.querySelectorAll('[data-period-status]').forEach(el=>el.onclick=()=>{
+      const key=el.dataset.periodStatus;s.periodStatus=s.periodStatus===key?'':key;
+      s.periodMore.clear();paint();root.querySelector('[data-period-status="'+key+'"]')?.focus();
+    });
     root.querySelectorAll('[data-period-search-reset]').forEach(button => button.onclick = () => {
       s.sourceLine=s.sourceCategory=s.sourceProduct='';
-      s.periodSearch=s.periodFrom=s.periodTo=s.periodOutcome='';
+      s.periodRange=s.periodStatus=s.periodSearch=s.periodFrom=s.periodTo=s.periodOutcome='';
       s.periodMore.clear();
       paint();
       root.querySelector('[data-period-search] input')?.focus?.({preventScroll:true});
@@ -2264,8 +2364,14 @@
     root.querySelectorAll('[data-period-exempt]').forEach(b=>b.onclick=()=>{const j=data.control.jobs.find(j=>j.id===b.dataset.periodExempt);if(!j||!canExempt(j)||!data.permissions.edit)return;s.checked=new Set([j.id]);void act('calendar-skip');});
     root.querySelectorAll('[data-source-filter]').forEach(b => b.onchange = () => {
       s[b.dataset.sourceFilter] = b.value;
-      if(b.dataset.sourceFilter === 'sourceLine') s.sourceCategory = '';
-      if(b.dataset.sourceFilter !== 'sourceProduct') s.sourceProduct = '';
+      if(calendarMode()){
+        const rows=data.control.jobs.filter(j=>!s.sourceLine||j.source.line===s.sourceLine);
+        if(!rows.some(j=>j.source.category===s.sourceCategory))s.sourceCategory='';
+        if(!rows.some(j=>(!s.sourceCategory||j.source.category===s.sourceCategory)&&j.source.products.some(p=>p.code===s.sourceProduct)))s.sourceProduct='';
+      }else{
+        if(b.dataset.sourceFilter==='sourceLine')s.sourceCategory='';
+        if(b.dataset.sourceFilter!=='sourceProduct')s.sourceProduct='';
+      }
       paint();
     });
     root.querySelectorAll('[data-doc],[data-review-doc]').forEach(el => {
@@ -3465,7 +3571,7 @@
       canSave:()=>historyAllowsMutation()&&data?.permissions.save===true&&(!docs().some(dirty)||data?.permissions.edit===true),canDiscard:()=>data?.permissions.edit===true&&!s.dialogOpen,
       async save(){s.busy=true;try{for(const d of departureDocuments())await save(d);return true;}finally{s.busy=false;paint();}},
       discard(){for(const dialog of document.querySelectorAll('.rf-modal[open]'))dialog.querySelector('[data-cancel]')?.click();for(const d of docs())if(dirty(d)){s.buffers.delete(d.id);s.bases.delete(d.id);}paint();},
-    });},canLeave:()=>pageDraftMode?window.RoutineFqcPage.canLeave():!s.busy&&!s.retry&&!inFlightMutation&&!s.dialogOpen&&!docs().some(dirty),error:()=>navigationError,reset(){flowConnectorObserver?.disconnect();flowConnectorObserver=null;window.RoutineFqcPage?.reset();pageDraftMode=false;retireApprovedHistory();historyClients.clear();loading=false;root=null;data=null;s.selected=null;s.buffers.clear();s.bufferGenerations.clear();s.bases.clear();s.checked.clear();s.listReturn=null;s.periodExpanded.clear();s.periodMore.clear();s.periodSearch=s.periodFrom=s.periodTo=s.periodOutcome='';s.sampleOpen.clear();s.resultOpen.clear();s.reviewPlatform=false;s.issues=[];s.error='';navigationError=null;historySearch=null;historyLanguage=null;receiptPresentation=null;}},
+    });},canLeave:()=>pageDraftMode?window.RoutineFqcPage.canLeave():!s.busy&&!s.retry&&!inFlightMutation&&!s.dialogOpen&&!docs().some(dirty),error:()=>navigationError,reset(){flowConnectorObserver?.disconnect();flowConnectorObserver=null;window.RoutineFqcPage?.reset();pageDraftMode=false;retireApprovedHistory();historyClients.clear();loading=false;root=null;data=null;s.selected=null;s.buffers.clear();s.bufferGenerations.clear();s.bases.clear();s.checked.clear();s.listReturn=null;s.periodExpanded.clear();s.periodMore.clear();s.periodRange=s.periodStatus=s.periodSearch=s.periodFrom=s.periodTo=s.periodOutcome='';s.sampleOpen.clear();s.resultOpen.clear();s.reviewPlatform=false;s.issues=[];s.error='';navigationError=null;historySearch=null;historyLanguage=null;receiptPresentation=null;}},
     keepListAnchor,
     revealRoutineDetail,
     html,
