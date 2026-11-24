@@ -1,0 +1,55 @@
+name: IQC date and Reset PR151 review (head only)
+on:
+  pull_request:
+    branches: ['review/v68-reset-base-20261123']
+    types: [synchronize]
+    paths: ['.github/workflows/iqc-reset-pr151-review.yml']
+permissions:
+  contents: read
+concurrency:
+  group: iqc-reset-pr151-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  isolated-iqc:
+    if: github.repository == 'franktsai0421/process-os-sites' && github.event.pull_request.number == 151 && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'fix/iqc-v77-reset-generation' && github.base_ref == 'review/v68-reset-base-20261123'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      PROCESS_PROGRAM_COMMIT: ${{ github.event.pull_request.head.sha }}
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify reviewed source and unchanged migration baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          test "$BASE_SHA" = d4c9c7399897427786dd964451e7ae57961e5531
+          test "$(git rev-parse bf1d4f816062613847a652d5fd5edb60cda70701^{tree})" = d75cc056e73fd8e59a424afb350446f0755c9e45
+          test "$(git rev-parse HEAD^)" = bf1d4f816062613847a652d5fd5edb60cda70701
+          git merge-base --is-ancestor "$BASE_SHA" bf1d4f816062613847a652d5fd5edb60cda70701
+          # Only this workflow may differ from the already reviewed candidate.
+          git diff --exit-code bf1d4f816062613847a652d5fd5edb60cda70701 HEAD -- . ':(exclude).github/workflows/iqc-reset-pr151-review.yml'
+          # No schema, migration journal, hosting or manifest change is permitted.
+          git diff --exit-code "$BASE_SHA" HEAD -- drizzle drizzle-sites-fresh db .openai SOURCE-PROFILE.json package.json package-lock.json
+          printf "Tested HEAD: %s\nTree: %s\nReview base: %s\n" "$HEAD_SHA" "$(git rev-parse HEAD^{tree})" "$BASE_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - run: npm ci --no-audit --no-fund
+      - name: TypeScript
+        run: npx --no-install tsc --noEmit --incremental false
+      - name: Build local worker
+        run: npm run build
+      - name: IQC preview, generation, Reset settlement, restart and storage isolation
+        run: node --test --test-skip-pattern='historical startup projection|account and routine raw Git proofs|raw startup proof rejects' tests/routine-iqc-workspace.test.mjs tests/routine-iqc-reset-readback.test.cjs tests/routine-reset-scoped-storage.test.cjs tests/routine-reset-fence.test.cjs tests/routine-reset-pending-settlement.test.cjs tests/routine-admin-reset.test.cjs tests/routine-reset-assets.test.mjs tests/routine-iqc-source.test.mjs tests/routine-iqc-source-coverage.test.cjs tests/routine-startup-isolated-restart.test.cjs tests/routine-startup-read-scope.test.cjs
+      - name: Historical Git proofs (three known v77 failures, reported separately)
+        run: node --test --test-name-pattern='historical startup projection|account and routine raw Git proofs|raw startup proof rejects' tests/routine-startup-read-scope.test.cjs
