@@ -499,3 +499,34 @@ void test('deferred terminal case bodies leave unrelated periods selectable and 
   assert.equal(reportDialog.querySelector('img').getAttribute('src'),'/api/routine-fqc/photo?id='+'b'.repeat(64));
   assert.deepEqual(posted(f),[]);
 });
+
+for (const lang of ['zh','vi']) test('visible FQC plan and report badges follow cards through approval in '+lang,()=>{
+  const f=manualUI(), control=f.api.getData().control;
+  control.calendarPolicy={version:2};
+  f.document.documentElement.lang=lang;
+  const plan=control.documents[0];
+  plan.calendarVersion=2;
+  const approve=d=>{d.flow.pendingId=null;d.flow.active={id:'approved-'+d.id,content:d.flow.working};};
+  const submit=d=>{d.flow.pendingId='review-'+d.id;d.flow.cases=[{id:d.flow.pendingId,content:d.flow.working,actor:{id:'synthetic'}}];};
+  function check(tab,expected,filter=''){
+    f.api.s.tab=tab;f.api.s.workState=filter;f.paint();
+    const html=f.root.innerHTML;
+    const badge=html.match(new RegExp('data-work-state="'+filter+'">([^<]+) · ([0-9]+)</button>'));
+    assert.ok(badge);
+    assert.equal(Number(badge[2]),expected);
+    if(!filter)assert.equal(badge[1],lang==='zh'?'全部待辦':'Tất cả việc cần xử lý');
+    assert.equal([...html.matchAll(/class="rf-calendar-document (?:rf-report-ready|rf-retest-report|rf-retest-plan|rf-initial-document)/g)].length,expected);
+  }
+  submit(plan);check('plans',1);
+  approve(plan);plan.reportAvailability=[{assigned:true,reportIds:[]}];
+  check('plans',0);check('plans',1,'approved');check('reports',1);
+  const report=structuredClone(plan);
+  Object.assign(report,{kind:'report',id:'report-1',planId:plan.id});
+  report.flow.active={id:null};plan.reportAvailability[0].reportIds=[report.id];
+  control.documents.push(report);
+  check('reports',1);submit(report);check('reports',1);
+  const second=structuredClone(plan);second.id='another-plan';second.reportAvailability=[{assigned:true,reportIds:[]}];
+  control.documents.push(second);check('reports',2);
+  approve(report);check('reports',1);
+  control.documents.pop();check('reports',0);
+});
