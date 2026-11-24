@@ -149,6 +149,25 @@
   function acceptResult(v,result) {
     if(result.documentId){v.doc=result.documentId;v.target=null;v.readOnly=false;}
   }
+  // The calendar reconciler uses stable period keys and revision CAS. A fresh
+  // projection can be compared after lost delivery without settling any document.
+  async function generateSchedule(v) {
+    if(v.pending||sessionStorage.getItem(key+v.data.identity.id)||!v.data.scheduleDue)return;
+    v.busy=true;
+    try{
+      try{
+        await call(v,endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+          action:'generate',operationId:crypto.randomUUID(),expectedRevision:v.data.revision
+        })});
+      }catch(error){
+        if(!current(v)||error.message==='DELIVERY_SUPERSEDED')throw error;
+        if(error.status && error.status<500 && error.status!==409)throw error;
+      }
+      v.reloadNeeded='schedule';
+      await load(v);
+      if(v.data.scheduleDue)v.error=t('仍有待產生的期別。可重新整理，再依最新清單產生。','Vẫn còn kỳ chưa lập. Hãy tải lại để lập theo danh sách mới nhất.');
+    }finally{v.busy=false;if(current(v))render(v);}
+  }
   async function write(v,action,fields={},draftAction=null) {
     const id=(action==='create-plan'?'plan-iqc-':'')+crypto.randomUUID(), doc=docOf(v), actor=v.data.identity.id;
     if(v.pending)throw Error(t('請先查上一筆操作結果。','Kiểm tra biên nhận trước.'));
@@ -834,7 +853,7 @@
       return;
     }
     if(v.reloadNeeded){
-      v.root.innerHTML=`${moduleNav}<p role="status">${t('操作已確認。請更新清單以查看結果。','Đã xác nhận thao tác. Hãy tải lại danh sách để xem kết quả.')}</p>
+      v.root.innerHTML=`${moduleNav}<p role="status">${v.reloadNeeded==='schedule'?t('請重新讀取期別清單以核對排程。','Hãy tải lại danh sách kỳ để kiểm tra lịch.') : t('操作已確認。請更新清單以查看結果。','Đã xác nhận thao tác. Hãy tải lại danh sách để xem kết quả.')}</p>
         ${v.error?`<p class="rf-notice error" role="alert">${h(v.error)}</p>`:''}
         ${button('refresh',t('重新整理','Tải lại'),v.busy)}`;
       return;
@@ -1011,13 +1030,13 @@
     const [kind,...tail]=action.split(':'), id=tail.join(':'), doc=docOf(v);
     if (kind === 'retry-entry' || kind === 'refresh') {
       if (kind === 'retry-entry' && v.data) return;
-      const readOnly = kind === 'retry-entry' || v.review;
+      const readOnly = kind === 'retry-entry' || v.review || v.reloadNeeded==='schedule';
       v.busy = true;
       render(v);
       try {
         await load(v);
         if (!readOnly && workspace?.active === 'iqc' && v.data.scheduleDue && permissions(v).edit && !edited(v) && !v.pending)
-          await write(v,'generate');
+          await generateSchedule(v);
       } finally {
         v.busy = false;
         if (v.data) render(v);
@@ -1337,7 +1356,7 @@
       data:null,tab:'sources',doc:review?new URL(location.href).searchParams.get('riDocument'):null,target:null,
       checked:new Set(),openGroups:new Set(),openOlder:new Set(),openHistories:new Set(),periodPages:new Map(),workState:'',category:'',supplier:'',part:'',search:'',periodFrom:'',periodTo:'',outcome:'',adminOpen:false,reviewHistory:false,reviewKind:'',reportQuery:'',showHidden:false,removedPicks:0,draft:null,base:null,error:'',pending:null,busy:false};
     view=v;bind(v);render(v);
-    try{await load(v);if(!review&&v.data.scheduleDue&&permissions(v).edit&&!v.pending)await write(v,'generate');}
+    try{await load(v);if(!review&&v.data.scheduleDue&&permissions(v).edit&&!v.pending)await generateSchedule(v);}
     catch(error){if(current(v)){v.error=errorText(error.message);render(v);}}
   }
   const html=()=>'<section class="ri-app rf-app" data-i18n-skip="true"></section>';

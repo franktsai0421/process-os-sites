@@ -1,0 +1,53 @@
+name: IQC schedule recovery PR154 review (head only)
+on:
+  pull_request:
+    branches: ['review/v68-reset-base-20261123']
+    types: [synchronize]
+    paths: ['.github/workflows/iqc-period-pr154-review.yml']
+permissions:
+  contents: read
+concurrency:
+  group: iqc-period-pr154-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  isolated-iqc:
+    if: github.repository == 'franktsai0421/process-os-sites' && github.event.pull_request.number == 154 && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'fix/iqc-generate-recovery' && github.base_ref == 'review/v68-reset-base-20261123'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      PROCESS_PROGRAM_COMMIT: ${{ github.event.pull_request.head.sha }}
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify reviewed source and unchanged migration baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          test "$BASE_SHA" = dfaee97bd8fc96778d295968b80431358ae83c51
+          test "$(git rev-parse b9c9083b229e69c7f1613fabd647d123b7896b31^{tree})" = 742fc406cf5766d7fcee87db0bb49f25c7a4be3e
+          test "$(git rev-parse HEAD^)" = b9c9083b229e69c7f1613fabd647d123b7896b31
+          git merge-base --is-ancestor "$BASE_SHA" b9c9083b229e69c7f1613fabd647d123b7896b31
+          # Only this workflow may differ from the already reviewed candidate.
+          git diff --exit-code b9c9083b229e69c7f1613fabd647d123b7896b31 HEAD -- . ':(exclude).github/workflows/iqc-period-pr154-review.yml'
+          # No schema, migration journal, hosting or manifest change is permitted.
+          git diff --exit-code "$BASE_SHA" HEAD -- drizzle drizzle-sites-fresh db .openai SOURCE-PROFILE.json package.json package-lock.json
+          printf "Tested HEAD: %s\nTree: %s\nReview base: %s\n" "$HEAD_SHA" "$(git rev-parse HEAD^{tree})" "$BASE_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - run: npm ci --no-audit --no-fund
+      - name: TypeScript
+        run: npx --no-install tsc --noEmit --incremental false
+      - name: Build local worker
+        run: npm run build
+      - name: Verify interrupted schedule delivery, IQC workflows, document guards and cache
+        run: node --test tests/routine-iqc-workspace.test.mjs tests/routine-iqc-source.test.mjs tests/routine-iqc-workflow.test.mjs tests/routine-reset-assets.test.mjs
