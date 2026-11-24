@@ -1,0 +1,55 @@
+name: FQC source performance PR155 review (head only)
+on:
+  pull_request:
+    branches: ['review/v68-reset-base-20261123']
+    types: [synchronize]
+    paths: ['.github/workflows/fqc-perf-pr155-review.yml']
+permissions:
+  contents: read
+concurrency:
+  group: fqc-perf-pr155-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  isolated-fqc:
+    if: github.repository == 'franktsai0421/process-os-sites' && github.event.pull_request.number == 155 && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'perf/fqc-source-lookups' && github.base_ref == 'review/v68-reset-base-20261123'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      PROCESS_PROGRAM_COMMIT: ${{ github.event.pull_request.head.sha }}
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify reviewed source and unchanged migration baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          test "$BASE_SHA" = aa5f25e8f833b27844b7821835da266994951ac2
+          test "$(git rev-parse 04a9bc44bd43c809589d01ec6ac4426f063f806f^{tree})" = 2bf69be516cb11e35b25e97d96d8583e73ed3acb
+          test "$(git rev-parse HEAD^)" = 04a9bc44bd43c809589d01ec6ac4426f063f806f
+          git merge-base --is-ancestor "$BASE_SHA" 04a9bc44bd43c809589d01ec6ac4426f063f806f
+          # Only this workflow may differ from the already reviewed candidate.
+          git diff --exit-code 04a9bc44bd43c809589d01ec6ac4426f063f806f HEAD -- . ':(exclude).github/workflows/fqc-perf-pr155-review.yml'
+          # No schema, migration journal, hosting or manifest change is permitted.
+          git diff --exit-code "$BASE_SHA" HEAD -- drizzle drizzle-sites-fresh db .openai SOURCE-PROFILE.json package.json package-lock.json
+          printf "Tested HEAD: %s\nTree: %s\nReview base: %s\n" "$HEAD_SHA" "$(git rev-parse HEAD^{tree})" "$BASE_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - run: npm ci --no-audit --no-fund
+      - name: TypeScript
+        run: npx --no-install tsc --noEmit --incremental false
+      - name: Build local worker
+        run: npm run build
+      - name: FQC calendar, source indexes, Reset isolation and IQC workflows
+        run: node --test tests/routine-fqc-calendar.test.cjs tests/routine-reset-scoped-storage.test.cjs tests/routine-iqc-workflow.test.mjs tests/routine-admin-reset.test.cjs
+      - name: FQC queue visibility, permissions, conflicts and receipts
+        run: node --test --test-name-pattern='visible FQC plan and report|actual routine route:|same-document|another account cannot|original v74|unanswered A' tests/routine-fqc-manual-generation.test.mjs tests/routine-fqc-durable-route.test.mjs
