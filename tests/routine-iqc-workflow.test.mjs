@@ -92,7 +92,31 @@ void test('real route: IQC four scope guards and independent multi-batch approva
     await save(plan,{lots:[{...lots[0],quantity:null}]});assert.equal((await submit(plan,422)).error,'VALIDATION_FAILED');
     assert.equal((await save(plan,{lots:[...lots,{...lots[0],batchNo:' 0001 '}]},422)).error,'IQC_DUPLICATE_LOT');
     assert.equal((await save(plan,{lots:[{...lots[0],quantity:3.5}]},422)).error,'IQC_LOTS_INVALID');
-    await save(plan,{lots});await submit(plan);
+    // A revocation between the initial permission snapshot and delivery/commit
+    // must hide the list and preserve both the saved document and its receipts.
+    async function revokedBeforeFinalCheck(run){
+      const before=f.db.prepare('SELECT revision,"values" FROM shared_state WHERE id=1').get();
+      let reads=0, tokenHash;
+      f.hooks.sql=(sql,args)=>{
+        if(sql.includes('process_revoked_sessions')&&++reads===2){
+          tokenHash=args[0];
+          f.db.prepare('INSERT INTO process_revoked_sessions VALUES(?,?,?)').run(tokenHash,Date.now()+3600000,Date.now());
+        }
+      };
+      try{
+        await run();
+        assert.equal(reads,2);
+        assert.deepEqual(f.db.prepare('SELECT revision,"values" FROM shared_state WHERE id=1').get(),before);
+      }finally{
+        f.hooks.sql=undefined;
+        if(tokenHash)f.db.prepare('DELETE FROM process_revoked_sessions WHERE token_digest=?').run(tokenHash);
+      }
+    }
+    await revokedBeforeFinalCheck(async()=>assert.equal((await request('GET')).status,401));
+    await revokedBeforeFinalCheck(async()=>assert.equal((await save(plan,{lots},401)).error,'LOGIN_REQUIRED'));
+    await save(plan,{lots});
+    await revokedBeforeFinalCheck(async()=>assert.equal((await submit(plan,401)).error,'LOGIN_REQUIRED'));
+    await submit(plan);
     await draft(plan,'approve',{caseId:get(plan).flow.pendingId},undefined,reviewWithoutApproval.id,403);
     assert.equal(get(plan).status,'pending');
     const pendingUrl=endpoint+'?pending-count=1';

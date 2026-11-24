@@ -277,12 +277,12 @@ export async function createRoutineEntryPermissionPhase(request:Request,state:St
   if(request.method!=='GET'||url.pathname!=='/api/routine-fqc'||!(query.size===0||query.size===1&&query.get('availability')==='1'))return null;
   return createWorkflowPermissionPhase(request,state);
 }
-// Only routine startup and receipt lookups use this request-local
+// Routine startup, receipt lookups and IQC list/draft actions use this request-local
 // permission snapshot. The route still checks the session before delivery/CAS.
 export function routineStartupPermissionPhase(request:Request,state:State){
   const {pathname,searchParams:q}=new URL(request.url);
   const preview=request.method==='GET'&&pathname==='/api/routine-fqc'&&q.size===3&&q.get('preview')==='1'&&q.get('calendar')==='2'&&q.has('start');
-  const iqc=pathname==='/api/routine-iqc'&&(request.method==='POST'&&!q.size||request.method==='GET'&&q.size===1&&q.has('operationId'));
+  const iqc=pathname==='/api/routine-iqc'&&(request.method==='POST'&&!q.size||request.method==='GET'&&(!q.size||q.size===1&&q.has('operationId')));
   const documentReceipt=q.size===2&&q.has('operationId')&&/^[a-zA-Z0-9_-]{1,160}$/.test(q.get('receiptDocument')||'');
   const fqc=pathname==='/api/routine-fqc'&&(request.method==='POST'&&!q.size||request.method==='GET'&&(q.size===1&&q.has('operationId')||documentReceipt));
   if(!preview&&!iqc&&!fqc)throw Error('INVALID_PERMISSION_PHASE');
