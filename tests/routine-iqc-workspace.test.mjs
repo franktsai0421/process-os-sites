@@ -1243,3 +1243,41 @@ for(const lang of ['zh','vi'])test('server-ineligible IQC period stays visible a
  ui.pick(stopped.id,true);
  assert.doesNotMatch(ui.iqcRoot.innerHTML,/data-ri-pick="old-frequency"\s+checked/);
 });
+
+for(const outcome of ['committed','not delivered','readback unavailable','another pending operation']){
+ void test('interrupted IQC schedule reads current periods: '+outcome,async()=>{
+  const data=parityState([]),calls=[],slot='routine-iqc-receipt:synthetic';
+  data.scheduleDue=true;data.revision=12;data.catalog.items=[parityJob('confirmed')];
+  const ui=switchFixture('zh',{simulateRequest:async(url,options)=>{
+   assert.equal(url,'/api/routine-iqc');
+   const method=options.method||'GET';calls.push(method);
+   if(method==='POST'){
+    const command=JSON.parse(options.body);
+    assert.deepEqual(Object.keys(command).sort(),['action','expectedRevision','operationId']);
+    assert.equal(command.action,'generate');
+    assert.equal(command.expectedRevision,data.revision);
+    assert.equal(ui.pendingWrites.has(slot),false);
+    if(outcome==='committed'){data.scheduleDue=false;data.revision++;data.jobs=[parityJob('confirmed')];}
+    if(outcome==='another pending operation')ui.pendingWrites.set(slot,'unknown-document-write');
+    throw Error('fixture interrupted response');
+   }
+   if(outcome==='readback unavailable'&&calls.length===3)return Response.json({error:'IQC_UNAVAILABLE'},{status:503});
+   return Response.json(data);
+  }});
+  ui.press(ui.entry);await new Promise(setImmediate);
+  assert.deepEqual(calls,['GET','POST','GET']);
+  if(outcome==='readback unavailable'){
+   assert.match(ui.iqcRoot.innerHTML,/請重新讀取期別清單以核對排程/);
+   ui.action('refresh');await new Promise(setImmediate);
+   assert.deepEqual(calls,['GET','POST','GET','GET']);
+  }
+  if(outcome==='another pending operation'){
+   assert.equal(ui.pendingWrites.get(slot),'unknown-document-write');
+   assert.match(ui.iqcRoot.innerHTML,/操作結果待確認/);
+  }else{
+   assert.equal(ui.pendingWrites.has(slot),false);
+   assert.doesNotMatch(ui.iqcRoot.innerHTML,/操作結果待確認/);
+  }
+  assert.match(ui.iqcRoot.innerHTML,outcome==='committed'?/TEST check confirmed/:/有待產生的應檢工作/);
+ });
+}

@@ -66,7 +66,13 @@ void test('real route: IQC four scope guards and independent multi-batch approva
     const resetBefore=f.db.prepare('SELECT revision,"values" FROM shared_state WHERE id=1').get();
     assert.equal((await cmd('admin-reset',{},admin.id,422)).error,'IQC_ACTION_INVALID');
     assert.deepEqual(f.db.prepare('SELECT revision,"values" FROM shared_state WHERE id=1').get(),resetBefore);
+    const priorRevision=control.revision;
     await cmd('generate');assert.deepEqual(control.jobs.map(job=>job.source.code),['CHECK-0','CHECK-1','CHECK-2']);
+    const afterGeneration=structuredClone(control.jobs);
+    assert.equal((await cmd('generate',{expectedRevision:priorRevision},editor.id,409)).error,'REVISION_CONFLICT');
+    await cmd('generate');
+    assert.deepEqual(control.jobs,afterGeneration);
+    assert.deepEqual(control.documents,[]);assert.deepEqual(control.cases,[]);
     const jobIds=control.jobs.map(job=>job.id), create={jobIds,start:today,end:today};
     await cmd('create-plan',create,readonly.id,403);
     const fake=JSON.stringify(['','A',JSON.stringify(['item-3','rule-3'])]);
