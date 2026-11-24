@@ -1,3 +1,4 @@
+import {assertNotResetRetired} from './routine-reset-ledger';
 import {assertRoutineResetFence} from './routine-reset-fence';
 import {reconcileCalendar,type CalendarTimelineEntry,generateCalendar,calendarCanArrange,validatePlanDates,validCalendarDate,calendarNextSelection,type CalendarPolicy,type CalendarWork} from './routine-fqc-calendar';
 import {approvedMasterPageCatalog} from './master-approved-pages';
@@ -141,6 +142,7 @@ export type Case = {
   }[];
 };
 export type RoutineFqc = {
+  draftStops?:{actorId:string;operationId:string;documentId:string;generation:string;action:string;at:string}[];
   resetGenerationRevision?: number;
   calendarPolicy?: CalendarPolicy;
   schemaVersion: 1;
@@ -618,7 +620,74 @@ type Context = {
   revoke: boolean;
   revise: boolean;
 };
+type PendingDocument={documentId:string;generation:string;action:string;operationId:string};
+function ordinaryResources(c:RoutineFqc,id:string,generation:string){
+  const d=c.documents.find(v=>v.id===id);
+  if(!d||d.calendarVersion!==2||!['report','plan'].includes(d.kind)||d.cancelled||d.caseId||d.correctionOf||
+    d.nextWork||d.requestKind||d.targetPlanId||d.disposalPolicy||d.retestApplicationCaseId||d.waiverRetests||
+    d.flow.scope!=='routine-fqc:'+id||d.flow.generation!==generation||!d.flow.working.lines.length||
+    d.kind==='report'&&!d.planId)return null;
+  const keys=new Set(['doc:'+id,'doc:'+(d.planId||id)]);
+  for(const line of d.flow.working.lines){
+    const job=c.jobs.find(v=>v.id===line.jobId);
+    if(!job?.itemId||!job.period||job.planId!==(d.planId||id)||job.calendar?.retestCaseId||
+      job.calendar?.originJobId||job.calendar?.requestId)return null;
+    keys.add('job:'+job.id);keys.add('period:'+JSON.stringify([job.itemId,job.period]));
+  }
+  return keys;
+}
+function assertIndependent(c:RoutineFqc,cmd:RoutineCommand){
+  const records=cmd.independentOf;
+  demand(Array.isArray(records)&&records.length>0&&records.length<=32&&cmd.action==='draft'&&
+    ['save','submit'].includes(cmd.command?.action||'')&&cmd.expectedRevision===c.revision,'FQC_SCOPE_CONFLICT',409);
+  const target=ordinaryResources(c,cmd.documentId||'',cmd.command!.generation);
+  demand(target,'FQC_SCOPE_CONFLICT',409);
+  for(const row of records){
+    demand(row&&['apply','save','submit'].includes(row.action)&&row.operationId!==cmd.operationId,'FQC_SCOPE_CONFLICT',409);
+    const old=ordinaryResources(c,row.documentId,row.generation);
+    demand(old&&![...old].some(key=>target.has(key)),'FQC_SCOPE_CONFLICT',409);
+  }
+}
+function scopedDraftStop(c:RoutineFqc,cmd:RoutineCommand,ctx:Context){
+  demand(Object.keys(cmd).sort().join(',')==='action,documentId,expectedRevision,operationId,reviewedDocumentRevision,reviewedGeneration,stop'&&
+    !Object.hasOwn(c.receipts,cmd.operationId),'INVALID_DRAFT_STOP',422);
+  const target=cmd.stop, doc=c.documents.find(d=>d.id===cmd.documentId);
+  demand(target&&Object.keys(target).sort().join(',')==='action,documentId,generation,operationId'&&/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(target.operationId)&&
+    target.documentId===cmd.documentId&&typeof target.generation==='string'&&target.generation.length>0&&target.generation.length<=200&&
+    ['save','submit','apply'].includes(target.action),'INVALID_DRAFT_STOP',422);
+  const permission=target.action==='apply'?'edit':target.action==='submit'?'submit':'save';
+  demand(ctx.allowed(permission)&&ctx.allowed('edit'),'FORBIDDEN',403);
+  demand(doc&&doc.flow.scope==='routine-fqc:'+target.documentId,'DOCUMENT_NOT_FOUND',404);
+  assertNotResetRetired(c,target.operationId);
+  const aggregate=c.receipts[target.operationId];
+  const inner=doc.flow.receipts[target.operationId];
+  if(aggregate||inner){
+    const receipt=aggregate||inner;
+    demand(receipt.actorId===ctx.actor.id,'FORBIDDEN',403);
+    const fingerprint=JSON.parse(receipt.fingerprint);
+    const command=aggregate?fingerprint.command:fingerprint;
+    demand((!aggregate||fingerprint.documentId===doc.id&&fingerprint.action==='draft')&&command?.action===target.action&&
+      command?.generation===target.generation,'DRAFT_STOP_MISMATCH',409);
+    return {status:'committed',actorId:ctx.actor.id,...target,result:receipt.result};
+  }
+  const stops=c.draftStops||[], existing=stops.find(f=>f.actorId===ctx.actor.id&&f.operationId===target.operationId);
+  if(existing){
+    demand(existing.documentId===target.documentId&&existing.action===target.action&&existing.generation===target.generation,'DRAFT_STOP_MISMATCH',409);
+  }else{
+    demand(cmd.expectedRevision===c.revision&&cmd.reviewedDocumentRevision===doc.flow.revision&&
+      cmd.reviewedGeneration===doc.flow.generation,'DRAFT_STOP_RECONFIRM',409);
+    demand(stops.length<2048&&stops.filter(row=>row.actorId===ctx.actor.id).length<256,'DRAFT_STOP_CAPACITY',409);
+    c.draftStops=[...stops,{actorId:ctx.actor.id,operationId:target.operationId,documentId:doc.id,action:target.action,generation:target.generation,at:ctx.at}];
+    c.events.push({action:'reconcile-draft',actor:ctx.actor,at:ctx.at,reason:doc.id});
+    c.revision++;
+  }
+  return {status:'fenced',priorOutcome:'unknown',actorId:ctx.actor.id,...target};
+}
 export type RoutineCommand = {
+  independentOf?:PendingDocument[];
+  stop?:PendingDocument;
+  reviewedDocumentRevision?:number;
+  reviewedGeneration?:string;
   action: string;
   operationId: string;
   expectedRevision?: number;
@@ -1006,6 +1075,9 @@ export function executeRoutine(
   );
   demand(ctx.allowed('view'), 'FORBIDDEN', 403);
   assertRoutineResetFence(c,cmd.expectedRevision,cmd.operationId);
+  if(cmd.action==='reconcile-draft')return scopedDraftStop(c,cmd,ctx);
+  if(cmd.action==='draft'&&c.draftStops?.some(f=>f.actorId===ctx.actor.id&&f.operationId===cmd.operationId))
+    throw new DraftConflict('DRAFT_OPERATION_FENCED',409);
   const fingerprint = stableDraftJSON(cmd),
     old = c.receipts[cmd.operationId];
   if (old) {
@@ -1046,7 +1118,12 @@ export function executeRoutine(
     return old.result;
   }
   demand(ctx.allowed('view'), 'FORBIDDEN', 403);
-  if(c.calendarPolicy&&ctx.sourceTimeline)reconcileCalendar(c,ctx.sourceTimeline,ctx.today,ctx.at);
+  if(cmd.independentOf!==undefined)assertIndependent(c,cmd);
+  if(c.calendarPolicy&&ctx.sourceTimeline){
+    const before=cmd.independentOf?JSON.stringify([c.jobs,c.calendarPolicy]):null;
+    reconcileCalendar(c,ctx.sourceTimeline,ctx.today,ctx.at);
+    if(before!==null)demand(before===JSON.stringify([c.jobs,c.calendarPolicy]),'FQC_SCOPE_CONFLICT',409);
+  }
   const doc = c.documents.find((d) => d.id === cmd.documentId),
     item = c.cases.find((a) => a.id === cmd.caseId);
   let result: unknown = { ok: true };

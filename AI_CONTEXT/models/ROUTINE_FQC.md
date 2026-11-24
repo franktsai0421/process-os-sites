@@ -1,3 +1,13 @@
+## FQC draft recovery
+
+An unanswered Apply, Save or Submit retains the original actor and operation reference in the browser. The receipt lookup can recover a retained receipt from the original document. A matching actor, operation and authenticated state readback are required before releasing the reference.
+
+For ordinary calendar plans and reports, an unrelated document may Save or Submit while another receipt is outstanding. The server checks the current FQC revision, document generations, parent plan, work rows and item periods on every CAS attempt. Special requests, retests, overlapping periods, unknown scope and writes that would change the calendar stay blocked.
+
+After a missing receipt, the operator may review the latest document and explicitly stop one old draft request. The server returns the original result if it can establish commitment. Otherwise it records a durable actor-scoped stop in the FQC aggregate and reports that the earlier outcome remains unknown. The stop and original mutation compete at the shared-state CAS. A lost response, changed document or failed readback leaves the local reference intact. The operator can repeat reconciliation without repeating the original mutation. The aggregate retains up to 2,048 stops and up to 256 per actor. Capacity errors retain the pending reference. No migration or separate database is required.
+
+Deployment prerequisite: all traffic capable of processing the legacy FQC draft endpoint must run the fence-aware server, and requests already executing on an older server must drain before operators use reconciliation. An older release ignores the new FQC stop records. Preserve those records and the fence check in any rollback or forward fix. Check the hosted deployment separately before exercising the original case.
+
 ## 2026-11-23 — Operator diagnostic for the FQC Reset state read
 
 [Temporary Admin access, read limits and fixed diagnostic results](../../docs/acceptance/fqc-reset-read-probe.md).
