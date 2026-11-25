@@ -47,6 +47,7 @@
       scrollTo(0, top);
       if (showDialog && dialog?.isConnected && area.querySelector('#equipment-editor-dialog') === dialog) {
         dialog.showModal();
+        renderEquipmentReferences(editing);
         if (field?.isConnected && dialog.contains(field)) field.focus({preventScroll:true});
       }
       if (focusSearch && input?.isConnected && area.querySelector('#equipment-search') === input) {
@@ -163,6 +164,77 @@
     toast(t('設備修改留在本機；請存取草稿','Thay đổi máy ở cục bộ; hãy lưu bản nháp'));
     return true;
   }
+  // A reference lookup is read-only; use the ordinary workflow read budget.
+  // A closed or replaced modal must never receive another equipment's result.
+  const referenceDeadlineMs = 45000;
+  function referenceStatus(ref) {
+    if (ref.source==='published') return t('已發布','Đã công bố');
+    if (ref.status==='pending'||ref.status==='pending-test') return t('待審','Chờ duyệt');
+    if (['working','saved','draft'].includes(ref.status)) return t('草稿','Bản nháp');
+    if (['active','approved','effective-fallback'].includes(ref.status)) return t('生效版本','Bản có hiệu lực');
+    return '';
+  }
+  function renderEquipmentReferences(target) {
+    const box = document.querySelector('#equipment-editor-dialog .equipment-approved-usage');
+    const state = target?.referenceLookup;
+    if (!box?.isConnected || editing !== target || !state?.current()) return;
+    if (state.pending) {
+      box.textContent = t('正在查詢引用…','Đang kiểm tra tham chiếu…');
+      return;
+    }
+    if (state.result) {
+      const result = state.result;
+      box.innerHTML='<b>'+t('引用位置','Vị trí tham chiếu')+'</b>'+
+        (result.references.length?'<ul>'+result.references.map(ref=>'<li>'+h([ref.products.join(', '),ref.line,ref.category,ref.stage,ref.number,ref.name,referenceStatus(ref)].filter(Boolean).join(' · '))+'</li>').join('')+'</ul>':'')+
+        (result.total===0?'<p>'+t('目前沒有使用中的引用','Không có tham chiếu đang dùng')+'</p>':'')+
+        (result.detailsRestricted?'<p>'+t('有引用，請交由有查看權限者處理。','Có tham chiếu; nhờ người có quyền xem xử lý.')+'</p>':'')+
+        (result.truncated&&!result.detailsRestricted?'<p>'+h(result.references.length)+' / '+h(result.total)+'</p>':'');
+      return;
+    }
+    const detail = state.error === 'permission'
+      ? t('目前無法查詢引用，請確認登入或查看權限。','Không thể tra tham chiếu. Kiểm tra đăng nhập hoặc quyền xem.')
+      : state.error === 'missing'
+        ? t('伺服器目前找不到這筆設備，無法確認引用。','Máy chủ không tìm thấy thiết bị này nên chưa thể xác nhận tham chiếu.')
+        : t('暫時無法確認引用，請重試。','Chưa thể xác nhận tham chiếu. Vui lòng thử lại.');
+    box.textContent=detail;
+    const retry=document.createElement('button');
+    retry.type='button';retry.className='button ghost';retry.dataset.equipmentReferenceRetry='';
+    retry.textContent=t('重試引用查詢','Thử tra tham chiếu lại');
+    retry.onclick=()=>lookupEquipmentReferences(target);
+    box.append(' ',retry);
+  }
+  async function lookupEquipmentReferences(target) {
+    if (!target?.originalId || editing!==target || target.referenceLookup?.pending) return;
+    const sync=host.ProcessSync,identity=sync?.identity,epoch=sync?.identityGeneration?.(),delivery=sync?.captureDelivery?.();
+    const controller=new AbortController();
+    const current=()=>editing===target&&target.referenceLookup===state&&
+      host.ProcessSync?.identity===identity&&host.ProcessSync?.identityGeneration?.()===epoch&&
+      !host.ProcessSync?.requiresReload&&(!delivery||host.ProcessSync?.isCurrentDelivery?.(delivery)!==false);
+    const state=target.referenceLookup={current,pending:true,controller};
+    const timer=setTimeout(()=>controller.abort(),referenceDeadlineMs);
+    try {
+      renderEquipmentReferences(target);
+      const response=await fetch('/api/master/references?scope=PROCESS&kind=equipment&id='+encodeURIComponent(target.originalId),{
+        headers:sync?.platformHeaders?.(),cache:'no-store',signal:controller.signal,
+      });
+      if(!current())return;
+      if(!response.ok){
+        state.error=[401,403].includes(response.status)?'permission':response.status===404?'missing':'unavailable';
+        return;
+      }
+      const result=await response.json();
+      if(!current())return;
+      if(!Number.isSafeInteger(result?.total)||result.total<0||!Array.isArray(result.references)||
+        result.references.length>result.total||(result.total>0&&!result.references.length&&result.detailsRestricted!==true)||
+        result.references.some(ref=>!ref||!Array.isArray(ref.products)))throw Error('INVALID_REFERENCE_RESPONSE');
+      state.result=result;
+    } catch {state.error='unavailable';}
+    finally {
+      clearTimeout(timer);state.pending=false;
+      if(current())renderEquipmentReferences(target);
+    }
+  }
+
   function openEditor(id = '', focusField = '') {
     const row = uniqueEntries(currentProcessMasterData()).find(item => item.equipment.id === id),
       stageCode = row?.equipment.stageCode || routing.lines[0]?.stages[0]?.code || '';
@@ -172,15 +244,7 @@
     editing.base=copy(editableProcessMasterData()||currentProcessMasterData());
     editing.initial=JSON.stringify(editing.record);
     repaint(true, false, focusField);
-    const target=editing,box=document.querySelector('#equipment-editor-dialog .equipment-approved-usage'),actor=host.ProcessSync?.identity;
-    if(box&&!target.isNew){
-      box.textContent=t('正在查詢引用…','Đang kiểm tra tham chiếu…');
-      fetch('/api/master/references?scope=PROCESS&kind=equipment&id='+encodeURIComponent(id),{headers:host.ProcessSync?.platformHeaders?.(),signal:AbortSignal.timeout(15000)}).then(async response=>{
-        if(!response.ok)throw Error('REFERENCE_CHECK_FAILED');const result=await response.json();
-        if(editing!==target||!box.isConnected||actor!==host.ProcessSync?.identity)return;
-        box.innerHTML='<b>'+t('引用位置','Vị trí tham chiếu')+'</b>'+(result.total?'<ul>'+result.references.map(ref=>'<li>'+h([ref.products.join(', '),ref.line,ref.category,ref.stage,ref.number,ref.name,ref.status].filter(Boolean).join(' · '))+'</li>').join('')+'</ul>':'<p>'+t('目前沒有使用中的引用','Không có tham chiếu đang dùng')+'</p>')+(result.detailsRestricted?'<p>'+t('有引用，請交由有查看權限者處理。','Có tham chiếu; nhờ người có quyền xem xử lý.')+'</p>':'');
-      }).catch(()=>{if(editing===target&&box.isConnected)box.textContent=t('引用查詢失敗；請重新開啟設備重試。刪除時仍會重新檢查。','Không tra được tham chiếu; mở lại để thử. Khi xóa vẫn kiểm tra lại.');});
-    }
+    void lookupEquipmentReferences(editing);
   }
   async function commitEditor() {
     if (!editableProcessMasterData() || !editing || committing || editing.uploading) return;
@@ -283,7 +347,9 @@
     const closeEditor = () => {
       if (committing || editing?.uploading) return;
       if (editing && JSON.stringify(editing.record)!==editing.initial && !confirm(t('設備內容尚未套用，確定放棄變更？','Nội dung máy chưa áp dụng. Bỏ thay đổi?'))) return;
+      const obsolete=editing;
       document.querySelector('#equipment-editor-dialog')?.close(); editing=null;
+      obsolete?.referenceLookup?.controller.abort();
     };
     document.querySelectorAll('[data-equipment-close]').forEach(button => button.onclick = closeEditor);
     document.querySelector('#equipment-editor-dialog')?.addEventListener('cancel',event=>{event.preventDefault();closeEditor();});
@@ -425,7 +491,7 @@
     openEditor(id, field);
   }
   function hasUnappliedChanges() { return Boolean(editing && document.querySelector('#equipment-editor-dialog[open]') && (committing || editing.uploading || JSON.stringify(editing.record) !== editing.initial)); }
-  host.ProcessEquipment = {abandon(){editing=null;document.querySelector('#equipment-editor-dialog')?.remove();},cardButton,panel,bind,validate,entries,choices,selector,find,display,portable,exportSheets,readSheets,restorePhotos,loadSource,approvedUsage,locate,hasUnappliedChanges};
+  host.ProcessEquipment = {abandon(){const obsolete=editing;editing=null;obsolete?.referenceLookup?.controller.abort();document.querySelector('#equipment-editor-dialog')?.remove();},cardButton,panel,bind,validate,entries,choices,selector,find,display,portable,exportSheets,readSheets,restorePhotos,loadSource,approvedUsage,locate,hasUnappliedChanges};
   host.addEventListener('process-language-change',() => { if (document.querySelector('#equipment-panel')) repaint(Boolean(editing)); });
   const baseView = processMasterView, baseBind = bindDataInner;
   processMasterView = function () { return baseView() + panel(); };
