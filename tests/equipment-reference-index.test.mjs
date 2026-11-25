@@ -52,3 +52,17 @@ test('each equipment retains a shared block and the summary count exceeds the ol
  const guard=processMasterReferences(values,[targets[0],targets[2]]);
  assert.equal(guard.total,106);assert.equal(guard.references.length,100);
 });
+
+test('unresolved approved references retain block identity without crossing stages or rebinding a retired internal ID',()=>{
+ const catalog=[{kind:'equipment',stage:'A-ST',id:'live-a',number:'ONE'},
+  {kind:'equipment',stage:'B-ST',id:'live-b',number:'OTHER'},
+  ...['same-1','same-2'].map(id=>({kind:'equipment',stage:'A-ST',id,number:'AMBIG'}))];
+ const block=op('1',['old-selection','OTHER','AMBIG','PIN'],{machineDetails:[
+  {no:'old-selection',number:'ONE'},{id:'removed',number:'PIN'}]});
+ const missing=new Map();
+ const index=equipmentReferenceIndex(value({active:{content:content([block])},working:content([op('draft',['private-draft'])])}),
+  catalog,'summary',catalog,missing);
+ assert.deepEqual(catalog.map(t=>index.get(t.id).size),[1,0,0,0]);
+ assert.deepEqual([...missing.values()].map(r=>[r.line,r.category,r.operationId,r.machine]),
+  ['OTHER','AMBIG','PIN'].map(raw=>['A','fixture','1',raw]));
+});

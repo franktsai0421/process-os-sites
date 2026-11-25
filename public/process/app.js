@@ -609,6 +609,7 @@ function synchronizeWorkspaceProducts(operation, previousCodes = []) {
 function newOperation(stageCode, index, chosenTemplate = null) {
   const existing = state.editorByCategory[editorKey()]?.[stageCode] || [];
   const template = chosenTemplate || (processMaster[stageCode] || [])[index - 1];
+  const defaults=window.ProcessEquipment?.templateDefaults(stageCode,template)||[];
   return {
     id: `${state.category}-${stageCode}-${Date.now()}-${index}`,
     stageCode,
@@ -620,8 +621,8 @@ function newOperation(stageCode, index, chosenTemplate = null) {
     bomItems: [],
     mode: template?.mode || 'human',
     people: template?.people || 1,
-    machineId: template?.machineIds?.[0] || '',
-    machineIds: [...(template?.machineIds || [])],
+    machineId: defaults[0] || '',
+    machineIds: defaults,
     nextIds: [],
     x: existing.length ? Math.max(...existing.map((op,i)=>operationGeometry(op,i).x)) + 340 : 24 + ((index - 1) % 4) * 340,
     y: 26 + Math.floor((index - 1) / 4) * 250,
@@ -1283,7 +1284,7 @@ function operationTypeMeta(operation) {
 }
 function operationMachineRows(operation) {
   const ids = operation.machineIds?.length ? operation.machineIds : operation.machineId ? [operation.machineId] : [];
-  return ids.map((id) => window.ProcessEquipment?.display(id, operation) || machines.find((item) => item.no === id)).filter(Boolean);
+  return ids.map((id) => window.ProcessEquipment?.display(id, operation) || {no:id,unresolved:true});
 }
 function operationMediaGroups(operation, productCode = '') {
   const groups = [], common = operationWorkMediaItems(operation), product = productCode ? operationProductMediaItems(operation, productCode) : [];
@@ -1302,9 +1303,9 @@ function operationStepsMarkup(operation, productCode = '') {
     group = (label, rows, items, className = '', mediaLabel = '照片／影片') => rows.length || items.length ? `<section class="node-step-group node-guidance-section ${className}"><h5>${escapeHtml(label)}</h5>${rows.length ? `<ol>${rows.map((step) => `<li><b>${escapeHtml(step.text || '待補操作內容')}</b><span>${escapeHtml(step.standard || '待補完成標準')}</span></li>`).join('')}</ol>` : '<p class="status-muted">尚未填寫操作內容</p>'}${items.length ? `<div class="node-guidance-media"><b>${escapeHtml(mediaLabel)}</b>${mediaGalleryMarkup(operation,items,`${productCode || 'common'}-${className || 'common'}`)}</div>` : ''}</section>` : '';
   return `<div class="node-step-groups">${group('作業說明與完成標準',common.length ? common : fallback,commonMedia,'common','作業說明照片／影片')}${group(`${productCode} 產品補充操作`,specific,productMedia,'product','產品補充照片／影片')}</div>`;
 }
-function productionOperationHeaderMarkup(operation, type, machineCount, photoCount) {
+function productionOperationHeaderMarkup(operation, type, machineCount, photoCount, missingCount=0) {
   const duplicateTitle = String(operation.name || '').trim() === String(type.label || '').trim();
-  return `<header class="${duplicateTitle ? 'is-duplicate-title' : ''}"><code>${escapeHtml(operation.number)}</code>${duplicateTitle ? '' : `<h4>${escapeHtml(operation.name)}</h4>`}<span>設備 ${machineCount} · 作業媒體 ${photoCount}</span><b class="process-type-badge">${escapeHtml(type.label)}</b></header>`;
+  return `<header class="${duplicateTitle ? 'is-duplicate-title' : ''}"><code>${escapeHtml(operation.number)}</code>${duplicateTitle ? '' : `<h4>${escapeHtml(operation.name)}</h4>`}<span>設備 ${machineCount}${missingCount?' · '+(document.documentElement.lang==='vi'?'Cần xác minh ':'待確認 ')+missingCount:''} · 作業媒體 ${photoCount}</span><b class="process-type-badge">${escapeHtml(type.label)}</b></header>`;
 }
 function operationNodeBody(operation, product) {
   const code = product?.code || '', bomItems = operation.bomSelections?.[code] || (operation.productCodes?.includes(code) ? operation.bomItems || [] : []),
@@ -1312,7 +1313,7 @@ function operationNodeBody(operation, product) {
   const productTitle = `${code || '未指定產品'} ${product?.name || ''}`.trim(),
     language = document.documentElement.lang === 'vi' ? 'vi' : 'zh',
     machineName = (machine) => language === 'vi' ? machine.nameVi || machine.name : machine.name || machine.nameVi;
-  return `<div class="node-product-bom-launch"><button type="button" class="node-product-chip" data-node-bom-open data-bom-title="${escapeHtml(`${productTitle} · BOM ${bomRows.length}/${allBomRows.length}`)}"><b>${escapeHtml(code || '未指定產品')}</b><span>${escapeHtml(product?.name || '')}</span><em>BOM ${bomRows.length}/${allBomRows.length} · 點擊查看</em></button><div class="node-bom-source" hidden>${compactBomMarkup(bomRows,'BOM 零件',true)}</div></div><section class="node-machine-section"><h5>使用機器</h5>${machinesForOperation.length ? `<div class="node-machine-grid">${machinesForOperation.map((machine) => `<article>${machine.mediaItems?.[0] ? `<button type="button" class="machine-photo-button" data-lightbox-src="${escapeHtml(machine.mediaItems[0].src)}" data-lightbox-type="${escapeHtml(machine.mediaItems[0].type || 'image/jpeg')}" data-lightbox-title="${escapeHtml(`${machine.no || machine.number || ''} ${machineName(machine) || ''}`)}" data-lightbox-group="machine-${escapeHtml(operation.id || operation.number)}"><img src="${escapeHtml(machine.mediaItems[0].src)}" alt="${escapeHtml(machineName(machine) || '機器照片')}"></button>` : ''}<div><code>${escapeHtml(machine.no || machine.number || '')}</code><b>${escapeHtml(machineName(machine) || '')}</b></div></article>`).join('')}</div>` : '<p class="status-muted">人工流程／未指定設備</p>'}</section>${operationStepsMarkup(operation,code)}`;
+  return `<div class="node-product-bom-launch"><button type="button" class="node-product-chip" data-node-bom-open data-bom-title="${escapeHtml(`${productTitle} · BOM ${bomRows.length}/${allBomRows.length}`)}"><b>${escapeHtml(code || '未指定產品')}</b><span>${escapeHtml(product?.name || '')}</span><em>BOM ${bomRows.length}/${allBomRows.length} · 點擊查看</em></button><div class="node-bom-source" hidden>${compactBomMarkup(bomRows,'BOM 零件',true)}</div></div><section class="node-machine-section"><h5>使用機器</h5>${machinesForOperation.length ? `<div class="node-machine-grid">${machinesForOperation.map((machine) => `<article>${machine.mediaItems?.[0] ? `<button type="button" class="machine-photo-button" data-lightbox-src="${escapeHtml(machine.mediaItems[0].src)}" data-lightbox-type="${escapeHtml(machine.mediaItems[0].type || 'image/jpeg')}" data-lightbox-title="${escapeHtml(`${machine.no || machine.number || ''} ${machineName(machine) || ''}`)}" data-lightbox-group="machine-${escapeHtml(operation.id || operation.number)}"><img src="${escapeHtml(machine.mediaItems[0].src)}" alt="${escapeHtml(machineName(machine) || '機器照片')}"></button>` : ''}<div><code>${escapeHtml(machine.no || machine.number || '')}</code><b>${escapeHtml(machineName(machine) || '')}</b>${machine.unresolved?`<small data-unresolved-machine>${escapeHtml(window.ProcessEquipment?.missingLabel()||'設備總表找不到／待確認')}</small>`:''}</div></article>`).join('')}</div>` : '<p class="status-muted">人工流程／未指定設備</p>'}</section>${operationStepsMarkup(operation,code)}`;
 }
 window.ProcessOperationPresentation = {operationTypeMeta,operationMachineRows,operationMediaGroups,operationNodeBody,operationTemplateMediaItems,operationWorkMediaItems,operationTemplateMediaMarkup,productionOperationHeaderMarkup};
 function playerOperationCard(operation, product) {
@@ -1520,9 +1521,9 @@ function productStatus() {
       const blocks = operations
         .map((operation) => {
           const position = positions[operation.id], type = operationTypeMeta(operation),
-            machineCount = operationMachineRows(operation).length,
+            machineRows = operationMachineRows(operation), missingCount = machineRows.filter(row=>row.unresolved).length,
             photoCount = operationMediaGroups(operation,product.code).filter((group) => group.key !== 'machine').reduce((sum,group) => sum + group.items.length,0);
-          return `<article class="status-product-node process-type-${type.key}" data-process-type="${type.key}" style="left:${position.x}px;top:${position.y}px">${productionOperationHeaderMarkup(operation,type,machineCount,photoCount)}<section class="status-node-scroll">${operationNodeBody(operation,product)}</section></article>`;
+          return `<article class="status-product-node process-type-${type.key}" data-process-type="${type.key}" style="left:${position.x}px;top:${position.y}px">${productionOperationHeaderMarkup(operation,type,machineRows.length-missingCount,photoCount,missingCount)}<section class="status-node-scroll">${operationNodeBody(operation,product)}</section></article>`;
         })
         .join('');
       return `<section class="status-stage"><header><div><code>${stageCode}</code><h3>${escapeHtml(stage.name)}</h3></div><span>${operations.length} 個流程 · 顯示目前產品的核准版本</span></header><div class="status-product-canvas" style="height:${canvasHeight}px"><svg class="flow-links" width="${canvasWidth}" height="${canvasHeight}"><defs><marker id="status-arrow-${stageCode}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker></defs>${connectionMarkup(operations, stageCode, positions, 390, 68, 'status-arrow')}</svg>${blocks}</div></section>`;
@@ -2857,14 +2858,8 @@ function renderInspector(operation) {
     selectedTemplate = templates.find(
       (template) => template.id === operation.templateId,
     );
-  const allowedMachines = window.ProcessEquipment ? window.ProcessEquipment.choices(operation, selectedTemplate) : selectedTemplate?.machineIds?.length
-      ? machines.filter((machine) =>
-          selectedTemplate.machineIds.includes(machine.no),
-        )
-      : machines.filter((machine) => machine.line === state.editorLine),
-    selectedMachine = machines.find(
-      (machine) => machine.no === operation.machineId,
-    );
+  const allowedMachines = window.ProcessEquipment?.choices(operation,selectedTemplate)||[],
+    selectedMachine = allowedMachines.find(machine=>machine.no===operation.machineId);
   form.innerHTML = `<div class="inspector-form"><div class="field"><label>流程編號（自動產生）</label><input value="${operation.number}" readonly></div><div class="field"><label>後台流程資料</label><select id="operation-template"><option value="">自訂流程</option>${templates.map((template) => `<option value="${template.id}" ${template.id === operation.templateId ? 'selected' : ''}>${escapeHtml(template.name)}</option>`).join('')}</select></div><div class="field"><label>流程名稱</label><input id="operation-name" value="${escapeHtml(operation.name)}" placeholder="例如：裁切、封口、人工組裝"></div><div class="two-field"><div class="field"><label>作業方式</label><select id="operation-mode"><option value="human" ${operation.mode === 'human' ? 'selected' : ''}>人工流程</option><option value="machine" ${operation.mode === 'machine' ? 'selected' : ''}>機器流程</option></select></div><div class="field"><label>建議操作人數</label><input id="operation-people" type="number" min="1" value="${operation.people}"></div></div><div class="machine-fields ${operation.mode === 'machine' ? '' : 'hidden'}"><div class="field"><label>後台設備</label><select id="operation-machine"><option value="">請選擇機器</option>${allowedMachines.map((machine) => `<option value="${machine.no}" ${machine.no === operation.machineId ? 'selected' : ''}>${machine.no} · ${escapeHtml(machine.name)}</option>`).join('')}</select></div><div class="machine-info">${selectedMachine ? `<b>${escapeHtml(selectedMachine.name)}</b><span>機器編號 ${selectedMachine.no}</span><span>固定資產 ${selectedMachine.asset}</span><span>設備建議 ${selectedMachine.people} 人操作</span>` : '選擇機器後自動帶出設備資訊'}</div></div><div class="field"><label>適用產品（${escapeHtml(state.category)}）</label><select id="operation-product"><option value="">稍後設定產品</option>${products.map((product) => `<option value="${product.code}" ${product.code === operation.productCodes[0] ? 'selected' : ''}>${product.code} · ${escapeHtml(product.name)}</option>`).join('')}</select></div><details class="bom-details"><summary>${selectedProduct ? `選擇 ${selectedProduct.code} 的 BOM 零件（${bomRows.length}）` : `BOM 零件（先選產品後使用）`}</summary>${selectedProduct ? `<div class="check-list bom-check-list">${bomRows.length ? bomRows.map((row) => `<label><input type="checkbox" data-bom-code="${escapeHtml(bomReferenceKey(row))}" ${operation.bomItems.includes(bomReferenceKey(row)) ? 'checked' : ''}><span><code>${escapeHtml(row.itemCode)}</code>${escapeHtml(row.itemName)} <small>${escapeHtml(row.quantity)} ${escapeHtml(row.unit)}</small></span></label>`).join('') : `<p>此產品沒有第一層 BOM 資料。</p>`}</div>` : `<p>產品選定後才會載入 BOM，不占用主要畫面。</p>`}</details><div class="field"><label>操作照片或影片</label><label class="media-upload"><input id="operation-media" type="file" accept="image/*,video/*"><span>＋ 上傳照片／影片</span><small>${escapeHtml(operation.mediaName || '支援 JPG、PNG、MP4')}</small></label>${operation.media ? `<div class="media-preview">${operation.mediaType.startsWith('image/') ? `<img src="${operation.media}" alt="操作照片預覽">` : `<video src="${operation.media}" controls></video>`}<button type="button" id="remove-media">移除</button></div>` : ''}</div><div class="field"><label>操作流程</label><textarea id="operation-instructions" placeholder="逐步鍵入操作方式、注意事項與品質重點">${escapeHtml(operation.instructions)}</textarea></div><div class="inspector-actions"><button class="button ghost" id="delete-operation">刪除流程</button><button class="button signal" id="apply-operation">套用流程內容</button></div></div>`;
   operation.machineIds = Array.isArray(operation.machineIds)
     ? operation.machineIds
@@ -3043,7 +3038,10 @@ function renderInspector(operation) {
       operation.name = template.name;
       operation.mode = template.mode;
       operation.people = template.people;
-      operation.machineIds = [...(template.machineIds || [])];
+      const existing=operation.machineIds||(operation.machineId?[operation.machineId]:[]);
+      const linked=new Set(existing.map(id=>window.ProcessEquipment?.display(id,operation).resolvedId));
+      const defaults=window.ProcessEquipment?.templateDefaults(stageCode,template)||[];
+      operation.machineIds=[...existing,...defaults.filter(id=>!linked.has(id))];
       operation.machineId = operation.machineIds[0] || '';
       const firstMedia = operation.mediaItems[0];
       operation.media = firstMedia?.src || null;
@@ -3189,15 +3187,24 @@ function renderInspector(operation) {
     };
   const updateMachines = () => {
     syncText();
+    const previous=new Set(operation.machineIds||[]);
     operation.machineIds = [
       ...document.querySelectorAll('[data-operation-machine]:checked'),
     ].map((input) => input.dataset.operationMachine);
     operation.machineId = operation.machineIds[0] || '';
-    if (window.ProcessEquipment) operation.machineDetails = operation.machineIds.map(id => allowedMachines.find(m => m.no === id)).filter(Boolean).map(m => JSON.parse(JSON.stringify(m)));
+    if (window.ProcessEquipment) {
+      const snapshots=operation.machineDetails||[];
+      operation.machineDetails=operation.machineIds.flatMap(id=>{
+        const prior=snapshots.find(m=>m.id===id)||snapshots.find(m=>m.no===id||m.number===id);
+        if(prior)return [prior];
+        const source=allowedMachines.find(m=>m.no===id&&!m.historical);
+        return source&&!previous.has(id)?[JSON.parse(JSON.stringify(source))]:[];
+      });
+    }
     operation.people =
       operation.machineIds.reduce(
         (total, id) =>
-          total + (machines.find((machine) => machine.no === id)?.people || 0),
+          total + (allowedMachines.find(machine=>machine.no===id)?.people || 0),
         0,
       ) || 1;
     renderInspector(operation);
@@ -3210,7 +3217,7 @@ function renderInspector(operation) {
   if (selectAllMachines)
     selectAllMachines.onclick = () => {
       document
-        .querySelectorAll('[data-operation-machine]')
+        .querySelectorAll('[data-operation-machine]:not([data-historical-machine])')
         .forEach((input) => (input.checked = true));
       updateMachines();
     };
