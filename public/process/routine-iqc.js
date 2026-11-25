@@ -275,7 +275,7 @@
     return [...pending].sort((a,b)=>a.localeCompare(b)).map(date=>`<p class="rf-notice">${t('頻率轉換期間，無須另排，新週期開始：','Giai đoạn đổi tần suất, không cần lập thêm. Kỳ mới bắt đầu: ')}${h(date)}</p>`).join('')+
       (overlap?`<p class="rf-notice">${t('既有計畫保留原標準，新頻率任務另行安排，不能互相抵扣。','Giữ tiêu chuẩn cũ cho kế hoạch đã lập. Lập riêng công việc tần suất mới, không thay thế lẫn nhau.')}</p>`:'');
   }
-  function periodState(v,job,matched) {
+  function periodState(v,job,matched,overdue) {
     const history=v.data.documents.filter(doc=>doc.jobs.some(line=>line.id===job.id));
     const plan=history.find(doc=>doc.id===job.planId&&!doc.cancelledAt),report=initialReport(v,job);
     const currentDocs=history.filter(doc=>activeDoc(doc)&&!doc.caseId);
@@ -283,7 +283,6 @@
     const results=periodResults(v,job,report);
     const followups=[...new Map(results.filter(({item,passed})=>item&&!passed&&openCase(item)).map(({item})=>[item.id,item])).values()];
     const unresolved=followups.length>0;
-    const overdue=job.end<v.data.today&&!job.completion&&!job.calendar?.stopped&&(!plan||plan.kind==='waiver'&&plan.status==='draft');
     const stopped=job.calendar?.stopped;
     const tone=stopped||job.start>v.data.today?'neutral':overdue?'alert':active?.status==='pending'?'pending':
       active||unresolved||plan?.status==='approved'&&!job.completion?'progress':job.completion?'done':'ready';
@@ -309,7 +308,7 @@
       (plan?.status==='approved'&&!report&&!job.completion?periodLink('tab:report',label('report')):
         report?periodLink('history-doc:'+report.id,t('原始報告','Báo cáo gốc')):
         plan?periodLink('doc:'+plan.id,label(plan.kind)):'');
-    return {history,results,state,reason,next,tone,waived:job.completion?.kind==='skip',terminal:!!(stopped||overdue||job.completion&&!unresolved)};
+    return {history,results,state,reason,next,tone,waived:job.completion?.kind==='skip',terminal:!!(stopped||overdue&&!active||job.completion&&!unresolved)};
   }
   const periodKey = job => job.start+':'+job.end;
   function groupPeriods(v,jobs,states) {
@@ -422,18 +421,28 @@
     return [...(rows?.values()||[])].filter(e=>e.flags.has(facet)).map(e=>
       `<p>${batchLabel(e.batch)} · ${e.attempts.map((x,i)=>t(i?'複測':'初測',i?'Thử lại · ':'Lần đầu · ')+h(label(x))).join(' → ')}${facet==='disposal'?' · '+e.reviews.map(x=>h(label(x))).join(', '):''}</p>`).join('');
   }
+  // A draft reserves its period against duplicate plans, but does not stop the overdue clock.
+  // Waivers use requestId after submission (older data can use planId).
+  function currentlyOverdue(job,today,documents){
+    if(!(job.end<today)||job.completion||job.calendar?.stopped||job.calendar?.retestCaseId)return false;
+    return ![job.planId,job.calendar?.requestId].some(id=>{
+      const doc=id&&documents.get(id);
+      return doc&&!doc.cancelledAt&&(doc.kind==='plan'||doc.kind==='waiver')&&
+        (doc.status==='pending'||doc.status==='approved');
+    });
+  }
   function facetList(v){
     const cutoff=rangeStart(v.data.today,v.range),counts=new Map(facetLabels.map(([key])=>[key,new Set()]));
-    const filtered=[],evidence=batchEvidence(v);
+    const filtered=[],evidence=batchEvidence(v),overdueIds=new Set(),documents=new Map(v.data.documents.map(doc=>[doc.id,doc]));
     for(const job of v.data.jobs){
       if(!matchesFilters(job,v)||cutoff&&(job.end<=cutoff||job.end>v.data.today))continue;
       const flags=new Set();
-      if(job.end<v.data.today&&!job.completion&&!job.calendar?.stopped&&!job.calendar?.retestCaseId&&!holdsPlan(job,v))flags.add('overdue');
+      if(currentlyOverdue(job,v.data.today,documents)){flags.add('overdue');overdueIds.add(job.id);}
       for(const e of evidence.get(job.id)?.values()||[])for(const flag of e.flags)flags.add(flag);
       for(const flag of flags)counts.get(flag).add(job.source.iqc.itemId||job.itemId);
       if(!v.facet||flags.has(v.facet))filtered.push(job);
     }
-    return {counts,filtered,evidence};
+    return {counts,filtered,evidence,overdueIds};
   }
   function statusFilters(v,counts){
     const ranges=[['','全部','Tất cả'],['week','最近一週','Một tuần qua'],['1','最近一個月','Một tháng qua'],['3','最近一季','Ba tháng qua'],['6','最近半年','Sáu tháng qua'],['12','最近一年','Một năm qua']];
@@ -512,7 +521,7 @@
     </section>`;
   }
   function jobList(v) {
-    const {filtered,counts,evidence}=facetList(v);
+    const {filtered,counts,evidence,overdueIds}=facetList(v);
     const {cats,suppliers,parts,supplierNames}=sourceOptions(v);
     const filters=`<div class="rf-source-filters"><label>${t('零件類別','Nhóm linh kiện')}<select data-ri-filter="category"><option value="">${t('全部','Tất cả')}</option>${cats.map(c=>`<option value="${h(c.id)}" ${c.id===v.category?'selected':''}>${h(c.name)}</option>`).join('')}</select></label>
       <label>${t('供應商','Nhà cung cấp')}<select data-ri-filter="supplier"><option value="">${t('全部','Tất cả')}</option>
@@ -520,7 +529,7 @@
       <label>${t('零件','Linh kiện')}<select data-ri-filter="part"><option value="">${t('全部','Tất cả')}</option>${[...parts].map(([id,p])=>`<option value="${h(id)}" ${id===v.part?'selected':''}>${h(p.code+' · '+p.name)}</option>`).join('')}</select></label></div>${statusFilters(v,counts)}`;
     const matchedIds=new Set(filtered.map(job=>job.id));
     const hidden=selections(v).filter(job=>!matchedIds.has(job.id));
-    const states=new Map(filtered.map(job=>[job.id,periodState(v,job,v.facet?evidence.get(job.id):null)]));
+    const states=new Map(filtered.map(job=>[job.id,periodState(v,job,v.facet?evidence.get(job.id):null,overdueIds.has(job.id))]));
     const row=job=>{
       const {history,results,state,reason,next,tone,waived}=states.get(job.id);
       const canPick=available(job,v)&&canArrange(v);
