@@ -522,8 +522,8 @@ void test('IQC retains active older work and adjacent periods, and folds older o
  assert.match(regular,/data-ri-pick="aug"\s+disabled[\s\S]*待審核/);
  const reserved=regular.match(/data-ri-pick="sept"[\s\S]*?<\/article>/)?.[0];
  assert.match(reserved,/data-ri-pick="sept"\s+disabled/);
- assert.match(reserved,/檢查計畫 · 草稿 · 唯讀/);
- assert.doesNotMatch(reserved,/rf-period-chip alert[^>]*>已逾期/);
+ assert.match(reserved,/rf-period-chip alert[^>]*>已逾期/);
+ assert.match(reserved,/data-ri-action="doc:SEPT-EXPIRED"/);
  assert.doesNotMatch(older,/data-ri-pick="sept"/);
  assert.doesNotMatch(regular,/data-ri-pick="jul"/);
  const discardedRow=older.match(/data-ri-pick="jun"[\s\S]*?<\/article>/)?.[0];
@@ -1301,7 +1301,7 @@ for(const lang of ['zh','vi'])test('IQC status filters keep period suppliers and
  const cases=[{id:'split',originReportId:'first',batch:lot('L1'),status:'open',result:'fail',reports:['first','again'],jobIds:[right.id]},
    {id:'ab',originReportId:'first',batch:lot('L3'),status:'open',result:'abnormal',reports:['first'],jobIds:[direct.id]}];
  const jobs=[current,left,right,direct,old2,unknown,waiver];
- const data=parityState(jobs,[original,retest,doc('withdraw',right,'split','withdrawn'),doc('pending',direct,'ab','pending'),doc('draft',left,'split')],cases);
+ const data=parityState(jobs,[parityDoc('p','plan','approved',[left,right,direct]),original,retest,doc('withdraw',right,'split','withdrawn'),doc('pending',direct,'ab','pending'),doc('draft',left,'split')],cases);
  data.catalog.suppliers=[{id:'B',name:'Supplier B'}];
  const calls=[],ui=switchFixture(lang,{data,simulateRequest:async(_url,options)=>{calls.push(options?.method||'GET');return Response.json(data);}});
  ui.press(ui.entry);await new Promise(resolve=>setImmediate(resolve));
@@ -1464,4 +1464,37 @@ void test('draft report validation names the actual date and explains the plan r
    assert.doesNotMatch(ui.iqcRoot.innerHTML,/IQC_DATE_REQUIRED|IQC_REPORT_TOO_LARGE/);
   }
  }
+});
+
+for(const lang of ['zh','vi'])test('IQC overdue status, filtered periods and unique item count follow submission ('+lang+')',async()=>{
+ const jobs=[],docs=[],expected=[];
+ function add(id,{kind,status,prior,due='2026-11-18',calendar={},completion,itemId=id,overdue=false}={}){
+  const job=parityJob(id,{end:due,itemId,completion});job.calendar=calendar;jobs.push(job);
+  if(kind){
+   const key='doc-'+id;docs.push(parityDoc(key,kind,status,[job],{prior}));
+   if(kind==='plan'||kind==='waiver'&&id==='legacy-waiver-draft')job.planId=key;
+   if(kind==='waiver'&&status==='pending')job.calendar.requestId=key;
+  }
+  if(overdue)expected.push(id);
+ }
+ add('unplanned',{itemId:'same',overdue:true});
+ add('draft',{itemId:'same',kind:'plan',status:'draft',overdue:true});
+ for(const prior of ['withdrawn','returned'])add(prior,{kind:'plan',status:'draft',prior,overdue:true});
+ for(const status of ['pending','approved'])add(status,{kind:'plan',status});
+ add('legacy-waiver-draft',{kind:'waiver',status:'draft',overdue:true});
+ add('pending-waiver',{kind:'waiver',status:'pending'});
+ for(const prior of ['withdrawn','returned'])add('waiver-'+prior,{kind:'waiver',status:'draft',prior,overdue:true});
+ add('completed-waiver',{completion:{kind:'skip'}});
+ add('stopped',{calendar:{stopped:true}});add('retest',{calendar:{retestCaseId:'case'}});
+ add('due-today',{due:'2026-11-19'});add('future',{due:'2026-11-20'});
+ const data=parityState(jobs,docs);data.permissions.history=false;
+ const ui=switchFixture(lang,{data});ui.press(ui.entry);await new Promise(resolve=>setImmediate(resolve));
+ const html=()=>ui.iqcRoot.innerHTML;
+ for(const job of jobs){
+  const row=html().split('data-ri-period="'+job.id+'"')[1]?.split('</article>')[0];
+  assert.ok(row,job.id);assert.equal(/rf-period-chip alert">(?:已逾期|Quá hạn)</.test(row),expected.includes(job.id),job.id);
+ }
+ assert.match(html(),/data-ri-action="facet:overdue"[^>]*>[^<]+<b>6<\/b>/);
+ ui.action('facet:overdue');
+ assert.deepEqual([...html().matchAll(/data-ri-period="([^"]+)"/g)].map(m=>m[1]).sort(),expected.sort());
 });
