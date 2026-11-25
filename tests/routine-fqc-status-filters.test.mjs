@@ -26,7 +26,7 @@ function setup(lang){
   }
   const abnormal=job('abnormal','THREE','2026-11-23',{planId:'ab-plan'});
   abnormal.source.line='B';abnormal.source.category='D';
-  const documents=[doc('plan','plan',planned),doc('fail-report','report',planned,'fail','approved'),
+  const documents=[doc('plan','plan',planned,null,'approved'),doc('ab-plan','plan',abnormal,null,'approved'),doc('fail-report','report',planned,'fail','approved'),
     doc('retest-report','report',retest,'pass','approved','case'),doc('second-retest','report',retest,'fail','approved','case'),
     doc('pass-report','report',passed,'pass','approved'),doc('ab-report','report',abnormal,'abnormal','approved'),
     doc('disposal','disposal',planned,null,'withdrawn','case'),doc('unsent-disposal','disposal',abnormal)];
@@ -146,3 +146,38 @@ for(const height of [844,900])for(const nested of [false,true]){
     assert.deepEqual(posted(f),[]);
   });
 }
+
+test('FQC overdue chip, count and filtered list follow the same effective plan state',()=>{
+  const f=setup('zh'), q=s=>f.root.querySelector(s), data=f.api.getData();
+  const j=data.control.jobs.find(j=>j.id==='planned'), plan=data.control.documents.find(d=>d.id==='plan');
+  data.control.jobs=[j];data.control.documents=[plan];data.control.cases=[];
+  const due=j.end, review=plan.flow.cases[0], tile='[data-period-status="overdue"]';
+  function verify(name,expected){
+    f.paint();
+    let group=q('[data-period-toggle]');
+    if(group && group.getAttribute('aria-expanded')!=='true')group.click();
+    const chip=q('[data-period-id="planned"] .rf-period-chip');
+    assert.ok(chip,name+' row');
+    assert.equal(chip.textContent.startsWith('已逾期'),expected,name+' chip');
+    assert.equal(Number(q(tile+' b').textContent),+expected,name+' tile count');
+    q(tile).click();
+    assert.equal(!!q('[data-period-group="ONE"]'),expected,name+' filtered group');
+    q(tile).click();
+  }
+  plan.flow.active.id=null;plan.flow.cases=[];j.planId=null;
+  verify('unplanned',true);
+  j.planId=plan.id;plan.flow.saved={content:plan.flow.working};
+  verify('saved draft',true);
+  plan.flow.cases=[review];review.status='pending';plan.flow.pendingId=review.id;
+  verify('submitted',false);
+  plan.cancelled={status:'pending'};verify('cancelled pending plan',true);delete plan.cancelled;
+  plan.flow.pendingId=null;review.status='withdrawn';verify('withdrawn',true);
+  review.status='returned';verify('returned',true);
+  review.status='approved';plan.flow.active.id=review.id;verify('approved',false);
+  plan.cancelled={status:'approved'};verify('cancelled approved plan',true);delete plan.cancelled;
+  plan.flow.active.id=null;plan.flow.cases=[];j.end=data.today;verify('due today',false);
+  j.end='2026-11-25';verify('due tomorrow',false);
+  j.end=due;j.calendar.stopped=true;verify('stopped period',false);
+  j.calendar.stopped=false;j.completion={kind:'skip'};verify('completed period',false);
+  assert.deepEqual(posted(f),[]);
+});

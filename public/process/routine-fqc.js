@@ -1198,7 +1198,12 @@
     return ['ready',t('尚未建立計畫','Chưa lập kế hoạch')];
   }
   const expiredPlan = d => !!d&&d.kind==='plan'&&d.calendarVersion===2&&!d.retestApplicationCaseId&&!d.requestKind&&status(d)==='draft'&&d.flow.working.lines.some(line=>{const job=data.control.jobs.find(j=>j.id===line.jobId);return !!job?.calendar&&!job.calendar.retestCaseId&&!job.calendar.stopped&&!job.completion&&job.end<data.today;});
-  const overduePeriod = j => !!j.calendar&&!j.calendar.retestCaseId&&!j.calendar.stopped&&!j.completion&&!openJobCases(j).length&&j.end<data.today&&!docs().some(d=>d.id===j.planId&&!d.cancelled&&['pending','approved'].includes(status(d)));
+  function overduePeriod(j, index) {
+    if (!j.calendar || j.calendar.retestCaseId || j.calendar.stopped || j.completion || !(j.end < data.today)) return false;
+    if (index ? index.openJobs.has(j.id) : openJobCases(j).length) return false;
+    const plan = j.planId && (index ? index.documents.get(j.planId) : docs().find(d => d.id === j.planId));
+    return !plan || !['pending','approved'].includes(status(plan));
+  }
   function periodCurrentWork(j) {
     const value=periodCurrentWorkState(j);
     return overduePeriod(j)&&!value.stage.startsWith(t('已逾期','Quá hạn'))?{...value,tone:'alert',stage:t('已逾期 · ','Quá hạn · ')+value.stage,page:value.documentId?t('檢查計畫（唯讀）；下一期依原頻率安排','Kế hoạch (chỉ đọc); kỳ tiếp theo theo tần suất hiện có'):value.page}:value;
@@ -1478,10 +1483,14 @@
       if(!flags.has(id))flags.set(id,new Set());
       flags.get(id).add(key);
     }
-    for(const j of jobs.values()){
-      if(j.end<data.today&&!j.planId&&!j.completion&&!j.calendar?.stopped&&!j.calendar?.retestCaseId)
-        flag(j.id,'overdue');
+    // Same eligibility as the row badge, without scanning all plans/cases once per period.
+    const openJobs=new Set();
+    for(const c of cases.values())if(!done(c)){
+      openJobs.add(c.jobId);
+      for(const id of c.lineageJobIds||[])openJobs.add(id);
     }
+    const overdueIndex={documents,openJobs};
+    for(const j of jobs.values())if(overduePeriod(j,overdueIndex))flag(j.id,'overdue');
     if(data.permissions.history)for(const d of documents.values()){
       if(d.kind==='disposal'){
         const origin=cases.get(d.caseId)?.jobId;
