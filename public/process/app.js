@@ -2333,7 +2333,7 @@ function processMasterView() {
     templates = processMasterCatalogTemplates(pageMaster),
     editable = Boolean(editableProcessMasterData());
 
-  return `${processMasterVersionBar()}<div class="master-toolbar process-photo-master"><div><p class="eyebrow">OPERATION MASTER</p><h2>製程編輯台可用流程</h2><p>流程核准後可供製程編輯台使用。</p></div><div class="process-master-toolbar"><div class="process-master-actions"><button class="button ghost" type="button" id="process-master-reload">${processMasterText('重新載入','Tải lại')}</button>${editable && window.hasPermission?.('templates.create') ? '<button class="button signal" type="button" id="add-master-template">＋ 新增流程</button>' : ''}</div></div></div><div class="master-template-grid flow-photo-presets">${templates
+  return `${processMasterVersionBar()}<div class="master-toolbar process-photo-master"><div><p class="eyebrow">OPERATION MASTER</p><h2>製程編輯台可用流程</h2><p>流程核准後可供製程編輯台使用。</p></div><div class="process-master-toolbar"><div class="process-master-actions">${editable && window.hasPermission?.('templates.create') ? '<button class="button signal" type="button" id="add-master-template">＋ 新增流程</button>' : ''}</div></div></div><div class="master-template-grid flow-photo-presets">${templates
     .map(
       (template, index) => {
         const mediaItems = processTemplateMediaItems(template),
@@ -3346,14 +3346,6 @@ function bindDataInner(tab) {
     updateProcessSharedStatus();
     const permissions=window.MasterDataWorkflow?.shared.permissions('PROCESS');
     for(const [id,permission]of[['#process-master-new-draft','edit'],['#save-master-data','save'],['#process-master-submit','submit'],['#process-master-withdraw','withdraw']]){const button=document.querySelector(id);if(button&&permissions?.[permission]===false)button.disabled=true;}
-    const reload=document.querySelector('#process-master-reload');if(reload)reload.onclick=async()=>{
-      const shared=window.MasterDataWorkflow.shared;if(shared.busy()||reload.disabled)return;
-      if((shared.localDirty('PROCESS')||window.ProcessMasterVersioning.departureNames.dirty()||window.ProcessEquipment?.hasUnappliedChanges?.())&&!confirm(processMasterText('放棄本頁未存輸入並重載已保存草稿？','Bỏ đầu vào chưa lưu và tải lại bản nháp đã lưu?')))return;
-      const owner=window.ProcessSync?.identity,delivery=window.ProcessSync?.captureDelivery?.(),root=document.querySelector('#data-content');reload.disabled=true;root.inert=true;
-      try{await window.MasterDataWorkflow.loadScope('PROCESS');if(owner!==window.ProcessSync?.identity||delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===false||state.view!=='data'||state.dataTab!=='process-master'||root!==document.querySelector('#data-content'))return;
-        window.ProcessMasterVersioning.departureNames.discard();shared.discardLocal('PROCESS');window.ProcessEquipment?.abandon?.();repaintProcessMasterPage();
-      }catch(error){toast(window.sharedDraftErrorMessage?.(error)||error.message);}finally{root.inert=false;reload.disabled=false;}
-    };
     const missingStages=routing.lines.flatMap(line=>line.stages).filter(stage=>!Object.hasOwn(currentProcessMasterData(),stage.code));
     if(missingStages.length&&editableProcessMasterData()&&window.hasPermission?.('templates.create')){
       const button=document.createElement('button');button.type='button';button.className='button ghost';button.textContent=processMasterText('建立缺漏工段流程','Tạo mẫu cho công đoạn còn thiếu');

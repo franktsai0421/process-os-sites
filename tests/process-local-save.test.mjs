@@ -43,3 +43,25 @@ void test('PROCESS equipment source/parent/removal guards stay atomic across Sav
 void test('PROCESS linked AB/C pending case still blocks Save without touching original history or receipts',async t=>{
  const f=await fixture({scope:'PROCESS'});t.after(f.close);await f.mutateValues(v=>{const root=JSON.parse(v.masterDataControl);root.workflowScopes.AB={pendingId:'linked-case',cases:[{id:'linked-case',status:'pending',linkedProcess:{scope:'PROCESS'}}]};v.masterDataControl=JSON.stringify(root);});const before=f.row(),r=await f.request('POST',save(f,[change(path,'Denied',f.flow.working['A-CUT'][1].name)]));assert.equal(r.body.error,'LINKED_PROCESS_CASE_PENDING');assert.deepEqual(f.row(),before);
 });
+
+void test('PROCESS first photo alias requires the unchanged legacy template', async t => {
+  const f = await fixture({scope:'PROCESS'});
+  t.after(f.close);
+  await f.mutateValues(values => {
+    const master = JSON.parse(values.masterDataControl);
+    delete master.workflowScopes.PROCESS.working['A-CUT'][1].mediaName;
+    values.masterDataControl = JSON.stringify(master);
+  });
+  const original = {...f.flow.working['A-CUT'][1]};
+  delete original.mediaName;
+  const parent = ['A-CUT', {id:original.id}];
+  const field = [...parent, 'mediaName'];
+  assert.ok(!Object.hasOwn(original, 'mediaName'));
+  const patches = [{op:'set', path:field, value:'synthetic.png'}];
+  const attempt = guards => f.request('POST', save(f, [{patches, guards}]));
+  assert.equal((await attempt([])).body.error, 'DEPENDENCY_GUARD_REQUIRED');
+  assert.equal((await attempt([{path:parent, value:{...original, name:'stale'}}])).body.error, 'DEPENDENCY_CHANGED_RECONFIRM');
+  assert.equal((await attempt([{path:parent, value:original}])).status, 200);
+  const stored = {...original, mediaName:'synthetic.png'};
+  assert.equal((await attempt([{path:parent, value:stored}])).body.error, 'DEPENDENCY_GUARD_REQUIRED');
+});

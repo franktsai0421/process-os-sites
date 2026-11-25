@@ -126,7 +126,7 @@ void test('changed persistent-navigation executable references have coherent new
   'master-page-editor.js':'20261114-lines-flow-review1',
   'master-reference-viewer.js':'20261030-pr5152-integrated1',
   'editor-line-selection.js':'20261110-process-integration2',
-  'app.js':'20261114-lines-flow-review1',
+  'app.js':'20261125-process-master-draft',
   'approval-tabs.js':'20261025-navigation2',
   'bom-workspace.js':'20261105-bom-atomic1',
   'bootstrap.js':'20261120-routine-result-route1',

@@ -215,7 +215,18 @@ export function masterWorkflowAdapter(scope:string,options:{legacyArchive?:boole
     if(!allowed.includes(str(field))||first!=='lines'&&path.length!==3||first==='lines'&&path.length!==3&&!(path.length===5&&path[2]==='stages'&&typeof path[3]==='object'))throw new DraftConflict('UNSUPPORTED_CATALOG_PATCH',422);
    }
    // Every existing-field update must retain its original value as a dependency guard.
-   if(!control.workflow!.receipts[command.operationId]&&p.op!=='insert'&&!(command.guards||[]).some(g=>stableDraftJSON(g.path)===stableDraftJSON(path)||newStage&&g.path.length===0&&sameDraftValue(g.value,control.workflow!.working)))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
+   if(!control.workflow!.receipts[command.operationId]&&p.op!=='insert'){
+    const guarded=(command.guards||[]).some(g=>{
+     if(sameDraftValue(g.path,path))return true;
+     if(newStage)return g.path.length===0&&sameDraftValue(g.value,control.workflow!.working);
+     // Older templates can lack optional fields. The merge client pins the entire
+     // original row for a first write, and applyDraftCommand checks its value.
+     return scope==='PROCESS'&&p.op==='set'&&path.length===3&&typeof field==='string'&&
+      sameDraftValue(g.path,path.slice(0,-1))&&g.value!==null&&typeof g.value==='object'&&
+      !Array.isArray(g.value)&&!Object.hasOwn(g.value,field);
+    });
+    if(!guarded)throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
+   }
   }
    if(scope==='PROCESS')assertProcessLinkAvailable(root);
    const flow=control.workflow!,already=flow.receipts[command.operationId];
