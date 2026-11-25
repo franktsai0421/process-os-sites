@@ -69,6 +69,7 @@
     if (!next) return;
     summary.innerHTML = next.innerHTML;
     bindEquipmentRows(summary);
+    updateSummaryCells();void loadSummaries();
   }
   function validate(snapshot) {
     const errors = [], ids = new Set();
@@ -116,11 +117,81 @@
     });
     return [...found.values()];
   }
-  function usageText(equipment) {
-    const usage = approvedUsage(equipment);
-    return usage.length
-      ? [...new Set(usage.map(item => item.number).filter(Boolean))].join('、')
-      : t('開啟設備查看引用','Mở thiết bị để xem tham chiếu');
+  let summary;
+  function summaryCurrent(state) {
+    const sync=host.ProcessSync;
+    return state===summary && sync?.identity===state.identity && sync?.revision===state.revision &&
+      !sync?.requiresReload && (!state.delivery || sync?.isCurrentDelivery?.(state.delivery));
+  }
+  function summaryCell(id) {
+    const item=summary && summaryCurrent(summary) && summary.items.get(id);
+    if (!item) return t('未載入','Chưa tải');
+    if (item.error) {
+      const label = item.error==='permission' ? t('無查看權限','Không có quyền xem')
+        : item.error==='missing' ? t('伺服器找不到設備','Không tìm thấy thiết bị')
+        : item.error==='timeout' ? t('查詢逾時','Hết thời gian chờ') : t('查詢失敗','Lỗi truy vấn');
+      return h(label)+' <button type="button" data-summary-retry>'+t('重試','Thử lại')+'</button>';
+    }
+    if (!item.count) return t('無','Không');
+    const more=item.count-1;
+    return '<button type="button" data-equipment-edit="'+h(id)+'">'+h(item.code)+
+      (more?' · '+t('另 '+more+' 筆','Thêm '+more):'')+'</button>';
+  }
+  function updateSummaryCells() {
+    const panel=document.querySelector('#equipment-panel');
+    if (!panel) return;
+    for (const cell of panel.querySelectorAll('[data-usage-id]')) {
+      cell.innerHTML=summaryCell(cell.dataset.usageId);
+      const open=cell.querySelector('[data-equipment-edit]'), retry=cell.querySelector('[data-summary-retry]');
+      if(open)open.onclick=()=>openEditor(cell.dataset.usageId);
+      if(retry)retry.onclick=()=>{
+        for(const [id,item] of summary.items)if(item.error)summary.items.delete(id);
+        updateSummaryCells();void loadSummaries();
+      };
+    }
+  }
+  async function loadSummaries() {
+    const panel=document.querySelector('#equipment-panel');
+    if (!panel) return;
+    if (!summary || !summaryCurrent(summary)) {
+      summary?.controller?.abort();
+      const sync=host.ProcessSync;
+      summary={identity:sync?.identity,revision:sync?.revision,delivery:sync?.captureDelivery?.(),items:new Map()};
+    }
+    const state=summary;
+    if(state.controller||!summaryCurrent(state))return;
+    const ids=Array.from(panel.querySelectorAll('[data-usage-id]'),cell=>cell.dataset.usageId)
+      .filter(id=>!state.items.has(id)).slice(0,192);
+    if(!ids.length)return;
+    const controller=new AbortController();
+    state.controller=controller;
+    const timer=setTimeout(()=>controller.abort(),referenceDeadlineMs);
+    let error='unavailable';
+    try {
+      const response=await fetch('/api/master/references?scope=PROCESS&kind=equipment',{
+        method:'POST',headers:{...host.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'},
+        body:JSON.stringify({ids}),cache:'no-store',signal:controller.signal,
+      });
+      if(!response.ok){
+        if([401,403].includes(response.status))error='permission';
+        if([408,504].includes(response.status))error='timeout';
+        throw Error('SUMMARY_UNAVAILABLE');
+      }
+      const {items}=await response.json();
+      if(!Array.isArray(items))throw Error('INVALID_SUMMARY');
+      const wanted=new Set(ids),received=new Map();
+      for(const item of items){
+        if(!wanted.has(item?.id)||received.has(item.id)||!Number.isSafeInteger(item.count)||
+          item.count<0||typeof item.code!=='string'||(item.count>0&&!item.code))throw Error('INVALID_SUMMARY');
+        received.set(item.id,item);
+      }
+      for(const id of ids)state.items.set(id,received.get(id)||{error:'missing'});
+    }catch{
+      for(const id of ids)state.items.set(id,{error:controller.signal.aborted?'timeout':error});
+    }finally{
+      clearTimeout(timer);state.controller=null;
+      if(summaryCurrent(state)){updateSummaryCells();void loadSummaries();}
+    }
   }
   function thumbnail(equipment) {
     const photo = equipment.mediaItems?.[0];
@@ -133,8 +204,8 @@
   }
   function editorModal(editable) {
     if (!editing) return '';
-    const e = editing.record, usage = approvedUsage(e), canRemove = editable && canDeleteProcessMaster();
-    return `<dialog id="equipment-editor-dialog" class="equipment-editor-dialog" data-i18n-skip="true"><div class="equipment-dialog-head"><div><small>${editing.isNew ? t('新增設備','Thêm máy') : t('設備資料','Dữ liệu máy')}</small><h3>${h(e.number || e.name || t('尚未命名','Chưa đặt tên'))}</h3></div><button type="button" data-equipment-close aria-label="${t('關閉','Đóng')}">×</button></div><div class="equipment-dialog-body"><section class="equipment-dialog-photos"><h4>${t('設備照片','Ảnh thiết bị')}</h4><div class="equipment-modal-photo-grid">${(e.mediaItems || []).map((photo,index) => `<figure><button type="button" class="equipment-photo-preview" data-lightbox-src="${h(photo.src)}" data-lightbox-type="${h(photo.type || 'image/jpeg')}" data-lightbox-title="${h(`${e.number || e.name} · ${index === 0 ? t('主要照片','Ảnh chính') : `${t('照片','Ảnh')} ${index + 1}`}`)}" data-lightbox-group="equipment-${h(e.id)}"><img src="${h(photo.src)}" alt="${h(e.number || e.name)}"></button><figcaption>${index === 0 ? t('主要照片','Ảnh chính') : `${t('照片','Ảnh')} ${index + 1}`}</figcaption>${canRemove ? `<button type="button" data-equipment-remove-photo="${index}" aria-label="${t('移除照片','Xóa ảnh')}">×</button>` : ''}</figure>`).join('') || `<p>${t('尚無照片','Chưa có ảnh')}</p>`}</div>${editable ? `<div class="equipment-photo-actions"><label class="button ghost"><input type="file" data-equipment-photo-replace accept="image/*"><span>${t('更換主要照片','Đổi ảnh chính')}</span></label><label class="button ghost"><input type="file" data-equipment-photo-add accept="image/*" multiple><span>${t('＋ 增加照片','＋ Thêm ảnh')}</span></label></div><small>${t('點擊照片可放大查看。','Nhấn ảnh để phóng to.')}</small>` : ''}</section><section class="equipment-dialog-fields">${modalField('number',t('機器編號','Mã máy'),e.number,editable)}${modalField('name',t('機器名稱（中文）','Tên máy (Trung)'),e.name,editable)}${modalField('nameVi',t('機器名稱（越南文）','Tên máy (Việt)'),e.nameVi,editable)}<label><span>${t('產線／工段','Chuyền / Công đoạn')}</span><select data-equipment-stage ${editable ? '' : 'disabled'}>${routing.lines.flatMap(line => line.stages.map(stage => `<option value="${h(stage.code)}" ${stage.code === e.stageCode ? 'selected' : ''}>${h(line.code)} · ${h(stage.code)} · ${h(stage.name)}</option>`)).join('')}</select></label>${modalField('machineType',t('機器類型','Loại máy'),e.machineType || '',editable)}${modalField('purpose',t('用途（中文）','Công dụng (Trung)'),e.purpose || '',editable)}${modalField('purposeVi',t('用途（越南文）','Công dụng (Việt)'),e.purposeVi || '',editable,true)}<label class="equipment-modal-wide"><span>${t('備註','Ghi chú')}</span><textarea data-equipment-field="note" ${editable ? '' : 'disabled'}>${h(e.note || '')}</textarea></label><div class="equipment-approved-usage equipment-modal-wide"><b>${t('已核准使用流程','Quy trình đã duyệt sử dụng')}</b>${usage.length ? `<ul>${usage.map(item => `<li>${h(`${item.number} ${item.name} · V${item.version}`)}</li>`).join('')}</ul>` : `<p>${t('目前留空。製程編輯台的方塊通過主管確認後，這裡會自動顯示流程名稱。','Hiện đang trống. Sau khi ô quy trình được duyệt, tên quy trình sẽ tự động hiển thị tại đây.')}</p>`}</div><small class="equipment-modal-wide">${t('來源','Nguồn')}: ${h(e.source?.sheet || t('手動新增','Thêm thủ công'))}${e.source?.row ? ` · ${t('第','Dòng')} ${e.source.row}` : ''}</small></section></div><div class="equipment-dialog-actions">${canRemove && !editing.isNew ? `<button type="button" class="button ghost danger" data-equipment-delete>${t('刪除設備','Xóa máy')}</button>` : '<span></span>'}<div><button type="button" class="button ghost" data-equipment-close>${t('取消','Hủy')}</button>${editable ? `<button type="button" class="button signal" data-equipment-save>${t('套用設備內容','Áp dụng thiết bị')}</button>` : ''}</div></div></dialog>`;
+    const e = editing.record, canRemove = editable && canDeleteProcessMaster();
+    return `<dialog id="equipment-editor-dialog" class="equipment-editor-dialog" data-i18n-skip="true"><div class="equipment-dialog-head"><div><small>${editing.isNew ? t('新增設備','Thêm máy') : t('設備資料','Dữ liệu máy')}</small><h3>${h(e.number || e.name || t('尚未命名','Chưa đặt tên'))}</h3></div><button type="button" data-equipment-close aria-label="${t('關閉','Đóng')}">×</button></div><div class="equipment-dialog-body"><section class="equipment-dialog-photos"><h4>${t('設備照片','Ảnh thiết bị')}</h4><div class="equipment-modal-photo-grid">${(e.mediaItems || []).map((photo,index) => `<figure><button type="button" class="equipment-photo-preview" data-lightbox-src="${h(photo.src)}" data-lightbox-type="${h(photo.type || 'image/jpeg')}" data-lightbox-title="${h(`${e.number || e.name} · ${index === 0 ? t('主要照片','Ảnh chính') : `${t('照片','Ảnh')} ${index + 1}`}`)}" data-lightbox-group="equipment-${h(e.id)}"><img src="${h(photo.src)}" alt="${h(e.number || e.name)}"></button><figcaption>${index === 0 ? t('主要照片','Ảnh chính') : `${t('照片','Ảnh')} ${index + 1}`}</figcaption>${canRemove ? `<button type="button" data-equipment-remove-photo="${index}" aria-label="${t('移除照片','Xóa ảnh')}">×</button>` : ''}</figure>`).join('') || `<p>${t('尚無照片','Chưa có ảnh')}</p>`}</div>${editable ? `<div class="equipment-photo-actions"><label class="button ghost"><input type="file" data-equipment-photo-replace accept="image/*"><span>${t('更換主要照片','Đổi ảnh chính')}</span></label><label class="button ghost"><input type="file" data-equipment-photo-add accept="image/*" multiple><span>${t('＋ 增加照片','＋ Thêm ảnh')}</span></label></div><small>${t('點擊照片可放大查看。','Nhấn ảnh để phóng to.')}</small>` : ''}</section><section class="equipment-dialog-fields">${modalField('number',t('機器編號','Mã máy'),e.number,editable)}${modalField('name',t('機器名稱（中文）','Tên máy (Trung)'),e.name,editable)}${modalField('nameVi',t('機器名稱（越南文）','Tên máy (Việt)'),e.nameVi,editable)}<label><span>${t('產線／工段','Chuyền / Công đoạn')}</span><select data-equipment-stage ${editable ? '' : 'disabled'}>${routing.lines.flatMap(line => line.stages.map(stage => `<option value="${h(stage.code)}" ${stage.code === e.stageCode ? 'selected' : ''}>${h(line.code)} · ${h(stage.code)} · ${h(stage.name)}</option>`)).join('')}</select></label>${modalField('machineType',t('機器類型','Loại máy'),e.machineType || '',editable)}${modalField('purpose',t('用途（中文）','Công dụng (Trung)'),e.purpose || '',editable)}${modalField('purposeVi',t('用途（越南文）','Công dụng (Việt)'),e.purposeVi || '',editable,true)}<label class="equipment-modal-wide"><span>${t('備註','Ghi chú')}</span><textarea data-equipment-field="note" ${editable ? '' : 'disabled'}>${h(e.note || '')}</textarea></label><div class="equipment-approved-usage equipment-modal-wide">${editing.isNew?t('尚未儲存','Chưa lưu'):t('正在查詢引用…','Đang kiểm tra tham chiếu…')}</div><small class="equipment-modal-wide">${t('來源','Nguồn')}: ${h(e.source?.sheet || t('手動新增','Thêm thủ công'))}${e.source?.row ? ` · ${t('第','Dòng')} ${e.source.row}` : ''}</small></section></div><div class="equipment-dialog-actions">${canRemove && !editing.isNew ? `<button type="button" class="button ghost danger" data-equipment-delete>${t('刪除設備','Xóa máy')}</button>` : '<span></span>'}<div><button type="button" class="button ghost" data-equipment-close>${t('取消','Hủy')}</button>${editable ? `<button type="button" class="button signal" data-equipment-save>${t('套用設備內容','Áp dụng thiết bị')}</button>` : ''}</div></div></dialog>`;
   }
   function panel() {
     const editable = Boolean(editableProcessMasterData()),
@@ -149,7 +220,7 @@
     shown.forEach(row => { const key = `${row.equipment.line}\u0000${row.equipment.stageCode}`; (groups.get(key) || groups.set(key,[]).get(key)).push(row.equipment); });
     const groupHtml = [...groups.entries()].map(([key, equipment]) => {
       const [line, stageCode] = key.split('\u0000'), stage = stageFor(stageCode);
-      return `<section class="equipment-stage-group"><header><div><span class="line-badge">${h(line)}</span><h4>${h(stageCode)} · ${h(stage?.name || stageCode)}</h4></div><small>${equipment.length} ${t('台設備','máy')}</small></header><div class="equipment-table-wrap"><table class="equipment-summary-table"><thead><tr><th>${t('照片','Ảnh')}</th><th>${t('機器編號','Mã máy')}</th><th>${t('機器名稱','Tên máy')}</th><th>${t('線別／工段','Chuyền / Công đoạn')}</th><th>${t('已核准流程','Quy trình đã duyệt')}</th><th>${t('操作','Thao tác')}</th></tr></thead><tbody>${equipment.map(e => `<tr data-equipment-id="${h(e.id)}"><td><button type="button" class="equipment-thumb" data-equipment-edit="${h(e.id)}">${thumbnail(e)}</button></td><td><code>${h(e.number || t('待補編號','Chưa có mã'))}</code></td><td><b>${h(t(e.name || e.nameVi,e.nameVi || e.name))}</b></td><td>${h(e.line)} · ${h(e.stageCode)}</td><td><span class="equipment-usage-summary ${approvedUsage(e).length ? 'used' : ''}">${h(usageText(e))}</span></td><td><button type="button" class="button ghost compact" data-equipment-edit="${h(e.id)}">${editable ? t('編輯','Sửa') : t('查看','Xem')}</button></td></tr>`).join('')}</tbody></table></div></section>`;
+      return `<section class="equipment-stage-group"><header><div><span class="line-badge">${h(line)}</span><h4>${h(stageCode)} · ${h(stage?.name || stageCode)}</h4></div><small>${equipment.length} ${t('台設備','máy')}</small></header><div class="equipment-table-wrap"><table class="equipment-summary-table"><thead><tr><th>${t('照片','Ảnh')}</th><th>${t('機器編號','Mã máy')}</th><th>${t('機器名稱','Tên máy')}</th><th>${t('線別／工段','Chuyền / Công đoạn')}</th><th>${t('已核准流程','Quy trình đã duyệt')}</th><th>${t('操作','Thao tác')}</th></tr></thead><tbody>${equipment.map(e => `<tr data-equipment-id="${h(e.id)}"><td><button type="button" class="equipment-thumb" data-equipment-edit="${h(e.id)}">${thumbnail(e)}</button></td><td><code>${h(e.number || t('待補編號','Chưa có mã'))}</code></td><td><b>${h(t(e.name || e.nameVi,e.nameVi || e.name))}</b></td><td>${h(e.line)} · ${h(e.stageCode)}</td><td><span class="equipment-usage-summary" data-usage-id="${h(e.id)}">${summaryCell(e.id)}</span></td><td><button type="button" class="button ghost compact" data-equipment-edit="${h(e.id)}">${editable ? t('編輯','Sửa') : t('查看','Xem')}</button></td></tr>`).join('')}</tbody></table></div></section>`;
     }).join('');
     return `<section class="equipment-panel" id="equipment-panel" data-i18n-skip="true"><header class="equipment-panel-head"><div><p class="eyebrow">EQUIPMENT MASTER</p><h3>${t('機器設定 · 設備總表','Cài đặt máy · Danh sách thiết bị')}</h3><p>${t('依線別與工段分類。流程欄只顯示已通過主管確認的製程方塊。','Phân loại theo chuyền và công đoạn. Cột quy trình chỉ hiển thị các ô đã được duyệt.')} ${rows.length} ${t('台','máy')}</p></div><div class="equipment-actions">${editable && host.hasPermission?.('templates.create') ? `<button type="button" class="button signal" id="add-equipment">${t('＋ 新增設備','＋ Thêm máy')}</button>` : ''}${sourceButton}</div></header><div class="equipment-filters"><label><span>${t('搜尋設備','Tìm thiết bị')}</span><input id="equipment-search" value="${h(search)}" placeholder="${t('機器編號、名稱或工段','Mã máy, tên hoặc công đoạn')}" type="search"></label><label><span>${t('線別','Chuyền')}</span><select id="equipment-line-filter"><option value="">${t('全部線別','Tất cả chuyền')}</option>${lines.map(line => `<option value="${h(line)}" ${line === lineFilter ? 'selected' : ''}>LINE ${h(line)}</option>`).join('')}</select></label><label><span>${t('工段','Công đoạn')}</span><select id="equipment-stage-filter"><option value="">${t('全部工段','Tất cả công đoạn')}</option>${availableStages.map(code => `<option value="${h(code)}" ${code === stageFilter ? 'selected' : ''}>${h(code)} · ${h(stageFor(code)?.name || code)}</option>`).join('')}</select></label><button type="button" class="button ghost" id="equipment-filter-clear">${t('清除篩選','Xóa bộ lọc')}</button></div><div class="equipment-summary">${groupHtml || `<div class="equipment-empty"><b>${t('沒有符合條件的設備','Không có thiết bị phù hợp')}</b><p>${t('請調整搜尋或篩選條件。','Hãy đổi điều kiện tìm kiếm hoặc bộ lọc.')}</p></div>`}</div>${editorModal(editable)}</section>`;
   }
@@ -195,6 +266,7 @@
       ? t('目前無法查詢引用，請確認登入或查看權限。','Không thể tra tham chiếu. Kiểm tra đăng nhập hoặc quyền xem.')
       : state.error === 'missing'
         ? t('伺服器目前找不到這筆設備，無法確認引用。','Máy chủ không tìm thấy thiết bị này nên chưa thể xác nhận tham chiếu.')
+        : state.error === 'timeout' ? t('引用查詢逾時，請重試。','Hết thời gian chờ. Vui lòng thử lại.')
         : t('暫時無法確認引用，請重試。','Chưa thể xác nhận tham chiếu. Vui lòng thử lại.');
     box.textContent=detail;
     const retry=document.createElement('button');
@@ -214,12 +286,12 @@
     const timer=setTimeout(()=>controller.abort(),referenceDeadlineMs);
     try {
       renderEquipmentReferences(target);
-      const response=await fetch('/api/master/references?scope=PROCESS&kind=equipment&id='+encodeURIComponent(target.originalId),{
+      const response=await fetch('/api/master/references?scope=PROCESS&kind=equipment&view=detail&id='+encodeURIComponent(target.originalId),{
         headers:sync?.platformHeaders?.(),cache:'no-store',signal:controller.signal,
       });
       if(!current())return;
       if(!response.ok){
-        state.error=[401,403].includes(response.status)?'permission':response.status===404?'missing':'unavailable';
+        state.error=[401,403].includes(response.status)?'permission':response.status===404?'missing':[408,504].includes(response.status)?'timeout':'unavailable';
         return;
       }
       const result=await response.json();
@@ -228,7 +300,7 @@
         result.references.length>result.total||(result.total>0&&!result.references.length&&result.detailsRestricted!==true)||
         result.references.some(ref=>!ref||!Array.isArray(ref.products)))throw Error('INVALID_REFERENCE_RESPONSE');
       state.result=result;
-    } catch {state.error='unavailable';}
+    } catch {state.error=controller.signal.aborted?'timeout':'unavailable';}
     finally {
       clearTimeout(timer);state.pending=false;
       if(current())renderEquipmentReferences(target);
@@ -327,6 +399,7 @@
     document.querySelectorAll('[data-equipment-open]').forEach(button => button.onclick = () => document.querySelector('#equipment-panel')?.scrollIntoView({block:'start',behavior:'smooth'}));
     document.querySelector('#add-equipment')?.addEventListener('click',() => openEditor());
     bindEquipmentRows(document);
+    updateSummaryCells();void loadSummaries();
     const searchInput = document.querySelector('#equipment-search');
     if (searchInput) {
       const area = document.querySelector('#data-content'), content = area?.querySelector('#equipment-panel'), owner = host.ProcessSync?.captureDelivery?.();
@@ -491,7 +564,7 @@
     openEditor(id, field);
   }
   function hasUnappliedChanges() { return Boolean(editing && document.querySelector('#equipment-editor-dialog[open]') && (committing || editing.uploading || JSON.stringify(editing.record) !== editing.initial)); }
-  host.ProcessEquipment = {abandon(){const obsolete=editing;editing=null;obsolete?.referenceLookup?.controller.abort();document.querySelector('#equipment-editor-dialog')?.remove();},cardButton,panel,bind,validate,entries,choices,selector,find,display,portable,exportSheets,readSheets,restorePhotos,loadSource,approvedUsage,locate,hasUnappliedChanges};
+  host.ProcessEquipment = {abandon(){summary?.controller?.abort();summary=null;const obsolete=editing;editing=null;obsolete?.referenceLookup?.controller.abort();document.querySelector('#equipment-editor-dialog')?.remove();},cardButton,panel,bind,validate,entries,choices,selector,find,display,portable,exportSheets,readSheets,restorePhotos,loadSource,approvedUsage,locate,hasUnappliedChanges};
   host.addEventListener('process-language-change',() => { if (document.querySelector('#equipment-panel')) repaint(Boolean(editing)); });
   const baseView = processMasterView, baseBind = bindDataInner;
   processMasterView = function () { return baseView() + panel(); };

@@ -11,6 +11,8 @@ export type RecordRead={
  chargeBodyUse?:(key:string)=>void;
  onInvalidBodyJson?:()=>void;
  deferHistory?:boolean;caseId?:string|null;saveId?:string|null;versionId?:string|null;keys?:string[];modelKey?:string;
+ // Include dynamically named legacy editor workspaces in selected reference reads.
+ includeProcessEditors?:boolean;
  // Server-owned, read-only projection after aggregate SHA verification, before
  // body hydration. It is never accepted from HTTP input or a write adapter.
  projectValue?:(key:string,raw:string)=>string|undefined|Promise<string|undefined>;
@@ -229,7 +231,7 @@ async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:Re
  // Prefetch only adjacent selected identity aggregates, never token reads.
  // GET metadata may overlap; speculative text/SHA is limited to two provider-
  // sized objects <=256KiB each. Large/unknown sizes consume text in old order.
- const entries=Object.entries(envelope.__processRecords.values).filter(([key])=>!options.keys||options.keys.includes(key));
+ const entries=Object.entries(envelope.__processRecords.values).filter(([key])=>!options.keys||options.keys.includes(key)||(options.includeProcessEditors&&key.startsWith('processEditor:')));
  type StoredObject=Awaited<ReturnType<Bucket['get']>>;
  type Outcome<T>={ok:true;value:T}|{ok:false;error:unknown};
  const settle=<T,>(promise:Promise<T>):Promise<Outcome<T>>=>promise.then(value=>({ok:true,value}),error=>({ok:false,error}));
