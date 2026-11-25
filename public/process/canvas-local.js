@@ -364,6 +364,40 @@
   const finalized=session.finalizeDisposition(selected.token);if(!finalized.ok)throw recoveryError(finalized);requireRecoveryCurrent(session,stamp,revision);
   if(own){j.pending=null;discardBatchRejection(client,batch,batch.lastError);persistNow();api()?.updateLocalSaveState?.();}note=t('已完成原結果存檔；未重送操作，也不恢復未儲存輸入。','Đã hoàn tất lưu kết quả; không gửi lại thao tác hoặc khôi phục đầu vào chưa lưu.');update();return true;
  }
+ async function stageCanvasPhotos(candidate,workspace,stage,actorId,check){
+  const uploaded=new Map();
+  async function store(src,old){
+   if(typeof src!=='string'||!/^data:image\/[a-z0-9.+-]+;base64,/i.test(src)||old.has(src))return src;
+   if(!uploaded.has(src)){
+    check();
+    const img=new Image();img.src=src;await img.decode();
+    const blob=await (await fetch(src)).blob();check();
+    const line=JSON.parse(workspace)[1];
+    const res=await fetch('/api/process-authoring/photo?line='+encodeURIComponent(line),{method:'PUT',headers:{'X-Process-Expected-Actor':actorId,'Content-Type':blob.type},body:blob});
+    check();if(!res.ok)throw Error('CANVAS_PHOTO_UPLOAD_FAILED: '+res.status);
+    const {url}=await res.json();
+    if(typeof url!=='string'||!url.startsWith('/api/process-authoring/photo?'))throw Error('CANVAS_PHOTO_UPLOAD_FAILED');
+    uploaded.set(src,url);
+   }
+   return uploaded.get(src);
+  }
+  const lists=o=>[o?.mediaItems,...Object.values(o?.productMediaItems||{})].filter(Array.isArray);
+  const entries=Object.values(candidate.entries).filter(e=>e.w===workspace&&e.s===stage);
+  for(const e of entries){
+   if(!e.value||!['$node','mediaItems','productMediaItems'].includes(e.f))continue;
+   const node=e.f==='$node',value=node?e.value:{[e.f]:e.value},base=node?e.base:{[e.f]:e.base};
+   const old=new Set([base?.media,...lists(base).flatMap(list=>list.map(item=>item?.src))]);
+   for(const list of lists(value))for(const item of list)if(item?.src)item.src=await store(item.src,old);
+  }
+  if(!uploaded.size)return;
+  // Preserve legacy alias-only fields and update the first-photo alias only
+  // when this Save has actually externalized its corresponding list item.
+  for(const e of entries){
+   if(e.f==='media'&&uploaded.has(e.value))e.value=uploaded.get(e.value);
+   if(e.f==='$node'&&uploaded.has(e.value?.media))e.value.media=uploaded.get(e.value.media);
+  }
+  candidate.changed();
+ }
  async function sync(w,s,save=false){
   admit();if(running)return running;const j=ensure(),ownedClient=client;let session=recovery,stamp=captureRecoveryOwner(),pin=api().captureCanvasRecovery();
   if(!j.pending&&!api().canEditCanvas())throw Error('PENDING_OR_PERMISSION_LOCKED');const at=current();let batch;
@@ -391,6 +425,7 @@
     }
     candidate.resolveAll(review,decision,impact.nodes.length>0);candidate.freeze(workspace,stage);break;
    }
+   await stageCanvasPhotos(candidate,workspace,stage,stamp.id,requireReview);requireReview();
    api().acceptCanvasRecovery(fresh);
    if(!unchanged()||api().flow().revision!==fresh.control.workflow.revision)throw Error('CANVAS_REVIEW_CHANGED');
    if(recoveryBase!==recoveryBaseOf(api().flow())){session.close();session=newRecovery(api().flow());await session.ready;}

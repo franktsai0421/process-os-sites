@@ -1,0 +1,33 @@
+name: Canvas block photos
+on:
+  pull_request:
+    branches: ['review/v68-reset-base-20261123']
+    paths:
+      - 'app/api/process-authoring/photo/**'
+      - 'lib/canvas-photos.ts'
+      - 'public/process/canvas-local.js'
+      - 'tests/canvas-block-photos-browser.mjs'
+      - '.github/workflows/canvas-block-photos.yml'
+permissions:
+  contents: read
+jobs:
+  local-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PROCESS_PROGRAM_COMMIT: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npx tsc --noEmit
+      - run: node tests/canvas-block-photos-browser.mjs
+      - run: node tests/canvas-block-photos-browser.mjs --inline

@@ -1,3 +1,4 @@
+import {canvasPhotoIds,photoPrefix} from './canvas-photos';
 import {approvedMasterPageCatalog,approvedMasterProcessSource} from './master-approved-pages';
 import {parse} from './process-state';
 import {applyDraftCommand,DraftConflict,sameDraftValue,type DraftIssue,type DraftCommand,type DraftPath} from './shared-draft';
@@ -75,7 +76,7 @@ export function assertCanvasBatch(control:AuthoringControl,command:DraftCommand&
  for(const guard of command.guards||[])if(!within(guard.path)||guard.path.length<4||guard.path.length>6)throw new DraftConflict('CANVAS_SCOPE_INVALID',422);
 }
 export function processAuthoringAdapter(canvasV2=false):WorkflowAdapter<Content,AuthoringControl>{
- return{key:'processAuthoringControl',scope:'process:platform',recordMutation:'process-save',processFlowMutation:true,empty:()=>({workspaces:[]}),photoIds:()=>[],photoPrefix:'',deletePermission:'approval.submit',preparedModel:true,permissionOnlyRead:true,
+ return{key:'processAuthoringControl',scope:'process:platform',recordMutation:'process-save',processFlowMutation:true,empty:()=>({workspaces:[]}),photoIds:canvasPhotoIds,photoPrefix,deletePermission:'approval.submit',preparedModel:true,permissionOnlyRead:true,
   parse(raw,prepared){if(!raw&&!prepared)throw new DraftConflict('AUTHORING_CONVERSION_REQUIRED',409);const c=prepared||JSON.parse(raw!);if(!c.workflow||c.workflow.scope!=='process:platform'||!Array.isArray(c.versions))throw new DraftConflict('AUTHORING_CONTROL_INVALID',422);return c;},
   async access(_request,_state,p){return p;},
   context(control,state,base){const master=parse(state.values.masterDataControl,null);if(!master?.active)throw new DraftConflict('MASTER_SOURCE_REQUIRED',422);
