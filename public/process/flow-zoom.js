@@ -10,7 +10,7 @@
 
   function operationContent(operation,product,position){
     const present=window.ProcessOperationPresentation,type=present?.operationTypeMeta(operation)||{key:'custom',label:'自訂流程'},machineRows=present?.operationMachineRows(operation)||[],groups=present?.operationMediaGroups(operation,product.code)||[],photoCount=groups.filter(group=>group.key!=='machine').reduce((sum,group)=>sum+group.items.length,0);
-    return `<article class="live-flow-node status-product-node process-type-${type.key}" data-process-type="${type.key}" style="left:${position.x}px;top:${position.y}px">${present?.productionOperationHeaderMarkup(operation,type,machineRows.length,photoCount)||''}<section class="status-node-scroll">${present?.operationNodeBody(operation,product)||''}</section></article>`
+    return `<article class="live-flow-node status-product-node process-type-${type.key}" data-process-type="${type.key}" style="left:${position.x}px;top:${position.y}px">${present?.productionOperationHeaderMarkup(operation,type,machineRows.filter(row=>!row.unresolved).length,photoCount,machineRows.filter(row=>row.unresolved).length)||''}<section class="status-node-scroll">${present?.operationNodeBody(operation,product)||''}</section></article>`
   }
 
   function productFlow(product,lineCode,stageCode,context){

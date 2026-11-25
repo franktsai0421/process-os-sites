@@ -101,8 +101,8 @@
         const direct = (operation.machineIds || []).includes(equipment.id),
           snapshot = (operation.machineDetails || []).some(machine =>
             machine?.id === equipment.id || machine?.no === equipment.id ||
-            (equipmentNumber && String(machine?.number || machine?.no || '') === equipmentNumber)),
-          legacyNumber = equipmentNumber && (operation.machineIds || []).includes(equipmentNumber);
+            (!machine?.id && stageCode===equipment.stageCode && equipmentNumber && String(machine?.number || machine?.no || '') === equipmentNumber)),
+          legacyNumber = stageCode===equipment.stageCode && equipmentNumber && (operation.machineIds || []).includes(equipmentNumber);
         if (!direct && !snapshot && !legacyNumber) return;
         const key = `${version.id}:${stageCode}:${operation.id}`;
         found.set(key, {
@@ -140,6 +140,15 @@
   function updateSummaryCells() {
     const panel=document.querySelector('#equipment-panel');
     if (!panel) return;
+    const notice=panel.querySelector('[data-missing-equipment]');
+    if(notice){
+      const missing=summary&&summaryCurrent(summary)&&summary.missing;
+      notice.hidden=!missing?.length;
+      if(!notice.hidden){
+        notice.querySelector('summary').textContent=missingLabel()+' ('+missing.length+')';
+        notice.querySelector('ul').innerHTML=missing.map(r=>'<li>'+[r.line,r.category,r.stage,r.number||r.operationId,r.machine].filter(Boolean).map(h).join(' · ')+'</li>').join('');
+      }
+    }
     for (const cell of panel.querySelectorAll('[data-usage-id]')) {
       cell.innerHTML=summaryCell(cell.dataset.usageId);
       const open=cell.querySelector('[data-equipment-edit]'), retry=cell.querySelector('[data-summary-retry]');
@@ -177,7 +186,7 @@
         if([408,504].includes(response.status))error='timeout';
         throw Error('SUMMARY_UNAVAILABLE');
       }
-      const {items}=await response.json();
+      const {items,missing}=await response.json();
       if(!Array.isArray(items))throw Error('INVALID_SUMMARY');
       const wanted=new Set(ids),received=new Map();
       for(const item of items){
@@ -185,8 +194,10 @@
           item.count<0||typeof item.code!=='string'||(item.count>0&&!item.code))throw Error('INVALID_SUMMARY');
         received.set(item.id,item);
       }
+      state.missing=missing;
       for(const id of ids)state.items.set(id,received.get(id)||{error:'missing'});
     }catch{
+      state.missing=null;
       for(const id of ids)state.items.set(id,{error:controller.signal.aborted?'timeout':error});
     }finally{
       clearTimeout(timer);state.controller=null;
@@ -222,7 +233,7 @@
       const [line, stageCode] = key.split('\u0000'), stage = stageFor(stageCode);
       return `<section class="equipment-stage-group"><header><div><span class="line-badge">${h(line)}</span><h4>${h(stageCode)} · ${h(stage?.name || stageCode)}</h4></div><small>${equipment.length} ${t('台設備','máy')}</small></header><div class="equipment-table-wrap"><table class="equipment-summary-table"><thead><tr><th>${t('照片','Ảnh')}</th><th>${t('機器編號','Mã máy')}</th><th>${t('機器名稱','Tên máy')}</th><th>${t('線別／工段','Chuyền / Công đoạn')}</th><th>${t('已核准流程','Quy trình đã duyệt')}</th><th>${t('操作','Thao tác')}</th></tr></thead><tbody>${equipment.map(e => `<tr data-equipment-id="${h(e.id)}"><td><button type="button" class="equipment-thumb" data-equipment-edit="${h(e.id)}">${thumbnail(e)}</button></td><td><code>${h(e.number || t('待補編號','Chưa có mã'))}</code></td><td><b>${h(t(e.name || e.nameVi,e.nameVi || e.name))}</b></td><td>${h(e.line)} · ${h(e.stageCode)}</td><td><span class="equipment-usage-summary" data-usage-id="${h(e.id)}">${summaryCell(e.id)}</span></td><td><button type="button" class="button ghost compact" data-equipment-edit="${h(e.id)}">${editable ? t('編輯','Sửa') : t('查看','Xem')}</button></td></tr>`).join('')}</tbody></table></div></section>`;
     }).join('');
-    return `<section class="equipment-panel" id="equipment-panel" data-i18n-skip="true"><header class="equipment-panel-head"><div><p class="eyebrow">EQUIPMENT MASTER</p><h3>${t('機器設定 · 設備總表','Cài đặt máy · Danh sách thiết bị')}</h3><p>${t('依線別與工段分類。流程欄只顯示已通過主管確認的製程方塊。','Phân loại theo chuyền và công đoạn. Cột quy trình chỉ hiển thị các ô đã được duyệt.')} ${rows.length} ${t('台','máy')}</p></div><div class="equipment-actions">${editable && host.hasPermission?.('templates.create') ? `<button type="button" class="button signal" id="add-equipment">${t('＋ 新增設備','＋ Thêm máy')}</button>` : ''}${sourceButton}</div></header><div class="equipment-filters"><label><span>${t('搜尋設備','Tìm thiết bị')}</span><input id="equipment-search" value="${h(search)}" placeholder="${t('機器編號、名稱或工段','Mã máy, tên hoặc công đoạn')}" type="search"></label><label><span>${t('線別','Chuyền')}</span><select id="equipment-line-filter"><option value="">${t('全部線別','Tất cả chuyền')}</option>${lines.map(line => `<option value="${h(line)}" ${line === lineFilter ? 'selected' : ''}>LINE ${h(line)}</option>`).join('')}</select></label><label><span>${t('工段','Công đoạn')}</span><select id="equipment-stage-filter"><option value="">${t('全部工段','Tất cả công đoạn')}</option>${availableStages.map(code => `<option value="${h(code)}" ${code === stageFilter ? 'selected' : ''}>${h(code)} · ${h(stageFor(code)?.name || code)}</option>`).join('')}</select></label><button type="button" class="button ghost" id="equipment-filter-clear">${t('清除篩選','Xóa bộ lọc')}</button></div><div class="equipment-summary">${groupHtml || `<div class="equipment-empty"><b>${t('沒有符合條件的設備','Không có thiết bị phù hợp')}</b><p>${t('請調整搜尋或篩選條件。','Hãy đổi điều kiện tìm kiếm hoặc bộ lọc.')}</p></div>`}</div>${editorModal(editable)}</section>`;
+    return `<section class="equipment-panel" id="equipment-panel" data-i18n-skip="true"><header class="equipment-panel-head"><div><p class="eyebrow">EQUIPMENT MASTER</p><h3>${t('機器設定 · 設備總表','Cài đặt máy · Danh sách thiết bị')}</h3><p>${t('依線別與工段分類。流程欄只顯示已通過主管確認的製程方塊。','Phân loại theo chuyền và công đoạn. Cột quy trình chỉ hiển thị các ô đã được duyệt.')} ${rows.length} ${t('台','máy')}</p></div><div class="equipment-actions">${editable && host.hasPermission?.('templates.create') ? `<button type="button" class="button signal" id="add-equipment">${t('＋ 新增設備','＋ Thêm máy')}</button>` : ''}${sourceButton}</div></header><div class="equipment-filters"><label><span>${t('搜尋設備','Tìm thiết bị')}</span><input id="equipment-search" value="${h(search)}" placeholder="${t('機器編號、名稱或工段','Mã máy, tên hoặc công đoạn')}" type="search"></label><label><span>${t('線別','Chuyền')}</span><select id="equipment-line-filter"><option value="">${t('全部線別','Tất cả chuyền')}</option>${lines.map(line => `<option value="${h(line)}" ${line === lineFilter ? 'selected' : ''}>LINE ${h(line)}</option>`).join('')}</select></label><label><span>${t('工段','Công đoạn')}</span><select id="equipment-stage-filter"><option value="">${t('全部工段','Tất cả công đoạn')}</option>${availableStages.map(code => `<option value="${h(code)}" ${code === stageFilter ? 'selected' : ''}>${h(code)} · ${h(stageFor(code)?.name || code)}</option>`).join('')}</select></label><button type="button" class="button ghost" id="equipment-filter-clear">${t('清除篩選','Xóa bộ lọc')}</button></div><details data-missing-equipment hidden><summary></summary><ul></ul></details><div class="equipment-summary">${groupHtml || `<div class="equipment-empty"><b>${t('沒有符合條件的設備','Không có thiết bị phù hợp')}</b><p>${t('請調整搜尋或篩選條件。','Hãy đổi điều kiện tìm kiếm hoặc bộ lọc.')}</p></div>`}</div>${editorModal(editable)}</section>`;
   }
   async function saveVersion(label,before,next) {
     const draft = processMasterDraft();
@@ -444,31 +455,61 @@
     bindLightbox();
   }
   function asMachine(equipment) { return {...equipment,no:equipment.id,asset:'',people:1}; }
+  function missingLabel(){return t('設備總表找不到／待確認','Không tìm thấy trong danh mục thiết bị / cần xác minh');}
+  function snapshotFor(id,operation){
+    const rows=operation?.machineDetails||[];
+    return rows.find(row=>row.id===id)||rows.find(row=>row.no===id||row.number===id);
+  }
+  function resolve(id,stage,pinned,catalog){
+    const key=pinned?.id||id,exact=catalog.find(row=>row.equipment.id===key);
+    if(exact||pinned?.id)return exact;
+    const numbers=[id,pinned?.number,pinned?.no].filter(Boolean);
+    const same=catalog.filter(row=>row.stage===stage&&numbers.includes(row.equipment.number));
+    return same.length===1?same[0]:undefined;
+  }
   function find(id,operation) {
     return operation?.machineDetails?.find(item => item.no === id || item.id === id) ||
       uniqueEntries(processMaster).map(row => asMachine(row.equipment)).find(item => item.no === id) ||
       machines.find(item => item.no === id);
   }
-  function choices(operation,template) {
-    const machineFlow = isMachineTemplate(template) || ['機器設定','機器組裝'].includes(operation?.name);
-    const available = machineFlow
-      ? uniqueEntries(processMaster).filter(row => row.stage === operation.stageCode && row.equipment.line === state.editorLine).map(row => asMachine(row.equipment))
-      : machines.filter(item => item.line === state.editorLine && (!template?.machineIds?.length || template.machineIds.includes(item.no)));
-    for (const id of operation.machineIds || (operation.machineId ? [operation.machineId] : [])) {
-      if (available.some(item => item.no === id)) continue;
-      const old = find(id,operation);
-      available.push({...old,no:id,name:old?.name || t('歷史設備','Thiết bị lịch sử'),historical:true});
+  function display(id,operation,catalog=uniqueEntries(processMaster)){
+    const pinned=snapshotFor(id,operation),row=resolve(id,operation?.stageCode,pinned,catalog);
+    const source=pinned||row?.equipment||machines.find(item=>item.no===id);
+    return {...source,no:row?(source.number||row.equipment.number||id):id,asset:source?.asset||'—',resolvedId:row?.equipment.id,unresolved:!row};
+  }
+  function templateDefaults(stage,template,catalog=uniqueEntries(processMaster)){
+    const ids=new Set();
+    for(const raw of template?.machineIds||[]){
+      const row=resolve(raw,stage,null,catalog);
+      if(row?.stage===stage&&row.equipment.line===state.editorLine)ids.add(row.equipment.id);
+    }
+    return [...ids];
+  }
+  function choices(operation,template){
+    const catalog=uniqueEntries(processMaster),stage=operation.stageCode;
+    const restricted=!isMachineTemplate(template)&&!['機器設定','機器組裝'].includes(operation.name)&&template?.machineIds?.length;
+    const defaults=restricted?new Set(templateDefaults(stage,template,catalog)):null;
+    const current=catalog.filter(row=>row.stage===stage&&row.equipment.line===state.editorLine&&(!defaults||defaults.has(row.equipment.id)));
+    const available=current.map(row=>asMachine(row.equipment));
+    for(const id of operation.machineIds||(operation.machineId?[operation.machineId]:[])){
+      const old=display(id,operation,catalog),position=available.findIndex(item=>item.no===old.resolvedId);
+      if(position>=0&&id===old.resolvedId)continue;
+      const retained={...old,no:id,name:old.name||t('歷史設備','Thiết bị lịch sử'),historical:true};
+      const rawPosition=available.findIndex(item=>item.no===id);
+      if(position>=0)available[position]=retained;
+      else if(rawPosition>=0)available[rawPosition]=retained;
+      else available.push(retained);
     }
     return available;
   }
   function selector(operation,available) {
     const selected = operation.machineIds || [], others = Object.values(ensureCategoryEditor()).flat().filter(item => item.id !== operation.id);
     return `<fieldset class="machine-multi" data-i18n-skip="true"><legend>${t('工段設備 · 可複選','Máy công đoạn · Chọn nhiều')}</legend><p>${h(operation.stageCode)} · ${t('同一台機器可在不同方塊重複選取；右側會顯示使用位置。','Một máy có thể được chọn trong nhiều ô; vị trí sử dụng hiển thị bên phải.')}</p><div class="multi-actions"><button type="button" id="select-all-machines">${t('全選','Chọn tất cả')}</button><button type="button" id="clear-machines">${t('清除','Xóa chọn')}</button><span>${t('已選','Đã chọn')} ${selected.length}</span></div><div class="check-list machine-multi-list">${available.map(machine => {
-      const used = others.filter(item => (item.machineIds || []).some(id => id === machine.no || (machine.number && find(id,item)?.number === machine.number))).map(item => item.number), approved = approvedUsage(machine).map(item => item.number), current = selected.includes(machine.no), otherNumbers = [...new Set([...used,...approved])].filter(number => number && number !== operation.number), usageParts = [];
+      const used = others.filter(item => (item.machineIds || []).some(id => id === machine.no || (machine.id && display(id,item).resolvedId === machine.id))).map(item => item.number), approved = approvedUsage(machine).map(item => item.number), current = selected.includes(machine.no), otherNumbers = [...new Set([...used,...approved])].filter(number => number && number !== operation.number), usageParts = [];
       if (current) usageParts.push(t('本方塊被選取','Đã chọn trong ô này'));
       if (otherNumbers.length) usageParts.push(`${t('其他方塊','Ô khác')}：${otherNumbers.map(h).join('、')}`);
       const usage = usageParts.join(' · ') || t('尚未在其他方塊使用','Chưa dùng ở ô khác');
-      return `<label class="equipment-choice ${current ? 'is-current' : ''}"><input type="checkbox" data-operation-machine="${h(machine.no)}" ${current ? 'checked' : ''}>${machine.mediaItems?.[0] ? `<img decoding="async" src="${h(machine.mediaItems[0].src)}" alt="${h(machine.number || machine.name)}" loading="lazy">` : ''}<span><code>${h(machine.number || (machine.no.startsWith('EQ-') ? t('待補編號','Chưa có mã') : machine.no))}</code><b>${h(t(machine.name || machine.nameVi,machine.nameVi || machine.name))}</b>${machine.historical ? `<small>${t('原已選設備；已不在目前工段清單，可取消。','Thiết bị cũ; có thể bỏ chọn.')}</small>` : ''}</span><small class="equipment-used">${usage}</small></label>`;
+      return `<label class="equipment-choice ${current ? 'is-current' : ''}"><input type="checkbox" data-operation-machine="${h(machine.no)}" ${machine.historical?'data-historical-machine':''} ${current ? 'checked' : ''}>${machine.mediaItems?.[0] ? `<img decoding="async" src="${h(machine.mediaItems[0].src)}" alt="${h(machine.number || machine.name)}" loading="lazy">` : ''}<span><code>${h(machine.number || (machine.no.startsWith('EQ-') ? t('待補編號','Chưa có mã') : machine.no))}</code><b>${h(t(machine.name || machine.nameVi,machine.nameVi || machine.name))}</b>${machine.unresolved ? `<small data-unresolved-machine>${h(machine.no)} · ${missingLabel()}</small>` : machine.historical ? `<small>${t('原已選設備；已不在目前工段清單，可取消。','Thiết bị cũ; có thể bỏ chọn.')}</small>` : ''}</span><small class="equipment-used">${usage}</small></label>`;
     }).join('') || `<p>${t('此工段尚無已核准設備，請先在流程資料載入設備並完成送審。','Công đoạn này chưa có máy được duyệt.')}</p>`}</div></fieldset>`;
   }
   async function portable(snapshot) {
@@ -557,14 +598,13 @@
     const restore = photo => { if (!photo.src?.startsWith('process-photo:')) return; if (!resolved.has(photo.src)) throw new Error('照片內容遺漏'); photo.src = resolved.get(photo.src); };
     for (const template of Object.values(snapshot).flat()) { for (const photo of template.mediaItems || []) restore(photo); setProcessTemplateMedia(template,template.mediaItems || []); for (const equipment of template.equipment || []) for (const photo of equipment.mediaItems || []) restore(photo); }
   }
-  function display(id,operation) { const machine = find(id,operation); return machine ? {...machine,no:machine.number || machine.no,asset:machine.asset || '—'} : undefined; }
   function locate(id, field = 'name') {
     if (!uniqueEntries(currentProcessMasterData()).some(row => row.equipment.id === id)) return;
     search = lineFilter = stageFilter = '';
     openEditor(id, field);
   }
   function hasUnappliedChanges() { return Boolean(editing && document.querySelector('#equipment-editor-dialog[open]') && (committing || editing.uploading || JSON.stringify(editing.record) !== editing.initial)); }
-  host.ProcessEquipment = {abandon(){summary?.controller?.abort();summary=null;const obsolete=editing;editing=null;obsolete?.referenceLookup?.controller.abort();document.querySelector('#equipment-editor-dialog')?.remove();},cardButton,panel,bind,validate,entries,choices,selector,find,display,portable,exportSheets,readSheets,restorePhotos,loadSource,approvedUsage,locate,hasUnappliedChanges};
+  host.ProcessEquipment = {abandon(){summary?.controller?.abort();summary=null;const obsolete=editing;editing=null;obsolete?.referenceLookup?.controller.abort();document.querySelector('#equipment-editor-dialog')?.remove();},cardButton,panel,bind,validate,entries,choices,templateDefaults,missingLabel,selector,find,display,portable,exportSheets,readSheets,restorePhotos,loadSource,approvedUsage,locate,hasUnappliedChanges};
   host.addEventListener('process-language-change',() => { if (document.querySelector('#equipment-panel')) repaint(Boolean(editing)); });
   const baseView = processMasterView, baseBind = bindDataInner;
   processMasterView = function () { return baseView() + panel(); };

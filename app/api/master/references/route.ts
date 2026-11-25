@@ -1,6 +1,6 @@
 import {boundedJson} from '@/lib/site-security.mjs';
 import {readState,identity,can,responseHeaders} from '@/lib/process-state';
-import {equipmentReferenceIndex,processMasterReferences,processMasterTargets} from '@/lib/process-master-references';
+import {type MissingEquipmentReference,equipmentReferenceIndex,processMasterReferences,processMasterTargets} from '@/lib/process-master-references';
 
 const accessKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
 const referenceKeys=[...accessKeys,'masterDataControl','processAuthoringControl','approvalVersions','publishedProcess'];
@@ -25,7 +25,7 @@ async function lookup(request:Request,batch:boolean){
    projectValue:(key:string,raw:string)=>{
     if(key==='masterDataControl'){
      const root=JSON.parse(raw);
-     return JSON.stringify({active:{PROCESS:root.workflowScopes?.PROCESS?.working??root.active?.PROCESS}});
+     return JSON.stringify({active:{PROCESS:root.active?.PROCESS},workflowScopes:{PROCESS:{working:root.workflowScopes?.PROCESS?.working}}});
     }
     if(key==='processAuthoringControl'){
      const {workflow}=JSON.parse(raw);
@@ -44,7 +44,9 @@ async function lookup(request:Request,batch:boolean){
   const catalog=processMasterTargets(snapshot);
   const targets=catalog.filter(t=>t.kind===kind&&(requested?requested.has(t.id):t.id===id||kind==='template'&&Object.values(snapshot).flat().some((x)=>{const row=x as {id:string;catalogKey?:string;presetKey?:string};return row.id===t.id&&(row.catalogKey||row.presetKey||row.id)===id;})));
   if(display){
-   const index=equipmentReferenceIndex(state.values,targets,display,new Set(catalog.filter(t=>t.kind==='equipment').map(t=>t.id)));
+   const missing=new Map<string,MissingEquipmentReference>();
+   const approved=processMasterTargets(root.active?.PROCESS??{});
+   const index=equipmentReferenceIndex(state.values,targets,display,approved,batch?missing:undefined);
    if(batch){
     const items=Array.from(index,([id,refs])=>{
      const first=refs.values().next().value;
@@ -52,7 +54,7 @@ async function lookup(request:Request,batch:boolean){
      const label=first?.stage&&code&&!code.startsWith(first.stage+'-')?first.stage+' · '+code:code;
      return {id,count:refs.size,code:label};
     });
-    return reply({revision:state.revision,items});
+    return reply({revision:state.revision,items,missing:[...missing.values()]});
    }
    if(!targets.length)return reply({error:'REFERENCE_TARGET_NOT_FOUND'},404);
    const refs=[...index.get(id!)!.values()];

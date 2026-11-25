@@ -69,32 +69,48 @@ function walkReferences(values:Record<string,string>, consume:Visitor, display:'
  else {visit(published,'published','active');for(const v of Object.values(object(published)))if(v&&typeof v==='object')visit(v,'published','active',text(object(v).id));}
 }
 
+export type MissingEquipmentReference = Pick<MasterReference,'line'|'category'|'stage'|'operationId'|'number'> & {machine:string};
+
 /** Read-only display projection. The removal guard still scans working AND saved. */
-export function equipmentReferenceIndex(values:Record<string,string>,targets:MasterReferenceTarget[],mode:'summary'|'detail',catalogIds=new Set(targets.map(t=>t.id))) {
+export function equipmentReferenceIndex(values:Record<string,string>,targets:MasterReferenceTarget[],mode:'summary'|'detail',catalog=targets,missing?:Map<string,MissingEquipmentReference>) {
  const index=new Map<string,Map<string,MasterReference>>();
  const numbers=new Map<string,Set<string>>();
  const stageNumber=(stage:string,number:string)=>JSON.stringify([stage,number]);
- for(const target of targets){
+ const catalogIds=new Set(catalog.filter(t=>t.kind==='equipment').map(t=>t.id));
+ for(const target of targets)if(target.kind==='equipment')index.set(target.id,new Map());
+ for(const target of catalog){
   if(target.kind!=='equipment')continue;
-  if(!index.has(target.id))index.set(target.id,new Map());
   if(!target.number||!target.stage)continue;
   const key=stageNumber(target.stage,target.number), ids=numbers.get(key)??new Set<string>();
   ids.add(target.id);numbers.set(key,ids);
  }
  walkReferences(values,(op,stage,workspace,source,status,versionId)=>{
   const matched=new Set<string>();
-  function match(raw:unknown,legacy=true){
-   if(typeof raw!=='string'||!raw)return;
-   if(catalogIds.has(raw)){if(index.has(raw))matched.add(raw);return;}
-   if(legacy)for(const id of numbers.get(stageNumber(stage,raw))??[])matched.add(id);
-  }
-  for(const id of Array.isArray(op.machineIds)?op.machineIds:[op.machineId])match(id);
-  for(const machine of rows(op.machineDetails)){
-   if(text(machine.id))match(machine.id,false);
-   else {match(machine.no);match(machine.number);}
-  }
-  if(!matched.size)return;
   const line=text(workspace.line)||stage.split('-')[0],category=text(workspace.category);
+  const operationId=text(op.id),number=text(op.number);
+  const details=rows(op.machineDetails),seenDetails=new Set<Row>();
+  function match(raw:string,detail?:Row){
+   if(!raw)return;
+   const pinned=text(detail?.id),key=pinned||raw;
+   let resolved=catalogIds.has(key)?key:undefined;
+   if(!resolved&&!pinned){
+    const candidates=new Set<string>();
+    for(const number of [raw,text(detail?.number),text(detail?.no)])if(number){
+     for(const id of numbers.get(stageNumber(stage,number))||[])candidates.add(id);
+    }
+    if(candidates.size===1)resolved=candidates.values().next().value;
+   }
+   if(resolved){if(index.has(resolved))matched.add(resolved);}
+   else if(missing)missing.set(JSON.stringify([line,category,stage,operationId||number,raw]),{line,category,stage,operationId,number,machine:raw});
+  }
+  for(const value of Array.isArray(op.machineIds)?op.machineIds:[op.machineId]){
+   const raw=text(value);if(!raw)continue;
+   const detail=details.find(m=>m.id===raw)||details.find(m=>m.no===raw||m.number===raw);
+   if(detail)seenDetails.add(detail);
+   match(raw,detail);
+  }
+  for(const detail of details)if(!seenDetails.has(detail))match(text(detail.id)||text(detail.no)||text(detail.number),detail);
+  if(!matched.size)return;
   const ref={source,status,versionId,line,category,stage,operationId:text(op.id),number:text(op.number),name:text(op.name),
    products:mode==='detail'&&Array.isArray(op.productCodes)?op.productCodes.filter((p):p is string=>typeof p==='string'):[]};
   const key=JSON.stringify([line,category,text(workspace.id),stage,ref.operationId||ref.number,
