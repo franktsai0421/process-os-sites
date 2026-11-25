@@ -79,6 +79,7 @@ void test('the proposed shell delta is confined to the four routine asset tags',
     expected=expected.replace(from,script(file+'?v=20261122-plan-intent1'));
   }
   assert.deepEqual(show('d7288eb0ccc54df4817f50de36e6900cd6615678'),Buffer.from(expected));
+  expected=expected.replace(script('app.js?v=20261114-lines-flow-review1'),script('app.js?v=20261125-process-master-draft'));
   expected=expected.replace('routine-reset.js?v=2','routine-reset.js?v=20261123-scoped-reset1').replace('routine-iqc.js?v=20261122-plan-intent1','routine-iqc.js?v=20261123-scoped-reset1').replace('routine-fqc.js?v=20261122-plan-intent1','routine-fqc.js?v=20261123-scoped-reset1');
   expected=expected.replaceAll('20261123-scoped-reset1','20261123-admin-reset1').replace('routine-fqc-page.js?v=20261121-reset1','routine-fqc-page.js?v=20261123-admin-reset1');
   expected=expected.replace('routine-fqc-page.js?v=20261123-admin-reset1','routine-fqc-page.js?v=20261124-receipt-display1').replace('routine-page-approved-history.js?v=20261112-quality-main-joint1','routine-page-approved-history.js?v=20261124-receipt-display1');
