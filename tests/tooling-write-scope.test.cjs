@@ -6,7 +6,8 @@ const fixture = require('../scripts/tooling-local-save-fixture.cjs');
 test('plain Save, local Save and Submit read only their tooling and approved IQC dependencies',async t=>{
   const f=await fixture();
   try {
-    await f.rights('editor',{submit:true});
+    await f.rights('editor',{submit:true,withdraw:true,approve:true});
+    await f.rights('other',{return:true,approve:true});
     await f.mutate(values=>{
       const c=JSON.parse(values.toolingMasterControl);
       const tools=c.versions[0].snapshot.tools;
@@ -25,20 +26,20 @@ test('plain Save, local Save and Submit read only their tooling and approved IQC
     const patch=(before,after)=>{const path=['tools',{id:'one'},'notes'];return {patches:[{op:'set',path,value:after}],guards:[{path,value:before}]};};
     const apply=await f.call({command:command('apply',patch('','plain save purpose'))});
     assert.equal(apply.status,200);
-    const run=async(label,cmd)=>{
+    const run=async(label,cmd,actor='editor')=>{
       const before=manifest();
       f.events.length=0;
-      const result=await f.call({command:cmd});
+      const result=await f.call({command:cmd},actor);
       const reads=f.events.filter(e=>e.kind==='get'&&(e.key===ref.key||e.key===body.key));
       results.push([label,reads.length,reads.reduce((n,r)=>n+f.objects.get(r.key).length,0)]);
       assert.equal(result.status,200,JSON.stringify(result.body.error));
       const after=manifest();
       for(const k of Object.keys(before.values).filter(k=>k!=='toolingMasterControl'))assert.deepEqual(after.values[k],before.values[k]);
       assert.deepEqual(after.legacySources,before.legacySources);
-      const receipt=await f.call(undefined,'editor','&operationId='+cmd.operationId);
+      const receipt=await f.call(undefined,actor,'&operationId='+cmd.operationId);
       assert.equal(receipt.status,200);
       assert.equal(receipt.body.receipt.operationId,cmd.operationId);
-      const replay=await f.call({command:cmd});
+      const replay=await f.call({command:cmd},actor);
       assert.equal(replay.status,200);
       assert.equal(replay.body.receipt.operationId,cmd.operationId);
       return result.body.control.workflow;
@@ -50,6 +51,19 @@ test('plain Save, local Save and Submit read only their tooling and approved IQC
     assert.equal((await f.read()).workflow.saved.id,saved.saved.id);
     const pending=await run('submit',command('submit',{savedId:saved.saved.id,expectedRevision:saved.revision,reason:'Synthetic review'}));
     assert.equal(pending.cases.find(c=>c.id===pending.pendingId).savedId,saved.saved.id);
+    const review=(flow,action)=>command(action,{generation:flow.generation,caseId:flow.pendingId,reason:'Synthetic review'});
+    const resubmit=flow=>command('submit',{generation:flow.generation,savedId:saved.saved.id,expectedRevision:flow.revision,reason:'Synthetic resubmission'});
+    assert.equal((await f.call({command:review(pending,'approve')})).body.error,'SELF_REVIEW_CONFIRM_REQUIRED');
+    assert.equal((await f.call({command:review(pending,'withdraw')},'other')).status,403);
+    const withdrawn=await run('withdraw',review(pending,'withdraw'));
+    assert.equal(withdrawn.saved.id,saved.saved.id);assert.equal(withdrawn.pendingId,null);
+    const second=await run('resubmit',resubmit(withdrawn));
+    const returned=await run('return',review(second,'return'),'other');
+    const third=await run('resubmit',resubmit(returned));
+    const approved=await run('approve',review(third,'approve'),'other');
+    assert.equal(approved.active.id,third.pendingId);
+    assert.equal(approved.active.content.tools[0].notes,'local edit');
+    assert.equal(approved.saved,null);
     t.diagnostic(JSON.stringify(results));
     assert(results.every(([,count])=>count===0),'unrelated body/manifest reads must be zero');
   } finally {f.close();}

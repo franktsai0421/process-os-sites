@@ -1338,8 +1338,6 @@
     });
     reviewHost.querySelectorAll('[data-ipqcc-review-comment]').forEach(input=>{const id=input.dataset.ipqccReviewComment;if(comments.has(id))input.value=comments.get(id);if(id===focused){input.focus({preventScroll:true});if(Number.isInteger(caret))input.setSelectionRange(caret,caret);}});
     restoreView();
-    const count=document.querySelector('#approval-tab-quality .approval-tab-count');
-    if(count)count.textContent=String((window.FQCMasterUI?.pendingCount?.()||0)+(window.RoutineEquipmentUI?.pendingCount?.()||0)+pendingCount());
   }
   window.addEventListener('process-language-change',event=>{
     language=event.detail?.language==='zh'?'zh':'vi';

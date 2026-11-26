@@ -1252,7 +1252,7 @@
               + `<div class="quality-review-section" id="review-tooling">${window.ToolingUI?.reviewHTML?.() || ''}</div>`
 
             : '',
-        qualityPending: (window.FQCMasterUI?.pendingCount?.() || 0) + (window.RoutineEquipmentUI?.pendingCount?.() || 0) + (window.IQCMasterUI?.pendingCount?.() || 0) + (window.IPQCCUI?.pendingCount?.() || 0) + (window.IPQCABUI?.pendingCount?.() || 0) + (window.ToolingUI?.pendingCount?.() || 0),
+        qualityPending: '—',
         routineHTML: state.approvalTab === 'routine' ? window.RoutineFQCUI?.reviewHTML?.() || '' : '',
         routinePending: window.RoutineFQCUI?.pendingCount?.() || 0,
         onSelect: (key) => {
@@ -1264,6 +1264,7 @@
         },
       });
       const reads=[];
+      if(state.approvalTab!=='quality')void window.QualityReviewOverview?.refreshTabCount?.();
       if(masterActive){bindApprovalMaster();reads.push(dataReady);if(window.hasPermission?.('bom.view'))reads.push(window.BOMWorkspace?.loadReview({forRender:true}));}
       if(state.approvalTab==='quality'){
         const panel=document.querySelector('#approval-panel-quality');

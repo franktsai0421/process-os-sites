@@ -50,5 +50,21 @@
   if(typeof window[api]?.bindReview!=='function'||(read===undefined&&!['FQCMasterUI','IPQCABUI'].includes(api))){finish(true);return;}
   if(read&&typeof read.then==='function')Promise.resolve(read).then(()=>finish(false),()=>finish(true));else finish(false);
  }
- window.QualityReviewOverview={dispose(){observer?.disconnect();observer=null;active=null;},html,mount,track,omitDeniedReader,readerOmitted};
+ // A newly opened approval page has no module review projections yet.
+ let badgeRead=null;
+ async function refreshTabCount(){
+  const sync=window.ProcessSync,identity=sync?.identity,delivery=sync?.captureDelivery?.();
+  const badge=document.querySelector('#approval-tab-quality .approval-tab-count');
+  if(!badge||!identity||!delivery||!sync.isCurrentDelivery(delivery))return;
+  if(badgeRead?.identity!==identity||!sync.isCurrentDelivery(badgeRead.delivery)){
+   const read={identity,delivery};badgeRead=read;
+   read.promise=fetch('/api/quality-review-count',{cache:'no-store',headers:sync.platformHeaders(),signal:AbortSignal.timeout(45000)})
+    .then(async response=>response.ok?(await response.json()).count:null).catch(()=>null)
+    .finally(()=>{if(badgeRead===read)badgeRead=null;});
+  }
+  const count=await badgeRead.promise;
+  if(badge.isConnected&&identity===sync.identity&&sync.isCurrentDelivery(delivery)&&!sync.requiresReload)
+   badge.textContent=Number.isSafeInteger(count)&&count>=0?String(count):'—';
+ }
+ window.QualityReviewOverview={refreshTabCount,dispose(){observer?.disconnect();observer=null;active=null;},html,mount,track,omitDeniedReader,readerOmitted};
 })();
