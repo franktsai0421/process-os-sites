@@ -1650,7 +1650,7 @@
     return `<section class="rf-calendar-period rf-period-single" data-period-id="${h(j.id)}">
       <label class="rf-period-choice ${reason?'is-locked':''}">
         <input type="checkbox" data-job="${h(j.id)}" ${reason?`disabled aria-describedby="${h(reasonId)}"`:s.checked.has(j.id)?'checked':''}>
-        <span class="rf-period-overview"><b>${h(periodLabel(j))}</b><small>${h(j.source.code)}</small><span class="rf-period-lock" id="${h(reasonId)}">${reason?t('不可勾選','Không thể chọn')+' · '+h(reason):t('可勾選','Có thể chọn')}</span></span>
+        <span class="rf-period-overview"><b>${h(periodLabel(j))}</b><span class="rf-period-lock" id="${h(reasonId)}">${reason?t('不可勾選','Không thể chọn')+' · '+h(reason):t('可勾選','Có thể chọn')}</span></span>
       </label>
       ${s.periodStatus==='overdue'?dueSummary(j):''}${s.periodStatus==='disposal'&&disposals.has(j.id)?`<p>${t('處置申請','Đề nghị xử lý')} · ${h(historyAction(disposals.get(j.id).status))}</p>`:''}
       <div class="rf-period-location"><small>${t('目前狀態','Trạng thái hiện tại')}</small><span class="rf-period-chip ${current.tone}">${h(current.stage)}</span>${current.page?`<span>${t('接續頁面','Trang tiếp tục')}：${current.documentId?`<a href="#routine-document" class="rf-location-link" data-doc="${h(current.documentId)}">${h(current.page)}</a>`:current.caseId?`<button class="rf-btn rf-location-link" data-case="${h(current.caseId)}">${h(current.page)}</button>`:current.tab?`<button class="rf-btn rf-location-link" data-tab="${h(current.tab)}">${h(current.page)}</button>`:h(current.page)}</span>`:''}</div>

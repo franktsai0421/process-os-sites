@@ -25,7 +25,6 @@ import {
   parseRoutine,
   routineSources,
   routineCatalog,
-  fqcPlannerJobs,
   schedulePreview,
   nextDate,
   companyDate,
@@ -189,9 +188,8 @@ export async function GET(request: Request) {
     if (query.has('search-preview')) {
       const today = companyDate();
       const start = c.startDate || today;
-      const plannerJobs = fqcPlannerJobs(c, sources);
       const jobs = sources.flatMap((source) => {
-        const existing = plannerJobs.filter((j) => j.itemId === source.id);
+        const existing = c.jobs.filter((j) => j.itemId === source.id);
         const future = existing.filter((j) => j.start > today)
           .sort((a, b) => a.start.localeCompare(b.start))[0];
         if (future) return [{ ...future, previewExisting: true }];
@@ -301,7 +299,6 @@ export async function GET(request: Request) {
     return await finishEntry(reply({
       control: {
         ...c,
-        jobs: fqcPlannerJobs(c, sources),
         documents,
         cases: c.cases.map((item) => ({
           ...item,

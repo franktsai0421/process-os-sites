@@ -25,7 +25,6 @@ assert.equal(merge.mergeAbImport(first.control,catalog,{...payload,variants:[...
 const renamed=plain(first.control), renamedVersion=renamed.scopes['A:G'].versions[0];
 const changed=plain(renamedVersion.snapshot);
 changed.errors[0].code='Manual / Ω';
-changed.items.filter(row=>row.errorId===changed.errors[0].id).forEach((row,index)=>{row.code='Manual / Ω-'+String(index+7).padStart(2,'0');});
 renamedVersion.snapshot=coreAb.checkedAbSnapshot(renamedVersion,changed,catalog,'A','G',true);
 const replay=merge.mergeAbImport(renamed,catalog,payload,actor,'rename-replay');
 assert.equal(replay.summary.added,0);
@@ -59,7 +58,7 @@ if (process.argv.includes('--merge-only')) {
 } else (async()=>{
   const db=new DatabaseSync(':memory:');
   for(const name of fs.readdirSync('drizzle').filter(n=>n.endsWith('.sql')).sort()) db.exec(fs.readFileSync(path.join('drizzle',name),'utf8'));
-  const objects=new Map(),env={PROCESS_SESSION_SECRET:randomUUID(),PROCESS_RELEASE_TOKEN:randomUUID(),DEMO_LOGIN_ENABLED:'true',
+  const objects=new Map(),env={PROCESS_SESSION_SECRET:randomUUID(),DEMO_LOGIN_ENABLED:'true',
     DB:{prepare(sql){let args=[];return {bind(...v){args=v;return this;},async first(){return db.prepare(sql).get(...args)||null;},
       async all(){return {results:db.prepare(sql).all(...args)};},async run(){return {meta:{changes:Number(db.prepare(sql).run(...args).changes)}};}};}},
     STATE_ARCHIVE:{async put(k,v){objects.set(k,v);},async head(k){return objects.has(k)?{}:null;},
@@ -72,7 +71,7 @@ if (process.argv.includes('--merge-only')) {
   const base='http://127.0.0.1:3000';
   const cookies=Object.fromEntries(await Promise.all(users.map(async u=>[u.role,'process_demo='+await core.demoSession(new Request(base),u.id,true)])));
   async function call(role,p,revision,origin=base){return api.POST(new Request(base+'/api/ipqc-ab',{method:'POST',headers:{Origin:origin,
-    Cookie:cookies[role], 'X-Process-Expected-Actor':'demo-'+role,'X-Process-Release-Token':env.PROCESS_RELEASE_TOKEN, 'Content-Type':'application/json'},body:JSON.stringify({action:'reimport',baseRevision:revision,import:p})}));}
+    Cookie:cookies[role], 'Content-Type':'application/json'},body:JSON.stringify({action:'reimport',baseRevision:revision,import:p})}));}
   assert.equal((await call('staff',payload,1)).status,403);
   assert.equal((await call('admin',payload,1,'https://evil.invalid')).status,403);
   assert.equal((await call('admin',payload,0)).status,409);
@@ -83,14 +82,13 @@ if (process.argv.includes('--merge-only')) {
   const state=await core.readState();assert.equal(state.values.qualityMasterControl,values.qualityMasterControl);
   assert.equal(state.values.iqcMasterControl,values.iqcMasterControl);
   const draft=result.control.scopes['A:G'].versions[0];
-  response=await api.POST(new Request(base+'/api/ipqc-ab',{method:'POST',headers:{Origin:base,Cookie:cookies.admin,'X-Process-Expected-Actor':'demo-admin','Content-Type':'application/json'},
+  response=await api.POST(new Request(base+'/api/ipqc-ab',{method:'POST',headers:{Origin:base,Cookie:cookies.admin,'Content-Type':'application/json'},
     body:JSON.stringify({action:'submit',baseRevision:state.revision,line:'A',group:'G',versionId:draft.id,versionRevision:draft.revision,snapshot:draft.snapshot,reason:'test'})}));
-  assert.equal(response.status,409);assert.equal((await response.json()).error,'WORKFLOW_V3_REQUIRED');
-  response=await api.POST(new Request(base+'/api/ipqc-ab',{method:'POST',headers:{Origin:base,Cookie:cookies.admin,'X-Process-Expected-Actor':'demo-admin','Content-Type':'application/json'},
-    body:JSON.stringify({action:'submit-test',baseRevision:(await core.readState()).revision,line:'A',group:'G',versionId:draft.id,versionRevision:draft.revision,snapshot:draft.snapshot,reason:'test'})}));
-  assert.equal(response.status,410,'Trial submissions have been retired');
-  assert.equal(JSON.parse((await core.readState()).values.ipqcABMasterControl).scopes['A:G'].activeVersionId,null);
-  result=await (await call('admin',payload,result.revision)).json();assert.equal(result.unchanged,true);
+  assert.equal(response.status,422,'Missing method must still block formal submit');
+  response=await api.POST(new Request(base+'/api/ipqc-ab',{method:'POST',headers:{Origin:base,Cookie:cookies.admin,'Content-Type':'application/json'},
+    body:JSON.stringify({action:'submit-test',baseRevision:state.revision,line:'A',group:'G',versionId:draft.id,versionRevision:draft.revision,snapshot:draft.snapshot,reason:'test'})}));
+  assert.equal(response.status,200);result=await response.json();assert.equal(result.control.scopes['A:G'].activeVersionId,null);
+  response=await call('admin',payload,result.revision);result=await response.json();assert.equal(result.unchanged,true);
   db.close();
   if(process.argv[2]) {
     const directory=path.resolve(process.argv[2]);const manifest=JSON.parse(fs.readFileSync(path.join(directory,'manifest.json'),'utf8'));

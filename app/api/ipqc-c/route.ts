@@ -1,5 +1,3 @@
-import {requireItemCode,validateItemCodes} from '../../../lib/quality-item-code';
-import {DraftConflict} from '../../../lib/shared-draft';
 import {manualErrorCode} from '../../../lib/manual-error-code';
 import {ipqcCFinalReviewAllowed} from '@/lib/ipqc-c-access';
 import {restoreEffects} from '@/lib/draft-restore-access';
@@ -204,7 +202,7 @@ export async function POST(request: Request) {
       } else if (version.status !== 'draft') return reply({ error: '目前沒有可編輯草稿' }, 409);
       if (action === 'save' || action === 'submit') {
         let snapshot: IpqcSnapshot;
-        try { snapshot = checkedIpqcSnapshot(version, body.snapshot,active?.snapshot.errors || []); validateItemCodes(snapshot,version.snapshot,active?.snapshot||{errors:[],items:[]},'code'); }
+        try { snapshot = checkedIpqcSnapshot(version, body.snapshot,active?.snapshot.errors || []); }
         catch (error) { return reply({ error: error instanceof Error ? error.message : '草稿格式錯誤' }, 422); }
         try { checkEquipment(snapshot, version.snapshot, state.values); }
         catch (error) { return reply({ error: error instanceof Error ? error.message : '檢具關聯無效' }, 422); }
@@ -248,7 +246,7 @@ export async function POST(request: Request) {
         let rule;
         try { rule = checkedIpqcRule(raw.rule); }
         catch (error) { return reply({ error: error instanceof Error ? error.message : '檢查規則無效' }, 422); }
-        const code = requireItemCode(parent.code,raw.code);
+        const code = nextItemCode(control, parent.code);
         version.snapshot.items.push({ id: crypto.randomUUID(), code, errorId: parent.id,
           productCode: parent.productCode, stageCode: parent.stageCode,
           standard: raw.standard, cpkEnabled: raw.cpkEnabled, standardEnabled: raw.standardEnabled,
@@ -258,7 +256,6 @@ export async function POST(request: Request) {
           notApplicable: raw.notApplicable === true, notApplicableReason: clean(raw.notApplicableReason),
           equipmentGroupId: clean(raw.equipmentGroupId), equipmentId: clean(raw.equipmentId),
           equipmentSnapshot: null, mediaItems: photos, deleted: false });
-        validateItemCodes(version.snapshot,{...version.snapshot,items:version.snapshot.items.slice(0,-1)},active?.snapshot||{errors:[],items:[]},'code');
         try { checkEquipment(version.snapshot, { ...version.snapshot, items: version.snapshot.items.slice(0, -1) }, state.values); }
         catch (error) { return reply({ error: error instanceof Error ? error.message : '檢具關聯無效' }, 422); }
       } else if (action === 'delete-item') {
@@ -278,7 +275,6 @@ export async function POST(request: Request) {
       } else if (action === 'approve' || action === 'reject') {
         const comment = clean(body.comment).trim();
         if (action === 'approve') {
-          validateItemCodes(version.snapshot,active?.snapshot||{errors:[],items:[]},active?.snapshot||{errors:[],items:[]},'code');
           const issues=submitIpqcErrors(version,active,data.products);if(issues.length)return reply({error:'核准驗證未通過',errors:issues},422);
           if (active) active.status = 'superseded';
           version.status = 'approved'; control.activeVersionId = version.id;
@@ -294,7 +290,6 @@ export async function POST(request: Request) {
     if (updated.meta.changes !== 1) return reply({ error: '修訂衝突，沒有儲存', revision: (await readState()).revision }, 409);
     return reply({ revision: state.revision + 1, control });
   } catch (error) {
-    if(error instanceof DraftConflict)return reply({error:error.message,details:error.details},error.status);
     console.error('[ipqc-c] write failed', error);
     return reply({ error: error instanceof Error ? error.message : 'IPQC-C 寫入失敗' }, 500);
   }

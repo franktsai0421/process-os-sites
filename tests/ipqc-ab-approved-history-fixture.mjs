@@ -15,26 +15,8 @@ export async function setup(t,{referencePort=false,extraStage=false,restore=fals
  if(extraGroup){sourceMaster.active.AB.lines.push({code:'B',stages:[{code:'B-CUT',name:'B cut'}]});sourceMaster.active.AB.categoryGroups.push({line:'B',name:'H',defaultStages:['B-CUT']});sourceMaster.active.AB.products.push({code:'P2',name:'P2',line:'B',category:'H',stages:['B-CUT']});}
  const coldControl=coldLegacy?coldLegacyControl():null;if(coldControl&&coldDraftDifference)coldControl.scopes['A:G'].versions.find(v=>v.status==='draft').snapshot.items[1].reason='Legacy unsaved difference';
  const projection={masterDataControl:JSON.stringify(sourceMaster),...(coldControl?{ipqcABMasterControl:JSON.stringify(coldControl)}:{})},f=await fixture(projection);t.after(()=>f.close());const query='&scope=A%3AG';let g;
- if(!coldLegacy){
-  await f.begin('ipqc-ab','editor',200,query);
-  await f.command('ipqc-ab','apply',{moduleAction:'create-error',input:{stageCode:'A-CUT',code:'A-CUT-L1',name:'Error old'}},'editor',200,query);
-  g=await f.read('ipqc-ab','editor',query);
-  const parent=g.control.workflow.working.errors[0];
-  for(const [suffix,standard] of [['01','Base 1'],['02','Base 2']]){
-   await f.command('ipqc-ab','apply',{moduleAction:'create-item',input:{errorId:parent.id,item:{code:parent.code+'-'+suffix,standard}}},'editor',200,query);
-  }
-  if(extraStage)await f.command('ipqc-ab','apply',{moduleAction:'create-error',input:{stageCode:'A-PACK',code:'A-PACK-L1',name:'Outside current route'}},'editor',200,query);
-  if(moduleDraft)await f.begin('ipqc-ab','editor',200,'&module=1');
- }
- let otherId=null;
- if(extraGroup){
-  const other='&scope=B%3AH';
-  await f.begin('ipqc-ab','editor',200,other);
-  await f.command('ipqc-ab','apply',{moduleAction:'create-error',input:{stageCode:'B-CUT',code:'B-CUT-L1',name:'B error'}},'editor',200,other);
-  const b=await f.read('ipqc-ab','editor',other),parent=b.control.workflow.working.errors[0];
-  await f.command('ipqc-ab','apply',{moduleAction:'create-item',input:{errorId:parent.id,item:{code:parent.code+'-01',standard:'B base'}}},'editor',200,other);
-  otherId=(await f.read('ipqc-ab','editor',other)).control.workflow.working.items[0].id;
- }
+ if(!coldLegacy){await f.begin('ipqc-ab','editor',200,query);await f.command('ipqc-ab','apply',{moduleAction:'create-error',input:{stageCode:'A-CUT',name:'Error old'}},'editor',200,query);g=await f.read('ipqc-ab','editor',query);for(const standard of ['Base 1','Base 2'])await f.command('ipqc-ab','apply',{moduleAction:'create-item',input:{errorId:g.control.workflow.working.errors[0].id,item:{standard}}},'editor',200,query);if(extraStage)await f.command('ipqc-ab','apply',{moduleAction:'create-error',input:{stageCode:'A-PACK',name:'Outside current route'}},'editor',200,query);if(moduleDraft)await f.begin('ipqc-ab','editor',200,'&module=1');}
+ let otherId=null;if(extraGroup){await f.begin('ipqc-ab','editor',200,'&scope=B%3AH');await f.command('ipqc-ab','apply',{moduleAction:'create-error',input:{stageCode:'B-CUT',name:'B error'}},'editor',200,'&scope=B%3AH');const b=await f.read('ipqc-ab','editor','&scope=B%3AH');await f.command('ipqc-ab','apply',{moduleAction:'create-item',input:{errorId:b.control.workflow.working.errors[0].id,item:{standard:'B base'}}},'editor',200,'&scope=B%3AH');otherId=(await f.read('ipqc-ab','editor','&scope=B%3AH')).control.workflow.working.items[0].id;}
  g=await f.read('ipqc-ab','editor',query);const ids=(g.control.workflow?.working||g.control.versions.find(v=>v.status==='draft').snapshot).items.map(r=>r.id);
  if(coldLegacy){assert.equal(g.control.workflow,undefined);const raw=JSON.parse((await f.core.readState()).values.ipqcABMasterControl);assert.equal(raw.moduleDraft,undefined);assert.equal(raw.scopes['A:G'].workflow,undefined);const state=await f.core.readState(),users=JSON.parse(state.values.platformUsers);users.find(u=>u.id==='preview-editor').accessOverrides['approval.submit']=true;const encoded=await f.core.encodeValues({...state.values,platformUsers:JSON.stringify(users)},state);f.db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(encoded);}
 
