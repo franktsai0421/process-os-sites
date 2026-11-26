@@ -404,7 +404,7 @@
     finally{if(activeSharedAction===operation){activeSharedAction=null;ui.saving=false;if(owned()&&matrixBatch===batch){paintMatrixActions();render();}}}
   }
   const commandFeedbackPending=()=>!!pendingCommandFeedback?.owned();
-  const sharedFields={errors:['name','isDeleted'],items:['name','description','errorId','tool','equipmentId','equipmentSnapshot','mediaItems','isEnabled','rule','isMonthly','isQuarterly','isYearly','isCustomPeriod','customPeriodText','productCodes','productRefs','products','reason','note','isDeleted']};
+  const sharedFields={errors:['code','name','isDeleted'],items:['name','description','errorId','tool','equipmentId','equipmentSnapshot','mediaItems','isEnabled','rule','isMonthly','isQuarterly','isYearly','isCustomPeriod','customPeriodText','productCodes','productRefs','products','reason','note','isDeleted']};
   function transport(){const actor=identity(),id=actor?.id,epoch=window.ProcessSync?.identityGeneration?.();if(!id)throw Error('LOGIN_REQUIRED');if(sharedActor!==id||sharedClient?.isRuntimeCurrent?.()===false||sharedClientOwner?.actor!==actor||sharedClientOwner.epoch!==epoch||sharedClientOwner.delivery&&window.ProcessSync?.isCurrentDelivery?.(sharedClientOwner.delivery)===false){sharedActor=id;sharedClientOwner={actor,epoch,delivery:window.ProcessSync?.captureDelivery?.()};sharedClient=window.createSharedDraftClient({durableBegin:true,guardAccessResults:true,fqcComparedSave:true,endpoint:'/api/fqc/workflow?caseMetadata=1',externalDurableBounded:{scope:'FQC'},legacyArchive:true,conditionalState:true,actorId:id,headers:()=>window.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'},permissionGates:{edit:'#fqc-page .matrix-cell,#fqc-add-item,#fqc-add-error,#fqc-page [data-edit-item],#fqc-page [data-edit-error],.fqc-modal-form button[type=submit]',save:'#fqc-save',submit:'#fqc-submit',withdraw:'#fqc-withdraw,#quality-withdraw',history:'#fqc-cases',approve:'#quality-approve',return:'#quality-reject',delete:'#fqc-page [data-delete-item],#fqc-page [data-delete-error]'}});}return sharedClient;}
   function adopt(result,selectOpen=false,confirmedBegin=false){if(beginGenerationConflict&&!confirmedBegin)throw Error('STALE_GENERATION');if(!result.control)return;const wasOpen=!selected()||['draft','pending'].includes(selected()?.status);ensureControl().libraries.fqc=result.control;if(wasOpen||selectOpen)ui.selectedVersionId=result.control.versions.find(v=>['draft','pending'].includes(v.status))?.id||result.control.activeVersionId||'';syncBase=clone(result.control.workflow?.working||selected()?.snapshot||{errors:[],items:[]});syncGeneration=result.control.workflow?.generation||null;sharedStateCurrent=currentReadOwner(()=>true,false);}
   async function loadShared(isCurrent=()=>true){const owned=currentReadOwner(isCurrent),r=await transport().read();if(!owned())throw Error('FQC_READ_SUPERSEDED');adopt(r);return r;}
@@ -1454,13 +1454,9 @@
       });
     });
   }
-  function nextErrorCode(category, errors) {
-    const same = errors.filter(error => error.category === category), sample = same.map(error => error.code).find(code => /-FQC-L\d+$/i.test(code));
-    const prefix = sample ? sample.replace(/\d+$/, '') : `${category.replace(/[-/()]/g, '')}-FQC-L`;
-    const max = Math.max(0, ...same.map(error => Number(error.code.match(/(\d+)$/)?.[1]) || 0)); return `${prefix}${String(max + 1).padStart(2, '0')}`;
-  }
   function nextCheckNo(error, items) {
-    const same = items.filter(item => item.errorId === error.id), match = error.code.match(/^(.*-FQC-L)0?(\d+)$/i), prefix = match ? `${match[1]}${Number(match[2])}-` : `${error.code}-`;
+    const match = error.code.match(/^(.*-FQC-L)0?(\d+)$/i), prefix = match ? `${match[1]}${Number(match[2])}-` : `${error.code}-`;
+    const same = items.filter(item=>item.errorId===error.id || item.checkNo.startsWith(prefix) && /^\d+$/.test(item.checkNo.slice(prefix.length)));
     const max = Math.max(0, ...same.map(item => Number(item.checkNo.match(/-(\d+)$/)?.[1]) || 0)); return `${prefix}${String(max + 1).padStart(2, '0')}`;
   }
   function isVi() {
@@ -1651,11 +1647,11 @@
   }
   function closeModal(overlay) { overlay.remove(); document.body.classList.remove('fqc-modal-open'); approvedHistoryView?.refreshControls?.(); }
   function openErrorModal(id = '') {
-    const version = {...clone(editable()),snapshot:localSnapshot()}, errors = version.snapshot.errors, existing = errors.find(error => error.id === id), category = categoryName(version), code = existing?.code || nextErrorCode(category, errors);
+    const version = {...clone(editable()),snapshot:localSnapshot()}, errors = version.snapshot.errors, existing = errors.find(error => error.id === id), category = categoryName(version), initialCode = existing?.code || '';
     const vi = isVi(),newId = `fqc-error:${crypto.randomUUID()}`;
     const overlay = modal(`<form class="fqc-modal-form"><header><h2>${existing ? (vi ? 'Sửa mã lỗi' : '修改錯誤代碼') : (vi ? 'Thêm mã lỗi mới' : '新增錯誤代碼')}</h2><button type="button" class="button ghost" data-close>${vi ? 'Quay lại' : '返回'}</button></header><div class="fqc-modal-body">
       <div class="fqc-field"><label class="fqc-label">${vi ? 'Nhóm sản phẩm' : '產品類別'}</label><input value="${h(existing?.category || category)}" readonly data-i18n-skip="true" class="fqc-input fqc-readonly"></div>
-      <div class="fqc-field"><label class="fqc-label">${vi ? 'Mã lỗi (tự động)' : '錯誤代碼（自動接續）'}</label><input value="${h(code)}" readonly data-i18n-skip="true" class="fqc-input fqc-readonly"></div>
+      <div class="fqc-field" data-field-wrap="code"><label class="fqc-label">${vi ? 'Mã lỗi' : '錯誤代碼'}<input name="code" value="${h(initialCode)}" required data-i18n-skip="true" class="fqc-input"></label><div class="fqc-field-error" data-field-error="code"></div></div>
       <div class="fqc-field" data-field-wrap="name"><label class="fqc-label">${vi ? 'Tên lỗi' : '錯誤名稱'}</label><input name="name" value="${h(existing?.name || '')}" required data-i18n-skip="true" class="fqc-input"><div class="fqc-field-error" data-field-error="name"></div></div>
     </div><footer><div class="fqc-modal-alert" role="alert"></div><button class="button signal" type="submit">${isVi()?'Hoàn tất chỉnh sửa':'完成編輯'}</button><button type="button" class="button ghost" data-close>${vi ? 'Hủy' : '取消'}</button></footer></form>`);
 
@@ -1681,9 +1677,12 @@
         showModalFieldError(overlay, 'name', vi ? 'Vui lòng nhập tên lỗi' : '請輸入錯誤名稱');
         return;
       }
+      const code = nativeFormValueText(form.get('code') || '');
+      const issue = window.manualErrorCodeIssue(code, existing?.id || newId, errors, approved()?.snapshot?.errors);
+      if (issue) { showModalFieldError(overlay,'code',displayDraftError(issue)); return; }
       const release=lockFormWrite(overlay);
       const value = existing || errors.find(row=>row.id===newId) || { id: newId, category, line: filteredCategories(version).find(item => item.name === category)?.line || '', code, isDeleted: false };
-      Object.assign(value, { name });
+      Object.assign(value, { code, name });
       if (!errors.includes(value)) errors.push(value);
       record(version, existing ? 'error-updated' : 'error-created', `${existing ? '修改' : '新增'}錯誤代碼 ${code}`, '');
       try {

@@ -38,6 +38,8 @@ const unmodified = (item:AbItem, base:Partial<AbItem>) => editable.every(f=>same
   !item.equipmentId && !item.equipmentSnapshot && !item.reason && !item.deleted &&
   sourceFields.every(f=>same(item[f]||'',base[f]||''));
 
+const importCode = (parent:AbSnapshot['errors'][number] | undefined) => parent?.sourceCode ?? parent?.code;
+
 /** Pure, atomic group-draft merger. No assets or approved snapshots are ever rewritten. */
 export function mergeAbImport(input:AbControl, catalog:AbCatalog, payload:AbImportPayload,
   actor:{id:string;name:string}, at:string) {
@@ -82,7 +84,7 @@ export function mergeAbImport(input:AbControl, catalog:AbCatalog, payload:AbImpo
     const prior=legacyItems.get(item.id), error=version.snapshot.errors.find(e=>e.id===item.errorId);
     const parent=legacyErrors.get(prior?.errorId||'');
     return prior && error && parent && prior.id===`ipqc-ab-item:${prior.code}` && prior.code===item.code &&
-      prior.errorId===item.errorId && parent.code===error.code && same(prior.sourceRows,item.sourceRows) &&
+      prior.errorId===item.errorId && parent.code===importCode(error) && same(prior.sourceRows,item.sourceRows) &&
       version.history.some(h=>h.action==='initial-import'&&h.comment===AB_LEGACY_SHA) ? prior : undefined;
   };
   const scopeKeys=new Set([...payload.variants.filter(v=>v.productCodes.length).map(v=>scopeKey(v.line,v.group)),
@@ -113,7 +115,7 @@ export function mergeAbImport(input:AbControl, catalog:AbCatalog, payload:AbImpo
       const baseName=norm(v.standard);
       const candidates=oldItems.filter(item=>{
         const parent=snapshot.errors.find(e=>e.id===item.errorId), base=bases.get(item.id);
-        return parent?.code===v.errorCode && (item.sourceImport?.key===v.key ||
+        return importCode(parent)===v.errorCode && (item.sourceImport?.key===v.key ||
           base && norm(base.standard||'')===baseName);
       });
       // A changed source standard can retain identity only with a unique parent/source alias
@@ -122,13 +124,13 @@ export function mergeAbImport(input:AbControl, catalog:AbCatalog, payload:AbImpo
         const clean=oldItems.filter(item=>{
           const parent=snapshot.errors.find(e=>e.id===item.errorId), base=bases.get(item.id);
           const aliases=item.sourceImport?.sourceItemCodes||[item.code];
-          return parent?.code===v.errorCode && base && aliases.some(c=>v.sourceItemCodes.includes(c)) && unmodified(item,base);
+          return importCode(parent)===v.errorCode && base && aliases.some(c=>v.sourceItemCodes.includes(c)) && unmodified(item,base);
         });
         if(clean.length===1) candidates.push(clean[0]);
       }
       const ambiguous=oldItems.filter(item=>{
         const parent=snapshot.errors.find(e=>e.id===item.errorId), base=bases.get(item.id);
-        return parent?.code===v.errorCode && !candidates.includes(item) &&
+        return importCode(parent)===v.errorCode && !candidates.includes(item) &&
           (norm(item.standard)===baseName || base && item.sourceRows.some(r=>v.sourceRows.includes(r)));
       });
       if(candidates.length>1 || candidates.some(i=>used.has(i.id)) || (!candidates.length&&ambiguous.length)) {
@@ -139,8 +141,12 @@ export function mergeAbImport(input:AbControl, catalog:AbCatalog, payload:AbImpo
       if(item?.deleted) {
         used.add(item.id); entries.push({key:v.key,code:item.code,status:'preserved',reasons:['manual_or_prior_deletion']}); continue;
       }
-      let parent=snapshot.errors.find(e=>e.code===v.errorCode);
-      if(parent && (parent.deleted||parent.line!==v.line||parent.group!==v.group||parent.stageCode!==v.stageCode)) {
+      const parents=snapshot.errors.filter(e=>importCode(e)===v.errorCode);
+      if(parents.length>1 || parents.length===0 && snapshot.errors.some(e=>!e.deleted && e.code.trim().toLowerCase()===v.errorCode.trim().toLowerCase())) {
+        entries.push({key:v.key,status:'deferred',reasons:['error_identity_conflict']});continue;
+      }
+      let parent=parents[0];
+      if(parent && ((!parent.sourceImport && !parent.sourceRows.length) || parent.deleted||parent.line!==v.line||parent.group!==v.group||parent.stageCode!==v.stageCode)) {
         entries.push({key:v.key,status:'deferred',reasons:['error_identity_conflict']});continue;
       }
       const priorName=parent?.sourceImport?.nameBaseline||legacyErrors.get(parent?.id||'')?.name;
@@ -185,7 +191,7 @@ export function mergeAbImport(input:AbControl, catalog:AbCatalog, payload:AbImpo
     }
     for(const item of oldItems.filter(i=>!used.has(i.id))) {
       const parent=snapshot.errors.find(e=>e.id===item.errorId), base=bases.get(item.id);
-      const stillPresent=relevant.some(v=>v.errorCode===parent?.code &&
+      const stillPresent=relevant.some(v=>v.errorCode===importCode(parent) &&
         (norm(v.standard)===norm(base?.standard||item.standard) || v.sourceRows.some(r=>item.sourceRows.includes(r))));
       if(base && !stillPresent && unmodified(item,base)) {
         item.deleted=true;entries.push({code:item.code,status:'deleted',reasons:['confirmed_import_absent_unmodified']});
@@ -193,7 +199,7 @@ export function mergeAbImport(input:AbControl, catalog:AbCatalog, payload:AbImpo
     }
     // Parent source rows include every source variant, even excluded variants; manual names remain intact.
     for(const parent of snapshot.errors) {
-      const sourceRows=[...new Set(relevant.filter(v=>v.errorCode===parent.code).flatMap(v=>v.sourceRows))].sort((a,b)=>a-b);
+      const sourceRows=[...new Set(relevant.filter(v=>v.errorCode===importCode(parent)).flatMap(v=>v.sourceRows))].sort((a,b)=>a-b);
       if(sourceRows.length && parent.sourceRows.length) parent.sourceRows=sourceRows;
       else if(sourceRows.length && errors.some(e=>e.code===parent.code)) parent.sourceRows=sourceRows;
     }

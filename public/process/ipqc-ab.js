@@ -81,7 +81,7 @@
   function captureBatchInput(target=modal){
     if(!target||target!==modal||target.readonly)return;
     if(target.type==='item')captureModal();
-    else if(['error','new-error'].includes(target.type)){const value=host?.querySelector('#ab-error-name')?.value;if(value!==undefined){if(target.type==='error'){const row=working?.errors.find(e=>e.id===target.id);if(row)row.name=value;}else target.name=value;}}
+    else if(['error','new-error'].includes(target.type)){const value=host?.querySelector('#ab-error-name')?.value;if(value!==undefined){if(target.type==='error'){const row=working?.errors.find(e=>e.id===target.id);if(row){row.name=value;row.code=host.querySelector('#ab-error-code')?.value??row.code;}}else {target.name=value;target.code=host.querySelector('#ab-error-code')?.value??target.code;}}}
   }
   function hasPrivateInput(){if(localScopes.size)return localDirty()||hasLocalFilterForm()||!!modal&&!modal.readonly;return !!localBatch||!!modal&&!modal.readonly||!!working&&!sameInput(working,opened()?.snapshot);}
   function retainInputBase(owner=inputBasisOwner||inputOwner()){
@@ -169,7 +169,9 @@
       if(live.inspectionMode!==row.inspectionMode||live.equipmentId!==row.equipmentId)delete readonly.equipmentSnapshot;
     }else if(targetValue.type!=='new-error'||target.type!=='new-error'||typeof target.name!=='string'||targetValue.name!==operation.input?.name)throw Error('LOCAL_BATCH_RECONFIRM');
     const suffix=row.code.slice(prefix.length),allocated=Number(suffix);
-    if(!row.code.startsWith(prefix)||!/^\d+$/.test(suffix)||!Number.isSafeInteger(allocated)||allocated<1||String(allocated).padStart(isItem?2:1,'0')!==suffix)throw Error('LOCAL_BATCH_RECONFIRM');
+    if(!isItem && typeof operation.input?.code==='string'){
+      if(row.code!==operation.input.code || targetValue.code!==operation.input.code)throw Error('LOCAL_BATCH_RECONFIRM');
+    }else if(!row.code.startsWith(prefix)||!/^\d+$/.test(suffix)||!Number.isSafeInteger(allocated)||allocated<1||String(allocated).padStart(isItem?2:1,'0')!==suffix)throw Error('LOCAL_BATCH_RECONFIRM');
     const nextBase=clone(base);nextBase[collection].push(clone(row));
     return{base:nextBase,apply(){
       // Preserve working, the original item and modal references: an in-flight
@@ -483,13 +485,13 @@
   }
   function localScopeChanges(entry){
     const result=[],base=entry.base,next=entry.snapshot;
-    for(const kind of ['errors','items'])for(const row of next[kind])if(!row.deleted&&!base[kind].some(r=>r.id===row.id))result.push({moduleAction:kind==='errors'?'create-error':'create-item',localId:row.id,input:kind==='errors'?{stageCode:row.stageCode,name:row.name}:{errorId:row.errorId,item:Object.fromEntries(createItemFields.map(f=>[f,clone(row[f])]))}});
+    for(const kind of ['errors','items'])for(const row of next[kind])if(!row.deleted&&!base[kind].some(r=>r.id===row.id))result.push({moduleAction:kind==='errors'?'create-error':'create-item',localId:row.id,input:kind==='errors'?{stageCode:row.stageCode,code:row.code,name:row.name}:{errorId:row.errorId,item:Object.fromEntries(createItemFields.map(f=>[f,clone(row[f])]))}});
     for(const kind of ['items','errors'])for(const before of base[kind]){
       const row=next[kind].find(r=>r.id===before.id);if(!row)throw Error('LOCAL_ROW_MISSING');
       if(!before.deleted&&row.deleted){result.push({moduleAction:kind==='errors'?'delete-error':'delete-item',input:{id:row.id},guards:[{path:[kind,{id:row.id}],value:clone(before)}]});continue;}
       if(before.deleted&&!row.deleted){const restore=entry.restoreChoices?.[row.id];if(kind!=='items'||!restore)throw Error('RESTORE_RECONFIRM');const fields={...restore.fields};for(const field of createItemFields)if(!sameInput(before[field],row[field]))fields[field]=clone(row[field]);result.push({moduleAction:'restore-item-local-v1',input:{id:row.id,origin:clone(restore.origin),fields},guards:[{path:['items',{id:row.id}],value:clone(before)},{path:['errors',{id:row.errorId}],value:clone(restore.parent)}]});continue;}
       if(row.deleted)continue;const patches=[],guards=[];
-      for(const field of kind==='errors'?['name']:createItemFields)if(!sameInput(before[field],row[field])){const path=[kind,{id:row.id},field];patches.push({op:'set',path,value:clone(row[field])});guards.push({path,value:clone(before[field])});}
+      for(const field of kind==='errors'?['code','name']:createItemFields)if(!sameInput(before[field],row[field])){const path=[kind,{id:row.id},field];patches.push({op:'set',path,value:clone(row[field])});guards.push({path,value:clone(before[field])});}
       if(patches.length)result.push({patches,guards});
     }
     return result;
@@ -612,7 +614,7 @@
   function localConflictItemRows(detail,conflict){
     const entry=localScopes.get(detail.scope),path=detail.path,server=control?.scopes[detail.scope];
     if(!entry||!server||entry.generation!==(server.workflow?.generation||null)||entry.baseId!==server.activeVersionId)return null;
-    if(path.length===3&&!(path[0]==='errors'?['name']:createItemFields).includes(path[2]))return null;
+    if(path.length===3&&!(path[0]==='errors'?['code','name']:createItemFields).includes(path[2]))return null;
     const source=server.workflow?.working||server.versions.find(v=>v.status==='draft')?.snapshot||server.versions.find(v=>v.id===server.activeVersionId)?.snapshot;
     const originals=entry.base[path[0]].filter(r=>r.id===path[1].id),locals=entry.snapshot[path[0]].filter(r=>r.id===path[1].id),currents=source?.[path[0]]?.filter(r=>r.id===path[1].id)||[];
     if(originals.length!==1||locals.length!==1)return null;
@@ -949,7 +951,7 @@
   }
   function errorModal(e,readonly) {
     return `<div class="ipqcab-modal-title">${readonly?t('查看錯誤代碼','Xem mã lỗi'):t('修改錯誤代碼','Sửa mã lỗi')} · ${h(e.code)}</div>
-      <label>${t('錯誤代碼名稱','Tên mã lỗi')}<input id="ab-error-name" value="${h(e.name)}" ${readonly?'readonly':''}></label>`;
+      <label>${t('錯誤代碼','Mã lỗi')}<input id="ab-error-code" value="${h(e.code)}" ${readonly?'readonly':''} required></label><label>${t('錯誤代碼名稱','Tên mã lỗi')}<input id="ab-error-name" value="${h(e.name)}" ${readonly?'readonly':''}></label>`;
   }
   function photoEditor(item,readonly) {
     const rows = kind => item[kind==='standard'?'standardPhotos':'methodPhotos'].map((photo,index,photos)=>`<div class="ipqcab-photo-row"><button type="button" data-ab-view-modal="${kind}:${index}"><img src="${h(photoUrl(photo))}" alt="${h(photo.name)}"></button>
@@ -987,7 +989,7 @@
   }
   function modalHTML() {
     if (!modal) return '';
-    if (modal.type === 'new-error') return `<div class="ipqcab-overlay"><div class="ipqcab-dialog"><header><h3>${t('新增錯誤代碼','Thêm mã lỗi')}</h3><button type="button" data-ab-close>×</button></header><div class="ipqcab-dialog-body"><p>${t('錯誤代碼編號將於儲存時自動帶入。','Mã lỗi sẽ được cấp tự động khi lưu.')}</p><label>${t('錯誤代碼名稱','Tên mã lỗi')}<input id="ab-error-name" value="${h(modal.name||'')}" required></label>${localPending()?`<p role="status" data-ab-local-unknown>${t('上次操作結果尚未確認；請查詢原操作收據，不會重新送出。','Chưa xác nhận kết quả thao tác trước; hãy tra cứu biên nhận gốc, không gửi lại.')}</p><button type="button" data-ab-local-query ${busy?'disabled':''}>${t('查詢原操作','Tra cứu thao tác gốc')}</button>`:''}${message?`<p role="alert">${h(displayDraftError(message))}</p>`:''}</div><footer><button type="button" data-ab-close>${t('取消','Hủy')}</button><button type="button" class="signal" id="ab-apply">${t('完成本機編輯','Hoàn tất chỉnh sửa')}</button>${createdCheckButton()}</footer></div></div>`;
+    if (modal.type === 'new-error') return `<div class="ipqcab-overlay"><div class="ipqcab-dialog"><header><h3>${t('新增錯誤代碼','Thêm mã lỗi')}</h3><button type="button" data-ab-close>×</button></header><div class="ipqcab-dialog-body"><label>${t('錯誤代碼','Mã lỗi')}<input id="ab-error-code" value="${h(modal.code||'')}" required></label><label>${t('錯誤代碼名稱','Tên mã lỗi')}<input id="ab-error-name" value="${h(modal.name||'')}" required></label>${localPending()?`<p role="status" data-ab-local-unknown>${t('上次操作結果尚未確認；請查詢原操作收據，不會重新送出。','Chưa xác nhận kết quả thao tác trước; hãy tra cứu biên nhận gốc, không gửi lại.')}</p><button type="button" data-ab-local-query ${busy?'disabled':''}>${t('查詢原操作','Tra cứu thao tác gốc')}</button>`:''}${message?`<p role="alert">${h(displayDraftError(message))}</p>`:''}</div><footer><button type="button" data-ab-close>${t('取消','Hủy')}</button><button type="button" class="signal" id="ab-apply">${t('完成本機編輯','Hoàn tất chỉnh sửa')}</button>${createdCheckButton()}</footer></div></div>`;
     if (modal.type === 'creating-item') return `<div class="ipqcab-overlay"><div class="ipqcab-dialog"><header><h3>${t('新增檢查項目','Thêm hạng mục')}</h3></header><div class="ipqcab-dialog-body"><p role="status">${t('正在自動分配項目編號…','Đang cấp mã hạng mục tự động…')}</p></div></div></div>`;
     if (modal.type === 'equipment') {
       if(modal.loading||modal.error)return `<div class="ipqcab-overlay"><div class="ipqcab-dialog"><header><h3>${t('選擇檢具與測試設備','Chọn dưỡng kiểm và thiết bị')}</h3><button type="button" data-ab-close>×</button></header><div class="ipqcab-dialog-body"><p role="${modal.error?'alert':'status'}">${h(modal.error||t('正在載入設備清單…','Đang tải danh sách thiết bị…'))}</p>${modal.error?`<button type="button" id="ab-equipment-retry">${t('重試','Thử lại')}</button>`:''}</div></div></div>`;
@@ -1175,10 +1177,14 @@
     host.querySelectorAll('[data-ab-local-query]').forEach(el=>{const intent=localQueryIntent();listenWorking(el,'click',()=>queryLocalOperation(intent));});
     listenWorking(q('#ab-apply'),'click',()=>{
       if(busy||!modal||!permittedAction('edit'))return;startLocal();
+      if(modal.type==='new-error'||modal.type==='error'){
+        const input=q('#ab-error-code'),issue=window.manualErrorCodeIssue(input.value,modal.id,working.errors,active()?.snapshot?.errors);
+        input.setCustomValidity(issue?displayDraftError(issue):''); if(!input.reportValidity())return;
+      }
       if(modal.type==='new-error'){
         const name=q('#ab-error-name')?.value?.trim();if(!name){q('#ab-error-name')?.reportValidity();return;}
-        const id='local-'+crypto.randomUUID();working.errors.push({id,code:t('存取時分配編號','Cấp mã khi lưu'),line,group,stageCode:stage,name,sourceRows:[],deleted:false});errorId=id;
-      }else if(modal.type==='error')working.errors.find(e=>e.id===modal.id).name=q('#ab-error-name').value;
+        const id='local-'+crypto.randomUUID();working.errors.push({id,code:q('#ab-error-code').value,line,group,stageCode:stage,name,sourceRows:[],deleted:false});errorId=id;
+      }else if(modal.type==='error')Object.assign(working.errors.find(e=>e.id===modal.id),{code:q('#ab-error-code').value,name:q('#ab-error-name').value});
       else captureModal();
       localEntry().snapshot=working;modal=null;modalBase=null;message=t('已完成本機編輯，請按存取草稿。','Đã hoàn tất chỉnh sửa cục bộ; hãy lưu bản nháp.');draw();
     });

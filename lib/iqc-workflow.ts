@@ -1,4 +1,5 @@
-import { emptyIqcControl, emptyIqcSnapshot, checkedIqcSnapshot, iqcContentIssues, nextIqcErrorCode, nextIqcCheckNo, type IqcControl, type IqcSnapshot } from './iqc';
+import {activeErrorRows,manualErrorCode} from './manual-error-code';
+import { emptyIqcControl, emptyIqcSnapshot, checkedIqcSnapshot, iqcContentIssues, nextIqcCheckNo, type IqcControl, type IqcSnapshot } from './iqc';
 import { parse } from './process-state';
 import { DraftConflict, applyDraftCommand, stableDraftJSON, type SharedDraft, type DraftPatch } from './shared-draft';
 import { effectiveVersion, type WorkflowAdapter } from './versioned-shared-workflow';
@@ -15,7 +16,7 @@ export function parseIqcWorkflow(raw:string|undefined,prepared?:unknown):IqcWork
   return control;
 }
 const editableFields:Record<keyof IqcSnapshot,string[]>={categories:['nameVi'],suppliers:['nameVi'],
-  parts:['nameVi','specificationVi','categoryId','supplierIds','photos','isEnabled','isDeleted'],errors:['nameVi','isDeleted'],
+  parts:['nameVi','specificationVi','categoryId','supplierIds','photos','isEnabled','isDeleted'],errors:['code','nameVi','isDeleted'],
   items:['nameVi','toolVi','methodVi','rules','isEnabled','inspectionSpecVi','inspectionMode','equipmentId','mediaItems','isDeleted']};
 export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>={
   key:'iqcMasterControl',scope:'iqc',parse:parseIqcWorkflow,empty:emptyIqcSnapshot,
@@ -50,7 +51,7 @@ export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>=
           const e=selected.get(item.equipmentId);if(!e||e.enabled===false)throw new DraftConflict('EQUIPMENT_UNAVAILABLE',422);
           item.equipmentSnapshot={id:e.id,assetCode:e.assetCode||'',pieceMark:e.pieceMark||'',name:e.name||e.nameVi||'',spec:e.spec||'',...(e.photoId?{photoId:e.photoId}:{})};
         }
-        try{checkedIqcSnapshot(previous,content,true);}catch(error){throw new DraftConflict(error instanceof Error?error.message:'INVALID_STRUCTURE',422);}
+        try{checkedIqcSnapshot(previous,content,true,activeErrorRows(control));}catch(error){throw new DraftConflict(error instanceof Error?error.message:'INVALID_STRUCTURE',422);}
       },
       validate(content){return [...iqcContentIssues(content,approvedContent),
         ...content.items.filter(i=>!i.isDeleted&&i.equipmentId&&(!selected.has(i.equipmentId)||selected.get(i.equipmentId)?.enabled===false)).map(i=>({kind:'error' as const,path:['items',{id:i.id},'equipmentId'],message:'EQUIPMENT_UNAVAILABLE'}))];}
@@ -71,7 +72,7 @@ export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>=
         if(patch.path[0]==='errors'){
           const part=staged.workflow!.working.parts.find(p=>p.code===row.partCode&&!p.isDeleted)||patches.filter(p=>p.op==='insert').find(p=>p.path[0]==='parts'&&(p.value as Record<string,unknown>)?.code===row.partCode)?.value as Record<string,unknown>|undefined;
           if(!part)throw new DraftConflict('PART_REMOVED');
-          row.code=nextIqcErrorCode(staged,String(row.partCode));staged.reservedErrorCodes.push(String(row.code));
+          // The guarded snapshot validator checks the submitted code after all patches are applied.
         }
       }
       for(const patch of patches){
@@ -97,7 +98,7 @@ export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>=
       let patch:DraftPatch;
       if(command.moduleAction==='createError'){
         const part=flow.working.parts.find(p=>p.code===input.partCode&&!p.isDeleted);if(!part)throw new DraftConflict('PART_REMOVED');
-        const code=nextIqcErrorCode(control,part.code);control.reservedErrorCodes.push(code);
+        const code=manualErrorCode(input.code,'error-'+command.operationId,flow.working.errors,activeErrorRows(control));
         patch={op:'insert',path:['errors'],value:{id:'error-'+command.operationId,partCode:part.code,code,nameVi:text(input.nameVi)}};
       }else{
         const error=flow.working.errors.find(e=>e.id===input.errorId&&!e.isDeleted);if(!error)throw new DraftConflict('ERROR_REMOVED');

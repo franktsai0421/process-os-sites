@@ -584,7 +584,7 @@
     else if(action.startsWith('create')){
       change.localId='local-'+crypto.randomUUID();
       if(action==='create-error'){
-        working.errors.push({id:change.localId,code:t('Chưa lưu','尚未存取'),...detail,reason:'',deleted:false});errorId=change.localId;
+        working.errors.push({id:change.localId,...detail,reason:'',deleted:false});errorId=change.localId;
       }else{
         const parent=working.errors.find(row=>row.id===detail.errorId&&!row.deleted);if(!parent)throw Error('ERROR_CODE_REMOVED');
         working.items.push({id:change.localId,code:t('Chưa lưu','尚未存取'),errorId:parent.id,productCode:parent.productCode,stageCode:parent.stageCode,
@@ -607,7 +607,7 @@
     const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
     const equal=(a,b)=>JSON.stringify(a??null)===JSON.stringify(b??null);
     const changes=[],clashes=[],live=clone(latest);
-    const fields={errors:['name','note','reason'],items:['standard','description','note','reason','tool','method','frequency','cpkEnabled','standardEnabled','notApplicable','notApplicableReason','equipmentGroupId','equipmentId','mediaItems','rule']};
+    const fields={errors:['code','name','note','reason'],items:['standard','description','note','reason','tool','method','frequency','cpkEnabled','standardEnabled','notApplicable','notApplicableReason','equipmentGroupId','equipmentId','mediaItems','rule']};
     const choose=(key,b,mine,theirs,label)=>{
       if(equal(mine,b))return clone(theirs);
       if(equal(theirs,b)||equal(mine,theirs))return clone(mine);
@@ -642,7 +642,7 @@
         if(!before){
           if(mine.deleted)continue;
           if(!mine.id.startsWith('local-'))throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');
-          const input=kind==='errors'?{productCode:mine.productCode,stageCode:mine.stageCode,name:mine.name,note:mine.note,reason:mine.reason}:{errorId:mine.errorId,item:Object.fromEntries(fields.items.filter(key=>mine[key]!==undefined).map(key=>[key,clone(mine[key])]))};
+          const input=kind==='errors'?{code:mine.code,productCode:mine.productCode,stageCode:mine.stageCode,name:mine.name,note:mine.note,reason:mine.reason}:{errorId:mine.errorId,item:Object.fromEntries(fields.items.filter(key=>mine[key]!==undefined).map(key=>[key,clone(mine[key])]))};
           changes.push({moduleAction:kind==='errors'?'create-error':'create-item',localId:mine.id,input});live[kind].push(clone(mine));continue;
         }
         const childIntent=kind==='errors'&&local.items.some(row=>row.errorId===mine.id&&!equal(row,base.items.find(old=>old.id===row.id)));
@@ -1013,8 +1013,8 @@
     return `<div class="ipqcc-overlay"><form class="ipqcc-dialog" id="ipqcc-editor" role="dialog" aria-modal="true"><header><h3>${modal.readonly?t('Xem','查看'):modal.existingId?t('Sửa','修改'):t('Thêm','新增')} ${isError?t('mã lỗi','錯誤代碼'):t('hạng mục kiểm tra','檢查項目')}</h3><button type="button" id="ipqcc-close" aria-label="Close">×</button></header><div class="ipqcc-dialog-body"><fieldset class="ipqcc-view-fields" ${modal.readonly?'disabled':''}>
       <p data-ipqcc-recovery-status role="status"></p>
       ${message?`<p class="ipqcc-message" role="alert">${h(displayDraftError(message))}</p>`:''}
-      <section class="ipqcc-editor-context"><div><b>${t('Sản phẩm','產品')}</b><code>${h(productCode)}</code><span>${h(product()?.name||'')}</span></div><div><b>${t('Công đoạn','工段')}</b><code>${h(stageCode)}</code><span>${h(catalog.stages.find(s=>s.code===stageCode)?.name||'')}</span></div>${!isError?`<div><b>${t('Mã lỗi / tên','錯誤代碼／名稱')}</b><code>${h(parent?.code||'—')}</code><span>${h(parent?.name||'—')}</span></div>`:''}<div><b>${t('Mã do hệ thống cấp','系統編號')}</b><code>${h(f.code || (isError?'C-…-L…':`${parent?.code||'…'}-…`))}</code></div></section>
-      ${isError ? `${field('name',t('Tên mã lỗi','錯誤名稱'))}${field('note',t('Ghi chú','備註'),true)}` :
+      <section class="ipqcc-editor-context"><div><b>${t('Sản phẩm','產品')}</b><code>${h(productCode)}</code><span>${h(product()?.name||'')}</span></div><div><b>${t('Công đoạn','工段')}</b><code>${h(stageCode)}</code><span>${h(catalog.stages.find(s=>s.code===stageCode)?.name||'')}</span></div>${!isError?`<div><b>${t('Mã lỗi / tên','錯誤代碼／名稱')}</b><code>${h(parent?.code||'—')}</code><span>${h(parent?.name||'—')}</span></div>`:''}${isError?'':`<div><b>${t('Mã do hệ thống cấp','系統編號')}</b><code>${h(f.code || `${parent?.code||'…'}-…`)}</code></div>`}</section>
+      ${isError ? `${field('code',t('Mã lỗi','錯誤代碼'))}${field('name',t('Tên mã lỗi','錯誤名稱'))}${field('note',t('Ghi chú','備註'),true)}` :
         `<div class="ipqcc-checks"><label><input type="checkbox" name="standardEnabled" ${f.standardEnabled!==false?'checked':''}>${t('Bật tiêu chuẩn','啟用標準')}</label><label><input type="checkbox" name="cpkEnabled" ${f.cpkEnabled?'checked':''}>${t('Bật CPK','啟用 CPK')}</label></div>${field('standard',t('Tiêu chuẩn kiểm tra','檢查標準'),true)}
         ${field('description',t('Mô tả cách kiểm tra (bắt buộc)','檢查方式敘述（必填）'),true)}
         <section class="ipqcc-photo-editor"><h4>${t('Ảnh kiểm tra','檢查圖片')}</h4><button type="button" id="ipqcc-insert-photo" class="button ghost">＋ ${t('Chèn ảnh tại con trỏ mô tả','在敘述游標處插入圖片')}</button><input type="file" id="ipqcc-photo-input" accept="image/jpeg,image/png,image/webp,image/gif" multiple><div class="ipqcc-photo-grid">${modal.photos.map((photo,index)=>`<div class="ipqcc-photo-row"><img src="${h(photoUrl(photo))}" alt="${h(photo.name)}"><input data-photo-note="${index}" value="${h(photo.note||'')}" placeholder="${t('Ghi chú ảnh','圖片備註')}"><label>${t('Vị trí','位置')}<select data-photo-position="${index}">${Array.from({length:paragraphs(modal.fields.description).length+1},(_,place)=>`<option value="${place}" ${place===(Number.isInteger(photo.afterParagraph)?Math.min(photo.afterParagraph,paragraphs(modal.fields.description).length):paragraphs(modal.fields.description).length)?'selected':''}>${place===0?t('Trước văn bản','文字前'):place===paragraphs(modal.fields.description).length?t('Sau văn bản','文字後'):`${t('Sau đoạn','第')} ${place} ${t('','段後')}`}</option>`).join('')}</select></label><div><button type="button" data-photo-cover="${index}" ${index===0?'disabled':''}>${index===0?t('Ảnh bìa','列表圖'):t('Chọn ảnh bìa','設為列表圖')}</button><button type="button" data-photo-up="${index}" ${index===0?'disabled':''}>↑</button><button type="button" data-photo-down="${index}" ${index===modal.photos.length-1?'disabled':''}>↓</button><button type="button" data-photo-remove="${index}">×</button></div></div>`).join('')}</div></section>${equipmentEditorHTML(f)}${ruleEditorHTML(f)}${window.ProcessIPQC.referenceMarkup('C','C',modal.existingId)}${field('note',t('Ghi chú','備註'),true)}`}
@@ -1058,6 +1058,7 @@
     const form = event.currentTarget, input = Object.fromEntries(new FormData(form).entries());
     const isError = target.kind === 'error', fields = { ...target.fields, ...input };
     fields.reason ||= '';
+    if(isError){ const issue=window.manualErrorCodeIssue(fields.code,target.existingId,working.errors,active()?.snapshot?.errors);const input=form.elements.code;input.setCustomValidity(issue?displayDraftError(issue):'');if(!input.reportValidity()){input.oninput=()=>input.setCustomValidity('');return;} }
     if (!isError) {
       fields.standardEnabled = form.elements.standardEnabled.checked;
       fields.cpkEnabled = form.elements.cpkEnabled.checked;
@@ -1102,14 +1103,14 @@
       const list = isError ? working.errors : working.items;
       const index = list.findIndex(row => row.id === target.existingId);
       if (index < 0) return message=t('Dữ liệu đã thay đổi','資料已變更'), draw();
-      const allowed=isError?['name','note','reason']:['standard','description','note','reason','tool','method','frequency','cpkEnabled','standardEnabled','notApplicable','notApplicableReason','equipmentGroupId','equipmentId','mediaItems','rule'];
+      const allowed=isError?['code','name','note','reason']:['standard','description','note','reason','tool','method','frequency','cpkEnabled','standardEnabled','notApplicable','notApplicableReason','equipmentGroupId','equipmentId','mediaItems','rule'];
       const changed=allowed.filter(key=>fields[key]!==undefined&&
         !(['equipmentId','equipmentGroupId'].includes(key)?same(fields[key]||'',target.base?.[key]||''):same(fields[key],target.base?.[key])));
       const patches=changed.map(key=>({op:'set',path:[isError?'errors':'items',{id:target.existingId},key],value:fields[key]}));
       const guards=changed.map(key=>({path:[isError?'errors':'items',{id:target.existingId},key],value:target.base?.[key]}));
       await write('apply', { patches,guards }, true);
     } else if (isError) await write('create-error', { productCode, stageCode,
-      name:fields.name, note:fields.note||'', reason:fields.reason }, true);
+      code:fields.code, name:fields.name, note:fields.note||'', reason:fields.reason }, true);
     else await write('create-item', { errorId, item:fields }, true);
   }
   function approvedHistoryClient(){

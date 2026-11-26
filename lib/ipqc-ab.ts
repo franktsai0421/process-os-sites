@@ -1,9 +1,10 @@
+import {validateErrorCodeChanges} from './manual-error-code';
 import {isImmutableRecordBody} from './state-records';
 import type {DraftIssue} from './shared-draft';
 export type AbPhoto = { id: string; name: string; note: string };
 export type AbRule = { id: string; cadence: 'batch' | 'time'; kind: string; value?: string; name?: string };
 export type AbError = { id: string; code: string; line: string; group: string; stageCode: string;
-  name: string; sourceRows: number[]; deleted: boolean;
+  name: string; sourceRows: number[]; deleted: boolean; sourceCode?:string;
   sourceImport?: {sha256:string;nameBaseline:string} };
 export type AbItem = { id: string; code: string; errorId: string; standard: string; methodText: string;
   inspectionMode: 'visual' | 'equipment'; equipmentId: string;
@@ -100,20 +101,21 @@ export function validRules(rules: unknown, working=false): rules is AbRule[] {
   }) && new Set(rules.map(rule => rule.id)).size === rules.length;
 }
 export function checkedAbSnapshot(version: AbVersion, incoming: unknown, catalog: AbCatalog,
-  line: string, group: string, working=false): AbSnapshot {
+  line: string, group: string, working=false, activeErrors:AbError[]|null=version.snapshot.errors): AbSnapshot {
   const raw = incoming as AbSnapshot;
   if (!raw || !Array.isArray(raw.errors) || !Array.isArray(raw.items) ||
       raw.errors.length !== version.snapshot.errors.length || raw.items.length !== version.snapshot.items.length)
     throw Error('草稿結構不符；新增項目請使用新增操作');
+  validateErrorCodeChanges(raw.errors,version.snapshot.errors,activeErrors);
   const oldErrors = new Map(version.snapshot.errors.map(e => [e.id,e]));
   const oldItems = new Map(version.snapshot.items.map(i => [i.id,i]));
   const products = new Map(catalog.products.map(p => [p.code,p]));
   const errors = raw.errors.map(e => {
     const prior = oldErrors.get(e?.id);
-    if (!prior || e.code !== prior.code || e.line !== prior.line || e.group !== prior.group ||
+    if (!prior || typeof e.code !== 'string' || e.line !== prior.line || e.group !== prior.group ||
         e.stageCode !== prior.stageCode || typeof e.name !== 'string' || typeof e.deleted !== 'boolean')
       throw Error('錯誤代碼身分或欄位不可改寫');
-    return { ...prior, name: e.name, deleted: e.deleted };
+    return { ...prior, ...(e.code!==prior.code && !prior.sourceCode && (prior.sourceImport || prior.sourceRows.length) ? {sourceCode:prior.code} : {}), code:e.code, name: e.name, deleted: e.deleted };
   });
   const items = raw.items.map(i => {
     const prior = oldItems.get(i?.id);

@@ -1,3 +1,4 @@
+import {activeErrorRows,manualErrorCode} from './manual-error-code';
 import {captureAbColdOrigin,type AbColdOrigin,type AbColdOriginInput} from './ipqc-ab-local-lineage';
 import {parseAbControl,catalogFromMaster,checkedAbSnapshot,abDraftIssues,nextAbCode,copyAb,openAb,activeAb,type AbScope,type AbSnapshot,type AbControl,type AbItem,type AbError} from './ipqc-ab';
 import {parse} from './process-state';
@@ -35,7 +36,7 @@ export function abWorkflowAdapter(key:string,initialActiveBasis:'approved'|'lega
         structure(content,previous){
           if(content.items.some(i=>i.inspectionMode==='visual'&&i.equipmentId))throw new DraftConflict('INVALID_EQUIPMENT_PAIR',422);
           const version=openAb(control)||activeAb(control)||{id:'initial',number:1,status:'draft' as const,revision:1,snapshot:previous,baseVersionId:null,creatorId:base.actor.id,creatorName:base.actor.name,createdAt:base.at,updatedAt:base.at,history:[]};
-          try{const checked=checkedAbSnapshot({...version,snapshot:previous},content,catalog,line,group,true);content.errors=checked.errors;content.items=checked.items;}catch(e){throw new DraftConflict(e&&typeof e==='object'&&'message'in e&&typeof e.message==='string'?e.message:'INVALID_STRUCTURE',422);}
+          try{const checked=checkedAbSnapshot({...version,snapshot:previous},content,catalog,line,group,true,activeErrorRows(control));content.errors=checked.errors;content.items=checked.items;}catch(e){throw new DraftConflict(e&&typeof e==='object'&&'message'in e&&typeof e.message==='string'?e.message:'INVALID_STRUCTURE',422);}
           for(const item of content.items){const old=previous.items.find(i=>i.id===item.id);
             if(item.inspectionMode==='visual'){item.equipmentId='';item.equipmentSnapshot=null;continue;}
             if(!item.equipmentId)throw new DraftConflict('EQUIPMENT_REQUIRED',422);
@@ -56,7 +57,7 @@ export function abWorkflowAdapter(key:string,initialActiveBasis:'approved'|'lega
         const input=command.input||{},patches:DraftPatch[]=[],previous=copyAb(flow.working),text=(v:unknown)=>typeof v==='string'?v:'';
         if(command.moduleAction==='create-error'){
           const stageCode=text(input.stageCode);if(!allowedStages.has(stageCode))throw new DraftConflict('STAGE_INVALID',422);
-          const row:AbError={id:'error-'+command.operationId,code:nextAbCode(root,'error',`${line}-${group}-${stageCode.slice(2)}-L`,context.allocationIndex),line,group,stageCode,name:text(input.name),sourceRows:[],deleted:false};
+          const row:AbError={id:'error-'+command.operationId,code:manualErrorCode(input.code,'error-'+command.operationId,flow.working.errors,activeErrorRows(control)),line,group,stageCode,name:text(input.name),sourceRows:[],deleted:false};
           previous.errors.push(row);patches.push({op:'insert',path:['errors'],value:row});
         }else if(command.moduleAction==='create-item'){
           const parent=flow.working.errors.find(e=>e.id===input.errorId&&!e.deleted);if(!parent)throw new DraftConflict('ERROR_REMOVED');
@@ -72,7 +73,7 @@ export function abWorkflowAdapter(key:string,initialActiveBasis:'approved'|'lega
         return applyDraftCommand(flow,{...command,patches},{...context,commandFingerprint:context.commandFingerprint||stableDraftJSON(command),structure(content){context.structure(content,previous);}});
       }
       if(command.action==='apply')for(const p of command.patches||[]){
-        const [collection,entity,field]=p.path,fields=collection==='errors'?['name']:['standard','methodText','inspectionMode','equipmentId','isEnabled','rules','standardPhotos','methodPhotos','productCodes','reason'];
+        const [collection,entity,field]=p.path,fields=collection==='errors'?['code','name']:['standard','methodText','inspectionMode','equipmentId','isEnabled','rules','standardPhotos','methodPhotos','productCodes','reason'];
         if(p.op!=='set'||p.path.length!==3||typeof collection!=='string'||!['errors','items'].includes(collection)||!entity||typeof entity==='string'||typeof field!=='string'||!fields.includes(field))throw new DraftConflict('UNSUPPORTED_ITEM_PATCH',422);
         if(!flow.working[collection as keyof AbSnapshot].some(r=>r.id===entity.id&&!r.deleted))throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS');
         if(!(command.guards||[]).some(g=>stableDraftJSON(g.path)===stableDraftJSON(p.path)))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);

@@ -4,9 +4,19 @@
   // A pagehide permanently invalidates captured generations, including BFCache.
   let transportPagehideGeneration={};
   window.addEventListener?.('pagehide',()=>{transportPagehideGeneration={};});
+  window.manualErrorCodeIssue = (value, id, draft, active) => {
+    if (typeof value !== 'string' || !value.trim()) return 'ERROR_CODE_REQUIRED';
+    const key = value.trim().toLowerCase();
+    return [draft, active || []].some(rows => rows.some(row =>
+      row.id !== id && !row.deleted && !row.isDeleted && row.code.trim().toLowerCase() === key
+    )) ? 'ERROR_CODE_DUPLICATE' : '';
+  };
   // Display only: retain raw transport/classifier/receipt errors.
   window.sharedDraftErrorMessage = (error, language = document.documentElement.lang) => {
     const messages = {
+      ERROR_CODE_REQUIRED:['請輸入錯誤代碼。','Vui lòng nhập mã lỗi.'],
+      ERROR_CODE_DUPLICATE:['此錯誤代碼已由另一筆資料使用。','Một bản ghi khác đang dùng mã lỗi này.'],
+      ERROR_CODE_BASE_UNAVAILABLE:['無法核對正式版代碼，請重新載入。','Không thể đối chiếu mã đang hiệu lực. Vui lòng tải lại.'],
       CUSTOM_TIME_FREQUENCY_READ_ONLY:['不能新增或修改時間自訂頻率。既有值只能保留；如需變更請選標準頻率。','Không thể tạo hoặc sửa tần suất thời gian tùy chỉnh. Chỉ giữ giá trị cũ; chọn tần suất chuẩn để thay đổi.'],
       NO_SUBSTANTIVE_CHANGE:['本次未送審：已儲存內容相對正式版沒有實質變更。草稿仍保留；請修改並存取草稿後再送審。撤回或發回的原快照可依規則再次送審。','Chưa gửi duyệt: nội dung đã lưu không có thay đổi thực chất so với bản có hiệu lực. Bản nháp vẫn được giữ; hãy sửa và lưu rồi gửi duyệt. Có thể gửi lại bản chụp đã rút hoặc trả về theo quy tắc.'],
       SUCCESSFUL_SAVE_REQUIRED:['請先成功儲存目前共用草稿，再送出審核。','Hãy lưu bản nháp chung thành công trước khi gửi duyệt.'],

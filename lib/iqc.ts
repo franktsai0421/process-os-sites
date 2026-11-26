@@ -1,3 +1,4 @@
+import {validateErrorCodeChanges} from './manual-error-code';
 import {checkIqcTime} from './time-frequency-policy';
 import { stableDraftJSON, type DraftIssue } from './shared-draft';
 export type IqcRule = {
@@ -120,7 +121,7 @@ export const emptyIqcSnapshot = (): IqcSnapshot => ({
 const text = (value: unknown) => typeof value === 'string' ? value : '';
 const unique = (values: string[]) => new Set(values).size === values.length;
 
-export function checkedIqcSnapshot(previous: IqcSnapshot, value: unknown, working = false): IqcSnapshot {
+export function checkedIqcSnapshot(previous: IqcSnapshot, value: unknown, working = false, activeErrors:IqcSnapshot['errors']|null=previous.errors): IqcSnapshot {
   if (!value || typeof value !== 'object') throw Error('IQC 草稿格式錯誤');
   const next = value as IqcSnapshot;
   if (!['categories','suppliers','parts','errors','items'].every(key => Array.isArray(next[key as keyof IqcSnapshot])))
@@ -128,7 +129,8 @@ export function checkedIqcSnapshot(previous: IqcSnapshot, value: unknown, workin
   const ids = (rows: { id: string }[]) => rows.map(row => row.id);
   for (const rows of [next.categories, next.suppliers, next.parts, next.errors, next.items])
     if (!unique(ids(rows)) || rows.some(row => !text(row.id).trim())) throw Error('IQC 資料 ID 重複或空白');
-  if (!unique(next.parts.map(part => part.code)) || !unique(next.errors.map(error => error.code)) ||
+  validateErrorCodeChanges(next.errors,previous.errors,activeErrors);
+  if (!unique(next.parts.map(part => part.code)) ||
       !unique(next.items.map(item => item.checkNo))) throw Error('IQC 原始編號或新增編號重複');
   for (const [oldRows, newRows, key] of [
     [previous.parts, next.parts, 'code'], [previous.errors, next.errors, 'code'],
@@ -137,7 +139,7 @@ export function checkedIqcSnapshot(previous: IqcSnapshot, value: unknown, workin
     const newById = new Map((newRows as { id: string }[]).map(row => [row.id, row]));
     for (const old of oldRows as { id: string; code?: string; checkNo?: string }[]) {
       const current = newById.get(old.id) as typeof old | undefined;
-      if (!current || current[key] !== old[key]) throw Error('既有 IQC 編號不可刪除或重編；請使用停用標記');
+      if (!current || oldRows !== previous.errors && current[key] !== old[key]) throw Error('既有 IQC 編號不可刪除或重編；請使用停用標記');
     }
   }
   const nextErrors = new Map(next.errors.map(error => [error.id, error]));

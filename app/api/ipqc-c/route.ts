@@ -1,8 +1,9 @@
+import {manualErrorCode} from '../../../lib/manual-error-code';
 import {ipqcCFinalReviewAllowed} from '@/lib/ipqc-c-access';
 import {restoreEffects} from '@/lib/draft-restore-access';
 import { env } from 'cloudflare:workers';
 import { readState, identity, can, createIpqcReadPermissionPhase, sameOrigin, encodeValues, parse, maintenanceCredential, responseHeaders as headers } from '@/lib/process-state';
-import { activeIpqc, checkedIpqcRule, checkedIpqcSnapshot, copyIpqc, nextErrorCode, nextItemCode,
+import { activeIpqc, checkedIpqcRule, checkedIpqcSnapshot, copyIpqc, nextItemCode,
   openIpqc, parseIpqcControl, submitIpqcErrors,submitIpqcIssues, type IpqcError,
   type IpqcItem, type IpqcSnapshot } from '@/lib/ipqc-c';
 import { hierarchy, equipmentGroupLabel, type EquipmentVersion } from '@/lib/routine-equipment';
@@ -88,7 +89,7 @@ export async function GET(request: Request) {
     return reply({ error: 'IPQC-C 載入失敗；沒有以空資料覆蓋既有資料' }, 503);
   }
 }
-type Body = {
+type Body = { code?: string;
   action?: string; baseRevision?: number; versionId?: string; versionRevision?: number;
   snapshot?: IpqcSnapshot; id?: string; errorId?: string; productCode?: string; stageCode?: string;
   name?: string; note?: string; reason?: string; comment?: string; cascade?: boolean;
@@ -201,7 +202,7 @@ export async function POST(request: Request) {
       } else if (version.status !== 'draft') return reply({ error: '目前沒有可編輯草稿' }, 409);
       if (action === 'save' || action === 'submit') {
         let snapshot: IpqcSnapshot;
-        try { snapshot = checkedIpqcSnapshot(version, body.snapshot); }
+        try { snapshot = checkedIpqcSnapshot(version, body.snapshot,active?.snapshot.errors || []); }
         catch (error) { return reply({ error: error instanceof Error ? error.message : '草稿格式錯誤' }, 422); }
         try { checkEquipment(snapshot, version.snapshot, state.values); }
         catch (error) { return reply({ error: error instanceof Error ? error.message : '檢具關聯無效' }, 422); }
@@ -224,7 +225,9 @@ export async function POST(request: Request) {
         const product = clean(body.productCode), stage = clean(body.stageCode);
         if (!route.get(product)?.has(stage) || !clean(body.name).trim())
           return reply({ error: '請選有效的產品、工段並填寫錯誤名稱' }, 422);
-        const code = nextErrorCode(control, product, stage);
+        let code:string;
+        try { code = manualErrorCode(body.code,'',version.snapshot.errors,active?.snapshot.errors || []); }
+        catch (error) { return reply({error:error instanceof Error ? error.message : 'ERROR_CODE_REQUIRED'},422); }
         version.snapshot.errors.push({ id: crypto.randomUUID(), code, productCode: product, stageCode: stage,
           name: clean(body.name), note: clean(body.note), reason: clean(body.reason), deleted: false });
       } else if (action === 'create-item') {

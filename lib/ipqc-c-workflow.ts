@@ -1,5 +1,6 @@
+import {activeErrorRows,manualErrorCode} from './manual-error-code';
 import { applyDraftCommand, createSharedDraft, DraftConflict, stableDraftJSON, type DraftCommand, type DraftContext, type DraftPatch, type SharedDraft } from './shared-draft';
-import { activeIpqc, openIpqc, checkedIpqcSnapshot, checkedIpqcRule, nextErrorCode, nextItemCode, submitIpqcIssues, copyIpqc, type IpqcControl, type IpqcSnapshot, type IpqcItem, type IpqcError } from './ipqc-c';
+import { activeIpqc, openIpqc, checkedIpqcSnapshot, checkedIpqcRule, nextItemCode, submitIpqcIssues, copyIpqc, type IpqcControl, type IpqcSnapshot, type IpqcItem, type IpqcError } from './ipqc-c';
 
 export type IpqcWorkflowControl = IpqcControl & { workflow?: SharedDraft<IpqcSnapshot> };
 // Never expose recovery commands or client streams through ordinary library reads.
@@ -17,7 +18,7 @@ export function publicIpqcWorkflow(control: IpqcWorkflowControl, history: boolea
 }
 export type IpqcWorkflowCommand = DraftCommand & { moduleAction?:'create-error'|'create-item'|'delete-error'|'delete-item'|'revive-error'|'revive-item';
   localChanges?: Array<{moduleAction?:IpqcWorkflowCommand['moduleAction'];input?:IpqcWorkflowCommand['input'];patches?:DraftPatch[];guards?:DraftCommand['guards'];localId?:string}>;
-  input?: {productCode?:string;stageCode?:string;name?:string;note?:string;errorId?:string;id?:string;cascade?:boolean;item?:Partial<IpqcItem>} };
+  input?: {code?:string;productCode?:string;stageCode?:string;name?:string;note?:string;errorId?:string;id?:string;cascade?:boolean;item?:Partial<IpqcItem>} };
 export function beginIpqcWorkflow(control: IpqcWorkflowControl, context: DraftContext<IpqcSnapshot>) {
   if (control.workflow) return control.workflow;
   const open = openIpqc(control), active = activeIpqc(control);
@@ -43,7 +44,7 @@ export function ipqcWorkflowContext(control: IpqcWorkflowControl, context: Omit<
       // module commands; arbitrary client insertion/removal is not allowed here.
       const version = openIpqc(control) || active;
       if (!version) throw new DraftConflict('INITIAL_BUILD_REQUIRED');
-      checkedIpqcSnapshot({...version,snapshot:previous},content);
+      checkedIpqcSnapshot({...version,snapshot:previous},content,activeErrorRows(control));
     },
     validate(content) {
       const version = openIpqc(control) || active;
@@ -191,7 +192,7 @@ export function applyIpqcWorkflow(control: IpqcWorkflowControl, command: IpqcWor
     let newError:IpqcError|undefined,newItem:IpqcItem|undefined;
     if(command.moduleAction==='create-error') {
       if(!input.productCode||!input.stageCode)throw new DraftConflict('PRODUCT_STAGE_REQUIRED',422);
-      newError={id:'error-'+command.operationId,code:nextErrorCode(control,input.productCode,input.stageCode,context.allocationIndex),productCode:input.productCode,
+      newError={id:'error-'+command.operationId,code:manualErrorCode(input.code,'error-'+command.operationId,working.errors,activeErrorRows(control)),productCode:input.productCode,
         stageCode:input.stageCode,name:text(input.name),note:text(input.note),reason:'',deleted:false};
       patches.push({op:'insert',path:['errors'],value:newError});
     } else if(command.moduleAction==='create-item') {
@@ -219,7 +220,7 @@ export function applyIpqcWorkflow(control: IpqcWorkflowControl, command: IpqcWor
   }
   if (command.action === 'apply') for (const patch of command.patches || []) {
     const [collection, entity, field] = patch.path;
-    const fields = collection === 'errors' ? ['name','note','reason'] : ['standard','description','note','reason','tool','method','frequency',
+    const fields = collection === 'errors' ? ['code','name','note','reason'] : ['standard','description','note','reason','tool','method','frequency',
       'cpkEnabled','standardEnabled','notApplicable','notApplicableReason','equipmentGroupId','equipmentId','mediaItems','rule'];
     if (patch.op !== 'set' || patch.path.length !== 3 || typeof collection!=='string' || !['errors','items'].includes(collection) ||
         !entity || typeof entity === 'string' || typeof field!=='string' || !fields.includes(field)) throw new DraftConflict('UNSUPPORTED_ITEM_PATCH',422);
