@@ -1,7 +1,7 @@
 import {restoreEffects} from '@/lib/draft-restore-access';
 import { env } from 'cloudflare:workers';
 import { readState, identity, can, sameOrigin, encodeValues, parse, maintenanceCredential, responseHeaders as headers } from '@/lib/process-state';
-import { emptyEquipmentControl, activeVersion, openVersion, reserveMarks, nextPieceMark, checkedSnapshot, submitProblems, hierarchy, fillRepresentativePhotos, type EquipmentControl, type Equipment, type EquipmentGroup } from '@/lib/routine-equipment';
+import { emptyEquipmentControl, activeVersion, openVersion, reserveMarks, nextPieceMark, manualPieceMark, checkedSnapshot, submitProblems, hierarchy, fillRepresentativePhotos, type EquipmentControl, type Equipment, type EquipmentGroup } from '@/lib/routine-equipment';
 import {parseEquipmentWorkflow} from '@/lib/equipment-workflow';
 import {visibleSharedControl} from '@/lib/versioned-shared-workflow';
 import {recordJSONResponse} from '@/lib/state-records-response';
@@ -32,7 +32,7 @@ const controlFrom = (raw: string | undefined): EquipmentControl => {
 };
 type WriteBody = {
   action?: string; baseRevision?: number; versionId?: string; versionRevision?: number;
-  snapshot?: unknown; assetCode?: string; groupId?: string; unit?: string; id?: string; comment?: string;
+  snapshot?: unknown; pieceMark?: string; assetCode?: string; groupId?: string; unit?: string; id?: string; comment?: string;
   source?: { sha256?: string; fileName?: string; equipment?: Equipment[];
     groups?: EquipmentGroup[]; issues?: Record<string, unknown>[] };
 };
@@ -220,7 +220,11 @@ export async function POST(request: Request) {
       const unit = String(body.unit || '').trim();
       if (!['個','支','台','組'].includes(unit)) return reply({ error: '新增檢具須選擇單位' }, 422);
       reserveMarks(control, control.versions.flatMap(item => item.equipment));
-      const mark = nextPieceMark(control, code);
+      let mark: string;
+      try { mark = Object.hasOwn(body,'pieceMark') ? manualPieceMark(body.pieceMark) : nextPieceMark(control,code); }
+      catch(error) { return reply({error:error instanceof Error ? error.message : 'EQUIPMENT_PIECE_REQUIRED'},422); }
+      if (version.equipment.some(row => String(row.assetCode).trim().toUpperCase() === code &&
+          String(row.pieceMark).trim().toUpperCase() === mark.toUpperCase())) return reply({error:'EQUIPMENT_PAIR_DUPLICATE'},422);
       version.equipment.push({ id: crypto.randomUUID(), assetCode: code, pieceMark: mark,
         categoryCode: group.categoryCode || '', category: group.category || '', subcategory: group.subcategory || '',
         categoryId: group.categoryId || '', subcategoryId: group.subcategoryId || '', groupId: group.id, name: '',

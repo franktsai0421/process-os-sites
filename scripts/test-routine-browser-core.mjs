@@ -137,10 +137,9 @@ async function check(browser, width, height, mobile) {
     await page.locator('#routine-add-modal').waitFor();
     await page.screenshot({ path: path.join(artifactDir, 'form-add-equipment.png') });
 
-    // Test dynamic piece mark
     await page.locator('#routine-add-asset-code').fill('G7T999');
-    const markVal = await page.locator('#routine-add-piece-mark-input').inputValue();
-    assert.ok(markVal.length >= 2, 'Piece mark should be auto-computed');
+    await page.locator('#routine-add-piece-mark-input').fill('07');
+    assert.equal(await page.locator('#routine-add-piece-mark-input').inputValue(),'07');
 
     await page.locator('#routine-add-name').fill('高精度數位分厘卡測試品');
     await page.locator('#routine-add-unit').selectOption('支');

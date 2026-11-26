@@ -4,9 +4,9 @@ import {createRequire} from 'node:module';
 import {chromium} from 'playwright';
 import {createABCFixture} from './ab-c-native-fixture.mjs';
 const require=createRequire(import.meta.url),{fixture}=require('../scripts/equipment-atomic-fixture.cjs');
-async function setup(width,lang,{actor='frank',decorate,prepare}={}){
+async function setup(width,lang,{actor='frank',decorate,prepare,mobile=false}={}){
  const data=await fixture();let control;try{await prepare?.(data);control=await data.persisted();}finally{data.close();}
- const f=await createABCFixture({products:1,decorate(values){values.routineEquipmentControl=JSON.stringify(control);decorate?.(values);}}),browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE}:{})}),context=await browser.newContext({viewport:{width,height:900},serviceWorkers:'block'});
+ const f=await createABCFixture({products:1,decorate(values){values.routineEquipmentControl=JSON.stringify(control);decorate?.(values);}}),browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE}:{})}),context=await browser.newContext({viewport:{width,height:mobile?(width===320?568:844):900},isMobile:mobile,hasTouch:mobile,serviceWorkers:'block'});
  await context.route('**/*',route=>new URL(route.request().url()).origin===f.url.origin?route.continue():route.abort());await context.addInitScript(lang=>localStorage.setItem('processUILanguage',lang),lang);await context.addCookies([{name:'process_demo',value:f.cookie(actor),url:f.url.origin}]);
  const page=await context.newPage(),posts=[],errors=[],dialogs=[];page.setDefaultTimeout(15000);page.on('pageerror',error=>errors.push(error.message));page.on('request',r=>{if(r.method()==='POST'&&new URL(r.url()).pathname==='/api/routine-equipment/workflow')posts.push(r.postData());});page.on('dialog',d=>{dialogs.push(d.type());void d.accept();});
  await page.goto(f.url.origin+'/process/?system=quality&view=data&dataTab=quality-routine-equipment');await ready(page,'data');await page.locator('#routine-save').waitFor();
@@ -51,7 +51,7 @@ void test('quality data entry creates, edits and removes a draft tree and sends 
  try{
    for(const kind of kinds)await nameNode(node(kind,'add'),'Synthetic '+kind);
    await page.locator('#routine-add').click();
-   await page.locator('#routine-add-asset-code').fill('SYN-CRUD');
+   await page.locator('#routine-add-asset-code').fill('SYN-CRUD');await page.locator('#routine-add-piece-mark-input').fill('01');
    await page.locator('#routine-add-name').fill('Synthetic gauge');
    await page.locator('#routine-add-submit').click();
    await page.locator('#routine-add-submit').waitFor({state:'detached'});
@@ -147,13 +147,90 @@ async function prepareHierarchy(data) {
    ['subcategories',{id:'sub2',categoryId:'cat',name:'Second subcategory'}],
    ['subcategories',{id:'sub3',categoryId:'cat2',name:'Third subcategory'}],
    ...[['group2','cat','sub'],['group3','cat','sub2'],['group4','cat2','sub3']].map(([id,categoryId,subcategoryId])=>
-     ['groups',{id,categoryId,subcategoryId,name:id}]),
+     ['groups',{id,categoryId,subcategoryId,name:['group2','group4'].includes(id)?'Identical group':id}]),
  ];
  await data.command('routine-equipment','apply',{patches:entries.map(([key,value])=>({op:'insert',path:[key],value}))});
 }
 
+for(const [width,lang] of [[390,'zh'],[320,'vi']])void test('manual Add preserves a typed piece and rejects occupied pairs '+lang,async()=>{
+ const s=await setup(width,lang,{mobile:true}),{page}=s;
+ try {
+   const current=await s.state(), original=current.working.equipment.find(row=>row.id==='source');
+   for(const [kind,id] of [['category','cat'],['subcategory','sub'],['group','group']])
+     await page.locator('[data-node-select="'+kind+'"][data-id="'+id+'"]').click();
+   const asset=page.locator('#routine-add-asset-code'),mark=page.locator('#routine-add-piece-mark-input'),name=page.locator('#routine-add-name');
+   await page.locator('#routine-add').click();
+   assert(await mark.isEditable());assert.equal(await mark.inputValue(),'');
+   await mark.fill('01');await asset.fill(original.assetCode);assert.equal(await mark.inputValue(),'01');
+   await name.fill('Synthetic manual piece');
+   await page.locator('#routine-add-submit').click();
+   assert(await mark.isEditable());assert.equal(await name.inputValue(),'Synthetic manual piece');
+   assert.match(await page.locator('#routine-add-modal').innerText(),lang==='zh'?/相同分件號/:/cùng ký hiệu/);
+   assert.deepEqual(s.posts,[]);assert.deepEqual((await s.state()).working,current.working);
+   async function saveNew(assetValue,piece){
+     await mark.fill(piece);await asset.fill(assetValue);assert.equal(await mark.inputValue(),piece);
+     await name.fill('Synthetic manual piece');await page.locator('#routine-add-submit').click();
+     await page.locator('#routine-add-modal').waitFor({state:'detached'});
+     const response=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/routine-equipment/workflow'));
+     await page.locator('#routine-save').click();assert.equal((await response).status(),200);
+     await page.waitForFunction(()=>!window.sharedDraftAccountState().queued&&!document.querySelector('#routine-save')?.disabled);
+   }
+   await saveNew(original.assetCode,' 07 ');
+   await page.locator('#routine-add').click();await saveNew('SYN-OTHER','01');
+   await page.reload();await ready(page,'data');await page.locator('#routine-save').waitFor();
+   const flow=await s.state(),rows=flow.saved.content.equipment;
+   const added=rows.find(row=>row.assetCode===original.assetCode&&row.pieceMark==='07');
+   assert(added&&added.id!==original.id);assert.deepEqual(rows.find(row=>row.id===original.id),original);
+   assert(rows.some(row=>row.assetCode==='SYN-OTHER'&&row.pieceMark==='01'));
+   const code=await page.evaluate(async({generation,revision,assetCode})=>{
+     const row={id:crypto.randomUUID(),assetCode,pieceMark:' 01 ',groupId:'group',name:'Synthetic conflicting client',unit:'支',enabled:true,confirmed:true,calibrationMethod:'none'};
+     const res=await fetch('/api/routine-equipment/workflow?caseMetadata=1',{method:'POST',headers:{'Content-Type':'application/json','X-Process-Expected-Actor':'frank'},
+       body:JSON.stringify({command:{action:'apply',generation,expectedRevision:revision,operationId:crypto.randomUUID(),clientId:'synthetic-duplicate',sequence:1,patches:[{op:'insert',path:['equipment'],value:row}]}})});
+     return [res.status,(await res.json()).error];
+   },{generation:flow.generation,revision:flow.revision,assetCode:original.assetCode});
+   assert.deepEqual(code,[422,'EQUIPMENT_PAIR_DUPLICATE']);assert.deepEqual((await s.state()).working,flow.working);
+ }finally{await s.close();}
+});
+
+void test('mobile Apply stays above the scrollable equipment form and performs no server write',async()=>{
+ for (const [width,lang] of [[320,'vi'],[390,'zh']]) {
+   const s=await setup(width,lang,{mobile:true}),{page}=s;
+   try {
+     await edit(page,'synthetic mobile edit');
+     const apply=page.locator('#routine-form-apply');
+     assert.equal(await apply.innerText(),lang==='zh'?'套用':'Áp dụng');
+     await page.setViewportSize({width,height:width===320?328:604});
+     await page.waitForFunction(()=>{
+       const viewport=window.visualViewport,button=document.querySelector('#routine-form-apply'),rect=button.getBoundingClientRect();
+       const scroll=document.querySelector('.routine-editor-scroll').getBoundingClientRect();
+       return rect.height>=44 && rect.bottom<=viewport.offsetTop+viewport.height+1 &&
+         scroll.height>=88 && scroll.bottom<=rect.top && button.contains(document.elementFromPoint(rect.x+rect.width/2,rect.y+rect.height/2));
+     });
+     await apply.tap();
+     await apply.waitFor({state:'detached'});
+     assert.deepEqual(s.posts,[]);
+   }finally{await s.close();}
+ }
+});
+
+async function chooseDestination(page,id) {
+ const [cat,sub]={group2:['cat','sub'],group3:['cat','sub2'],group4:['cat2','sub3']}[id];
+ const category=page.locator('#routine-edit-category'),subcategory=page.locator('#routine-edit-subcategory'),group=page.locator('#routine-edit-group');
+ if(await category.inputValue()!==cat){
+   await category.selectOption(cat);
+   assert.equal(await subcategory.inputValue(),'');assert.equal(await group.inputValue(),'');
+   assert(await page.locator('#routine-form-apply').isDisabled());
+ }
+ if(await subcategory.inputValue()!==sub){
+   await subcategory.selectOption(sub);
+   assert.equal(await group.inputValue(),'');assert(await page.locator('#routine-form-apply').isDisabled());
+ }
+ await group.selectOption(id);
+ assert(await page.locator('#routine-form-apply').isEnabled());
+}
+
 for(const lang of ['zh','vi'])void test('equipment hierarchy round trip '+lang,async()=>{
- const s=await setup(lang==='zh'?1280:390,lang,{prepare:prepareHierarchy}),{page}=s;
+ const s=await setup(lang==='zh'?320:390,lang,{prepare:prepareHierarchy}),{page}=s;
  const source=content=>content.equipment.find(e=>e.id==='source');
  const sibling=content=>content.equipment.find(e=>e.id==='target');
  const begin=(id,kind)=>page.locator('[data-node-select="'+kind+'"][data-id="'+id+'"]').click();
@@ -168,18 +245,13 @@ for(const lang of ['zh','vi'])void test('equipment hierarchy round trip '+lang,a
      await editItem(before);
      assert(await page.locator('[data-field="assetCode"]').isEnabled());
      assert(await page.locator('[data-field="pieceMark"]').isEnabled());
-     if(before.categoryId!==cat){
-       await page.selectOption('#routine-edit-category',cat);
-       assert.equal(await page.locator('#routine-edit-subcategory').inputValue(),'');
-       assert.equal(await page.locator('#routine-edit-group').inputValue(),'');
-     }
-     if(before.subcategoryId!==sub){
-       await page.selectOption('#routine-edit-subcategory',sub);
-       assert.equal(await page.locator('#routine-edit-group').inputValue(),'');
-     }
-     await page.selectOption('#routine-edit-group',group);
+     await chooseDestination(page,group);
+     assert.match(await page.locator('#routine-destination-preview').innerText(),new RegExp(group));
+     assert.deepEqual(source((await s.state()).working),before);
      await page.locator('#routine-form-apply').click();
      await page.locator('#routine-editor').waitFor({state:'detached'});
+     assert(await page.locator('.routine-equipment-card.active [data-equipment-edit="source"]').isVisible());
+     assert.equal(await page.locator('[data-node-select="group"][aria-pressed="true"]').getAttribute('data-id'),group);
      const response=page.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/api/routine-equipment/workflow');
      await page.locator('#routine-save').click();
      assert.equal((await response).status(),200);
@@ -200,25 +272,93 @@ for(const lang of ['zh','vi'])void test('equipment hierarchy round trip '+lang,a
  }finally{await s.close();}
 });
 
-void test('incomplete equipment hierarchy stays in edit form with localized guidance',async()=>{
- for(const lang of ['zh','vi']){
-   const s=await setup(390,lang,{prepare:prepareHierarchy}),{page}=s;
+void test('cancel cascaded changes without discarding other input during selection',async()=>{
+ for(const [lang,width] of [['zh',320],['vi',390]]){
+   const s=await setup(width,lang,{prepare:prepareHierarchy}),{page}=s;
    try{
+     const initial=(await s.state()).working;
      await edit(page,'keep my local input');
-     await page.selectOption('#routine-edit-group','');
-     assert.equal(await page.locator('#routine-edit-group').inputValue(),'');
-     assert(await page.locator('#routine-form-apply').isDisabled());
-     assert.match(await page.locator('#routine-hierarchy-hint').innerText(),lang==='zh'?/規格群組/:/nhóm quy cách/i);
-     await page.selectOption('#routine-edit-category','cat2');
-     assert(await page.locator('#routine-form-apply').isDisabled());
-     assert.equal(await page.locator('#routine-edit-group option').count(),1);
-     await page.selectOption('#routine-edit-subcategory','sub3');
-     await page.selectOption('#routine-edit-group','group4');
-     assert(await page.locator('#routine-form-apply').isEnabled());
+     await chooseDestination(page,'group4');
+     assert.match(await page.locator('#routine-destination-preview').innerText(),/Second category › Third subcategory › Identical group/);
+     await page.locator('#routine-edit-category').dispatchEvent('change');
+     assert.equal(await page.locator('#routine-edit-group').inputValue(),'group4');
      assert.equal(await page.locator('#routine-editor [data-field="notes"]').inputValue(),'keep my local input');
+     assert.deepEqual((await s.state()).working,initial);
+     await page.locator('#routine-form-cancel').click();
+     await page.locator('#routine-editor').waitFor({state:'detached'});
+     await page.locator('[data-equipment-edit="source"]').click();
+     assert(await page.locator('#routine-destination-preview').isHidden());
+     assert.equal(await page.locator('#routine-editor [data-field="notes"]').inputValue(),initial.equipment.find(e=>e.id==='source').notes||'');
      assert.deepEqual(s.posts,[]);
    }finally{await s.close();}
  }
+});
+
+void test('inline selectors distinguish identical group names and exclude reconstructed destinations',async()=>{
+ for(const [lang,width] of [['zh',1280],['vi',320]]){
+   const s=await setup(width,lang,{prepare:prepareHierarchy,decorate(values){
+     values.routineEquipmentControl=JSON.stringify(JSON.parse(values.routineEquipmentControl,(key,value)=>{
+       if(key!=='groups'||!Array.isArray(value))return value;
+       const group=value.find(row=>row.id==='group4');
+       if(!group)return value;
+       return [...value,{...group,id:'SYN-TG029',name:'Identical group'},
+         {...group,id:'SYN-TEXT',categoryId:'missing',subcategoryId:'missing',categoryCode:'C02',category:'Second category',subcategory:'Third subcategory'},
+         {...group,id:'SYN-ORPHAN',categoryId:'cat',subcategoryId:'sub3'}];
+     }));
+   }}),{page}=s;
+   try{
+     await edit(page,'keep after direct selection');
+     const picker=page.locator('#routine-editor #routine-classification-choices');
+     assert.equal(await picker.locator('input,details,dialog').count(),0);
+     assert.equal(await picker.locator('select').count(),3);
+     await page.selectOption('#routine-edit-category','cat2');
+     await page.selectOption('#routine-edit-subcategory','sub3');
+     const options=page.locator('#routine-edit-group option');
+     assert.deepEqual(await options.evaluateAll(rows=>rows.map(row=>row.value)),['','group4','SYN-TG029']);
+     assert.deepEqual((await options.allTextContents()).slice(1),['group4 · Identical group','SYN-TG029 · Identical group']);
+     await page.selectOption('#routine-edit-group','SYN-TG029');
+     assert.match(await page.locator('#routine-destination-preview').innerText(),/SYN-TG029/);
+     assert.equal(await page.locator('#routine-editor [data-field="notes"]').inputValue(),'keep after direct selection');
+     assert.deepEqual(s.posts,[]);
+   }finally{await s.close();}
+ }
+});
+
+void test('removed destination and concurrent identity edits never overwrite the current equipment',async()=>{
+ const s=await setup(320,'zh',{prepare:prepareHierarchy}),{page}=s;
+ try{
+   await edit(page,'keep note when destination is removed');
+   await chooseDestination(page,'group2');
+   const initial=await s.state();
+   const send=(command)=>page.evaluate(async command=>{
+     const res=await fetch('/api/routine-equipment/workflow?caseMetadata=1',{method:'POST',
+       headers:{'Content-Type':'application/json','X-Process-Expected-Actor':'frank'},body:JSON.stringify({command})});
+     const body=await res.json();return [res.status,body.error];
+   },command);
+   const base={action:'apply',generation:initial.generation,expectedRevision:initial.revision,
+     operationId:crypto.randomUUID(),clientId:'synthetic-other-tab',sequence:1};
+   const groupPath=['groups',{id:'group2'}];
+   const markPath=['equipment',{id:'source'},'pieceMark'];
+   const assetPath=['equipment',{id:'source'},'assetCode'];
+   const source=initial.working.equipment.find(row=>row.id==='source');
+   const oldGroup=initial.working.groups.find(row=>row.id==='group2');
+   assert.equal((await send({...base,patches:[{op:'remove',path:groupPath},{op:'set',path:markPath,value:'PEER'}],
+     guards:[{path:groupPath,value:oldGroup},{path:markPath,value:source.pieceMark},{path:assetPath,value:source.assetCode}]}))[0],200);
+   await page.locator('#routine-form-apply').click();await page.locator('#routine-editor').waitFor({state:'detached'});
+   await page.locator('#routine-save').click();
+   await page.waitForFunction(()=>document.querySelector('[data-equipment-save-choice]')||
+     !document.querySelector('#routine-save')?.disabled);
+   const cancel=page.locator('[data-equipment-save-choice="cancel"]');
+   if(await cancel.count())await cancel.click();
+   const fresh=await s.state(), row=fresh.working.equipment.find(r=>r.id==='source');
+   assert.equal(row.groupId,source.groupId);assert.equal(row.pieceMark,'PEER');
+   assert.deepEqual(fresh.saved,initial.saved);
+   const stale=await send({...base,action:'save',moduleAction:'save-local-v1',expectedRevision:fresh.revision,
+     clientId:'stale-identity',operationId:crypto.randomUUID(),patches:[{op:'set',path:assetPath,value:'SYN-NEW'}],
+     guards:[{path:markPath,value:source.pieceMark},{path:assetPath,value:source.assetCode}]});
+   assert.equal(stale[0],409);
+   assert.equal((await s.state()).working.equipment.find(r=>r.id==='source').assetCode,source.assetCode);
+ }finally{await s.close();}
 });
 
 function linkedPieces(values){
@@ -262,12 +402,13 @@ for(const lang of ['zh','vi'])void test('linked equipment renumber and regroup '
    await mark.fill('');await page.locator('#routine-form-apply').click();
    assert.match(await page.locator('#routine-identity-error').innerText(),lang==='zh'?/請填寫分件號/:/nhập ký hiệu/);
    await mark.fill('07');await asset.fill('SYN-RENAMED');
-   await page.selectOption('#routine-edit-group','group2');
+   await chooseDestination(page,'group2');
    await page.locator('#routine-form-apply').click();await page.locator('#routine-editor').waitFor({state:'detached'});
    let response=tick();await page.locator('#routine-save').click();assert.equal((await response).status(),200);
    await page.waitForFunction(()=>!window.sharedDraftAccountState().queued&&!document.querySelector('#routine-save').disabled);
    await page.reload();await ready(page,'data');await page.locator('#routine-save').waitFor();
    const saved=(await s.state()).saved,item=saved.content.equipment.find(x=>x.id==='source');
+   assert.equal(item.notes,'preserve this piece');
    assert.deepEqual([item.assetCode,item.pieceMark,item.groupId,item.sourceRow],['SYN-RENAMED','07','group2',12]);
    assert.deepEqual(saved.content.issues,initialFlow.working.issues);
    assert.deepEqual(saved.content.equipment.find(x=>x.id==='target'),sibling);

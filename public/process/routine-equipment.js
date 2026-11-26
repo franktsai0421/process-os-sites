@@ -137,10 +137,22 @@
       // Receipt lookup never sends the retained input. Keep its original comparison basis.
       await read(true);
       if(local){working=local;syncBase=base;}
+      let recoveredContent;
+      if (result?.equipmentCommand?.action === 'save') {
+        const flow = control.workflow, receipt = result.receipt;
+        const save = [flow.saved,...(flow.saves || [])].find(entry => entry?.id === receipt?.savedId);
+        const inserts = result.equipmentCommand.patches.filter(patch => patch.op === 'insert');
+        if (inserts.length && (flow.generation !== receipt?.generation || !save?.content ||
+            !inserts.every(patch => confirmedEquipmentInsert(save.content,patch)))) {
+          readUnavailable = true;
+          throw Error('SYNC_CONFIRMATION_REQUIRED');
+        }
+        recoveredContent = save?.content;
+      }
       if(result?.equipmentCommand?.action==='save'&&pendingSaveBatch){
         const batch=pendingSaveBatch,canonical=clone(batch.local);
         for(const patch of result.equipmentCommand.patches.filter(p=>p.op==='insert')){
-          const key=patch.path[0],row=canonical[key].find(r=>r.id===patch.value.id),actual=control.workflow.working[key].find(r=>r.id===patch.value.id),current=working?.[key].find(r=>r.id===patch.value.id),before=batch.sentInput[key].find(r=>r.id===patch.value.id);
+          const key=patch.path[0],row=canonical[key].find(r=>r.id===patch.value.id),actual=recoveredContent?.[key]?.find(r=>r.id===patch.value.id),current=working?.[key].find(r=>r.id===patch.value.id),before=batch.sentInput[key].find(r=>r.id===patch.value.id);
           if(!row||!actual)throw Error('SYNC_CONFIRMATION_REQUIRED');
           for(const field of key==='categories'?['code']:key==='equipment'?['assetCode','pieceMark']:[]){row[field]=actual[field];if(current&&current[field]===before[field])current[field]=actual[field];}
         }
@@ -189,7 +201,8 @@
       const defaults={id:sent.id,assetCode:String(sent.assetCode||'').trim().toUpperCase(),pieceMark:actual.pieceMark,groupId:'',calibrationMethod:'none',calibrationCycle:'',customCycle:'',calibratedAt:'',expiresAt:'',intakeDate:'',name:'',quantity:1,unit:'個',owner:'',enabled:true,confirmed:false,spec:'',notes:'',photoId:'',photoHidden:false};
       const derivedFields=['categoryId','subcategoryId','categoryCode','category','subcategory'];
       if(!only(sent,[...Object.keys(defaults),...derivedFields,'sourceRow','effectiveAt'])||['sourceRow','effectiveAt'].some(key=>Object.hasOwn(sent,key)&&sent[key]!==null))return false;
-      if(!allocated(actual.pieceMark)||rows.filter(row=>row?.assetCode===defaults.assetCode&&row?.pieceMark===actual.pieceMark).length!==1)return false;
+      const markMatches = Object.hasOwn(sent,'pieceMark') ? typeof sent.pieceMark==='string' && !!sent.pieceMark.trim() && actual.pieceMark===sent.pieceMark.trim() : allocated(actual.pieceMark);
+      if(!markMatches||rows.filter(row=>identityLabel(row?.assetCode)===defaults.assetCode&&identityLabel(row?.pieceMark)===identityLabel(actual.pieceMark)).length!==1)return false;
       const group=one('groups',sent.groupId),derived=group&&parents(group.categoryId,group.subcategoryId);if(!derived)return false;
       // checkedSnapshot's mutableFields copy is after its constructors: an
       // explicitly supplied null/empty value is not replaced with a default.
@@ -341,7 +354,7 @@
     if(busy||equipmentSaveChoice)return null;
     if(action==='apply'){
       if(!editable())return null;
-      message=t('已完成表單，修改僅保留於本機；請存取草稿。','Đã hoàn tất biểu mẫu; thay đổi chỉ ở máy này. Hãy lưu bản nháp.');
+      message=t('已套用，修改僅保留於本機；請存取草稿。','Đã áp dụng; thay đổi chỉ ở máy này. Hãy lưu bản nháp.');
       return {control,revision,local:true};
     }
     if(['save','submit'].includes(action)&&(editingEquipmentId||nodeDialog||addingEquipment||isFormDirty()||action==='submit'&&(pendingPhotos.size||working&&syncBase&&snapshotChanges(syncBase,working).patches.length))){
@@ -484,7 +497,7 @@
   // Preserve this unapplied drawer; renewal reads never acknowledge or replay it.
   function captureAddEquipmentInput(root=host) {
     if (!addingEquipment || !newEquipmentForm || !routineTabIsActive()) return;
-    const fields = {assetCode:'asset-code',name:'name',unit:'unit',owner:'owner',calibrationMethod:'calibration-method',calibrationCycle:'calibration-cycle',customCycle:'custom-cycle',calibratedAt:'calibrated-at',expiresAt:'expires-at',intakeDate:'intake-date',spec:'spec',notes:'notes',groupId:'group-select'};
+    const fields = {assetCode:'asset-code',pieceMark:'piece-mark-input',name:'name',unit:'unit',owner:'owner',calibrationMethod:'calibration-method',calibrationCycle:'calibration-cycle',customCycle:'custom-cycle',calibratedAt:'calibrated-at',expiresAt:'expires-at',intakeDate:'intake-date',spec:'spec',notes:'notes',groupId:'group-select'};
     for (const [field, id] of Object.entries(fields)) {
       const input = root.querySelector('#routine-add-' + id);
       if (input) newEquipmentForm[field] = input.value;
@@ -606,18 +619,6 @@
 
   const unitLabels = { '個': ['個','Cái'], '支': ['支','Cây'], '台': ['台','Máy'], '組': ['組','Bộ'] };
 
-  function computeNextPieceMark(assetCode) {
-    const code = String(assetCode || '').trim().toUpperCase();
-    if (!code) return '01';
-    const reserved = new Set(control?.reservedMarks?.[code] || []);
-    for (const item of (working?.equipment || visible()?.equipment || [])) {
-      if (String(item.assetCode || '').trim().toUpperCase() === code && item.pieceMark) {
-        reserved.add(String(item.pieceMark).trim().toUpperCase());
-      }
-    }
-    const maximum = [...reserved].reduce((max, mark) => /^\d+$/.test(mark) ? Math.max(max, Number(mark)) : max, 0);
-    return String(maximum + 1).padStart(2, '0');
-  }
   const methodLabels = { none: ['不校正','Không hiệu chuẩn'], internal: ['內部校正','Hiệu chuẩn nội bộ'], external: ['外部校正','Hiệu chuẩn bên ngoài'] };
   const cycleLabels = { weekly: ['每週','Hằng tuần'], monthly: ['每月','Hằng tháng'], quarterly: ['每季','Hằng quý'], halfyear: ['每半年','Mỗi nửa năm'], yearly: ['每年','Hằng năm'], custom: ['自訂','Tùy chỉnh'] };
   const label = map => t(...map);
@@ -963,12 +964,61 @@
     `;
   }
 
+  // The pending destination belongs to this open form only.
+  const formDestinations = new WeakMap();
+
+  function equipmentClassification(version) {
+    const canonical = version === working ? control.workflow?.working || selected() : version;
+    function rows(key, parentKeys) {
+      const base = new Map((version === working ? syncBase?.[key] || [] : []).map(row => [row.id,row]));
+      const stored = new Map((canonical?.[key] || []).map(row => [row.id,row]));
+      return (version[key] || []).flatMap(row => {
+        const original = base.get(row.id), source = stored.get(row.id);
+        if (!original) return [row]; // Includes explicitly added local groups.
+        if (!source) return []; // The display tree may synthesize legacy parents.
+        const result = {...row};
+        for (const field of parentKeys) {
+          if (row[field] === original[field]) result[field] = source[field];
+        }
+        return [result];
+      });
+    }
+    const categories = rows('categories',[]);
+    const categoryById = new Map(categories.map(row => [row.id,row]));
+    const subcategories = rows('subcategories',['categoryId']).filter(row => categoryById.has(row.categoryId));
+    const subById = new Map(subcategories.map(row => [row.id,row]));
+    const destinations = rows('groups',['categoryId','subcategoryId']).flatMap(group => {
+      const category = categoryById.get(group.categoryId), sub = subById.get(group.subcategoryId);
+      if (!group.id || !category?.id || !sub?.id || sub.categoryId !== category.id) return [];
+      const path = [categoryLabel(category),sub.name || sub.id,groupLabel(group) || group.id].join(' › ');
+      return [{group,category,sub,label:group.id + ' · ' + path}];
+    });
+    return {categories,subcategories,destinations};
+  }
+
+  function chosenDestination(item, destinations) {
+    const choice = formDestinations.get(formSnapshot) || item;
+    return destinations.find(({group}) => group.id === choice.groupId &&
+      (!choice.categoryId || group.categoryId === choice.categoryId) &&
+      (!choice.subcategoryId || group.subcategoryId === choice.subcategoryId));
+  }
+
+  function classificationOptions(rows, value, placeholder, label) {
+    return `<option value="">${placeholder}</option>` + rows.map(row =>
+      `<option value="${h(row.id)}" data-i18n-skip="true" ${row.id === value ? 'selected' : ''}>${h(label(row))}</option>`).join('');
+  }
+
+  const categoryLabel = category => [category.code,category.name || category.id].filter(Boolean).join(' · ');
+  const destinationLabel = group => group.id + ' · ' + groupLabel(group);
+
   function form(item) {
     if (!item) return '';
-    const can = editable(), tree = structure(visible()), groups = tree.groups;
-    const currentGroup = groups.find(group => group.id === item.groupId);
-    const categoryId = item.categoryId || currentGroup?.categoryId || '';
-    const subcategoryId = item.subcategoryId || currentGroup?.subcategoryId || '';
+    const can = editable(), hierarchy = equipmentClassification(visible()), destinations = hierarchy.destinations;
+    const original = destinations.find(({group}) => group.id === formSnapshot?.groupId);
+    const chosen = chosenDestination(item, destinations);
+    const selection = formDestinations.get(formSnapshot) || original?.group || item;
+    const subcategories = hierarchy.subcategories.filter(row => row.categoryId === selection.categoryId);
+    const groups = destinations.filter(d => d.category.id === selection.categoryId && d.sub.id === selection.subcategoryId).map(d => d.group);
     const field = (label, key, type = 'text', readonly = false, extra = '') => {
       const prob = getProblem(item.id, key);
       return `<label>${label}${prob ? `<span class="routine-field-error">⚠️ ${h(problemMessage(prob).replace(/^.*?:\s*/, ''))}</span>` : ''}<input data-field="${key}" class="${prob ? 'has-error' : ''}" data-i18n-skip="true" type="${type}" value="${h(item[key] ?? '')}" ${!can || readonly ? 'disabled' : ''} ${extra}></label>`;
@@ -976,11 +1026,8 @@
     const text = (label, key) =>
       `<label class="wide">${label}<textarea data-field="${key}" data-i18n-skip="true" ${can ? '' : 'disabled'}>${h(item[key] || '')}</textarea></label>`;
 
-    const availableGroups = groups.filter(group => group.categoryId === categoryId && group.subcategoryId === subcategoryId);
-    const completeHierarchy = !!categoryId && !!subcategoryId && availableGroups.some(group => group.id === item.groupId);
+    const completeHierarchy = !!chosen;
     const nameConflict = !item.name && item.nameZh && item.nameVi && item.nameZh.trim() !== item.nameVi.trim();
-    const original = selected()?.equipment.find(value => value.id === item.id);
-    const moved = !!original && original.groupId !== item.groupId;
     const calibration = methodCode(item.calibrationMethod);
 
     const nameProb = getProblem(item.id, 'name');
@@ -988,6 +1035,7 @@
     const methodProb = getProblem(item.id, 'calibrationMethod');
 
     return `<div class="routine-modal-backdrop" id="routine-backdrop"><section class="routine-card routine-modal routine-editor" id="routine-editor" role="dialog" aria-modal="true" aria-label="${t('編輯檢具', 'Sửa thiết bị')}">
+        <div class="routine-editor-scroll">
         <div class="routine-modal-header">
           <div>
             <h3 data-i18n-skip="true">${h(details(item))}</h3>
@@ -999,7 +1047,6 @@
         <div class="routine-modal-body">
           <p id="routine-identity-error" role="alert" class="routine-validation" hidden></p>
           ${nameConflict ? `<div class="routine-message">${t('舊中越名稱內容不同，原文已保留。請核對後在單一名稱欄輸入確認結果。', 'Hai tên cũ khác nhau và đã được giữ nguyên. Hãy xác nhận trong ô tên duy nhất.')}</div>` : ''}
-          ${moved ? `<div class="routine-source" role="status">${t('此檢具的分類／群組已變更：', 'Phân loại / nhóm của thiết bị đã thay đổi: ')}<span data-i18n-skip="true">${h(original.groupId)} → ${h(item.groupId || '—')}</span>。${t('下列 Excel 文字關聯僅供核對。歷史報告保留原紀錄。', 'Liên kết văn bản Excel dưới đây dùng để đối soát. Báo cáo lịch sử giữ nguyên thông tin đã ghi.')}</div>` : ''}
           ${submitProblems.filter(problem => problem.id === item.id).map(problem => `<p class="routine-validation" data-error-field="${h(problem.field)}">${problemSnapshot?h(t('送審快照：','Bản gửi duyệt: ')):''}${h(problemMessage(problem))}</p>`).join('')}
           <div class="routine-edit-grid">
             ${field(t('固定資產編號', 'Mã TSCĐ'), 'assetCode')}
@@ -1008,23 +1055,23 @@
               <input data-field="name" class="${nameProb ? 'has-error' : ''}" data-i18n-skip="true" type="text" value="${h(displayName(item))}" ${can ? '' : 'disabled'}>
             </label>
 
-            <label>${t('類別', 'Nhóm')}<select id="routine-edit-category" ${can ? '' : 'disabled'}>
-              <option value="">${t('請選擇類別', 'Chọn nhóm')}</option>
-              ${tree.categories.map(cat => `<option data-i18n-skip="true" value="${h(cat.id)}" ${cat.id === categoryId ? 'selected' : ''}>${h(cat.code)} · ${h(cat.name)}</option>`).join('')}
-            </select></label>
-
-            <label>${t('子類別', 'Phân nhóm')}<select id="routine-edit-subcategory" ${can ? '' : 'disabled'}>
-              <option value="">${t('請選擇子類別', 'Chọn phân nhóm')}</option>
-              ${tree.subcategories.filter(sub => sub.categoryId === categoryId).map(sub => `<option data-i18n-skip="true" value="${h(sub.id)}" ${sub.id === subcategoryId ? 'selected' : ''}>${h(sub.name)}</option>`).join('')}
-            </select></label>
-
-            <label class="wide">${t('規格群組', 'Nhóm quy cách')}${groupProb ? `<span class="routine-field-error">⚠️ ${h(problemMessage(groupProb).replace(/^.*?:\s*/, ''))}</span>` : ''}
-              <select id="routine-edit-group" ${completeHierarchy ? '' : 'aria-describedby="routine-hierarchy-hint"'} class="${groupProb ? 'has-error' : ''}" ${can ? '' : 'disabled'}>
-                <option value="">${t('請選擇群組', 'Chọn nhóm quy cách')}</option>
-                ${availableGroups.map(g => `<option data-i18n-skip="true" value="${h(g.id)}" ${g.id === item.groupId ? 'selected' : ''}>${h(g.id)} · ${h(g.name || g.nameVi || g.nameZh)}</option>`).join('')}
-              </select>
-                ${can && !completeHierarchy ? `<span id="routine-hierarchy-hint" role="status">${t('請依序選擇類別、子類別與規格群組，再完成表單。','Chọn loại, phân nhóm và nhóm quy cách trước khi hoàn tất biểu mẫu.')}</span>` : ''}
-            </label>
+            <div class="wide routine-classification">
+              <p>${t('目前分類', 'Phân loại hiện tại')} <b data-i18n-skip="true">${h(original?.label || formSnapshot?.groupId || '—')}</b></p>
+              ${groupProb ? `<p class="routine-field-error">${h(problemMessage(groupProb))}</p>` : ''}
+              <p id="routine-destination-preview" role="status" ${chosen && chosen.group.id !== formSnapshot?.groupId ? '' : 'hidden'}>${t('變更後', 'Sau khi đổi')} <b data-i18n-skip="true">${h(chosen?.label || '')}</b><br><small>${t('歷史報告保留原紀錄。','Báo cáo lịch sử giữ nguyên thông tin đã ghi.')}</small></p>
+              ${can ? `<div id="routine-classification-choices">
+                <label>${t('類別','Loại')}<select id="routine-edit-category">
+                  ${classificationOptions(hierarchy.categories,selection.categoryId,t('請選擇類別','Chọn loại'),categoryLabel)}
+                </select></label>
+                <label>${t('子類別','Phân nhóm')}<select id="routine-edit-subcategory" ${selection.categoryId?'':'disabled'}>
+                  ${classificationOptions(subcategories,selection.subcategoryId,t('請選擇子類別','Chọn phân nhóm'),row=>row.name || row.id)}
+                </select></label>
+                <label>${t('規格群組','Nhóm quy cách')}<select id="routine-edit-group" ${selection.subcategoryId?'':'disabled'}>
+                  ${classificationOptions(groups,selection.groupId || chosen?.group.id,t('請選擇規格群組','Chọn nhóm quy cách'),destinationLabel)}
+                </select></label>
+              </div>
+              <p id="routine-hierarchy-hint" role="alert" ${completeHierarchy?'hidden':''}>${t('請選擇有效的目的規格群組，再按套用。','Chọn nhóm quy cách đích hợp lệ rồi nhấn Áp dụng.')}</p>` : ''}
+            </div>
 
             ${field(t('數量（固定 1）', 'Số lượng (Cố định 1)'), 'quantity', 'number', true)}
             <label>${t('單位', 'Đơn vị')}<select data-select="unit" ${can ? '' : 'disabled'}>
@@ -1073,10 +1120,11 @@
           </div>
         </div>
 
+        </div>
         <div class="routine-modal-footer">
           ${can ? `<button type="button" class="button ghost" id="routine-delete">${t('刪除檢具', 'Xóa thiết bị')}</button>` : ''}
           <button type="button" class="button ghost" id="routine-form-cancel">${t('關閉', 'Đóng')}</button>
-          ${can ? `<button type="button" class="button signal" id="routine-form-apply" ${completeHierarchy ? '' : 'disabled'}>${t('完成表單', 'Hoàn tất biểu mẫu')}</button>` : ''}
+          ${can ? `<button type="button" class="button signal" id="routine-form-apply" ${completeHierarchy ? '' : 'disabled'}>${t('套用', 'Áp dụng')}</button>` : ''}
         </div>
       </section></div>`;
   }
@@ -1357,7 +1405,6 @@
     const group = tree.groups.find(g => g.id === form.groupId);
     const cat = tree.categories.find(c => c.id === group?.categoryId);
     const sub = tree.subcategories.find(s => s.id === group?.subcategoryId);
-    const computedMark = computeNextPieceMark(form.assetCode);
 
     return `<div class="routine-modal-backdrop" id="routine-add-backdrop"><section class="routine-card routine-modal routine-editor" id="routine-add-modal" role="dialog" aria-modal="true" aria-label="${t('新增檢具', 'Thêm thiết bị')}">
       <div class="routine-modal-header">
@@ -1384,8 +1431,8 @@
           </label>
 
           <label>
-            ${t('個別設備標記（分件號，由系統分配）', 'Ký hiệu thiết bị (Hệ thống tự cấp)')}
-            <input type="text" id="routine-add-piece-mark-input" data-i18n-skip="true" value="${h(computedMark)}" disabled class="routine-readonly">
+            ${t('個別設備標記（分件號，必填）', 'Ký hiệu thiết bị (Bắt buộc)')}
+            <input type="text" id="routine-add-piece-mark-input" data-i18n-skip="true" value="${h(form.pieceMark || '')}" required>
           </label>
 
           <label class="wide">
@@ -1764,6 +1811,7 @@
     newEquipmentForm = {
       groupId: selectedGroup,
       assetCode: '',
+      pieceMark: '',
       name: '',
       quantity: 1,
       unit: '個',
@@ -1791,6 +1839,7 @@
     if(form.submittedEquipmentId&&sharedClient?.hasUnknown()){await writeShared('apply');return;}
 
     const assetCode = String(root.querySelector('#routine-add-asset-code')?.value || '').trim().toUpperCase();
+    const mark = String(root.querySelector('#routine-add-piece-mark-input')?.value || '').trim();
     const name = String(root.querySelector('#routine-add-name')?.value || '').trim();
     const unit = root.querySelector('#routine-add-unit')?.value || '個';
     const owner = String(root.querySelector('#routine-add-owner')?.value || '').trim();
@@ -1806,7 +1855,7 @@
     const notes = String(root.querySelector('#routine-add-notes')?.value || '').trim();
 
     Object.assign(newEquipmentForm, {
-      assetCode, name, unit, owner, enabled, confirmed,
+      assetCode, pieceMark:mark, name, unit, owner, enabled, confirmed,
       calibrationMethod, calibrationCycle, customCycle,
       calibratedAt, expiresAt, intakeDate, spec, notes
     });
@@ -1814,6 +1863,14 @@
     if (!/^[A-Z0-9-]{2,40}$/.test(assetCode)) {
       newEquipmentForm.error = t('固定資產編號格式錯誤（需為 2-40 碼英數字／橫線）', 'Mã TSCĐ không đúng định dạng (2-40 ký tự chữ số/gạch nối)');
       render();
+      return;
+    }
+    const duplicate = working.equipment.some(row => row.id !== newEquipmentForm.submittedEquipmentId &&
+      identityLabel(row.assetCode) === assetCode && identityLabel(row.pieceMark) === identityLabel(mark));
+    if (!mark || duplicate) {
+      newEquipmentForm.error = displayDraftError(mark ? 'EQUIPMENT_PAIR_DUPLICATE' : 'EQUIPMENT_PIECE_REQUIRED');
+      render();
+      root.querySelector('#routine-add-piece-mark-input')?.focus();
       return;
     }
     if (!name) {
@@ -1848,8 +1905,7 @@
       selectedGroup = group.id;
 
       const existing=form.submittedEquipmentId&&working.equipment.find(row=>row.id===form.submittedEquipmentId);
-      if(form.submittedEquipmentId&&(!existing||existing.assetCode!==assetCode))throw Error(t('已送出這筆檢具；保留輸入，請先核對原筆資料與固定資產編號。','Thiết bị này đã được gửi; giữ dữ liệu nhập, hãy đối chiếu bản ghi và mã tài sản trước.'));
-      const mark = existing?.pieceMark||computeNextPieceMark(assetCode);
+      if(form.submittedEquipmentId&&(!existing||existing.assetCode!==assetCode||existing.pieceMark!==mark))throw Error(t('已送出這筆檢具；保留輸入，請先核對原筆資料與固定資產編號。','Thiết bị này đã được gửi; giữ dữ liệu nhập, hãy đối chiếu bản ghi và mã tài sản trước.'));
       const newId = existing?.id||crypto.randomUUID();
 
       const newRecord = {
@@ -1923,8 +1979,8 @@
     }
     const curName = host.querySelector('#routine-editor [data-field="name"]')?.value?.trim();
     if (curName !== undefined && curName !== String(displayName(formSnapshot)).replace(/[\r\n]/g, '').trim()) return true;
-    const curGroup = host.querySelector('#routine-edit-group')?.value;
-    if (curGroup !== undefined && curGroup !== formSnapshot.groupId) return true;
+    const proposedGroup = formDestinations.get(formSnapshot);
+    if (proposedGroup && ['categoryId','subcategoryId','groupId'].some(key=>proposedGroup[key] !== formSnapshot[key])) return true;
     const curUnit = host.querySelector('#routine-editor [data-select="unit"]')?.value;
     if (curUnit && curUnit !== unitCode(formSnapshot.unit)) return true;
     const curOwner = host.querySelector('#routine-editor [data-field="owner"]')?.value?.trim();
@@ -1946,6 +2002,29 @@
     return false;
   };
 
+  function selectEquipmentInList(item) {
+    const id = item.id;
+    if (search) {
+      const matchesSearch = matchingRows(visible()?.equipment || []).some(e => e.id === id);
+      if (!matchesSearch) {
+        search = '';
+        const searchInput = host.querySelector('#routine-search');
+        if (searchInput) searchInput.value = '';
+      }
+    }
+
+    const group = structure(visible()).groups.find(value => value.id === item.groupId);
+    if (group) {
+      selectedCategory = group.categoryId || '';
+      selectedSubcategory = group.subcategoryId || '';
+      selectedGroup = group.id || '';
+    }
+
+    selectedEquipmentId = id;
+    const index = matchingRows(visible()?.equipment || []).findIndex(row => row.id === id);
+    if (index >= 0) equipmentPage = Math.floor(index / 20) + 1;
+  }
+
   function locateEquipment(id, field = '') {
     if (!editable()) {
       alert(t('目前非可編輯草稿狀態，無法修改設備。', 'Hiện không ở trạng thái nháp có thể sửa, không thể chỉnh sửa thiết bị.'));
@@ -1966,23 +2045,7 @@
     }
 
     equipmentEditRequest++;
-    if (search) {
-      const matchesSearch = matchingRows(visible()?.equipment || []).some(e => e.id === id);
-      if (!matchesSearch) {
-        search = '';
-        const searchInput = host.querySelector('#routine-search');
-        if (searchInput) searchInput.value = '';
-      }
-    }
-
-    const group = structure(visible()).groups.find(value => value.id === item.groupId);
-    if (group) {
-      selectedCategory = group.categoryId || '';
-      selectedSubcategory = group.subcategoryId || '';
-      selectedGroup = group.id || '';
-    }
-
-    selectedEquipmentId = id;
+    selectEquipmentInList(item);
     editingEquipmentId = id;
     addingEquipment = false;
     newEquipmentForm = null;
@@ -1996,7 +2059,7 @@
       if (field) {
         targetEl = drawer.querySelector(`[data-field="${field}"]`) ||
                    drawer.querySelector(`[data-select="${field}"]`) ||
-                   (field === 'groupId' ? drawer.querySelector('#routine-edit-group') : null) ||
+                   (field === 'groupId' ? drawer.querySelector('#routine-edit-category') : null) ||
                    (field === 'calibrationMethod' ? drawer.querySelector('#routine-edit-calibration-method') : null);
       }
       if (targetEl) {
@@ -3505,7 +3568,19 @@
     for(const selector of ['[data-vd-saved]','[data-vd-sync]','#routine-shared-status > p']){const node=host?.querySelector(selector);if(node)node.textContent=state;}
   }
 
+  function fitEquipmentEditor() {
+    const backdrop = host?.querySelector('#routine-backdrop');
+    const viewport = window.visualViewport;
+    if (!backdrop || !viewport) return;
+    backdrop.style.setProperty('--equipment-editor-top', viewport.offsetTop + 'px');
+    backdrop.style.setProperty('--equipment-editor-height', viewport.height + 'px');
+  }
+
+  window.visualViewport?.addEventListener('resize', fitEquipmentEditor);
+  window.visualViewport?.addEventListener('scroll', fitEquipmentEditor);
+
   function bind() {
+    fitEquipmentEditor();
     const root = host;
     root.querySelector('#routine-reference-cancel')?.addEventListener('click',guardWorking(root.querySelector('#routine-reference-cancel'),()=>{const action=referenceAction;if(!action)return;action.controller.abort();referenceAction=null;message=t('已取消引用檢查；資料保留，未刪除。','Đã hủy kiểm tra tham chiếu; giữ dữ liệu, chưa xóa.');render();}));
     root.querySelector('#routine-import')?.addEventListener('click', guardWorking(root.querySelector('#routine-import'),importSource));
@@ -3729,27 +3804,28 @@
         });
       });
 
-      root.querySelector('#routine-edit-category')?.addEventListener('change', guardWorking(root.querySelector('#routine-edit-category'),event => {
-        item.categoryId = event.target.value;
-        const cat = working.categories.find(value => value.id === item.categoryId);
-        item.categoryCode = cat?.code || ''; item.category = cat?.name || '';
-        item.groupId = ''; item.subcategoryId = ''; item.subcategory = '';
-        render();
-      }));
-
-      root.querySelector('#routine-edit-subcategory')?.addEventListener('change', guardWorking(root.querySelector('#routine-edit-subcategory'),event => {
-        item.subcategoryId = event.target.value;
-        item.subcategory = working.subcategories.find(value => value.id === item.subcategoryId)?.name || '';
-        item.groupId = '';
-        render();
-      }));
-
-      root.querySelector('#routine-edit-group')?.addEventListener('change', guardWorking(root.querySelector('#routine-edit-group'),event => {
-        const group = working.groups.find(value => value.id === event.target.value && value.categoryId === item.categoryId && value.subcategoryId === item.subcategoryId);
-        item.groupId = group?.id || '';
-        if (group) { item.categoryId = group.categoryId; item.subcategoryId = group.subcategoryId;
-          item.categoryCode = group.categoryCode; item.category = group.category; item.subcategory = group.subcategory; }
-        render();
+      const classification = root.querySelector('#routine-classification-choices');
+      if (classification) classification.addEventListener('change', guardWorking(classification, () => {
+        const category = classification.querySelector('#routine-edit-category');
+        const sub = classification.querySelector('#routine-edit-subcategory');
+        const group = classification.querySelector('#routine-edit-group');
+        const hierarchy = equipmentClassification(working), destinations = hierarchy.destinations;
+        const subcategories = hierarchy.subcategories.filter(row => row.categoryId === category.value);
+        const subId = subcategories.some(row => row.id === sub.value) ? sub.value : '';
+        const groups = destinations.filter(d => d.category.id === category.value && d.sub.id === subId).map(d => d.group);
+        const groupId = groups.some(row => row.id === group.value) ? group.value : '';
+        sub.innerHTML = classificationOptions(subcategories,subId,t('請選擇子類別','Chọn phân nhóm'),row=>row.name || row.id);
+        group.innerHTML = classificationOptions(groups,groupId,t('請選擇規格群組','Chọn nhóm quy cách'),destinationLabel);
+        sub.disabled = !category.value;
+        group.disabled = !subId;
+        const choice = {categoryId:category.value,subcategoryId:subId,groupId};
+        formDestinations.set(formSnapshot,choice);
+        const destination = chosenDestination(item,destinations);
+        const preview = root.querySelector('#routine-destination-preview');
+        preview.hidden = !destination || destination.group.id === formSnapshot.groupId;
+        preview.querySelector('b').textContent = destination?.label || '';
+        root.querySelector('#routine-hierarchy-hint').hidden = !!destination;
+        root.querySelector('#routine-form-apply').disabled = !destination;
       }));
 
       root.querySelector('#routine-photo-input')?.addEventListener('change', guardWorking(root.querySelector('#routine-photo-input'),event => {
@@ -3758,7 +3834,7 @@
         const prior = pendingPhotos.get(item.id); if (prior&&prior!==formPendingPhoto) URL.revokeObjectURL(prior.url);
         pendingPhotos.set(item.id, { file, url: URL.createObjectURL(file) });
         item.photoHidden = false;
-        message = t('照片僅在本頁預覽；完成表單後，按存取草稿才上傳並保存照片參照。', 'Ảnh chỉ ở trang này; hoàn tất biểu mẫu rồi lưu bản nháp để tải ảnh và lưu tham chiếu.'); render();
+        message = t('照片僅在本頁預覽；按套用後，按存取草稿才上傳並保存照片參照。', 'Ảnh chỉ ở trang này; nhấn Áp dụng rồi lưu bản nháp để tải ảnh và lưu tham chiếu.'); render();
       }));
       root.querySelector('#routine-photo-remove')?.addEventListener('click', guardWorking(root.querySelector('#routine-photo-remove'),() => {
         if (!confirm(t('確定從目前草稿移除照片？舊版本照片不會刪除。', 'Xóa ảnh khỏi bản nháp hiện tại? Ảnh phiên bản cũ vẫn được giữ.'))) return;
@@ -3783,10 +3859,17 @@
         }
         const nameInput = root.querySelector('#routine-editor [data-field="name"]');
         if (nameInput) item.name = nameInput.value.trim();
-        const groupSelect = root.querySelector('#routine-edit-group');
-        const group = working.groups.find(g => g.id === groupSelect?.value && g.categoryId === item.categoryId && g.subcategoryId === item.subcategoryId);
-        if (!group) { groupSelect?.focus(); return; }
-        item.groupId = group.id;
+        const destination = chosenDestination(item, equipmentClassification(working).destinations);
+        if (!destination) {
+          root.querySelector('#routine-hierarchy-hint').hidden = false;
+          root.querySelector('#routine-edit-category').focus();
+          return;
+        }
+        const {group,category,sub} = destination;
+        if (formDestinations.has(formSnapshot) && group.id !== item.groupId) {
+          Object.assign(item, {groupId:group.id,categoryId:category.id,subcategoryId:sub.id,
+            categoryCode:category.code,category:category.name,subcategory:sub.name});
+        }
         const unitSelect = root.querySelector('#routine-editor [data-select="unit"]');
         if (unitSelect) item.unit = unitSelect.value;
         const ownerInput = root.querySelector('#routine-editor [data-field="owner"]');
@@ -3825,6 +3908,7 @@
         const sentForm=JSON.stringify(item),sentFormSnapshot=formSnapshot,sentPhoto=pendingPhotos.get(item.id),sentPhotoFile=sentPhoto?.file,sentPhotoURL=sentPhoto?.url;
         if(!await writeShared('apply'))return;
         if(editingEquipmentId!==item.id||formSnapshot!==sentFormSnapshot||JSON.stringify(item)!==sentForm||pendingPhotos.get(item.id)&&(pendingPhotos.get(item.id)!==sentPhoto||sentPhoto?.file!==sentPhotoFile||sentPhoto?.url!==sentPhotoURL))return;
+        if (sentFormSnapshot.groupId !== item.groupId) selectEquipmentInList(item);
         closeForm();
       }));
 
@@ -3839,6 +3923,8 @@
         if (!newEquipmentForm) return;
         const code = root.querySelector('#routine-add-asset-code')?.value;
         if (code !== undefined) newEquipmentForm.assetCode = code.trim().toUpperCase();
+        const mark = root.querySelector('#routine-add-piece-mark-input')?.value;
+        if (mark !== undefined) newEquipmentForm.pieceMark = mark;
         const nm = root.querySelector('#routine-add-name')?.value;
         if (nm !== undefined) newEquipmentForm.name = nm.trim();
         const un = root.querySelector('#routine-add-unit')?.value;
@@ -3894,9 +3980,10 @@
       assetCodeInput?.addEventListener('input', guardWorking(assetCodeInput,() => {
         const val = assetCodeInput.value.trim().toUpperCase();
         newEquipmentForm.assetCode = val;
-        if (pieceMarkInput) pieceMarkInput.value = computeNextPieceMark(val);
+
       }));
 
+      pieceMarkInput?.addEventListener('input', guardWorking(pieceMarkInput,() => { newEquipmentForm.pieceMark = pieceMarkInput.value; }));
       root.querySelector('#routine-add-name')?.addEventListener('input', guardWorking(root.querySelector('#routine-add-name'),e => {
         newEquipmentForm.name = e.target.value;
       }));

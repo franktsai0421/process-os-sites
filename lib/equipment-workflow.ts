@@ -1,4 +1,4 @@
-import {emptyEquipmentControl,hierarchy,checkedSnapshot,submitProblems,reserveMarks,nextPieceMark,type EquipmentControl,type EquipmentVersion,type Equipment,type EquipmentGroup,type EquipmentCategory,type EquipmentSubcategory,type EquipmentIssue} from './routine-equipment';
+import {emptyEquipmentControl,hierarchy,checkedSnapshot,submitProblems,reserveMarks,nextPieceMark,manualPieceMark,type EquipmentControl,type EquipmentVersion,type Equipment,type EquipmentGroup,type EquipmentCategory,type EquipmentSubcategory,type EquipmentIssue} from './routine-equipment';
 import {env} from 'cloudflare:workers';
 import {parse,readSharedStateRow} from './process-state';
 import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON,type SharedDraft,type DraftPatch} from './shared-draft';
@@ -111,7 +111,10 @@ export const equipmentWorkflowAdapter:WorkflowAdapter<EquipmentSnapshot,Equipmen
        if(collection==='equipment'){
          const row=p.value as Equipment;const code=String(row.assetCode||'').trim().toUpperCase();reserveMarks(control,context.allocationIndex?.equipment||control.versions.flatMap(v=>v.equipment));reserveMarks(control,flow.working.equipment);
          if(row.sourceRow||row.effectiveAt||row.photoSource)throw new DraftConflict('SOURCE_PROVENANCE_PROTECTED',422);
-         row.pieceMark=nextPieceMark(control,code);row.assetCode=code;reserveMarks(control,[row]);
+         try {
+           row.pieceMark=Object.hasOwn(row,'pieceMark') ? manualPieceMark(row.pieceMark) : nextPieceMark(control,code);
+         } catch(error) { throw new DraftConflict(error instanceof Error ? error.message : 'EQUIPMENT_PIECE_REQUIRED',422); }
+         row.assetCode=code;reserveMarks(control,[row]);
        }
        if(collection==='categories'){
          const reserved=new Set([...(control.reservedCategoryCodes||[]),...(context.allocationIndex?context.allocationIndex.categories.map(c=>c.code):control.versions.flatMap(v=>(v.categories||[]).map(c=>c.code))),...flow.working.categories.map(c=>c.code)]);
