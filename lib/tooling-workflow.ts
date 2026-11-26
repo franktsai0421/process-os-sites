@@ -15,7 +15,7 @@ function serialized(control:ToolingControl){
 export const toolingWorkflowAdapter:WorkflowAdapter<ToolingSnapshot,ToolingControl>={
  key:'toolingMasterControl',scope:'tooling',parse:parseTooling,empty:emptyTooling,preparedModel:true,permissionOnlyRead:true,photoPrefix:'tooling/photos/',photoIds:s=>s.tools.flatMap(t=>t.photos.map(p=>p.id)),
  async prepareWrite(command){
-  if(command?.action!=='save'&&command?.action!=='submit')return null;
+  if(!command||!['save','submit','withdraw','return','approve'].includes(command.action))return null;
   const row=await readSharedStateRow();
   return row?prepareToolingWrite(env.STATE_ARCHIVE,row):null;
  },

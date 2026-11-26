@@ -4062,9 +4062,8 @@
       const version = control.versions.find(item => item.id === button.dataset.version);
       const comment = button.dataset.routineReview === 'approve' ? body.querySelector(`[data-routine-review-comment="${version.id}"]`)?.value?.trim() || '' : '';
       const result = await write(button.dataset.routineReview, { versionId: version.id, versionRevision: version.revision, comment });
-      if (result) { reviewRender(); document.querySelector('#approval-panel-quality .approval-tab-count')?.replaceChildren(String(pendingCount())); }
+      if (result) reviewRender();
     });
-    const count = document.querySelector('#approval-tab-quality .approval-tab-count'); if (count) count.textContent = String((window.FQCMasterUI?.pendingCount?.() || 0) + pendingCount());
   }
 
   window.addEventListener('process-language-change', () => {

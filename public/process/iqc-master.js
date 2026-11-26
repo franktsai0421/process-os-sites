@@ -1520,8 +1520,6 @@
       await load(); if (!ownsInitial()) return;
       navigationError=null;
       initial.outerHTML = reviewHTML(); const current = panel.querySelector('.iqc-review'); reviewRoot = current;
-      const count = document.querySelector('#approval-tab-quality .approval-tab-count');
-      if (count) count.textContent = String((window.FQCMasterUI?.pendingCount?.() || 0) + (window.RoutineEquipmentUI?.pendingCount?.() || 0) + pendingCount());
       let detailVersionId='';
       current.querySelectorAll('[data-iqc-review]').forEach(button => button.onclick = async () => {
         if (!current.isConnected || identity()?.id !== requestActor) return;
