@@ -1,5 +1,14 @@
 (() => {
-  const displayDraftError = error => window.sharedDraftErrorMessage?.(error) ?? (typeof error === 'string' ? error : error?.message || String(error ?? ''));
+  const identityErrors={
+    EQUIPMENT_ASSET_INVALID:['資產編號須為 2 至 40 個英文字母、數字或連字號。','Mã tài sản phải có 2–40 chữ cái, chữ số hoặc dấu gạch ngang.'],
+    EQUIPMENT_PIECE_REQUIRED:['請填寫分件號。','Hãy nhập ký hiệu thiết bị.'],
+    EQUIPMENT_PAIR_DUPLICATE:['此資產編號已有相同分件號。請核對兩個欄位並使用不同的組合。','Mã tài sản này đã có cùng ký hiệu thiết bị. Hãy kiểm tra cả hai ô và dùng một cặp khác.']
+  };
+  const displayDraftError = error => {
+    const message=typeof error==='string'?error:error?.message||String(error??'');
+    const code=Object.keys(identityErrors).find(key=>message.includes(key));
+    return code?t(...identityErrors[code]):window.sharedDraftErrorMessage?.(error)??message;
+  };
   const api = '/api/routine-equipment';
   const query = new URL(location.href).searchParams.get('manage') === '1' ? '?manage=1' : '';
   const endpoint = api + query;
@@ -57,7 +66,9 @@
   function inputOwnerCurrent(){return inputPrincipalCurrent()&&inputTargetCurrent()&&!window.ProcessSync?.requiresReload&&!!inputOwner.delivery&&window.ProcessSync?.isCurrentDelivery?.(inputOwner.delivery)===true;}
   function rememberInputOwner(delivery=window.ProcessSync?.captureDelivery?.()){inputOwner={actor:identity(),id:identity()?.id,epoch:window.ProcessSync?.identityGeneration?.(),delivery,page:host,tab:host?.dataset?.activeTab,connected:host?.isConnected,versionId:selectedVersionId,generation:control?.workflow?.generation};}
   function sharedTransport(){const id=identity()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(!inputOwnerCurrent()&&hasLocalDraftInput())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(!inputOwner)rememberInputOwner();if(sharedActor!==id||sharedClient?.isBeginRuntimeCurrent?.()===false){sharedActor=id;sharedClient=window.createSharedDraftClient({endpoint:api+'/workflow?caseMetadata=1',durableBegin:true,equipmentLocalSave:true,allowUnknownDeparture:true,guardAccessResults:true,legacyArchive:true,conditionalState:true,actorId:id,headers,permissionGates:{create:'#routine-add,#routine-add-submit,[data-node-add]',edit:'#routine-add,#routine-begin,#routine-form-apply,#routine-add-submit,[data-equipment-edit],[data-node-add],[data-node-edit],#routine-dialog-confirm,[data-issue-result],[data-issue-resolve]',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw,[data-routine-review="withdraw"]',approve:'[data-routine-review="approve"]',return:'[data-routine-review="reject"]',history:'#routine-case-history',delete:'#routine-delete,[data-equipment-delete],[data-node-delete]'}});sharedClient.watchOperationOutcome?.(()=>updateEquipmentLocalStatus());}return sharedClient;}
-  function snapshotChanges(base,next){const patches=[],guards=[],fields={equipment:['name','unit','spec','owner','enabled','calibrationMethod','calibrationCycle','customCycle','calibratedAt','expiresAt','notes','intakeDate','confirmed','photoId','photoHidden','groupId'],groups:['name','nameZh','nameVi','photoId','spec','notes','categoryId','subcategoryId'],categories:['name','photoId'],subcategories:['name','categoryId','photoId'],issues:['status','resolution']};
+  const identityFields = ['assetCode','pieceMark'];
+  const identityLabel = value => String(value ?? '').trim().toUpperCase();
+  function snapshotChanges(base,next){const patches=[],guards=[],fields={equipment:['assetCode','pieceMark','name','unit','spec','owner','enabled','calibrationMethod','calibrationCycle','customCycle','calibratedAt','expiresAt','notes','intakeDate','confirmed','photoId','photoHidden','groupId'],groups:['name','nameZh','nameVi','photoId','spec','notes','categoryId','subcategoryId'],categories:['name','photoId'],subcategories:['name','categoryId','photoId'],issues:['status','resolution']};
     for(const collection of Object.keys(fields)){
       const before=base[collection]||[],after=next[collection]||[];
       // Local lookup only: preserve first-match identity and the original small/legacy path.
@@ -68,6 +79,12 @@
       for(const row of after){const old=indexed?firstById.get(row.id):before.find(r=>r.id===row.id);if(!old){patches.push({op:'insert',path:[collection],value:row});continue;}
         for(const field of fields[collection])if(row[field]!==undefined&&JSON.stringify(row[field])!==JSON.stringify(old[field])&&!(row[field]===''&&old[field]==null)){const path=[collection,{id:row.id},field];patches.push({op:'set',path,value:row[field]});guards.push({path,value:old[field]});}
       }
+    }
+    for (const patch of patches) {
+      if (patch.op !== 'set' || patch.path[0] !== 'equipment' || !['assetCode','pieceMark'].includes(patch.path[2])) continue;
+      const id=patch.path[1].id, other=patch.path[2]==='assetCode'?'pieceMark':'assetCode';
+      const path=['equipment',{id},other];
+      if (!guards.some(g=>JSON.stringify(g.path)===JSON.stringify(path))) guards.push({path,value:base.equipment.find(row=>row.id===id)?.[other]});
     }
     const parent=(collection,id)=>{const row=base[collection]?.find(r=>r.id===id),path=[collection,{id}];if(row&&!guards.some(g=>JSON.stringify(g.path)===JSON.stringify(path)))guards.push({path,value:clone(row)});};
     for(const patch of patches){const key=patch.path[0];if(patch.op!=='insert'&&!(patch.op==='set'&&['groupId','categoryId','subcategoryId'].includes(patch.path[2])))continue;const row=patch.op==='insert'?patch.value:next[key]?.find(r=>r.id===patch.path[1]?.id);if(!row)continue;
@@ -200,9 +217,9 @@
       const count=data=>equipmentSaveCollections.filter(key=>key!=='issues').reduce((sum,key)=>sum+data[key].filter(row=>row.id===id).length,0);
       if(count(mine)!==1||count(base)>1||count(latest)>1)throw Error(t('照片目標不明：不同類型有相同識別；本次未上傳或存取，輸入仍保留。','Không xác định được đích ảnh: các loại khác nhau có cùng mã. Chưa tải ảnh hay lưu; dữ liệu nhập được giữ lại.'));
     }
-    const original=snapshotChanges(base,mine),units=[],conflicts=[],photoRows=new Set();
+    const original=snapshotChanges(base,mine),units=[],conflicts=[],photoRows=new Set(),identityRows=new Set();
     const photoKeys=key=>key==='equipment'?['photoId','photoHidden']:['photoId'];
-    const labels={name:['名稱','Tên'],nameZh:['中文名稱','Tên tiếng Trung'],nameVi:['越南文名稱','Tên tiếng Việt'],unit:['單位','Đơn vị'],spec:['規格','Quy cách'],owner:['保管人','Người giữ'],enabled:['啟用','Kích hoạt'],calibrationMethod:['校正方式','Cách hiệu chuẩn'],calibrationCycle:['校正週期','Chu kỳ hiệu chuẩn'],customCycle:['自訂週期','Chu kỳ tùy chỉnh'],calibratedAt:['校正日期','Ngày hiệu chuẩn'],expiresAt:['到期日期','Ngày hết hạn'],notes:['備註','Ghi chú'],intakeDate:['入庫日期','Ngày nhập kho'],confirmed:['來源確認','Xác nhận nguồn'],status:['狀態','Trạng thái'],resolution:['處理結果','Kết quả xử lý']};
+    const labels={assetCode:['固定資產編號','Mã TSCĐ'],pieceMark:['分件號','Ký hiệu thiết bị'],name:['名稱','Tên'],nameZh:['中文名稱','Tên tiếng Trung'],nameVi:['越南文名稱','Tên tiếng Việt'],unit:['單位','Đơn vị'],spec:['規格','Quy cách'],owner:['保管人','Người giữ'],enabled:['啟用','Kích hoạt'],calibrationMethod:['校正方式','Cách hiệu chuẩn'],calibrationCycle:['校正週期','Chu kỳ hiệu chuẩn'],customCycle:['自訂週期','Chu kỳ tùy chỉnh'],calibratedAt:['校正日期','Ngày hiệu chuẩn'],expiresAt:['到期日期','Ngày hết hạn'],notes:['備註','Ghi chú'],intakeDate:['入庫日期','Ngày nhập kho'],confirmed:['來源確認','Xác nhận nguồn'],status:['狀態','Trạng thái'],resolution:['處理結果','Kết quả xử lý']};
     const values=(row,fields)=>fields.map(field=>row?.[field]??(field==='photoHidden'?false:''));
     const add=(key,id,fields,pending)=>{
       const before=base[key].find(row=>row.id===id),local=mine[key].find(row=>row.id===id),peer=latest[key].find(row=>row.id===id);
@@ -217,7 +234,9 @@
       if(patch.op!=='set'||['groupId','categoryId','subcategoryId'].includes(patch.path[2]))continue;
       const [key,entity,field]=patch.path;
       if(['photoId','photoHidden'].includes(field)){const token=key+':'+entity.id;if(photoRows.has(token))continue;photoRows.add(token);add(key,entity.id,photoKeys(key),photos.get(entity.id));}
-      else add(key,entity.id,[field]);
+      else if(key==='equipment' && identityFields.includes(field)){
+        if(!identityRows.has(entity.id)){identityRows.add(entity.id);add(key,entity.id,identityFields);}
+      } else add(key,entity.id,[field]);
     }
     for(const [id,pending]of photos){
       const key=equipmentSaveCollections.find(kind=>kind!=='issues'&&mine[kind].some(row=>row.id===id));if(!key)throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');
@@ -238,7 +257,7 @@
         if(unit.conflict&&choice==='theirs'){if(unit.pending)chosenPhotos.delete(unit.id);continue;}
         const local=mine[unit.key].find(row=>row.id===unit.id),peer=latest[unit.key].find(row=>row.id===unit.id),row=desired[unit.key].find(row=>row.id===unit.id);
         for(const field of unit.fields){const value=local[field]??(field==='photoHidden'?false:''),path=[unit.key,{id:unit.id},field];row[field]=clone(value);
-          if(!equipmentContentEqual(value,peer[field])||unit.pending){patches.push({op:'set',path,value:clone(value)});guards.push({path,value:peer[field]});}
+          if(!equipmentContentEqual(value,peer[field])||unit.pending){patches.push({op:'set',path,value:clone(value)});guards.push({path,value:peer[field]});} else if(unit.key==='equipment' && identityFields.includes(field)){guards.push({path,value:peer[field]});}
         }
       }
       const order=path=>{const index=original.patches.findIndex(patch=>equipmentContentEqual(patch.path,path));return index<0?original.patches.length:index;};
@@ -957,7 +976,8 @@
     const text = (label, key) =>
       `<label class="wide">${label}<textarea data-field="${key}" data-i18n-skip="true" ${can ? '' : 'disabled'}>${h(item[key] || '')}</textarea></label>`;
 
-    const availableGroups = groups.filter(group => group.subcategoryId === subcategoryId);
+    const availableGroups = groups.filter(group => group.categoryId === categoryId && group.subcategoryId === subcategoryId);
+    const completeHierarchy = !!categoryId && !!subcategoryId && availableGroups.some(group => group.id === item.groupId);
     const nameConflict = !item.name && item.nameZh && item.nameVi && item.nameZh.trim() !== item.nameVi.trim();
     const original = selected()?.equipment.find(value => value.id === item.id);
     const moved = !!original && original.groupId !== item.groupId;
@@ -977,12 +997,13 @@
         </div>
 
         <div class="routine-modal-body">
+          <p id="routine-identity-error" role="alert" class="routine-validation" hidden></p>
           ${nameConflict ? `<div class="routine-message">${t('舊中越名稱內容不同，原文已保留。請核對後在單一名稱欄輸入確認結果。', 'Hai tên cũ khác nhau và đã được giữ nguyên. Hãy xác nhận trong ô tên duy nhất.')}</div>` : ''}
-          ${moved ? `<div class="routine-validation">${t('此檢具的分類／群組已變更：', 'Phân loại / nhóm của thiết bị đã thay đổi: ')}<span data-i18n-skip="true">${h(original.groupId)} → ${h(item.groupId || '—')}</span>。${t('下列 Excel 文字關聯僅供核對；目前沒有正式標準關聯模型，也不會改寫歷史報告。', 'Liên kết văn bản Excel dưới đây chỉ để đối soát; chưa có mô hình liên kết tiêu chuẩn chính thức và không sửa báo cáo lịch sử.')}</div>` : ''}
+          ${moved ? `<div class="routine-source" role="status">${t('此檢具的分類／群組已變更：', 'Phân loại / nhóm của thiết bị đã thay đổi: ')}<span data-i18n-skip="true">${h(original.groupId)} → ${h(item.groupId || '—')}</span>。${t('下列 Excel 文字關聯僅供核對。歷史報告保留原紀錄。', 'Liên kết văn bản Excel dưới đây dùng để đối soát. Báo cáo lịch sử giữ nguyên thông tin đã ghi.')}</div>` : ''}
           ${submitProblems.filter(problem => problem.id === item.id).map(problem => `<p class="routine-validation" data-error-field="${h(problem.field)}">${problemSnapshot?h(t('送審快照：','Bản gửi duyệt: ')):''}${h(problemMessage(problem))}</p>`).join('')}
           <div class="routine-edit-grid">
-            ${field(t('固定資產編號（唯讀）', 'Mã TSCĐ (Chỉ đọc)'), 'assetCode', 'text', true)}
-            ${field(t('個別設備標記（分件號）', 'Ký hiệu thiết bị'), 'pieceMark', 'text', true)}
+            ${field(t('固定資產編號', 'Mã TSCĐ'), 'assetCode')}
+            ${field(t('個別設備標記（分件號）', 'Ký hiệu thiết bị'), 'pieceMark')}
             <label>${t('名稱', 'Tên')}${nameProb ? `<span class="routine-field-error">⚠️ ${h(problemMessage(nameProb).replace(/^.*?:\s*/, ''))}</span>` : ''}
               <input data-field="name" class="${nameProb ? 'has-error' : ''}" data-i18n-skip="true" type="text" value="${h(displayName(item))}" ${can ? '' : 'disabled'}>
             </label>
@@ -998,10 +1019,11 @@
             </select></label>
 
             <label class="wide">${t('規格群組', 'Nhóm quy cách')}${groupProb ? `<span class="routine-field-error">⚠️ ${h(problemMessage(groupProb).replace(/^.*?:\s*/, ''))}</span>` : ''}
-              <select id="routine-edit-group" class="${groupProb ? 'has-error' : ''}" ${can ? '' : 'disabled'}>
+              <select id="routine-edit-group" ${completeHierarchy ? '' : 'aria-describedby="routine-hierarchy-hint"'} class="${groupProb ? 'has-error' : ''}" ${can ? '' : 'disabled'}>
                 <option value="">${t('請選擇群組', 'Chọn nhóm quy cách')}</option>
                 ${availableGroups.map(g => `<option data-i18n-skip="true" value="${h(g.id)}" ${g.id === item.groupId ? 'selected' : ''}>${h(g.id)} · ${h(g.name || g.nameVi || g.nameZh)}</option>`).join('')}
               </select>
+                ${can && !completeHierarchy ? `<span id="routine-hierarchy-hint" role="status">${t('請依序選擇類別、子類別與規格群組，再完成表單。','Chọn loại, phân nhóm và nhóm quy cách trước khi hoàn tất biểu mẫu.')}</span>` : ''}
             </label>
 
             ${field(t('數量（固定 1）', 'Số lượng (Cố định 1)'), 'quantity', 'number', true)}
@@ -1054,7 +1076,7 @@
         <div class="routine-modal-footer">
           ${can ? `<button type="button" class="button ghost" id="routine-delete">${t('刪除檢具', 'Xóa thiết bị')}</button>` : ''}
           <button type="button" class="button ghost" id="routine-form-cancel">${t('關閉', 'Đóng')}</button>
-          ${can ? `<button type="button" class="button signal" id="routine-form-apply">${t('完成表單', 'Hoàn tất biểu mẫu')}</button>` : ''}
+          ${can ? `<button type="button" class="button signal" id="routine-form-apply" ${completeHierarchy ? '' : 'disabled'}>${t('完成表單', 'Hoàn tất biểu mẫu')}</button>` : ''}
         </div>
       </section></div>`;
   }
@@ -1895,10 +1917,14 @@
 
   const isFormDirty = () => {
     if (!formSnapshot || !host) return false;
+    for(const field of identityFields){
+      const input=host.querySelector('#routine-editor [data-field="'+field+'"]');
+      if(input && input.value!==String(formSnapshot[field]??''))return true;
+    }
     const curName = host.querySelector('#routine-editor [data-field="name"]')?.value?.trim();
     if (curName !== undefined && curName !== String(displayName(formSnapshot)).replace(/[\r\n]/g, '').trim()) return true;
     const curGroup = host.querySelector('#routine-edit-group')?.value;
-    if (curGroup && curGroup !== formSnapshot.groupId) return true;
+    if (curGroup !== undefined && curGroup !== formSnapshot.groupId) return true;
     const curUnit = host.querySelector('#routine-editor [data-select="unit"]')?.value;
     if (curUnit && curUnit !== unitCode(formSnapshot.unit)) return true;
     const curOwner = host.querySelector('#routine-editor [data-field="owner"]')?.value?.trim();
@@ -3423,7 +3449,7 @@
             <div>
               <div class="routine-issue-head">
                 <b data-i18n-skip="true">${h(issue.assetCode)}／${h(issue.pieceMark)} · ${h(issue.type)}</b>
-                <button type="button" class="routine-issue-action" data-jump-asset="${h(issue.assetCode)}" data-jump-mark="${h(issue.pieceMark)}">${t('前往核對', 'Đến kiểm tra')}</button>
+                <button type="button" class="routine-issue-action" data-jump-issue="${index}">${t('前往核對', 'Đến kiểm tra')}</button>
               </div>
               <p data-i18n-skip="true">${h(issue.detail)}</p>
               <small>${t('來源列', 'Dòng nguồn')} ${h(issue.sourceRow)} · ${h(issue.status === 'resolved' ? t('已處理', 'Đã xử lý') : t('待確認', 'Chờ xác nhận'))} · USER <span data-i18n-skip="true">${h(issue.resolvedById || '—')} / ${h(issue.resolvedBy || '—')}</span> · ${h(date(issue.resolvedAt))}</small>
@@ -3618,15 +3644,14 @@
     bindReferenceActions(root);
     bindViewReferences(root);
 
-    root.querySelectorAll('[data-jump-asset]').forEach(btn => btn.onclick = guardWorking(btn,() => {
-      const asset = btn.dataset.jumpAsset, mark = btn.dataset.jumpMark;
-      const target = (visible().equipment || []).find(e => e.assetCode === asset && e.pieceMark === mark) ||
-                     (visible().equipment || []).find(e => e.assetCode === asset);
-      if (target) {
-        locateEquipment(target.id);
-      } else {
-        alert(t(`未找到對應設備 ${asset}／${mark}`, `Không tìm thấy thiết bị ${asset}／${mark}`));
-      }
+    root.querySelectorAll('[data-jump-issue]').forEach(btn => btn.onclick = guardWorking(btn,() => {
+      const version=visible(),issue=(version.issues||control.issues)[Number(btn.dataset.jumpIssue)];
+      const matches=!issue?[]:issue.equipmentId
+        ? version.equipment.filter(row=>row.id===issue.equipmentId)
+        : Number.isSafeInteger(issue.sourceRow)&&issue.sourceRow>0
+          ? version.equipment.filter(row=>row.sourceRow===issue.sourceRow) : [];
+      if(matches.length===1) locateEquipment(matches[0].id);
+      else alert(t('無法從來源紀錄唯一辨識這件檢具，請依原始來源列核對。','Không thể xác định duy nhất thiết bị từ bản ghi nguồn. Hãy đối chiếu dòng nguồn gốc.'));
     }));
     root.querySelectorAll('[data-fix-equipment]').forEach(button => button.onclick = guardWorking(button,() => locateEquipment(button.dataset.fixEquipment, button.dataset.fixField)));
     root.querySelectorAll('[data-retry-action]').forEach(button => button.onclick = guardWorking(button,() => {
@@ -3708,20 +3733,21 @@
         item.categoryId = event.target.value;
         const cat = working.categories.find(value => value.id === item.categoryId);
         item.categoryCode = cat?.code || ''; item.category = cat?.name || '';
-        if (!working.groups.some(g => g.categoryId === item.categoryId && g.id === item.groupId)) { item.groupId = ''; item.subcategoryId = ''; item.subcategory = ''; }
+        item.groupId = ''; item.subcategoryId = ''; item.subcategory = '';
         render();
       }));
 
       root.querySelector('#routine-edit-subcategory')?.addEventListener('change', guardWorking(root.querySelector('#routine-edit-subcategory'),event => {
         item.subcategoryId = event.target.value;
         item.subcategory = working.subcategories.find(value => value.id === item.subcategoryId)?.name || '';
-        if (!working.groups.some(g => g.subcategoryId === item.subcategoryId && g.id === item.groupId)) item.groupId = '';
+        item.groupId = '';
         render();
       }));
 
       root.querySelector('#routine-edit-group')?.addEventListener('change', guardWorking(root.querySelector('#routine-edit-group'),event => {
-        const group = working.groups.find(value => value.id === event.target.value);
-        if (group) { item.groupId = group.id; item.categoryId = group.categoryId; item.subcategoryId = group.subcategoryId;
+        const group = working.groups.find(value => value.id === event.target.value && value.categoryId === item.categoryId && value.subcategoryId === item.subcategoryId);
+        item.groupId = group?.id || '';
+        if (group) { item.categoryId = group.categoryId; item.subcategoryId = group.subcategoryId;
           item.categoryCode = group.categoryCode; item.category = group.category; item.subcategory = group.subcategory; }
         render();
       }));
@@ -3742,20 +3768,25 @@
       }));
 
       root.querySelector('#routine-form-apply')?.addEventListener('click', guardWorking(root.querySelector('#routine-form-apply'),async () => {
+        const changed = identityFields.some(field => item[field] !== formSnapshot?.[field]);
+        if (changed) {
+          const equalPair = other => identityFields.every(field=>identityLabel(other[field])===identityLabel(item[field]));
+          const error = item.assetCode!==formSnapshot.assetCode && !/^[A-Z0-9-]{2,40}$/i.test(item.assetCode) ? 'EQUIPMENT_ASSET_INVALID' :
+            !identityLabel(item.pieceMark) ? 'EQUIPMENT_PIECE_REQUIRED' :
+            !equalPair(formSnapshot) && working.equipment.some(other=>other.id!==item.id && equalPair(other)) ? 'EQUIPMENT_PAIR_DUPLICATE' : '';
+          if (error) {
+            const alert = root.querySelector('#routine-identity-error');
+            alert.hidden=false;alert.textContent=displayDraftError(error);
+            root.querySelector(error==='EQUIPMENT_ASSET_INVALID'?'[data-field="assetCode"]':'[data-field="pieceMark"]')?.focus();
+            return;
+          }
+        }
         const nameInput = root.querySelector('#routine-editor [data-field="name"]');
         if (nameInput) item.name = nameInput.value.trim();
         const groupSelect = root.querySelector('#routine-edit-group');
-        if (groupSelect && groupSelect.value) {
-          item.groupId = groupSelect.value;
-          const group = working.groups.find(g => g.id === item.groupId);
-          if (group) {
-            item.categoryId = group.categoryId;
-            item.subcategoryId = group.subcategoryId;
-            item.categoryCode = group.categoryCode;
-            item.category = group.category;
-            item.subcategory = group.subcategory;
-          }
-        }
+        const group = working.groups.find(g => g.id === groupSelect?.value && g.categoryId === item.categoryId && g.subcategoryId === item.subcategoryId);
+        if (!group) { groupSelect?.focus(); return; }
+        item.groupId = group.id;
         const unitSelect = root.querySelector('#routine-editor [data-select="unit"]');
         if (unitSelect) item.unit = unitSelect.value;
         const ownerInput = root.querySelector('#routine-editor [data-field="owner"]');
@@ -3973,14 +4004,14 @@
       const modified = version.equipment.filter(e => {
         const old = baseMap.get(e.id);
         if (!old) return false;
-        return ['categoryId','subcategoryId','groupId','calibrationMethod','calibrationCycle','calibratedAt','expiresAt','unit','spec','name','nameVi','notes','photoId','photoHidden','confirmed','enabled'].some(k => old[k] !== e[k]);
+        return ['assetCode','pieceMark','categoryId','subcategoryId','groupId','calibrationMethod','calibrationCycle','calibratedAt','expiresAt','unit','spec','name','nameVi','notes','photoId','photoHidden','confirmed','enabled'].some(k => old[k] !== e[k]);
       });
       const snapshotDiff = (title, before, after) => {
         const beforeMap = new Map((before || []).map(item => [item.id, item]));
         const changes = (after || []).filter(item => JSON.stringify(item) !== JSON.stringify(beforeMap.get(item.id)));
         return `<details><summary>${title} · ${changes.length}</summary>${changes.map(item => `<p data-i18n-skip="true">${h(item.id)} · ${h(item.name || item.nameVi || item.nameZh || '')} ${beforeMap.has(item.id) ? '(修改)' : '(新增)'}</p>`).join('') || `<p>${t('無變更', 'Không thay đổi')}</p>`}</details>`;
       };
-      const fields = { categoryId: t('類別', 'Nhóm'), subcategoryId: t('子類別', 'Phân nhóm'), groupId: t('規格群組', 'Nhóm quy cách'),
+      const fields = { assetCode:t('固定資產編號','Mã TSCĐ'), pieceMark:t('分件號','Ký hiệu thiết bị'), categoryId: t('類別', 'Nhóm'), subcategoryId: t('子類別', 'Phân nhóm'), groupId: t('規格群組', 'Nhóm quy cách'),
         name: t('名稱', 'Tên'), spec: t('規格', 'Quy cách'), photoId: t('照片', 'Ảnh'), photoHidden: t('照片移除狀態', 'Trạng thái ảnh'), calibrationMethod: t('校正方式', 'Phương thức hiệu chuẩn'),
         calibrationCycle: t('校正週期', 'Chu kỳ hiệu chuẩn'), calibratedAt: t('最近校正', 'Ngày hiệu chuẩn'), expiresAt: t('期限', 'Hạn'),
         confirmed: t('資料核對', 'Đối soát'), enabled: t('啟用', 'Kích hoạt') };
