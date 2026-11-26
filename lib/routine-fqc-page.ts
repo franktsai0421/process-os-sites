@@ -3,7 +3,7 @@ import {
   type DraftActor, type DraftCommand, type DraftContext, type DraftPatch, type SharedDraft,
 } from './shared-draft';
 import {
-  schedulePreview as schedulePage, buildRoutineDocumentDraft, validateRoutineContentEdit, validateRoutineCaseLink,
+  renumberedPlanSource, schedulePreview as schedulePage, buildRoutineDocumentDraft, validateRoutineContentEdit, validateRoutineCaseLink,
   routineDocumentReviewIssues, applyRoutineDocumentApprovalEffects, photoIds,
   type Content, type RoutineFqc, type RoutineDocumentMetadata, type Job,
 } from './routine-fqc';
@@ -19,7 +19,7 @@ export type RoutinePageRoot = RoutineFqc & {pageDraftLayout:'page-v1';page:{
   documentState:Record<string,DocumentState>;caseDependencies:Record<string,Pins>;operationPermissions?:Record<string,string[]>;
 }};
 export type RoutinePageContext = {actor:DraftActor;at:string;today:string;
-  allowed:DraftContext<RoutineWholePage>['allowed'];create:boolean;delete:boolean;revise:boolean;revoke:boolean;settings?:boolean};
+  allowed:DraftContext<RoutineWholePage>['allowed'];create:boolean;delete:boolean;revise:boolean;revoke:boolean;settings?:boolean; approvedSources?:ReadonlyMap<string,import('./routine-fqc').Source>};
 type Creation = {id:string;type:'plan'|'report'|'followup'|'correction';jobIds?:string[];documentId?:string;caseId?:string;
   kind?:'report'|'waiver'|'disposal';notes?:string;photos?:string[];reason?:string;content?:Content};
 type Batch = {patches:DraftPatch[];guards:{path:DraftPatch['path'];value:unknown}[]};
@@ -102,7 +102,10 @@ function createDocument(c:RoutinePageRoot,intent:Creation,ctx:RoutinePageContext
   demand(!c.documents.some(doc=>doc.id===intent.id)&&![c.page.baseline.content,...flow.saves.map(save=>save.content),flow.working].some(page=>page.documents.some(doc=>doc.id===intent.id)),'ENTITY_ID_RESERVED');
   let kind:RoutineDocumentMetadata['kind']='plan',jobs:Job[]=[],links:{planId?:string|null;caseId?:string|null;correctionOf?:string|null}={};
   const selected=(ids:unknown)=>{demand(Array.isArray(ids)&&ids.length&&new Set(ids).size===ids.length&&ids.every(id=>typeof id==='string'),'ITEM_REQUIRED',422);const found=ids.map(id=>c.jobs.find(job=>job.id===id));demand(found.every(Boolean),'JOB_NOT_FOUND');return found as Job[];};
-  if(intent.type==='plan'){jobs=selected(intent.jobIds);demand(jobs.every(job=>!job.planId&&!job.completion),'JOB_ALREADY_ASSIGNED');}
+  if(intent.type==='plan'){
+    jobs=selected(intent.jobIds);demand(jobs.every(job=>!job.planId&&!job.completion),'JOB_ALREADY_ASSIGNED');
+    for (const job of jobs) job.source=renumberedPlanSource(job,ctx.approvedSources?.get(job.itemId));
+  }
   if(intent.type==='report'){
     demand(parent?.kind==='plan'&&parent.status==='approved','APPROVED_PLAN_REQUIRED');kind='report';jobs=selected(intent.jobIds||parent.content.lines.map(line=>line.jobId));demand(jobs.every(job=>parent.content.lines.some(line=>line.jobId===job.id)),'PLAN_ITEM_INVALID',422);
     const availability=routinePageAvailability(c,parent.id).filter(row=>jobs.some(job=>job.id===row.jobId));demand(availability.every(row=>row.assigned),'PLAN_NOT_CURRENTLY_ASSIGNED');demand(availability.every(row=>!row.reportIds.length),'REPORT_ALREADY_EXISTS');links={planId:parent.id,caseId:parent.caseId};

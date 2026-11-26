@@ -5,6 +5,15 @@ import {DraftConflict,cloneDraft} from './shared-draft';
 export type CalendarTimelineEntry={id:string;at:string;day:string;sources:Source[]};
 export type CalendarPolicy={version:2;adoptedAt:string;appliedVersions?:string[];transitions?:{scope:string;at:string;from:Frequency;to:Frequency|null;starts:string|null}[];scopes:Record<string,{source:Source;from:string;until?:string}>};
 export type CalendarWork={scope:string;productCode:string;frequency:Frequency;queuedAt?:string;resumeHistory?:{stopped:{at:string;reason:string};resumedAt:string;sourceVersionId:string}[];stopped?:{at:string;reason:string};requestId?:string;retestCaseId?:string;originJobId?:string};
+// Renumbering changes the planner label by stable ID. Once work has a document,
+// its captured source also owns the labels shown for subsequent reports and retests.
+export function periodSourceCodes(job:Job, latest:Pick<Source,'code'|'errorCode'>|undefined, documented:boolean):Job {
+  if (!latest || documented || job.planId || job.completion || job.calendar?.requestId ||
+      job.calendar?.retestCaseId || job.calendar?.originJobId || job.calendar?.stopped ||
+      (job.source.code === latest.code && job.source.errorCode === latest.errorCode)) return job;
+  return {...job, source:{...job.source, code:latest.code, errorCode:latest.errorCode}};
+}
+
 export const calendarScope=(s:Source,product:string)=>JSON.stringify([s.line,product,s.id]);
 const adoptionDay=(p:CalendarPolicy)=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(p.adoptedAt));
 function frequencyStart(c:RoutineFqc,scope:string,source:Source,day:string){

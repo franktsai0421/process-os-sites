@@ -88,6 +88,6 @@ export function routineIqcCatalog(state: State) {
     categories: (version?.snapshot.categories || []).map(category => ({id: category.id, name: category.nameVi, line: ''})),
     suppliers: (version?.snapshot.suppliers || []).map(supplier => ({id: supplier.id, name: supplier.nameVi})),
     items: (version ? project(version) : []).map(source => ({id: source.id, code: source.code, name: source.name,
-      line: '', category: source.category, enabled: true, productCodes: source.products.map(part => part.code),
+      errorCode: source.errorCode, line: '', category: source.category, enabled: true, productCodes: source.products.map(part => part.code),
       cadence: 'time', frequency: source.frequency}))};
 }
