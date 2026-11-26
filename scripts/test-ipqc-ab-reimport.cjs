@@ -21,6 +21,15 @@ assert.equal(first.summary.added,2);assert.equal(first.control.scopes['A:G'].ver
 assert.equal(first.control.scopes['A:G'].activeVersionId,null);
 assert.equal(new Set(first.entries.map(e=>e.code)).size,2);
 assert.equal(merge.mergeAbImport(first.control,catalog,{...payload,variants:[...payload.variants].reverse()},actor,'two').changed,false);
+// A manually renamed imported parent stays attached to the same source and children.
+const renamed=plain(first.control), renamedVersion=renamed.scopes['A:G'].versions[0];
+const changed=plain(renamedVersion.snapshot);
+changed.errors[0].code='Manual / Ω';
+renamedVersion.snapshot=coreAb.checkedAbSnapshot(renamedVersion,changed,catalog,'A','G',true);
+const replay=merge.mergeAbImport(renamed,catalog,payload,actor,'rename-replay');
+assert.equal(replay.summary.added,0);
+assert.equal(replay.summary.deleted,0);
+assert.deepEqual(plain(replay.control.scopes['A:G'].versions[0].snapshot),plain(renamedVersion.snapshot));
 const edited=JSON.parse(JSON.stringify(first.control));
 const snapshot=edited.scopes['A:G'].versions[0].snapshot,item=snapshot.items[0];
 item.standardPhotos=[{id:'f'.repeat(64),name:'original',note:'standard'}];
@@ -44,7 +53,9 @@ const pending=JSON.parse(JSON.stringify(first.control));pending.scopes['A:G'].ve
 assert.equal(merge.mergeAbImport(pending,catalog,payload,actor,'pending').changed,false);
 assert.equal(merge.mergeAbImport(pending,catalog,payload,actor,'pending').summary.deferred,2);
 
-(async()=>{
+if (process.argv.includes('--merge-only')) {
+  console.log('PASS isolated AB merger, manual rename, child identity and repeat import');
+} else (async()=>{
   const db=new DatabaseSync(':memory:');
   for(const name of fs.readdirSync('drizzle').filter(n=>n.endsWith('.sql')).sort()) db.exec(fs.readFileSync(path.join('drizzle',name),'utf8'));
   const objects=new Map(),env={PROCESS_SESSION_SECRET:randomUUID(),DEMO_LOGIN_ENABLED:'true',

@@ -1,3 +1,4 @@
+import {validateErrorCodeChanges} from './manual-error-code';
 import {isImmutableRecordBody} from './state-records';
 import type {DraftIssue} from './shared-draft';
 export type IpqcError = {
@@ -108,9 +109,10 @@ export function checkedIpqcRule(raw: unknown): IpqcRule | undefined {
   }
   throw Error('檢查規則方式無效');
 }
-export function checkedIpqcSnapshot(version: IpqcVersion, raw: unknown): IpqcSnapshot {
+export function checkedIpqcSnapshot(version: IpqcVersion, raw: unknown, activeErrors:IpqcError[]|null=version.snapshot.errors): IpqcSnapshot {
   const input = raw as IpqcSnapshot;
   if (!input || !Array.isArray(input.errors) || !Array.isArray(input.items)) throw Error('草稿格式錯誤');
+  validateErrorCodeChanges(input.errors,version.snapshot.errors,activeErrors);
   const oldErrors = new Map(version.snapshot.errors.map(e => [e.id, e]));
   const oldItems = new Map(version.snapshot.items.map(i => [i.id, i]));
   if (input.errors.length !== oldErrors.size || input.items.length !== oldItems.size)
@@ -120,11 +122,11 @@ export function checkedIpqcSnapshot(version: IpqcVersion, raw: unknown): IpqcSna
     throw Error('草稿含重複項目 ID');
   const errors = input.errors.map(row => {
     const old = oldErrors.get(row?.id);
-    if (!old || row.code !== old.code || row.productCode !== old.productCode || row.stageCode !== old.stageCode)
+    if (!old || typeof row.code !== 'string' || row.productCode !== old.productCode || row.stageCode !== old.stageCode)
       throw Error('錯誤代碼身分或編號不可改寫');
     if (typeof row.name !== 'string' || typeof row.note !== 'string' || typeof row.reason !== 'string' || typeof row.deleted !== 'boolean')
       throw Error(`${old.code} 欄位格式錯誤`);
-    return { ...old, name: row.name, note: row.note, reason: row.reason, deleted: row.deleted };
+    return { ...old, code:row.code, name: row.name, note: row.note, reason: row.reason, deleted: row.deleted };
   });
   const items = input.items.map(row => {
     const old = oldItems.get(row?.id);

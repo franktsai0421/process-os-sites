@@ -1,3 +1,4 @@
+import {manualErrorCode} from '../../../lib/manual-error-code';
 import {restoreEffects} from '@/lib/draft-restore-access';
 import { env } from 'cloudflare:workers';
 import { readState, identity, can, sameOrigin, encodeValues, parse, maintenanceCredential, responseHeaders as headers } from '@/lib/process-state';
@@ -6,7 +7,7 @@ import { parseIqcWorkflow } from '@/lib/iqc-workflow';
 import { visibleSharedControl } from '@/lib/versioned-shared-workflow';
 import {recordJSONResponse} from '@/lib/state-records-response';
 import { emptyIqcControl, emptyIqcSnapshot, activeIqcVersion, openIqcVersion,
-  checkedIqcSnapshot, iqcSubmitBlockingErrors, nextIqcErrorCode, nextIqcCheckNo,
+  checkedIqcSnapshot, iqcSubmitBlockingErrors, nextIqcCheckNo,
   type IqcControl, type IqcSnapshot, type IqcVersion } from '@/lib/iqc';
 
 const KEY = 'iqcMasterControl';
@@ -30,7 +31,7 @@ function controlFrom(raw: string | undefined): IqcControl {
 
 type Source = { sha256?: string; mappingSha256?: string; fileName?: string;
   snapshot?: IqcSnapshot; issues?: IqcControl['issues'] };
-type Body = { action?: string; baseRevision?: number; versionId?: string; versionRevision?: number;
+type Body = { code?: string; action?: string; baseRevision?: number; versionId?: string; versionRevision?: number;
   snapshot?: unknown; source?: Source; partCode?: string; errorId?: string;
   nameVi?: string; toolVi?: string; methodVi?: string; rules?: unknown; comment?: string;
   inspectionSpecVi?: string; inspectionMode?: string; equipmentId?: string;
@@ -168,7 +169,7 @@ export async function POST(request: Request) {
       if (body.versionId !== version.id || body.versionRevision !== version.revision)
         return reply({ error: 'IQC 草稿已更新；請重新載入後核對' }, 409);
       let snapshot: IqcSnapshot;
-      try { snapshot = checkedIqcSnapshot(version.snapshot, body.snapshot); checkEquipment(snapshot, version.snapshot, state.values); }
+      try { snapshot = checkedIqcSnapshot(version.snapshot, body.snapshot, false, active?.snapshot.errors || []); checkEquipment(snapshot, version.snapshot, state.values); }
       catch (error) { return reply({ error: error instanceof Error ? error.message : 'IQC 草稿驗證失敗' }, 422); }
       const effects=restoreEffects(version.snapshot,snapshot);
       for(const op of ['create','delete'] as const)if(effects[op]&&!await can(request,state,'iqc.'+op))return reply({error:'FORBIDDEN'},403);
@@ -202,7 +203,9 @@ export async function POST(request: Request) {
       if (action === 'createError') {
         const part = version.snapshot.parts.find(item => item.code === body.partCode && !item.isDeleted);
         if (!part) return reply({ error: '找不到零件' }, 422);
-        const code = nextIqcErrorCode(control, part.code);
+        let code:string;
+        try { code = manualErrorCode(body.code,'',version.snapshot.errors,active?.snapshot.errors || []); }
+        catch (error) { return reply({error:error instanceof Error ? error.message : 'ERROR_CODE_REQUIRED'},422); }
         version.snapshot.errors.push({ id: crypto.randomUUID(), partCode: part.code, code, nameVi });
         control.reservedErrorCodes.push(code);
       } else {

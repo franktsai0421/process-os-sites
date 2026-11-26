@@ -1,3 +1,4 @@
+import {manualErrorCode} from '../../../lib/manual-error-code';
 import {abLocalLineage} from '@/lib/ipqc-ab-local-lineage';
 import {isImmutableRecordBody,readImmutableRecord} from '@/lib/state-records';
 import { env } from 'cloudflare:workers';
@@ -19,7 +20,7 @@ const clean = (value: unknown) => typeof value === 'string' ? value : '';
 const local = (request: Request) => ['localhost','127.0.0.1'].includes(new URL(request.url).hostname);
 const event = (actor: { id: string; name: string }, action: string, at: string, comment = '') =>
   ({ action, actorId: actor.id, actorName: actor.name, at, ...(comment ? { comment } : {}) });
-type Body = { action?: string; baseRevision?: number; line?: string; group?: string;
+type Body = { code?: string; action?: string; baseRevision?: number; line?: string; group?: string;
   import?: AbImportPayload;
   versionId?: string; versionRevision?: number; snapshot?: AbSnapshot; id?: string; errorId?: string;
   stageCode?: string; name?: string; comment?: string; reason?: string;
@@ -257,7 +258,7 @@ export async function POST(request: Request) {
         } else if (opened.status !== 'draft') return reply({ error:'此類別沒有可編輯草稿' },409);
         if (['save','submit','submit-test'].includes(action)) {
           let snapshot:AbSnapshot;
-          try { snapshot=checkedAbSnapshot(opened,body.snapshot,catalog,line,group,action==='save'); }
+          try { snapshot=checkedAbSnapshot(opened,body.snapshot,catalog,line,group,action==='save',active?.snapshot.errors || []); }
           catch(error) { return reply({error:error&&typeof error==='object'&&'message'in error&&typeof error.message==='string'?error.message:'草稿格式錯誤'},422); }
           validateEquipment(snapshot,opened.snapshot,state.values);
           await validatePhotos(snapshot,opened.snapshot);
@@ -279,7 +280,9 @@ export async function POST(request: Request) {
           const stageCode = clean(body.stageCode), name = clean(body.name).trim();
           if (!name || !catalog.stages.some(s => s.line === line && s.code === stageCode))
             return reply({ error:'請選有效工段並填錯誤名稱' },422);
-          const code = nextAbCode(control,'error',`${line}-${group}-${stageCode.slice(2)}-L`);
+          let code:string;
+        try { code = manualErrorCode(body.code,'',opened.snapshot.errors,active?.snapshot.errors || []); }
+        catch (error) { return reply({error:error instanceof Error ? error.message : 'ERROR_CODE_REQUIRED'},422); }
           opened.snapshot.errors.push({ id:crypto.randomUUID(), code,line,group,stageCode,name,
             sourceRows:[],deleted:false });
         } else if (action === 'create-item') {

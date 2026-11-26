@@ -188,7 +188,7 @@ export async function POST(request:Request) {
       const selected=new Map((effective?.equipment||[]).map(e=>[e.id,e]));
       context.structure=(content,previous)=>{
         try { originalStructure(content,previous); }
-        catch { throw new DraftConflict('INVALID_STRUCTURE',422); }
+        catch (error) { if(error instanceof DraftConflict)throw error; throw new DraftConflict('INVALID_STRUCTURE',422); }
         // Build once per validation call; preserve Array.find first-match semantics.
         const priorById=new Map<string,typeof previous.items[number]>();
         const stringIds=previous.items.every(item=>typeof item.id==='string')&&content.items.every(item=>typeof item.id==='string');
