@@ -40,7 +40,7 @@ async function fixture(){
   }finally{inflight--;}
  };
  const field=(id,value)=>{const node=f.host.querySelector('#routine-add-'+id)||f.host.querySelector('#routine-editor [data-field="'+id+'"]');assert(node,id);node.value=value;if(node.oninput)node.oninput();else node.dispatchEvent({type:node.tagName==='SELECT'?'change':'input',target:node});};
- const open=()=>{const button=f.host.querySelector('#routine-add');assert(button&&!button.disabled);button.click();field('asset-code','SYN-UI-1');field('name','Actual UI new equipment');field('unit','支');field('enabled','true');field('confirmed','true');field('group-select','group');field('calibration-method','none');};
+ const open=()=>{const button=f.host.querySelector('#routine-add');assert(button&&!button.disabled);button.click();field('asset-code','SYN-UI-1');field('piece-mark-input','07');field('name','Actual UI new equipment');field('unit','支');field('enabled','true');field('confirmed','true');field('group-select','group');field('calibration-method','none');};
  const submit=async(choice)=>{const before=responses,button=f.host.querySelector('#routine-add-submit')||f.host.querySelector('#routine-form-apply');assert(button&&!button.disabled,'actual enabled local completion button');button.click();await settle();assert.equal(responses,before,'Add completion is local, not POST');const save=f.host.querySelector('#routine-save');assert(save&&!save.disabled,'actual enabled Save button');save.click();if(choice){for(let i=0;i<2000&&!f.c.document.querySelector('[data-equipment-save-choice="'+choice+'"]');i++)await new Promise(resolve=>setTimeout(resolve,2));const decision=f.c.document.querySelector('[data-equipment-save-choice="'+choice+'"]');assert(decision,'actual grouped choice');decision.click();}for(let i=0;i<2000&&responses===before;i++)await new Promise(resolve=>setTimeout(resolve,2));assert.equal(responses,before+1,'actual route reply completed');await settle();for(let i=0;i<2000&&inflight;i++){await new Promise(resolve=>setTimeout(resolve,2));await settle();}assert.equal(inflight,0,'fallback/receipt reads completed');await settle();};
  return{h,f,commands,receiptReads,field,open,submit,setReply(fn){reply=fn;},pause(){let release;hold=new Promise(resolve=>release=resolve);const reached=new Promise(resolve=>posted=resolve);return{reached,release};},async editCreated(){await f.test.openEditEquipment(commands[0].patches.find(p=>p.op==='insert'&&p.path[0]==='equipment').value.id);},close:()=>h.close()};
 }
@@ -97,6 +97,7 @@ void test('real adapter mutableFields final copy preserves explicit whitespace/n
 
 for(const [name,mutate]of[
  ['exact raw sent row instead of canonical result',(data,command)=>{projection(data).equipment[0]=json(command.patches[0].value);}],
+ ['different valid piece than the one entered',data=>{row(data).pieceMark='02';}],
  ['noncanonical padded assigned mark',data=>{row(data).pieceMark='001';}],
  ['zero assigned mark',data=>{row(data).pieceMark='00';}],
  ['peer user name',data=>{row(data).name='Peer name';}],

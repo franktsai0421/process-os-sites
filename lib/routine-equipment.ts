@@ -94,6 +94,12 @@ export function reserveMarks(control: EquipmentControl, equipment: Pick<Equipmen
   }
 }
 
+export function manualPieceMark(value: unknown) {
+  const mark = typeof value === 'string' ? value.trim() : '';
+  if (!mark) throw Error('EQUIPMENT_PIECE_REQUIRED');
+  return mark;
+}
+
 export function nextPieceMark(control: EquipmentControl, assetCode: string) {
   const code = assetCode.trim().toUpperCase();
   if (!code) throw Error('請輸入固定資產編號');

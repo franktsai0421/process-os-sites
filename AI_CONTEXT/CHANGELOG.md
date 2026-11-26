@@ -1,3 +1,7 @@
+## 檢具單件分類與手機套用
+
+新增時可手填資產號與分件號，重複組合會提示修正。單件「修改」可直接依序選擇類別、子類別與規格群組，群組選項列出代碼與名稱，核對原分類及目的分類後按「套用」。手機表單內容可獨立捲動。存取草稿與送出審核沿用既有流程。
+
 ## IQC start preview and selectable periods
 
 The start preview, calendar selection and plan writer apply the same job eligibility check. Superseded or expired periods remain in calendar history and existing plans keep their jobs.

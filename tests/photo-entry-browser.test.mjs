@@ -341,7 +341,7 @@ try {
       await page.locator('#routine-begin').click();
     await hierarchy(page);
     await page.locator('#routine-add').click();
-    await page.locator('#routine-add-asset-code').fill('QA-NEW-PHOTO');
+    await page.locator('#routine-add-asset-code').fill('QA-NEW-PHOTO');await page.locator('#routine-add-piece-mark-input').fill('01');
     await page.locator('#routine-add-name').fill('Synthetic photo equipment');
     await page.locator('#routine-add-photo-input').setInputFiles(files[2]);
     await page.waitForFunction(

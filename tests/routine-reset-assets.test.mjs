@@ -95,7 +95,8 @@ void test('the proposed shell delta is confined to the four routine asset tags',
   expected=expected.replace(script('process-equipment.js?v=20261125-usage-index1'),script('process-equipment.js?v=20261126-draft-equipment'));
   expected=expected.replace(script('flow-zoom.js?v=20261002-v3'),script('flow-zoom.js?v=20261125-machine-reference2'));
   expected=expected.replace(script('process-editor.js?v=20261114-ipqc-link1'),script('process-editor.js?v=20261125-machine-reference2'));
-  expected=expected.replace(script('routine-equipment.js?v=20261118-standard-frequency1'),script('routine-equipment.js?v=20261126-master-save'));
+  expected=expected.replace(script('routine-equipment.js?v=20261118-standard-frequency1'),script('routine-equipment.js?v=20261126-mobile-apply'));
+  expected=expected.replace('routine-equipment.css?v=20260925-hierarchy','routine-equipment.css?v=20261126-mobile-apply');
   for (const [asset,version] of [
     ['shared-draft-client.js','20261118-standard-frequency1'],['version-draft-ui.js','20261119-routine-integration1'],
     ['fqc-master.js','20261119-routine-repair1'],['iqc-master.js','20261119-review1'],
