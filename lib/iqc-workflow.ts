@@ -1,6 +1,6 @@
-import {approvedCodes,requireItemCode,validateItemCodes} from './quality-item-code';
+import {checkApprovalItemOwners} from './quality-approval-ownership';
 import {activeErrorRows,manualErrorCode} from './manual-error-code';
-import { emptyIqcControl, emptyIqcSnapshot, checkedIqcSnapshot, iqcContentIssues, type IqcControl, type IqcSnapshot } from './iqc';
+import { emptyIqcControl, emptyIqcSnapshot, checkedIqcSnapshot, iqcContentIssues, nextIqcCheckNo, type IqcControl, type IqcSnapshot } from './iqc';
 import { parse } from './process-state';
 import { DraftConflict, applyDraftCommand, stableDraftJSON, type SharedDraft, type DraftPatch } from './shared-draft';
 import { effectiveVersion, type WorkflowAdapter } from './versioned-shared-workflow';
@@ -18,7 +18,7 @@ export function parseIqcWorkflow(raw:string|undefined,prepared?:unknown):IqcWork
 }
 const editableFields:Record<keyof IqcSnapshot,string[]>={categories:['nameVi'],suppliers:['nameVi'],
   parts:['nameVi','specificationVi','categoryId','supplierIds','photos','isEnabled','isDeleted'],errors:['code','nameVi','isDeleted'],
-  items:['checkNo','nameVi','toolVi','methodVi','rules','isEnabled','inspectionSpecVi','inspectionMode','equipmentId','mediaItems','isDeleted']};
+  items:['nameVi','toolVi','methodVi','rules','isEnabled','inspectionSpecVi','inspectionMode','equipmentId','mediaItems','isDeleted']};
 export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>={
   key:'iqcMasterControl',scope:'iqc',parse:parseIqcWorkflow,empty:emptyIqcSnapshot,
   preparedModel:true,permissionOnlyRead:true,
@@ -32,6 +32,7 @@ export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>=
     const equipment=parse(state.values.routineEquipmentControl,{}) as {activeVersionId?:string;versions?:{id:string;status:string;equipment:{id:string;enabled?:boolean;assetCode?:string;pieceMark?:string;name?:string;nameVi?:string;spec?:string;photoId?:string}[]}[]};
     const selected=new Map((equipment.versions?.find(v=>v.id===equipment.activeVersionId&&v.status==='approved')?.equipment||[]).map(e=>[e.id,e]));
     return {...base,validateRevivedEquipment:(content:IqcSnapshot,ids:Set<string>)=>{for(const item of content.items)if(ids.has(item.id)&&item.equipmentId&&(!selected.has(item.equipmentId)||selected.get(item.equipmentId)?.enabled===false))throw new DraftConflict('EQUIPMENT_UNAVAILABLE',422);},activeId:effectiveVersion(control)?.id||null,
+    checkApproval:(before,proposed)=>checkApprovalItemOwners(control,before,proposed,'checkNo'),
       restoreContent(historical,current){
         for(const kind of ['parts','errors','items'] as const)for(const row of current[kind])
           if(!historical[kind].some(old=>old.id===row.id)) (historical[kind] as typeof current[typeof kind]).push({...JSON.parse(JSON.stringify(row)),isDeleted:true});
@@ -52,10 +53,9 @@ export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>=
           const e=selected.get(item.equipmentId);if(!e||e.enabled===false)throw new DraftConflict('EQUIPMENT_UNAVAILABLE',422);
           item.equipmentSnapshot={id:e.id,assetCode:e.assetCode||'',pieceMark:e.pieceMark||'',name:e.name||e.nameVi||'',spec:e.spec||'',...(e.photoId?{photoId:e.photoId}:{})};
         }
-        validateItemCodes(content,previous,approvedCodes(control),'checkNo');
         try{checkedIqcSnapshot(previous,content,true,activeErrorRows(control));}catch(error){throw new DraftConflict(error instanceof Error?error.message:'INVALID_STRUCTURE',422);}
       },
-      validate(content){const active=approvedCodes(control);validateItemCodes(content,active,active,'checkNo');return [...iqcContentIssues(content,approvedContent),
+      validate(content){return [...iqcContentIssues(content,approvedContent),
         ...content.items.filter(i=>!i.isDeleted&&i.equipmentId&&(!selected.has(i.equipmentId)||selected.get(i.equipmentId)?.enabled===false)).map(i=>({kind:'error' as const,path:['items',{id:i.id},'equipmentId'],message:'EQUIPMENT_UNAVAILABLE'}))];}
     };
   },
@@ -82,7 +82,7 @@ export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>=
         const row=patch.value as Record<string,unknown>;
         const error=staged.workflow!.working.errors.find(e=>e.id===row.errorId&&!e.isDeleted)||patches.filter(p=>p.op==='insert').find(p=>p.path[0]==='errors'&&(p.value as Record<string,unknown>)?.id===row.errorId)?.value as Record<string,unknown>|undefined;
         if(!error)throw new DraftConflict('ERROR_REMOVED');
-        row.partCode=error.partCode;staged.reservedCheckNos.push(String(row.checkNo));
+        row.partCode=error.partCode;row.checkNo=nextIqcCheckNo(staged,String(error.code));staged.reservedCheckNos.push(String(row.checkNo));
       }
       const fingerprint=context.commandFingerprint||stableDraftJSON(command);
       const applied=iqcWorkflowAdapter.apply(staged,{...command,action:'apply',moduleAction:undefined,patches},{...context,commandFingerprint:fingerprint,iqcLocalNumbered:true} as typeof context & {iqcLocalNumbered:boolean});
@@ -104,7 +104,7 @@ export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>=
         patch={op:'insert',path:['errors'],value:{id:'error-'+command.operationId,partCode:part.code,code,nameVi:text(input.nameVi)}};
       }else{
         const error=flow.working.errors.find(e=>e.id===input.errorId&&!e.isDeleted);if(!error)throw new DraftConflict('ERROR_REMOVED');
-        const checkNo=requireItemCode(error.code,input.checkNo);control.reservedCheckNos.push(checkNo);
+        const checkNo=nextIqcCheckNo(control,error.code);control.reservedCheckNos.push(checkNo);
         patch={op:'insert',path:['items'],value:{id:'item-'+command.operationId,partCode:error.partCode,errorId:error.id,checkNo,nameVi:text(input.nameVi),toolVi:text(input.toolVi),methodVi:text(input.methodVi),frequencyRaw:'',rules:input.rules||[],isEnabled:input.isEnabled!==false,
           inspectionSpecVi:text(input.inspectionSpecVi),inspectionMode:input.inspectionMode==='equipment'?'equipment':'visual',equipmentId:text(input.equipmentId),equipmentSnapshot:null,mediaItems:input.mediaItems||[]}};
       }

@@ -14,7 +14,6 @@ export type AbItem = { id: string; code: string; errorId: string; standard: stri
   sourceFrequency: string; sourceVersion?: string; sourceChangedAt?: string;
   sourceReason?: string; sourceCreator?: string; sourceNote?: string;
   reason: string; deleted: boolean;
-  sourceCode?:string;
   sourceImport?: { key: string; sha256: string; sourceItemCodes: string[];
     baseline: Partial<AbItem>; previousKeys: string[] } };
 export type AbSnapshot = { errors: AbError[]; items: AbItem[] };
@@ -74,14 +73,10 @@ export function nextAbCode(control: AbControl, kind: 'error' | 'item', prefix: s
   const reserved = kind === 'error' ? control.reservedErrorCodes : control.reservedItemCodes;
   const known = new Set([...reserved, ...(index?(kind==='error'?index.errors:index.items).map(row=>row.code):Object.values(control.scopes).flatMap(scope =>
     scope.versions.flatMap(v => (kind === 'error' ? v.snapshot.errors : v.snapshot.items).map(row => row.code))))]);
-  if (kind==='item') {
-    for(let n=1;n<=99;n++){const candidate=prefix+String(n).padStart(2,'0');if(!known.has(candidate)){reserved.push(candidate);return candidate;}}
-    throw Error('ITEM_CODE_EXHAUSTED');
-  }
   let max = 0;
   for (const code of known) if (code.startsWith(prefix) && /^\d+$/.test(code.slice(prefix.length)))
     max = Math.max(max, Number(code.slice(prefix.length)));
-  const code = prefix + String(max + 1);
+  const code = prefix + String(max + 1).padStart(kind === 'item' ? 2 : 1, '0');
   reserved.push(code);
   return code;
 }
@@ -124,7 +119,7 @@ export function checkedAbSnapshot(version: AbVersion, incoming: unknown, catalog
   });
   const items = raw.items.map(i => {
     const prior = oldItems.get(i?.id);
-    if (!prior || typeof i.code !== 'string' || i.errorId !== prior.errorId ||
+    if (!prior || i.code !== prior.code || i.errorId !== prior.errorId ||
         typeof i.standard !== 'string' || typeof i.methodText !== 'string' ||
         typeof i.sourceTool !== 'string' || i.sourceTool !== prior.sourceTool ||
         i.sourceMethod !== prior.sourceMethod || i.sourceFrequency !== prior.sourceFrequency ||
@@ -147,7 +142,7 @@ export function checkedAbSnapshot(version: AbVersion, incoming: unknown, catalog
           // submission/approval still fail. Never silently delete old products.
           return invalid&&!(working&&prior.productCodes.includes(code));
         })) throw Error(`${prior.code} 的產品與中控線別、群組或工段不符`);
-    return { ...prior, ...(i.code!==prior.code && !prior.sourceCode && (prior.sourceImport || prior.sourceRows.length) ? {sourceCode:prior.code} : {}), code:i.code, standard: i.standard, methodText: i.methodText,
+    return { ...prior, standard: i.standard, methodText: i.methodText,
       inspectionMode: i.inspectionMode, equipmentId: i.inspectionMode === 'equipment' ? i.equipmentId : '',
       isEnabled: i.isEnabled, rules: i.rules, standardPhotos: i.standardPhotos,
       methodPhotos: i.methodPhotos, productCodes: i.productCodes, reason: i.reason, deleted: i.deleted };

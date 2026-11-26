@@ -132,6 +132,6 @@ void test('normal Update and separate read-only Refresh are bilingual; cache mat
   const css = [...shell.matchAll(/routine-fqc\.css\?v=([^"]+)/g)];
   assert.equal(js.length, 1);
   assert.equal(css.length, 1);
-  assert.equal(js[0][1], '20261126-quality-item-codes1');
+  assert.equal(js[0][1], '20261124-status-filter1');
   assert.equal(css[0][1], '20261124-vi-layout1');
 });
