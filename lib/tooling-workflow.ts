@@ -1,5 +1,7 @@
 import {checkToolingTime} from './time-frequency-policy';
-import {parse} from './process-state';
+import {env} from 'cloudflare:workers';
+import {parse,readSharedStateRow} from './process-state';
+import {prepareToolingWrite} from './state-records';
 import {applyDraftCommand,cloneDraft,DraftConflict,stableDraftJSON,type DraftPatch} from './shared-draft';
 import {effectiveVersion,type VersionedControl,type WorkflowAdapter} from './versioned-shared-workflow';
 import {emptyTooling,checkTooling,toolingIssues,toolingLocation,same,type ToolingSnapshot} from './tooling';
@@ -12,6 +14,11 @@ function serialized(control:ToolingControl){
 }
 export const toolingWorkflowAdapter:WorkflowAdapter<ToolingSnapshot,ToolingControl>={
  key:'toolingMasterControl',scope:'tooling',parse:parseTooling,empty:emptyTooling,preparedModel:true,permissionOnlyRead:true,photoPrefix:'tooling/photos/',photoIds:s=>s.tools.flatMap(t=>t.photos.map(p=>p.id)),
+ async prepareWrite(command){
+  if(command?.action!=='save'&&command?.action!=='submit')return null;
+  const row=await readSharedStateRow();
+  return row?prepareToolingWrite(env.STATE_ARCHIVE,row):null;
+ },
  serializeModel:serialized,serialize:control=>JSON.stringify(serialized(control)),
  async access(_request,_state,permissions){return {...permissions,history:permissions.view};},
  context(control,state,base){
@@ -47,7 +54,7 @@ export const toolingWorkflowAdapter:WorkflowAdapter<ToolingSnapshot,ToolingContr
   if(command.action==='save'&&command.moduleAction==='save-local-v1'){
    if(!context.allowed('edit'))throw new DraftConflict('FORBIDDEN',403);
    if(!Array.isArray(command.patches)||!Array.isArray(command.guards))throw new DraftConflict('INVALID_PATCHES',422);
-   const staged=cloneDraft(control),fingerprint=context.commandFingerprint||stableDraftJSON(command);
+   const staged={...control,reservedCodes:cloneDraft(control.reservedCodes)},fingerprint=context.commandFingerprint||stableDraftJSON(command);
    const applied=toolingWorkflowAdapter.apply(staged,{...command,action:'apply',moduleAction:undefined},{...context,commandFingerprint:fingerprint});
    if(applied instanceof Promise)throw new DraftConflict('INVALID_ADAPTER');
    applied.state.receipts=flow.receipts;applied.state.sequences=flow.sequences;

@@ -417,6 +417,26 @@ export async function prepareEquipmentWrite(bucket:Bucket,row:{revision:number;v
  }};
 }
 
+// Tooling Save and Submit own a single aggregate. Only approved IQC parts can
+// participate in tooling reference checks. Other aggregates stay under the same CAS.
+export async function prepareToolingWrite(bucket:Bucket,row:{revision:number;values:string}){
+ const original=await canonicalOverlayEnvelope(row.values);
+ if(!original)return null;
+ const key='toolingMasterControl',manifest=original.__processRecords;
+ const selected=await decodeRecordValues(bucket,original,{keys:[...identityReadKeys,'processAccessControl',key],
+   modelKey:key,deferHistory:true,deferDependencyHistory:true});
+ const iqc=await decodeRecordValues(bucket,original,{keys:['iqcMasterControl'],effectiveOnly:true});
+ let consumed=false;
+ return {state:{revision:row.revision,...selected,values:{...selected.values,...iqc.values}},async encode(model:unknown){
+   if(consumed||!object(model)||model.schemaVersion!==1)throw Error('Invalid tooling write');
+   consumed=true;
+   const encoded:Envelope=JSON.parse(await encodeRecordValuesCore(bucket,{[key]:selected.values[key]??'null'},selected.recordStorage,new Map([[key,model]])));
+   const allocation=encoded.__processRecords.allocations?.[key];
+   return JSON.stringify({...original,__processRecords:{...manifest,values:{...manifest.values,[key]:encoded.__processRecords.values[key]},
+     ...(allocation?{allocations:{...manifest.allocations,[key]:allocation}}:{})}});
+ }};
+}
+
 // B0 mutation boundary: all aggregates are verified, but only the fixed FQC
 // dependency closure hydrates bodies. This is not a general partial-state writer.
 const fqcMutationKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','qualityMasterControl','masterDataControl','routineEquipmentControl'];
