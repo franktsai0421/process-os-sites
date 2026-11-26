@@ -1481,7 +1481,7 @@
         if (rule.cadence === 'batch' && rule.kind !== 'custom' && (!String(rule.value || '').trim() || !Number.isFinite(Number(rule.value)) || Number(rule.value) <= 0)) { errorBox.textContent = t('按批次須填有效數值','Theo lô cần giá trị hợp lệ'); return; }
         if (rule.cadence === 'time' && rule.kind === 'custom' && !String(rule.nameVi || '').trim()) { errorBox.textContent = t('自訂時間須填名稱','Chu kỳ tùy chỉnh cần tên'); return; }
       }
-      const checkNo=window.qualityItemCodes.readItem(overlay,error,old,[...snap().items,...active()?.snapshot?.items||[]],document.documentElement.lang==='vi');if(!checkNo)return;
+      const checkNo=window.qualityItemCodes.readItem(overlay,error,old,[...snap().items,...active()?.snapshot?.items||[]],document.documentElement.lang==='vi');if(checkNo===null)return;
       const payload = { checkNo, nameVi, toolVi, methodVi, inspectionSpecVi, isEnabled, rules, mediaItems: photos,
         inspectionMode: chosenMode || undefined,
         equipmentId: chosenMode === 'equipment' ? selectedId : '',

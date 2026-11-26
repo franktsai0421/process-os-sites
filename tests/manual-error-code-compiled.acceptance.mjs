@@ -60,8 +60,17 @@ for (const language of ['zh','vi']) for (const c of cases) {
       action:'apply',operationId:randomUUID(),clientId:'edit-unmapped-item',sequence:1,generation:original.workflow.generation,
       patches:[{op:'set',path:legacyPath,value:'Synthetic manual edit'}],guards:[{path:legacyPath,value:legacy[legacyField]}]
     }}});
-    assert.equal(legacyEdit.status(),422);assert.equal((await legacyEdit.json()).error,'ITEM_CODE_INVALID');
-    assert.deepEqual(await persisted(),original);
+    assert.equal(legacyEdit.status(),200,await legacyEdit.text());
+    const legacyNumber=c.module==='fqc'||c.module==='iqc'?'checkNo':'code';
+    const edited=(await persisted()).workflow.working.items.find(row=>row.id===legacy.id);
+    assert.equal(edited[legacyNumber],legacy[legacyNumber]);assert.equal(edited[legacyField],'Synthetic manual edit');
+    const directPath=['items',{id:legacy.id},legacyNumber];
+    const badRepair=await page.request.post(origin+workflow,{headers:{Origin:origin,'X-Process-Expected-Actor':'frank'},data:{command:{
+      action:'apply',operationId:randomUUID(),clientId:'change-unmapped-number',sequence:1,generation:original.workflow.generation,
+      patches:[{op:'set',path:directPath,value:originalCode+'-000'}],guards:[{path:directPath,value:legacy[legacyNumber]}]
+    }}});
+    assert.equal(badRepair.status(),422);assert.equal((await badRepair.json()).error,'ITEM_CODE_INVALID');
+    await enter();
     const forms={
       fqc:['#fqc-add-item','[data-edit-item="row0"]','.fqc-item-form'],
       iqc:['[data-add-item="'+c.id+'"]','[data-edit-item="row0"]','#iqc-item-form'],
@@ -69,6 +78,23 @@ for (const language of ['zh','vi']) for (const c of cases) {
       'ipqc-c':['[data-ipqcc-add="item"]','[data-ipqcc-edit-item="row0"]','#ipqcc-editor']
     };
     const [addItem,editItem,itemForm]=forms[c.module];
+    const legacySelector=editItem.replace('row0','ambiguous');
+    if(c.module==='ipqc-c'){
+      const details=page.locator('details.ipqcc-item').filter({has:page.locator(legacySelector)}).first();
+      if(!await details.evaluate(el=>el.open))await details.locator('summary').click();
+    }
+    await page.locator(legacySelector).first().click();
+    const legacyEditor=page.locator(itemForm),legacySuffix=legacyEditor.locator('[data-code-suffix]');
+    assert.equal(await legacyEditor.locator('[data-legacy-code]').innerText(),legacy[legacyNumber]);
+    assert.equal(await legacySuffix.inputValue(),'');assert.equal(await legacySuffix.getAttribute('required'),null);
+    await legacyEditor.locator({fqc:'[name=name]',iqc:'[name=nameVi]','ipqc-c':'[name=standard]','ipqc-ab':'#ab-standard'}[c.module]).fill('Synthetic UI legacy edit');
+    await legacyEditor.locator('[type=submit],#ab-apply').last().click();
+    await legacyEditor.waitFor({state:'hidden'});
+    const legacySave=response('save');await page.locator('#'+c.prefix+'-save').click();
+    const legacySaved=await legacySave;assert.equal(legacySaved.status(),200,await legacySaved.text());
+    await enter();
+    const retained=(await persisted()).workflow.working.items.find(row=>row.id===legacy.id);
+    assert.equal(retained[legacyNumber],legacy[legacyNumber]);assert.equal(retained[legacyField],'Synthetic UI legacy edit');
     async function editSuffix(selector,wanted,isNew=false) {
       if(c.module==='ipqc-c'&&!isNew){const details=page.locator('details.ipqcc-item').first();if(!await details.evaluate(el=>el.open))await details.locator('summary').click();}
       await page.locator(selector).first().click();

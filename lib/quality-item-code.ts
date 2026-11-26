@@ -1,4 +1,4 @@
-import {DraftConflict,stableDraftJSON} from './shared-draft';
+import {DraftConflict} from './shared-draft';
 
 type Item = {id:string; errorId:string; code?:string; checkNo?:string; deleted?:boolean; isDeleted?:boolean};
 type Parent = {id:string; code:string};
@@ -16,14 +16,11 @@ export function approvedCodes<S extends Snapshot>(control:{activeVersionId:strin
   throw new DraftConflict('ERROR_CODE_BASE_UNAVAILABLE',409);
 }
 
-function validItemCode(parent:string,candidate:unknown):candidate is string {
-  if (typeof candidate!=='string' || candidate.length!==parent.length+3 || !candidate.startsWith(parent+'-')) return false;
-  const suffix=candidate.slice(-2);
-  return /^[0-9]{2}$/.test(suffix) && suffix!=='00';
-}
-
 export function requireItemCode(parent:string, candidate:unknown):string {
-  if (!validItemCode(parent,candidate)) throw new DraftConflict('ITEM_CODE_INVALID',422);
+  const prefix=parent+'-';
+  if (typeof candidate!=='string' || !candidate.startsWith(prefix)) throw new DraftConflict('ITEM_CODE_INVALID',422);
+  const suffix=candidate.slice(prefix.length);
+  if (suffix.length!==2 || !/^[0-9]{2}$/.test(suffix) || suffix==='00') throw new DraftConflict('ITEM_CODE_INVALID',422);
   return candidate;
 }
 
@@ -43,12 +40,7 @@ export function validateItemCodes(next:Snapshot, previous:Snapshot, active:Snaps
   for (const item of next.items) {
     if (!visible(item)) continue;
     const parent=parents.get(item.errorId), old=oldItems.get(item.id);
-    const candidate=item[field];
-    if (old && visible(old) && old.errorId===item.errorId && old[field]===candidate && oldParents.get(item.errorId)===parent) {
-      // Avoid walking media and rules for ordinary unchanged, singly-owned numbers.
-      if (typeof parent==='string' && validItemCode(parent,candidate) && occupied.get(key(candidate))?.size===1) continue;
-      if (old===item || stableDraftJSON(old)===stableDraftJSON(item)) continue;
-    }
+    if (old && visible(old) && old[field]===item[field] && old.errorId===item.errorId && oldParents.get(item.errorId)===parent) continue;
     if (typeof parent!=='string') throw new DraftConflict('ERROR_PARENT_INVALID',422);
     const code=requireItemCode(parent,item[field]);
     const other=[...(occupied.get(key(code)) || [])].find(id=>id!==item.id);

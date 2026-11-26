@@ -997,7 +997,7 @@
   function itemModal(i,readonly) {
     const eq = equipment.find(e=>e.id===i.equipmentId) || i.equipmentSnapshot;
     return `<div class="ipqcab-modal-title">${readonly?t('查看檢查項目','Xem hạng mục'):t('修改檢查項目','Sửa hạng mục')} · ${h(i.code)}</div>
-      ${readonly?'':window.qualityItemCodes.itemField(working.errors.find(row=>row.id===i.errorId),i.code?i:null,[...working.items,...active()?.snapshot?.items||[]],vi())}
+      ${readonly?'':window.qualityItemCodes.itemField(working.errors.find(row=>row.id===i.errorId),modal.initial||null,[...working.items,...active()?.snapshot?.items||[]],vi(),modal.itemSuffix)}
       <label>${t('項目標準（越文）','Tiêu chuẩn (tiếng Việt)')}<textarea id="ab-standard" ${readonly?'readonly':''}>${h(i.standard)}</textarea></label>
       ${photoEditor(i,readonly)}
       <label>${t('檢查方式敘述','Mô tả cách kiểm tra')}<textarea id="ab-method" ${readonly?'readonly':''}>${h(i.methodText)}</textarea></label>
@@ -1111,7 +1111,11 @@
     if (!root) return;
     const item = working.items.find(i=>i.id===modal.id);
     if (!item) return;
-    const suffix=root.querySelector('[data-code-suffix]');if(suffix)item.code=working.errors.find(row=>row.id===item.errorId).code+'-'+suffix.value;
+    const suffix=root.querySelector('[data-code-suffix]');
+    if(suffix && !suffix.hasAttribute('data-keep-legacy')){
+      modal.itemSuffix=suffix.value;
+      if(suffix.validity.valid)item.code=working.errors.find(row=>row.id===item.errorId).code+'-'+suffix.value;
+    }
     item.standard = root.querySelector('#ab-standard')?.value ?? item.standard;
     item.methodText = root.querySelector('#ab-method')?.value ?? item.methodText;
     item.inspectionMode = root.querySelector('[name="ab-mode"]:checked')?.value || item.inspectionMode;
@@ -1193,7 +1197,7 @@
       viewer={itemId:el.dataset.abPhotoItem,kind:el.dataset.abPhotoKind,index:Number(el.dataset.abPhotoIndex)};draw();}));
     host.querySelectorAll('[data-ab-close]').forEach(el=>listenWorking(el,'click',()=>{
       if(busy)return;
-      if(modal?.type==='equipment'){modal={type:'item',id:modal.itemId,initial:modal.initial};draw();return;}
+      if(modal?.type==='equipment'){modal={type:'item',id:modal.itemId,initial:modal.initial,itemSuffix:modal.itemSuffix};draw();return;}
       if(modal?.initial&&!modal.readonly){const rows=modal.type==='error'?working.errors:working.items,index=rows.findIndex(r=>r.id===modal.id);if(index>=0)rows[index]=clone(modal.initial);}
       else if(modal?.type==='item'&&modal.id?.startsWith('local-')&&!modal.initial)working.items=working.items.filter(r=>r.id!==modal.id);
       if(localEntry())localEntry().snapshot=working;modal=null;modalBase=null;message='';draw();
@@ -1211,7 +1215,7 @@
       }else if(modal.type==='error'){
         const parent=working.errors.find(e=>e.id===modal.id),code=q('#ab-error-code').value,changes=window.qualityItemCodes.renameValues(host,parent,code,working,active()?.snapshot?.items,vi());if(!changes)return;
         window.qualityItemCodes.applyRename(working,changes,'code');Object.assign(parent,{code,name:q('#ab-error-name').value});
-      }else {const row=working.items.find(r=>r.id===modal.id),parent=working.errors.find(r=>r.id===row.errorId);if(!window.qualityItemCodes.readItem(host,parent,row,[...working.items,...active()?.snapshot?.items||[]],vi()))return;captureModal();}
+      }else {const row=working.items.find(r=>r.id===modal.id),parent=working.errors.find(r=>r.id===row.errorId);const code=window.qualityItemCodes.readItem(host,parent,modal.initial,[...working.items,...active()?.snapshot?.items||[]],vi());if(code===null)return;captureModal();row.code=code;}
       localEntry().snapshot=working;modal=null;modalBase=null;message=t('已完成本機編輯，請按存取草稿。','Đã hoàn tất chỉnh sửa cục bộ; hãy lưu bản nháp.');draw();
     });
     listenWorking(q('#ab-add-rule'),'click',()=>{captureModal();working.items.find(i=>i.id===modal.id).rules.push({id:crypto.randomUUID(),cadence:'batch',kind:'aql',value:'0.25'});draw();});
@@ -1236,7 +1240,7 @@
         const at=Number(index),to=at+Number(direction);[list[at],list[to]]=[list[to],list[at]]; }
       draw();
     }));
-    listenWorking(q('#ab-select-equipment'),'click',()=>{captureModal();modal={type:'equipment',itemId:modal.id,initial:modal.initial,query:'',category:'',loading:true};void loadEquipment();});
+    listenWorking(q('#ab-select-equipment'),'click',()=>{captureModal();modal={type:'equipment',itemId:modal.id,initial:modal.initial,itemSuffix:modal.itemSuffix,query:'',category:'',loading:true};void loadEquipment();});
     listenWorking(q('#ab-equipment-retry'),'click',()=>void loadEquipment());
     listenWorking(q('#ab-clear-equipment'),'click',()=>{captureModal();const item=working.items.find(i=>i.id===modal.id);item.equipmentId='';item.equipmentSnapshot=null;draw();});
     const filterEquipment = () => {
@@ -1261,7 +1265,7 @@
       const item=working.items.find(i=>i.id===modal.itemId),eq=equipment.find(e=>e.id===el.dataset.abChooseEquipment);
       if (!item || !eq?.available) return;
       item.inspectionMode='equipment';item.equipmentId=eq.id;item.equipmentSnapshot=clone(eq);
-      modal={type:'item',id:item.id,initial:modal.initial};draw();
+      modal={type:'item',id:item.id,initial:modal.initial,itemSuffix:modal.itemSuffix};draw();
     }));
     host.querySelectorAll('[data-ab-view-modal]').forEach(el=>listenWorking(el,'click',()=>{
       captureModal();const [kind,index]=el.dataset.abViewModal.split(':');viewer={itemId:modal.id,kind,index:Number(index)};draw();}));

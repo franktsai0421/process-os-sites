@@ -22,14 +22,18 @@
     return '';
   };
   const exactSuffix = (code,parent) => typeof code==='string' && code.startsWith(parent+'-') && validSuffix(code.slice(parent.length+1)) ? code.slice(parent.length+1) : '';
-  function itemField(parent,row,rows,vi) {
-    const prefix=parent.code+'-', free=availableSuffix(rows,parent.code,row?.id), value=row?exactSuffix(itemNumber(row),parent.code):free;
+  function itemField(parent,row,rows,vi,draftSuffix) {
+    const prefix=parent.code+'-', free=availableSuffix(rows,parent.code,row?.id);
+    const original=row?itemNumber(row):null, suffix=row?exactSuffix(original,parent.code):free;
+    const keepLegacy=!!row && !suffix && draftSuffix===undefined, value=draftSuffix??suffix;
+    const result=keepLegacy?original:prefix+value;
     return `<label data-quality-item-code data-prefix="${escapeCode(prefix)}" data-vi="${vi?'1':'0'}"><span>${fmt(vi,'項目尾碼（01–99）','Số cuối hạng mục (01–99)')}</span>
-      <span><code data-code-prefix>${escapeCode(prefix)}</code><input aria-label="${fmt(vi,'兩位數尾碼','Hai chữ số cuối')}" data-code-suffix inputmode="numeric" size="3" required pattern="(0[1-9]|[1-9][0-9])" value="${escapeCode(value)}"></span>
-      <output data-code-result>${escapeCode(prefix+value)}</output><small role="status">${!free?fmt(vi,'01–99 已用完。','Đã dùng hết 01–99.'):''}</small></label>`;
+      ${row&&!suffix?`<span>${fmt(vi,'現有編碼','Mã hiện tại')} <code data-legacy-code>${escapeCode(original)||'—'}</code></span>`:''}<span><code data-code-prefix>${escapeCode(prefix)}</code><input aria-label="${fmt(vi,'兩位數尾碼','Hai chữ số cuối')}" data-code-suffix inputmode="numeric" size="3" ${keepLegacy?'data-keep-legacy':'required'} pattern="(0[1-9]|[1-9][0-9])" value="${escapeCode(value)}"></span>
+      <output data-code-result>${escapeCode(result)}</output><small role="status">${!free?fmt(vi,'01–99 已用完。','Đã dùng hết 01–99.'):''}</small></label>`;
   }
   function readItem(root,parent,row,rows,vi) {
     const input=root.querySelector('[data-code-suffix]'), code=parent.code+'-'+input.value;
+    if (row && row.errorId===parent.id && input.hasAttribute('data-keep-legacy') && input.value==='') return itemNumber(row);
     const other=occupied(rows,row?.id,code);
     input.setCustomValidity(!validSuffix(input.value)?fmt(vi,'請輸入 01–99 的兩位半形數字。','Nhập đúng hai chữ số ASCII từ 01 đến 99.'):other?fmt(vi,'此碼已由另一筆項目使用','Một hạng mục khác đang dùng mã này')+' · '+(other.nameVi||other.name||other.standard||other.id):'');
     return input.reportValidity()?code:null;
@@ -139,7 +143,7 @@
     const input=event.target;
     if(!input.matches?.('[data-code-suffix],[data-rename-suffix],[name=code],#ab-error-code'))return;
     input.setCustomValidity('');
-    if(input.matches('[data-code-suffix]')){const wrap=input.closest('[data-quality-item-code]');wrap.querySelector('output').textContent=wrap.dataset.prefix+input.value;return;}
+    if(input.matches('[data-code-suffix]')){input.removeAttribute('data-keep-legacy');input.required=true;const wrap=input.closest('[data-quality-item-code]');wrap.querySelector('output').textContent=wrap.dataset.prefix+input.value;return;}
     const form=input.closest('form,[role=dialog],.ipqcab-dialog'), preview=form?.querySelector('[data-rename-preview]'),field=form?.querySelector('[name=code],#ab-error-code');
     if(!preview||!field)return;
     field.setCustomValidity('');preview.hidden=field.value===preview.dataset.original;

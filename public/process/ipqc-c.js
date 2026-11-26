@@ -1024,7 +1024,7 @@
       <p data-ipqcc-recovery-status role="status"></p>
       ${message?`<p class="ipqcc-message" role="alert">${h(displayDraftError(message))}</p>`:''}
       <section class="ipqcc-editor-context"><div><b>${t('Sản phẩm','產品')}</b><code>${h(productCode)}</code><span>${h(product()?.name||'')}</span></div><div><b>${t('Công đoạn','工段')}</b><code>${h(stageCode)}</code><span>${h(catalog.stages.find(s=>s.code===stageCode)?.name||'')}</span></div>${!isError?`<div><b>${t('Mã lỗi / tên','錯誤代碼／名稱')}</b><code>${h(parent?.code||'—')}</code><span>${h(parent?.name||'—')}</span></div>`:''}${isError?'':`<div><b>${t('Mã do hệ thống cấp','系統編號')}</b><code>${h(f.code || `${parent?.code||'…'}-…`)}</code></div>`}</section>
-      ${isError?window.qualityItemCodes.renameTable(modal.existingId?f:null,working,document.documentElement.lang==='vi'):modal.readonly?'':window.qualityItemCodes.itemField(parent,modal.existingId?f:null,[...working.items,...active()?.snapshot?.items||[]],document.documentElement.lang==='vi')}
+      ${isError?window.qualityItemCodes.renameTable(modal.existingId?f:null,working,document.documentElement.lang==='vi'):modal.readonly?'':window.qualityItemCodes.itemField(parent,modal.base,[...working.items,...active()?.snapshot?.items||[]],document.documentElement.lang==='vi',modal.itemSuffix)}
       ${isError ? `${field('code',t('Mã lỗi','錯誤代碼'))}${field('name',t('Tên mã lỗi','錯誤名稱'))}${field('note',t('Ghi chú','備註'),true)}` :
         `<div class="ipqcc-checks"><label><input type="checkbox" name="standardEnabled" ${f.standardEnabled!==false?'checked':''}>${t('Bật tiêu chuẩn','啟用標準')}</label><label><input type="checkbox" name="cpkEnabled" ${f.cpkEnabled?'checked':''}>${t('Bật CPK','啟用 CPK')}</label></div>${field('standard',t('Tiêu chuẩn kiểm tra','檢查標準'),true)}
         ${field('description',t('Mô tả cách kiểm tra (bắt buộc)','檢查方式敘述（必填）'),true)}
@@ -1069,7 +1069,7 @@
     const form = event.currentTarget, input = Object.fromEntries(new FormData(form).entries());
     const isError = target.kind === 'error', fields = { ...target.fields, ...input };
     fields.reason ||= '';
-    if(!isError){fields.code=window.qualityItemCodes.readItem(form,chosenError(),target.base,[...working.items,...active()?.snapshot?.items||[]],document.documentElement.lang==='vi');if(!fields.code)return;}
+    if(!isError){fields.code=window.qualityItemCodes.readItem(form,chosenError(),target.base,[...working.items,...active()?.snapshot?.items||[]],document.documentElement.lang==='vi');if(fields.code===null)return;}
     if(isError){ const issue=window.manualErrorCodeIssue(fields.code,target.existingId,working.errors,active()?.snapshot?.errors);const input=form.elements.code;input.setCustomValidity(issue?displayDraftError(issue):'');if(!input.reportValidity()){input.oninput=()=>input.setCustomValidity('');return;} }
     const renamed=isError?window.qualityItemCodes.renameValues(form,target.base,fields.code,working,active()?.snapshot?.items,document.documentElement.lang==='vi'):[];if(!renamed)return;
     if (!isError) {
@@ -1277,6 +1277,7 @@
       if(!modal)return;modal.dirty=true;
       if(event.target.dataset.photoNote!==undefined) modal.photos[Number(event.target.dataset.photoNote)].note=event.target.value;
       else if(event.target.dataset.photoPosition!==undefined) modal.photos[Number(event.target.dataset.photoPosition)].afterParagraph=Number(event.target.value);
+      else if(event.target.matches('[data-code-suffix]')) modal.itemSuffix=event.target.value;
       else if(event.target.name) modal.fields[event.target.name]=event.target.type==='checkbox'?event.target.checked:event.target.value;
       if(errorRecoverySupported(modal)){errorRecoveryRevision++;queueErrorRecovery();}
     });

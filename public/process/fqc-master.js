@@ -2517,7 +2517,7 @@
       const reason = existing?.reason || '';
 
       const selectedError = errors.find(item => item.id === form.get('errorId')) || error;
-      const fullCode=window.qualityItemCodes.readItem(overlay,selectedError,existing,[...items,...approved()?.snapshot?.items||[]],vi);if(!fullCode)return;
+      const fullCode=window.qualityItemCodes.readItem(overlay,selectedError,existing,[...items,...approved()?.snapshot?.items||[]],vi);if(fullCode===null)return;
       const release=lockFormWrite(overlay);
       const beforeSave = clone(version);
       const value = version.snapshot.items.find(row=>row.id===existing?.id) || { id: newId, checkNo, isDeleted: false };
