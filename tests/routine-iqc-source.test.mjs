@@ -15,7 +15,7 @@ void test('Approved legacy batch rules survive IQC master Save, Submit and appro
       const iqc=JSON.parse(values.iqcMasterControl);
       // Existing imported source-only text is a legacy row, not a newly invented time rule.
       const textRule={id:'legacy-text',cadence:'source',kind:'raw',value:'',sourceTextVi:'mỗi 45 ngày (TEST ONLY)'};
-      const preserveLegacy=snap=>snap.items.push({...snap.items[0],id:'old-all',checkNo:'DEMO-I0-C1',frequencyRaw:'每批',
+      const preserveLegacy=snap=>snap.items.push({...snap.items[0],id:'old-all',checkNo:snap.errors.find(error=>error.id===snap.items[0].errorId).code+'-99',frequencyRaw:'每批',
         rules:[{id:'old-all-rule',cadence:'batch',kind:'all',value:'1'}]});
       for(const version of iqc.versions){
         version.createdAt=at;version.updatedAt=at;
