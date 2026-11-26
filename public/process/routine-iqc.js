@@ -538,7 +538,7 @@
       return `<article class="rf-calendar-period rf-period-single" data-ri-period="${h(job.id)}">
         <label class="rf-period-choice ${canPick?'':'is-locked'}"><input type="checkbox" data-ri-pick="${h(job.id)}"
           ${v.checked.has(job.id)?'checked':''} ${canPick?'':`disabled aria-describedby="${h(reasonId)}"`}>
-          <span class="rf-period-overview"><b title="${periodOf(job)}">${h(periodCaption(job))}</b>
+          <span class="rf-period-overview"><b title="${periodOf(job)}">${h(periodCaption(job))}</b><small>${h(job.source.code)}</small>
           <span class="rf-period-lock" id="${h(reasonId)}">${canPick?t('可勾選','Có thể chọn'):t('不可勾選','Không thể chọn')+' · '+h(shownReason)}</span></span>
         </label>
         <p>${t('當期核准來源供應商','Nhà cung cấp theo nguồn đã duyệt của kỳ')} · ${h(job.source.iqc.supplierIds?.map(id=>supplierNames.get(id)||id).join(', ')||t('未記錄','Chưa ghi nhận'))}</p>

@@ -83,7 +83,7 @@ export function mergeAbImport(input:AbControl, catalog:AbCatalog, payload:AbImpo
   const legacyBase=(item:AbItem, version:AbVersion):AbItem|undefined => {
     const prior=legacyItems.get(item.id), error=version.snapshot.errors.find(e=>e.id===item.errorId);
     const parent=legacyErrors.get(prior?.errorId||'');
-    return prior && error && parent && prior.id===`ipqc-ab-item:${prior.code}` && prior.code===item.code &&
+    return prior && error && parent && prior.id===`ipqc-ab-item:${prior.code}` && prior.code===(item.sourceCode??item.code) &&
       prior.errorId===item.errorId && parent.code===importCode(error) && same(prior.sourceRows,item.sourceRows) &&
       version.history.some(h=>h.action==='initial-import'&&h.comment===AB_LEGACY_SHA) ? prior : undefined;
   };
@@ -123,7 +123,7 @@ export function mergeAbImport(input:AbControl, catalog:AbCatalog, payload:AbImpo
       if(!candidates.length && relevant.filter(o=>o.errorCode===v.errorCode).length===1) {
         const clean=oldItems.filter(item=>{
           const parent=snapshot.errors.find(e=>e.id===item.errorId), base=bases.get(item.id);
-          const aliases=item.sourceImport?.sourceItemCodes||[item.code];
+          const aliases=item.sourceImport?.sourceItemCodes||[item.sourceCode??item.code];
           return importCode(parent)===v.errorCode && base && aliases.some(c=>v.sourceItemCodes.includes(c)) && unmodified(item,base);
         });
         if(clean.length===1) candidates.push(clean[0]);
@@ -172,7 +172,7 @@ export function mergeAbImport(input:AbControl, catalog:AbCatalog, payload:AbImpo
           sourceTool:v.sourceTool,sourceMethod:v.sourceMethod,sourceFrequency:v.sourceFrequency,reason:'',deleted:false};
         snapshot.items.push(item);
       }
-      const old=JSON.stringify(item), prior=bases.get(item.id), nextBase=baseline(v,item.code);
+      const old=JSON.stringify(item), prior=bases.get(item.id), nextBase=baseline(v,item.sourceCode??item.code);
       if(!isNew) for(const field of editable) {
         const equal=field==='productCodes' ? same([...(item[field] as string[])].sort(),[...((prior?.[field]||[]) as string[])].sort()) : same(item[field],prior?.[field]);
         if(equal) Object.assign(item,{[field]:nextBase[field]});

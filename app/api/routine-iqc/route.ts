@@ -1,4 +1,4 @@
-import {validCalendarDate} from '@/lib/routine-fqc-calendar';
+import {periodSourceCodes,validCalendarDate} from '@/lib/routine-fqc-calendar';
 import {resetLedger} from '@/lib/routine-reset-ledger';
 import {checkPlanIntent} from '@/lib/routine-plan-intent';
 import {env} from 'cloudflare:workers';
@@ -83,12 +83,14 @@ export async function GET(request:Request){
         ...(!dateStarted?{projectValue:unstartedMaster}:{})});
       if(master.revision!==state.revision)return reply({error:'REVISION_CONFLICT'},409);
       const catalog=routineIqcCatalog(master);
-      const eligible=iqcPlanEligibility(c,new Map(catalog.items.map(item=>[item.id,item])),today);
+      const latest = new Map(catalog.items.map(item => [item.id,item]));
+      const documented = new Set(documents.filter(doc => !doc.cancelledAt).flatMap(doc => doc.jobs.map(job => job.id)));
+      const eligible=iqcPlanEligibility(c,latest,today);
       const policy=calendar.calendarPolicy;
       const scheduleDue=dateStarted&&(c.lastScheduleDay!==today||routineIqcTimeline(master).some(v=>
         v.day<=today&&v.at>=(policy?.adoptedAt||'')&&!policy?.appliedVersions?.includes(v.id)));
       body={resetGenerationRevision:(c as typeof c & {resetGenerationRevision?:number}).resetGenerationRevision,today,identity:{id:actor.id,role:actor.role,name:actor.name},permissions,revision:c.revision,
-        startDate:calendar.startDate,scheduleDue,jobs:calendar.jobs.map(job=>({...job,canPlan:eligible(job)})),
+        startDate:calendar.startDate,scheduleDue,jobs:calendar.jobs.map(job=>({...periodSourceCodes(job,latest.get(job.itemId),documented.has(job.id)),canPlan:eligible(job)})),
         cases:cases.map(item=>({...item,disposalAvailable:iqcCanDispose(c,item)})),catalog,
         periodRules:Object.fromEntries(Object.entries(policy?.scopes||{}).map(([scope,rule])=>
           [scope,{from:rule.from,until:rule.until,frequency:rule.source.frequency}])),
