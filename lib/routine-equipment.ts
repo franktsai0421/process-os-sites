@@ -161,7 +161,7 @@ const mutableFields = [
   'calibrationCycle', 'calibratedAt', 'expiresAt', 'notes', 'customCycle',
   'intakeDate', 'confirmed', 'photoId', 'photoHidden',
 ];
-export function checkedSnapshot(version: EquipmentVersion, incoming: unknown) {
+export function checkedSnapshot(version: EquipmentVersion, incoming: unknown, guardedHierarchy = false) {
   const payload = incoming as { equipment?: Equipment[]; groups?: EquipmentGroup[]; categories?: EquipmentCategory[]; subcategories?: EquipmentSubcategory[]; issues?: EquipmentIssue[] } | null;
   if (!payload || !Array.isArray(payload.equipment) || !Array.isArray(payload.groups))
     throw Error('草稿格式錯誤');
@@ -185,8 +185,8 @@ export function checkedSnapshot(version: EquipmentVersion, incoming: unknown) {
     if (sub.photoId && !/^[a-f0-9]{64}$/.test(sub.photoId)) throw Error(`子類別 ${sub.name} 照片參照無效`);
     subcategoryIds.add(sub.id);
   }
-  for (const old of legacy.categories) if (!categoryIds.has(old.id) && legacy.subcategories.some(sub => sub.categoryId === old.id)) throw Error(`類別 ${old.name} 仍有子類別，不能刪除`);
-  for (const old of legacy.subcategories) if (!subcategoryIds.has(old.id) && legacy.groups.some(group => group.subcategoryId === old.id)) throw Error(`子類別 ${old.name} 仍有規格群組，不能刪除`);
+  for (const old of legacy.categories) if (!categoryIds.has(old.id) && (guardedHierarchy ? subcategories : legacy.subcategories).some(sub => sub.categoryId === old.id)) throw Error(`類別 ${old.name} 仍有子類別，不能刪除`);
+  for (const old of legacy.subcategories) if (!subcategoryIds.has(old.id) && (guardedHierarchy ? payload.groups : legacy.groups).some(group => group.subcategoryId === old.id)) throw Error(`子類別 ${old.name} 仍有規格群組，不能刪除`);
   const current = new Map(version.equipment.map(item => [item.id, item]));
   const seen = new Set<string>();
   const equipment: Equipment[] = [];

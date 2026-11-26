@@ -1,8 +1,9 @@
 import {emptyEquipmentControl,hierarchy,checkedSnapshot,submitProblems,reserveMarks,nextPieceMark,type EquipmentControl,type EquipmentVersion,type Equipment,type EquipmentGroup,type EquipmentCategory,type EquipmentSubcategory,type EquipmentIssue} from './routine-equipment';
-import {parse} from './process-state';
+import {env} from 'cloudflare:workers';
+import {parse,readSharedStateRow} from './process-state';
 import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON,type SharedDraft,type DraftPatch} from './shared-draft';
 import {openedVersion,effectiveVersion,type NumericVersion,type WorkflowAdapter} from './versioned-shared-workflow';
-import {isImmutableRecordBody} from './state-records';
+import {isImmutableRecordBody,prepareEquipmentWrite} from './state-records';
 export type EquipmentSnapshot={equipment:Equipment[];groups:EquipmentGroup[];categories:EquipmentCategory[];subcategories:EquipmentSubcategory[];issues:(EquipmentIssue&{id:string})[]};
 export type EquipmentSharedControl=Omit<EquipmentControl,'versions'>&{versions:(EquipmentVersion&NumericVersion<EquipmentSnapshot>)[];workflow?:SharedDraft<EquipmentSnapshot>;reservedCategoryCodes?:string[]};
 const empty=():EquipmentSnapshot=>({equipment:[],groups:[],categories:[],subcategories:[],issues:[]});
@@ -22,6 +23,16 @@ const fields:Record<keyof EquipmentSnapshot,string[]>={equipment:['name','unit',
 export const equipmentWorkflowAdapter:WorkflowAdapter<EquipmentSnapshot,EquipmentSharedControl>={
  key:'routineEquipmentControl',scope:'routine-equipment',parse:parseEquipmentWorkflow,empty,photoPrefix:'routine-equipment/photos/',
   preparedModel:true,permissionOnlyRead:true,
+ async prepareWrite(command){
+   const row=await readSharedStateRow();
+   if(!row)return null;
+   return prepareEquipmentWrite(env.STATE_ARCHIVE,row,{
+     referenceHistory:command?.action==='restore'||!!command?.patches?.some(p=>p.op==='remove'&&p.path[0]==='equipment'),
+     validateReferences:command?.action==='submit'||command?.action==='approve',
+     allocate:!!command?.patches?.some(p=>p.op==='insert'),
+     caseId:command?.caseId,saveId:command?.restoreSaveId
+   });
+ },
  needsFullHistory:command=>!!command?.patches?.some(p=>p.op==='insert'),
  needsReferenceHistory:command=>command?.action==='restore'||!!command?.patches?.some(p=>p.op==='remove'),
  photoIds:content=>[...content.equipment,...content.groups,...content.categories,...content.subcategories].flatMap(row=>row.photoId?[row.photoId]:[]),
@@ -60,7 +71,7 @@ export const equipmentWorkflowAdapter:WorkflowAdapter<EquipmentSnapshot,Equipmen
            if(['qualityMasterControl','iqcMasterControl','ipqcCMasterControl','ipqcABMasterControl'].some(key=>references(parse(state.values[key],{}),row.id))||references(control.pendingReplacements,row.id))throw new DraftConflict('EQUIPMENT_STILL_REFERENCED',422);
          }
        }
-       try{Object.assign(content,checkedSnapshot(asVersion(previous),content));}catch(e){throw new DraftConflict(e instanceof Error?e.message:'INVALID_STRUCTURE',422);}
+       try{Object.assign(content,checkedSnapshot(asVersion(previous),content,true));}catch(e){throw new DraftConflict(e instanceof Error?e.message:'INVALID_STRUCTURE',422);}
        for(const issue of content.issues){const prior=previous.issues.find(i=>i.id===issue.id);if(prior&&(issue.status!==prior.status||issue.resolution!==prior.resolution)){issue.resolvedBy=base.actor.name;issue.resolvedById=base.actor.id;issue.resolvedAt=base.at;}}
      },
      validate(content){const available=new Map(content.equipment.map(e=>[e.id,e]));return[
@@ -82,7 +93,7 @@ export const equipmentWorkflowAdapter:WorkflowAdapter<EquipmentSnapshot,Equipmen
        if(key==='subcategories')parentGuard('categories',value.categoryId);
      }
      // Stage allocation, guarded edits and Save in memory; the route persists one CAS.
-     const staged=cloneDraft(control),fingerprint=context.commandFingerprint||stableDraftJSON(command);
+     const staged={...control,reservedMarks:cloneDraft(control.reservedMarks)},fingerprint=context.commandFingerprint||stableDraftJSON(command);
      const applied=equipmentWorkflowAdapter.apply(staged,{...command,action:'apply',moduleAction:undefined},{...context,commandFingerprint:fingerprint});
      if(applied instanceof Promise)throw new DraftConflict('INVALID_ADAPTER');
      applied.state.receipts=flow.receipts;applied.state.sequences=flow.sequences;

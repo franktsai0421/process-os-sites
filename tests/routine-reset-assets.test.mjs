@@ -95,6 +95,7 @@ void test('the proposed shell delta is confined to the four routine asset tags',
   expected=expected.replace(script('process-equipment.js?v=20261125-usage-index1'),script('process-equipment.js?v=20261125-machine-reference2'));
   expected=expected.replace(script('flow-zoom.js?v=20261002-v3'),script('flow-zoom.js?v=20261125-machine-reference2'));
   expected=expected.replace(script('process-editor.js?v=20261114-ipqc-link1'),script('process-editor.js?v=20261125-machine-reference2'));
+  expected=expected.replace(script('routine-equipment.js?v=20261118-standard-frequency1'),script('routine-equipment.js?v=20261126-master-save'));
   assert.equal(shell.replace(/\r\n/g,'\n'),expected.replace(/\r\n/g,'\n'));
 });
 

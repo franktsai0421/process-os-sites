@@ -134,7 +134,11 @@
       else if(!local&&open()?.status==='draft'){working=snapshotOf(open());syncBase=clone(working);syncGeneration=control.workflow.generation;}
       selectedVersionId=open()?.id||selectedVersionId;readUnavailable=false;rememberInputOwner();
       message=t('已查原操作收據；請核對已存草稿，保留的本機修改不會自動重送。','Đã kiểm tra biên nhận gốc; đối chiếu bản nháp đã lưu. Không tự gửi lại thay đổi cục bộ.');
-    }catch(error){message=error.message;}finally{busy=false;render();}
+    }catch(error){
+      message=error.message==='OPERATION_NOT_FOUND'
+        ? t('尚未查到這次操作的收據。請稍後再查；在結果確認前，這次修改仍不能送審。','Chưa tìm thấy biên nhận của thao tác này. Hãy kiểm tra lại sau. Chỉ có thể gửi duyệt sau khi xác nhận kết quả.')
+        : error.message;
+    }finally{busy=false;render();}
   }
   // JSON object key order is not content; array positions, keys and values are.
   function equipmentContentEqual(a,b){
@@ -3355,6 +3359,10 @@
     }
     captureAddEquipmentInput();
     const version = selected(), data = visible();
+    const restrictedActions=version?.status==='draft'&&control.workflow
+      ? [['edit',t('修改','Sửa')],['create',t('新增','Thêm')],['delete',t('刪除','Xóa')],['save',t('儲存草稿','Lưu bản nháp')],['submit',t('送出審核','Gửi duyệt')]]
+        .filter(([action])=>sharedClient?.permission(action)===false).map(([,label])=>label)
+      : [];
     if(problemSnapshot&&(problemSnapshot.generation!==control.workflow?.generation||problemSnapshot.kind==='saved'&&problemSnapshot.id!==control.workflow?.saved?.id)){
       submitProblems=[];problemSnapshot=null;openErrors=false;
       message=t('共用快照已變更，先前驗證結果已失效；請重新送審驗證。','Bản chụp chung đã thay đổi; kết quả kiểm tra trước không còn áp dụng. Hãy gửi lại để kiểm tra.');
@@ -3379,6 +3387,7 @@
 
       <p id="routine-operation-outcome" role="status" hidden></p>
       ${message ? `<div class="routine-message" role="${readUnavailable?'alert':'status'}">${h(displayDraftError(message))}</div>` : ''}
+      ${restrictedActions.length?`<p class="routine-permission-note">${h(t('目前帳號沒有以下權限：','Tài khoản hiện tại không có quyền: ')+restrictedActions.join(t('、',', ')))}</p>`:''}
       ${referenceAction?`<p role="status">${t('引用檢查中；未刪除任何資料','Đang kiểm tra tham chiếu; chưa xóa dữ liệu')} <button type="button" id="routine-reference-cancel">${t('取消檢查','Hủy kiểm tra')}</button></p>`:''}
       ${hasBeginRecovery()||sharedClient?.hasUnknown()?`<button type="button" class="button signal" id="routine-begin-recheck" ${busy?'disabled':''}>${t('查詢原操作收據','Kiểm tra biên nhận gốc')}</button>`:''}
       ${readUnavailable?`<button type="button" class="button signal" id="routine-load-retry">${t('重新載入並保留輸入','Tải lại và giữ dữ liệu đang nhập')}</button>`:''}

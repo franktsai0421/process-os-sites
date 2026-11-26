@@ -332,7 +332,7 @@ export function prepareFirstStartRetirement(bucket:Bucket,raw:string,scope:'fqc'
  return prepareRoutineStart(bucket,raw,key,{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','routineFqcEnabled',key],aggregateReadAhead:true});
 }
 
-async function prepareRoutineStart(bucket:Bucket,raw:string,key:'routineIqcControl'|'routineFqcControl',options:RecordRead,calendarGeneration=false){
+async function canonicalOverlayEnvelope(raw:string){
  const original:Envelope=JSON.parse(raw), manifest=original.__processRecords;
  if(!manifest)return null;
  // Only the canonical records-v1 writer's envelope can be overlaid. Older or
@@ -348,6 +348,13 @@ async function prepareRoutineStart(bucket:Bucket,raw:string,key:'routineIqcContr
  for(const refs of [manifest.values,manifest.allocations,manifest.legacySources]){
    if(refs!==undefined&&(!object(refs)||!Object.values(refs).every(valid)))throw Error('Invalid record manifest');
  }
+ return original;
+}
+
+async function prepareRoutineStart(bucket:Bucket,raw:string,key:'routineIqcControl'|'routineFqcControl',options:RecordRead,calendarGeneration=false){
+ const original=await canonicalOverlayEnvelope(raw);
+ if(!original)return null;
+ const manifest=original.__processRecords;
  if(calendarGeneration){
   // Inspect the control covered by this exact shared_state revision before
   // selecting calendar dependencies. Legacy/page layouts retain their reader.
@@ -365,6 +372,30 @@ async function prepareRoutineStart(bucket:Bucket,raw:string,key:'routineIqcContr
    consumed=true;
    const encoded:Envelope=JSON.parse(await encodeRecordValuesCore(bucket,{[key]:control},selected.recordStorage));
    return JSON.stringify({...original,__processRecords:{...manifest,values:{...manifest.values,[key]:encoded.__processRecords.values[key]}}});
+ }};
+}
+
+// Equipment owns one aggregate. Save needs the quality controls only when
+// removing equipment. Submit/approval validate active references, and Restore
+// and equipment removal retain the existing full reference-history checks.
+export async function prepareEquipmentWrite(bucket:Bucket,row:{revision:number;values:string},
+  options:{referenceHistory:boolean;validateReferences:boolean;allocate:boolean;caseId?:string;saveId?:string}){
+ const original=await canonicalOverlayEnvelope(row.values);
+ if(!original)return null;
+ const key='routineEquipmentControl',manifest=original.__processRecords;
+ const keys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',key];
+ if(options.referenceHistory||options.validateReferences)keys.push('qualityMasterControl','iqcMasterControl','ipqcCMasterControl','ipqcABMasterControl');
+ const selected=await decodeRecordValues(bucket,original,{keys,modelKey:key,
+   deferHistory:!options.referenceHistory,deferDependencyHistory:!options.referenceHistory,
+   allocationKey:options.allocate?key:undefined,caseId:options.caseId,saveId:options.saveId});
+ let consumed=false;
+ return {state:{revision:row.revision,...selected},async encode(model:unknown){
+   if(consumed||!object(model))throw Error('Invalid equipment write');
+   consumed=true;
+   const encoded:Envelope=JSON.parse(await encodeRecordValuesCore(bucket,{[key]:selected.values[key]??'null'},selected.recordStorage,new Map([[key,model]])));
+   const allocation=encoded.__processRecords.allocations?.[key];
+   return JSON.stringify({...original,__processRecords:{...manifest,values:{...manifest.values,[key]:encoded.__processRecords.values[key]},
+     ...(allocation?{allocations:{...manifest.allocations,[key]:allocation}}:{})}});
  }};
 }
 
