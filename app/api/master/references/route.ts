@@ -41,24 +41,26 @@ async function lookup(request:Request,batch:boolean){
   if(display&&!visible)return reply({error:'FORBIDDEN'},403);
   const root=state.recordStorage?.models.get('masterDataControl')??JSON.parse(state.values.masterDataControl||'{}');
   const snapshot=root.workflowScopes?.PROCESS?.working||root.active?.PROCESS||{};
-  const catalog=processMasterTargets(snapshot);
+  const working=processMasterTargets(snapshot);
+  const approved=display?processMasterTargets(root.active?.PROCESS??{}):[];
+  const catalog=display?[...new Map([...working,...approved].map(t=>[t.kind+':'+t.id,t])).values()]:working;
   const targets=catalog.filter(t=>t.kind===kind&&(requested?requested.has(t.id):t.id===id||kind==='template'&&Object.values(snapshot).flat().some((x)=>{const row=x as {id:string;catalogKey?:string;presetKey?:string};return row.id===t.id&&(row.catalogKey||row.presetKey||row.id)===id;})));
   if(display){
    const missing=new Map<string,MissingEquipmentReference>();
-   const approved=processMasterTargets(root.active?.PROCESS??{});
+   const approvedIds=new Set(approved.filter(t=>t.kind==='equipment').map(t=>t.id));
    const index=equipmentReferenceIndex(state.values,targets,display,approved,batch?missing:undefined);
    if(batch){
     const items=Array.from(index,([id,refs])=>{
      const first=refs.values().next().value;
      const code=first?.number||first?.name||first?.operationId||'';
      const label=first?.stage&&code&&!code.startsWith(first.stage+'-')?first.stage+' · '+code:code;
-     return {id,count:refs.size,code:label};
+     return {id,count:refs.size,code:label,...(!approvedIds.has(id)&&{draftOnly:true})};
     });
     return reply({revision:state.revision,items,missing:[...missing.values()]});
    }
    if(!targets.length)return reply({error:'REFERENCE_TARGET_NOT_FOUND'},404);
    const refs=[...index.get(id!)!.values()];
-   return reply({revision:state.revision,total:refs.length,references:refs.slice(0,100),truncated:refs.length>100,detailsRestricted:false});
+   return reply({revision:state.revision,...(!approvedIds.has(id!)&&{draftOnly:true}),total:refs.length,references:refs.slice(0,100),truncated:refs.length>100,detailsRestricted:false});
   }
   if(!targets.length)return reply({error:'REFERENCE_TARGET_NOT_FOUND'},404);
   const result=processMasterReferences(state.values,targets);
