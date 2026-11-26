@@ -53,11 +53,22 @@ void test('approved legacy rehearsal retains immutable history/receipts and perm
 for(const record of [false,true])void test(`isolated prepared legacy data reaches actual page route without rewriting history: ${record?'records':'inline'}`,async t=>{
  const h=await require('../scripts/test-routine-whole-page-route.cjs')(record);t.after(()=>h.close());
  const {root,id}=approvedLegacyFixture(),prepared=prepare(root),archive=JSON.stringify(root.documents),receipts=JSON.stringify(root.receipts);
- const state=await h.core.readState();await h.install({...state.values,routineFqcControl:JSON.stringify(prepared)},state.revision+1);
+ const state=await h.core.readState();
+ const oldSource=root.jobs[0].source, renamedItem={id:oldSource.id,errorId:'err',checkNo:'SYN-L5-01',
+   name:oldSource.name,category:oldSource.category,line:oldSource.line,isEnabled:true,productCodes:['P1'],
+   rule:{cadence:'time',timeFrequency:'weekly'}};
+ const approved={id:'renumber',number:2,status:'approved',createdAt:'2026-11-12T00:00:00Z',
+   snapshot:{errors:[{id:'err',code:'SYN-L5'}],items:[renamedItem]}};
+ const master={schemaVersion:1,libraries:{fqc:{activeVersionId:approved.id,versions:[approved]}}};
+ await h.install({...state.values,qualityMasterControl:JSON.stringify(master),routineFqcControl:JSON.stringify(prepared)},state.revision+1);
  const row=()=>({...h.db.prepare('SELECT * FROM shared_state WHERE id=1').get()}),before=row(),counts=h.metrics();
  const view=await h.read();assert.equal(view.control.workflow.saved,null);assert.equal(view.control.workflow.pendingId,null);
  assert.deepEqual(row(),before,'GET never adopts or rewrites a layout');assert.deepEqual(h.metrics(),counts);
+ assert.equal(view.jobs.find(job=>job.id==='job-a').source.code,oldSource.code);
+ const displayed=view.jobs.find(job=>job.id==='job-b');
+ assert.equal(displayed.source.code,renamedItem.checkNo);assert.equal(displayed.source.versionId,approved.id);
  const newId=crypto.randomUUID(),cmd=await h.save([{id:newId,type:'plan',jobIds:['job-b']}]),ack=await h.accepted(cmd),saved=await h.stored();
+ assert.deepEqual(saved.page.workflow.saved.content.documents.find(row=>row.id===newId).content.lines[0].source,displayed.source);
  assert.equal(saved.page.workflow.saved.content.documents.find(value=>value.id===id).id,id);
  assert.equal(saved.page.workflow.saved.content.documents.find(value=>value.id===newId).id,newId);
  assert.equal(saved.page.workflow.pendingId,null);assert.equal(saved.page.workflow.saves.length,1);

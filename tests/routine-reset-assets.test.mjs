@@ -14,7 +14,7 @@ const dependencies = ['routine-reset.js', 'routine-fqc-page.js', 'routine-iqc.js
 void test('the routine reset control loads once before all three renderers on a cold boot', () => {
   const urls = Array.from(shell.matchAll(/<script data-process-src="([^"]+)"><\/script>/g), match => match[1]);
   const selected = urls.filter(url => dependencies.includes(url.split('?')[0]));
-  assert.deepEqual(selected, ['routine-reset.js?v=20261123-admin-reset1', 'routine-fqc-page.js?v=20261124-receipt-display1', 'routine-iqc.js?v=20261125-overdue-submit1', 'routine-fqc.js?v=20261124-status-filter1']);
+  assert.deepEqual(selected, ['routine-reset.js?v=20261123-admin-reset1', 'routine-fqc-page.js?v=20261126-quality-item-codes1', 'routine-iqc.js?v=20261126-quality-item-codes1', 'routine-fqc.js?v=20261126-quality-item-codes1']);
   assert.deepEqual(Array.from(shell.matchAll(/href="(routine-fqc\.css\?v=[^"]+)"/g), m => m[1]),
     ['routine-fqc.css?v=20261124-vi-layout1']);
 });
@@ -82,9 +82,9 @@ void test('the proposed shell delta is confined to the four routine asset tags',
   expected=expected.replace(script('app.js?v=20261114-lines-flow-review1'),script('app.js?v=20261125-process-master-draft'));
   expected=expected.replace('routine-reset.js?v=2','routine-reset.js?v=20261123-scoped-reset1').replace('routine-iqc.js?v=20261122-plan-intent1','routine-iqc.js?v=20261123-scoped-reset1').replace('routine-fqc.js?v=20261122-plan-intent1','routine-fqc.js?v=20261123-scoped-reset1');
   expected=expected.replaceAll('20261123-scoped-reset1','20261123-admin-reset1').replace('routine-fqc-page.js?v=20261121-reset1','routine-fqc-page.js?v=20261123-admin-reset1');
-  expected=expected.replace('routine-fqc-page.js?v=20261123-admin-reset1','routine-fqc-page.js?v=20261124-receipt-display1').replace('routine-page-approved-history.js?v=20261112-quality-main-joint1','routine-page-approved-history.js?v=20261124-receipt-display1');
-  expected=expected.replace('routine-iqc.js?v=20261123-admin-reset1','routine-iqc.js?v=20261125-overdue-submit1');
-  expected=expected.replace('routine-fqc.js?v=20261123-admin-reset1','routine-fqc.js?v=20261124-status-filter1');
+  expected=expected.replace('routine-fqc-page.js?v=20261123-admin-reset1','routine-fqc-page.js?v=20261126-quality-item-codes1').replace('routine-page-approved-history.js?v=20261112-quality-main-joint1','routine-page-approved-history.js?v=20261124-receipt-display1');
+  expected=expected.replace('routine-iqc.js?v=20261123-admin-reset1','routine-iqc.js?v=20261126-quality-item-codes1');
+  expected=expected.replace('routine-fqc.js?v=20261123-admin-reset1','routine-fqc.js?v=20261126-quality-item-codes1');
   expected=expected.replace('routine-fqc.css?v=20261121-readiness1','routine-fqc.css?v=20261124-vi-layout1');
   expected=expected.replace('routine-iqc.css?v=20261119-integration1','routine-iqc.css?v=20261124-vi-layout1');
   expected=expected.replace(script('process-equipment.js?v=20261105-process-local-save1'),script('process-equipment.js?v=20261125-reference-retry1'));
@@ -97,6 +97,11 @@ void test('the proposed shell delta is confined to the four routine asset tags',
   expected=expected.replace(script('process-editor.js?v=20261114-ipqc-link1'),script('process-editor.js?v=20261125-machine-reference2'));
   expected=expected.replace(script('routine-equipment.js?v=20261118-standard-frequency1'),script('routine-equipment.js?v=20261126-mobile-apply'));
   expected=expected.replace('routine-equipment.css?v=20260925-hierarchy','routine-equipment.css?v=20261126-mobile-apply');
+  for (const [asset,version] of [
+    ['shared-draft-client.js','20261118-standard-frequency1'],['version-draft-ui.js','20261119-routine-integration1'],
+    ['fqc-master.js','20261119-routine-repair1'],['iqc-master.js','20261119-review1'],
+    ['ipqc-ab.js','20261116-quality-office1'],['ipqc-c.js','20261116-quality-office1']
+  ]) expected=expected.replace(script(asset+'?v='+version),script(asset+'?v=20261126-quality-item-codes1'));
   assert.equal(shell.replace(/\r\n/g,'\n'),expected.replace(/\r\n/g,'\n'));
 });
 

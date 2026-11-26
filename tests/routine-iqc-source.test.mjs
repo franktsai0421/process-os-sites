@@ -38,7 +38,7 @@ void test('Approved legacy batch rules survive IQC master Save, Submit and appro
       return [
         {op:'insert',path:['parts'],value:{...working.parts[0],id:part,code,nameVi:'TEST ONLY · '+name}},
         {op:'insert',path:['errors'],value:{id:error,partCode:code,code:'Visual '+name,nameVi:'TEST ONLY · Visual'}},
-        {op:'insert',path:['items'],value:{...working.items[0],id:'test-item-'+name,partCode:code,errorId:error,checkNo:'',nameVi:'TEST ONLY · '+name,frequencyRaw:'',rules:[{id:'test-rule-'+name,cadence,kind,value}]}}
+        {op:'insert',path:['items'],value:{...working.items[0],id:'test-item-'+name,partCode:code,errorId:error,checkNo:'Visual '+name+'-01',nameVi:'TEST ONLY · '+name,frequencyRaw:'',rules:[{id:'test-rule-'+name,cadence,kind,value}]}}
       ];
     });
     const mixed='TEST-ONLY-IQC-MIXED';
@@ -46,7 +46,7 @@ void test('Approved legacy batch rules survive IQC master Save, Submit and appro
       {op:'insert',path:['parts'],value:{...working.parts[0],id:'mixed-part',code:mixed,nameVi:'TEST ONLY · MIXED'}},
       {op:'insert',path:['errors'],value:{id:'mixed-error',partCode:mixed,code:'Visual mixed',nameVi:'TEST ONLY · Visual'}},
       ...['WEEK','MONTH','BATCH'].map((name,i)=>({op:'insert',path:['items'],value:{...working.items[0],
-        id:'mixed-'+name,partCode:mixed,errorId:'mixed-error',checkNo:'',nameVi:'TEST ONLY · MIXED '+name,frequencyRaw:'',
+        id:'mixed-'+name,partCode:mixed,errorId:'mixed-error',checkNo:'Visual mixed-'+String(i+1).padStart(2,'0'),nameVi:'TEST ONLY · MIXED '+name,frequencyRaw:'',
         rules:[{id:'mixed-rule-'+name,cadence:i===2?'batch':'time',kind:['week','month','fixed_count'][i],value:i===2?'1':''}]}})),
     );
     let seq=0;

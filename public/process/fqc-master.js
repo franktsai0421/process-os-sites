@@ -404,7 +404,7 @@
     finally{if(activeSharedAction===operation){activeSharedAction=null;ui.saving=false;if(owned()&&matrixBatch===batch){paintMatrixActions();render();}}}
   }
   const commandFeedbackPending=()=>!!pendingCommandFeedback?.owned();
-  const sharedFields={errors:['code','name','isDeleted'],items:['name','description','errorId','tool','equipmentId','equipmentSnapshot','mediaItems','isEnabled','rule','isMonthly','isQuarterly','isYearly','isCustomPeriod','customPeriodText','productCodes','productRefs','products','reason','note','isDeleted']};
+  const sharedFields={errors:['code','name','isDeleted'],items:['checkNo','name','description','errorId','tool','equipmentId','equipmentSnapshot','mediaItems','isEnabled','rule','isMonthly','isQuarterly','isYearly','isCustomPeriod','customPeriodText','productCodes','productRefs','products','reason','note','isDeleted']};
   function transport(){const actor=identity(),id=actor?.id,epoch=window.ProcessSync?.identityGeneration?.();if(!id)throw Error('LOGIN_REQUIRED');if(sharedActor!==id||sharedClient?.isRuntimeCurrent?.()===false||sharedClientOwner?.actor!==actor||sharedClientOwner.epoch!==epoch||sharedClientOwner.delivery&&window.ProcessSync?.isCurrentDelivery?.(sharedClientOwner.delivery)===false){sharedActor=id;sharedClientOwner={actor,epoch,delivery:window.ProcessSync?.captureDelivery?.()};sharedClient=window.createSharedDraftClient({durableBegin:true,guardAccessResults:true,fqcComparedSave:true,endpoint:'/api/fqc/workflow?caseMetadata=1',externalDurableBounded:{scope:'FQC'},legacyArchive:true,conditionalState:true,actorId:id,headers:()=>window.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'},permissionGates:{edit:'#fqc-page .matrix-cell,#fqc-add-item,#fqc-add-error,#fqc-page [data-edit-item],#fqc-page [data-edit-error],.fqc-modal-form button[type=submit]',save:'#fqc-save',submit:'#fqc-submit',withdraw:'#fqc-withdraw,#quality-withdraw',history:'#fqc-cases',approve:'#quality-approve',return:'#quality-reject',delete:'#fqc-page [data-delete-item],#fqc-page [data-delete-error]'}});}return sharedClient;}
   function adopt(result,selectOpen=false,confirmedBegin=false){if(beginGenerationConflict&&!confirmedBegin)throw Error('STALE_GENERATION');if(!result.control)return;const wasOpen=!selected()||['draft','pending'].includes(selected()?.status);ensureControl().libraries.fqc=result.control;if(wasOpen||selectOpen)ui.selectedVersionId=result.control.versions.find(v=>['draft','pending'].includes(v.status))?.id||result.control.activeVersionId||'';syncBase=clone(result.control.workflow?.working||selected()?.snapshot||{errors:[],items:[]});syncGeneration=result.control.workflow?.generation||null;sharedStateCurrent=currentReadOwner(()=>true,false);}
   async function loadShared(isCurrent=()=>true){const owned=currentReadOwner(isCurrent),r=await transport().read();if(!owned())throw Error('FQC_READ_SUPERSEDED');adopt(r);return r;}
@@ -540,6 +540,8 @@
         if(unit.photo){if(!unit.photo.noop){applyPhotoChange(row.mediaItems,unit.photo);photoTouched.add(unit.id);}continue;}
         for(const field of unit.fields)if(unit.row[field]!==undefined&&!saveEqual(row[field],unit.row[field])){const path=[unit.kind,{id:unit.id},field];guards.push({path,value:row[field]});patches.push({op:'set',path,value:clone(unit.row[field])});row[field]=clone(unit.row[field]);}
       }
+      window.qualityItemCodes.alignNumbers(next,base,local,latest,choice,'checkNo');
+      window.qualityItemCodes.alignPatches(patches,guards,next,latest,'checkNo');
       for(const id of photoTouched){const row=next.items.find(value=>value.id===id),before=latest.items.find(value=>value.id===id);if(!saveEqual(row.mediaItems,before.mediaItems)){const path=['items',{id},'mediaItems'];guards.push({path,value:clone(before.mediaItems)});patches.push({op:'set',path,value:clone(row.mediaItems)});}}
       for(const keep of retainDeletedRows){const path=[keep.collection,{id:keep.id},'isDeleted'];patches.push({op:'set',path,value:true});guards.push({path,value:true},{path:[keep.collection,{id:keep.id}],value:clone(keep.tombstone)});}
       if(check)for(const item of next.items.filter(r=>!r.isDeleted)){const parent=next.errors.find(r=>r.id===item.errorId&&!r.isDeleted);if(!parent||parent.category!==item.category)throw Error('FQC_STRUCTURE_RECHECK_REQUIRED');}
@@ -879,7 +881,7 @@
     const version = editable(); if (!version) return;
     try{assertNoUnapplied();const owned=currentReadOwner();if(!library().workflow)await sharedAction('begin');if(!owned())throw Error('FQC_OPERATION_CONTEXT_CHANGED');
       const flow=library().workflow,generation=flow.generation,captured=window.captureSharedDraftSubmission(flow);
-      const reason=await window.VersionDraftUI.confirmSubmit(window.VersionDraftUI.reasonFor(version,flow), 'FQC',{savedVersion:{id:captured.savedId,revision:captured.expectedRevision,at:flow.saved.at,actor:flow.saved.actor?.name}});if(!reason)return;
+      const reason=await window.VersionDraftUI.confirmSubmit(window.VersionDraftUI.reasonFor(version,flow), 'FQC',{codeChanges:window.qualityItemCodes.codeChanges(flow.active?.content,flow.saved.content),savedVersion:{id:captured.savedId,revision:captured.expectedRevision,at:flow.saved.at,actor:flow.saved.actor?.name}});if(!reason)return;
       if(!owned()||library().workflow?.generation!==generation)throw Error('FQC_OPERATION_CONTEXT_CHANGED');if(library().workflow.revision!==captured.expectedRevision||library().workflow.saved?.id!==captured.savedId)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');assertNoUnapplied();
       await sharedAction('submit',{...captured,generation,reason});
     }catch(error){toast(displayDraftError(error));}
@@ -1454,11 +1456,6 @@
       });
     });
   }
-  function nextCheckNo(error, items) {
-    const match = error.code.match(/^(.*-FQC-L)0?(\d+)$/i), prefix = match ? `${match[1]}${Number(match[2])}-` : `${error.code}-`;
-    const same = items.filter(item=>item.errorId===error.id || item.checkNo.startsWith(prefix) && /^\d+$/.test(item.checkNo.slice(prefix.length)));
-    const max = Math.max(0, ...same.map(item => Number(item.checkNo.match(/-(\d+)$/)?.[1]) || 0)); return `${prefix}${String(max + 1).padStart(2, '0')}`;
-  }
   function isVi() {
     const tabLanguage = String(document.documentElement.lang || '').toLowerCase();
     if (tabLanguage === 'vi') return true;
@@ -1569,8 +1566,8 @@
       const [kind,entity,field]=patch.path;
       if(patch.op==='insert'){if(merged[kind].some(row=>row.id===patch.value.id))throw Error('FQC_MATRIX_SCOPE_CHANGED');merged[kind].push(clone(patch.value));continue;}
       const row=merged[kind].find(row=>row.id===entity.id),baseRow=syncBase?.[kind]?.find(row=>row.id===entity.id),guard=detail.guards.find(guard=>JSON.stringify(guard.path)===JSON.stringify(patch.path));
-      if(!row||!baseRow)throw Error('FQC_MATRIX_SCOPE_CHANGED');
-      if(JSON.stringify(row[field])===JSON.stringify(baseRow[field])){if(guard?.value===undefined)delete baseRow[field];else baseRow[field]=clone(guard.value);}
+      if(!row||!baseRow&&!owner.base[kind].some(value=>value.id===entity.id))throw Error('FQC_MATRIX_SCOPE_CHANGED');
+      if(baseRow&&JSON.stringify(row[field])===JSON.stringify(baseRow[field])){if(guard?.value===undefined)delete baseRow[field];else baseRow[field]=clone(guard.value);}
       row[field]=clone(patch.value);
     }
     editable().snapshot=merged;if(matrixOwner()&&!matrixBatch.pending){matrixBatch.rows.clear();matrixBatch.count=0;matrixChoiceRevision++;}ui.lastError=null;render();return true;
@@ -1652,7 +1649,7 @@
     const overlay = modal(`<form class="fqc-modal-form"><header><h2>${existing ? (vi ? 'Sửa mã lỗi' : '修改錯誤代碼') : (vi ? 'Thêm mã lỗi mới' : '新增錯誤代碼')}</h2><button type="button" class="button ghost" data-close>${vi ? 'Quay lại' : '返回'}</button></header><div class="fqc-modal-body">
       <div class="fqc-field"><label class="fqc-label">${vi ? 'Nhóm sản phẩm' : '產品類別'}</label><input value="${h(existing?.category || category)}" readonly data-i18n-skip="true" class="fqc-input fqc-readonly"></div>
       <div class="fqc-field" data-field-wrap="code"><label class="fqc-label">${vi ? 'Mã lỗi' : '錯誤代碼'}<input name="code" value="${h(initialCode)}" required data-i18n-skip="true" class="fqc-input"></label><div class="fqc-field-error" data-field-error="code"></div></div>
-      <div class="fqc-field" data-field-wrap="name"><label class="fqc-label">${vi ? 'Tên lỗi' : '錯誤名稱'}</label><input name="name" value="${h(existing?.name || '')}" required data-i18n-skip="true" class="fqc-input"><div class="fqc-field-error" data-field-error="name"></div></div>
+      ${window.qualityItemCodes.renameTable(existing,version.snapshot,vi)}<div class="fqc-field" data-field-wrap="name"><label class="fqc-label">${vi ? 'Tên lỗi' : '錯誤名稱'}</label><input name="name" value="${h(existing?.name || '')}" required data-i18n-skip="true" class="fqc-input"><div class="fqc-field-error" data-field-error="name"></div></div>
     </div><footer><div class="fqc-modal-alert" role="alert"></div><button class="button signal" type="submit">${isVi()?'Hoàn tất chỉnh sửa':'完成編輯'}</button><button type="button" class="button ghost" data-close>${vi ? 'Hủy' : '取消'}</button></footer></form>`);
 
     overlay.querySelectorAll('[data-close]').forEach(button => button.onclick = guardWorking(button,() => closeModal(overlay)));
@@ -1680,7 +1677,9 @@
       const code = nativeFormValueText(form.get('code') || '');
       const issue = window.manualErrorCodeIssue(code, existing?.id || newId, errors, approved()?.snapshot?.errors);
       if (issue) { showModalFieldError(overlay,'code',displayDraftError(issue)); return; }
+      const renamed=window.qualityItemCodes.renameValues(overlay,existing,code,version.snapshot,approved()?.snapshot?.items,vi);if(!renamed)return;
       const release=lockFormWrite(overlay);
+      window.qualityItemCodes.applyRename(version.snapshot,renamed,'checkNo');
       const value = existing || errors.find(row=>row.id===newId) || { id: newId, category, line: filteredCategories(version).find(item => item.name === category)?.line || '', code, isDeleted: false };
       Object.assign(value, { code, name });
       if (!errors.includes(value)) errors.push(value);
@@ -2066,7 +2065,7 @@
     const version = {...clone(baseVersion),snapshot:editable()?.id===baseVersion.id?localSnapshot():clone(baseVersion.snapshot)}, errors = errorRows(version, categoryName(version)), items = version.snapshot.items, existing = items.find(item => item.id === id), error = errors.find(item => item.id === (existing?.errorId || ui.selectedErrorId)) || errors[0]; if (!error) return;
     const newId = `fqc-item:${crypto.randomUUID()}`;
     const productCodes = new Set(existing?.productCodes || []); if (preselectCode) productCodes.add(preselectCode);
-    const products = effectiveProducts(error.category), checkNo = existing?.checkNo || nextCheckNo(error, items);
+    const products = effectiveProducts(error.category), checkNo = existing?.checkNo || error.code+'-'+window.qualityItemCodes.availableSuffix([...items,...approved()?.snapshot?.items||[]],error.code);
     const currentMedia = clone(existing?.mediaItems || []).map(m => ({ ...m, id: m.id || (`fqc-media:${crypto.randomUUID()}`), note: m.note || '' }));
     const initialMediaJSON=JSON.stringify(currentMedia),initialEquipmentId=existing?.equipmentId||'';
     const vi = isVi();
@@ -2084,7 +2083,7 @@
     const overlay = modal(`<form class="fqc-modal-form fqc-item-form"><header><h2>${readOnly ? (vi ? 'Xem hạng mục kiểm tra (chỉ đọc)' : '查看檢查項目（唯讀）') : existing ? (vi ? 'Sửa hạng mục kiểm tra' : '修改檢查項目') : (vi ? 'Thêm hạng mục kiểm tra mới' : '新增檢查項目')} · ${h(checkNo)}</h2><button type="button" class="button ghost" data-close>${vi ? 'Quay lại' : '返回'}</button></header><div class="fqc-modal-body">
       <div class="fqc-form-grid">
         <div class="fqc-field"><label class="fqc-label">${vi ? 'Mã lỗi' : '錯誤代碼'}</label><select name="errorId" class="fqc-select">${errors.map(item => `<option value="${h(item.id)}" ${item.id === error.id ? 'selected' : ''}>${h(item.code)} · ${h(item.name)}</option>`).join('')}</select></div>
-        <div class="fqc-field"><label class="fqc-label">${vi ? 'Mã kiểm tra FQC (tự động)' : 'FQC 檢查編號（自動）'}</label><input value="${h(checkNo)}" readonly data-i18n-skip="true" class="fqc-input fqc-readonly"></div>
+        ${readOnly?h(checkNo):window.qualityItemCodes.itemField(error,existing,[...items,...approved()?.snapshot?.items||[]],vi)}
       </div>
       <div class="fqc-field" data-field-wrap="name"><label class="fqc-label">${vi ? 'Hạng mục kiểm tra' : '檢查項目'}</label><input name="name" value="${h(existing?.name || '')}" required data-i18n-skip="true" class="fqc-input"><div class="fqc-field-error" data-field-error="name"></div></div>
       <div class="fqc-field"><label class="fqc-label">${vi ? 'Mô tả phương pháp kiểm' : '檢查方式敘述'}</label><textarea name="description" data-i18n-skip="true" class="fqc-textarea">${h(existing?.description || '')}</textarea></div>
@@ -2412,6 +2411,7 @@
       }));
     });
 
+    if(overlay.querySelector('[name=errorId]'))overlay.querySelector('[name=errorId]').addEventListener('change',event=>{const parent=version.snapshot.errors.find(row=>row.id===event.target.value),wrap=overlay.querySelector('[data-quality-item-code]');if(!parent||!wrap)return;wrap.dataset.prefix=parent.code+'-';wrap.querySelector('[data-code-prefix]').textContent=wrap.dataset.prefix;const input=wrap.querySelector('input');input.setCustomValidity('');wrap.querySelector('output').textContent=wrap.dataset.prefix+input.value;});
     ownFormWrite(overlay,version);
     overlay.querySelector('form').onsubmit = guardWorking(overlay.querySelector('form'),async event => {
       event.preventDefault();
@@ -2516,12 +2516,13 @@
       const note = nativeFormValueText(form.get('note') || '');
       const reason = existing?.reason || '';
 
+      const selectedError = errors.find(item => item.id === form.get('errorId')) || error;
+      const fullCode=window.qualityItemCodes.readItem(overlay,selectedError,existing,[...items,...approved()?.snapshot?.items||[]],vi);if(fullCode===null)return;
       const release=lockFormWrite(overlay);
       const beforeSave = clone(version);
-      const selectedError = errors.find(item => item.id === form.get('errorId')) || error;
       const value = version.snapshot.items.find(row=>row.id===existing?.id) || { id: newId, checkNo, isDeleted: false };
       Object.assign(value, {
-        errorId: selectedError.id, category: selectedError.category, line: selectedError.line, name,
+        checkNo:fullCode, errorId: selectedError.id, category: selectedError.category, line: selectedError.line, name,
         description: nativeFormValueText(form.get('description') || ''),
         tool: finalTool,
         equipmentId: finalEqId,
@@ -2916,6 +2917,7 @@
 
       detail.innerHTML = `
         <h3>FQC ${h(version.number)} · ${h(statusLabel(version.status))}</h3>
+        ${baseLoaded?window.qualityItemCodes.changeHTML(window.qualityItemCodes.codeChanges(before,after)):''}
         <p data-quality-base-state="${baseLoaded?'loaded':'unavailable'}">${isVi()?'Mã lỗi':'錯誤代碼'}：${baseLoaded?before.errors.filter(item => !item.isDeleted).length:'—'} → ${after.errors.filter(item => !item.isDeleted).length}<br>${isVi()?'Hạng mục kiểm tra':'檢查項目'}：${baseLoaded?before.items.filter(item => !item.isDeleted).length:'—'} → ${after.items.filter(item => !item.isDeleted).length}</p>
         ${baseLoaded?'':`<p role="status">${isVi()?'Chưa tải phiên bản cơ sở; chưa thể so sánh số lượng trước thay đổi.':'基準版本尚未載入，無法比較修改前數量。'}</p>`}
         <div class="quality-diff">

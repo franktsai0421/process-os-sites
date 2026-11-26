@@ -11,9 +11,150 @@
       row.id !== id && !row.deleted && !row.isDeleted && row.code.trim().toLowerCase() === key
     )) ? 'ERROR_CODE_DUPLICATE' : '';
   };
+  const visibleItem = row => !row.deleted && !row.isDeleted;
+  const escapeCode = value => String(value ?? '').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const validSuffix = value => typeof value==='string' && value.length===2 && /^[0-9]{2}$/.test(value) && value!=='00';
+  const itemNumber = row => row.checkNo ?? row.code;
+  const fmt = (vi,zh,vn) => vi?vn:zh;
+  const occupied = (rows,id,code) => rows.find(row=>visibleItem(row) && row.id!==id && String(itemNumber(row)).trim().toLowerCase()===code.trim().toLowerCase());
+  const availableSuffix = (rows,parent,id) => {
+    for (let n=1;n<=99;n++){const suffix=String(n).padStart(2,'0');if(!occupied(rows,id,parent+'-'+suffix))return suffix;}
+    return '';
+  };
+  const exactSuffix = (code,parent) => typeof code==='string' && code.startsWith(parent+'-') && validSuffix(code.slice(parent.length+1)) ? code.slice(parent.length+1) : '';
+  function itemField(parent,row,rows,vi,draftSuffix) {
+    const prefix=parent.code+'-', free=availableSuffix(rows,parent.code,row?.id);
+    const original=row?itemNumber(row):null, suffix=row?exactSuffix(original,parent.code):free;
+    const keepLegacy=!!row && !suffix && draftSuffix===undefined, value=draftSuffix??suffix;
+    const result=keepLegacy?original:prefix+value;
+    return `<label data-quality-item-code data-prefix="${escapeCode(prefix)}" data-vi="${vi?'1':'0'}"><span>${fmt(vi,'項目尾碼（01–99）','Số cuối hạng mục (01–99)')}</span>
+      ${row&&!suffix?`<span>${fmt(vi,'現有編碼','Mã hiện tại')} <code data-legacy-code>${escapeCode(original)||'—'}</code></span>`:''}<span><code data-code-prefix>${escapeCode(prefix)}</code><input aria-label="${fmt(vi,'兩位數尾碼','Hai chữ số cuối')}" data-code-suffix inputmode="numeric" size="3" ${keepLegacy?'data-keep-legacy':'required'} pattern="(0[1-9]|[1-9][0-9])" value="${escapeCode(value)}"></span>
+      <output data-code-result>${escapeCode(result)}</output><small role="status">${!free?fmt(vi,'01–99 已用完。','Đã dùng hết 01–99.'):''}</small></label>`;
+  }
+  function readItem(root,parent,row,rows,vi) {
+    const input=root.querySelector('[data-code-suffix]'), code=parent.code+'-'+input.value;
+    if (row && row.errorId===parent.id && input.hasAttribute('data-keep-legacy') && input.value==='') return itemNumber(row);
+    const other=occupied(rows,row?.id,code);
+    input.setCustomValidity(!validSuffix(input.value)?fmt(vi,'請輸入 01–99 的兩位半形數字。','Nhập đúng hai chữ số ASCII từ 01 đến 99.'):other?fmt(vi,'此碼已由另一筆項目使用','Một hạng mục khác đang dùng mã này')+' · '+(other.nameVi||other.name||other.standard||other.id):'');
+    return input.reportValidity()?code:null;
+  }
+  function renameTable(parent,snapshot,vi) {
+    if(!parent)return '';
+    const children=snapshot.items.filter(row=>visibleItem(row)&&row.errorId===parent.id);
+    const suffixes=children.map(row=>exactSuffix(itemNumber(row),parent.code));
+    if(!children.length)return '';
+    const rows=children.map((row,index)=>{
+      const suffix=suffixes[index],manual=!suffix||suffixes.indexOf(suffix)!==suffixes.lastIndexOf(suffix);
+      return `<div data-rename-id="${escapeCode(row.id)}"><code>${escapeCode(itemNumber(row))}</code> → <output></output> ${manual?`<label>${fmt(vi,'指定兩位尾碼','Chọn hai số cuối')} `:''}<input data-rename-suffix value="${manual?'':suffix}" ${manual?'inputmode="numeric" size="3"':'type="hidden"'}>${manual?'</label>':''}</div>`;
+    }).join('');
+    return `<section data-rename-preview data-original="${escapeCode(parent.code)}" hidden><strong>${fmt(vi,'項目編碼異動','Thay đổi mã hạng mục')}</strong>${rows}</section>`;
+  }
+  function renameValues(root,parent,code,snapshot,active,vi) {
+    if(!parent||parent.code===code)return [];
+    const rows=root.querySelectorAll('[data-rename-id]'), changed=[];
+    for(const el of rows){
+      const id=el.dataset.renameId,input=el.querySelector('input'),full=code+'-'+input.value;
+      const other=occupied([...snapshot.items,...active||[]],id,full)||changed.find(row=>row.code===full);
+      const issue=!validSuffix(input.value)?fmt(vi,'請指定 01–99 的兩位半形數字。','Chọn hai chữ số ASCII từ 01 đến 99.'):other?fmt(vi,'編碼已被占用','Mã đã được dùng')+' · '+full+' · '+other.id:'';
+      if(issue){const field=input.type==='hidden'?root.querySelector('[name=code],#ab-error-code'):input;field.setCustomValidity(issue);field.reportValidity();return null;}
+      changed.push({id,code:full});
+    }
+    return changed;
+  }
+  function applyRename(snapshot,changes,field) {
+    const rows=new Map(snapshot.items.map(row=>[row.id,row]));
+    for(const entry of changes)rows.get(entry.id)[field]=entry.code;
+  }
+  function codeChanges(before,after,scope='') {
+    if(after?.scopes)return Object.entries(after.scopes).flatMap(([key,snapshot])=>codeChanges(before?.scopes?.[key],snapshot,key));
+    if(!after?.items)return [];
+    const result=[];
+    for(const kind of ['errors','items']){
+      const old=new Map((before?.[kind]||[]).map(row=>[row.id,itemNumber(row)]));
+      for(const row of after[kind]||[]){const prior=old.get(row.id),next=itemNumber(row);if(visibleItem(row)&&prior!==next)result.push({scope,before:prior,after:next});}
+    }
+    return result;
+  }
+  const changeHTML = changes => changes.length?`<div data-quality-code-changes>${changes.map(row=>`<div>${escapeCode(row.scope)} <code>${escapeCode(row.before??'—')}</code> → <code>${escapeCode(row.after)}</code></div>`).join('')}</div>`:'';
+  // A number is rendered as a whole but its prefix belongs to the parent.
+  // Merge the two intents independently, then rebuild beneath the chosen parent.
+  function alignNumbers(next,base,local,latest,choice,field){
+    const indexes=[base,local,latest].map(s=>({
+      items:new Map(s.items.map(row=>[row.id,row])),
+      parents:new Map(s.errors.map(row=>[row.id,row.code]))
+    }));
+    const mergedParents=new Map(next.errors.map(row=>[row.id,row.code]));
+    for(const row of next.items.filter(visibleItem)){
+      const variants=indexes.map(index=>{
+        const item=index.items.get(row.id),parent=item&&index.parents.get(item.errorId);
+        return {item,parent,suffix:item&&exactSuffix(item[field],parent)};
+      });
+      const [old,mine,peer]=variants, parent=mergedParents.get(row.errorId);
+      if(!parent||!mine.item&&!peer.item)continue;
+      if(old.item&&old.parent===parent&&(!mine.item||old.item[field]===mine.item[field])&&(!peer.item||old.item[field]===peer.item[field]))continue;
+      if(!old.item&&row[field]===peer.item?.[field]&&parent===peer.parent)continue;
+      const suffix=!mine.item?peer.suffix:!peer.item?mine.suffix:mine.suffix===old.suffix?peer.suffix:
+        peer.suffix===old.suffix||mine.suffix===peer.suffix?mine.suffix:choice==='mine'?mine.suffix:peer.suffix;
+      if(!suffix)throw Error('ITEM_CODE_INVALID');
+      row[field]=parent+'-'+suffix;
+    }
+  }
+  function alignPatches(patches,guards,next,latest,field){
+    const old=new Map(latest.items.map(row=>[row.id,row]));
+    for(const row of next.items.filter(visibleItem)){
+      const before=old.get(row.id);
+      if(!before){const insert=patches.find(p=>p.op==='insert'&&p.path[0]==='items'&&p.value.id===row.id);if(insert)insert.value[field]=row[field];continue;}
+      const path=['items',{id:row.id},field];
+      const existing=patches.find(p=>p.path[0]==='items'&&p.path[1]?.id===row.id&&p.path[2]===field);
+      if(existing)existing.value=row[field];
+      else if(row[field]!==before[field]){patches.push({op:'set',path,value:row[field]});guards.push({path,value:before[field]});}
+    }
+  }
+  function groupCodePatches(changes,snapshot) {
+    const groups=new Map(),rest=[];
+    const parents=new Map(snapshot.items.map(row=>[row.id,row.errorId]));
+    for(const change of changes){
+      if(!change.patches){rest.push(change);continue;}
+      const remaining=[],used=new Set();
+      for(const patch of change.patches){
+        const [kind,entity,field]=patch.path;
+        if(field!=='code'){remaining.push(patch);continue;}
+        const id=kind==='errors'?entity.id:parents.get(entity.id);
+        const guard=change.guards.find(g=>JSON.stringify(g.path)===JSON.stringify(patch.path));
+        if(!id||!guard){remaining.push(patch);continue;}
+        if(!groups.has(id))groups.set(id,{patches:[],guards:[]});
+        groups.get(id).patches.push(patch);groups.get(id).guards.push(guard);used.add(guard);
+      }
+      if(remaining.length)rest.push({...change,patches:remaining,guards:change.guards.filter(g=>!used.has(g))});
+    }
+    const grouped=[...groups.values()];
+    const projected=new Map(grouped.flatMap(group=>group.patches).map(p=>[JSON.stringify(p.path.slice(0,2)),p.value]));
+    for(const change of rest){
+      if(change.moduleAction)continue;
+      for(const guard of change.guards||[]){
+        const code=projected.get(JSON.stringify(guard.path));
+        if(code!==undefined&&guard.value&&typeof guard.value==='object')guard.value={...guard.value,code};
+      }
+    }
+    return [...grouped,...rest];
+  }
+  window.qualityItemCodes={alignNumbers,alignPatches,availableSuffix,groupCodePatches,itemField,readItem,renameTable,renameValues,applyRename,codeChanges,changeHTML};
+  globalThis.document?.addEventListener?.('input',event=>{
+    const input=event.target;
+    if(!input.matches?.('[data-code-suffix],[data-rename-suffix],[name=code],#ab-error-code'))return;
+    input.setCustomValidity('');
+    if(input.matches('[data-code-suffix]')){input.removeAttribute('data-keep-legacy');input.required=true;const wrap=input.closest('[data-quality-item-code]');wrap.querySelector('output').textContent=wrap.dataset.prefix+input.value;return;}
+    const form=input.closest('form,[role=dialog],.ipqcab-dialog'), preview=form?.querySelector('[data-rename-preview]'),field=form?.querySelector('[name=code],#ab-error-code');
+    if(!preview||!field)return;
+    field.setCustomValidity('');preview.hidden=field.value===preview.dataset.original;
+    for(const row of preview.querySelectorAll('[data-rename-id]'))row.querySelector('output').textContent=field.value+'-'+row.querySelector('input').value;
+  });
   // Display only: retain raw transport/classifier/receipt errors.
   window.sharedDraftErrorMessage = (error, language = document.documentElement.lang) => {
     const messages = {
+      ITEM_CODE_EXHAUSTED:['此錯誤代碼的 01–99 全部已用完。','Đã dùng hết 01–99 cho mã lỗi này.'],
+      ITEM_CODE_INVALID:['項目編碼必須包含完整錯誤代碼與 01–99 的兩位尾碼。','Mã hạng mục phải gồm mã lỗi đầy đủ và hai chữ số từ 01 đến 99.'],
+      ITEM_CODE_DUPLICATE:['此項目編碼已由另一筆項目使用。','Một hạng mục khác đang dùng mã này.'],
       ERROR_CODE_REQUIRED:['請輸入錯誤代碼。','Vui lòng nhập mã lỗi.'],
       ERROR_CODE_DUPLICATE:['此錯誤代碼已由另一筆資料使用。','Một bản ghi khác đang dùng mã lỗi này.'],
       ERROR_CODE_BASE_UNAVAILABLE:['無法核對正式版代碼，請重新載入。','Không thể đối chiếu mã đang hiệu lực. Vui lòng tải lại.'],
@@ -1502,6 +1643,7 @@
       if(review?.linkedProcess){for(const [stage,templates]of Object.entries(review.linkedProcess.before||{}))oldCollections['PROCESS · '+stage]=templates;for(const [stage,templates]of Object.entries(review.linkedProcess.content||{}))newCollections['PROCESS · '+stage]=templates;}
 const rows=review?[...new Set([...Object.keys(newCollections),...Object.keys(oldCollections)])].flatMap(kind=>{const before=oldCollections[kind]||[],after=newCollections[kind]||[];if(!Array.isArray(before)||!Array.isArray(after))return[];const oldRows=new Map(before.map((r,index)=>[historyRowKey(r,index),r])),newRows=new Map(after.map((r,index)=>[historyRowKey(r,index),r]));return [...new Set([...oldRows.keys(),...newRows.keys()])].map(id=>{const old=oldRows.get(id),value=newRows.get(id);return{kind,row:value||old,after:value,old};});}):[];
       overlay.innerHTML=`<section class="shared-restore-dialog" role="dialog" aria-modal="true" aria-label="${t('Hồ sơ gửi duyệt','送審案件')}"><header><h3>${legacy?t('Phiên bản cũ · chỉ đọc','舊版本封存 · 唯讀'):t(masterScope?'Hồ sơ gửi duyệt · chỉ đọc':'Hồ sơ cố định · chỉ đọc',masterScope?'送審案件 · 唯讀':'固定案件 · 唯讀')}</h3><button data-close>×</button></header><main>${loading?`<p>${t('Đang tải','載入中')}</p>`:review?`<p>${h(review.id)} · ${h(statusLabel(review.status))}</p><p>${h(review.actor.name)} · ${h(review.at)}<br>${h(review.reason)}</p>${review.contentIssues?`<details class="vd-advisory"><summary>${t('Dữ liệu cần bổ sung trong hồ sơ cố định','固定案件待補')} · ${review.contentIssues.issues.length}</summary><p>${review.result?.contentIssuesConfirmed?t('Đã xác nhận duyệt kèm các mục cần bổ sung','已明確確認帶待補核准'):t('Các mục này không chặn duyệt','以下待補不阻擋核准')}</p>${review.contentIssues.issues.map(i=>`<p>${h(window.VersionDraftUI?.issueMessage(i)||i.message)} · ${h(i.path.map(p=>typeof p==='string'?p:p.id).join(' / '))}</p>`).join('')}</details>`:''}<p>${h(review.result?.actor.name)} · ${h(review.result?.at)} · ${h(review.result?.reason)}</p>${rows.slice(itemPage*10,itemPage*10+10).map(({kind,row,after,old})=>`<article><h4>${rowHeading(kind,row)}</h4><div class="shared-restore-diff"><section><h4>${review.legacy?t('Không có bản đối chiếu cũ','未提供舊版比較基準'):t('Trước khi gửi','送審前')}</h4>${fields(old)}</section><section><h4>${review.legacy?t('Nội dung phiên bản cũ','舊版本內容'):t('Nội dung đã gửi','送審固定內容')}</h4>${fields(after)}</section></div></article>`).join('')}<nav><button data-prev ${itemPage===0?'disabled':''}>${t('Trước','上一頁')}</button>${itemPage+1} / ${Math.max(1,Math.ceil(rows.length/10))}<button data-next ${(itemPage+1)*10>=rows.length?'disabled':''}>${t('Sau','下一頁')}</button></nav>`:(listing?.cases||[]).map(c=>`<article><p>${h(c.actor.name)} · ${h(c.at)} · ${h(statusLabel(c.status))}</p><p>${h(c.reason)}</p><button data-case="${h(c.id)}">${t('Xem hồ sơ','查看案件')}</button></article>`).join('')||`<p>${t('Chưa có hồ sơ','尚無案件')}</p>`}</main><footer>${review?.status==='pending'&&review.id===caseId&&onReview&&!legacy?reviewActions.map(a=>`<button type="button" class="button ${a.name==='approve'?'signal':'ghost'}" data-history-review="${h(a.name)}" ${a.enabled?'':'disabled'}>${h(a.label)}</button>`).join(''):''}${review?`<button data-back>${t('Danh sách','案件清單')}</button>${restoreAllowed()&&review.savedId?`<button data-restore>${t(masterScope?'Xem trước khôi phục vào bản nháp':'Xem trước khôi phục',masterScope?'預覽還原到草稿':'預覽還原')}</button>`:''}`:listing?.next?`<button data-more>${t('Trang sau','下一頁')}</button>`:''}${client.legacyHistory?`<button data-archive>${legacy?t('Hồ sơ gửi duyệt','送審案件'):t(masterScope?'Xem phiên bản cũ (chỉ đọc)':'Phiên bản cũ',masterScope?'查看舊版封存（唯讀）':'舊版本封存')}</button>`:''}<button data-close>${t('Về phạm vi hiện tại','返回目前範圍')}</button></footer></section>`;
+      if(review && (review.content?.items&&review.content?.errors || Object.values(review.content?.scopes||{}).some(scope=>scope?.items&&scope?.errors)))overlay.querySelector('header')?.insertAdjacentHTML('afterend',changeHTML(codeChanges(review.before,review.content)));
       // Prevent overlapping list/case reads from replacing the selected history view.
       if(loading)overlay.querySelectorAll('button:not([data-close])').forEach(button=>button.disabled=true);
       overlay.querySelectorAll('[data-close]').forEach(b=>b.onclick=close);

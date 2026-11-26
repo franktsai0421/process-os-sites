@@ -139,7 +139,7 @@ export function checkedIqcSnapshot(previous: IqcSnapshot, value: unknown, workin
     const newById = new Map((newRows as { id: string }[]).map(row => [row.id, row]));
     for (const old of oldRows as { id: string; code?: string; checkNo?: string }[]) {
       const current = newById.get(old.id) as typeof old | undefined;
-      if (!current || oldRows !== previous.errors && current[key] !== old[key]) throw Error('既有 IQC 編號不可刪除或重編；請使用停用標記');
+      if (!current || oldRows === previous.parts && current[key] !== old[key]) throw Error('既有 IQC 編號不可刪除或重編；請使用停用標記');
     }
   }
   const nextErrors = new Map(next.errors.map(error => [error.id, error]));

@@ -5,6 +5,8 @@ export function canvasDOM(){
  const decode=s=>s.replaceAll('&amp;','&').replaceAll('&quot;','"').replaceAll('&lt;','<').replaceAll('&gt;','>');
  class Node{
   constructor(tag){this.tagName=tag.toUpperCase();this.children=[];this.attrs={};this.dataset={};this.style={};this.value='';this._text='';this.hidden=false;this.disabled=false;this.checked=false;this.scrollLeft=0;this.scrollTop=0;this.files=[];events(this);this.classList={toggle:(name,force)=>{const set=new Set(this.className.split(' ').filter(Boolean));const on=force===undefined?!set.has(name):force;if(on)set.add(name);else set.delete(name);this.className=[...set].join(' ');},contains:name=>this.className.split(' ').includes(name)};this.classList.add=(...xs)=>xs.forEach(x=>this.classList.toggle(x,true));this.classList.remove=(...xs)=>xs.forEach(x=>this.classList.toggle(x,false));}
+  setCustomValidity(message){this.validationMessage=String(message);}
+  reportValidity(){return !this.validationMessage;}
   get isConnected(){return this===document.documentElement||!!this.parentElement?.isConnected||!!this.host?.isConnected;}get id(){return this.attrs.id||'';}set id(v){this.attrs.id=v;}get className(){return this.attrs.class||'';}set className(v){this.attrs.class=v;}
   get textContent(){return this._text+this.children.map(n=>n.textContent).join('');}set textContent(v){this._text=String(v);this.children.forEach(n=>n.parentElement=null);this.children=[];}
   setAttribute(k,v){this.attrs[k]=String(v);if(k.startsWith('data-'))this.dataset[k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=String(v);if(['type','src','href'].includes(k))this[k]=String(v);if(k==='value')this.value=decode(String(v));if(['checked','disabled','hidden','open'].includes(k))this[k]=true;}

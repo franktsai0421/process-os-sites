@@ -1,7 +1,7 @@
 /* Isolated actual FQC handler and SQLite/R2 adapter; ephemeral identity only. */
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),{DatabaseSync}=require('node:sqlite'),{webcrypto,randomBytes,createHash}=require('node:crypto'),{execFileSync}=require('node:child_process');
 const root=path.resolve(__dirname,'..');
-const snapshot=()=>({errors:[{id:'error',code:'SYN-FQC-L01',name:'Synthetic error',category:'SYN',line:'A',isDeleted:false}],items:[{id:'item',checkNo:'SYN-FQC-L1-01',name:'Synthetic item',description:'Synthetic description',category:'SYN',line:'A',errorId:'error',productCodes:[],productRefs:[],mediaItems:[],isEnabled:true,tool:'目視檢查',rule:{cadence:'none'}}]});
+const snapshot=()=>({errors:[{id:'error',code:'SYN-FQC-L01',name:'Synthetic error',category:'SYN',line:'A',isDeleted:false}],items:[{id:'item',checkNo:'SYN-FQC-L01-01',name:'Synthetic item',description:'Synthetic description',category:'SYN',line:'A',errorId:'error',productCodes:[],productRefs:[],mediaItems:[],isEnabled:true,tool:'目視檢查',rule:{cadence:'none'}}]});
 module.exports=async function fixture({format='records',baseline=false,sourceRef,localSaveSourceRef}={}){
  if(localSaveSourceRef!==undefined&&localSaveSourceRef!=='82c058e7d2b205ddf885d747fdb8ac41bd52dd53')throw Error('Unexpected FQC local Save source');
  if(sourceRef!==undefined&&(baseline||!['848be13da54c7ae747bcdd96df19e01129fe980a','35949445ad073812863c0004acbee13ed3535747','6247c00220bf366e41c92c5b684d9f9744076cad'].includes(sourceRef)))throw Error('Unexpected FQC paired source');

@@ -1,3 +1,4 @@
+import {approvedCodes,validateItemCodes} from './quality-item-code';
 import {activeErrorRows,validateErrorCodeChanges} from './manual-error-code';
 import {checkFqcTime} from './time-frequency-policy';
 import {assertFqcLocalSaveCommand} from './fqc-local-save';
@@ -10,7 +11,7 @@ type Row=Record<string,unknown>&{id:string;category:string;line:string;name:stri
 type Item=Row&{checkNo:string;errorId:string;equipmentId?:string|null;equipmentSnapshot?:unknown;productCodes:string[];mediaItems:{id?:string;src:string;name?:string}[];isEnabled:boolean;rule?:Record<string,unknown>};
 export type FqcSnapshot={errors:(Row&{code:string})[];items:Item[]};
 type FqcLibrary={activeVersionId:string|null;versions:NumericVersion<FqcSnapshot>[];workflow?:SharedDraft<FqcSnapshot>};
-const fields={errors:['code','name','isDeleted'],items:['name','description','errorId','tool','equipmentId','equipmentSnapshot','mediaItems','isEnabled','rule','isMonthly','isQuarterly','isYearly','isCustomPeriod','customPeriodText','productCodes','productRefs','products','reason','note','isDeleted']};
+const fields={errors:['code','name','isDeleted'],items:['checkNo','name','description','errorId','tool','equipmentId','equipmentSnapshot','mediaItems','isEnabled','rule','isMonthly','isQuarterly','isYearly','isCustomPeriod','customPeriodText','productCodes','productRefs','products','reason','note','isDeleted']};
 const text=(value:unknown)=>typeof value==='string'?value:typeof value==='number'?String(value):'';
 export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
  let root:{schemaVersion:number;libraries:Record<string,FqcLibrary>},numbers:Map<string,number|string>,abGuard:{versionId:string;codes:string[]}|null=null;
@@ -39,6 +40,7 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
     restoreContent(historical,current){for(const collection of ['errors','items'] as const)for(const row of current[collection])if(!historical[collection].some(old=>old.id===row.id))(historical[collection] as Row[]).push({...cloneDraft(row),isDeleted:true});return historical;},
     structure(content,previous){
      // Per-structure, lazy first-match indexes; malformed prior rows retain find's failure/order semantics.
+     validateItemCodes(content,previous,approvedCodes(control),'checkNo');
      validateErrorCodeChanges(content.errors,previous.errors,activeErrorRows(control));
      const previousIndexes=new Map<'errors'|'items',Map<string,Row>|null>();
      const previousRow=(key:'errors'|'items',id:string):Row|undefined=>{
@@ -55,7 +57,7 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
       if(!Array.isArray(content[key]))throw new DraftConflict('INVALID_COLLECTION',422);
       for(const row of content[key]){const code=key==='errors'?row.code:row.checkNo,old=previousRow(key,row.id);
        if(typeof row.id!=='string'||!row.id||typeof code!=='string'||!code||ids.has(row.id)||key==='items'&&codes.has(code)||typeof row.name!=='string'||typeof row.category!=='string'||typeof row.line!=='string'||row.isDeleted!==undefined&&typeof row.isDeleted!=='boolean')throw new DraftConflict('INVALID_FQC_IDENTITY',422);
-       ids.add(row.id);codes.add(code);if(old&&(old.category!==row.category||old.line!==row.line||key==='items'&&old.checkNo!==code))throw new DraftConflict('FQC_IDENTITY_PROTECTED',422);
+       ids.add(row.id);codes.add(code);if(old&&(old.category!==row.category||old.line!==row.line))throw new DraftConflict('FQC_IDENTITY_PROTECTED',422);
       }
      }
      // Identity checks above have succeeded. Keep first-match parent lookup local
@@ -74,7 +76,7 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
       }else if(old&&!old.equipmentId){if(Object.hasOwn(old,'equipmentSnapshot'))row.equipmentSnapshot=old.equipmentSnapshot;else delete row.equipmentSnapshot;}else row.equipmentSnapshot=null;
      }
     },
-    validate(content){const issues:DraftIssue[]=[];
+    validate(content){const active=approvedCodes(control);validateItemCodes(content,active,active,'checkNo');const issues:DraftIssue[]=[];
      for(const row of content.errors)if(!row.isDeleted&&!row.name.trim())issues.push({kind:'missing',path:['errors',{id:row.id},'name'],message:'NAME_REQUIRED'});
      for(const i of content.items.filter(i=>!i.isDeleted)){
       if(!i.name.trim())issues.push({kind:'missing',path:['items',{id:i.id},'name'],message:'NAME_REQUIRED'});
@@ -159,13 +161,12 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
    }
    if(command.input?.expectedAB&&(!abGuard||stableDraftJSON(command.input.expectedAB)!==stableDraftJSON(abGuard)))throw new DraftConflict('AB_EFFECTIVE_CHANGED_RECONFIRM');
    if(command.action!=='apply')return applyDraftCommand(flow,command,context);
-   const patches:DraftPatch[]=cloneDraft(command.patches||[]),allocate=patches.some(p=>p.op==='insert');
-   const allItems=(allocate?(context.allocationIndex?.items as Item[]|undefined)||control.versions.flatMap(v=>v.snapshot.items):[]).concat(flow.working.items);
+   const patches:DraftPatch[]=cloneDraft(command.patches||[]);
    for(const p of patches){const [collection,entity,field]=p.path;
     if(collection!=='errors'&&collection!=='items')throw new DraftConflict('INVALID_COLLECTION',422);
     if(p.op==='insert'&&p.path.length===1){
      if(collection==='errors'){const row=p.value as Row&{code:string};if(typeof row.category!=='string'||typeof row.line!=='string')throw new DraftConflict('CATEGORY_REQUIRED',422);}
-     else{const row=p.value as Item,parent=flow.working.errors.find(e=>e.id===row.errorId&&!e.isDeleted)||patches.filter(q=>q.op==='insert'&&q.path[0]==='errors').map(q=>(q as Extract<DraftPatch,{op:'insert'}>).value as Row&{code:string}).find(e=>e.id===row.errorId&&!e.isDeleted);if(!parent)throw new DraftConflict('ERROR_PARENT_INVALID',422);const match=parent.code.match(/^(.*-FQC-L)0?(\d+)$/i),prefix=match?match[1]+Number(match[2])+'-':parent.code+'-';row.category=parent.category;row.line=parent.line;row.checkNo=prefix+String(Math.max(0,...allItems.filter(i=>i.errorId===row.errorId || typeof i.checkNo==='string' && i.checkNo.startsWith(prefix) && /^\d+$/.test(i.checkNo.slice(prefix.length))).map(i=>Number(i.checkNo?.match(/-(\d+)$/)?.[1])||0))+1).padStart(2,'0');allItems.push(row);}
+     else{const row=p.value as Item,parent=flow.working.errors.find(e=>e.id===row.errorId&&!e.isDeleted)||patches.filter(q=>q.op==='insert'&&q.path[0]==='errors').map(q=>(q as Extract<DraftPatch,{op:'insert'}>).value as Row&{code:string}).find(e=>e.id===row.errorId&&!e.isDeleted);if(!parent)throw new DraftConflict('ERROR_PARENT_INVALID',422);row.category=parent.category;row.line=parent.line;}
     }else{if(p.op!=='set'||p.path.length!==3||!entity||typeof entity==='string'||typeof field!=='string'||!fields[collection].includes(field))throw new DraftConflict('UNSUPPORTED_ITEM_PATCH',422);
      if(!flow.working[collection].some(r=>r.id===entity.id&&(!r.isDeleted||retainedTargets?.has(JSON.stringify([collection,entity.id])))))throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS');
      if(!(command.guards||[]).some(g=>stableDraftJSON(g.path)===stableDraftJSON(p.path)))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
