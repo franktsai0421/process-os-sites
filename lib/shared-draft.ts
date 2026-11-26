@@ -42,6 +42,7 @@ export type DraftContext<T> = {
   allowed: (permission: DraftPermission) => boolean;
   // Pure structural validation and module-specific coupled-field validation.
   structure: (content: T, previous: T) => void;
+  checkApproval?: (before: T, proposed: T) => void;
   validate: (content: T) => DraftIssue[];
   // Only these explicit business codes may be advisory, only in process:platform.
   advisoryCodes?:readonly string[];
@@ -187,6 +188,7 @@ export function applyDraftCommand<T>(source: SharedDraft<T>, command: DraftComma
     if (command.action !== 'approve' && !command.reason?.trim() && !(command.action === 'withdraw' && ctx.optionalReasonPolicy === 'routine-fqc' && source.scope.startsWith('routine-fqc:'))) fail('REASON_REQUIRED', 422);
     if (command.action === 'approve') {
       if (ctx.activeId !== reviewCase.baseId) fail('ACTIVE_VERSION_CHANGED');
+      ctx.checkApproval?.(reviewCase.before, reviewCase.content);
       const currentIssues=check(reviewCase.content),issues=reviewCase.contentIssues?.issues||currentIssues;
       if(source.scope==='process:platform'&&issues.length){if(!same(command.acknowledgedContentIssues,issues))throw new DraftConflict('CONTENT_ISSUES_CONFIRM_REQUIRED',409,{issues});
         // Legacy cases acquire this explicit review-time record only on review.

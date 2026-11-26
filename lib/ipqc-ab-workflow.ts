@@ -1,3 +1,4 @@
+import {checkApprovalItemOwners} from './quality-approval-ownership';
 import {activeErrorRows,manualErrorCode} from './manual-error-code';
 import {captureAbColdOrigin,type AbColdOrigin,type AbColdOriginInput} from './ipqc-ab-local-lineage';
 import {parseAbControl,catalogFromMaster,checkedAbSnapshot,abDraftIssues,nextAbCode,copyAb,openAb,activeAb,type AbScope,type AbSnapshot,type AbControl,type AbItem,type AbError} from './ipqc-ab';
@@ -30,7 +31,9 @@ export function abWorkflowAdapter(key:string,initialActiveBasis:'approved'|'lega
       if(separator<1||!catalog.groups.some(g=>g.line===line&&g.name===group))throw new DraftConflict('SCOPE_INVALID',422);
       const equipment=parse(state.values.routineEquipmentControl,{}) as {activeVersionId?:string;versions?:{id:string;status:string;equipment:{id:string;enabled?:boolean;assetCode:string;pieceMark:string;name?:string;nameVi?:string;photoId?:string}[]}[]};
       const choices=new Map((equipment.versions?.find(v=>v.id===equipment.activeVersionId&&v.status==='approved')?.equipment||[]).map(e=>[e.id,e]));
-      return{...base,activeId:control.activeVersionId,advisoryPolicy:'ipqc-completeness-v1',
+      return{...base,activeId:control.activeVersionId,
+    checkApproval:(before,proposed)=>checkApprovalItemOwners(control,before,proposed,'code'),
+    advisoryPolicy:'ipqc-completeness-v1',
         restoreContent(historical,current){for(const collection of ['errors','items'] as const)for(const row of current[collection])if(!historical[collection].some(old=>old.id===row.id))(historical[collection] as (AbError|AbItem)[]).push({...copyAb(row),deleted:true});return historical;},
         semantic:content=>({errors:content.errors.filter(e=>!e.deleted),items:content.items.filter(i=>!i.deleted)}),
         structure(content,previous){

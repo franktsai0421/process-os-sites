@@ -1,3 +1,4 @@
+import {checkApprovalItemOwners} from './quality-approval-ownership';
 import {activeErrorRows,manualErrorCode} from './manual-error-code';
 import { applyDraftCommand, createSharedDraft, DraftConflict, stableDraftJSON, type DraftCommand, type DraftContext, type DraftPatch, type SharedDraft } from './shared-draft';
 import { activeIpqc, openIpqc, checkedIpqcSnapshot, checkedIpqcRule, nextItemCode, submitIpqcIssues, copyIpqc, type IpqcControl, type IpqcSnapshot, type IpqcItem, type IpqcError } from './ipqc-c';
@@ -32,7 +33,9 @@ export function beginIpqcWorkflow(control: IpqcWorkflowControl, context: DraftCo
 export function ipqcWorkflowContext(control: IpqcWorkflowControl, context: Omit<DraftContext<IpqcSnapshot>, 'structure' | 'validate' | 'semantic' | 'activeId'>,
   products: { code: string; stages: string[] }[]): DraftContext<IpqcSnapshot> {
   const active = activeIpqc(control);
-  return { ...context, activeId:active?.id || null,advisoryPolicy:'ipqc-completeness-v1',
+  return { ...context, activeId:active?.id || null,
+    checkApproval:(before,proposed)=>checkApprovalItemOwners(control,before,proposed,'code'),
+    advisoryPolicy:'ipqc-completeness-v1',
     restoreContent(historical,current){
       for(const kind of ['errors','items'] as const)for(const row of current[kind])
         if(!historical[kind].some(old=>old.id===row.id)) (historical[kind] as typeof current[typeof kind]).push({...copyIpqc(row),deleted:true} as never);

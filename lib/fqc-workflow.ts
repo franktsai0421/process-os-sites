@@ -1,3 +1,4 @@
+import {checkApprovalItemOwners} from './quality-approval-ownership';
 import {activeErrorRows,validateErrorCodeChanges} from './manual-error-code';
 import {checkFqcTime} from './time-frequency-policy';
 import {assertFqcLocalSaveCommand} from './fqc-local-save';
@@ -35,6 +36,7 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
    const choices=new Map((eq.versions?.find(v=>v.id===eq.activeVersionId&&v.status==='approved')?.equipment||[]).map(e=>[e.id,e]));
    effectiveEquipment=choices;
    const result:DraftContext<FqcSnapshot>={...base,activeId:control.activeVersionId,
+    checkApproval:(before,proposed)=>checkApprovalItemOwners(control,before,proposed,'checkNo'),
     semantic:content=>({errors:content.errors.filter(e=>!e.isDeleted),items:content.items.filter(i=>!i.isDeleted)}),
     restoreContent(historical,current){for(const collection of ['errors','items'] as const)for(const row of current[collection])if(!historical[collection].some(old=>old.id===row.id))(historical[collection] as Row[]).push({...cloneDraft(row),isDeleted:true});return historical;},
     structure(content,previous){

@@ -1,3 +1,4 @@
+import {checkApprovalItemOwners} from './quality-approval-ownership';
 import {activeErrorRows,manualErrorCode} from './manual-error-code';
 import { emptyIqcControl, emptyIqcSnapshot, checkedIqcSnapshot, iqcContentIssues, nextIqcCheckNo, type IqcControl, type IqcSnapshot } from './iqc';
 import { parse } from './process-state';
@@ -31,6 +32,7 @@ export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>=
     const equipment=parse(state.values.routineEquipmentControl,{}) as {activeVersionId?:string;versions?:{id:string;status:string;equipment:{id:string;enabled?:boolean;assetCode?:string;pieceMark?:string;name?:string;nameVi?:string;spec?:string;photoId?:string}[]}[]};
     const selected=new Map((equipment.versions?.find(v=>v.id===equipment.activeVersionId&&v.status==='approved')?.equipment||[]).map(e=>[e.id,e]));
     return {...base,validateRevivedEquipment:(content:IqcSnapshot,ids:Set<string>)=>{for(const item of content.items)if(ids.has(item.id)&&item.equipmentId&&(!selected.has(item.equipmentId)||selected.get(item.equipmentId)?.enabled===false))throw new DraftConflict('EQUIPMENT_UNAVAILABLE',422);},activeId:effectiveVersion(control)?.id||null,
+    checkApproval:(before,proposed)=>checkApprovalItemOwners(control,before,proposed,'checkNo'),
       restoreContent(historical,current){
         for(const kind of ['parts','errors','items'] as const)for(const row of current[kind])
           if(!historical[kind].some(old=>old.id===row.id)) (historical[kind] as typeof current[typeof kind]).push({...JSON.parse(JSON.stringify(row)),isDeleted:true});
