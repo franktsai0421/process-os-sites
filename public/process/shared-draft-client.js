@@ -1029,8 +1029,8 @@
       // IPQC-C create-item needs bounded time for immutable-state I/O. This
       // avoids a premature unknown; it is not a latency optimization or retry.
       const cCreate=body?.command?.action==='apply'&&body.command.moduleAction==='create-item'&&/^\/api\/ipqc-c\/workflow(?:\?|$)/.test(endpoint);
-      const toolingLocalSave=boundedScope==='tooling'&&/^\/api\/tooling\/workflow(?:\?|$)/.test(endpoint)&&body?.command?.action==='save'&&body.command.moduleAction==='save-local-v1';
-      const requestDeadline=ipqcSlowIO?180000:['begin','begin-v1'].includes(body?.action)||cCreate||toolingLocalSave?45000:body?(processLifecycle(body.command)?180000:mutationDeadline):45000;
+      const toolingDraftWrite=boundedScope==='tooling'&&/^\/api\/tooling\/workflow(?:\?|$)/.test(endpoint)&&['save','submit'].includes(body?.command?.action);
+      const requestDeadline=ipqcSlowIO?180000:['begin','begin-v1'].includes(body?.action)||cCreate||toolingDraftWrite?45000:body?(processLifecycle(body.command)?180000:mutationDeadline):45000;
       let deadlineExpired=false,phase='headers';
       const controller=new AbortController(),timer=catalogExplicitIO||masterExplicitIO?null:setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);
       // One-shot UI notices only: no polling, read or resend. The finite deadline

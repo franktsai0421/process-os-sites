@@ -4,6 +4,7 @@
  const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const t=(vi,zh)=>document.documentElement.lang==='vi'?vi:zh;
  function toolingErrorText(code){switch(code){
+  case 'UNKNOWN_OPERATION_CHECK_REQUIRED':return t('Kết quả thao tác trước chưa được xác nhận. Hãy giữ trang này và kiểm tra lại biên nhận.','前一次操作的結果尚未確認。請保留本頁並查詢原操作收據。');
   case 'RESULT_UNKNOWN_CHECK_BEFORE_RETRY':
   case 'OPERATION_NOT_FOUND':return t('Chưa xác nhận được kết quả lưu. Giữ trang này và chọn Kiểm tra trạng thái để tra biên nhận. Có thể sửa tiếp sau khi xác nhận.','儲存結果尚未確認。請保留本頁並按「查詢狀態」核對回條，確認後即可繼續修改。');
   case 'PHOTO_UPLOAD_RESULT_UNKNOWN':return t('Chưa xác nhận kết quả tải ảnh. Bấm Lưu lần nữa để kiểm tra; ảnh này sẽ không được tải lại.','圖片上傳結果尚未確認。再次按存取查證，這張圖片不會重傳。');
