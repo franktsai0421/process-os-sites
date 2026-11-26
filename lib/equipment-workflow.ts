@@ -19,7 +19,7 @@ export function parseEquipmentWorkflow(raw?:string,prepared?:unknown):EquipmentS
    v.snapshot={equipment:cloneDraft(v.equipment),...hierarchy(v),issues:cloneDraft(v.issues||control.issues).map((issue,index)=>({...issue,id:typeof issue.id==='string'?issue.id:'source-issue-'+index}))};}
  return control;
 }
-const fields:Record<keyof EquipmentSnapshot,string[]>={equipment:['name','unit','spec','owner','enabled','calibrationMethod','calibrationCycle','customCycle','calibratedAt','expiresAt','notes','intakeDate','confirmed','photoId','photoHidden','groupId'],groups:['name','nameZh','nameVi','photoId','spec','notes','categoryId','subcategoryId'],categories:['name','photoId'],subcategories:['name','categoryId','photoId'],issues:['status','resolution']};
+const fields:Record<keyof EquipmentSnapshot,string[]>={equipment:['assetCode','pieceMark','name','unit','spec','owner','enabled','calibrationMethod','calibrationCycle','customCycle','calibratedAt','expiresAt','notes','intakeDate','confirmed','photoId','photoHidden','groupId'],groups:['name','nameZh','nameVi','photoId','spec','notes','categoryId','subcategoryId'],categories:['name','photoId'],subcategories:['name','categoryId','photoId'],issues:['status','resolution']};
 export const equipmentWorkflowAdapter:WorkflowAdapter<EquipmentSnapshot,EquipmentSharedControl>={
  key:'routineEquipmentControl',scope:'routine-equipment',parse:parseEquipmentWorkflow,empty,photoPrefix:'routine-equipment/photos/',
   preparedModel:true,permissionOnlyRead:true,
@@ -71,7 +71,7 @@ export const equipmentWorkflowAdapter:WorkflowAdapter<EquipmentSnapshot,Equipmen
            if(['qualityMasterControl','iqcMasterControl','ipqcCMasterControl','ipqcABMasterControl'].some(key=>references(parse(state.values[key],{}),row.id))||references(control.pendingReplacements,row.id))throw new DraftConflict('EQUIPMENT_STILL_REFERENCED',422);
          }
        }
-       try{Object.assign(content,checkedSnapshot(asVersion(previous),content,true));}catch(e){throw new DraftConflict(e instanceof Error?e.message:'INVALID_STRUCTURE',422);}
+       try{Object.assign(content,checkedSnapshot(asVersion(previous),content,true,true));}catch(e){throw new DraftConflict(e instanceof Error?e.message:'INVALID_STRUCTURE',422);}
        for(const issue of content.issues){const prior=previous.issues.find(i=>i.id===issue.id);if(prior&&(issue.status!==prior.status||issue.resolution!==prior.resolution)){issue.resolvedBy=base.actor.name;issue.resolvedById=base.actor.id;issue.resolvedAt=base.at;}}
      },
      validate(content){const available=new Map(content.equipment.map(e=>[e.id,e]));return[
@@ -123,9 +123,19 @@ export const equipmentWorkflowAdapter:WorkflowAdapter<EquipmentSnapshot,Equipmen
          if(collection==='issues'||p.path.length!==2)throw new DraftConflict('SOURCE_PROVENANCE_PROTECTED',422);
          if(collection==='equipment'&&effectiveVersion(control)?.snapshot.equipment.some(e=>e.id===entity.id))throw new DraftConflict('EFFECTIVE_EQUIPMENT_DELETE_FORBIDDEN',422);
        }else if(p.op!=='set'||p.path.length!==3||typeof field!=='string'||!fields[collection as keyof EquipmentSnapshot].includes(field))throw new DraftConflict('UNSUPPORTED_ITEM_PATCH',422);
+       if (collection==='equipment' && p.op==='set' && (field==='assetCode'||field==='pieceMark')) {
+         for (const key of ['assetCode','pieceMark']) if (!command.guards?.some(g=>stableDraftJSON(g.path)===stableDraftJSON([collection,entity,key]))) throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
+       }
        if(!(command.guards||[]).some(g=>stableDraftJSON(g.path)===stableDraftJSON(p.path)))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
      }
    }
-   return applyDraftCommand(flow,{...command,patches},{...context,commandFingerprint:context.commandFingerprint||stableDraftJSON(command)});
+   const applied=applyDraftCommand(flow,{...command,patches},{...context,commandFingerprint:context.commandFingerprint||stableDraftJSON(command)});
+   for (const patch of patches) {
+     const [collection,entity,field]=patch.path;
+     if (collection!=='equipment'||typeof entity!=='object'||(field!=='assetCode'&&field!=='pieceMark')) continue;
+     const before=flow.working.equipment.find(row=>row.id===entity.id),after=applied.state.working.equipment.find(row=>row.id===entity.id);
+     if (before && after) reserveMarks(control,[before,after]);
+   }
+   return applied;
  }
 };

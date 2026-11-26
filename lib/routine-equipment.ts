@@ -161,7 +161,7 @@ const mutableFields = [
   'calibrationCycle', 'calibratedAt', 'expiresAt', 'notes', 'customCycle',
   'intakeDate', 'confirmed', 'photoId', 'photoHidden',
 ];
-export function checkedSnapshot(version: EquipmentVersion, incoming: unknown, guardedHierarchy = false) {
+export function checkedSnapshot(version: EquipmentVersion, incoming: unknown, guardedHierarchy = false, editableIdentity = false) {
   const payload = incoming as { equipment?: Equipment[]; groups?: EquipmentGroup[]; categories?: EquipmentCategory[]; subcategories?: EquipmentSubcategory[]; issues?: EquipmentIssue[] } | null;
   if (!payload || !Array.isArray(payload.equipment) || !Array.isArray(payload.groups))
     throw Error('草稿格式錯誤');
@@ -225,11 +225,12 @@ export function checkedSnapshot(version: EquipmentVersion, incoming: unknown, gu
       item = { ...old };
     }
     for (const field of mutableFields) if (field in raw) item[field] = raw[field];
+    if (old && editableIdentity && 'pieceMark' in raw) item.pieceMark = raw.pieceMark;
     checkEquipmentTime(item,old);
     for (const field of ['assetCode','name','nameVi','groupId','category','subcategory','unit','calibrationMethod','calibratedAt','expiresAt','photoId'])
       if (item[field] !== undefined && typeof item[field] !== 'string') throw Error(`${field} 格式錯誤: 【${item.assetCode || item.id}】`);
     if (typeof item.enabled !== 'boolean' || typeof item.confirmed !== 'boolean') throw Error(`設備狀態格式錯誤: 【${item.assetCode}】`);
-    if (old && item.assetCode !== old.assetCode) throw Error(`固定資產編號不能在既有設備上改寫；請新增獨立設備: 【${old.assetCode}】`);
+    if (old && !editableIdentity && item.assetCode !== old.assetCode) throw Error(`固定資產編號不能在既有設備上改寫；請新增獨立設備: 【${old.assetCode}】`);
     if (!/^(個|支|台|組)/.test(String(item.unit || ''))) throw Error(`單位格式錯誤: 【${item.assetCode}】`);
     if (old && item.unit !== old.unit && !['個','支','台','組'].includes(String(item.unit))) throw Error(`新單位必須使用固定代碼: 【${item.assetCode}】`);
     if (old && item.calibrationMethod !== old.calibrationMethod && !['none','internal','external'].includes(item.calibrationMethod)) throw Error(`新校正方式必須使用固定代碼: 【${item.assetCode}】`);
@@ -278,12 +279,15 @@ export function checkedSnapshot(version: EquipmentVersion, incoming: unknown, gu
       item.subcategoryId = group.subcategoryId;
     }
   }
-  const identity = new Set<string>();
+  const pair = (row:Equipment) => JSON.stringify([row.assetCode,row.pieceMark].map(value=>String(value ?? '').trim().toUpperCase()));
+  const counts = new Map<string,number>();
+  for (const item of equipment) counts.set(pair(item),(counts.get(pair(item)) || 0) + 1);
   for (const item of equipment) {
-    const key = `${item.assetCode.toUpperCase()}\u0000${item.pieceMark.toUpperCase()}`;
-    // Source already contains unresolved duplicate marks; retain their distinct IDs.
-    if (identity.has(key) && !item.sourceRow) throw Error(`同一固定資產編號已有相同分件標記: 【${item.assetCode}／${item.pieceMark}】`);
-    identity.add(key);
+    const old = current.get(item.id);
+    if (old && old.assetCode === item.assetCode && old.pieceMark === item.pieceMark) continue;
+    if ((!old || old.assetCode !== item.assetCode) && !/^[A-Z0-9-]{2,40}$/i.test(item.assetCode)) throw Error('EQUIPMENT_ASSET_INVALID');
+    if (typeof item.pieceMark !== 'string' || !item.pieceMark.trim()) throw Error('EQUIPMENT_PIECE_REQUIRED');
+    if (counts.get(pair(item))! > 1 && (!old || pair(old) !== pair(item))) throw Error('EQUIPMENT_PAIR_DUPLICATE');
   }
   const oldIssues = version.issues || [];
   const issues = payload.issues || oldIssues;
@@ -293,7 +297,9 @@ export function checkedSnapshot(version: EquipmentVersion, incoming: unknown, gu
     if (issues[i]?.sourceRow !== oldIssues[i]?.sourceRow || issues[i]?.type !== oldIssues[i]?.type) throw Error('來源疑點原文不能改寫');
     if (issues[i].status === 'resolved' && !String(issues[i].resolution || '').trim()) throw Error('已處理疑點必須填寫處理結果');
     if (!['resolved','pending',oldIssues[i].status].includes(issues[i].status)) throw Error('來源疑點狀態無效');
-    checkedIssues.push({ ...oldIssues[i], status: issues[i].status, resolution: String(issues[i].resolution || '') });
+    const prior = oldIssues[i], resolution = String(issues[i].resolution || '');
+    checkedIssues.push(prior.status === issues[i].status && String(prior.resolution || '') === resolution
+      ? { ...prior } : { ...prior, status: issues[i].status, resolution });
   }
   return { equipment, groups, categories, subcategories, issues: checkedIssues };
 }
