@@ -120,10 +120,11 @@
   let summary;
   function summaryCurrent(state) {
     const sync=host.ProcessSync;
-    return state===summary && sync?.identity===state.identity && sync?.revision===state.revision &&
+    return state===summary && workflowToken()===state.workflow && sync?.identity===state.identity && sync?.revision===state.revision &&
       !sync?.requiresReload && (!state.delivery || sync?.isCurrentDelivery?.(state.delivery));
   }
   function summaryCell(id) {
+    if(localEquipment(id))return localEquipmentLabel();
     const item=summary && summaryCurrent(summary) && summary.items.get(id);
     if (!item) return t('未載入','Chưa tải');
     if (item.error) {
@@ -132,6 +133,7 @@
         : item.error==='timeout' ? t('查詢逾時','Hết thời gian chờ') : t('查詢失敗','Lỗi truy vấn');
       return h(label)+' <button type="button" data-summary-retry>'+t('重試','Thử lại')+'</button>';
     }
+    if(item.draftOnly)return draftEquipmentLabel();
     if (!item.count) return t('無','Không');
     const more=item.count-1;
     return '<button type="button" data-equipment-edit="'+h(id)+'">'+h(item.code)+
@@ -165,12 +167,12 @@
     if (!summary || !summaryCurrent(summary)) {
       summary?.controller?.abort();
       const sync=host.ProcessSync;
-      summary={identity:sync?.identity,revision:sync?.revision,delivery:sync?.captureDelivery?.(),items:new Map()};
+      summary={workflow:workflowToken(),identity:sync?.identity,revision:sync?.revision,delivery:sync?.captureDelivery?.(),items:new Map()};
     }
     const state=summary;
     if(state.controller||!summaryCurrent(state))return;
     const ids=Array.from(panel.querySelectorAll('[data-usage-id]'),cell=>cell.dataset.usageId)
-      .filter(id=>!state.items.has(id)).slice(0,192);
+      .filter(id=>!state.items.has(id)&&!localEquipment(id)).slice(0,192);
     if(!ids.length)return;
     const controller=new AbortController();
     state.controller=controller;
@@ -249,6 +251,15 @@
   // A reference lookup is read-only; use the ordinary workflow read budget.
   // A closed or replaced modal must never receive another equipment's result.
   const referenceDeadlineMs = 45000;
+  function workflowToken() {
+    const flow=host.MasterDataWorkflow?.shared?.flow?.('PROCESS');
+    return flow ? JSON.stringify([flow.generation,flow.revision]) : '';
+  }
+  function localEquipment(id) {
+    return !!id && host.MasterDataWorkflow?.shared?.isLocalProcessInsert?.('equipment',id)===true;
+  }
+  function localEquipmentLabel(){return t('本機新增 · 尚未存稿','Máy mới ở cục bộ · chưa lưu nháp');}
+  function draftEquipmentLabel(){return t('草稿新增 · 尚未核准','Máy mới trong bản nháp · chưa duyệt');}
   function referenceStatus(ref) {
     if (ref.source==='published') return t('已發布','Đã công bố');
     if (ref.status==='pending'||ref.status==='pending-test') return t('待審','Chờ duyệt');
@@ -259,13 +270,16 @@
   function renderEquipmentReferences(target) {
     const box = document.querySelector('#equipment-editor-dialog .equipment-approved-usage');
     const state = target?.referenceLookup;
-    if (!box?.isConnected || editing !== target || !state?.current()) return;
+    if (!box?.isConnected || editing !== target) return;
+    if(localEquipment(target?.originalId)){box.textContent=localEquipmentLabel();return;}
+    if(!state?.current())return;
     if (state.pending) {
       box.textContent = t('正在查詢引用…','Đang kiểm tra tham chiếu…');
       return;
     }
     if (state.result) {
       const result = state.result;
+      if(result.draftOnly){box.textContent=draftEquipmentLabel();return;}
       box.innerHTML='<b>'+t('引用位置','Vị trí tham chiếu')+'</b>'+
         (result.references.length?'<ul>'+result.references.map(ref=>'<li>'+h([ref.products.join(', '),ref.line,ref.category,ref.stage,ref.number,ref.name,referenceStatus(ref)].filter(Boolean).join(' · '))+'</li>').join('')+'</ul>':'')+
         (result.total===0?'<p>'+t('目前沒有使用中的引用','Không có tham chiếu đang dùng')+'</p>':'')+
@@ -287,10 +301,10 @@
     box.append(' ',retry);
   }
   async function lookupEquipmentReferences(target) {
-    if (!target?.originalId || editing!==target || target.referenceLookup?.pending) return;
+    if (!target?.originalId || editing!==target || localEquipment(target.originalId) || target.referenceLookup?.pending) return;
     const sync=host.ProcessSync,identity=sync?.identity,epoch=sync?.identityGeneration?.(),delivery=sync?.captureDelivery?.();
-    const controller=new AbortController();
-    const current=()=>editing===target&&target.referenceLookup===state&&
+    const token=workflowToken(),controller=new AbortController();
+    const current=()=>token===workflowToken()&&editing===target&&target.referenceLookup===state&&
       host.ProcessSync?.identity===identity&&host.ProcessSync?.identityGeneration?.()===epoch&&
       !host.ProcessSync?.requiresReload&&(!delivery||host.ProcessSync?.isCurrentDelivery?.(delivery)!==false);
     const state=target.referenceLookup={current,pending:true,controller};

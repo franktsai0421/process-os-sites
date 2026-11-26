@@ -1,3 +1,6 @@
+import {env} from 'cloudflare:workers';
+import {readSharedStateRow} from './process-state';
+import {prepareProcessMasterWrite} from './state-records';
 import {approvedMasterPageCatalog,approvedMasterProcessSource} from './master-approved-pages';
 import {removedProcessMasterTargets,processMasterReferences} from './process-master-references';
 import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON,sameDraftValue,type SharedDraft,type DraftIssue,type DraftPatch,type DraftPath} from './shared-draft';
@@ -39,6 +42,29 @@ export function masterWorkflowAdapter(scope:string,options:{legacyArchive?:boole
   }
  return{key:'masterDataControl',scope:'master:'+scope,empty:()=>scope==='PROCESS'?{}:{products:[],lines:[],categoryGroups:[]},photoIds:()=>[],photoPrefix:'master/photos/',
    preparedModel:true,permissionOnlyRead:true,
+  async prepareWrite(command){
+   if(scope!=='PROCESS'||!command)return null;
+   // Inserting, reordering and editing descriptive fields preserve target IDs.
+   // For review transitions prove that property from the server-owned case.
+   const equipmentSave=command.action==='save'&&command.moduleAction==='save-local-v1'&&
+    Array.isArray(command.patches)&&command.patches.length>0&&command.patches.every(p=>{
+     if(!Array.isArray(p?.path)||p.path[2]!=='equipment')return false;
+     return p.path.length===3&&(p.op==='insert'||p.op==='order')||
+      p.op==='set'&&p.path.length===5&&['name','nameVi','number','note','purpose','purposeVi','machineType'].includes(String(p.path[4]));
+    });
+   if(!equipmentSave&&command.action!=='submit'&&command.action!=='approve')return null;
+   const row=await readSharedStateRow();
+   const prepared=row&&await prepareProcessMasterWrite(env.STATE_ARCHIVE,row,command.caseId);
+   if(!prepared)return null;
+   const master=prepared.state.recordStorage.models.get('masterDataControl') as Root;
+   const flow=master?.workflowScopes?.PROCESS;
+   if(!flow)return null;
+   if(!equipmentSave){
+    const next=command.action==='submit'?flow.saved?.content:flow.cases.find(c=>c.id===command.caseId)?.content;
+    if(!next||removedProcessMasterTargets(master.active.PROCESS,next).length)return null;
+   }
+   return prepared;
+  },
   needsReferenceHistory:command=>scope!=='PROCESS'&&!!command&&(['restore','submit','approve'].includes(command.action)||['apply','save'].includes(command.action)&&(command.patches||[]).some(p=>p.op==='remove'||p.op==='set'&&(p.path[0]==='products'&&p.path.at(-1)==='code'||p.path[0]==='categoryGroups'&&(p.path.at(-1)==='name'||p.path.at(-1)==='line')))),
   parse(raw,prepared){if(!['AB','C','PROCESS'].includes(scope))throw new DraftConflict('SCOPE_INVALID',422);if(!raw)throw new DraftConflict('MASTER_INITIALIZATION_REQUIRED',422);
    root=(prepared||JSON.parse(raw)) as Root;if(!root.active?.[scope]||!Array.isArray(root.versions))throw new DraftConflict('MASTER_EXISTING_DATA_INVALID',422);

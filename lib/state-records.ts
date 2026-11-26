@@ -375,6 +375,24 @@ async function prepareRoutineStart(bucket:Bucket,raw:string,key:'routineIqcContr
  }};
 }
 
+// The PROCESS master owns its versioned control and the approved catalog mirror.
+// Retain all other manifest entries by reference under the route's revision CAS.
+export async function prepareProcessMasterWrite(bucket:Bucket,row:{revision:number;values:string},caseId?:string){
+ const original=await canonicalOverlayEnvelope(row.values);
+ if(!original)return null;
+ const key='masterDataControl',mirror='processMasterData',manifest=original.__processRecords;
+ const selected=await decodeRecordValues(bucket,original,{keys:[...identityReadKeys,'processAccessControl',key],
+   modelKey:key,deferHistory:true,deferDependencyHistory:true,caseId});
+ let consumed=false;
+ return {state:{revision:row.revision,...selected},async encode(model:unknown){
+   if(consumed||!object(model)||!object(model.active)||!object(model.active.PROCESS))throw Error('Invalid PROCESS master write');
+   consumed=true;
+   const owned={[key]:selected.values[key]??'null',[mirror]:JSON.stringify(model.active.PROCESS)};
+   const updated:Envelope=JSON.parse(await encodeRecordValuesCore(bucket,owned,selected.recordStorage,new Map([[key,model]])));
+   return JSON.stringify({...original,__processRecords:{...manifest,values:{...manifest.values,...updated.__processRecords.values}}});
+ }};
+}
+
 // Equipment owns one aggregate. Save needs the quality controls only when
 // removing equipment. Submit/approval validate active references, and Restore
 // and equipment removal retain the existing full reference-history checks.
