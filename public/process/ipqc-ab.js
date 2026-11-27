@@ -32,9 +32,23 @@
   const chosenError = () => snapshot().errors.find(e => e.id === errorId && !e.deleted);
   const candidates = () => catalog.products.filter(p => p.line === line && p.category === group && p.stages.includes(stage));
   let showRouteExtras=false;
-  const routeStageCodes=()=>[...new Set([...(catalog.groups.find(g=>g.line===line&&g.name===group)?.defaultStages||[]),...catalog.products.filter(p=>p.line===line&&p.category===group).flatMap(p=>p.stages)])];
-  const outsideStageCodes=()=>[...new Set(snapshot().errors.filter(e=>!e.deleted&&!routeStageCodes().includes(e.stageCode)).map(e=>e.stageCode))];
-  const groupStages=()=>[...routeStageCodes(),...(showRouteExtras?outsideStageCodes():[])].map(code=>catalog.stages.find(s=>s.line===line&&s.code===code)||{line,code,name:t('舊路線標準','Tiêu chuẩn tuyến cũ')});
+  function routeStageCodes(source = catalog, selectedLine = line, selectedGroup = group) {
+    const configured = source.groups.find(g => g.line === selectedLine && g.name === selectedGroup)?.defaultStages;
+    if (Array.isArray(configured)) return [...configured];
+    const products = source.products.filter(p => p.line === selectedLine && p.category === selectedGroup);
+    if (!products.length) return [];
+    const stages = source.stages.filter(s => s.line === selectedLine);
+    return window.MasterAdminUI.maximumRoute({lines:[{code:selectedLine, stages}]}, selectedLine, products).stages;
+  }
+  function outsideStageCodes(routes = routeStageCodes()) {
+    const visible = new Set(routes);
+    return [...new Set(snapshot().errors.filter(e => !e.deleted && !visible.has(e.stageCode)).map(e => e.stageCode))];
+  }
+  function groupStages() {
+    const routes = routeStageCodes();
+    return [...routes, ...(showRouteExtras ? outsideStageCodes(routes) : [])]
+      .map(code => catalog.stages.find(s => s.line === line && s.code === code) || {line, code, name:t('舊路線標準','Tiêu chuẩn tuyến cũ')});
+  }
   const photoUrl = photo => photo.preview || `${API}/photo?id=${encodeURIComponent(photo.id)}`;
   const equipmentLabel = eq => eq ? `${eq.assetCode}${eq.pieceMark ? ` / ${eq.pieceMark}` : ''} · ${eq.name}` : '';
   const status = state => ({draft:t('草稿','Bản nháp'),pending:t('待審','Chờ duyệt'),
@@ -325,7 +339,7 @@
       if(!['A','B'].includes(next.line))next.line='A';
       const groups=next.catalog.groups.filter(g=>g.line===next.line);
       if(!groups.some(g=>g.name===next.group))next.group=groups[0]?.name||'';
-      const routes=[...new Set([...(next.catalog.groups.find(g=>g.line===next.line&&g.name===next.group)?.defaultStages||[]),...next.catalog.products.filter(p=>p.line===next.line&&p.category===next.group).flatMap(p=>p.stages)])];
+      const routes=routeStageCodes(next.catalog,next.line,next.group);
       const extras=showRouteExtras?[...new Set(content().errors.filter(e=>!e.deleted&&!routes.includes(e.stageCode)).map(e=>e.stageCode))]:[];
       const available=new Set([...routes,...extras]),saved=content().errors.find(e=>!e.deleted&&available.has(e.stageCode));
       if(!available.has(next.stage))next.stage=saved?.stageCode||[...available][0]||'';

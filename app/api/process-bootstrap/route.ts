@@ -1,6 +1,7 @@
 import {readState,companyReader,companyState,identity,responseHeaders,demoEnabled} from '@/lib/process-state';
 import {identityKeys} from '@/lib/delivery-read-plan.mjs';
 import {destinationPlan,destinationValues} from '@/lib/destination-delivery.mjs';
+import {approvedMasterPageCatalog} from '@/lib/master-approved-pages';
 import {runtimeCatalog,legacyBom} from '@/lib/process-bootstrap.mjs';
 import {startupCase} from '@/lib/startup-assets.mjs';
 import {env} from 'cloudflare:workers';
@@ -37,7 +38,7 @@ export async function GET(request:Request){
     const reader=await companyReader(request,state);
     if(!reader||reader.actor.id!==before.actor.id)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers:responseHeaders});
     if(state.revision!==auth.revision)return Response.json({error:'BOOTSTRAP_REVISION_CHANGED'},{status:409,headers:responseHeaders});
-    const catalog=await runtimeCatalog(state.values,reader.canRead,()=>legacyBom(env.STATE_ARCHIVE,startupCase.files.find(file=>file.name==='imported-data.js')!),plan.catalog),projected=destinationValues(await companyState(request,state),plan);
+    const catalog=await runtimeCatalog(state.values,reader.canRead,()=>legacyBom(env.STATE_ARCHIVE,startupCase.files.find(file=>file.name==='imported-data.js')!),plan.catalog,approvedMasterPageCatalog),projected=destinationValues(await companyState(request,state),plan);
     // Ordinary reads never create or prune backups; deferred media may still cache.
     const delivered=request.headers.get('X-Process-Media')==='deferred-v1'?await mediaState(state,reader.actor.id,projected):projected;
     // Optional collection is admitted only for this verified delivery. Keep

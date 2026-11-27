@@ -1,3 +1,4 @@
+import {approvedMasterPageCatalog} from './master-approved-pages';
 import {validateErrorCodeChanges} from './manual-error-code';
 import {isImmutableRecordBody} from './state-records';
 import type {DraftIssue} from './shared-draft';
@@ -51,7 +52,9 @@ export const openAb = (scope?: AbScope) => scope?.versions.find(v => ['draft','p
 export const activeAb = (scope?: AbScope) => scope?.versions.find(v => v.id === scope.activeVersionId);
 
 export function catalogFromMaster(raw?: string): AbCatalog {
-  const active = raw ? JSON.parse(raw)?.active?.AB : null;
+  const master = raw ? JSON.parse(raw) : null;
+  const active = master?.pageDraftLayout === 'page-v1'
+    ? approvedMasterPageCatalog(master, 'AB').content : master?.active?.AB;
   if (!active || !Array.isArray(active.products) || !Array.isArray(active.lines))
     throw Error('中控 AB 主資料無法讀取；不建立 IPQC-AB 對應');
   const products: AbProduct[] = active.products.filter((p: AbProduct) => ['A','B'].includes(p.line))

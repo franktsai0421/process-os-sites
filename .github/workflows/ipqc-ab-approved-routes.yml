@@ -1,0 +1,39 @@
+name: IPQC AB approved group routes
+on:
+  pull_request:
+    branches: ['review/v68-reset-base-20261123']
+    paths:
+      - 'app/api/process-bootstrap/route.ts'
+      - 'lib/ipqc-ab.ts'
+      - 'lib/master-approved-pages.ts'
+      - 'lib/process-bootstrap.mjs'
+      - 'public/process/ipqc-ab.js'
+      - 'public/process/master-admin-ui.js'
+      - 'tests/ipqc-ab-approved-routes*'
+      - '.github/workflows/ipqc-ab-approved-routes.yml'
+permissions:
+  contents: read
+jobs:
+  approved-routes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PROCESS_PROGRAM_COMMIT: ${{ github.event.pull_request.head.sha }}
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm ci --no-audit --no-fund
+      - run: node --test --test-concurrency=1 tests/ipqc-ab-approved-routes.test.cjs tests/master-catalog-review.test.mjs tests/abc-master-bootstrap.test.mjs tests/ab-c-route-reference.test.mjs tests/navigation-adapters.test.mjs tests/routine-reset-assets.test.mjs tests/process-bootstrap.test.mjs
+      - run: npx --no-install tsc --noEmit --incremental false
+      - run: npm run build
+      - run: npx --no-install playwright install --with-deps chromium
+      - run: node --test --test-concurrency=1 tests/ipqc-ab-approved-routes.acceptance.mjs

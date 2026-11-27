@@ -110,6 +110,7 @@ void test('the proposed shell delta is confined to the four routine asset tags',
     const from=script(file+'?v='+prior);assert.equal(expected.split(from).length,2,from);
     expected=expected.replace(from,script(file+'?v=20261127-canvas-recovery'));
   }
+  expected=expected.replace(script('ipqc-ab.js?v=20261126-full-item-code1'),script('ipqc-ab.js?v=20261127-ipqc-ab-group-route1'));
   assert.equal(shell.replace(/\r\n/g,'\n'),expected.replace(/\r\n/g,'\n'));
 });
 
