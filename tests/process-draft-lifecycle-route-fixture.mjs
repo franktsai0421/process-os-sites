@@ -17,13 +17,13 @@ export const processLifecycleEndpoint = 'https://lifecycle.synthetic.invalid/api
 
 // Pure seed construction: inject the real shared-draft kernel's createSharedDraft.
 // A compiled/browser harness can use the same values without starting this fixture.
-export function buildProcessDraftLifecycleSeed(createSharedDraft, {cycle = 1, password = 'Synthetic-lifecycle-only-2026!'} = {}) {
+export function buildProcessDraftLifecycleSeed(createSharedDraft, {cycle = 1, line='A', category='Synthetic Lifecycle', stage=line+'-LIFE', password = 'Synthetic-lifecycle-only-2026!'} = {}) {
   assert.equal(typeof createSharedDraft, 'function');
   assert.ok(Number.isInteger(cycle) && cycle >= 1 && cycle <= 5);
-  const ids = {workspace: JSON.stringify(['Synthetic Lifecycle', 'A']), stage: 'A-LIFE', product: 'LIFE-A1', entry: 'life-entry', operation: 'life-manual', exit: 'life-exit', active: 'life-active-' + cycle, generation: 'life-generation-' + cycle};
+  const ids = {workspace: JSON.stringify([category, line]), stage, product: 'LIFE-A1', entry: 'life-entry', operation: 'life-manual', exit: 'life-exit', active: 'life-active-' + cycle, generation: 'life-generation-' + cycle};
   const ops = ['view', 'create', 'edit', 'delete', 'save', 'submit', 'withdraw', 'approve', 'return', 'restore'];
   const actor = (id, role, allowed) => ({id, name: 'Synthetic ' + id, role, enabled: true, authMode: 'platform', authEpoch: 1, password,
-    inheritRole: false, lines: ['A'], views: ['editor', 'approval'], permissions: [],
+    inheritRole: false, lines: [line], views: ['editor', 'approval'], permissions: [],
     accessOverrides: Object.fromEntries(ops.map(op => ['editor.' + op, allowed.includes(op)]))});
   const actors = {
     editor: actor('life-editor', 'staff', ['view', 'create', 'edit', 'delete', 'save', 'submit', 'withdraw']),
@@ -34,7 +34,7 @@ export function buildProcessDraftLifecycleSeed(createSharedDraft, {cycle = 1, pa
   actors.reviewer.accessOverrides['approval.view'] = true;
   const operation = (id, name, editorType, nextIds, x) => ({id, name, stageCode: ids.stage, editorType, mode: 'human', productCodes: editorType === 'manual' ? [ids.product] : [], nextIds, x, y: 100,
     instructionSteps: [{text: 'Perform synthetic lifecycle check', standard: 'Synthetic standard satisfied'}], mediaItems: []});
-  const initialContent = {workspaces: [{id: ids.workspace, category: 'Synthetic Lifecycle', line: 'A', stages: {[ids.stage]: [
+  const initialContent = {workspaces: [{id: ids.workspace, category, line, stages: {[ids.stage]: [
     operation(ids.entry, 'Synthetic entry', 'entry', [ids.operation], 0),
     operation(ids.operation, 'Synthetic lifecycle operation', 'manual', [ids.exit], 120),
     operation(ids.exit, 'Synthetic exit', 'exit', [], 360),
@@ -44,9 +44,10 @@ export function buildProcessDraftLifecycleSeed(createSharedDraft, {cycle = 1, pa
     creatorId: actors.reviewer.id, creatorName: actors.reviewer.name, createdAt: at, updatedAt: at, history: []};
   const control = {activeVersionId: ids.active, versions: [version], workflow: createSharedDraft('process:platform', initialContent, ids.active, ids.generation)};
   const templates = {[ids.stage]: ['entry', 'manual', 'exit'].map(presetKey => ({id: 'life-template-' + presetKey, presetKey, presetVersion: 'synthetic-v1', name: 'Synthetic ' + presetKey, mode: 'human', mediaItems: []}))};
-  const catalog = {products: [{id: 'life-product', code: ids.product, name: 'Synthetic lifecycle product', line: 'A', category: 'Synthetic Lifecycle', unit: 'pcs', stages: [ids.stage]}],
-    lines: [{id: 'life-line', code: 'A', name: 'Synthetic line', stages: [{id: 'life-stage', code: ids.stage, name: 'Synthetic lifecycle stage'}]}], categoryGroups: [{id: 'life-category', line: 'A', name: 'Synthetic Lifecycle'}]};
-  const masterActive = {AB: catalog, C: {products: [], lines: [], categoryGroups: []}, PROCESS: templates};
+  const catalog = {products: [{id: 'life-product', code: ids.product, name: 'Synthetic lifecycle product', line, category, unit: 'pcs', stages: [ids.stage]}],
+    lines: [{id: 'life-line', code: line, name: 'Synthetic line', stages: [{id: 'life-stage', code: ids.stage, name: 'Synthetic lifecycle stage'}]}], categoryGroups: [{id: 'life-category', line, name: category}]};
+  const empty = {products: [], lines: [], categoryGroups: []};
+  const masterActive = {AB: line==='C'?empty:catalog, C: line==='C'?catalog:empty, PROCESS: templates};
   // The initial approval destination reads each already-authorized master scope.
   // Its real adapter requires an approved version matching the active snapshot.
   const masterVersions = Object.entries(masterActive).map(([scope, snapshot]) => ({...version,
@@ -85,7 +86,7 @@ function productionLoader(env) {
   return load;
 }
 
-export async function createProcessDraftLifecycleFixture({cycle = 1, storage = 'records-v1', reviewerApprovalView = true, reviewerLegacyApprovalView = true, masterBaselines = 'matching'} = {}) {
+export async function createProcessDraftLifecycleFixture({cycle = 1, line, category, stage, storage = 'records-v1', reviewerApprovalView = true, reviewerLegacyApprovalView = true, masterBaselines = 'matching'} = {}) {
   assert.ok(['records-v1', 'inline'].includes(storage));
   const sqlite = new DatabaseSync(':memory:'), objects = new Map(), measurements = [];
   for (const name of ['0000_conscious_skin.sql', '0002_local_feedback_sessions.sql']) sqlite.exec(readFileSync(path.join(root, 'drizzle', name), 'utf8'));
@@ -123,7 +124,7 @@ export async function createProcessDraftLifecycleFixture({cycle = 1, storage = '
       catch (error) { sqlite.exec('ROLLBACK'); throw error; }
     }},
   };
-  const load = productionLoader(env), kernel = load('lib/shared-draft.ts'), seed = buildProcessDraftLifecycleSeed(kernel.createSharedDraft, {cycle});
+  const load = productionLoader(env), kernel = load('lib/shared-draft.ts'), seed = buildProcessDraftLifecycleSeed(kernel.createSharedDraft, {cycle,line,category,stage});
   assert.ok(['matching', 'missing', 'mismatched'].includes(masterBaselines));
   if (masterBaselines !== 'matching') {
     const master = JSON.parse(seed.values.masterDataControl);

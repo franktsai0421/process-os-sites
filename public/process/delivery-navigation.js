@@ -37,7 +37,9 @@
  }
  const api=window.ProcessDeliveryNavigation={ownsHistory:true,pending:()=>!canLeave()};
  // A warning exemption never clears receipts or grants write/replay admission.
+ let confirmedDeparture=null;
  api.canUnloadWithoutPrompt=()=>{
+  if(confirmedDeparture?.())return true;
   const adapter=departureAdapter();if(adapter?.autoAbandon!==true)return false;
   const status=adapterState(adapter);
   const eligible=status.state==='clean'||['dirty','unknown'].includes(status.state)&&status.canAbandon===true||status.state==='departing'&&typeof adapter.prepareUnload==='function';
@@ -233,11 +235,36 @@
    if(queued.options.history==='pop'&&queued.options.index!==historyIndex){replayingPop=queued;history.go(queued.options.index-historyIndex);return;}
    request(queued.target,queued.options).then(queued.resolve||(()=>{}));
   }
+  let reopenDecision=null;
+  function reopenEditorTarget(target,options,adapter){
+   if(reopenDecision)reopenDecision.cancel();
+   const owner=sync.identity,epoch=sync.identityGeneration?.(),delivery=sync.captureDelivery?.();
+   const current=()=>owner===sync.identity&&epoch===sync.identityGeneration?.()&&adapter===departureAdapter()&&(!delivery||sync.isCurrentDelivery(delivery))&&adapter.canReopenDestination()&&!otherDepartureBlocked(adapter);
+   return new Promise(resolve=>{
+    const finish=status=>{reopenDecision=null;hideDecision();resolve({status});};
+    reopenDecision={cancel:()=>finish('cancelled')};
+    showDecision({phase:'choosing',label:targetLabel(target),status:{state:'unknown',canSave:false,canAbandon:true,reason:t('目前無法安全儲存。留在本頁可保留輸入；放棄本頁未送出的修改後，將重新載入選定頁面。','Hiện chưa thể lưu an toàn. Ở lại để giữ đầu vào hoặc bỏ thay đổi chưa gửi và mở lại trang đã chọn.')}},action=>{
+     if(action==='stay'){finish('cancelled');if(options.history==='pop')restoreSource();return;}
+     if(action!=='abandon'||!current()){finish('invalidated');return;}
+     const url=routeURL(target);
+     finish('leaving');
+     confirmedDeparture=current;
+     window.setTimeout(()=>{if(confirmedDeparture===current)confirmedDeparture=null;},0);
+     // Normal document entry rechecks identity and permissions. No model or
+     // draft is passed to the target, and this path never calls a mutation.
+     if(options.history==='pop')location.replace(url.href);else location.assign(url.href);
+    });
+   });
+  }
   function request(target,options={}){
    if(!options.departureTicket&&options.history!=='pop'&&!options.force&&navigationKey(target)===navigationKey(installed)&&(departure.pending()||!coordinator.pending()&&physicalIndex===historyIndex&&restoreIndex===null&&!replayingPop&&!queuedAfterRestore)){
     if(departure.pending())departure.cancel();return Promise.resolve({status:'ready',destination:installed});
    }
    if(options.departureTicket){if(!departure.ticketCurrent(options.departureTicket))return Promise.resolve({status:'superseded'});return routeRequest(target,options);}
+   const adapter=departureAdapter();
+   if(!departure.pending()&&adapter?.canReopenDestination?.()&&!otherDepartureBlocked(adapter)){
+    sourceState();return reopenEditorTarget(target,options,adapter);
+   }
    if(departure.pending()||departureAdapter()&&!canLeave()){
     sourceState();return departure.request(departureIntent(target,options));
    }
@@ -276,7 +303,7 @@
    if(departure.pending()||departureAdapter())return departure.request({key:'action:'+key,label,run:perform});
    return Promise.resolve().then(()=>perform(null));
   };
-  api.invalidateDeparture=()=>departure.cancel('invalidated',false);
+  api.invalidateDeparture=()=>{confirmedDeparture=null;reopenDecision?.cancel();departure.cancel('invalidated',false);};
   api.refreshDeparture=()=>departure.refresh();
   window.addEventListener('process-departure-state-changed',()=>departure.refresh());
   api.readyForDestination=()=>readyForDestination(installed);
@@ -327,6 +354,6 @@
   const shell=document.querySelector('.app-shell');if(shell){shell.replaceChildren();shell.hidden=true;}
   let gate=document.querySelector('#process-boot');if(!gate){gate=document.createElement('div');gate.id='process-boot';document.body.append(gate);}
   gate.setAttribute('role','alert');gate.textContent='登入身分或權限已變更，請重新載入目前頁面。';
-  const button=document.createElement('button');button.textContent='重新載入';button.onclick=()=>location.reload();gate.append(button);
+  const button=document.createElement('button');button.textContent=state.view==='editor'?'放棄本頁未送出的修改並重新登入':'重新載入';button.onclick=()=>location.reload();gate.append(button);
  });
 })();

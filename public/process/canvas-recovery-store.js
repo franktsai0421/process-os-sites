@@ -405,16 +405,41 @@
       return Array.isArray(base) && base[0] === prepared.reference.generation ? '' : 'BASE_VERSION_CHANGED';
     }
     function preparationGate(prepared) { return pendingDataGate(prepared) || (prepared.runtimeGeneration !== generation ? 'PREPARATION_CHANGED' : ''); }
-    function readRaw(target) { try { return result('OK', { raw: storage.getItem(target) }); } catch { return result('STORAGE_READ_FAILED'); } }
+    function storageFailure(error, fallback) {
+      return error?.name === 'QuotaExceededError' ? 'STORAGE_QUOTA_EXCEEDED' :
+        error?.name === 'SecurityError' ? 'STORAGE_ACCESS_DENIED' : fallback;
+    }
+    function readRaw(target) {
+      try { return result('OK', { raw: storage.getItem(target) }); }
+      catch (error) { return result(storageFailure(error, 'STORAGE_READ_FAILED')); }
+    }
     function writeChecked(target, raw, check) {
       let reason = check(); if (reason) return result(reason);
-      try { storage.setItem(target, raw); } catch { return result('STORAGE_WRITE_FAILED'); }
+      try { storage.setItem(target, raw); } catch (error) { return result(storageFailure(error, 'STORAGE_WRITE_FAILED')); }
       reason = check(); if (reason) return result(reason);
       const after = readRaw(target); if (!after.ok || after.raw !== raw) return result('STORAGE_VERIFY_FAILED');
       reason = check(); return reason ? result(reason) : result('OK');
     }
     function isolatedRaw(prepared, payload) {
-      return JSON.stringify({ version: 3, kind: 'isolated', owner: ownerMetadata(), baseVersion: pinned.baseVersion, lineageId, captureId: prepared.captureId, reference: prepared.reference, sent: prepared.sent, payload });
+      const record = { version: 3, kind: 'isolated', owner: ownerMetadata(), baseVersion: pinned.baseVersion, lineageId, captureId: prepared.captureId, reference: prepared.reference, sent: prepared.sent, payload };
+      const raw = JSON.stringify(record);
+      if (raw.length < 128 * 1024) return raw;
+      // Baselines, sent patches and later edits often carry the same inline media.
+      // Retain the exact string once, including its original MIME type and bytes.
+      const seen = new Set(), repeated = new Map(), strings = [];
+      let collision = false;
+      JSON.stringify(record, (_key, value) => {
+        if (value && typeof value === 'object' && Object.hasOwn(value, '$canvasString')) collision = true;
+        if (typeof value === 'string' && value.length >= 4096) {
+          if (seen.has(value) && !repeated.has(value)) { repeated.set(value, strings.length); strings.push(value); }
+          seen.add(value);
+        }
+        return value;
+      });
+      if (collision || !strings.length) return raw;
+      const data = JSON.stringify(record, (_key, value) => repeated.has(value) ? { $canvasString: repeated.get(value) } : value);
+      const packed = JSON.stringify({ format: 'canvas-strings-v1', strings, data });
+      return packed.length < raw.length ? packed : raw;
     }
     function captureSaveCommand(command, reference) {
       // Capture once, before prepareWrite's storage/readPayload callbacks. This
@@ -449,7 +474,7 @@
       if (current() || !writable() || context().baseVersion !== pinned.baseVersion || context().writeState !== 'idle') return result(current() || 'CONTEXT_CHANGED');
       cancelScheduled(); rejections.clear(); run++;
       const reservation = Object.freeze({ id: host.crypto.randomUUID() });
-      const prepared = { reference, sent, payload, commandPin, runtimeGeneration: generation, runtimeId, snapshotKey: key + '#isolated:' + host.crypto.randomUUID(), snapshotRaw: null, snapshotDurableRaw: null, captureId: host.crypto.randomUUID(), snapshotRevision: 1, confirmedSnapshotRevision: 0, previousRaw: durableRaw, anchorRaw: null, dispatched: false, done: false, reader: null, timer: null, reservation, cancelRaw: null };
+      const prepared = { reference, sent, payload, commandPin, runtimeGeneration: generation, runtimeId, snapshotKey: key + '#isolated:' + host.crypto.randomUUID(), snapshotRaw: null, snapshotDurableRaw: null, captureId: host.crypto.randomUUID(), snapshotRevision: 1, confirmedSnapshotRevision: 0, priorRegistry: priorRegistry.raw, previousMemory: memory, previousDurable: memoryDurable, previousRaw: durableRaw, anchorRaw: null, dispatched: false, done: false, reader: null, timer: null, reservation, cancelRaw: null };
       prepared.snapshotRaw = isolatedRaw(prepared, payload);
       prepared.anchorRaw = JSON.stringify({ version: 3, kind: 'unknown', owner: ownerMetadata(), baseVersion: pinned.baseVersion, leaseProtocol: protocol, lineageId, reference, snapshotKey: prepared.snapshotKey });
       preparations.set(reservation, prepared); activePreparation = prepared;
@@ -457,7 +482,7 @@
       // isolated, never exposed by preview/restore while this write is unresolved.
       memory = prepared.anchorRaw; memoryDurable = false;
       const previous = readRaw(key), priorSnapshot = readRaw(prepared.snapshotKey);
-      if (!previous.ok || !priorSnapshot.ok) return publish(result('STORAGE_READ_FAILED', { reservation, durable: false }));
+      if (!previous.ok || !priorSnapshot.ok) return publish(result((!previous.ok ? previous : priorSnapshot).code, { reservation, durable: false }));
       if (previous.raw !== prepared.previousRaw || priorSnapshot.raw !== null) return publish(result('RECORD_CHANGED', { reservation, durable: false }));
       let saved = writeChecked(prepared.snapshotKey, prepared.snapshotRaw, () => preparationGate(prepared));
       if (!saved.ok) return publish({ ...saved, reservation, durable: false });
@@ -473,7 +498,7 @@
       if (!registryBefore.ok || registryBefore.raw !== priorRegistry.raw) return publish(result('LINEAGE_REGISTRY_CHANGED', { reservation, durable: false }));
       saved = writeChecked(registryKey(lineageId), prepared.registryRaw, () => preparationGate(prepared));
       if (!saved.ok) return publish({ ...saved, reservation, durable: false });
-      memoryDurable = true;
+      prepared.armed = true; memoryDurable = true;
       return publish(result('OK', { reservation, durable: true }));
     }
     function schedulePending(reservation, reader) {
@@ -569,6 +594,35 @@
       const done = stageDisposition(JSON.parse(prepared.anchorRaw), key, prepared.payload, { captureId: prepared.captureId }, prepared.snapshotRaw, pinned.baseVersion, 'aborted', () => preparationGate(prepared));
       return done.ok ? publish(done) : done;
     }
+    function rollbackUnsent(reservation) {
+      const p = preparations.get(reservation), gate = () => preparationGate(p);
+      const reason = gate(); if (reason) return result(reason);
+      if (p.dispatched || p.armed) return result('ALREADY_DISPATCHED');
+      const registry = readRegistry(lineageId), anchor = readRaw(key), snapshot = readRaw(p.snapshotKey);
+      for (const read of [registry, anchor, snapshot]) if (!read.ok) return read;
+      if ((registry.raw !== p.priorRegistry && registry.raw !== p.registryRaw) || (anchor.raw !== p.previousRaw && anchor.raw !== p.anchorRaw) ||
+          (snapshot.raw !== null && snapshot.raw !== p.snapshotRaw)) return result('RECORD_CHANGED');
+      if (registry.raw !== p.priorRegistry) {
+        if (p.priorRegistry !== null) {
+          const restored = writeChecked(registryKey(lineageId), p.priorRegistry, gate); if (!restored.ok) return restored;
+        } else {
+          const failed = cleanupSnapshot(p, registryKey(lineageId), p.registryRaw, gate); if (failed) return result(failed);
+        }
+      }
+      // Restore only this runtime's unarmed keys. No command reached dispatch.
+      if (anchor.raw === p.anchorRaw) {
+        if (p.previousRaw !== null) {
+          const restored = writeChecked(key, p.previousRaw, gate); if (!restored.ok) return restored;
+        } else {
+          const failed = cleanupSnapshot(p, key, p.anchorRaw, gate); if (failed) return result(failed);
+        }
+      }
+      const failed = cleanupSnapshot(p, p.snapshotKey, p.snapshotRaw, gate); if (failed) return result(failed);
+      const changed = gate(); if (changed) return result(changed);
+      memory = p.previousMemory; memoryDurable = p.previousDurable; durableRaw = p.previousRaw;
+      unconfirmedRaw = null; p.done = true; activePreparation = null;
+      return result('OK');
+    }
     function cancelPrepared(reservation) { return cancelPreparedRecord(reservation); }
     function pathIdentity(path) {
       if (!Array.isArray(path) || !path.length || path.length > 32 || path.some(part => !(short(part) || exactKeys(part, ['id']) && short(part.id)))) return null;
@@ -657,6 +711,16 @@
     }
     function parseIsolated(raw, envelope) {
       let record; try { record = JSON.parse(raw); } catch { throw Error('ISOLATED_SNAPSHOT_INVALID'); }
+      if (record?.format === 'canvas-strings-v1') {
+        const {strings, data} = record;
+        if (!exactKeys(record, ['format', 'strings', 'data']) || !Array.isArray(strings) || !strings.every(s => typeof s === 'string' && s.length >= 4096) || typeof data !== 'string') throw Error('ISOLATED_SNAPSHOT_INVALID');
+        record = JSON.parse(data, (_key, value) => {
+          if (!plain(value) || !Object.hasOwn(value, '$canvasString')) return value;
+          const i = value.$canvasString;
+          if (!exactKeys(value, ['$canvasString']) || !Number.isSafeInteger(i) || i < 0 || i >= strings.length) throw Error('ISOLATED_SNAPSHOT_INVALID');
+          return strings[i];
+        });
+      }
       if (!exactKeys(record, ['version', 'kind', 'owner', 'baseVersion', 'lineageId', 'captureId', 'reference', 'sent', 'payload']) || record.version !== 3 || record.kind !== 'isolated' || !exactKeys(record.owner, ['actorId', 'epoch', 'runtimeId']) || ['actorId', 'epoch', 'runtimeId'].some(field => record.owner[field] !== envelope.owner[field]) || record.baseVersion !== envelope.baseVersion || record.lineageId !== envelope.lineageId || typeof record.captureId !== 'string' || !UUID.test(record.captureId) || !sameReference(record.reference, envelope.reference) || !validSent(record.sent, record.reference)) throw Error('ISOLATED_SNAPSHOT_INVALID');
       localPayload(copyJSON(record.payload)); copyJSON(record.sent); return record;
     }
@@ -722,7 +786,7 @@
     }
     events.addEventListener?.('pagehide', pagehide); events.addEventListener?.('pageshow', pageshow);
     ready = acquireRuntime();
-    return Object.freeze({ get ready() { return ready; }, get key() { return key; }, get runtimeId() { return runtimeId; }, status, schedule, flush, cancelScheduled, discover, claim, preview, restore, discard, captureSaveCommand, prepareWrite, schedulePending, flushPending, cancelPrepared, dispatchPrepared, departureProof, wasRejected, retryRejected, settleReceipt, finalizeDisposition, handoff, assertDispatch, close });
+    return Object.freeze({ get ready() { return ready; }, get key() { return key; }, get runtimeId() { return runtimeId; }, status, schedule, flush, cancelScheduled, discover, claim, preview, restore, discard, captureSaveCommand, prepareWrite, schedulePending, flushPending, rollbackUnsent, cancelPrepared, dispatchPrepared, departureProof, wasRejected, retryRejected, settleReceipt, finalizeDisposition, handoff, assertDispatch, close });
   }
   host.CanvasRecoveryStore = Object.freeze({ create, releaseHandoff });
 })(typeof window === 'undefined' ? globalThis : window);

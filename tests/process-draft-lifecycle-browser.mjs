@@ -167,11 +167,19 @@ export async function runProcessDraftBrowser({isolatedDesktop = false, executabl
         const context = await browser.newContext({serviceWorkers: 'block', viewport: {width: 1365, height: 900}}); contexts.add(context);
         await context.route('**/*', route => {
           const req = route.request(), url = new URL(req.url());
+          if(expected.initialReadFault&&req.method()==='GET'&&url.pathname==='/api/process-authoring/workflow')return route.fulfill({status:503,json:{error:'SYNTHETIC_INITIAL_READ_UNAVAILABLE'}});
           const allowed = url.origin === origin && (['GET', 'HEAD'].includes(req.method()) || req.method() === 'POST' && url.pathname === '/api/process-authoring/workflow');
           return allowed ? route.continue() : route.abort();
         });
         const payload = Buffer.from(JSON.stringify({version: 2, id: actor.id, sessionType: 'platform', authEpoch: 1, expires: Date.now() + 600000, nonce: 'lifecycle-' + cycle + '-' + actor.id})).toString('base64');
         await context.addCookies([{name: 'process_demo', value: payload + '.' + createHmac('sha256', secret).update(payload).digest('hex'), url: origin, httpOnly: true, sameSite: 'Lax'}]);
+        if(cycle===1&&view==='editor')await context.addInitScript(()=>{
+          const set=Storage.prototype.setItem;
+          Storage.prototype.setItem=function(key,value){
+            if(window.syntheticRecoveryFault&&String(key).startsWith('process-canvas-recovery-v3:'))throw new DOMException('Synthetic recovery quota','QuotaExceededError');
+            return set.call(this,key,value);
+          };
+        });
         const page = await context.newPage(); page.setDefaultTimeout(30000);
         pageContexts.push({page, args: {view, actor: actor.id, pendingId: expected.pendingId ?? null}, label});
         page.on('pageerror', error => report.pageErrors.push({stage, name: error.name}));
@@ -185,7 +193,11 @@ export async function runProcessDraftBrowser({isolatedDesktop = false, executabl
             nativeNotices.push({cycle, stage, type: 'alert', kind: 'NO_OTHER_LEGACY_REVIEWER_ADVISORY'}); void dialog.accept();
           } else { report.pageErrors.push({stage, name: 'UnexpectedNativeDialog', type: dialog.type(), message: dialog.message().replaceAll(secret, '[redacted]').slice(0, 500)}); void dialog.dismiss(); }
         });
-        await page.goto(origin + '/process/index.html?view=' + view, {waitUntil: 'domcontentloaded'});
+        await page.goto(origin + '/process/?system=process&view=' + view, {waitUntil: 'domcontentloaded'});
+        if(expected.initialReadFault){
+          await page.waitForFunction(()=>window.ProcessAuthoringV3?.navigation.departure.canReopenDestination());
+          return {context,page};
+        }
         await page.waitForFunction(processShellReady, {view, actor: actor.id});
         if (view === 'approval') {
           stage = cycle + ':' + label + ':process-tab';
@@ -239,11 +251,41 @@ export async function runProcessDraftBrowser({isolatedDesktop = false, executabl
       }, async () => assert.deepEqual(await control(), sharedBeforeLocal), 0);
       assert.equal(await editor.page.locator('.pe-editor [data-pe="sync"]').count(), 0);
       assert.equal(await editor.page.locator(mainSelector('save')).innerText(),cycle%2===0?'存取草稿':'Lưu bản nháp');
+      if(cycle===1){
+        const page=editor.page, writes=[];
+        const track=req=>{if(req.method()==='POST'&&new URL(req.url()).pathname==='/api/process-authoring/workflow')writes.push(req);};
+        page.on('request',track);
+        stage='quota-retry-and-departure';
+        await page.evaluate(()=>{window.syntheticRecoveryFault=true;});
+        await (await requireVisible(page, mainSelector('save'))).click();
+        await page.waitForFunction(()=>window.ProcessAuthoringV3.navigation.departure.canReopenDestination());
+        const go=()=>page.locator('.nav-item[data-view="dashboard"]').click();
+        const choice=id=>page.locator('#process-navigation-departure[open] [data-departure-choice="'+id+'"]');
+        await go();await choice('stay').waitFor();assert(await choice('save').isDisabled());assert(await choice('abandon').isEnabled());
+        await choice('stay').click();assert.equal(await page.locator('.pe-card[data-node="'+seed.ids.operation+'"] h3').innerText(),changedName);
+        assert.deepEqual(await control(),sharedBeforeLocal);assert.equal(writes.length,0);
+        await go();await choice('abandon').click();
+        await page.waitForFunction(processShellReady,{view:'dashboard',actor:seed.actors.editor.id});
+        assert.deepEqual(await control(),sharedBeforeLocal);assert.equal(writes.length,0);
+        page.off('request',track);
+        await page.locator('.nav-item[data-view="editor"]').click();await page.waitForFunction(processShellReady,{view:'editor',actor:seed.actors.editor.id});
+        await page.waitForFunction(()=>!!window.ProcessAuthoringV3?.flow());
+        assert.equal(await page.locator('.pe-card[data-node="'+seed.ids.operation+'"] h3').innerText(),operation(sharedBeforeLocal.workflow.working).name);
+        await page.locator('.pe-card[data-node="'+seed.ids.operation+'"] [data-pe="edit"]').click();
+        await page.locator('#process-operation-dialog[open] [data-field="name"]').fill(changedName);
+        await page.locator('#apply-operation').click();
+        await page.waitForFunction(()=>window.ProcessCanvasLocal.dirty());
+      }
       await measure(editor.page, 'save', mainSelector('save'), async () => {
         await waitEnabled(editor.page, mainSelector('submit')); await idle(editor.page);
       }, async () => {
         const c = await control(); assert.equal(c.workflow.revision, sharedBeforeLocal.workflow.revision + 1); assert(c.workflow.saved?.id); assert.deepEqual(c.workflow.saved.content, c.workflow.working); assert.equal(operation(c.workflow.saved.content).name, changedName);
       }, 1);
+      if(cycle===1){
+        await editor.page.reload({waitUntil:'domcontentloaded'});
+        await editor.page.waitForFunction(processShellReady,{view:'editor',actor:seed.actors.editor.id});
+        await editor.page.waitForFunction(({id,name})=>document.querySelector('.pe-card[data-node="'+id+'"] h3')?.textContent===name,{id:seed.ids.operation,name:changedName});
+      }
       await editor.page.screenshot({path:'.sites-runtime/process-canvas-desktop/saved-'+cycle+'.png',fullPage:true});
       // These functional checks are deliberately outside measureAction: the
       // original 18 × 5 timing samples/deadlines remain directly comparable.
@@ -343,6 +385,24 @@ export async function runProcessDraftBrowser({isolatedDesktop = false, executabl
       // Re-enter with a new UI read, not a programmatic product command or fake model.
       await editor.context.close(); contexts.delete(editor.context); editor = await open(seed.actors.editor, 'editor', 'returned-editor-entry');
       await submit('returned-submit'); await review('approve');
+      if(cycle===1){
+        stage='initial-read-and-identity-reentry';
+        const before=await control(),fault={initialReadFault:true},failed=await open(seed.actors.editor,'editor','failed-initial-read',fault);
+        const page=failed.page,posts=[];page.on('request',r=>{if(r.method()==='POST')posts.push(r);});
+        const dashboard=page.locator('.nav-item[data-view="dashboard"]'),choice=id=>page.locator('[data-departure-choice="'+id+'"]');
+        await dashboard.click();await choice('stay').waitFor();assert(await choice('save').isDisabled());await choice('stay').click();
+        await dashboard.click();await choice('abandon').click();await page.waitForFunction(processShellReady,{view:'dashboard',actor:seed.actors.editor.id});
+        fault.initialReadFault=false;
+        await page.locator('.nav-item[data-view="editor"]').click();await page.waitForFunction(processShellReady,{view:'editor',actor:seed.actors.editor.id});
+        await failed.context.clearCookies();
+        await dashboard.click();
+        await page.waitForFunction(()=>window.ProcessSync?.requiresReload&&document.querySelector('.app-shell')?.hidden);
+        assert.equal(await page.locator('.app-shell .pe-card').count(),0);
+        await page.locator('#process-boot button').click();
+        await page.waitForFunction(()=>!window.ProcessSync?.identity?.id&&!document.querySelector('.pe-card'));
+        assert.equal(posts.length,0);assert.deepEqual(await control(),before);
+        await failed.context.close();contexts.delete(failed.context);
+      }
       const finalValues = await readValues();
       for (const key of Object.keys(seed.values).filter(key => key !== 'processAuthoringControl')) assert.equal(finalValues[key], seed.values[key], 'Unrelated scope preserved: ' + key);
       assert.deepEqual(report.pageErrors, []);
