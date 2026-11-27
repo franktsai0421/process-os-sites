@@ -1,7 +1,7 @@
-import {checkApprovalItemOwners} from './quality-approval-ownership';
+import {itemCodeReview,approvedCodes,chooseItemCode,prepareItemCodes,validateItemCodes} from './quality-item-code';
 import {activeErrorRows,manualErrorCode} from './manual-error-code';
 import {captureAbColdOrigin,type AbColdOrigin,type AbColdOriginInput} from './ipqc-ab-local-lineage';
-import {parseAbControl,catalogFromMaster,checkedAbSnapshot,abDraftIssues,nextAbCode,copyAb,openAb,activeAb,type AbScope,type AbSnapshot,type AbControl,type AbItem,type AbError} from './ipqc-ab';
+import {abItemCodePeers,parseAbControl,catalogFromMaster,checkedAbSnapshot,abDraftIssues,nextAbCode,copyAb,openAb,activeAb,type AbScope,type AbSnapshot,type AbControl,type AbItem,type AbError} from './ipqc-ab';
 import {parse} from './process-state';
 import {applyDraftCommand,DraftConflict,stableDraftJSON,type SharedDraft,type DraftPatch} from './shared-draft';
 import {type WorkflowAdapter,type VersionedControl} from './versioned-shared-workflow';
@@ -32,11 +32,12 @@ export function abWorkflowAdapter(key:string,initialActiveBasis:'approved'|'lega
       const equipment=parse(state.values.routineEquipmentControl,{}) as {activeVersionId?:string;versions?:{id:string;status:string;equipment:{id:string;enabled?:boolean;assetCode:string;pieceMark:string;name?:string;nameVi?:string;photoId?:string}[]}[]};
       const choices=new Map((equipment.versions?.find(v=>v.id===equipment.activeVersionId&&v.status==='approved')?.equipment||[]).map(e=>[e.id,e]));
       return{...base,activeId:control.activeVersionId,
-    checkApproval:(before,proposed)=>checkApprovalItemOwners(control,before,proposed,'code'),
+    ...itemCodeReview(control,'code',()=>abItemCodePeers(root,key)),
     advisoryPolicy:'ipqc-completeness-v1',
         restoreContent(historical,current){for(const collection of ['errors','items'] as const)for(const row of current[collection])if(!historical[collection].some(old=>old.id===row.id))(historical[collection] as (AbError|AbItem)[]).push({...copyAb(row),deleted:true});return historical;},
         semantic:content=>({errors:content.errors.filter(e=>!e.deleted),items:content.items.filter(i=>!i.deleted)}),
         structure(content,previous){
+          prepareItemCodes(content,previous,approvedCodes(control),'code',()=>abItemCodePeers(root,key));
           if(content.items.some(i=>i.inspectionMode==='visual'&&i.equipmentId))throw new DraftConflict('INVALID_EQUIPMENT_PAIR',422);
           const version=openAb(control)||activeAb(control)||{id:'initial',number:1,status:'draft' as const,revision:1,snapshot:previous,baseVersionId:null,creatorId:base.actor.id,creatorName:base.actor.name,createdAt:base.at,updatedAt:base.at,history:[]};
           try{const checked=checkedAbSnapshot({...version,snapshot:previous},content,catalog,line,group,true,activeErrorRows(control));content.errors=checked.errors;content.items=checked.items;}catch(e){throw new DraftConflict(e&&typeof e==='object'&&'message'in e&&typeof e.message==='string'?e.message:'INVALID_STRUCTURE',422);}
@@ -48,7 +49,7 @@ export function abWorkflowAdapter(key:string,initialActiveBasis:'approved'|'lega
             item.equipmentSnapshot={id:e.id,assetCode:e.assetCode,pieceMark:e.pieceMark,name:e.name||e.nameVi||'',...(e.photoId?{photoId:e.photoId}:{})};
           }
         },
-        validate(content){return[...abDraftIssues(content,catalog,line,group),
+        validate(content){const active=approvedCodes(control);validateItemCodes(content,active,active,'code',()=>abItemCodePeers(root,key));return[...abDraftIssues(content,catalog,line,group),
           ...content.errors.filter(e=>!e.deleted&&!e.name.trim()).map(e=>({kind:'missing' as const,path:['errors',{id:e.id},'name'],message:'NAME_REQUIRED'})),
           ...content.items.filter(i=>!i.deleted&&i.equipmentId&&(!choices.has(i.equipmentId)||choices.get(i.equipmentId)?.enabled===false)).map(i=>({kind:'error' as const,path:['items',{id:i.id},'equipmentId'],message:'EQUIPMENT_UNAVAILABLE'}))];}
       };
@@ -64,7 +65,7 @@ export function abWorkflowAdapter(key:string,initialActiveBasis:'approved'|'lega
           previous.errors.push(row);patches.push({op:'insert',path:['errors'],value:row});
         }else if(command.moduleAction==='create-item'){
           const parent=flow.working.errors.find(e=>e.id===input.errorId&&!e.deleted);if(!parent)throw new DraftConflict('ERROR_REMOVED');
-          const row:AbItem={id:'item-'+command.operationId,code:nextAbCode(root,'item',parent.code+'-',context.allocationIndex),errorId:parent.id,standard:'',methodText:'',inspectionMode:'visual',equipmentId:'',equipmentSnapshot:null,isEnabled:true,rules:[],standardPhotos:[],methodPhotos:[],productCodes:[],sourceRows:[],sourceTool:'',sourceMethod:'',sourceFrequency:'',reason:'',deleted:false};
+          const row:AbItem={id:'item-'+command.operationId,code:chooseItemCode((input.item as Partial<AbItem>|undefined)?.code,()=>nextAbCode(root,'item',parent.code+'-',context.allocationIndex),root.reservedItemCodes),errorId:parent.id,standard:'',methodText:'',inspectionMode:'visual',equipmentId:'',equipmentSnapshot:null,isEnabled:true,rules:[],standardPhotos:[],methodPhotos:[],productCodes:[],sourceRows:[],sourceTool:'',sourceMethod:'',sourceFrequency:'',reason:'',deleted:false};
           previous.items.push(copyAb(row));
           const editable=input.item as Partial<AbItem>|undefined;
           if(editable)for(const field of ['standard','methodText','inspectionMode','equipmentId','isEnabled','rules','standardPhotos','methodPhotos','productCodes','reason'] as const)
@@ -73,10 +74,10 @@ export function abWorkflowAdapter(key:string,initialActiveBasis:'approved'|'lega
         }else{const kind=command.moduleAction==='delete-error'?'errors':'items',row=flow.working[kind].find(e=>e.id===input.id&&!e.deleted);
           if(!row)throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS');if(kind==='errors'&&flow.working.items.some(i=>i.errorId===row.id&&!i.deleted))throw new DraftConflict('ERROR_IN_USE',422);
           patches.push({op:'set',path:[kind,{id:row.id},'deleted'],value:true});}
-        return applyDraftCommand(flow,{...command,patches},{...context,commandFingerprint:context.commandFingerprint||stableDraftJSON(command),structure(content){context.structure(content,previous);}});
+        return applyDraftCommand(flow,{...command,patches},{...context,commandFingerprint:context.commandFingerprint||stableDraftJSON(command),structure(content){validateItemCodes(content,flow.working,approvedCodes(control),'code',()=>abItemCodePeers(root,key));context.structure(content,previous);}});
       }
       if(command.action==='apply')for(const p of command.patches||[]){
-        const [collection,entity,field]=p.path,fields=collection==='errors'?['code','name']:['standard','methodText','inspectionMode','equipmentId','isEnabled','rules','standardPhotos','methodPhotos','productCodes','reason'];
+        const [collection,entity,field]=p.path,fields=collection==='errors'?['code','name']:['code','standard','methodText','inspectionMode','equipmentId','isEnabled','rules','standardPhotos','methodPhotos','productCodes','reason'];
         if(p.op!=='set'||p.path.length!==3||typeof collection!=='string'||!['errors','items'].includes(collection)||!entity||typeof entity==='string'||typeof field!=='string'||!fields.includes(field))throw new DraftConflict('UNSUPPORTED_ITEM_PATCH',422);
         if(!flow.working[collection as keyof AbSnapshot].some(r=>r.id===entity.id&&!r.deleted))throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS');
         if(!(command.guards||[]).some(g=>stableDraftJSON(g.path)===stableDraftJSON(p.path)))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);

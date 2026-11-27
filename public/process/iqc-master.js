@@ -217,7 +217,7 @@
   const saveJSON=value=>JSON.stringify(value,(_key,item)=>item&&typeof item==='object'&&!Array.isArray(item)?Object.fromEntries(Object.keys(item).sort().map(key=>[key,item[key]])):item);
   const saveEqual=(a,b)=>saveJSON(a)===saveJSON(b);
   const saveCollections=['categories','suppliers','parts','errors','items'];
-  const saveFields={categories:['nameVi'],suppliers:['nameVi'],parts:['nameVi','specificationVi','categoryId','supplierIds','photos','isEnabled','isDeleted'],errors:['code','nameVi','isDeleted'],items:['nameVi','toolVi','methodVi','rules','isEnabled','inspectionSpecVi','inspectionMode','equipmentId','mediaItems','isDeleted']};
+  const saveFields={categories:['nameVi'],suppliers:['nameVi'],parts:['nameVi','specificationVi','categoryId','supplierIds','photos','isEnabled','isDeleted'],errors:['code','nameVi','isDeleted'],items:['checkNo','nameVi','toolVi','methodVi','rules','isEnabled','inspectionSpecVi','inspectionMode','equipmentId','mediaItems','isDeleted']};
   function saveReadSnapshot(data){
     validateIqcPayload(data,true);
     const flow=data.control.workflow,drafts=data.control.versions.filter(v=>v.status==='draft');
@@ -583,7 +583,7 @@
       const data = await response.json();
       owner?.assert();
       if (!response.ok || !data.control || !Number.isInteger(data.revision))
-        throw Error(data.problems?.length ? `${data.error}：${data.problems.slice(0, 3).join('；')}` : data.error || `HTTP ${response.status}`);
+        throw Object.assign(Error(data.problems?.length ? `${data.error}：${data.problems.slice(0, 3).join('；')}` : data.error || `HTTP ${response.status}`), {details:data.details});
       control = data.control; revision = data.revision;
       void window.ProcessSync?.refresh?.().catch(() => { /* Dedicated CAS response already confirms the write. */ });
       window.dispatchEvent(new CustomEvent('quality-equipment-references-updated'));
@@ -1290,6 +1290,7 @@
     const assertFormCurrent=()=>{if(!formCurrent())throw Error('DEPENDENCY_CHANGED_RECONFIRM');if(control?.workflow?.pendingId||transport().permission('edit')===false)throw Error('PENDING_OR_PERMISSION_LOCKED');};
     const old = snap().items.find(item => item.id === id), error = snap().errors.find(item => item.id === (old?.errorId || errorId));
     if (!error) return;
+    const checkNo = old ? old.checkNo : previewNumber(error.code+'-', [...(control.reservedCheckNos || []), ...snap().items.map(row=>row.checkNo)], 2);
     const rules = copy(old?.rules || [{ id: crypto.randomUUID(), cadence: 'batch', kind: 'aql', value: '', nameVi: '' }]);
     const photos = copy(old?.mediaItems || []);
     let itemOperationUncertain=false;
@@ -1297,8 +1298,8 @@
     let selectedEqId = old?.equipmentId || '';
     let selectedEq = old?.equipmentSnapshot || null;
     const initialMode = selectedEqId ? 'equipment' : old?.inspectionMode === 'visual' || !old ? 'visual' : '';
-    const { overlay, close, owner } = dialog(`<form id="iqc-item-form" class="iqc-item-form"><header class="iqc-item-form-header"><div><h3>${old ? t('修改檢查項目', 'Sửa hạng mục kiểm tra') : t('新增檢查項目', 'Thêm hạng mục kiểm tra')}</h3><small data-i18n-skip="true">${h(old?.checkNo || previewNumber(`${error.code}-`, control.reservedCheckNos, 2))}</small><div class="iqc-parent-error"><b>${t('錯誤代碼','Mã lỗi')}</b><code>${h(error.code)}</code><span data-i18n-skip="true">${h(error.nameVi)}</span></div></div><button type="button" class="button ghost" data-close>${t('返回', 'Quay lại')}</button></header><div class="iqc-item-form-body">
-      <section class="iqc-item-form-section"><h4>${t('基本資料','Thông tin cơ bản')}</h4><div class="iqc-field"><label>${t('檢查項目', 'Hạng mục kiểm tra')}</label><textarea name="nameVi" required data-i18n-skip="true">${h(old?.nameVi || '')}</textarea></div><div class="iqc-field"><label>${t('檢測方法','Phương pháp kiểm tra')}</label><textarea name="methodVi" data-i18n-skip="true">${h(old?.methodVi || '')}</textarea></div></section>
+    const { overlay, close, owner } = dialog(`<form id="iqc-item-form" class="iqc-item-form"><header class="iqc-item-form-header"><div><h3>${old ? t('修改檢查項目', 'Sửa hạng mục kiểm tra') : t('新增檢查項目', 'Thêm hạng mục kiểm tra')}</h3><div class="iqc-parent-error"><b>${t('錯誤代碼','Mã lỗi')}</b><code>${h(error.code)}</code><span data-i18n-skip="true">${h(error.nameVi)}</span></div></div><button type="button" class="button ghost" data-close>${t('返回', 'Quay lại')}</button></header><div class="iqc-item-form-body">
+      <section class="iqc-item-form-section"><h4>${t('基本資料','Thông tin cơ bản')}</h4><div class="iqc-field"><label for="iqc-item-code">${t('IQC 檢查編號','Mã kiểm tra IQC')}</label><input id="iqc-item-code" data-quality-item-code name="checkNo" value="${h(checkNo)}" data-i18n-skip="true"></div><div class="iqc-field"><label>${t('檢查項目', 'Hạng mục kiểm tra')}</label><textarea name="nameVi" required data-i18n-skip="true">${h(old?.nameVi || '')}</textarea></div><div class="iqc-field"><label>${t('檢測方法','Phương pháp kiểm tra')}</label><textarea name="methodVi" data-i18n-skip="true">${h(old?.methodVi || '')}</textarea></div></section>
       <section class="iqc-item-form-section"><h4>${t('檢查工具／設備','Dụng cụ / thiết bị kiểm tra')}</h4><div class="iqc-tool-options"><label><input type="radio" name="inspectionMode" value="visual" ${initialMode === 'visual' ? 'checked' : ''}>${t('目視檢查','Kiểm tra bằng mắt')}</label><label><input type="radio" name="inspectionMode" value="equipment" ${initialMode === 'equipment' ? 'checked' : ''}>${t('檢具與測試設備','Dụng cụ và thiết bị thử')}</label></div><p class="iqc-muted" id="iqc-tool-pending" ${initialMode ? 'hidden' : ''}>${t('尚未指定正式檢查工具；原始資料保留在來源紀錄。','Chưa chỉ định dụng cụ chính thức; dữ liệu gốc vẫn được lưu trong nguồn.')}</p><div id="iqc-equipment-box" ${initialMode === 'equipment' ? '' : 'hidden'}><div id="iqc-selected-equipment"></div><div class="iqc-actions"><button type="button" class="button ghost" id="iqc-equipment-change">${t('選擇檢具與測試設備','Chọn dụng cụ / thiết bị đo')}</button><button type="button" class="button ghost" id="iqc-equipment-clear">${t('清除關聯','Xóa liên kết')}</button></div></div></section>
       <section class="iqc-item-form-section iqc-item-photo-editor"><h4>${t('檢查方式照片（可多張）','Ảnh cách kiểm tra (nhiều ảnh)')}</h4><input type="file" id="iqc-item-file" accept="image/jpeg,image/png,image/webp,image/gif" multiple><div id="iqc-item-photo-list"></div></section>
       <section class="iqc-item-form-section iqc-status-section"><h4>${t('標準狀態','Trạng thái tiêu chuẩn')}</h4><label class="iqc-enabled"><input type="checkbox" name="isEnabled" ${old?.isEnabled !== false ? 'checked' : ''}>${t('啟用此檢查項目','Kích hoạt hạng mục này')}</label></section>
@@ -1480,13 +1481,15 @@
         if (rule.cadence === 'batch' && rule.kind !== 'custom' && (!String(rule.value || '').trim() || !Number.isFinite(Number(rule.value)) || Number(rule.value) <= 0)) { errorBox.textContent = t('按批次須填有效數值','Theo lô cần giá trị hợp lệ'); return; }
         if (rule.cadence === 'time' && rule.kind === 'custom' && !String(rule.nameVi || '').trim()) { errorBox.textContent = t('自訂時間須填名稱','Chu kỳ tùy chỉnh cần tên'); return; }
       }
-      const payload = { nameVi, toolVi, methodVi, inspectionSpecVi, isEnabled, rules, mediaItems: photos,
+      const code = window.readQualityItemCode(form.querySelector('[data-quality-item-code]'), old?.id, old?.checkNo, [...snap().items, ...(active()?.snapshot?.items || [])]);
+      if (code === null) return;
+      const payload = { checkNo:code, nameVi, toolVi, methodVi, inspectionSpecVi, isEnabled, rules, mediaItems: photos,
         inspectionMode: chosenMode || undefined,
         equipmentId: chosenMode === 'equipment' ? selectedId : '',
         equipmentSnapshot: chosenMode === 'equipment' ? chosen ? { id: chosen.id, assetCode: chosen.assetCode || '', pieceMark: chosen.pieceMark || '', name: chosen.name || chosen.nameVi || '', spec: chosen.spec || '' } : old?.equipmentSnapshot : null };
       try {
         if (old) await mutateSnapshot(next => { Object.assign(next.items.find(row => row.id === id), payload); }, t('檢查項目已儲存','Hạng mục đã lưu'), owner);
-        else { await mutateSnapshot(next=>next.items.push({id:'local-item-'+crypto.randomUUID(),partCode:error.partCode,errorId:error.id,checkNo:previewNumber(error.code+'-',[...control.reservedCheckNos,...next.items.map(i=>i.checkNo)],2),frequencyRaw:'',...payload}), '', owner);if(!owner.current())return;notice(t('新檢查項目待保存','Hạng mục mới chưa lưu')); }
+        else { await mutateSnapshot(next=>next.items.push({id:'local-item-'+crypto.randomUUID(),partCode:error.partCode,errorId:error.id,frequencyRaw:'',...payload}), '', owner);if(!owner.current())return;notice(t('新檢查項目待保存','Hạng mục mới chưa lưu')); }
         if(formCurrent())close();
       } catch (failure) {
         if(!owner.current())return;errorBox.textContent = displayDraftError(failure);

@@ -66,8 +66,9 @@ export function abModuleWorkflowAdapter():WorkflowAdapter<AbModuleSnapshot,AbMod
    const content=command.action==='approve'?control.workflow?.cases.find(c=>c.id===command.caseId)?.content:null;
    if(content&&(stableDraftJSON(Object.keys(content.scopes).sort())!==stableDraftJSON(Object.keys(root.scopes).sort())||Object.entries(content.bases).some(([key,id])=>root.scopes[key]?.activeVersionId!==id)))throw new DraftConflict('MODULE_BASE_CHANGED_RECONFIRM');
   },
-  context(control,state,base){requestState=state;const {restoreContent:_restore,checkApproval:_checkApproval,...groupBase}=base;const groupContext=(key:string)=>{const adapter=abWorkflowAdapter(key),s=adapter.parse('{}',root);return adapter.context(s,state,groupBase);};
+  context(control,state,base){requestState=state;const {restoreContent:_restore,checkApproval:_checkApproval,checkSave:_checkSave,...groupBase}=base;const groupContext=(key:string)=>{const adapter=abWorkflowAdapter(key),s=adapter.parse('{}',root);return adapter.context(s,state,groupBase);};
    return{...base,activeId:control.activeVersionId,semantic:c=>c.scopes,
+    checkSave(proposed){for(const [key,scope] of Object.entries(proposed.scopes))groupContext(key).checkSave?.(scope);},
     checkApproval(before,proposed){
      for(const [key,scope] of Object.entries(proposed.scopes))
       groupContext(key).checkApproval?.(before.scopes[key] || {errors:[],items:[]},scope);
@@ -81,7 +82,7 @@ export function abModuleWorkflowAdapter():WorkflowAdapter<AbModuleSnapshot,AbMod
     localSaveBasis(control,command,requestState);
     if(!context.allowed('view')||!context.allowed('edit'))throw new DraftConflict('FORBIDDEN',403);
     const prior=root;
-    const {restoreContent:_restore,checkApproval:_checkApproval,structure:_structure,validate:_validate,semantic:_semantic,...base}=context;
+    const {restoreContent:_restore,checkApproval:_checkApproval,checkSave:_checkSave,structure:_structure,validate:_validate,semantic:_semantic,...base}=context;
     // currentPermissions supplies explicit .restore; the kernel's narrower
     // DraftPermission union does not include this existing route capability.
     const candidate=applyAbLocalScopes(root,command,requestState,base,(context.allowed as (permission:string)=>boolean)('restore')===true&&(context.allowed as (permission:string)=>boolean)('create')===true);

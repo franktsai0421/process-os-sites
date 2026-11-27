@@ -66,7 +66,7 @@ void test('IQC approved catalog and persisted jobs reconcile by part, item, rule
   });
   const route = f.load('app/api/routine-iqc/route.ts');
   const req = new Request(url);
-  const cookie = f.core.sessionCookie(req,await f.core.demoSession(req,'frank',false,1)).split(';')[0];
+  let cookie = f.core.sessionCookie(req,await f.core.demoSession(req,'frank',false,1)).split(';')[0];
   async function call(body){
     const method = body ? 'POST' : 'GET';
     const response = await route[method](new Request(url,{method,headers:{origin:new URL(url).origin,cookie,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})}));
@@ -113,6 +113,38 @@ void test('IQC approved catalog and persisted jobs reconcile by part, item, rule
   const persisted = await f.core.readState();
   assert.deepEqual(jobRows(JSON.parse(persisted.values.routineIqcControl).calendar.jobs),sorted(expected));
   assert.equal(persisted.values.iqcMasterControl,master);
+
+  // Open only the weekly duty. Its monthly sibling is an existing period for the same item.
+  const siblings=current.jobs.filter(job=>job.source.iqc.itemId==='mixed');
+  const weekly=siblings.find(job=>job.calendar.frequency==='weekly');
+  const monthly=siblings.find(job=>job.calendar.frequency==='monthly');
+  await command('create-plan',{jobIds:[weekly.id],start:today,end:today});
+  const oldPlan=current.documents.find(doc=>doc.jobs.some(job=>job.id===weekly.id));
+  const renamed=structuredClone(active);
+  renamed.id='approved-renumber';renamed.number=2;renamed.createdAt=today+'T08:00:00+07:00';
+  renamed.snapshot.items.find(row=>row.id==='mixed').checkNo='QC INCOMING 781';
+  await f.mutate(values=>{values.iqcMasterControl=JSON.stringify({schemaVersion:1,versions:[active,{...renamed,status:'pending'}],activeVersionId:active.id});});
+  assert.equal((await call()).jobs.find(job=>job.id===monthly.id).source.code,monthly.source.code);
+  await f.mutate(values=>{values.iqcMasterControl=JSON.stringify({schemaVersion:1,versions:[{...active,status:'superseded'},renamed],activeVersionId:renamed.id});});
+  current=await call();
+  assert.deepEqual(current.jobs.map(job=>job.id).sort(),firstIds);
+  assert.equal(current.jobs.find(job=>job.id===weekly.id).source.code,weekly.source.code);
+  assert.equal(current.documents.find(doc=>doc.id===oldPlan.id).jobs[0].source.code,weekly.source.code);
+  const displayed=current.jobs.find(job=>job.id===monthly.id);
+  assert.equal(displayed.source.code,'QC INCOMING 781');
+  assert.equal(displayed.source.errorCode,monthly.source.errorCode);
+  assert.deepEqual([displayed.itemId,displayed.start,displayed.end,displayed.period,displayed.calendar.frequency],
+    [monthly.itemId,monthly.start,monthly.end,monthly.period,monthly.calendar.frequency]);
+  assert.equal(displayed.source.iqc.ruleId,monthly.source.iqc.ruleId);
+  await command('create-plan',{jobIds:[monthly.id],start:today,end:today});
+  const newPlan=current.documents.find(doc=>doc.jobs.some(job=>job.id===monthly.id));
+  assert.equal(newPlan.jobs[0].source.code,'QC INCOMING 781');
+  assert.equal(newPlan.jobs[0].source.iqc.itemId,oldPlan.jobs[0].source.iqc.itemId);
+  t.mock.timers.tick(35*86400000);
+  cookie=f.core.sessionCookie(req,await f.core.demoSession(req,'frank',false,1)).split(';')[0];
+  await command('generate');
+  assert(current.jobs.some(job=>job.source.iqc.itemId==='mixed'&&job.start>today&&job.source.code==='QC INCOMING 781'));
+
 });
 
 test('after IQC Reset, same-day frequency approval previews only jobs a new plan can use',async t=>{

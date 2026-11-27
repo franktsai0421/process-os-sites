@@ -1,10 +1,12 @@
+import {chooseItemCode,prepareItemCodes,validateItemCodes} from '../../../lib/quality-item-code';
+import {DraftConflict} from '../../../lib/shared-draft';
 import {manualErrorCode} from '../../../lib/manual-error-code';
 import {abLocalLineage} from '@/lib/ipqc-ab-local-lineage';
 import {isImmutableRecordBody,readImmutableRecord} from '@/lib/state-records';
 import { env } from 'cloudflare:workers';
 import { readState, identity, can, createIpqcReadPermissionPhase, sameOrigin, encodeValues, parse, maintenanceCredential,
   stateRevisionIsCurrent,responseHeaders as headers } from '@/lib/process-state';
-import { activeAb, catalogFromMaster, checkedAbSnapshot, copyAb, nextAbCode,abDraftIssues,
+import { abItemCodePeers, activeAb, catalogFromMaster, checkedAbSnapshot, copyAb,nextAbCode,abDraftIssues,
   openAb, parseAbControl, scopeKey, submissionIssues, type AbCatalog, type AbControl,
   type AbError, type AbItem, type AbScope, type AbSnapshot } from '@/lib/ipqc-ab';
 import { hierarchy, equipmentGroupLabel, type EquipmentVersion } from '@/lib/routine-equipment';
@@ -260,6 +262,7 @@ export async function POST(request: Request) {
           let snapshot:AbSnapshot;
           try { snapshot=checkedAbSnapshot(opened,body.snapshot,catalog,line,group,action==='save',active?.snapshot.errors || []); }
           catch(error) { return reply({error:error&&typeof error==='object'&&'message'in error&&typeof error.message==='string'?error.message:'草稿格式錯誤'},422); }
+          prepareItemCodes(snapshot,opened.snapshot,active?.snapshot||{errors:[],items:[]},'code',()=>abItemCodePeers(control,scopeKey(line,group)));
           validateEquipment(snapshot,opened.snapshot,state.values);
           await validatePhotos(snapshot,opened.snapshot);
           opened.snapshot = snapshot;
@@ -288,11 +291,12 @@ export async function POST(request: Request) {
         } else if (action === 'create-item') {
           const parent = opened.snapshot.errors.find(e => e.id === body.errorId && !e.deleted);
           if (!parent) return reply({ error:'請先選有效錯誤代碼' },422);
-          const code = nextAbCode(control,'item',`${parent.code}-`);
+          const code = chooseItemCode(body.code,()=>nextAbCode(control,'item',parent.code+'-'),control.reservedItemCodes);
           opened.snapshot.items.push({ id:crypto.randomUUID(), code,errorId:parent.id,standard:'',methodText:'',
             inspectionMode:'visual',equipmentId:'',equipmentSnapshot:null,isEnabled:true,rules:[],
             standardPhotos:[],methodPhotos:[],productCodes:[],sourceRows:[],sourceTool:'',
             sourceMethod:'',sourceFrequency:'',reason:'',deleted:false });
+          validateItemCodes(opened.snapshot,{...opened.snapshot,items:opened.snapshot.items.slice(0,-1)},active?.snapshot||{errors:[],items:[]},'code',()=>abItemCodePeers(control,scopeKey(line,group)));
         } else if (action === 'delete-item') {
           const item = opened.snapshot.items.find(i => i.id === body.id && !i.deleted);
           if (!item) return reply({ error:'項目不存在' },404);
@@ -309,6 +313,7 @@ export async function POST(request: Request) {
           opened.status = 'draft';
         } else if (reviewing) {
           if (action === 'approve' && opened.status === 'pending') {
+            validateItemCodes(opened.snapshot,active?.snapshot||{errors:[],items:[]},active?.snapshot||{errors:[],items:[]},'code',()=>abItemCodePeers(control,scopeKey(line,group)));
             const issues=submissionIssues(opened.snapshot,catalog,line,group).filter(i=>i.blocking);if(issues.length)return reply({error:'核准驗證未通過',issues},422);
             if (active) active.status = 'superseded';
             opened.status = 'approved'; scope.activeVersionId = opened.id;
@@ -328,6 +333,7 @@ export async function POST(request: Request) {
     return reply({ revision:state.revision + 1,control,
       ...(importReport?{importReport:{...importReport,control:undefined}}:{}) });
   } catch (error) {
+    if(error instanceof DraftConflict)return reply({error:error.message,details:error.details},error.status);
     console.error('[ipqc-ab] write failed',error);
     return reply({ error:error instanceof Error ? error.message:'IPQC-AB 寫入失敗' },500);
   }

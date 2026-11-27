@@ -441,7 +441,7 @@
     } catch(error) {if(isReadSuperseded(error)){readWasSuperseded=true;return null;}if(sameActor()){
       if(closeModal && targetModal && !targetModal.existingId && ['create-item','create-error'].includes(action) &&
         !sharedClient?.hasUnknownBegin?.()&&(sharedClient?.hasUnknown() || error.message==='RESULT_UNKNOWN_CHECK_BEFORE_RETRY'))targetModal.creationIdentityUnknown=true;
-      const terms=workflowErrors[error.message];message=error.message==='LOCAL_SAVE_CANCELLED'?'':terms?t(...terms):error.message;
+      const terms=workflowErrors[error.message];message=error.message==='LOCAL_SAVE_CANCELLED'?'':terms?t(...terms):displayDraftError(error);
     }return null;}
     finally {if(requestMount===mountSequence)busy=false;if(!readWasSuperseded&&!preserveInputs&&sameActor()){
       if(!cancelled || refreshCurrent){draw();reviewDraw();}
@@ -607,7 +607,7 @@
     const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
     const equal=(a,b)=>JSON.stringify(a??null)===JSON.stringify(b??null);
     const changes=[],clashes=[],live=clone(latest);
-    const fields={errors:['code','name','note','reason'],items:['standard','description','note','reason','tool','method','frequency','cpkEnabled','standardEnabled','notApplicable','notApplicableReason','equipmentGroupId','equipmentId','mediaItems','rule']};
+    const fields={errors:['code','name','note','reason'],items:['code','standard','description','note','reason','tool','method','frequency','cpkEnabled','standardEnabled','notApplicable','notApplicableReason','equipmentGroupId','equipmentId','mediaItems','rule']};
     const choose=(key,b,mine,theirs,label)=>{
       if(equal(mine,b))return clone(theirs);
       if(equal(theirs,b)||equal(mine,theirs))return clone(mine);
@@ -790,7 +790,7 @@
         throw Error(`${t('Trạng thái phiên bản đã thay đổi','版本狀態已改變')}。${t('Đã giữ nguyên phần nhập chưa lưu của bạn','未儲存輸入已保留')}。`);
       }
       if (!response.ok || !body.control || !Number.isInteger(body.revision))
-        throw Error([body.error, ...(body.errors || [])].filter(Boolean).join('\n') || `HTTP ${response.status}`);
+        throw Object.assign(Error([body.error, ...(body.errors || [])].filter(Boolean).join('\n') || `HTTP ${response.status}`), {details:body.details});
       control = body.control; revision = body.revision;
       selectedVersionId = open()?.id || active()?.id || selectedVersionId;
       working = open()?.status === 'draft' ? copy(open().snapshot) : null;
@@ -805,7 +805,7 @@
       return body;
     } catch (error) {
       if(isReadSuperseded(error)){cancelled=true;return null;}
-      message = error.message || t('Không lưu được','儲存失敗');
+      message = displayDraftError(error) || t('Không lưu được','儲存失敗');
       return null;
     } finally { busy = false;if(!cancelled){draw();reviewDraw();restoreView();} }
   }
@@ -953,6 +953,10 @@
     if (!editing() && !readonly) return;
     message='';errorRecoveryRevision++;
     const fields = existing ? copy(existing) : {};
+    if (kind === 'item' && !existing) {
+      const codes = [...(control.reservedItemCodes || []), ...control.versions.flatMap(v=>(v.snapshot?.items || []).map(row=>row.code)), ...working.items.map(row=>row.code)];
+      fields.code = window.suggestQualityItemCode(chosenError().code, codes);
+    }
     if (kind === 'item') Object.assign(fields, {
       ruleCadence:existing?.rule?.cadence || (existing ? 'legacy' : 'batch'),
       batchKind:existing?.rule?.batchKind || 'aql',
@@ -1013,7 +1017,8 @@
     return `<div class="ipqcc-overlay"><form class="ipqcc-dialog" id="ipqcc-editor" role="dialog" aria-modal="true"><header><h3>${modal.readonly?t('Xem','查看'):modal.existingId?t('Sửa','修改'):t('Thêm','新增')} ${isError?t('mã lỗi','錯誤代碼'):t('hạng mục kiểm tra','檢查項目')}</h3><button type="button" id="ipqcc-close" aria-label="Close">×</button></header><div class="ipqcc-dialog-body"><fieldset class="ipqcc-view-fields" ${modal.readonly?'disabled':''}>
       <p data-ipqcc-recovery-status role="status"></p>
       ${message?`<p class="ipqcc-message" role="alert">${h(displayDraftError(message))}</p>`:''}
-      <section class="ipqcc-editor-context"><div><b>${t('Sản phẩm','產品')}</b><code>${h(productCode)}</code><span>${h(product()?.name||'')}</span></div><div><b>${t('Công đoạn','工段')}</b><code>${h(stageCode)}</code><span>${h(catalog.stages.find(s=>s.code===stageCode)?.name||'')}</span></div>${!isError?`<div><b>${t('Mã lỗi / tên','錯誤代碼／名稱')}</b><code>${h(parent?.code||'—')}</code><span>${h(parent?.name||'—')}</span></div>`:''}${isError?'':`<div><b>${t('Mã do hệ thống cấp','系統編號')}</b><code>${h(f.code || `${parent?.code||'…'}-…`)}</code></div>`}</section>
+      <section class="ipqcc-editor-context"><div><b>${t('Sản phẩm','產品')}</b><code>${h(productCode)}</code><span>${h(product()?.name||'')}</span></div><div><b>${t('Công đoạn','工段')}</b><code>${h(stageCode)}</code><span>${h(catalog.stages.find(s=>s.code===stageCode)?.name||'')}</span></div>${!isError?`<div><b>${t('Mã lỗi / tên','錯誤代碼／名稱')}</b><code>${h(parent?.code||'—')}</code><span>${h(parent?.name||'—')}</span></div>`:''}</section>
+      ${isError?'':`<label>${t('Mã hạng mục kiểm tra','檢查項目編號')}<input name="code" data-quality-item-code value="${h(f.code)}" ${modal.readonly?'readonly':''} data-i18n-skip="true"></label>`}
       ${isError ? `${field('code',t('Mã lỗi','錯誤代碼'))}${field('name',t('Tên mã lỗi','錯誤名稱'))}${field('note',t('Ghi chú','備註'),true)}` :
         `<div class="ipqcc-checks"><label><input type="checkbox" name="standardEnabled" ${f.standardEnabled!==false?'checked':''}>${t('Bật tiêu chuẩn','啟用標準')}</label><label><input type="checkbox" name="cpkEnabled" ${f.cpkEnabled?'checked':''}>${t('Bật CPK','啟用 CPK')}</label></div>${field('standard',t('Tiêu chuẩn kiểm tra','檢查標準'),true)}
         ${field('description',t('Mô tả cách kiểm tra (bắt buộc)','檢查方式敘述（必填）'),true)}
@@ -1060,6 +1065,9 @@
     fields.reason ||= '';
     if(isError){ const issue=window.manualErrorCodeIssue(fields.code,target.existingId,working.errors,active()?.snapshot?.errors);const input=form.elements.code;input.setCustomValidity(issue?displayDraftError(issue):'');if(!input.reportValidity()){input.oninput=()=>input.setCustomValidity('');return;} }
     if (!isError) {
+      const code = window.readQualityItemCode(form.querySelector('[data-quality-item-code]'), target.existingId, target.base?.code, [...working.items, ...(active()?.snapshot?.items || [])]);
+      if (code === null) return;
+      fields.code = code;
       fields.standardEnabled = form.elements.standardEnabled.checked;
       fields.cpkEnabled = form.elements.cpkEnabled.checked;
       fields.notApplicable = target.existingId ? fields.notApplicable === true : false;
@@ -1103,7 +1111,7 @@
       const list = isError ? working.errors : working.items;
       const index = list.findIndex(row => row.id === target.existingId);
       if (index < 0) return message=t('Dữ liệu đã thay đổi','資料已變更'), draw();
-      const allowed=isError?['code','name','note','reason']:['standard','description','note','reason','tool','method','frequency','cpkEnabled','standardEnabled','notApplicable','notApplicableReason','equipmentGroupId','equipmentId','mediaItems','rule'];
+      const allowed=isError?['code','name','note','reason']:['code','standard','description','note','reason','tool','method','frequency','cpkEnabled','standardEnabled','notApplicable','notApplicableReason','equipmentGroupId','equipmentId','mediaItems','rule'];
       const changed=allowed.filter(key=>fields[key]!==undefined&&
         !(['equipmentId','equipmentGroupId'].includes(key)?same(fields[key]||'',target.base?.[key]||''):same(fields[key],target.base?.[key])));
       const patches=changed.map(key=>({op:'set',path:[isError?'errors':'items',{id:target.existingId},key],value:fields[key]}));

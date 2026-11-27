@@ -1,3 +1,5 @@
+import {requireItemCode,prepareItemCodes,validateItemCodes} from '../../../lib/quality-item-code';
+import {DraftConflict} from '../../../lib/shared-draft';
 import {manualErrorCode} from '../../../lib/manual-error-code';
 import {restoreEffects} from '@/lib/draft-restore-access';
 import { env } from 'cloudflare:workers';
@@ -31,7 +33,7 @@ function controlFrom(raw: string | undefined): IqcControl {
 
 type Source = { sha256?: string; mappingSha256?: string; fileName?: string;
   snapshot?: IqcSnapshot; issues?: IqcControl['issues'] };
-type Body = { code?: string; action?: string; baseRevision?: number; versionId?: string; versionRevision?: number;
+type Body = { code?: string; checkNo?:string; action?: string; baseRevision?: number; versionId?: string; versionRevision?: number;
   snapshot?: unknown; source?: Source; partCode?: string; errorId?: string;
   nameVi?: string; toolVi?: string; methodVi?: string; rules?: unknown; comment?: string;
   inspectionSpecVi?: string; inspectionMode?: string; equipmentId?: string;
@@ -120,6 +122,7 @@ export async function POST(request: Request) {
         return reply({ revision: state.revision, control, unchanged: true });
       if (control.source || version || active) return reply({ error: '已存在 IQC 資料；不自動覆蓋已核對修改' }, 409);
       const snapshot = checkedIqcSnapshot(emptyIqcSnapshot(), source.snapshot);
+      if (new Set(snapshot.items.map(item=>item.checkNo)).size !== snapshot.items.length) throw Error('IQC 原始編號或新增編號重複');
       const expectedParts = new Map(sourceManifest.snapshot.parts.map(part => [part.code, part]));
       if (snapshot.parts.some(part => {
         const expected = expectedParts.get(part.code);
@@ -169,8 +172,8 @@ export async function POST(request: Request) {
       if (body.versionId !== version.id || body.versionRevision !== version.revision)
         return reply({ error: 'IQC 草稿已更新；請重新載入後核對' }, 409);
       let snapshot: IqcSnapshot;
-      try { snapshot = checkedIqcSnapshot(version.snapshot, body.snapshot, false, active?.snapshot.errors || []); checkEquipment(snapshot, version.snapshot, state.values); }
-      catch (error) { return reply({ error: error instanceof Error ? error.message : 'IQC 草稿驗證失敗' }, 422); }
+      try { snapshot = checkedIqcSnapshot(version.snapshot, body.snapshot, false, active?.snapshot.errors || []); prepareItemCodes(snapshot,version.snapshot,active?.snapshot||{errors:[],items:[]},'checkNo'); checkEquipment(snapshot, version.snapshot, state.values); }
+      catch (error) { if(error instanceof DraftConflict)throw error;return reply({ error: error instanceof Error ? error.message : 'IQC 草稿驗證失敗' }, 422); }
       const effects=restoreEffects(version.snapshot,snapshot);
       for(const op of ['create','delete'] as const)if(effects[op]&&!await can(request,state,'iqc.'+op))return reply({error:'FORBIDDEN'},403);
       const priorErrorIds = new Set(version.snapshot.errors.map(item => item.id));
@@ -211,7 +214,7 @@ export async function POST(request: Request) {
       } else {
         const error = version.snapshot.errors.find(item => item.id === body.errorId && !item.isDeleted);
         if (!error) return reply({ error: '找不到錯誤代碼' }, 422);
-        const checkNo = nextIqcCheckNo(control, error.code);
+        const checkNo = body.checkNo===undefined?nextIqcCheckNo(control,error.code):requireItemCode(body.checkNo);
         const rules = Array.isArray(body.rules) ? body.rules : [];
         const candidate = { id: crypto.randomUUID(), partCode: error.partCode, errorId: error.id,
           checkNo, nameVi, toolVi: String(body.toolVi || ''), methodVi: String(body.methodVi || ''),
@@ -224,11 +227,12 @@ export async function POST(request: Request) {
         let checked: IqcSnapshot;
         try {
           checked = checkedIqcSnapshot(version.snapshot, { ...version.snapshot, items: [...version.snapshot.items, candidate] });
+          validateItemCodes(checked,version.snapshot,active?.snapshot||{errors:[],items:[]},'checkNo');
           checkEquipment(checked, version.snapshot, state.values);
           for (const photo of candidate.mediaItems as { id: string }[])
             if (!(await env.STATE_ARCHIVE.head(`iqc/photos/${photo.id}`))) throw Error('新照片尚未保存');
         }
-        catch (error) { return reply({ error: error instanceof Error ? error.message : '檢查項目格式錯誤' }, 422); }
+        catch (error) { if(error instanceof DraftConflict)throw error;return reply({ error: error instanceof Error ? error.message : '檢查項目格式錯誤' }, 422); }
         const created = checked.items[checked.items.length - 1];
         const problems = iqcSubmitBlockingErrors({ ...version.snapshot, items: [created] });
         if (problems.length) return reply({ error: problems[0] }, 422);
@@ -245,6 +249,7 @@ export async function POST(request: Request) {
           body.versionRevision !== version.revision) return reply({ error: '審核畫面已過期' }, 409);
       const comment = String(body.comment || '').trim();
       if (action === 'approve') {
+        validateItemCodes(version.snapshot,active?.snapshot||{errors:[],items:[]},active?.snapshot||{errors:[],items:[]},'checkNo');
         if (active) active.status = 'superseded';
         version.status = 'approved'; control.activeVersionId = version.id;
       } else version.status = 'draft';
@@ -258,6 +263,7 @@ export async function POST(request: Request) {
     if (result.meta.changes !== 1) return reply({ error: '修訂衝突；沒有儲存', revision: (await readState()).revision }, 409);
     return reply({ revision: state.revision + 1, control });
   } catch (error) {
+    if(error instanceof DraftConflict)return reply({error:error.message,details:error.details},error.status);
     console.error('[iqc] write failed', error);
     return reply({ error: error instanceof Error ? error.message : 'IQC 寫入失敗；沒有顯示成功' }, 500);
   }

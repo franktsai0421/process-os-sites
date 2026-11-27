@@ -677,7 +677,7 @@
   let historySearch, historyLanguage, pendingHistoryItem;
   async function ensureHistorySearch() {
     if (!historySearch) {
-      const workflowModule = await import('/process/routine-fqc-search.mjs?v=20261124-receipt-display1');
+      const workflowModule = await import('/process/routine-fqc-search.mjs?v=20261126-full-item-history1');
       historySearch = workflowModule.createHistorySearch({getData: () => data, readPreview: () => read('?search-preview=1')});
     }
   }
@@ -1074,7 +1074,7 @@
     }
     if (s.reviewPlatform) { paintReview(); restoreView(); return; }
     if((calendarMode()||calendarSetupAvailable())&&s.module==='FQC'){if(s.tab==='jobs')s.tab='sources';const tab=calendarActiveTab();const url=new URL(location.href);if(['sources','jobs','plans','reports','failed','cases'].includes(tab)&&url.searchParams.get('view')==='quality-inspections'&&url.searchParams.get('system')==='quality'&&url.searchParams.get('rfTab')!==tab){url.searchParams.set('rfTab',tab);window.ProcessDeliveryNavigation?.replaceDisplayURL?.(url.href);}root.innerHTML=calendarPage();mountFlowConnector();bind();guardDocumentCallbacks();mountDraft();if(s.busy||generationRefresh?.current())root.querySelectorAll('button').forEach(b=>b.disabled=true);restoreView();return;}
-    if (pendingHistoryItem && historySearch) { historySearch.openForItem(pendingHistoryItem); pendingHistoryItem = null; }
+    if (pendingHistoryItem != null && historySearch) { historySearch.openForItem(pendingHistoryItem); pendingHistoryItem = null; }
     if (s.tab === 'history' && s.module === 'FQC' && root.querySelector('.rf-history') && historySearch && (historyLanguage === document.documentElement.lang || historySearch.composing)) {
       historySearch.update(); restoreView(); return;
     }
@@ -1650,7 +1650,7 @@
     return `<section class="rf-calendar-period rf-period-single" data-period-id="${h(j.id)}">
       <label class="rf-period-choice ${reason?'is-locked':''}">
         <input type="checkbox" data-job="${h(j.id)}" ${reason?`disabled aria-describedby="${h(reasonId)}"`:s.checked.has(j.id)?'checked':''}>
-        <span class="rf-period-overview"><b>${h(periodLabel(j))}</b><span class="rf-period-lock" id="${h(reasonId)}">${reason?t('不可勾選','Không thể chọn')+' · '+h(reason):t('可勾選','Có thể chọn')}</span></span>
+        <span class="rf-period-overview"><b>${h(periodLabel(j))}</b><small>${h(j.source.code)}</small><span class="rf-period-lock" id="${h(reasonId)}">${reason?t('不可勾選','Không thể chọn')+' · '+h(reason):t('可勾選','Có thể chọn')}</span></span>
       </label>
       ${s.periodStatus==='overdue'?dueSummary(j):''}${s.periodStatus==='disposal'&&disposals.has(j.id)?`<p>${t('處置申請','Đề nghị xử lý')} · ${h(historyAction(disposals.get(j.id).status))}</p>`:''}
       <div class="rf-period-location"><small>${t('目前狀態','Trạng thái hiện tại')}</small><span class="rf-period-chip ${current.tone}">${h(current.stage)}</span>${current.page?`<span>${t('接續頁面','Trang tiếp tục')}：${current.documentId?`<a href="#routine-document" class="rf-location-link" data-doc="${h(current.documentId)}">${h(current.page)}</a>`:current.caseId?`<button class="rf-btn rf-location-link" data-case="${h(current.caseId)}">${h(current.page)}</button>`:current.tab?`<button class="rf-btn rf-location-link" data-tab="${h(current.tab)}">${h(current.page)}</button>`:h(current.page)}</span>`:''}</div>
@@ -3622,10 +3622,15 @@
       s.from = '';
       s.to = '';
       s.item = item;
-      pendingHistoryItem = item;
+      pendingHistoryItem = item ?? '';
       s.tab = 'history';
       s.selected = null;
-      window.ProcessDualSystem.go('quality-inspections');
+      if (window.ProcessSync?.destination?.view === 'quality-inspections' && root?.isConnected && root.querySelector('.rf-history')) {
+        historyLanguage = '';
+        paint();
+      } else {
+        window.ProcessDualSystem.go('quality-inspections');
+      }
     },
   };
   window.addEventListener('process-language-change', () => paint());

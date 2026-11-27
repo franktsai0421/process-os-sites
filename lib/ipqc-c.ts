@@ -130,7 +130,7 @@ export function checkedIpqcSnapshot(version: IpqcVersion, raw: unknown, activeEr
   });
   const items = input.items.map(row => {
     const old = oldItems.get(row?.id);
-    if (!old || row.code !== old.code || row.errorId !== old.errorId || row.productCode !== old.productCode || row.stageCode !== old.stageCode)
+    if (!old || typeof row.code !== 'string' || row.errorId !== old.errorId || row.productCode !== old.productCode || row.stageCode !== old.stageCode)
       throw Error('檢查項目身分或編號不可改寫');
     if (textFields.some(field => row[field] !== undefined && typeof row[field] !== 'string') ||
         typeof row.cpkEnabled !== 'boolean' || typeof row.standardEnabled !== 'boolean' ||
@@ -143,7 +143,7 @@ export function checkedIpqcSnapshot(version: IpqcVersion, raw: unknown, activeEr
         (typeof row.equipmentSnapshot !== 'object' || typeof row.equipmentSnapshot.id !== 'string'))
       throw Error(`${old.code} 檢具快照格式錯誤`);
     const rule = checkedIpqcRule(row.rule);
-    return { ...old, ...Object.fromEntries(textFields.filter(field => row[field] !== undefined).map(field => [field, row[field]])),
+    return { ...old, code:row.code, ...Object.fromEntries(textFields.filter(field => row[field] !== undefined).map(field => [field, row[field]])),
       cpkEnabled: row.cpkEnabled, standardEnabled: row.standardEnabled,
       deleted: row.deleted, notApplicable: row.notApplicable, mediaItems: row.mediaItems,
       ...(rule !== undefined ? { rule } : {}),

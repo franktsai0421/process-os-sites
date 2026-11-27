@@ -30,13 +30,10 @@ export const searchContent = (d) =>
     : d.flow.cases.find((c) => c.id === d.flow.pendingId)?.content ||
       d.flow.working;
 export const sourceKey = (source) =>
-  JSON.stringify([
-    source.id,
-    source.line || '',
-    source.category || '',
-    source.code || '',
-    source.name || '',
-  ]);
+  typeof source?.id === 'string' && source.id.trim()
+    ? JSON.stringify([source.id, source.line || '', source.category || ''])
+    : null;
+const unresolvedItem = 'unresolved';
 const closed = (a) => ['closed', 'disposed', 'waived'].includes(a.status);
 const outcomes = (rows) =>
   ['fail', 'undetermined', 'unable', 'pass'].find((o) =>
@@ -160,13 +157,26 @@ export function buildSearchIndex(data) {
     });
   }
   const sources = new Map();
+  const unidentified = [];
+  const ambiguousItems = new Set();
+  // Enabled items can also appear in the complete catalog. Repetition within
+  // either current list is ambiguous; snapshots from different dates are not.
+  for (const list of [data.sources || [], data.catalog?.items || []]) {
+    const seen = new Set();
+    for (const source of list) {
+      const key = sourceKey(source);
+      if (key && seen.has(key)) ambiguousItems.add(key);
+      seen.add(key);
+    }
+  }
   for (const source of [
     ...(data.sources || []),
     ...(data.catalog?.items || []),
     ...jobs.map((j) => j.source),
   ]) {
     const key = sourceKey(source);
-    if (!sources.has(key)) sources.set(key, source);
+    if (!key) unidentified.push(source);
+    else if (!sources.has(key)) sources.set(key, source);
   }
   return {
     data,
@@ -177,7 +187,8 @@ export function buildSearchIndex(data) {
     jobById,
     documentsByJob,
     projections,
-    sources: [...sources.values()],
+    sources: [...sources.values(), ...unidentified],
+    ambiguousItems,
   };
 }
 
@@ -226,11 +237,15 @@ function periodMatches(job, state, today) {
     );
   return !!job.preview;
 }
-function sourceMatches(source, state) {
+function sourceMatches(source, state, job, ambiguousItems) {
   return (
     (!state.line || source.line === state.line) &&
     (!state.category || source.category === state.category) &&
-    (!state.item || sourceKey(source) === state.item)
+    (!state.item ||
+      (sourceKey(source) === state.item &&
+        !ambiguousItems.has(state.item) &&
+        (!job.itemId || job.itemId === source.id) &&
+        (!job.source?.id || job.source.id === source.id)))
   );
 }
 function textMatches(line, query, productMode, measured) {
@@ -273,7 +288,7 @@ export function querySearch(index, state, preview = []) {
             return (
               job &&
               periodMatches(job, state, index.data.today) &&
-              sourceMatches(line.source, state) &&
+              sourceMatches(line.source, state, job, index.ambiguousItems) &&
               (!q ||
                 documentMatch ||
                 textMatches(line, q, state.productMode, measured))
@@ -289,7 +304,7 @@ export function querySearch(index, state, preview = []) {
   const matchingJobs = allJobs.filter((job) => {
     if (
       !periodMatches(job, state, index.data.today) ||
-      !sourceMatches(job.source, state)
+      !sourceMatches(job.source, state, job, index.ambiguousItems)
     )
       return false;
     const projection = index.projections.get(job.id);
@@ -551,16 +566,23 @@ export function createHistorySearch({ getData, readPreview }) {
       state.category,
       t('全部類別', 'Tất cả danh mục'),
     );
-    const items = scoped.filter(
-      (s) => !state.category || s.category === state.category,
-    );
-    if (state.item && !items.some((s) => sourceKey(s) === state.item))
-      state.item = '';
-    host.querySelector('[data-rfh-filter="item"]').innerHTML = options(
-      items.map((s) => [
+    const items = scoped
+      .filter((s) => !state.category || s.category === state.category)
+      .map((s) => [
         sourceKey(s),
         [s.name, s.code, s.line, s.category].filter(Boolean).join(' · '),
-      ]),
+      ])
+      .filter(([key]) => key && !index.ambiguousItems.has(key));
+    if (index.ambiguousItems.has(state.item)) state.item = unresolvedItem;
+    if (state.item === unresolvedItem)
+      items.unshift([
+        unresolvedItem,
+        t('無法辨識此項目，請重新選擇', 'Không xác định được hạng mục, vui lòng chọn lại'),
+      ]);
+    else if (state.item && !items.some(([key]) => key === state.item))
+      state.item = '';
+    host.querySelector('[data-rfh-filter="item"]').innerHTML = options(
+      items,
       state.item,
       t('全部項目（含歷史）', 'Tất cả hạng mục (gồm lịch sử)'),
     );
@@ -932,12 +954,14 @@ export function createHistorySearch({ getData, readPreview }) {
     bind,
     openForItem(item) {
       syncIndex();
+      const matches = index.sources.filter((s) => s.id === item);
+      const key = matches.length === 1 && sourceKey(matches[0]);
       Object.assign(state, {
         periodMode: 'all',
         line: '',
         category: '',
         query: '',
-        item: sourceKey(index.sources.find((s) => s.id === item) || {}),
+        item: key && !index.ambiguousItems.has(key) ? key : unresolvedItem,
         stack: [],
         active: 'jobs',
       });

@@ -380,3 +380,41 @@ test('source lookups retain first-match names and error codes, missing codes and
    ['two','','2026-11-24',['dup','absent','dup']]
  ]);
 });
+
+test('renumbered FQC items keep a single period and use the code captured by each document', () => {
+  const c=state(), old=source({code:'SYN / QA / A',errorCode:'E4'});
+  const approved={...old,code:'INSP FINAL 738',versionId:'v2',version:'2'};
+  cal.generateCalendar(c,[old],'2026-05-20','now');
+  const [started, waiting]=c.jobs;
+  const open=job=>r.executeRoutine(c,command(c,'create-plan',{jobIds:[job.id],startDate:job.start,endDate:job.end}),
+    [job===started ? old : approved],context());
+  const first=open(started), before=JSON.stringify(c);
+  const shown=r.fqcPlannerJobs(c,[approved]);
+  assert.deepEqual(Array.from(shown,job=>[job.id,job.period,job.itemId,job.source.code]),[
+    [started.id,started.period,old.id,old.code],[waiting.id,waiting.period,old.id,approved.code]]);
+  assert.equal(JSON.stringify(c),before);
+  assert.deepEqual(copy(shown.map(job=>[job.start,job.end,job.calendar,job.source.errorCode])),
+    copy(c.jobs.map(job=>[job.start,job.end,job.calendar,job.source.errorCode])));
+  const second=open(waiting);
+  assert.equal(c.documents.find(doc=>doc.id===first.documentId).flow.working.lines[0].source.code,old.code);
+  assert.equal(c.documents.find(doc=>doc.id===second.documentId).flow.working.lines[0].source.code,approved.code);
+  const originalReport=projectedReport(c,'original-failure',started,'fail');
+  originalReport.doc.flow={active:{id:'old-report-version',content:originalReport.value}};
+  r.applyRoutineDocumentApprovalEffects(c,originalReport.doc,originalReport.value,context());
+  const abnormal=c.cases[0], archived=JSON.stringify(originalReport.doc.flow.active.content);
+  const retest={...copy(started),id:'new-retest',planId:null,completion:null,
+    calendar:{...started.calendar,retestCaseId:abnormal.id,originJobId:started.id}};
+  abnormal.lineageJobIds=[retest.id];
+  c.jobs.push(retest);assert.equal(r.fqcPlannerJobs(c,[approved]).at(-1).source.code,old.code);
+  const repeat=open(retest);
+  const repeatLine=c.documents.find(doc=>doc.id===repeat.documentId).flow.working.lines[0];
+  assert.deepEqual([repeatLine.source.id,repeatLine.source.code],[old.id,old.code]);
+  const repeatReport=projectedReport(c,'repeat-pass',retest,'pass');
+  r.applyRoutineDocumentApprovalEffects(c,repeatReport.doc,repeatReport.value,context());
+  assert.equal(abnormal.status,'closed');
+  assert.equal(repeatReport.value.lines[0].source.code,old.code);
+  assert.equal(JSON.stringify(originalReport.doc.flow.active.content),archived);
+  assert.equal(originalReport.doc.flow.active.content.lines[0].source.code,old.code);
+  assert.equal(cal.generateCalendar(c,[approved],'2026-06-02','later'),2);
+  assert(c.jobs.filter(job=>job.start==='2026-06-01').every(job=>job.source.code===approved.code&&job.itemId===old.id));
+});

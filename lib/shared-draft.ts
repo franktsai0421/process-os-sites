@@ -42,6 +42,7 @@ export type DraftContext<T> = {
   allowed: (permission: DraftPermission) => boolean;
   // Pure structural validation and module-specific coupled-field validation.
   structure: (content: T, previous: T) => void;
+  checkSave?: (proposed: T) => void;
   checkApproval?: (before: T, proposed: T) => void;
   validate: (content: T) => DraftIssue[];
   // Only these explicit business codes may be advisory, only in process:platform.
@@ -223,6 +224,7 @@ export function applyDraftCommand<T>(source: SharedDraft<T>, command: DraftComma
     unchanged = same(state.working, source.working);
     if (!unchanged) state.contributors['[]'] = stamp;
   } else if (command.action === 'save') {
+    ctx.checkSave?.(state.working);
     unchanged = !!state.saved && same(state.working, state.saved.content);
     if (!unchanged) {
       state.saved = { ...stamp, id: ctx.id(), revision: source.revision, content: cloneDraft(state.working), contributors: cloneDraft(state.contributors),...(command.reason?.trim()?{reason:command.reason.trim()}:{}),...(command.source?.trim()?{source:command.source.trim()}:{} ) };

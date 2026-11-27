@@ -404,7 +404,7 @@
     finally{if(activeSharedAction===operation){activeSharedAction=null;ui.saving=false;if(owned()&&matrixBatch===batch){paintMatrixActions();render();}}}
   }
   const commandFeedbackPending=()=>!!pendingCommandFeedback?.owned();
-  const sharedFields={errors:['code','name','isDeleted'],items:['name','description','errorId','tool','equipmentId','equipmentSnapshot','mediaItems','isEnabled','rule','isMonthly','isQuarterly','isYearly','isCustomPeriod','customPeriodText','productCodes','productRefs','products','reason','note','isDeleted']};
+  const sharedFields={errors:['code','name','isDeleted'],items:['checkNo','name','description','errorId','tool','equipmentId','equipmentSnapshot','mediaItems','isEnabled','rule','isMonthly','isQuarterly','isYearly','isCustomPeriod','customPeriodText','productCodes','productRefs','products','reason','note','isDeleted']};
   function transport(){const actor=identity(),id=actor?.id,epoch=window.ProcessSync?.identityGeneration?.();if(!id)throw Error('LOGIN_REQUIRED');if(sharedActor!==id||sharedClient?.isRuntimeCurrent?.()===false||sharedClientOwner?.actor!==actor||sharedClientOwner.epoch!==epoch||sharedClientOwner.delivery&&window.ProcessSync?.isCurrentDelivery?.(sharedClientOwner.delivery)===false){sharedActor=id;sharedClientOwner={actor,epoch,delivery:window.ProcessSync?.captureDelivery?.()};sharedClient=window.createSharedDraftClient({durableBegin:true,guardAccessResults:true,fqcComparedSave:true,endpoint:'/api/fqc/workflow?caseMetadata=1',externalDurableBounded:{scope:'FQC'},legacyArchive:true,conditionalState:true,actorId:id,headers:()=>window.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'},permissionGates:{edit:'#fqc-page .matrix-cell,#fqc-add-item,#fqc-add-error,#fqc-page [data-edit-item],#fqc-page [data-edit-error],.fqc-modal-form button[type=submit]',save:'#fqc-save',submit:'#fqc-submit',withdraw:'#fqc-withdraw,#quality-withdraw',history:'#fqc-cases',approve:'#quality-approve',return:'#quality-reject',delete:'#fqc-page [data-delete-item],#fqc-page [data-delete-error]'}});}return sharedClient;}
   function adopt(result,selectOpen=false,confirmedBegin=false){if(beginGenerationConflict&&!confirmedBegin)throw Error('STALE_GENERATION');if(!result.control)return;const wasOpen=!selected()||['draft','pending'].includes(selected()?.status);ensureControl().libraries.fqc=result.control;if(wasOpen||selectOpen)ui.selectedVersionId=result.control.versions.find(v=>['draft','pending'].includes(v.status))?.id||result.control.activeVersionId||'';syncBase=clone(result.control.workflow?.working||selected()?.snapshot||{errors:[],items:[]});syncGeneration=result.control.workflow?.generation||null;sharedStateCurrent=currentReadOwner(()=>true,false);}
   async function loadShared(isCurrent=()=>true){const owned=currentReadOwner(isCurrent),r=await transport().read();if(!owned())throw Error('FQC_READ_SUPERSEDED');adopt(r);return r;}
@@ -657,7 +657,7 @@
     ui.lastError=null;ui.recoveryNotice=null;
     if(client.isSupersededRecovery?.(result)===true){confirmFormRecovery(result);client.acknowledgeSupersededRecovery(result);ui.recoveryNotice='FQC_PREVIOUS_GENERATION_CONFIRMED';}
     window.dispatchEvent(new CustomEvent('fqc-equipment-references-updated'));return result;
-  }catch(error){if(operation.owned()){ui.lastError=error.message;if(sentCommand?.moduleAction==='save-local-v1'&&transport().isConfirmedRejection(error,sentCommand))localRejection={command:sentCommand,error};}throw error;}finally{if(activeSharedAction===operation){activeSharedAction=null;ui.saving=false;if(operation.owned())render();}}}
+  }catch(error){if(operation.owned()){ui.lastError=displayDraftError(error);if(sentCommand?.moduleAction==='save-local-v1'&&transport().isConfirmedRejection(error,sentCommand))localRejection={command:sentCommand,error};}throw error;}finally{if(activeSharedAction===operation){activeSharedAction=null;ui.saving=false;if(operation.owned())render();}}}
   const ui = { line: '', category: '', search: '', selectedErrorId: '', matrixOpen: true, problemsOpen: false, selectedVersionId: '', saving: false, lastError: null, recoveryNotice: null };
 
   function read(key, fallback) { try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; } catch { return fallback; } }
@@ -1569,8 +1569,8 @@
       const [kind,entity,field]=patch.path;
       if(patch.op==='insert'){if(merged[kind].some(row=>row.id===patch.value.id))throw Error('FQC_MATRIX_SCOPE_CHANGED');merged[kind].push(clone(patch.value));continue;}
       const row=merged[kind].find(row=>row.id===entity.id),baseRow=syncBase?.[kind]?.find(row=>row.id===entity.id),guard=detail.guards.find(guard=>JSON.stringify(guard.path)===JSON.stringify(patch.path));
-      if(!row||!baseRow)throw Error('FQC_MATRIX_SCOPE_CHANGED');
-      if(JSON.stringify(row[field])===JSON.stringify(baseRow[field])){if(guard?.value===undefined)delete baseRow[field];else baseRow[field]=clone(guard.value);}
+      if(!row||!baseRow&&!owner.base[kind].some(value=>value.id===entity.id))throw Error('FQC_MATRIX_SCOPE_CHANGED');
+      if(baseRow&&JSON.stringify(row[field])===JSON.stringify(baseRow[field])){if(guard?.value===undefined)delete baseRow[field];else baseRow[field]=clone(guard.value);}
       row[field]=clone(patch.value);
     }
     editable().snapshot=merged;if(matrixOwner()&&!matrixBatch.pending){matrixBatch.rows.clear();matrixBatch.count=0;matrixChoiceRevision++;}ui.lastError=null;render();return true;
@@ -2066,7 +2066,7 @@
     const version = {...clone(baseVersion),snapshot:editable()?.id===baseVersion.id?localSnapshot():clone(baseVersion.snapshot)}, errors = errorRows(version, categoryName(version)), items = version.snapshot.items, existing = items.find(item => item.id === id), error = errors.find(item => item.id === (existing?.errorId || ui.selectedErrorId)) || errors[0]; if (!error) return;
     const newId = `fqc-item:${crypto.randomUUID()}`;
     const productCodes = new Set(existing?.productCodes || []); if (preselectCode) productCodes.add(preselectCode);
-    const products = effectiveProducts(error.category), checkNo = existing?.checkNo || nextCheckNo(error, items);
+    const products = effectiveProducts(error.category), checkNo = existing ? existing.checkNo : nextCheckNo(error, items);
     const currentMedia = clone(existing?.mediaItems || []).map(m => ({ ...m, id: m.id || (`fqc-media:${crypto.randomUUID()}`), note: m.note || '' }));
     const initialMediaJSON=JSON.stringify(currentMedia),initialEquipmentId=existing?.equipmentId||'';
     const vi = isVi();
@@ -2081,10 +2081,10 @@
     }
     let toolType = initialToolType;
 
-    const overlay = modal(`<form class="fqc-modal-form fqc-item-form"><header><h2>${readOnly ? (vi ? 'Xem hạng mục kiểm tra (chỉ đọc)' : '查看檢查項目（唯讀）') : existing ? (vi ? 'Sửa hạng mục kiểm tra' : '修改檢查項目') : (vi ? 'Thêm hạng mục kiểm tra mới' : '新增檢查項目')} · ${h(checkNo)}</h2><button type="button" class="button ghost" data-close>${vi ? 'Quay lại' : '返回'}</button></header><div class="fqc-modal-body">
+    const overlay = modal(`<form class="fqc-modal-form fqc-item-form"><header><h2>${readOnly ? (vi ? 'Xem hạng mục kiểm tra (chỉ đọc)' : '查看檢查項目（唯讀）') : existing ? (vi ? 'Sửa hạng mục kiểm tra' : '修改檢查項目') : (vi ? 'Thêm hạng mục kiểm tra mới' : '新增檢查項目')}${readOnly ? ' · '+h(checkNo) : ''}</h2><button type="button" class="button ghost" data-close>${vi ? 'Quay lại' : '返回'}</button></header><div class="fqc-modal-body">
       <div class="fqc-form-grid">
         <div class="fqc-field"><label class="fqc-label">${vi ? 'Mã lỗi' : '錯誤代碼'}</label><select name="errorId" class="fqc-select">${errors.map(item => `<option value="${h(item.id)}" ${item.id === error.id ? 'selected' : ''}>${h(item.code)} · ${h(item.name)}</option>`).join('')}</select></div>
-        <div class="fqc-field"><label class="fqc-label">${vi ? 'Mã kiểm tra FQC (tự động)' : 'FQC 檢查編號（自動）'}</label><input value="${h(checkNo)}" readonly data-i18n-skip="true" class="fqc-input fqc-readonly"></div>
+        <div class="fqc-field"><label class="fqc-label" for="fqc-item-code">${vi ? 'Mã kiểm tra FQC' : 'FQC 檢查編號'}</label><input id="fqc-item-code" data-quality-item-code name="checkNo" value="${h(checkNo)}" ${readOnly?'readonly':''} data-i18n-skip="true" class="fqc-input"></div>
       </div>
       <div class="fqc-field" data-field-wrap="name"><label class="fqc-label">${vi ? 'Hạng mục kiểm tra' : '檢查項目'}</label><input name="name" value="${h(existing?.name || '')}" required data-i18n-skip="true" class="fqc-input"><div class="fqc-field-error" data-field-error="name"></div></div>
       <div class="fqc-field"><label class="fqc-label">${vi ? 'Mô tả phương pháp kiểm' : '檢查方式敘述'}</label><textarea name="description" data-i18n-skip="true" class="fqc-textarea">${h(existing?.description || '')}</textarea></div>
@@ -2419,6 +2419,8 @@
       clearModalErrors(overlay);
       try { assertFormCurrent(); } catch(error) { showModalAlert(overlay,'error',error.message); return; }
       const form = new FormData(event.target);
+      const code = window.readQualityItemCode(event.target.querySelector('[data-quality-item-code]'), existing?.id, existing?.checkNo, [...items, ...(approved()?.snapshot?.items || [])]);
+      if (code === null) return;
       const name = nativeFormValueText(form.get('name') || '').trim();
       if (!name) {
         showModalFieldError(overlay, 'name', vi ? 'Vui lòng nhập tên hạng mục kiểm tra' : '請輸入檢查項目名稱');
@@ -2519,9 +2521,9 @@
       const release=lockFormWrite(overlay);
       const beforeSave = clone(version);
       const selectedError = errors.find(item => item.id === form.get('errorId')) || error;
-      const value = version.snapshot.items.find(row=>row.id===existing?.id) || { id: newId, checkNo, isDeleted: false };
+      const value = version.snapshot.items.find(row=>row.id===existing?.id) || { id: newId, isDeleted: false };
       Object.assign(value, {
-        errorId: selectedError.id, category: selectedError.category, line: selectedError.line, name,
+        checkNo: code, errorId: selectedError.id, category: selectedError.category, line: selectedError.line, name,
         description: nativeFormValueText(form.get('description') || ''),
         tool: finalTool,
         equipmentId: finalEqId,
@@ -2544,7 +2546,7 @@
         if(JSON.stringify(currentMedia)===initialMediaJSON)keep(['mediaItems']);
       }
       if (!existing) version.snapshot.items.push(value);
-      record(version, existing ? 'item-updated' : 'item-created', `${existing ? '修改' : '新增'}檢查項目 ${checkNo}`, note);
+      record(version, existing ? 'item-updated' : 'item-created', `${existing ? '修改' : '新增'}檢查項目 ${code}`, note);
       try {
         await persistForm(overlay,version);
         if(formCurrent()&&formWriteCurrent(overlay))closeModal(overlay);

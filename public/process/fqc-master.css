@@ -115,6 +115,7 @@ body.fqc-modal-open{overflow:hidden}
 .fqc-modal header button{background:transparent;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:4px;padding:6px 10px;cursor:pointer;font-size:.8125rem}
 .fqc-modal header button:hover{background:rgba(255,255,255,.15)}
 #toast{z-index:100005!important}
+body:has(.fqc-item-form) #toast[role="status"]{pointer-events:none}
 .fqc-modal-body{display:flex;flex-direction:column;gap:16px;padding:20px 24px;overflow-y:auto;flex:1}
 .fqc-field{display:flex;flex-direction:column;gap:6px;width:100%}
 .fqc-label{font-size:.8125rem;font-weight:700;color:#24312d;display:block}

@@ -1,4 +1,4 @@
-import {checkApprovalItemOwners} from './quality-approval-ownership';
+import {itemCodeReview,approvedCodes,chooseItemCode,prepareItemCodes,validateItemCodes} from './quality-item-code';
 import {activeErrorRows,manualErrorCode} from './manual-error-code';
 import { applyDraftCommand, createSharedDraft, DraftConflict, stableDraftJSON, type DraftCommand, type DraftContext, type DraftPatch, type SharedDraft } from './shared-draft';
 import { activeIpqc, openIpqc, checkedIpqcSnapshot, checkedIpqcRule, nextItemCode, submitIpqcIssues, copyIpqc, type IpqcControl, type IpqcSnapshot, type IpqcItem, type IpqcError } from './ipqc-c';
@@ -34,7 +34,7 @@ export function ipqcWorkflowContext(control: IpqcWorkflowControl, context: Omit<
   products: { code: string; stages: string[] }[]): DraftContext<IpqcSnapshot> {
   const active = activeIpqc(control);
   return { ...context, activeId:active?.id || null,
-    checkApproval:(before,proposed)=>checkApprovalItemOwners(control,before,proposed,'code'),
+    ...itemCodeReview(control,'code'),
     advisoryPolicy:'ipqc-completeness-v1',
     restoreContent(historical,current){
       for(const kind of ['errors','items'] as const)for(const row of current[kind])
@@ -43,6 +43,7 @@ export function ipqcWorkflowContext(control: IpqcWorkflowControl, context: Omit<
     },
     semantic: content => ({ errors:content.errors.filter(e=>!e.deleted),items:content.items.filter(i=>!i.deleted) }),
     structure(content, previous) {
+      prepareItemCodes(content,previous,approvedCodes(control),'code');
       // Reuse the existing schema and identity validator. Additions are allocated by
       // module commands; arbitrary client insertion/removal is not allowed here.
       const version = openIpqc(control) || active;
@@ -50,6 +51,7 @@ export function ipqcWorkflowContext(control: IpqcWorkflowControl, context: Omit<
       checkedIpqcSnapshot({...version,snapshot:previous},content,activeErrorRows(control));
     },
     validate(content) {
+      const approved=approvedCodes(control);validateItemCodes(content,approved,approved,'code');
       const version = openIpqc(control) || active;
       if (!version) return [{kind:'error',path:[],message:'INITIAL_BUILD_REQUIRED'}];
       return submitIpqcIssues({...version,snapshot:content},active,products);
@@ -201,7 +203,7 @@ export function applyIpqcWorkflow(control: IpqcWorkflowControl, command: IpqcWor
     } else if(command.moduleAction==='create-item') {
       const parent=working.errors.find(e=>e.id===input.errorId&&!e.deleted);if(!parent)throw new DraftConflict('ERROR_CODE_REMOVED');
       const raw=input.item||{};
-      newItem={id:'item-'+command.operationId,code:nextItemCode(control,parent.code,context.allocationIndex),errorId:parent.id,productCode:parent.productCode,stageCode:parent.stageCode,
+      newItem={id:'item-'+command.operationId,code:chooseItemCode(raw.code,()=>nextItemCode(control,parent.code,context.allocationIndex),control.reservedItemCodes),errorId:parent.id,productCode:parent.productCode,stageCode:parent.stageCode,
         standard:text(raw.standard),description:text(raw.description),note:text(raw.note),reason:'',tool:'',method:'',frequency:text(raw.frequency),
         standardEnabled:raw.standardEnabled!==false,cpkEnabled:raw.cpkEnabled===true,notApplicable:false,deleted:false,
         ...(raw.notApplicableReason!==undefined?{notApplicableReason:text(raw.notApplicableReason)}:{}),
@@ -217,13 +219,13 @@ export function applyIpqcWorkflow(control: IpqcWorkflowControl, command: IpqcWor
       patches.push({op:'set',path:[kind,{id:row.id},'deleted'],value:true});
     }
     const result=applyDraftCommand(control.workflow,{...command,patches},{...context,commandFingerprint:fingerprint,
-      structure(content,previous){context.structure(content,{errors:[...previous.errors,...(newError?[newError]:[])],
+      structure(content,previous){prepareItemCodes(content,previous,approvedCodes(control),'code');context.structure(content,{errors:[...previous.errors,...(newError?[newError]:[])],
         items:[...previous.items,...(newItem?[{...newItem,equipmentId:'',equipmentSnapshot:null}]:[])]});}});
     control.workflow=result.state;return result.receipt;
   }
   if (command.action === 'apply') for (const patch of command.patches || []) {
     const [collection, entity, field] = patch.path;
-    const fields = collection === 'errors' ? ['code','name','note','reason'] : ['standard','description','note','reason','tool','method','frequency',
+    const fields = collection === 'errors' ? ['code','name','note','reason'] : ['code','standard','description','note','reason','tool','method','frequency',
       'cpkEnabled','standardEnabled','notApplicable','notApplicableReason','equipmentGroupId','equipmentId','mediaItems','rule'];
     if (patch.op !== 'set' || patch.path.length !== 3 || typeof collection!=='string' || !['errors','items'].includes(collection) ||
         !entity || typeof entity === 'string' || typeof field!=='string' || !fields.includes(field)) throw new DraftConflict('UNSUPPORTED_ITEM_PATCH',422);
