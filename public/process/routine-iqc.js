@@ -1519,9 +1519,9 @@
           entry.type='button';
           entry.setAttribute(root.id==='review-routine-fqc'?'data-review-module':'data-module','1');
           entry.textContent='IQC';
-          if(window.hasPermission?.('iqc.view'))nav.append(entry);
-          if(calibrationEnabled()){const calibration=entry.cloneNode(false);calibration.setAttribute(root.id==='review-routine-fqc'?'data-review-module':'data-module','3');calibration.textContent=t('檢具與測試設備校準','Hiệu chuẩn thiết bị');nav.append(calibration);}
-          panel.prepend(nav);
+          if(window.hasPermission?.('iqc.view')&&!panel.querySelector(fqcModuleSwitch))nav.append(entry);
+          if(calibrationEnabled()&&!panel.querySelector('[data-module="3"],[data-review-module="3"]')){const calibration=entry.cloneNode(false);calibration.setAttribute(root.id==='review-routine-fqc'?'data-review-module':'data-module','3');calibration.textContent=t('檢具與測試設備校準','Hiệu chuẩn thiết bị');nav.append(calibration);}
+          if(nav.children.length)panel.prepend(nav);
         }
       }
       // The existing module button only switches views. Keep it available
