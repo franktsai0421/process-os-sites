@@ -38,16 +38,18 @@ export function chooseItemCode(value:unknown, allocate:()=>string, reserved:stri
 }
 
 type Peers = () => Peer[];
-type CodeCheck = [next:Snapshot, previous:Snapshot, active:Snapshot, field:Field, peers?:Peers];
+type DescribeOwner = (code:string,id:string,draft:Item[],active:Item[])=>object | undefined;
+type CodePolicy = {describe?:DescribeOwner; reserveDeleted?:boolean};
+type CodeCheck = [next:Snapshot, previous:Snapshot, active:Snapshot, field:Field, peers?:Peers, policy?:CodePolicy];
 
-export function itemCodeReview(control:Control, field:Field, peers?:Peers) {
+export function itemCodeReview(control:Control, field:Field, peers?:Peers, policy?:CodePolicy) {
   return {
     checkSave(proposed:Snapshot) {
       const active = approvedCodes(control);
-      validateItemCodes(proposed,active,active,field,peers);
+      validateItemCodes(proposed,active,active,field,peers,policy);
     },
     checkApproval(before:Snapshot, proposed:Snapshot) {
-      validateItemCodes(proposed,before,approvedCodes(control),field,peers);
+      validateItemCodes(proposed,before,approvedCodes(control),field,peers,policy);
       checkApprovalItemOwners(control,before,proposed,field);
     }
   };
@@ -62,7 +64,7 @@ export function prepareItemCodes(...args:CodeCheck) {
   checkChangedCodes(true,...args);
 }
 
-function checkChangedCodes(prepare:boolean, next:Snapshot, previous:Snapshot, active:Snapshot, field:Field, peers?:Peers) {
+function checkChangedCodes(prepare:boolean, next:Snapshot, previous:Snapshot, active:Snapshot, field:Field, peers?:Peers, policy?:CodePolicy) {
   const old = new Map(previous.items.map(row => [row.id,row]));
   const changes = next.items.filter(row => {
     const before = old.get(row.id);
@@ -72,7 +74,7 @@ function checkChangedCodes(prepare:boolean, next:Snapshot, previous:Snapshot, ac
   const claims = new Map<string,Map<string,{row:Item; scope?:string}>>();
   function index(rows:Item[], scope?:string) {
     for (const row of rows) {
-      if (!visible(row) && field !== 'checkNo') continue;
+      if (!visible(row) && !(policy?.reserveDeleted ?? (field === 'checkNo'))) continue;
       const key = normalized(row[field]);
       if (!key) continue;
       let owners = claims.get(key);
@@ -92,7 +94,8 @@ function checkChangedCodes(prepare:boolean, next:Snapshot, previous:Snapshot, ac
         if (owner.scope === undefined && owner.row.id === row.id) continue;
         throw new DraftConflict('ITEM_CODE_DUPLICATE',422,{
           code,itemId:row.id,occupiedBy:owner.row.id,occupiedName:owner.row.nameVi || owner.row.name || owner.row.standard || owner.row.id,
-          ...(owner.scope === undefined ? {} : {scope:owner.scope})
+          ...(owner.scope === undefined ? {} : {scope:owner.scope}),
+          ...policy?.describe?.(code,row.id,next.items,active.items)
         });
       }
     }

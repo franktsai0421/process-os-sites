@@ -104,6 +104,7 @@ void test('the proposed shell delta is confined to the four routine asset tags',
     ['ipqc-c.js','20261116-quality-office1'],
     ['shared-draft-client.js','20261118-standard-frequency1'],
   ]) expected=expected.replace(script(asset+'?v='+previous),script(asset+'?v=20261126-full-item-code1'));
+  for (const asset of ['fqc-master.js','shared-draft-client.js']) expected=expected.replace(script(asset+'?v=20261126-full-item-code1'),script(asset+'?v=20261127-fqc-code-owner1'));
   expected=expected.replace('fqc-master.css?v=20261119-routine-repair1','fqc-master.css?v=20261126-full-item-code1');
   for(const [file,prior] of [['process-authoring-v3.js','20261115-canvas-inspection1'],['canvas-recovery-store.js','20261110-process-integration2'],['canvas-local.js','20261125-canvas-photos'],['delivery-navigation.js','20261119-routine-entry']]){
     const from=script(file+'?v='+prior);assert.equal(expected.split(from).length,2,from);

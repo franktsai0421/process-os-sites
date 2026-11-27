@@ -22,7 +22,7 @@
     }
     return prefix + String(max + 1).padStart(2, '0');
   };
-  window.readQualityItemCode = (input, id, previous, items) => {
+  window.readQualityItemCode = (input, id, previous, items, describeOwner) => {
     const value = input.value.trim();
     // A legacy duplicate may still have unrelated edits. Preserve its original spelling.
     if (previous !== undefined && input.value === previous) return previous;
@@ -31,7 +31,7 @@
     const owner = value && items.find(row => (row.id !== id || row.scope) && (field === 'checkNo' || !row.deleted && !row.isDeleted) &&
       typeof row[field] === 'string' && row[field].trim().toLowerCase() === key);
     const error = !value ? 'ITEM_CODE_REQUIRED' : owner && {
-      message:'ITEM_CODE_DUPLICATE', details:{code:value, scope:owner.scope, occupiedName:owner.nameVi || owner.name || owner.standard, occupiedBy:owner.id},
+      message:'ITEM_CODE_DUPLICATE', details:{code:value, scope:owner.scope, occupiedName:owner.nameVi || owner.name || owner.standard, occupiedBy:owner.id, ...describeOwner?.(value)},
     };
     if (error) {
       input.setCustomValidity(window.sharedDraftErrorMessage(error));
@@ -86,6 +86,21 @@
     const raw = typeof error === 'string' ? error : error?.message || String(error ?? '');
     const code = Object.hasOwn(messages, error?.code) ? error.code : raw;
     const message = Object.hasOwn(messages, code) ? messages[code][language === 'vi' ? 1 : 0] : raw;
+    if ((code === 'ERROR_CODE_DUPLICATE' || code === 'ITEM_CODE_DUPLICATE') && error?.details?.fqcOwnerSource) {
+      const {fqcOwnerSource, otherApproved} = error.details;
+      const labels = {
+        draft:['目前草稿','Bản nháp hiện tại'],
+        both:['目前草稿及現行核准版','Bản nháp hiện tại và phiên bản đã duyệt đang áp dụng'],
+        approved:['現行核准版仍占用；目前草稿未列有此有效代碼。','Phiên bản đã duyệt đang áp dụng vẫn giữ mã này. Mã không còn hiệu lực trong bản nháp hiện tại.'],
+      };
+      if (Object.hasOwn(labels,fqcOwnerSource)) {
+        const vi = language === 'vi';
+        const location = ({line,category,occupiedName}) => [line && (vi ? 'Dây chuyền ' + line : line + ' 線'), category, occupiedName];
+        const parts = [message, labels[fqcOwnerSource][vi ? 1 : 0], ...location(error.details)];
+        if (otherApproved) parts.push(vi ? 'Bản ghi khác trong phiên bản đã duyệt' : '現行核准版另有一筆', ...location(otherApproved));
+        return parts.filter(Boolean).join(' · ');
+      }
+    }
     if (code === 'ITEM_CODE_DUPLICATE' && error?.details) {
       const {code:occupiedCode, occupiedName, occupiedBy, scope} = error.details;
       return [message, scope, occupiedCode, occupiedName || occupiedBy].filter(value => typeof value === 'string' && value.trim()).join(' · ');
@@ -779,6 +794,8 @@
       const proof=boundedResponses.get(error),id=error.requestId,code=error.message,action=command.action;
       const iqcLocalSave=boundedScope==='iqc'&&action==='save'&&['save-local-v1','save-local-revive-v1'].includes(command.moduleAction)&&Array.isArray(command.patches);
       if(!proof||proof.record!==boundedRecord||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||!externalCurrent()||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||''))return false;
+      if (boundedScope === 'fqc' && ['apply','save','submit','approve'].includes(action) &&
+          error.status === 422 && ['ERROR_CODE_DUPLICATE','ERROR_CODE_REQUIRED'].includes(code)) return true;
       if (['fqc','iqc','ipqc-ab:module','ipqc-c'].includes(boundedScope) && ['apply','save','submit','approve'].includes(action) &&
           error.status === 422 && ['ITEM_CODE_DUPLICATE','ITEM_CODE_REQUIRED'].includes(code)) return true;
       if(['fqc','iqc','tooling'].includes(boundedScope)&&['apply','save','restore'].includes(action)&&error.status===422&&code==='CUSTOM_TIME_FREQUENCY_READ_ONLY')return true;
