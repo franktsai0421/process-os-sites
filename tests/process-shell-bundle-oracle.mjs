@@ -21,10 +21,11 @@ groups[1].splice(groups[1].indexOf('master-data.js'),0,'version-draft-ui.js',...
 groups[1].splice(groups[1].indexOf('routine-fqc.js'),0,...reviewedProcessBundleAdditions.slice(5,8));
 groups[1].splice(groups[1].indexOf('user-access.js'),0,reviewedProcessBundleAdditions[8]);
 export const historicalProcessBundleGroups=Object.freeze(groups.map(row=>Object.freeze([...row])));
-export const proposedProcessBundleAdditions=Object.freeze(['routine-reset.js']);
+export const proposedProcessBundleAdditions=Object.freeze(['routine-reset.js','piece-calibration.js']);
 const resetAnchor='routine-fqc-page.js';
 assert.equal(groups[1].filter(name=>name===resetAnchor).length,1);
-groups[1].splice(groups[1].indexOf(resetAnchor),0,...proposedProcessBundleAdditions);
+groups[1].splice(groups[1].indexOf(resetAnchor),0,proposedProcessBundleAdditions[0]);
+groups[1].splice(groups[1].indexOf('routine-iqc.js'),0,proposedProcessBundleAdditions[1]);
 export const expectedProcessBundleGroups=Object.freeze(groups.map(row=>Object.freeze(row)));
 export function assertProcessScriptBundles(assets,readSource){
  assert.deepEqual(assets.map(asset=>asset.sources),expectedProcessBundleGroups,'exact expected bundle groups and source order');

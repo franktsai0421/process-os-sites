@@ -20,6 +20,7 @@ function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirm
  const returnToFqc=new Element();returnToFqc.dataset={riAction:'module:0'};
  returnToFqc.closest=()=>returnToFqc;
  entry.closest=selector=>selector.includes('data-module')?entry:null;
+ entry.matches=selector=>selector.includes('[data-module="1"]')||selector.includes('[data-review-module="1"]');
  retry.closest=selector=>selector==='[data-action="retry"]'?retry:null;
  const errorText={nodeType:3,nodeValue:'OPERATION_NOT_FOUND'};
  retry.parentElement={firstChild:errorText};
@@ -34,7 +35,8 @@ function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirm
    querySelector(selector){return selector.includes('routine-fqc-root')?fqcRoot:switchButton;}};
  const iqc={matches:()=>false,contains:node=>node===iqcRoot,
    querySelector:selector=>selector==='.ri-app'?iqcRoot:switchButton};
- const root={isConnected:true,querySelector:selector=>selector==='[data-ri-fqc]'?fqc:iqc};
+ const calibration={hidden:true,inert:true};
+ const root={isConnected:true,querySelector:selector=>selector==='[data-ri-fqc]'?fqc:selector==='[data-ri-calibration]'?calibration:iqc};
  const container={querySelector:()=>root};
  const document={documentElement:{lang},querySelector:()=>pendingBadge,addEventListener(_name,handler){onClick=handler;},
    createElement(tag){

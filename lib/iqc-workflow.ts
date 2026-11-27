@@ -1,3 +1,4 @@
+import {calibrationEquipmentDependency} from './equipment-catalog.mjs';
 import {itemCodeReview,approvedCodes,requireItemCode,prepareItemCodes,validateItemCodes} from './quality-item-code';
 import {activeErrorRows,manualErrorCode} from './manual-error-code';
 import { emptyIqcControl, emptyIqcSnapshot, checkedIqcSnapshot, iqcContentIssues, nextIqcCheckNo, type IqcControl, type IqcSnapshot } from './iqc';
@@ -29,7 +30,7 @@ export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>=
   context(control,state,base){
     const approved=effectiveVersion(control);
     const approvedContent=approved?.status==='approved'&&Array.isArray(approved.snapshot?.items)?approved.snapshot:undefined;
-    const equipment=parse(state.values.routineEquipmentControl,{}) as {activeVersionId?:string;versions?:{id:string;status:string;equipment:{id:string;enabled?:boolean;assetCode?:string;pieceMark?:string;name?:string;nameVi?:string;spec?:string;photoId?:string}[]}[]};
+    const equipment=calibrationEquipmentDependency(parse(state.values.routineEquipmentControl,{})) as {activeVersionId?:string;versions?:{id:string;status:string;equipment:{id:string;enabled?:boolean;assetCode?:string;pieceMark?:string;name?:string;nameVi?:string;spec?:string;photoId?:string}[]}[]};
     const selected=new Map((equipment.versions?.find(v=>v.id===equipment.activeVersionId&&v.status==='approved')?.equipment||[]).map(e=>[e.id,e]));
     return {...base,validateRevivedEquipment:(content:IqcSnapshot,ids:Set<string>)=>{for(const item of content.items)if(ids.has(item.id)&&item.equipmentId&&(!selected.has(item.equipmentId)||selected.get(item.equipmentId)?.enabled===false))throw new DraftConflict('EQUIPMENT_UNAVAILABLE',422);},activeId:effectiveVersion(control)?.id||null,
     ...itemCodeReview(control,'checkNo'),

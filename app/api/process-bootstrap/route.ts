@@ -16,7 +16,7 @@ export async function GET(request:Request){
     const auth=await readState({keys:[...identityKeys],identityReadToken}),before=await companyReader(request,auth);
     if(!before)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers:responseHeaders});
     // Availability only, never an account permission or a private-store read.
-    const features={webFeedback:(env as typeof env & {WEB_FEEDBACK_ENABLED?:string}).WEB_FEEDBACK_ENABLED==='1'};
+    const features={pieceCalibration:(env as typeof env & {PIECE_CALIBRATION_ENABLED?:string}).PIECE_CALIBRATION_ENABLED==='1',webFeedback:(env as typeof env & {WEB_FEEDBACK_ENABLED?:string}).WEB_FEEDBACK_ENABLED==='1'};
     let plan;
     try{plan=await destinationPlan(new URL(request.url).search,before.canRead,auth.recordStorage?Object.keys(auth.recordStorage.envelope.__processRecords.values):Object.keys(auth.values),features);}
     catch(error){return Response.json({error:error instanceof Error?error.message:'INVALID_DESTINATION'},{status:error instanceof Error&&error.message==='DESTINATION_FORBIDDEN'?403:error instanceof Error&&error.message==='DESTINATION_UNAVAILABLE'?404:400,headers:responseHeaders});}

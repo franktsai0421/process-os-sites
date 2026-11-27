@@ -418,7 +418,7 @@ export async function prepareEquipmentWrite(bucket:Bucket,row:{revision:number;v
  const original=await canonicalOverlayEnvelope(row.values);
  if(!original)return null;
  const key='routineEquipmentControl',manifest=original.__processRecords;
- const keys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',key];
+ const keys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',key,'pieceCalibrationLedger'];
  if(options.referenceHistory||options.validateReferences)keys.push('qualityMasterControl','iqcMasterControl','ipqcCMasterControl','ipqcABMasterControl');
  const selected=await decodeRecordValues(bucket,original,{keys,modelKey:key,
    deferHistory:!options.referenceHistory,deferDependencyHistory:!options.referenceHistory,
