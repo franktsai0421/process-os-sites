@@ -18,6 +18,7 @@
   const lastEdit = version => [...(version?.history||[])].reverse().find(event=>!['submit','approve','reject','withdraw'].includes(event.action));
   const pendingPhotos = new Map();
   const photo = item => pendingPhotos.get(item?.id)?.url || (item?.photoHidden ? '' : item?.photoId ? `${api}/photo?id=${item.photoId}` : item?.photoSource?.webPath || '');
+  let calibrationFacts={};
   const vietnamToday = () => {
     try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date()); }
     catch { return new Date().toISOString().slice(0, 10); }
@@ -749,6 +750,7 @@
     if(localBeginReceipt&&body.control.workflow?.generation!==localBeginReceipt.generation)throw Error('STALE_GENERATION');
     if(controlActor!==actor){submitProblems=[];problemSnapshot=null;openErrors=false;}
     if(deliveryRecheck)readClient.confirmEquipmentDelivery(access);
+    if(body.calibrationFacts)calibrationFacts=body.calibrationFacts;
     control = body.control; revision = body.revision;controlActor=actor;readUnavailable=recovery;
     const version = selected();
     if (!selectedVersionId || !control.versions.some(item => item.id === selectedVersionId)) selectedVersionId = version?.id || '';
@@ -779,7 +781,8 @@
       submitProblems = [];
       openErrors = false;
       if (!body.control || !Number.isInteger(body.revision)) throw Error(t('後端未回傳保存確認', 'Máy chủ không phản hồi xác nhận lưu'));
-      control = body.control; revision = body.revision;
+      if(body.calibrationFacts)calibrationFacts=body.calibrationFacts;
+    control = body.control; revision = body.revision;
       if (!preserve) working = open()?.status === 'draft' ? snapshotOf(open()) : null;
       selectedVersionId = open()?.id || active()?.id || '';
       window.dispatchEvent(new CustomEvent('routine-equipment-updated', {
@@ -848,7 +851,8 @@
         body: JSON.stringify({ action: 'import', baseRevision: revision, source }) });
       const body = await result.json().catch(() => ({}));
       if (!result.ok || !body.control || !Number.isInteger(body.revision)) throw Error(body.error || t('匯入未完成', 'Nhập chưa hoàn tất'));
-      control = body.control; revision = body.revision; selectedVersionId = open()?.id || '';
+      if(body.calibrationFacts)calibrationFacts=body.calibrationFacts;
+    control = body.control; revision = body.revision; selectedVersionId = open()?.id || '';
       working = open()?.status === 'draft' ? snapshotOf(open()) : null;
       message = t(`已匯入 ${open()?.equipment.length || 0} 筆待確認草稿、37 筆來源待確認事項；沒有建立生效版。`, `Đã nhập ${open()?.equipment.length || 0} bản nháp, 37 mục chờ đối soát; chưa tạo bản hiệu lực.`);
       try { await window.ProcessSync?.refresh?.(); } catch { /* keep dirty edits */ }
@@ -857,6 +861,12 @@
   }
 
   function itemUse(item, version) {
+    const fact=version?.status!=='superseded'&&calibrationFacts[item.id];
+    if(fact?.locked){
+      if(fact.status==='retired')return t('已報廢','Đã thanh lý');
+      if(['failed','suspended'].includes(fact.status))return t('不合格','Không đạt');
+      item={...item,...fact.dates};
+    }
     const estimated = version?.status !== 'approved' && version?.status !== 'superseded';
     const show = value => estimated ? `${t('預估：', 'Dự kiến: ')}${value}` : value;
     if (!item.enabled) return show(t('未啟用', 'Chưa kích hoạt'));
@@ -940,6 +950,7 @@
     }
     const cycleProb = getProblem(item.id, 'calibrationCycle');
     const customProb = getProblem(item.id, 'customCycle');
+    const dates=calibrationFacts[item.id]?.locked?calibrationFacts[item.id].dates:item;
     const calProb = getProblem(item.id, 'calibratedAt');
     const expProb = getProblem(item.id, 'expiresAt');
 
@@ -956,10 +967,10 @@
           <input readonly data-field="customCycle" data-i18n-skip="true" type="text" class="${customProb ? 'has-error' : ''}" value="${h(item.customCycle || '')}" ${can ? '' : 'disabled'}>
         </label>` : ''}
       <label>${t('最近校正日期', 'Ngày hiệu chuẩn gần nhất')}${calProb ? `<span class="routine-field-error">⚠️ ${h(problemMessage(calProb).replace(/^.*?:\s*/, ''))}</span>` : ''}
-        <input data-field="calibratedAt" type="date" class="${calProb ? 'has-error' : ''}" value="${h(item.calibratedAt || '')}" ${can ? '' : 'disabled'}>
+        <input data-field="calibratedAt" type="date" class="${calProb ? 'has-error' : ''}" value="${h(dates.calibratedAt || '')}" ${can && !calibrationFacts[item.id]?.locked ? '' : 'disabled'}>
       </label>
       <label>${t('校正有效期限（含當天有效）', 'Hạn hiệu chuẩn')}${expProb ? `<span class="routine-field-error">⚠️ ${h(problemMessage(expProb).replace(/^.*?:\s*/, ''))}</span>` : ''}
-        <input data-field="expiresAt" type="date" class="${expProb ? 'has-error' : ''}" value="${h(item.expiresAt || '')}" ${can ? '' : 'disabled'}>
+        <input data-field="expiresAt" type="date" class="${expProb ? 'has-error' : ''}" value="${h(dates.expiresAt || '')}" ${can && !calibrationFacts[item.id]?.locked ? '' : 'disabled'}>
       </label>
     `;
   }
@@ -1992,9 +2003,9 @@
     const curMethod = host.querySelector('#routine-editor [data-select="calibrationMethod"]')?.value;
     if (curMethod && curMethod !== methodCode(formSnapshot.calibrationMethod)) return true;
     const curCalAt = host.querySelector('#routine-editor [data-field="calibratedAt"]')?.value;
-    if (curCalAt !== undefined && curCalAt !== (formSnapshot.calibratedAt || '')) return true;
+    if (!calibrationFacts[formSnapshot.id]?.locked && curCalAt !== undefined && curCalAt !== (formSnapshot.calibratedAt || '')) return true;
     const curExpAt = host.querySelector('#routine-editor [data-field="expiresAt"]')?.value;
-    if (curExpAt !== undefined && curExpAt !== (formSnapshot.expiresAt || '')) return true;
+    if (!calibrationFacts[formSnapshot.id]?.locked && curExpAt !== undefined && curExpAt !== (formSnapshot.expiresAt || '')) return true;
     const curSpec = host.querySelector('#routine-editor [data-field="spec"]')?.value;
     if (curSpec !== undefined && curSpec !== (formSnapshot.spec || '')) return true;
     const curNotes = host.querySelector('#routine-editor [data-field="notes"]')?.value;
@@ -3028,7 +3039,7 @@
     if (!sourceEq) return '';
 
     const approvedVer = control?.versions?.find(v => v.id === control.activeVersionId && v.status === 'approved');
-    const availableTargets = (approvedVer?.equipment || []).filter(e => e.id !== sourceId && e.enabled !== false && (!transferDialog.targetCat || e.categoryId === transferDialog.targetCat || e.categoryCode === transferDialog.targetCat));
+    const availableTargets = (approvedVer?.equipment || []).filter(e => e.id !== sourceId && e.enabled !== false && !control.calibrationUnavailable?.includes(e.id) && (!transferDialog.targetCat || e.categoryId === transferDialog.targetCat || e.categoryCode === transferDialog.targetCat));
     const targetEq = (approvedVer?.equipment || []).find(e => e.id === targetEqId);
 
     const previewItems = moduleId => transferPreviewItems(transferDialog.preview,moduleId);
@@ -3410,7 +3421,8 @@
         equipmentEditRequest++;
         if(viewDialog?.kind==='equipment'&&viewDialog.data?.id===id&&viewDialog.references?.current())return;
         viewDialog?.references?.closeDetail?.();
-        viewDialog = { kind: 'equipment', data: item };
+        const fact=calibrationFacts[id];
+        viewDialog = { kind: 'equipment', data: visible()?.status!=='superseded'&&fact?.locked?{...item,...fact.dates}:item };
         viewDialog.references=newViewReferences(id);
         render();
       }
@@ -3909,9 +3921,9 @@
         const customCycleInput = root.querySelector('#routine-editor [data-field="customCycle"]');
         if (customCycleInput) item.customCycle = customCycleInput.value.trim();
         const calAtInput = root.querySelector('#routine-editor [data-field="calibratedAt"]');
-        if (calAtInput) item.calibratedAt = calAtInput.value;
+        if (calAtInput && !calAtInput.disabled) item.calibratedAt = calAtInput.value;
         const expAtInput = root.querySelector('#routine-editor [data-field="expiresAt"]');
-        if (expAtInput) item.expiresAt = expAtInput.value;
+        if (expAtInput && !expAtInput.disabled) item.expiresAt = expAtInput.value;
         const intakeInput = root.querySelector('#routine-editor [data-field="intakeDate"]');
         if (intakeInput) item.intakeDate = intakeInput.value;
         const specInput = root.querySelector('#routine-editor [data-field="spec"]');

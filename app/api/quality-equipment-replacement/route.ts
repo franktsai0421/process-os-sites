@@ -10,7 +10,7 @@ const reply = (body: unknown, status = 200) => Response.json(body, { status, hea
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 type Equipment = { id: string; assetCode?: string; pieceMark?: string; name?: string; nameVi?: string;
   spec?: string; photoId?: string; enabled?: boolean };
-type EquipmentControl = { activeVersionId?: string | null; versions: Array<{ id: string; status: string;
+type EquipmentControl = { calibrationUnavailable?:string[]; activeVersionId?: string | null; versions: Array<{ id: string; status: string;
   equipment: Equipment[] }>; pendingReplacements?: PendingReplacement[] };
 type QualityControl = { libraries?: { fqc?: ReplacementLibrary } };
 type Body = { action?: 'apply' | 'reconcile'; baseRevision?: number; moduleId?: ReplacementModule;
@@ -39,7 +39,8 @@ function libraryFor(libraries: Record<string, ReplacementLibrary | null | undefi
 
 function effectiveEquipment(routine: EquipmentControl, id: string) {
   const version = routine.versions.find(row => row.id === routine.activeVersionId && row.status === 'approved');
-  return version?.equipment.find(row => row.id === id);
+  const row=version?.equipment.find(row => row.id === id);
+  return row&&routine.calibrationUnavailable?.includes(id)?{...row,enabled:false}:row;
 }
 
 function describe(moduleId: ReplacementModule, library: ReplacementLibrary | null,

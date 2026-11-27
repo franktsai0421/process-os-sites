@@ -1,3 +1,4 @@
+import {calibrationEquipmentDependency} from '@/lib/equipment-catalog.mjs';
 import {chooseItemCode,prepareItemCodes,validateItemCodes} from '../../../lib/quality-item-code';
 import {DraftConflict} from '../../../lib/shared-draft';
 import {manualErrorCode} from '../../../lib/manual-error-code';
@@ -29,13 +30,13 @@ type Body = { code?: string; action?: string; baseRevision?: number; line?: stri
   source?: { fileName?: string; sha256?: string; rows?: number; errors?: AbError[]; items?: AbItem[] } };
 
 function equipmentCatalog(values: Record<string,string>) {
-  const control = parse(values.routineEquipmentControl, null) as { activeVersionId?: string;
+  const control = calibrationEquipmentDependency(parse(values.routineEquipmentControl, null)) as { activeVersionId?: string;
     versions?: EquipmentVersion[] } | null;
   const active = control?.versions?.find(v => v.id === control.activeVersionId && v.status === 'approved');
   return (active?.equipment || []).filter(e => e.enabled !== false);
 }
 function equipmentChoices(values: Record<string,string>) {
-  const control = parse(values.routineEquipmentControl, null) as { activeVersionId?: string;
+  const control = calibrationEquipmentDependency(parse(values.routineEquipmentControl, null)) as { activeVersionId?: string;
     versions?: EquipmentVersion[] } | null;
   const active = control?.versions?.find(v => v.id === control.activeVersionId && v.status === 'approved');
   if (!active) return [];

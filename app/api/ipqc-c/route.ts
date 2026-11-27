@@ -1,3 +1,4 @@
+import {calibrationEquipmentDependency} from '@/lib/equipment-catalog.mjs';
 import {chooseItemCode,prepareItemCodes,validateItemCodes} from '../../../lib/quality-item-code';
 import {DraftConflict} from '../../../lib/shared-draft';
 import {manualErrorCode} from '../../../lib/manual-error-code';
@@ -25,7 +26,7 @@ type MasterLine = { stages?: MasterStage[] };
 type MasterC = { products?: MasterProduct[]; lines?: MasterLine[] };
 type EquipmentControl = { activeVersionId?: string; versions?: EquipmentVersion[] };
 function checkEquipment(snapshot: IpqcSnapshot, previous: IpqcSnapshot, values: Record<string, string>) {
-  const catalog = parse(values.routineEquipmentControl, null) as EquipmentControl | null;
+  const catalog = calibrationEquipmentDependency(parse(values.routineEquipmentControl, null)) as EquipmentControl | null;
   const effective = catalog?.versions?.find(row => row.id === catalog.activeVersionId && row.status === 'approved');
   const choices = new Map((effective?.equipment || []).map(row => [row.id, row]));
   const old = new Map(previous.items.map(row => [row.id, row]));
@@ -70,7 +71,7 @@ export async function GET(request: Request) {
     const phase=await createIpqcReadPermissionPhase(request,state),actor=phase.actor;
     if (!actor || !phase.allowed('ipqc-c.view'))
       return reply({ error: '沒有查看 IPQC-C 的權限' }, 403);
-    const equipment = parse(state.values.routineEquipmentControl, null) as EquipmentControl | null;
+    const equipment = calibrationEquipmentDependency(parse(state.values.routineEquipmentControl, null)) as EquipmentControl | null;
     const effective = equipment?.versions?.find(v => v.id === equipment.activeVersionId && v.status === 'approved');
     const tree = effective ? hierarchy(effective) : { categories:[], subcategories:[], groups:[] };
     const groups = tree.groups.map(g => ({ ...g, name: equipmentGroupLabel(g.name || g.nameVi || g.nameZh || g.id) }));

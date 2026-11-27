@@ -330,6 +330,7 @@ async function createWorkflowPermissionPhase(request:Request,state:State){
 }
 export function publicState(state: State,actorId?:string) {
   const values = { ...state.values };
+  delete values.pieceCalibrationLedger;
   delete values.routineFqcControl;
   delete values.routineResetEnrollments;
   delete values.routineIqcControl;

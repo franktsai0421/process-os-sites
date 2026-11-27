@@ -14,7 +14,7 @@ const dependencies = ['routine-reset.js', 'routine-fqc-page.js', 'routine-iqc.js
 void test('the routine reset control loads once before all three renderers on a cold boot', () => {
   const urls = Array.from(shell.matchAll(/<script data-process-src="([^"]+)"><\/script>/g), match => match[1]);
   const selected = urls.filter(url => dependencies.includes(url.split('?')[0]));
-  assert.deepEqual(selected, ['routine-reset.js?v=20261123-admin-reset1', 'routine-fqc-page.js?v=20261126-full-item-code1', 'routine-iqc.js?v=20261126-full-item-code1', 'routine-fqc.js?v=20261126-full-item-code1']);
+  assert.deepEqual(selected, ['routine-reset.js?v=20261123-admin-reset1', 'routine-fqc-page.js?v=20261126-full-item-code1', 'routine-iqc.js?v=20261127-calibration', 'routine-fqc.js?v=20261126-full-item-code1']);
   assert.deepEqual(Array.from(shell.matchAll(/href="(routine-fqc\.css\?v=[^"]+)"/g), m => m[1]),
     ['routine-fqc.css?v=20261124-vi-layout1']);
 });
@@ -23,8 +23,8 @@ void test('the routine reset control loads once before all three renderers on a 
 void test('both distributed bundles have exactly the proposed sources, bytes and completion receipts', () => {
   const {assets, html} = combineProcessScripts(combineProcessStyles(shell, read).html, read);
   const expected = historicalProcessBundleGroups.map(group => group.flatMap(name =>
-    name === 'routine-fqc-page.js' ? ['routine-reset.js', name] : [name]));
-  assert.equal(expected.flat().length, 60);
+    name === 'routine-fqc-page.js' ? ['routine-reset.js', name] : name === 'routine-iqc.js' ? ['piece-calibration.js', name] : [name]));
+  assert.equal(expected.flat().length, 61);
   assert.deepEqual(expected, expectedProcessBundleGroups);
   const verify = bundles => {
     assert.deepEqual(bundles.map(asset => asset.sources), expected);
@@ -111,6 +111,12 @@ void test('the proposed shell delta is confined to the four routine asset tags',
     expected=expected.replace(from,script(file+'?v=20261127-canvas-recovery'));
   }
   expected=expected.replace(script('ipqc-ab.js?v=20261126-full-item-code1'),script('ipqc-ab.js?v=20261127-ipqc-ab-group-route1'));
+  expected=expected.replace('iqc-master.js?v=20261126-full-item-code1','iqc-master.js?v=20261127-calibration');
+  expected=expected.replace('routine-iqc.js?v=20261126-full-item-code1','routine-iqc.js?v=20261127-calibration');
+  expected=expected.replace('shared-state.js?v=20261106-access-offline1','shared-state.js?v=20261127-calibration');
+  expected=expected.replace('routine-equipment.js?v=20261126-mobile-apply','routine-equipment.js?v=20261127-calibration');
+  const iqc=script('routine-iqc.js?v=20261127-calibration');
+  expected=expected.replace(iqc, ['    <link rel="stylesheet" href="piece-calibration.css?v=20261127" />',script('piece-calibration.js?v=20261127'),iqc].join('\n'));
   assert.equal(shell.replace(/\r\n/g,'\n'),expected.replace(/\r\n/g,'\n'));
 });
 
