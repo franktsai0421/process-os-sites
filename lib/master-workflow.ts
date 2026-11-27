@@ -1,6 +1,6 @@
 import {env} from 'cloudflare:workers';
 import {readSharedStateRow} from './process-state';
-import {prepareProcessMasterWrite} from './state-records';
+import {prepareCatalogReview,prepareProcessMasterWrite} from './state-records';
 import {approvedMasterPageCatalog,approvedMasterProcessSource} from './master-approved-pages';
 import {removedProcessMasterTargets,processMasterReferences} from './process-master-references';
 import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON,sameDraftValue,type SharedDraft,type DraftIssue,type DraftPatch,type DraftPath} from './shared-draft';
@@ -17,6 +17,12 @@ type Library={activeVersionId:string|null;versions:Version[];workflow?:SharedDra
 type Root={active:Record<string,Snapshot>;versions:Version[];workflowScopes?:Record<string,SharedDraft<Snapshot>>};
 const rows=(v:unknown):Entity[]=>{if(!Array.isArray(v))throw new DraftConflict('CATALOG_ARRAY_REQUIRED',422);return v;};
 const str=(v:unknown)=>typeof v==='string'?v:'';
+function keepsCatalogTargets(previous:Snapshot,content:Snapshot){
+ const codes=new Set(rows(content.products||[]).map(product=>product.code));
+ const groups=rows(content.categoryGroups||[]);
+ return rows(previous.products||[]).every(product=>codes.has(product.code))&&
+   rows(previous.categoryGroups||[]).every(group=>groups.some(next=>next.line===group.line&&next.name===group.name));
+}
 const presets=['entry','manual','manual-inspection','machine-assembly','exit'];
 // Stable IDs are additive V3 working metadata. Legacy version payloads are not rewritten.
 export function normalizeMasterSnapshot(snapshot:Snapshot,scope:string):Snapshot{
@@ -43,6 +49,22 @@ export function masterWorkflowAdapter(scope:string,options:{legacyArchive?:boole
  return{key:'masterDataControl',scope:'master:'+scope,empty:()=>scope==='PROCESS'?{}:{products:[],lines:[],categoryGroups:[]},photoIds:()=>[],photoPrefix:'master/photos/',
    preparedModel:true,permissionOnlyRead:true,
   async prepareWrite(command){
+   if((scope==='AB'||scope==='C')&&command&&(command.action==='submit'||command.action==='approve')){
+    const row=await readSharedStateRow();
+    const prepared=row&&await prepareCatalogReview(env.STATE_ARCHIVE,row);
+    const master=prepared?.state.recordStorage.models.get('masterDataControl') as Root|undefined;
+    const flow=master?.workflowScopes?.[scope],active=master?.active?.[scope];
+    const review=command.action==='approve'?flow?.cases.find(c=>c.id===command.caseId):undefined;
+    const target=command.action==='submit'?flow?.saved?.content:review?.content;
+    // Decide from the exact CAS row on every attempt. Linked/changed topology
+    // and any removed product or category retain the full reference reader.
+    if(!prepared||!active||!target||review&&'linkedProcess' in review||
+       [active,target].some(catalog=>['products','categoryGroups'].some(key=>{
+         const list=catalog[key];return !Array.isArray(list)||list.some(row=>!row||typeof row!=='object');
+       }))||
+       !keepsCatalogTargets(active,target)||removedMasterStages(active,target).length||removedMasterStages(target,active).length)return null;
+    return prepared;
+   }
    if(scope!=='PROCESS'||!command)return null;
    // Inserting, reordering and editing descriptive fields preserve target IDs.
    // For review transitions prove that property from the server-owned case.
@@ -103,8 +125,7 @@ export function masterWorkflowAdapter(scope:string,options:{legacyArchive?:boole
    values=state.values;
    const master=root;
    const checkReferences=(previous:Snapshot,content:Snapshot)=>{
-    const oldProducts=rows(previous.products||[]),nextProducts=rows(content.products||[]),oldGroups=rows(previous.categoryGroups||[]),nextGroups=rows(content.categoryGroups||[]);
-    if(oldProducts.every(p=>nextProducts.some(n=>n.code===p.code))&&oldGroups.every(g=>nextGroups.some(n=>n.line===g.line&&n.name===g.name)))return;
+    if(keepsCatalogTargets(previous,content))return;
     const impact=removedCatalogReferences(state.values,previous,content);
     if(!impact.total)return;
     const user=(JSON.parse(state.values.platformUsers||'[]') as AccessUser[]).find(u=>u.id===base.actor.id),cells=user?effectiveAccess(user,state.values).cells:{};

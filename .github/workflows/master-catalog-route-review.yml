@@ -1,0 +1,36 @@
+name: Master catalog route review
+on:
+  pull_request:
+    branches: ['review/v68-reset-base-20261123']
+    paths:
+      - 'lib/master-workflow.ts'
+      - 'lib/state-records.ts'
+      - 'public/process/master-admin-ui.js'
+      - 'public/process/master-data.js'
+      - 'tests/master-catalog-review.test.mjs'
+      - 'tests/master-catalog-route-review.browser.mjs'
+      - '.github/workflows/master-catalog-route-review.yml'
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PROCESS_PROGRAM_COMMIT: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: node --test tests/master-catalog-review.test.mjs
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: node tests/master-catalog-route-review.browser.mjs
+      - run: node tests/master-catalog-route-review.browser.mjs --stage-cycle
+      - run: node tests/master-catalog-route-review.browser.mjs --feedback
