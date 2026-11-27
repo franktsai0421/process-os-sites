@@ -9,6 +9,7 @@ const empty=()=>{
 };
 async function deletionCase(mode){let settle,reject;const original={equipment:[{id:'synthetic-equipment',assetCode:'QA',name:'Synthetic'},{id:'retain'}]},calls={writes:0,confirms:0,query:0};
  const context={actor:'qa',identity:()=>({id:context.actor}),controlActor:'qa',working:original,syncGeneration:'g1',selectedVersionId:'draft1',enabled:true,editable:()=>context.enabled,permitted:()=>true,
+  referenceAction:null,AbortController,setTimeout,clearTimeout,captureTransferOwner:()=>context.actor,transferOwnerCurrent:owner=>owner===context.actor,
   equipmentRefCache:new Map([['synthetic-equipment',empty()]]),queryAllQualityReferences:(_id,options)=>{assert.equal(options.strict,true);calls.query++;return new Promise((resolve,fail)=>{settle=resolve;reject=fail;});},active:()=>({equipment:[]}),t:zh=>zh,displayName:item=>item.name,
   confirm:()=>{calls.confirms++;if(mode==='cancel')return false;if(mode==='confirm-actor'&&calls.confirms===2)context.actor='other';return true;},alert(){},render(){},pendingPhotos:new Map(),selectedEquipmentId:'',editingEquipmentId:'',formSnapshot:null,
   writeShared:async()=>{calls.writes++;}};
@@ -27,8 +28,8 @@ async function deletionCase(mode){let settle,reject;const original={equipment:[{
  assert.equal(context.working.equipment.some(item=>item.id==='synthetic-equipment'),mode!=='success');
  if(mode==='query-failure')assert.ok(context.message);
 }
-async function queryCase(mode){const context={window:{FQCQualityAPI:{getEquipmentReferences:()=>{if(mode==='fqc-error')throw Error('SYNTHETIC');return[];}}},localStorage:{getItem:()=>null},console:{error(){}},encodeURIComponent,
- fetch:async url=>({ok:!((mode==='http-error'&&url==='/api/iqc')||(mode==='planned-error'&&url.includes('replacement'))),json:async()=>url.includes('replacement')?{pending:[],modules:[]}:url==='/api/ipqc-ab'?{control:{scopes:{}}}:(mode==='shape-error'&&url==='/api/ipqc-c')?{}:{control:{versions:[]}}})};
+async function queryCase(mode){const context={window:{FQCQualityAPI:{getEquipmentReferences:()=>{if(mode==='fqc-error')throw Error('SYNTHETIC');return[];}}},localStorage:{getItem:()=>null},console:{error(){}},encodeURIComponent,headers:()=>({}),AbortSignal,
+ fetch:async url=>({ok:!((mode==='http-error'&&url==='/api/iqc')||(mode==='planned-error'&&url.includes('replacement'))),json:async()=>url.includes('replacement')?{pending:[],modules:[]}:url==='/api/ipqc-ab?references=synthetic'?{control:{scopes:{}}}:(mode==='shape-error'&&url==='/api/ipqc-c')?{}:{control:{versions:[]}}})};
  vm.createContext(context);vm.runInContext(query,context);
  if(mode==='success')await context.queryAllQualityReferences('synthetic',{strict:true});
  else await assert.rejects(context.queryAllQualityReferences('synthetic',{strict:true}),/EQUIPMENT_REFERENCE_CHECK_FAILED/);

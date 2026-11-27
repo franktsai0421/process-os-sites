@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
-import {chromium} from 'playwright';
+import {chromium,request as browserRequest} from 'playwright';
 import {createABCFixture} from './ab-c-native-fixture.mjs';
 const require=createRequire(import.meta.url),{createTransferFixture}=require('../scripts/equipment-transfer-fixture.cjs');
 const keys=['masterDataControl','processMasterData','routineEquipmentControl','qualityMasterControl','iqcMasterControl','ipqcCMasterControl','ipqcABMasterControl'];
@@ -31,7 +31,7 @@ async function setup(width,language,ports={createTransferFixture,createABCFixtur
  }catch(error){try{await close();}catch(cleanup){throw new AggregateError([error,cleanup],'Compiled transfer setup failed and cleanup reported errors',{cause:error});}throw error;}
 }
 const flow=(controls,moduleId)=>moduleId==='fqc'?controls.qualityMasterControl.libraries.fqc.workflow:moduleId==='iqc'?controls.iqcMasterControl.workflow:moduleId==='ipqc-c'?controls.ipqcCMasterControl.workflow:controls.ipqcABMasterControl.scopes['A:G-A'].workflow;
-for(const [width,language]of [[1280,'zh'],[390,'vi']])void test(`compiled four-module transfer preserves open local forms; FQC and IQC explicitly save ${width} ${language}`,async t=>{
+for(const [width,language]of [[1280,'zh'],[390,'vi']])void test(`compiled four-module transfer preserves open local forms; all four save ${width} ${language}`,async t=>{
  const s=await setup(width,language);try{
  await s.source.locator('[data-node-select="category"]').first().click();await s.source.locator('[data-node-select="subcategory"]').first().click();if(await s.source.locator('[data-node-select="group"]').count())await s.source.locator('[data-node-select="group"]').first().click();
  // Establish the real shared drafts before opening another page's unsent form.
@@ -50,14 +50,14 @@ for(const [width,language]of [[1280,'zh'],[390,'vi']])void test(`compiled four-m
   // global refresh can rebuild that page; other pages retain their own forms.
   const p=await s.page('quality-routine-equipment');await p.locator('[data-node-select="category"]').first().click();await p.locator('[data-node-select="subcategory"]').first().click();if(await p.locator('[data-node-select="group"]').count())await p.locator('[data-node-select="group"]').first().click();
   await p.locator('[data-equipment-transfer="source"]').click();await p.locator('#routine-target-eq-select').selectOption('target');
-  const applied=p.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/api/'+key+'/workflow'&&r.request().postDataJSON().command?.action===(['fqc','iqc'].includes(key)?'save':'apply'));
+  const applied=p.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/api/'+key+'/workflow'&&r.request().postDataJSON().command?.action==='save');
   await p.locator('#routine-confirm-transfer-'+key).click();assert.equal((await applied).status(),200);await p.waitForFunction(()=>!window.sharedDraftAccountState().queued);
  }
  const after=await s.controls();
- for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab']){assert.equal(flow(after,moduleId).working.items[0].equipmentId,'target');if(['fqc','iqc'].includes(moduleId)){assert.notEqual(flow(after,moduleId).saved.id,flow(before,moduleId).saved?.id);assert.equal(flow(after,moduleId).saved.content.items[0].equipmentId,'target');assert.deepEqual(flow(after,moduleId).saved.content,flow(after,moduleId).working);}else assert.deepEqual(flow(after,moduleId).saved,flow(before,moduleId).saved);assert.deepEqual(flow(after,moduleId).active,flow(before,moduleId).active);assert.deepEqual(flow(after,moduleId).cases,flow(before,moduleId).cases);const retained=row=>Object.fromEntries(Object.entries(row).filter(([key])=>!['equipmentId','equipmentSnapshot','tool','inspectionMode'].includes(key)));assert.deepEqual(retained(flow(after,moduleId).working.items[0]),retained(flow(before,moduleId).working.items[0]));}
- assert.deepEqual(after.routineEquipmentControl,before.routineEquipmentControl);assert.equal(s.posts.slice(start).filter(row=>row.body.command?.action==='save').length,2);
+ for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab']){assert.equal(flow(after,moduleId).working.items[0].equipmentId,'target');const saved=reviewFlow(after,moduleId).saved;assert(saved?.id);assert.equal(rowsOf(saved).find(row=>row.id===flow(after,moduleId).working.items[0].id).equipmentId,'target');assert.deepEqual(flow(after,moduleId).active,flow(before,moduleId).active);assert.deepEqual(flow(after,moduleId).cases,flow(before,moduleId).cases);const retained=row=>Object.fromEntries(Object.entries(row).filter(([key])=>!['equipmentId','equipmentSnapshot','tool','inspectionMode'].includes(key)));assert.deepEqual(retained(flow(after,moduleId).working.items[0]),retained(flow(before,moduleId).working.items[0]));}
+ assert.deepEqual(after.routineEquipmentControl,before.routineEquipmentControl);assert.equal(s.posts.slice(start).filter(row=>row.body.command?.action==='save').length,4);
  for(const target of targetPages){await target.p.evaluate(()=>window.dispatchEvent(new Event('process-shared-state-updated')));assert.equal(await target.p.locator(target.selector).inputValue(),target.value);}
- assert.deepEqual(s.errors,[]);t.diagnostic(JSON.stringify({width,language,workflowActions:s.posts.slice(start).map(row=>({path:row.path,action:row.body.command?.action||row.body.action})),limits:['Synthetic data, same-machine pages; no physical phone or live system','FQC and IQC each save their own shared working snapshot; target forms remain unsent and no Submit is authorized']}));
+ assert.deepEqual(s.errors,[]);t.diagnostic(JSON.stringify({width,language,workflowActions:s.posts.slice(start).map(row=>({path:row.path,action:row.body.command?.action||row.body.action})),limits:['Synthetic data, same-machine pages; no physical phone or live system','Each module saves its own shared snapshot; target forms remain unsent and no Submit is authorized']}));
  }finally{await s.close();}
 });
 
@@ -115,7 +115,7 @@ void test('compiled pre-dispatch Begin GET503 removes only the proven unsent int
  }finally{await s.close();}
 });
 
-void test('batch3 equipment Save, FQC atomic transfer and IPQC AB guarded Apply/manual Save coexist in compiled UI',{timeout:90000},async()=>{
+void test('batch3 equipment Save, FQC atomic transfer and IPQC AB guarded Save coexist in compiled UI',{timeout:90000},async()=>{
  const s=await setup(1280,'zh');try{
  const p=s.source;
  await p.locator('#routine-begin').click();await p.locator('#routine-save').waitFor();
@@ -124,15 +124,15 @@ void test('batch3 equipment Save, FQC atomic transfer and IPQC AB guarded Apply/
  const equipmentSaved=p.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/api/routine-equipment/workflow'&&r.request().postDataJSON().command?.action==='save');await p.locator('#routine-save').click();assert.equal((await equipmentSaved).status(),200);await p.waitForFunction(()=>!window.sharedDraftAccountState().queued);
  assert.equal((await s.controls()).routineEquipmentControl.workflow.saved.content.equipment.find(row=>row.id==='source').notes,'Batch3 equipment saved');
  const ab=await s.page('quality-ipqc-ab');await ab.locator('#ipqcab-begin').click();await ab.locator('[data-ab-edit-item]').first().click();await ab.locator('#ab-standard').fill('Batch3 unsent AB standard');
- const start=s.posts.length,before=await s.controls();
+ const start=s.posts.length;
  for(const moduleId of ['fqc','ipqc-ab']){
   const source=await s.page('quality-routine-equipment');await source.locator('[data-node-select="category"]').first().click();await source.locator('[data-node-select="subcategory"]').first().click();if(await source.locator('[data-node-select="group"]').count())await source.locator('[data-node-select="group"]').first().click();
   await source.locator('[data-equipment-transfer="source"]').click();await source.locator('#routine-target-eq-select').selectOption('target');
-  const action=moduleId==='fqc'?'save':'apply',response=source.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/api/'+moduleId+'/workflow'&&r.request().postDataJSON().command?.action===action);
+  const action='save',response=source.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/api/'+moduleId+'/workflow'&&r.request().postDataJSON().command?.action===action);
   await source.locator('#routine-confirm-transfer-'+moduleId).click();assert.equal((await response).status(),200);await source.waitForFunction(()=>!window.sharedDraftAccountState().queued);
  }
- const transferred=await s.controls();assert.equal(flow(transferred,'fqc').saved.content.items[0].equipmentId,'target');assert.equal(flow(transferred,'ipqc-ab').working.items[0].equipmentId,'target');assert.deepEqual(flow(transferred,'ipqc-ab').saved,flow(before,'ipqc-ab').saved);
- assert.equal(s.posts.slice(start).filter(r=>r.path==='/api/ipqc-ab/workflow'&&r.body.command?.action==='save').length,0);
+ const transferred=await s.controls();assert.equal(flow(transferred,'fqc').saved.content.items[0].equipmentId,'target');assert.equal(flow(transferred,'ipqc-ab').working.items[0].equipmentId,'target');assert.equal(transferred.ipqcABMasterControl.moduleDraft.workflow.saved.content.scopes['A:G-A'].items[0].equipmentId,'target');
+ assert.equal(s.posts.slice(start).filter(r=>r.path==='/api/ipqc-ab/workflow'&&r.body.command?.action==='save').length,1);
  await ab.evaluate(()=>window.dispatchEvent(new Event('process-shared-state-updated')));assert.equal(await ab.locator('#ab-standard').inputValue(),'Batch3 unsent AB standard');
  await ab.locator('#ab-apply').click();const saved=ab.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/api/ipqc-ab/workflow'&&r.request().postDataJSON().command?.action==='save');await ab.locator('#ipqcab-save').click();assert.equal((await saved).status(),200);await ab.waitForFunction(()=>!window.sharedDraftAccountState().queued);
  const final=await s.controls(),working=final.ipqcABMasterControl.moduleDraft.workflow;assert.equal(working.saved.content.scopes['A:G-A'].items[0].equipmentId,'target');assert.equal(working.saved.content.scopes['A:G-A'].items[0].standard,'Batch3 unsent AB standard');
@@ -180,6 +180,30 @@ async function assertStandardStage(page, goto, hidden, id, assetCode) {
   }
 }
 
+async function verifyCurrentScreens(session,mod,sourceId,expectedIds,locked){
+  const page=await session.page('quality-routine-equipment');
+  try{
+    await page.locator('[data-node-select="category"]').first().click();
+    await page.locator('[data-node-select="subcategory"]').first().click();
+    if(await page.locator('[data-node-select="group"]').count())await page.locator('[data-node-select="group"]').first().click();
+    await page.locator('[data-equipment-view="'+sourceId+'"]').click();
+    const section=page.locator('[data-view-ref-kind="'+sectionKey(mod)+'"]');
+    const common=()=>page.waitForResponse(r=>new URL(r.url()).pathname==='/api/quality-equipment-replacement' && new URL(r.url()).searchParams.get('sourceId')===sourceId);
+    const first=common();await section.locator('summary').first().click();
+    const snap=await (await first).json();await section.locator('.routine-ref-subgroup').first().waitFor();
+    const links=section.locator('.routine-ref-subgroup').first().locator('[data-view-exact]');
+    assert.deepEqual(await links.evaluateAll(rows=>rows.map(b=>b.dataset.iid).sort((a,b)=>a.localeCompare(b))),[...expectedIds].sort((a,b)=>a.localeCompare(b)));
+    await page.locator('#routine-view-dismiss').click();
+    const second=common();await page.locator('[data-equipment-transfer="'+sourceId+'"]').click();
+    const preview=await (await second).json();assert.equal(preview.revision,snap.revision);
+    const current=preview.modules.find(m=>m.moduleId===mod).items.filter(r=>r.effectiveReference);
+    assert.deepEqual(current.map(r=>r.itemId).sort((a,b)=>a.localeCompare(b)),[...expectedIds].sort((a,b)=>a.localeCompare(b)));
+    const transfer=page.locator('[data-transfer-reference="'+sectionKey(mod)+'"]');
+    assert.equal(await transfer.count(),expectedIds.length);
+    if(locked)assert(current.every(r=>r.selectable===false && r.unavailableReason));
+  }finally{await page.close();}
+}
+
 async function exerciseReturnedCases(session, {page,goto,ack,confirmDialog}, original, savedId) {
   const origin=session.f.url.origin;
   const login=id=>session.context.addCookies([{name:'process_demo',value:session.f.cookie(id),url:origin}]);
@@ -196,6 +220,7 @@ async function exerciseReturnedCases(session, {page,goto,ack,confirmDialog}, ori
     assert.equal(reviewed.pendingId,null);
     assert.equal(reviewed.saved.id,savedId);
     assert.deepEqual(reviewed.active,original);
+    await verifyCurrentScreens(session,'ipqc-ab','source',rowsOf(original).map(row=>row.id),false);
     const old=reviewed.cases.find(c=>c.id===pending);
     assert.equal(old.status,action==='return'?'returned':'withdrawn');
     assert.equal(old.result.actor.id,actor);
@@ -294,7 +319,7 @@ async function verifyReferenceJourney(width, lang, options={}) {
       if(mod==='ipqc-ab') chosen=JSON.parse(chosen)[1];
       selected[mod]=chosen;
       await page.locator('#routine-target-eq-select').selectOption('target');
-      const applied=ack(mod,['fqc','iqc'].includes(mod)?'save':'apply');
+      const applied=ack(mod,'save');
       await page.locator('#routine-confirm-transfer-'+mod).click();
       assert.equal((await applied).status(),200);
       await settled();
@@ -307,23 +332,20 @@ async function verifyReferenceJourney(width, lang, options={}) {
         else assert.deepEqual(edited,row);
       }
       await goto('view=data&dataTab=quality-'+mod);
-      if(mod.startsWith('ipqc')){
-        if(mod==='ipqc-ab' && lang==='zh' && !all){
-          const button=page.locator('#ipqcab-save');
-          await button.waitFor();
-          const count=session.posts.filter(r=>r.path==='/api/ipqc-ab/workflow' && r.body.command?.action==='save').length;
-          const bump=await session.context.request.post(origin+'/api/routine-equipment/workflow?caseMetadata=1',{
-            headers:{Origin:origin,'X-Process-Expected-Actor':'frank'},data:{action:'begin'}
-          });
-          assert.equal(bump.status(),200);
-          await button.click();
-          await page.getByText(/MODULE_CHANGED_RECONFIRM/).first().waitFor();
-          assert.equal(session.posts.filter(r=>r.path==='/api/ipqc-ab/workflow' && r.body.command?.action==='save').length,count);
-          await goto('view=data&dataTab=quality-'+mod);
-        }
-        const save=ack(mod,'save');
-        await page.locator('#'+toolbarId(mod)+'-save').click();
-        assert.equal((await save).status(),200);
+      const stored=reviewFlow(draftControls,mod).saved;
+      assert(stored?.id);assert.equal(rowsOf(stored).find(row=>row.id===chosen).equipmentId,'target');
+      if(all){
+        await page.reload();
+        await page.locator('#'+toolbarId(mod)+'-submit').waitFor();
+        const endpoint='/api/'+mod+'/workflow?'+(mod==='ipqc-ab'?'module=1&':'')+'caseMetadata=1';
+        const fromPage=await page.evaluate(async path=>{const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw Error('Saved draft reload failed');return r.json();},endpoint);
+        assert.equal((fromPage.control?.workflow||fromPage.workflow).saved.id,stored.id);
+        const reader=await browserRequest.newContext({baseURL:origin,extraHTTPHeaders:{Cookie:'process_demo='+session.f.cookie('frank')}});
+        try{
+          const read=await reader.get(endpoint);assert.equal(read.status(),200);
+          const authority=await read.json(),seen=authority.control?.workflow||authority.workflow;
+          assert.equal(seen.saved.id,stored.id);assert.equal(seen.pendingId,null);
+        }finally{await reader.dispose();}
       }
       const submitting=ack(mod,'submit');
       await page.locator('#'+toolbarId(mod)+'-submit').click();
@@ -336,6 +358,9 @@ async function verifyReferenceJourney(width, lang, options={}) {
         await exerciseReturnedCases(session,{page,goto,ack,confirmDialog},initial.active,submitted.saved.id);
         pending[mod]=reviewFlow(await session.controls(),mod).pendingId;
       } else pending[mod]=submitted.pendingId;
+    }
+    if(options.selectAll || options.offRoute){
+      for(const mod of transferModules)await verifyCurrentScreens(session,mod,'source',rowsOf(snapshots[mod]).map(row=>row.id),true);
     }
     await session.context.addCookies([{name:'process_demo',value:session.f.cookie('fixture-reviewer'),url:origin}]);
     for(const mod of transferModules){
@@ -378,6 +403,14 @@ async function verifyReferenceJourney(width, lang, options={}) {
         const active=section.locator('.routine-ref-subgroup').filter({has:page.locator('b',{hasText:/目前生效中|Đang hiệu lực/})});
         const expected=rowsOf(finalCases[mod]).filter(r=>r.equipmentId===id);
         assert.equal(await active.locator('.routine-ref-row').count(),expected.length);
+        assert.equal(await section.locator('details[open]').count(),0);
+        assert.match(await section.locator('summary').first().innerText(),new RegExp('(?:直接引用|Tham chiếu trực tiếp) '+expected.length));
+        assert.equal(await section.locator('[data-view-exact]').count(),expected.length);
+        for(const row of expected){
+          const link=section.locator('[data-view-exact][data-iid="'+row.id+'"]');
+          assert.equal(await link.getAttribute('data-vid'),mod==='ipqc-ab'?flow(await session.controls(),mod).active.id:finalCases[mod].id);
+        }
+        assert.equal(await section.getByText(/歷史版本 \(|Bản lịch sử \(/).count(),0);
         for(const row of expected) assert((await active.innerText()).includes(row.checkNo || row.code));
       }
       await page.locator('#routine-view-dismiss').click();
@@ -388,10 +421,33 @@ async function verifyReferenceJourney(width, lang, options={}) {
       const preview=await response.json();
       for(const mod of transferModules){
         assert.equal(preview.revision,observed[mod]);
-        const module=preview.modules.find(m=>m.moduleId===mod);
-        assert.equal(module.connected,true);
-        const expected=rowsOf(finalCases[mod]).filter(r=>r.equipmentId===id).map(r=>r.id).sort();
-        assert.deepEqual(module.items.filter(r=>r.activeEquipmentId===id).map(r=>r.itemId).sort(),expected);
+        const entry=preview.modules.find(m=>m.moduleId===mod);
+        assert.equal(entry.connected,true);
+        const expected=rowsOf(finalCases[mod]).filter(r=>r.equipmentId===id).map(r=>r.id).sort((a,b)=>a.localeCompare(b));
+        assert.deepEqual(entry.items.filter(r=>r.activeEquipmentId===id).map(r=>r.itemId).sort((a,b)=>a.localeCompare(b)),expected);
+        const current=entry.items.filter(r=>r.effectiveReference);
+        assert.deepEqual(current.map(r=>r.itemId).sort((a,b)=>a.localeCompare(b)),expected);
+        const selectors=page.locator('[data-transfer-reference="'+sectionKey(mod)+'"]');
+        assert.equal(await selectors.count(),expected.length);
+        if(current.length){
+          const locator=page.waitForResponse(r=>new URL(r.url()).searchParams.get('referenceModule')===mod);
+          await selectors.first().click();
+          const answer=await locator;assert.equal(answer.status(),200);
+          const detail=await answer.json();
+          assert.equal(detail.revision,preview.revision);
+          assert.equal(detail.version.id,current[0].effectiveReference.versionId);
+          assert.equal(detail.version.snapshot.items[0].id,current[0].itemId);
+        }
+      }
+    }
+    if(all){
+      await goto('view=data&dataTab=quality-routine-equipment&equipmentId=target');
+      await page.reload();
+      for(const mod of transferModules){
+        const section=page.locator('[data-view-ref-kind="'+sectionKey(mod)+'"]');
+        await section.locator('summary').first().click();
+        await section.locator('[data-view-exact][data-iid="'+selected[mod]+'"]').waitFor();
+        assert.equal(await section.locator('.routine-ref-subgroup').first().locator('[data-view-exact]').count(),1);
       }
     }
     await verifyPhotos();
@@ -409,13 +465,15 @@ async function verifyReferenceJourney(width, lang, options={}) {
 }
 
 for(const [width,lang] of [[1280,'zh'],[390,'vi']]){
-  test('reference selection, saved draft, independent approval and bidirectional readback '+lang,async()=>{
+  void test('reference selection, saved draft, independent approval and bidirectional readback '+lang,async()=>{
     await verifyReferenceJourney(width,lang);
   });
 }
 
 for(const [width,lang] of [[1280,'zh'],[390,'vi']]){
-  test('hidden approved AB standard retains its new equipment through withdrawal, return, approval and route restoration '+lang,async()=>{
+  void test('hidden approved AB standard retains its new equipment through withdrawal, return, approval and route restoration '+lang,async()=>{
     await verifyReferenceJourney(width,lang,{offRoute:true});
   });
 }
+
+void test('history-only source stays empty after four approvals on mobile',()=>verifyReferenceJourney(390,'zh',{selectAll:true}));

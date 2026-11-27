@@ -115,6 +115,51 @@ function change(fn) {
   };
   const original = db.prepare('SELECT revision,"values" FROM shared_state WHERE id=1').get();
   try {
+    for(const [moduleId,style] of [['fqc','cleared'],['iqc','visual']]){
+      const id=moduleId+'-1';
+      change(data=>{
+        const rawKey=moduleId==='fqc'?'qualityMasterControl':'iqcMasterControl',root=JSON.parse(data[rawKey]);
+        const lib=moduleId==='fqc'?root.libraries.fqc:root,active=lib.versions.find(v=>v.id===lib.activeVersionId);
+        const draft=version('manual-'+style,'draft',structuredClone(active.snapshot.items));
+        Object.assign(draft.snapshot.items[0],{equipmentId:'',note:'preserve unrelated edit'},style==='visual'?{inspectionMode:'visual'}:{});
+        lib.versions=[active,draft];data[rawKey]=JSON.stringify(root);
+      });
+      const before=state();
+      const stopped=await call(admin,{action:'apply',moduleId,itemIds:[id]});
+      assert.equal(stopped.body.results[0].status,'conflict');assert.deepEqual(state(),before);
+      const accepted=await call(admin,{action:'apply',moduleId,itemIds:[id],overrideItemIds:[id]});
+      assert.equal(accepted.body.results[0].status,'applied');
+      const lib=state()[moduleId],changed=lib.versions.find(v=>v.status==='draft').snapshot.items[0];
+      assert.equal(changed.equipmentId,'target');assert.equal(changed.note,'preserve unrelated edit');
+      assert.deepEqual(lib.versions.find(v=>v.id===lib.activeVersionId),before[moduleId].versions.find(v=>v.id===lib.activeVersionId));
+      if(style==='visual')assert.equal(changed.inspectionMode,'equipment');
+      db.prepare('UPDATE shared_state SET revision=?,"values"=? WHERE id=1').run(original.revision,original.values);
+    }
+    // Same code and item ID across archived versions must not count as current.
+    change(data=>{
+      const quality=JSON.parse(data.qualityMasterControl),incoming=JSON.parse(data.iqcMasterControl);
+      for(const [lib,count] of [[quality.libraries.fqc,40],[incoming,4]]){
+        lib.versions=[version(lib.activeVersionId,'approved',[makeItem('stable-item','target')]),
+          ...Array.from({length:count},(_,i)=>version('old-'+i,i%2?'withdrawn':'superseded',[makeItem('stable-item','source')]))];
+      }
+      data.qualityMasterControl=JSON.stringify(quality);data.iqcMasterControl=JSON.stringify(incoming);
+    });
+    const historical=await getPreview();
+    for(const id of ['fqc','iqc']){
+      const m=historical.modules.find(x=>x.moduleId===id);assert.equal(m.connected,true);assert.deepEqual(m.items,[]);
+    }
+    const cModule=historical.modules.find(x=>x.moduleId==='ipqc-c'),cRow=cModule.items[0];
+    assert.equal(cRow.effectiveReference.itemId,'ipqc-1');assert.equal(cRow.effectiveReference.versionId,'ipqc-active');
+    const exact=async(params)=>api.GET(new Request(base+'/api/quality-equipment-replacement?'+new URLSearchParams({
+      referenceModule:'ipqc-c',sourceId:'source',itemId:'ipqc-1',versionId:'ipqc-active',revision:String(historical.revision),...params
+    }),{headers:{Cookie:admin}}));
+    const detail=await exact({});assert.equal(detail.status,200);assert.equal((await detail.json()).version.snapshot.items.length,1);
+    assert.equal((await exact({revision:String(historical.revision-1)})).status,409);
+    assert.equal((await exact({versionId:'old-0'})).status,409);
+    assert.equal((await exact({sourceId:'sibling'})).status,409);
+    change(data=>{const c=JSON.parse(data.ipqcCMasterControl);c.versions[0].snapshot.items[0].equipmentId='target';data.ipqcCMasterControl=JSON.stringify(c);});
+    const noC=(await getPreview()).modules.find(x=>x.moduleId==='ipqc-c');assert.equal(noC.connected,true);assert.equal(noC.items.length,0);
+    db.prepare('UPDATE shared_state SET revision=?,"values"=? WHERE id=1').run(original.revision,original.values);
     change(data => {
       const quality = JSON.parse(data.qualityMasterControl), library = quality.libraries.fqc;
       const assets = JSON.parse(data.routineEquipmentControl);

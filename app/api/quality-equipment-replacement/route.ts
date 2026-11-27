@@ -42,33 +42,54 @@ function effectiveEquipment(routine: EquipmentControl, id: string) {
   return version?.equipment.find(row => row.id === id);
 }
 
+function readableReferenceVersion(version: ReplacementVersion | undefined) {
+  if (!version) return true;
+  if (!version.id || !Array.isArray(version.snapshot?.items)) return false;
+  const seen = new Map<string, ReplacementItem>();
+  for (const item of version.snapshot.items) {
+    if (!item || typeof item.id !== 'string' || !item.id) return false;
+    const prior = seen.get(item.id);
+    if (prior && JSON.stringify(prior) !== JSON.stringify(item)) return false;
+    seen.set(item.id, item);
+  }
+  return true;
+}
+
 function describe(moduleId: ReplacementModule, library: ReplacementLibrary | null,
-  sourceId: string, pending: PendingReplacement[], scopeKey = '') {
+  sourceId: string, pending: PendingReplacement[], scopeKey = '', moduleSaved?: {id:string;items:ReplacementItem[]}) {
   const active = library ? activeReplacementVersion(library) : undefined;
   const open = library ? openReplacementVersion(library) : undefined;
-  if (!library || (library.activeVersionId && !active) ||
-      [active, open].some(version => version && !Array.isArray(version.snapshot?.items))) {
+  if (!library || !(library.activeVersionId === null || typeof library.activeVersionId === 'string') || (library.activeVersionId && !active) ||
+      !readableReferenceVersion(active) || !readableReferenceVersion(open)) {
     return { moduleId, connected: false, label: replacementModules[moduleId].label,
       items: [], reason: '模組標準資料未接入或讀取不完整' };
   }
   const flow=(library as ReplacementLibrary & {workflow?:{generation:string}}).workflow;
+  const saved = moduleId==='ipqc-ab' ? moduleSaved : (library as ReplacementLibrary & {workflow?:{saved?:{id:string;content?:{items?:ReplacementItem[]}}}}).workflow?.saved;
+  const savedItems = saved && ('items' in saved ? saved.items : saved.content?.items);
+  const savedMap = new Map((Array.isArray(savedItems)?savedItems:[]).filter(row=>!row.isDeleted&&!row.deleted).map(row=>[row.id,row]));
   const activeMap = new Map(liveItems(active).map(item => [item.id, item]));
   const draftMap = new Map(liveItems(open).map(item => [item.id, item]));
   const ids = new Set([...activeMap, ...draftMap]
     .filter(([, item]) => item.equipmentId === sourceId).map(([id]) => id));
   const scopedPending = pending.filter(row => (row.scopeKey || '') === scopeKey);
-  return { moduleId, connected: true, label: replacementModules[moduleId].label,
+  return { moduleId, scopeKey, connected: true, label: replacementModules[moduleId].label,
     activeVersion: active ? { id: active.id, number: active.number, status: active.status } : null,
     openVersion: open ? { id: open.id, number: open.number, status: open.status, revision: open.revision } : null,
     workflow: flow ? {generation:flow.generation,editable:open?.status==='draft'} : null,
     items: [...ids].map(id => {
-      const effective = activeMap.get(id), draft = draftMap.get(id);
+      const effective = activeMap.get(id), draft = draftMap.get(id), savedItem=savedMap.get(id);
       return { id: replacementSelectionId(moduleId,id,scopeKey), itemId:id, scopeKey,
+        savedChoice: savedItem && saved ? {id:saved.id,equipmentId:savedItem.equipmentId||'',mode:savedItem.inspectionMode,tool:savedItem.tool}:null,
+        effectiveReference: active && effective?.equipmentId === sourceId ? {
+          versionId: active.id, versionNumber: active.number, itemId: id, scope: scopeKey,
+          checkNo: itemNumber(effective), itemName: itemName(effective), status: active.status
+        } : null,
         code: itemNumber(draft || effective || { id }), name: itemName(draft || effective || { id }),
         activeEquipmentId: effective?.equipmentId || '', draftEquipmentId: draft?.equipmentId || '',
         activeInspectionMode:effective?.inspectionMode,draftInspectionMode:draft?.inspectionMode,
         ...(moduleId==='fqc'?{activeTool:effective?.tool,draftTool:draft?.tool}:{}),
-        openStatus: open?.status || '', openVersionId: open?.id || '',
+        openStatus: open?.status || '', openVersionId: open?.id || '', openVersionNumber: open?.number || '',
         selectable: !['pending','pending-test'].includes(open?.status || ''),
         unavailableReason: ['pending','pending-test'].includes(open?.status || '') ? '待審範圍已鎖定；結案後請重新選取' : '',
         pending: scopedPending.filter(row => row.moduleId === moduleId && row.itemId === id &&
@@ -108,15 +129,36 @@ export async function GET(request: Request) {
   try {
     const state = await readState({modelKey:'ipqcABMasterControl',deferHistory:true,deferDependencyHistory:true});
     const actor = await identity(request, state);
-    if (!actor || !(await can(request, state, 'view:data'))) return reply({ error: '沒有查看資料的權限' }, 403);
-    const sourceId = new URL(request.url).searchParams.get('sourceId') || '';
+    if (!actor || (request.headers.has('X-Process-Expected-Actor') && request.headers.get('X-Process-Expected-Actor')!==actor.id) || !(await can(request, state, 'view:data'))) return reply({ error: '沒有查看資料的權限' }, 403);
+    const query = new URL(request.url).searchParams;
+    const sourceId = query.get('sourceId') || '';
     const { routine, libraries, ipqcAB } = controls(state.values,state.recordStorage?.models.get('ipqcABMasterControl'));
+    if(query.has('referenceModule')){
+      const moduleId=query.get('referenceModule') as ReplacementModule;
+      if(!Object.hasOwn(replacementModules,moduleId) || !sourceId || !query.get('itemId') || !query.get('versionId'))return reply({error:'INVALID_REFERENCE_LOCATOR'},400);
+      if(moduleId!=='ipqc-ab' && !await can(request,state,moduleId+'.view'))return reply({error:'FORBIDDEN'},403);
+      if(query.get('revision')!==String(state.revision))return reply({error:'REFERENCE_REVISION_CHANGED'},409);
+      const scope=query.get('scope')||'';
+      const library=moduleId==='ipqc-ab'?ipqcAB?.scopes[scope]:libraryFor(libraries,moduleId);
+      if(!library)return reply({error:'REFERENCE_UNAVAILABLE'},503);
+      const version=query.get('referenceState')==='open'?openReplacementVersion(library):activeReplacementVersion(library);
+      if(!version || version.id!==query.get('versionId'))return reply({error:'REFERENCE_CHANGED'},409);
+      if(!readableReferenceVersion(version))return reply({error:'REFERENCE_UNAVAILABLE'},503);
+      const item=liveItems(version).find(row=>row.id===query.get('itemId') && row.equipmentId===sourceId);
+      if(!item)return reply({error:'REFERENCE_CHANGED'},409);
+      const parentId=(item as {errorId?:string}).errorId;
+      const errors=(version.snapshot as {errors?:{id:string}[]}).errors;
+      if(!Array.isArray(errors))return reply({error:'REFERENCE_UNAVAILABLE'},503);
+      return reply({revision:state.revision,version:{id:version.id,number:version.number,status:version.status,
+        snapshot:{items:[item],errors:errors.filter(row=>row.id===parentId)}}});
+    }
     const pending = routine.pendingReplacements || [];
     const modules = (Object.keys(replacementModules) as ReplacementModule[]).map(moduleId => {
       if (moduleId !== 'ipqc-ab') return describe(moduleId, libraryFor(libraries,moduleId),sourceId,pending);
+      const saved = (ipqcAB as import('@/lib/ipqc-ab-module-workflow').AbModuleRoot | null)?.moduleDraft?.workflow?.saved;
       const scopes = Object.entries(ipqcAB?.scopes || {}).map(([key,scope]) =>
-        describe(moduleId,scope,sourceId,pending,key));
-      return {moduleId,connected:!!ipqcAB && scopes.every(scope=>scope.connected),label:'IPQC-AB',items:scopes.flatMap(scope=>scope.items),
+        describe(moduleId,scope,sourceId,pending,key,saved?{id:saved.id,items:saved.content.scopes[key]?.items||[]}:undefined));
+      return {moduleId,connected:!!ipqcAB && !Array.isArray(ipqcAB.scopes) && scopes.every(scope=>scope.connected),label:'IPQC-AB',items:scopes.flatMap(scope=>scope.items),
         scopes,reason:ipqcAB?'':'尚未接入正式版本與草稿'};
     });
     const editable=await can(request,state,'approval.submit');
@@ -149,6 +191,11 @@ export async function GET(request: Request) {
         item.selectable=false;item.unavailableReason='沒有目標模組草稿編輯權限';
       }
     }
+    const readableModules = await Promise.all(modules.map(async entry => {
+      const referenceVisible = entry.moduleId === 'ipqc-ab' || await can(request,state,entry.moduleId+'.view');
+      if (!referenceVisible) for (const item of entry.items) {item.effectiveReference = null;item.savedChoice=null;}
+      return {...entry, referenceVisible};
+    }));
     const relatedPending = pending.filter(row =>
       (row.sourceEquipmentId === sourceId || row.targetEquipmentId === sourceId) && row.status !== 'applied')
       .map(row => {
@@ -160,9 +207,9 @@ export async function GET(request: Request) {
           itemCode: row.itemCode || (item ? itemNumber(item) : row.itemId),
           itemName: row.itemName || (item ? itemName(item) : '') };
       });
-    return reply({ revision: state.revision, source: effectiveEquipment(routine, sourceId) || null,
+    return reply({ revision: state.revision, referenceSourceId:sourceId, source: effectiveEquipment(routine, sourceId) || null,
       equipment: routine.versions.find(row => row.id === routine.activeVersionId && row.status === 'approved')?.equipment || [],
-      modules, pending: relatedPending });
+      modules: readableModules, pending: relatedPending });
   } catch (error) {
     return reply({ error: error instanceof Error ? error.message : '替換預覽載入失敗' }, 503);
   }
@@ -247,13 +294,14 @@ export async function POST(request: Request) {
         results.push({ itemId, status: 'conflict', reason: '待審範圍已鎖定；未建立延後替換，結案後請重新選取' });
         continue;
       }
-      if (draftItem?.equipmentId === targetId) {
+      const visual = (moduleId === 'iqc' || moduleId === 'ipqc-ab') && draftItem?.inspectionMode === 'visual';
+      if (draftItem?.equipmentId === targetId && !visual) {
         results.push({ itemId, status: 'unchanged' });
         continue;
       }
-      const previous = draftItem?.equipmentId || effective?.equipmentId || '';
-      if (previous && previous !== sourceId && !overrides.has(replacementSelectionId(moduleId,itemId,scopeKey))) {
-        results.push({ itemId, status: 'conflict', reason: `草稿已改選其他設備（${previous}），未覆蓋` });
+      if (draftItem && (draftItem.equipmentId !== sourceId || visual) && !overrides.has(replacementSelectionId(moduleId,itemId,scopeKey))) {
+        const reason = visual ? '草稿已改為目視' : draftItem.equipmentId ? `草稿已改選其他設備（${draftItem.equipmentId}）` : '草稿已清空檢具';
+        results.push({ itemId, status: 'conflict', reason: reason + '，未覆蓋' });
         continue;
       }
       if (!open) { open = createDraft(moduleId, scopedLibrary, actor, at); changed = true;
