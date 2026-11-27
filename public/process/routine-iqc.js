@@ -1513,7 +1513,7 @@
         const panel=root.querySelector('[data-routine-page-panel]');
         if(panel&&!panel.querySelector('nav[data-routine-module-switch]')){
           const nav=document.createElement('nav');
-          nav.className='rf-modules';nav.dataset.routineModuleSwitch='true';
+          nav.className='rf-modules';nav.setAttribute('data-routine-module-switch','true');
           nav.setAttribute('aria-label',t('例行檢查模組','Mô-đun kiểm tra định kỳ'));
           const entry=document.createElement('button');
           entry.type='button';
