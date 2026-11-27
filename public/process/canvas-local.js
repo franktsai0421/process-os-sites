@@ -402,6 +402,11 @@
   admit();if(running)return running;const j=ensure(),ownedClient=client;let session=recovery,stamp=captureRecoveryOwner(),pin=api().captureCanvasRecovery();
   if(!j.pending&&!api().canEditCanvas())throw Error('PENDING_OR_PERMISSION_LOCKED');const at=current();let batch;
   let stagedSave=null,rollbackSave=null;
+  if(j.preparationFailure){
+   const cleaned=session.rollbackUnsent(j.preparationFailure);
+   if(!cleaned.ok)throw recoveryError(cleaned);
+   delete j.preparationFailure;
+  }
   if(save&&!j.pending){
    const epoch=j.epoch,revision=recoveryRevision,flowRevision=api().flow().revision,view=clone(authority().currentView),workspace=w??at?.workspace,stage=s??at?.stage;
    const unchanged=()=>{const now=current();return j===journal&&!j.pending&&j.epoch===epoch&&recoveryRevision===revision&&owns(stamp)&&stamp.object===host.ProcessSync?.identity&&now?.workspace===workspace&&now?.stage===stage&&equal(view,authority().currentView);};
@@ -466,7 +471,13 @@
    if(save&&ownedClient.canvasRejectionCapability)saveRejections.set(batch,{token:ownedClient.canvasRejectionCapability(batch.command),rollback:rollbackSave});
    const commandPin=save?session.captureSaveCommand(batch.command,referenceOf(batch)):undefined;
    const prepared=session.prepareWrite({...(save?{commandPin}:{}),reference:referenceOf(batch),sent:{workspace:batch.workspace,stage:batch.stage,entries:batch.entries,dependencies:batch.dependencies},readPayload:()=>localRecord(j)});batch.reservation=prepared.reservation;
-   if(!prepared.ok||!prepared.durable){const cancelled=prepared.reservation&&session.cancelPrepared(prepared.reservation);rollbackSave?.();if(!cancelled?.ok&&prepared.reservation){batch.sent=true;j.sent(batch);session.schedulePending(batch.reservation,()=>localRecord(j));}storageError=t('操作收據存檔未確認；未送出同步，請保留此頁。','Chưa xác nhận lưu khôi phục; chưa gửi đồng bộ, hãy giữ trang.')+' '+prepared.code;update();throw Error('RECOVERY_STORAGE_UNAVAILABLE');}
+   if(!prepared.ok||!prepared.durable){
+    // prepareWrite has not called the transport. Never query a server receipt for this attempt.
+    if(prepared.reservation&&!session.rollbackUnsent(prepared.reservation).ok)j.preparationFailure=prepared.reservation;
+    const detail=prepared.code==='STORAGE_QUOTA_EXCEEDED'?t('瀏覽器的收據空間已滿。','Bộ nhớ biên nhận của trình duyệt đã đầy.'):prepared.code==='STORAGE_ACCESS_DENIED'?t('瀏覽器拒絕存取收據。','Trình duyệt từ chối truy cập biên nhận.'):(prepared.code||'RECOVERY_STORAGE_UNAVAILABLE');
+    storageError=t('尚未送出。修改保留在本頁，可重試或放棄本次輸入並離開。','Chưa gửi. Đầu vào còn trên trang; có thể thử lại hoặc bỏ đầu vào và rời đi.')+' '+detail;
+    update();throw Object.assign(Error(storageError),{code:prepared.code,notSent:true});
+   }
    j.sent(batch);
    }catch(error){if(!j.pending)rollbackSave?.();throw error;}
   }

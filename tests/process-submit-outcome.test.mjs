@@ -90,3 +90,23 @@ for(const failure of ['denied','read','unknown','ack-only','slow'])void test('su
  assert.ok(f.api.flow().pendingId);assert.equal(f.api.canMutate(),false);assert.equal(f.box.sharedDraftAccountState().unknown,false);
  assert.doesNotMatch(f.doc.querySelector('[data-vd-sync]').textContent,/結果未知|同步失敗/);
 });
+
+for(const fault of ['QuotaExceededError','SecurityError'])void test('unavailable Submit marker preserves saved draft and permits explicit retry '+fault,async t=>{
+ const f=await setup();t.after(f.close);f.box.ProcessEditorV2.departure.inspect=()=>({state:'clean',hasDialog:false});
+ await save(f,true);const before=f.f.row(),postCount=posts(f).length,disk=f.box.sessionStorage,set=disk.setItem;
+ disk.setItem=(key,value)=>{if(key.startsWith('shared-draft-v3-operation:'))throw Object.assign(Error('Synthetic storage fault'),{name:fault});return set(key,value);};
+ await submit(f);assert.equal(posts(f).length,postCount);assert.deepEqual(f.f.row(),before);assert.equal(f.api.flow().pendingId,null);
+ assert.match(f.root.textContent,/尚未送出/);assert(f.api.navigation.departure.canReopenDestination());
+ disk.setItem=set;await submit(f);assert.equal(posts(f).length,postCount+1);assert(f.api.flow().pendingId);
+});
+void test('an incomplete Submit ACK requires its original receipt even when a matching saved case exists',async t=>{
+ let original,wrong=true;const f=await setup({intercept:async(url,o,send)=>{
+  const cmd=o.body&&JSON.parse(o.body).command,resp=await send();
+  if(cmd?.action==='submit'){original=cmd.operationId;const body=await resp.json();body.receipt.caseId=null;return Response.json(body);}
+  if(original&&String(url).includes('operationId='+original)&&wrong){const body=await resp.json();body.receipt.operationId='different-synthetic-operation';return Response.json(body);}
+  return resp;
+ }});t.after(f.close);f.box.ProcessEditorV2.departure.inspect=()=>({state:'clean',hasDialog:false});await save(f,true);
+ const before=posts(f).length;await submit(f);assert.equal(posts(f).length,before+1);assert.equal(f.api.flow().pendingId,null);
+ const confirm=button(f,'confirm-submit-state');assert(confirm);wrong=false;await confirm.click();await ready(f);
+ assert(f.api.flow().pendingId);assert.equal(posts(f).length,before+1);
+});

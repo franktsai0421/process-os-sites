@@ -58,7 +58,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
  const html=fs.readFileSync(path.join(root,'public/process/index.html'),'utf8');
  const references=[...html.matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
  const versions={
-  'process-editor.js':'20261114-ipqc-link1',
+  'process-editor.js':'20261125-machine-reference2',
   'version-draft-ui.js':'20261119-routine-integration1',
   'version-draft-ui.css':'20261112-quality-integration1',
   'canvas-approved-history.js':'20261110-account-pages1',
@@ -68,7 +68,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
   'master-page-editor.js':'20261114-lines-flow-review1',
   'local-draft-recovery.js':'20261103-fqc-generation1',
   'shared-draft-client.js':'20261126-full-item-code1',
-  'process-authoring-v3.js':'20261115-canvas-inspection1',
+  'process-authoring-v3.js':'20261127-canvas-recovery',
   'process-ipqc.js':'20261115-ipqc-frequency1',
   'effective-version-notice.js':'20261109-explicit-checks1',
   'fqc-master.js':'20261126-full-item-code1',
@@ -78,9 +78,9 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
   'tooling.js':'20261118-standard-frequency1',
   'tooling.css':'20261007-2',
   'ipqc-ab.js':'20261126-full-item-code1',
-  'routine-equipment.js':'20261118-standard-frequency1',
-  'process-equipment.js':'20261105-process-local-save1',
-  'app.js':'20261125-process-master-draft',
+  'routine-equipment.js':'20261126-mobile-apply',
+  'process-equipment.js':'20261126-draft-equipment',
+  'app.js':'20261125-machine-reference2',
   'bom-workspace.js':'20261105-bom-atomic1',
   'master-admin-ui.js':'20261105-abc-local-save1',
   'master-shared-client.js':'20261114-lines-flow-review1',

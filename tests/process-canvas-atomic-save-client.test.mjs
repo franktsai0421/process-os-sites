@@ -97,9 +97,18 @@ for(const reason of ['actor','same-actor-object','epoch','generation','revision'
 void test('quota after choosing theirs cannot consume conflicting or independent input',async()=>{
  const f=await fixture();f.edit('Mine');f.local.edit(workspace,stage,[{id:'one',f:'x',value:42}]);f.remote.remote().working.workspaces[0].stages.S[0].name='Peer';f.remote.remote().revision++;
  f.box.ProcessEditorV2.resolveSaveConflicts=async()=>{f.disk.quota(true);return 'latest';};
- await assert.rejects(f.local.beforeSave(),/STORAGE/);assert.equal(f.remote.posts(),0);assert(f.local.pending(),'failed cancellation keeps its original reserved operation');assert.equal(f.local.counts().fields,2);
+ await assert.rejects(f.local.beforeSave(),/STORAGE/);assert.equal(f.remote.posts(),0);assert(!f.local.pending(),'an unarmed attempt never becomes a dispatched operation');assert.equal(f.local.counts().fields,2);
  const local=f.local.project(workspace,stage,f.model().working.workspaces[0].stages.S)[0];assert.equal(local.name,'Mine');assert.equal(local.x,42);
- f.disk.quota(false);await assert.rejects(f.local.beforeSave(),/NOT_FOUND/);assert.equal(f.remote.posts(),0,'receipt lookup never resends');assert(!f.local.pending(),'private never-dispatched cancellation proof can now be durably recorded; 404 alone did not release it');assert.equal(f.local.project(workspace,stage,f.model().working.workspaces[0].stages.S)[0].name,'Mine');
+ f.disk.quota(false);let choices=0;f.box.ProcessEditorV2.resolveSaveConflicts=async()=>{choices++;return 'latest';};
+ assert.equal((await f.local.beforeSave()).canvasSaved,true);assert.equal(choices,1);assert.equal(f.remote.posts(),1);assert.equal(f.remote.receipts(),0);
+ const saved=f.remote.remote().saved.content.workspaces[0].stages.S[0];assert.equal(saved.name,'Peer');assert.equal(saved.x,42);
+});
+void test('large repeated canvas values fit the bounded snapshot and survive receipt recovery',async()=>{
+ const f=await fixture(),value='large synthetic value '.repeat(6000),put=f.disk.setItem.bind(f.disk);let packed=false;
+ f.disk.setItem=(key,raw)=>{if(raw.includes('"canvas-strings-v1"'))packed=true;if(raw.length>value.length+20000)throw Object.assign(Error('fixture quota'),{name:'QuotaExceededError'});put(key,raw);};
+ f.edit(value);f.remote.mode('lost');await assert.rejects(f.local.beforeSave(),/UNKNOWN/);
+ assert(packed);f.remote.mode('ok');assert.equal((await f.local.beforeSave()).canvasSaved,true);
+ assert.equal(f.remote.posts(),1);assert.equal(f.remote.remote().saved.content.workspaces[0].stages.S[0].name,value);
 });
 void test('unknown Save never reopens conflict choice or creates a replacement command',async()=>{
  const f=await fixture();f.edit('Mine');f.remote.remote().working.workspaces[0].stages.S[0].name='Peer';f.remote.remote().revision++;let choices=0;f.box.ProcessEditorV2.resolveSaveConflicts=async()=>{choices++;return 'mine';};
@@ -169,4 +178,13 @@ for(const at of ['capability','store-token'])void test(`synchronous ${at} reject
  const f=await fixture({wrapRecovery:session=>at==='store-token'?{...session,get ready(){return session.ready;},captureSaveCommand(){throw Error('TOKEN_REJECTED');}}:session});f.edit('Mine');f.local.edit(workspace,stage,[{id:'one',f:'x',value:42}]);f.remote.remote().working.workspaces[0].stages.S[0].name='Peer';f.remote.remote().revision++;
  f.box.ProcessEditorV2.resolveSaveConflicts=async()=> 'latest';if(at==='capability')f.clients.at(-1).canvasRejectionCapability=()=>{throw Error('TOKEN_REJECTED');};
  await assert.rejects(f.local.beforeSave(),/TOKEN_REJECTED/);assert.equal(f.remote.posts(),0);assert(!f.local.pending());const row=f.local.project(workspace,stage,f.model().working.workspaces[0].stages.S)[0];assert.equal(row.name,'Mine');assert.equal(row.x,42);assert(f.local.dirty());
+});
+
+void test('read denial preserves historical data and a later explicit Save succeeds',async()=>{
+ const f=await fixture(),get=f.disk.getItem.bind(f.disk),prior='fixture-history-other-owner';
+ f.disk.setItem(prior,'retained');f.edit('Unsent change');
+ f.disk.getItem=key=>{if(key.includes('registry'))throw Object.assign(Error('fixture denial'),{name:'SecurityError'});return get(key);};
+ await assert.rejects(f.local.beforeSave(),e=>e.notSent&&e.code==='STORAGE_ACCESS_DENIED');
+ assert.equal(f.remote.posts(),0);assert(!f.local.pending());assert(f.local.dirty());
+ f.disk.getItem=get;assert.equal((await f.local.beforeSave()).canvasSaved,true);assert.equal(f.remote.posts(),1);assert.equal(get(prior),'retained');
 });

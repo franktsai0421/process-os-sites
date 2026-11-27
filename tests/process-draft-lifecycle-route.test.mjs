@@ -34,6 +34,23 @@ async function ok(f, command, actor = 'editor', options = {}) {
   return result.body;
 }
 
+for(const line of ['A','B','C'])for(const category of ['Synthetic one','Synthetic two'])for(const suffix of ['ASSEMBLY','FINAL']){
+ const stage=line+'-'+suffix;
+ void test('isolated employee canvas save, reread, submit and withdraw '+[line,category,stage].join('/'),async t=>{
+  const f=await createProcessDraftLifecycleFixture({line,category,stage});t.after(()=>f.close());
+  const begin=await f.request({method:'POST',body:{action:'begin'}});assert.equal(begin.status,200);
+  let flow=begin.body.control.workflow;
+  const name=category+' '+stage,cmd=f.apply(flow,'name',operation(flow.working,f.seed.ids).name,name);
+  cmd.moduleAction='save-canvas-v1';
+  const saved=await ok(f,cmd),reread=await f.request();assert.equal(reread.status,200);
+  flow=reread.body.control.workflow;assert.equal(flow.saved.id,saved.receipt.savedId);assert.equal(operation(flow.saved.content,f.seed.ids).name,name);
+  const submitted=await ok(f,f.command('submit',flow,{savedId:flow.saved.id,reason:'Synthetic matrix'}));
+  const review=await f.request({actor:'reviewer'});assert.equal(review.status,200);flow=review.body.control.workflow;
+  assert.equal(flow.pendingId,submitted.receipt.caseId);assert.equal(flow.cases.find(row=>row.id===flow.pendingId).savedId,saved.receipt.savedId);
+  await ok(f,f.command('withdraw',flow,{caseId:flow.pendingId,reason:'Synthetic matrix complete'}));
+ });
+}
+
 for (let cycle = 1; cycle <= 5; cycle++) void test(`process lifecycle cycle ${cycle}: Begin, guarded Apply/Sync, Save, Submit, Withdraw, resubmit, Return, resubmit, Approve`, async t => {
   const f = await createProcessDraftLifecycleFixture({cycle}), {seed} = f, report = {cycle, fixtureBytes: seed.seedBytes, contentBytes: seed.contentBytes, seedDigest: f.seedDigest, status: 'RUNNING', requests: f.measurements};
   reports.push(report);

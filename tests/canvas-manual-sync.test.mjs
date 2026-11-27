@@ -102,7 +102,8 @@ void test('unsent input is RAM only across duplicate tabs and new generations',a
 });
 
 void test('quota error never reports recovery success and blocks sending the batch',async()=>{
- const f=await browserFixture();f.local.edit(w,'S',[{id:'a',f:'x',value:5}]);f.mode('quota');f.tick();assert.equal(f.writes.length,0);await assert.rejects(f.local.sync(),/RECOVERY_STORAGE_UNAVAILABLE/);assert.equal(f.calls.length,0);assert(f.local.dirty());
+ const f=await browserFixture();f.local.edit(w,'S',[{id:'a',f:'x',value:5}]);f.mode('quota');f.tick();assert.equal(f.writes.length,0);await assert.rejects(f.local.sync(),e=>e.notSent&&e.code==='STORAGE_WRITE_FAILED');assert.equal(f.calls.length,0);assert(f.local.dirty());assert(!f.local.pending());
+ f.mode('success');await f.local.sync();assert.equal(f.calls.filter(c=>c.method==='POST').length,1);assert(!f.local.dirty());
 });
 
 void test('background newer shared value cannot become an unseen overwrite baseline',()=>{
