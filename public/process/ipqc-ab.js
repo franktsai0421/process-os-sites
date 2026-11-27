@@ -539,8 +539,11 @@
   function compareLocalLineage(intent,flow){
     const hash=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value),view=lineageView,moduleGeneration=flow?.generation??null;
     for(const entry of localScopes.values())if(!sameInput(entry.source,control?.source??null))throw Error('SOURCE_CHANGED_RECONFIRM');
-    const verified=view?.kind==='ipqc-ab-local-lineage-v1'&&view.revision===revision&&hash(view.businessBase)&&hash(localBusinessBase)&&view.businessBase===localBusinessBase;
-    if(hash(localBusinessBase)&&!verified)throw Error('BUSINESS_BASE_CHANGED_RECONFIRM');
+    const displayed = intent.displayedDraft;
+    if (displayed && (displayed.revision !== revision || displayed.generation !== moduleGeneration)) throw Error('MODULE_CHANGED_RECONFIRM');
+    const originalBase = localBusinessBase ?? displayed?.businessBase;
+    const verified=view?.kind==='ipqc-ab-local-lineage-v1'&&view.revision===revision&&hash(view.businessBase)&&hash(originalBase)&&view.businessBase===originalBase;
+    if(hash(originalBase)&&!verified)throw Error('BUSINESS_BASE_CHANGED_RECONFIRM');
     if(localModuleGeneration&&localModuleGeneration!==moduleGeneration)throw Error('DRAFT_GENERATION_CHANGED');
     if(localBeginReceipt&&localBeginReceipt.generation!==moduleGeneration)throw Error(localBeginExpectation?.receipt&&!localBeginExpectation.confirmed?'BEGIN_CONFIRMATION_RECONFIRM':'DRAFT_GENERATION_CHANGED');
     const adopt=[];for(const entry of localScopes.values()){
@@ -776,6 +779,12 @@
     if(continuation&&!localSaveIntentCurrent(continuation))return null;
     if(!continuation&&localSaveIntent&&localConflictRows()){message=t('請選擇目前衝突或取消此次存取。','Hãy chọn xung đột hiện tại hoặc hủy lần lưu.');draw({localConflictChoice:true});return null;}
     const owner=actor(),epoch=window.ProcessSync?.identityGeneration?.();let capture=JSON.stringify(localSaveScopes());const intent=continuation||{displayEpoch:historyDisplayEpoch,owner,epoch,delivery:window.ProcessSync?.captureDelivery?.(),host,lifetime:mutationLifetime,modal,client,stamp:capture,photoPins:new Map([...localPhotos].map(([id,staged])=>[id,{staged,file:staged.file,preview:staged.preview}]))};localSaveIntent=intent;if(!continuation)localConflict=null;
+    // A reopened transfer draft has no local edit batch. Pin this explicit Save
+    // to the owner, displayed revision, generation and business baseline.
+    if (!continuation && !localScopes.size && !localBeginExpectation && !localBeginReceipt &&
+        !localSent && !localModuleGeneration && moduleDrafts().length && lineageView?.revision === revision) {
+      intent.displayedDraft = {revision, generation:control.moduleDraft?.workflow?.generation ?? null, businessBase:lineageView.businessBase};
+    }
     let waiting=false,acknowledged=false,initialized=false,saveDispatched=false,recompare=false,mediaAcknowledged=false;const pin=pinLocalOperation(client),owns=()=>pin.current()&&(acknowledged||localSaveIntentCurrent(intent,false));
     const unchanged=()=>owns()&&JSON.stringify(localSaveScopes())===capture;busy=true;message='';draw();
     try{
@@ -818,6 +827,11 @@
         // Any intervening state write stops this intent before media or Save.
         if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');
         if(result.revision!==beginRevision+1||flow.revision!==localBeginReceipt.revision)throw Error('MODULE_CHANGED_RECONFIRM');
+        // Advance only across this intent's confirmed Begin. The business baseline remains pinned.
+        if(intent.displayedDraft) {
+          intent.displayedDraft.revision=result.revision;
+          intent.displayedDraft.generation=flow.generation;
+        }
         if(!await compareAuthority())return null;
       }
       if(!flow)throw Error('BEGIN_REQUIRED');
@@ -910,7 +924,15 @@
     }
     for(const item of snapshot().items.filter(i=>!i.deleted)){
       const parent=snapshot().errors.find(e=>e.id===item.errorId),bad=item.productCodes.filter(code=>!catalog.products.some(p=>p.code===code&&p.line===line&&p.category===group&&p.stages.includes(parent?.stageCode)));
-      if(bad.length)invalid.push({itemId:item.id,code:item.code,reason:t('產品關聯失效，送審前請修正：','Liên kết sản phẩm không hợp lệ, cần sửa trước khi gửi: ')+bad.join('、')});
+      if(bad.length){
+        const retained=parent && !routeStageCodes().includes(parent.stageCode) &&
+          active()?.snapshot?.items?.some(row=>row.id===item.id && row.errorId===parent.id && !row.deleted) &&
+          bad.every(code=>catalog.products.some(p=>p.code===code && p.line===line && p.category===group));
+        const reason=retained
+          ? t('已核准的路線外標準。整份案件若只替換檢具，可依原流程送審。產品：','Tiêu chuẩn đã duyệt ngoài lộ trình. Nếu toàn bộ hồ sơ chỉ thay thiết bị, có thể gửi duyệt như thường lệ. Sản phẩm: ')
+          : t('產品關聯失效，送審前請修正：','Liên kết sản phẩm không hợp lệ, cần sửa trước khi gửi: ');
+        invalid.push({itemId:item.id,code:item.code,reason:reason+bad.join('、')});
+      }
     }
     for(const error of snapshot().errors.filter(e=>!e.deleted)){const assigned=new Set(snapshot().items.filter(i=>!i.deleted&&i.isEnabled&&i.errorId===error.id).flatMap(i=>i.productCodes));for(const product of catalog.products.filter(p=>p.line===line&&p.category===group&&p.stages.includes(error.stageCode)&&!assigned.has(p.code)))records.push({errorId:error.id,code:error.code,reason:t('適用產品尚未涵蓋：','Sản phẩm chưa được bao phủ: ')+product.code});}
     const section=(rows,kind,label)=>rows.length?`<details class="ipqcab-issues" data-ab-issue-kind="${kind}"><summary>${label} · ${rows.length}</summary>

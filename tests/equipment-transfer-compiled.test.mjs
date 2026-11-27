@@ -1,6 +1,7 @@
 // Full compiled Worker/SPA, private D1/R2 and synthetic producer approvals only.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {chromium} from 'playwright';
 import {createABCFixture} from './ab-c-native-fixture.mjs';
@@ -15,7 +16,11 @@ async function setup(width,language,ports={createTransferFixture,createABCFixtur
  let f,browser,context,closing;
  const close=()=>closing??=(async()=>{const failures=[];for(const resource of [context,browser,f])if(resource)try{await resource.close();}catch(error){failures.push(error);}if(failures.length)throw new AggregateError(failures,'Compiled transfer fixture cleanup failed');})();
  try{
- f=await ports.createABCFixture({products:1,async decorate(target,_load,bucket){for(const key of keys)target[key]=values[key];for(const [key,bytes]of objects)await bucket.put(key,bytes);}});
+ f=await ports.createABCFixture({products:1,async decorate(target,_load,bucket){if(ports.independentReviewer){
+   const users=JSON.parse(target.platformUsers);
+   users.push({...users.find(user=>user.primary),id:'fixture-reviewer',name:'Synthetic reviewer',primary:false});
+   target.platformUsers=JSON.stringify(users);
+ }for(const key of keys)target[key]=values[key];for(const [key,bytes]of objects)await bucket.put(key,bytes);}});
  browser=await ports.chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE}:{})});context=await browser.newContext({viewport:{width,height:900},serviceWorkers:'block'});const posts=[],errors=[];
  await context.route('**/*',route=>new URL(route.request().url()).origin===f.url.origin?route.continue():route.abort());await context.addCookies([{name:'process_demo',value:f.cookie(),url:f.url.origin}]);await context.addInitScript(({language,origin})=>{if(location.origin===origin)localStorage.setItem('processUILanguage',language);},{language,origin:f.url.origin});
  context.on('page',page=>{page.setDefaultTimeout(15000);page.on('pageerror',error=>errors.push(error.message));page.on('dialog',dialog=>void dialog.accept());page.on('request',r=>{if(r.method()==='POST')posts.push({path:new URL(r.url()).pathname,body:r.postDataJSON()});});});
@@ -148,3 +153,269 @@ void test('compiled IQC lost identified Begin leaves silently and settles only i
  const current=flow(await s.controls(),'iqc');assert.equal(current.saved,null);assert.equal(current.working.items[0].equipmentId,'source');assert.deepEqual(s.errors,[]);
  }finally{await s.close();}
 });
+
+const transferModules = ['fqc','iqc','ipqc-ab','ipqc-c'];
+const sectionKey = id => ({'ipqc-ab':'ipqcAB','ipqc-c':'ipqcC'}[id] || id);
+const toolbarId = id => id.replace('-','');
+const rowsOf = version => (version.content.scopes?.['A:G-A'] || version.content).items;
+const reviewFlow = (controls,mod) => mod==='ipqc-ab' ? controls.ipqcABMasterControl.moduleDraft.workflow : flow(controls,mod);
+
+
+async function assertStandardStage(page, goto, hidden, id, assetCode) {
+  await goto('view=data&dataTab=quality-ipqc-ab');
+  await page.locator('#ipqcab-line').selectOption('A');
+  await page.locator('#ipqcab-group').selectOption('G-A');
+  const stage=page.locator('#ipqcab-stage');
+  const codes=()=>stage.locator('option').evaluateAll(nodes=>nodes.map(node=>node.value).filter(Boolean));
+  assert.deepEqual(await codes(),hidden?['A-PACK']:['A-CUT']);
+  if(hidden) await page.locator('#ipqcab-route-extras').click();
+  await stage.selectOption('A-CUT');
+  await page.locator('[data-ab-error]').first().click();
+  const item=page.locator('[data-ab-view-item="'+id+'"]');
+  await item.waitFor();
+  if(assetCode){
+    const link=item.locator('xpath=ancestor::article[1]').locator('a.ipqcab-equipment-preview');
+    assert.equal(new URL(await link.getAttribute('href'),page.url()).searchParams.get('equipmentId'),'target');
+    assert((await link.innerText()).includes(assetCode));
+  }
+}
+
+async function exerciseReturnedCases(session, {page,goto,ack,confirmDialog}, original, savedId) {
+  const origin=session.f.url.origin;
+  const login=id=>session.context.addCookies([{name:'process_demo',value:session.f.cookie(id),url:origin}]);
+  for(const [action,actor] of [['withdraw','frank'],['return','fixture-reviewer']]){
+    const pending=reviewFlow(await session.controls(),'ipqc-ab').pendingId;
+    await login(actor);
+    await goto('view=approval&approvalTab=quality');
+    await page.locator('[data-review-jump="ipqc-ab"]').click();
+    const accepted=ack('ipqc-ab',action);
+    await page.locator('[data-ab-module-action="'+(action==='return'?'reject':'withdraw')+'"][data-case-id="'+pending+'"]').click();
+    await confirmDialog();
+    assert.equal((await accepted).status(),200);
+    const reviewed=reviewFlow(await session.controls(),'ipqc-ab');
+    assert.equal(reviewed.pendingId,null);
+    assert.equal(reviewed.saved.id,savedId);
+    assert.deepEqual(reviewed.active,original);
+    const old=reviewed.cases.find(c=>c.id===pending);
+    assert.equal(old.status,action==='return'?'returned':'withdrawn');
+    assert.equal(old.result.actor.id,actor);
+    await login('frank');
+    await goto('view=data&dataTab=quality-ipqc-ab');
+    const submit=ack('ipqc-ab','submit');
+    await page.locator('#ipqcab-submit').click();
+    await confirmDialog();
+    assert.equal((await submit).status(),200);
+  }
+}
+
+async function restoreApprovedTestRoute(session) {
+  const origin=session.f.url.origin;
+  let seq=0;
+  const masterPath=origin+'/api/master/workflow?scope=AB&caseMetadata=1';
+  const api=async(actor,body)=>{
+    const res=await session.context.request.post(masterPath,{headers:{Origin:origin,'X-Process-Expected-Actor':actor},data:body});
+    const reply=await res.json(); assert.equal(res.status(),200,JSON.stringify({action:body.action||body.command?.action,error:reply.error,details:reply.details})); return reply;
+  };
+  const identity=actor=>session.context.addCookies([{name:'process_demo',value:session.f.cookie(actor),url:origin}]);
+  await api('frank',{action:'begin'});
+  const command=async(actor,action,fields={})=>{
+    const read=await session.context.request.get(masterPath);
+    assert.equal(read.status(),200);
+    const dto=await read.json(),flow=(await session.controls()).masterDataControl.workflowScopes.AB;
+    return api(actor,{command:{action,operationId:crypto.randomUUID(),clientId:'route-roundtrip',sequence:++seq,generation:flow.generation,expectedRevision:flow.revision,input:{stateRevision:dto.revision},...fields}});
+  };
+  const paths=[['categoryGroups',{id:'group-G-A'},'defaultStages'],['products',{id:'product-A100'},'stages']];
+  await command('frank','apply',{guards:paths.map(path=>({path,value:['A-PACK']})),patches:paths.map(path=>({op:'set',path,value:['A-CUT']}))});
+  const masterSave=await command('frank','save');
+  const masterSubmit=await command('frank','submit',{savedId:masterSave.receipt.savedId,reason:'Restore synthetic group route for held standards'});
+  await identity('fixture-reviewer');
+  await command('fixture-reviewer','approve',{caseId:masterSubmit.receipt.caseId});
+}
+
+async function verifyReferenceJourney(width, lang, options={}) {
+  const all = options.selectAll === true;
+  const session = await setup(width,lang,{
+    createTransferFixture:()=>createTransferFixture({paired:!all,offRoute:options.offRoute}),
+    createABCFixture, chromium, independentReviewer:true
+  });
+  try {
+    const page=session.source, origin=session.f.url.origin;
+    const goto=async query=>{
+      await page.goto(origin+'/process/?system=quality&'+query);
+      await page.waitForFunction(()=>window.ProcessSync?.identity && document.documentElement.dataset.processNavigationStatus==='ready');
+    };
+    const openEquipment=async()=>{
+      await goto('view=data&dataTab=quality-routine-equipment');
+      await page.locator('[data-node-select="category"]').first().click();
+      await page.locator('[data-node-select="subcategory"]').first().click();
+      if(await page.locator('[data-node-select="group"]').count()) await page.locator('[data-node-select="group"]').first().click();
+    };
+    const ack=(mod,action)=>page.waitForResponse(r=>r.request().method()==='POST' &&
+      new URL(r.url()).pathname==='/api/'+mod+'/workflow' && r.request().postDataJSON()?.command?.action===action);
+    const settled=()=>page.waitForFunction(()=>!window.sharedDraftAccountState?.().queued);
+    const confirmDialog=async()=>{
+      const dialog=page.locator('dialog[open]').last();
+      await dialog.waitFor();
+      const reason=dialog.locator('textarea:visible').first();
+      if(await reason.count()) await reason.fill('Synthetic inspection change');
+      for(const checkbox of await dialog.locator('input[type=checkbox]:visible:enabled').all()) await checkbox.check();
+      await dialog.locator('[type=submit]').click();
+    };
+    const equipment=(await session.controls()).routineEquipmentControl;
+    const approved=equipment.versions.find(v=>v.id===equipment.activeVersionId);
+    const photoIds=Object.fromEntries(approved.equipment.map(r=>[r.id,r.photoId]));
+    assert.notEqual(photoIds.source,photoIds.target);
+    async function verifyPhotos() {
+      const bucket=await session.f.mf.getR2Bucket('STATE_ARCHIVE');
+      for(const id of [photoIds.source,photoIds.target]){
+        const image=await bucket.get('routine-equipment/photos/'+id);
+        assert(image);
+        assert.equal(createHash('sha256').update(Buffer.from(await image.arrayBuffer())).digest('hex'),id);
+      }
+    }
+    const snapshots={},selected={},pending={},finalCases={};
+    await verifyPhotos();
+    await options.before?.(session);
+    for (const mod of transferModules) {
+      const initial=reviewFlow(await session.controls(),mod);
+      snapshots[mod]=initial.active;
+      const originals=rowsOf(initial.active);
+      assert.equal(originals.length,all?1:2);
+      assert(originals.every(row=>row.equipmentId==='source'));
+      if(mod==='ipqc-ab' && options.offRoute) await assertStandardStage(page,goto,true,originals[0].id);
+      await openEquipment();
+      await page.locator('[data-equipment-transfer="source"]').click();
+      const choices=page.locator('[data-transfer-check="'+sectionKey(mod)+'"]');
+      await choices.first().waitFor();
+      assert.equal(await choices.count(),originals.length);
+      if(!all) await choices.last().uncheck();
+      await choices.first().check();
+      let chosen=await choices.first().inputValue();
+      if(mod==='ipqc-ab') chosen=JSON.parse(chosen)[1];
+      selected[mod]=chosen;
+      await page.locator('#routine-target-eq-select').selectOption('target');
+      const applied=ack(mod,['fqc','iqc'].includes(mod)?'save':'apply');
+      await page.locator('#routine-confirm-transfer-'+mod).click();
+      assert.equal((await applied).status(),200);
+      await settled();
+      const draftControls=await session.controls();
+      const dest=flow(draftControls,mod);
+      assert.deepEqual(reviewFlow(draftControls,mod).active,initial.active);
+      for(const row of originals) {
+        const edited=dest.working.items.find(r=>r.id===row.id);
+        if(row.id===chosen) assert.equal(edited.equipmentId,'target');
+        else assert.deepEqual(edited,row);
+      }
+      await goto('view=data&dataTab=quality-'+mod);
+      if(mod.startsWith('ipqc')){
+        if(mod==='ipqc-ab' && lang==='zh' && !all){
+          const button=page.locator('#ipqcab-save');
+          await button.waitFor();
+          const count=session.posts.filter(r=>r.path==='/api/ipqc-ab/workflow' && r.body.command?.action==='save').length;
+          const bump=await session.context.request.post(origin+'/api/routine-equipment/workflow?caseMetadata=1',{
+            headers:{Origin:origin,'X-Process-Expected-Actor':'frank'},data:{action:'begin'}
+          });
+          assert.equal(bump.status(),200);
+          await button.click();
+          await page.getByText(/MODULE_CHANGED_RECONFIRM/).first().waitFor();
+          assert.equal(session.posts.filter(r=>r.path==='/api/ipqc-ab/workflow' && r.body.command?.action==='save').length,count);
+          await goto('view=data&dataTab=quality-'+mod);
+        }
+        const save=ack(mod,'save');
+        await page.locator('#'+toolbarId(mod)+'-save').click();
+        assert.equal((await save).status(),200);
+      }
+      const submitting=ack(mod,'submit');
+      await page.locator('#'+toolbarId(mod)+'-submit').click();
+      await confirmDialog();
+      assert.equal((await submitting).status(),200);
+      const submitted=reviewFlow(await session.controls(),mod);
+      assert.deepEqual(submitted.active,initial.active);
+      assert(submitted.pendingId);
+      if(mod==='ipqc-ab' && options.offRoute){
+        await exerciseReturnedCases(session,{page,goto,ack,confirmDialog},initial.active,submitted.saved.id);
+        pending[mod]=reviewFlow(await session.controls(),mod).pendingId;
+      } else pending[mod]=submitted.pendingId;
+    }
+    await session.context.addCookies([{name:'process_demo',value:session.f.cookie('fixture-reviewer'),url:origin}]);
+    for(const mod of transferModules){
+      await goto('view=approval&approvalTab=quality');
+      assert.equal(await page.evaluate(()=>window.ProcessSync.identity.id),'fixture-reviewer');
+      await page.locator('[data-review-jump="'+mod+'"]').click();
+      const selector={fqc:'#quality-approve',iqc:'#iqc-review-approve','ipqc-ab':'[data-ab-module-action="approve"]','ipqc-c':'[data-ipqcc-review="approve"]'}[mod];
+      const approving=ack(mod,'approve');
+      await page.locator(selector).first().click();
+      if(await Promise.race([approving.then(()=>false),page.locator('dialog[open]').first().waitFor().then(()=>true)])) await confirmDialog();
+      assert.equal((await approving).status(),200);
+      const final=reviewFlow(await session.controls(),mod);
+      assert.equal(final.active.id,pending[mod]);
+      assert.equal(final.pendingId,null);
+      const approvedCase=final.cases.find(c=>c.id===pending[mod]);
+      assert.equal(approvedCase.actor.id,'frank');
+      assert.equal(approvedCase.result.actor.id,'fixture-reviewer');
+      assert.deepEqual(final.cases.find(c=>c.id===snapshots[mod].id).content,snapshots[mod].content);
+      for(const original of rowsOf(snapshots[mod])){
+        const current=rowsOf(final.active).find(r=>r.id===original.id);
+        if(original.id!==selected[mod]){assert.deepEqual(current,original); continue;}
+        assert.equal(current.equipmentId,'target');
+        const photo=row=>mod==='fqc' ? new URL(row.equipmentSnapshot.photoUrl,origin).searchParams.get('id') : row.equipmentSnapshot.photoId;
+        assert.equal(photo(original),photoIds.source);
+        assert.equal(photo(current),photoIds.target);
+      }
+      finalCases[mod]=final.active;
+      await options.afterApproval?.(session,mod);
+    }
+    for(const id of ['source','target']){
+      await openEquipment();
+      await page.locator('[data-equipment-view="'+id+'"]').click();
+      const observed={};
+      for(const mod of transferModules){
+        const section=page.locator('[data-view-ref-kind="'+sectionKey(mod)+'"]');
+        await section.locator('summary').click();
+        const revision=section.locator('.routine-ref-content small').first();
+        await revision.waitFor();
+        observed[mod]=Number((await revision.innerText()).match(/(?:資料修訂|Bản sửa dữ liệu)\s+(\d+)/)?.[1]);
+        const active=section.locator('.routine-ref-subgroup').filter({has:page.locator('b',{hasText:/目前生效中|Đang hiệu lực/})});
+        const expected=rowsOf(finalCases[mod]).filter(r=>r.equipmentId===id);
+        assert.equal(await active.locator('.routine-ref-row').count(),expected.length);
+        for(const row of expected) assert((await active.innerText()).includes(row.checkNo || row.code));
+      }
+      await page.locator('#routine-view-dismiss').click();
+      const result=page.waitForResponse(r=>r.request().method()==='GET' && new URL(r.url()).pathname==='/api/quality-equipment-replacement');
+      await page.locator('[data-equipment-transfer="'+id+'"]').click();
+      const response=await result;
+      assert.equal(response.status(),200);
+      const preview=await response.json();
+      for(const mod of transferModules){
+        assert.equal(preview.revision,observed[mod]);
+        const module=preview.modules.find(m=>m.moduleId===mod);
+        assert.equal(module.connected,true);
+        const expected=rowsOf(finalCases[mod]).filter(r=>r.equipmentId===id).map(r=>r.id).sort();
+        assert.deepEqual(module.items.filter(r=>r.activeEquipmentId===id).map(r=>r.itemId).sort(),expected);
+      }
+    }
+    await verifyPhotos();
+    if(options.offRoute){
+      const id=selected['ipqc-ab'], target=approved.equipment.find(row=>row.id==='target');
+      await assertStandardStage(page,goto,true,id,target.assetCode);
+      await session.context.addCookies([{name:'process_demo',value:session.f.cookie('frank'),url:origin}]);
+      await restoreApprovedTestRoute(session);
+      await assertStandardStage(page,goto,false,id,target.assetCode);
+      assert.deepEqual(reviewFlow(await session.controls(),'ipqc-ab').active,finalCases['ipqc-ab']);
+    }
+    await options.after?.(session);
+    assert.deepEqual(session.errors,[]);
+  } finally { await session.close(); }
+}
+
+for(const [width,lang] of [[1280,'zh'],[390,'vi']]){
+  test('reference selection, saved draft, independent approval and bidirectional readback '+lang,async()=>{
+    await verifyReferenceJourney(width,lang);
+  });
+}
+
+for(const [width,lang] of [[1280,'zh'],[390,'vi']]){
+  test('hidden approved AB standard retains its new equipment through withdrawal, return, approval and route restoration '+lang,async()=>{
+    await verifyReferenceJourney(width,lang,{offRoute:true});
+  });
+}

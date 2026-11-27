@@ -117,7 +117,7 @@ const insert = (collection, value) => ({ op: 'insert', path: [collection], value
     await h.promote('routine-equipment');
     await h.begin('fqc');
     await h.command('fqc', 'apply', { patches: [
-      insert('errors', { id: 'error', name: 'Synthetic error', line: 'A', category: 'Fixture' }),
+      insert('errors', { id: 'error', code: 'SYN-FQC-L1', name: 'Synthetic error', line: 'A', category: 'Fixture' }),
       insert('items', { id: 'item', errorId: 'error', name: 'Synthetic item', description: 'Keep standards / 保留標準', line: 'A', category: 'Fixture',
         isEnabled: true, equipmentId: 'source', equipmentSnapshot: null, tool: 'FX7000', mediaItems: [], productCodes: [], rule: { cadence: 'batch', batchKind: 'aql', aqlValue: '0.25' } }),
     ] });

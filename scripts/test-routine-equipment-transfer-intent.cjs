@@ -93,6 +93,23 @@ async function check(name, fn) { const start = performance.now(); try { await fn
 
 module.exports = { fixture, tick, copy };
 if (require.main === module) (async () => {
+  await check('preview distinguishes loading, incomplete, zero, referenced and locked', async () => {
+    const f = await fixture({pause:'preview'});
+    const rendered = () => f.host.querySelector('#routine-transfer-backdrop').textContent;
+    assert.match(rendered(), /查詢中/);
+    assert.doesNotMatch(rendered(), /直接引用 0/);
+    f.preview.modules.push({moduleId:'iqc',connected:false,items:[]},
+      {moduleId:'ipqc-ab',connected:true,items:[]},
+      {moduleId:'ipqc-c',connected:true,items:[{id:'locked',itemId:'locked',selectable:false}]});
+    f.release();
+    await f.tick();
+    for (const message of [/模組未接入或資料不完整/, /直接引用 0 筆，可選 0 筆/, /直接引用 1 筆，可選 0 筆/, /直接引用 1 筆，可選 1 筆/]) assert.match(rendered(),message);
+    f.test.dialog.previewError='Synthetic read failure';
+    f.test.render();
+    assert.match(rendered(),/查詢失敗/);
+    assert.doesNotMatch(rendered(),/直接引用 0/);
+    assert.equal(f.writes().length,0);
+  });
   for (const moduleId of ['fqc', 'iqc', 'ipqc-c', 'ipqc-ab']) for (const editable of [true, false]) await check(`${moduleId} ${editable ? 'editable' : 'new'} draft uses its confirmed guarded transaction`, async () => {
     const f = await fixture({ moduleId, editable }), before = JSON.stringify(f.test.model); await f.execute();
     const writes = f.writes(), commands = writes.filter(row => row.body.command);

@@ -1,7 +1,8 @@
+import {equipmentCatalog} from './equipment-catalog.mjs';
 import {abApprovedMetadata,legacyAbVersion} from './ipqc-ab-approved-history';
 import {approvedVersion} from './approved-history';
 import {abLocalScopes,applyAbLocalScopes} from './ipqc-ab-local-save';
-import {parseAbControl,activeAb,openAb,copyAb,type AbControl,type AbSnapshot,type AbVersion} from './ipqc-ab';
+import {parseAbControl,activeAb,openAb,copyAb,catalogFromMaster,type AbCatalog,type AbControl,type AbSnapshot,type AbVersion} from './ipqc-ab';
 import {abWorkflowAdapter,type AbSharedScope} from './ipqc-ab-workflow';
 import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON} from './shared-draft';
 import {projectSharedVersion,type WorkflowAdapter,type VersionedControl,type NumericVersion} from './versioned-shared-workflow';
@@ -12,6 +13,73 @@ export type AbModuleSnapshot={scopes:Record<string,AbSnapshot>;bases:Record<stri
 export type AbModuleControl=VersionedControl<AbModuleSnapshot>;
 export type AbModuleRoot=AbControl&{moduleDraft?:AbModuleControl};
 export function abModulePending(root:AbControl){return (root as AbModuleRoot).moduleDraft?.workflow?.pendingId;}
+
+// Identify rows by approved scope, error and item identities, including unselected
+// peers whose pre-existing route issue the whole-module submission also contains.
+function hiddenEquipmentReview(root:AbModuleRoot, proposed:AbModuleSnapshot, catalog:AbCatalog) {
+ const rows=new Map<string,Set<string>>();
+ let replacement=false;
+ for(const [key,group] of Object.entries(root.scopes)){
+  const active=activeAb(group),next=proposed.scopes[key];
+  if(active?.status!=='approved' || !next) continue;
+  const products=new Map(catalog.products.filter(p=>p.line===group.line && p.category===group.group).map(p=>[p.code,p]));
+  const configured=catalog.groups.find(g=>g.line===group.line && g.name===group.group)?.defaultStages;
+  const route=new Set(configured ?? [...products.values()].flatMap(p=>p.stages));
+  const lineStages=new Set(catalog.stages.filter(s=>s.line===group.line).map(s=>s.code));
+  const hidden=new Map(active.snapshot.errors.filter(e=>!e.deleted && e.line===group.line && e.group===group.group &&
+    lineStages.has(e.stageCode) && !route.has(e.stageCode)).map(e=>[e.id,e.stageCode]));
+  if(!hidden.size) continue;
+  const proposedRows=new Map(next.items.map(i=>[i.id,i]));
+  const changedProducts=new Map<string,Set<string>>();
+  const routeIssues=new Map<string,{stage:string;products:string[]}>();
+  for(const old of active.snapshot.items){
+   const stage=hidden.get(old.errorId);
+   if(!stage || old.deleted) continue;
+   const row=proposedRows.get(old.id);
+   const changed=old.inspectionMode==='equipment' && !!row && row.equipmentId!==old.equipmentId;
+   if(changed) replacement=true;
+   // Missing, reclassified and foreign-line products cannot inherit an exception.
+   if(!old.productCodes.every(code=>products.has(code))) continue;
+   const invalid=old.productCodes.filter(code=>!products.get(code)!.stages.includes(stage));
+   if(!invalid.length) continue;
+   routeIssues.set(old.id,{stage,products:invalid});
+   if(changed){
+    const codes=changedProducts.get(stage) ?? new Set<string>();
+    for(const code of invalid) codes.add(code);
+    changedProducts.set(stage,codes);
+   }
+  }
+  // An unselected peer is retained only for the exact removed route links
+  // implicated by a changed approved item in this scope and stage.
+  const eligible=new Set<string>();
+  for(const [id,issue] of routeIssues){
+   if(issue.products.every(code=>changedProducts.get(issue.stage)?.has(code))) eligible.add(id);
+  }
+  if(eligible.size) rows.set(key,eligible);
+ }
+ return replacement ? rows : null;
+}
+
+function onlyApprovedEquipmentChanges(root:AbModuleRoot, proposed:AbModuleSnapshot, equipmentIds:Set<string>) {
+ if(Object.keys(proposed.scopes).length!==Object.keys(root.scopes).length) return false;
+ return Object.entries(root.scopes).every(([key,group])=>{
+  const next=proposed.scopes[key],active=activeAb(group);
+  if(!next || proposed.bases[key]!==group.activeVersionId) return false;
+  if(!active) return !group.activeVersionId && !next.errors.length && !next.items.length;
+  if(active.status!=='approved') return false;
+  const prior=active.snapshot;
+  if(stableDraftJSON(next.errors)!==stableDraftJSON(prior.errors) || next.items.length!==prior.items.length) return false;
+  return next.items.every((row,index)=>{
+   const old=prior.items[index];
+   if(row.id!==old.id) return false;
+   if(row.equipmentId===old.equipmentId) return stableDraftJSON(row)===stableDraftJSON(old);
+   if(old.deleted || !old.isEnabled || old.inspectionMode!=='equipment' || !equipmentIds.has(old.equipmentId) ||
+      (old.equipmentSnapshot && old.equipmentSnapshot.id!==old.equipmentId) || !row.equipmentId || row.equipmentSnapshot?.id!==row.equipmentId) return false;
+   // The group adapter builds the target snapshot and rechecks availability.
+   return stableDraftJSON({...row,equipmentId:old.equipmentId,equipmentSnapshot:old.equipmentSnapshot})===stableDraftJSON(old);
+  });
+ });
+}
 export function abModuleWorkflowAdapter():WorkflowAdapter<AbModuleSnapshot,AbModuleControl>{
  let root:AbModuleRoot,requestState:Parameters<WorkflowAdapter<AbModuleSnapshot,AbModuleControl>['context']>[1];
  const localSaveBasis=(control:AbModuleControl,command:Parameters<typeof abLocalScopes>[0],state:typeof requestState)=>{
@@ -74,7 +142,20 @@ export function abModuleWorkflowAdapter():WorkflowAdapter<AbModuleSnapshot,AbMod
       groupContext(key).checkApproval?.(before.scopes[key] || {errors:[],items:[]},scope);
     },
     structure(content,previous){if(stableDraftJSON(Object.keys(content.scopes).sort())!==stableDraftJSON(Object.keys(root.scopes).sort()))throw new DraftConflict('MODULE_MEMBERS_CHANGED_RECONFIRM');for(const [key,c]of Object.entries(content.scopes))groupContext(key).structure(c,previous.scopes[key]||c);},
-    validate(content){return Object.entries(content.scopes).flatMap(([key,c])=>{const context=groupContext(key);if(!context)throw new DraftConflict('MODULE_MEMBERS_CHANGED_RECONFIRM');return context.validate(c).map(issue=>({...issue,path:['scopes',key,...issue.path]}));});}
+    validate(content){
+     const issues=Object.entries(content.scopes).flatMap(([key,c])=>
+      groupContext(key).validate(c).map(issue=>({...issue,path:['scopes',key,...issue.path]})));
+     const allowed=hiddenEquipmentReview(root,content,catalogFromMaster(state.values.masterDataControl));
+     if(!allowed) return issues;
+     const catalog:{versions:{id:string;equipment?:{id:string}[]}[]}=equipmentCatalog(state.values.routineEquipmentControl);
+     const equipmentIds=new Set<string>((catalog.versions[0]?.equipment ?? []).map(e=>e.id));
+     if(!onlyApprovedEquipmentChanges(root,content,equipmentIds)) return [...issues,{kind:'error',code:'OFF_ROUTE_REPLACEMENT_MIXED_CHANGE',path:['scopes'],message:'OFF_ROUTE_REPLACEMENT_MIXED_CHANGE'}];
+     return issues.filter(issue=>{
+      const [,key,items,item,field]=issue.path;
+      return !(issue.code==='PRODUCT_ROUTE_INVALID' && typeof key==='string' && items==='items' &&
+        typeof item==='object' && item!==null && field==='productCodes' && allowed.get(key)?.has(item.id));
+     });
+    }
    };
   },
   apply(control,command,context){let flow=control.workflow!;

@@ -107,6 +107,43 @@ function change(fn) {
   assert.equal((await call(staff, { action: 'apply', moduleId: 'fqc', itemIds: ['fqc-1'] })).status, 403);
   assert.equal((await call(admin, { action: 'apply', moduleId: 'ipqc-ab', itemIds: ['x'] })).status, 422);
   assert.equal((await call(admin, { action: 'apply', moduleId: 'fqc', itemIds: ['fqc-1'], targetEquipmentId: 'disabled' })).status, 422);
+  // The only transferable row connects via its direct stable piece ID.
+  const getPreview = async () => {
+    const response = await api.GET(new Request(base+'/api/quality-equipment-replacement?sourceId=source',{headers:{Cookie:admin}}));
+    assert.equal(response.status,200);
+    return response.json();
+  };
+  const original = db.prepare('SELECT revision,"values" FROM shared_state WHERE id=1').get();
+  try {
+    change(data => {
+      const quality = JSON.parse(data.qualityMasterControl), library = quality.libraries.fqc;
+      const assets = JSON.parse(data.routineEquipmentControl);
+      const sourcePiece = assets.versions[0].equipment.find(r => r.id==='source');
+      assets.versions[0].equipment.push({...sourcePiece,id:'other-piece',pieceMark:'03'});
+      library.versions[0].snapshot.items = [
+        makeItem('selected','source',{tool:'historic alias'}),
+        makeItem('sibling','other-piece',{equipmentSnapshot:{id:'source'}}),
+        makeItem('group-only','',{equipmentGroupId:'group-1'}),
+        makeItem('text-only','',{tool:sourcePiece.assetCode}),
+        makeItem('orphan','unresolvable-id',{equipmentSnapshot:{id:'source'}})];
+      library.versions.push(version('historical','withdrawn',[makeItem('obsolete','source')]));
+      assets.pendingReplacements = [{moduleId:'fqc',itemId:'obsolete',sourceEquipmentId:'source',targetEquipmentId:'target',status:'pending'}];
+      data.qualityMasterControl = JSON.stringify(quality);
+      data.routineEquipmentControl = JSON.stringify(assets);
+    });
+    let result=await getPreview();
+    assert.deepEqual(result.modules.find(row=>row.moduleId==='fqc').items.map(row=>row.itemId),['selected']);
+    assert(result.pending.some(row=>row.itemId==='obsolete'));
+    change(data=>{
+      const quality=JSON.parse(data.qualityMasterControl);
+      quality.libraries.fqc.activeVersionId='missing-version';
+      data.qualityMasterControl=JSON.stringify(quality);
+    });
+    result=await getPreview();
+    assert.equal(result.modules.find(row=>row.moduleId==='fqc').connected,false);
+  } finally {
+    db.prepare('UPDATE shared_state SET revision=?,"values"=? WHERE id=1').run(original.revision,original.values);
+  }
   const before = state().revision;
   let response = await call(admin, { action: 'apply', moduleId: 'fqc', itemIds: ['fqc-1','fqc-2'] });
   assert.equal(response.status, 200, JSON.stringify(response.body));
