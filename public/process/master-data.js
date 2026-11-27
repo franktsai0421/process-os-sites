@@ -1,5 +1,15 @@
 (function () {
-  const displayDraftError = error => window.sharedDraftErrorMessage?.(error) ?? (typeof error === 'string' ? error : error?.message || String(error ?? ''));
+  const reviewMessages = {
+      UNKNOWN_OPERATION_CHECK_REQUIRED:['上一次操作結果仍未確認。請點「查詢操作結果」核對原回條。','Chưa xác nhận được kết quả thao tác trước. Hãy chọn “Kiểm tra kết quả thao tác” để kiểm tra biên nhận gốc.'],
+      RESULT_UNKNOWN_CHECK_BEFORE_RETRY:['尚未取得操作結果。請查詢原回條，避免重複送出。','Chưa nhận được kết quả. Hãy tra cứu biên nhận gốc để tránh gửi trùng.'],
+      OPERATION_NOT_FOUND:['目前查無原回條，操作結果仍未確認。請保留本次操作，稍後再查詢。','Hiện chưa tìm thấy biên nhận gốc. Kết quả vẫn chưa xác định. Hãy giữ thao tác này và tra cứu lại sau.'],
+  };
+  const displayDraftError = error => {
+    const code = typeof error === 'string' ? error : error?.message;
+    if (Object.hasOwn(reviewMessages, code)) return reviewMessages[code][document.documentElement.lang === 'vi' ? 1 : 0];
+    return window.sharedDraftErrorMessage?.(error) ?? (code || String(error ?? ''));
+  };
+  window.masterDraftErrorMessage = displayDraftError;
   const STORAGE = 'masterDataControl',
     clone = (value) => JSON.parse(JSON.stringify(value));
   const now = () => new Date().toISOString(),

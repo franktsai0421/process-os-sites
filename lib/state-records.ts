@@ -393,6 +393,23 @@ export async function prepareProcessMasterWrite(bucket:Bucket,row:{revision:numb
  }};
 }
 
+// AB/C catalog review owns only this manifest entry when the saved target
+// retains every external reference identity and needs no PROCESS transition.
+// Keep full master history for resubmission and existing response projections.
+export async function prepareCatalogReview(bucket:Bucket,row:{revision:number;values:string}){
+ const original=await canonicalOverlayEnvelope(row.values);
+ if(!original)return null;
+ const key='masterDataControl',manifest=original.__processRecords;
+ const selected=await decodeRecordValues(bucket,original,{keys:[...identityReadKeys,'processAccessControl',key],modelKey:key});
+ let consumed=false;
+ return {state:{revision:row.revision,...selected},async encode(model:unknown){
+   if(consumed||!object(model)||!object(model.active))throw Error('Invalid catalog review');
+   consumed=true;
+   const encoded:Envelope=JSON.parse(await encodeRecordValuesCore(bucket,{[key]:selected.values[key]},selected.recordStorage,new Map([[key,model]])));
+   return JSON.stringify({...original,__processRecords:{...manifest,values:{...manifest.values,[key]:encoded.__processRecords.values[key]}}});
+ }};
+}
+
 // Equipment owns one aggregate. Save needs the quality controls only when
 // removing equipment. Submit/approval validate active references, and Restore
 // and equipment removal retain the existing full reference-history checks.

@@ -1,6 +1,6 @@
 (function (host) {
   'use strict';
-  const displayDraftError = error => window.sharedDraftErrorMessage?.(error) ?? (typeof error === 'string' ? error : error?.message || String(error ?? ''));
+  const displayDraftError = error => window.masterDraftErrorMessage?.(error) ?? window.sharedDraftErrorMessage?.(error) ?? (typeof error === 'string' ? error : error?.message || String(error ?? ''));
   const copy = value => JSON.parse(JSON.stringify(value));
   const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
   const t = (zh, vi) => document.documentElement.lang === 'vi' ? vi : zh;
@@ -407,7 +407,7 @@
         ui.versions[state.masterScope]=draft()?.id;ui.line='';ui.category='';ui.search='';redraw();editProduct(current().products.find(row=>row.id===product.id));
       }});
       document.querySelector('#master-shared-history')?.addEventListener('click',()=>shared.history(state.masterScope).catch(e=>toast(e.message)));
-      document.querySelector('#master-shared-recover')?.addEventListener('click',()=>shared.recover(state.masterScope).catch(e=>toast(e.message)));
+      document.querySelector('#master-shared-recover')?.addEventListener('click',()=>shared.recover(state.masterScope).catch(error=>toast(displayDraftError(error))));
       const on=(id,event,fn)=>{const excel=['#master-line-export','#master-export','#master-line-import-file','#master-import-file'].includes(id);document.querySelector(id)?.addEventListener(event,excel?(window.ProcessSpreadsheet?.wrap('master-excel:'+id,fn,()=>selected()?.id)||fn):fn);};
       const newDraftButton=document.querySelector('#master-new-draft');
       const allowed=shared.permissions(state.masterScope);
