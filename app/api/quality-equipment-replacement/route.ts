@@ -44,17 +44,19 @@ function effectiveEquipment(routine: EquipmentControl, id: string) {
 
 function describe(moduleId: ReplacementModule, library: ReplacementLibrary | null,
   sourceId: string, pending: PendingReplacement[], scopeKey = '') {
-  if (!library) return { moduleId, connected: false, label: replacementModules[moduleId].label,
-    items: [], reason: '尚未接入正式版本與草稿' };
-  const active = activeReplacementVersion(library), open = openReplacementVersion(library);
+  const active = library ? activeReplacementVersion(library) : undefined;
+  const open = library ? openReplacementVersion(library) : undefined;
+  if (!library || (library.activeVersionId && !active) ||
+      [active, open].some(version => version && !Array.isArray(version.snapshot?.items))) {
+    return { moduleId, connected: false, label: replacementModules[moduleId].label,
+      items: [], reason: '模組標準資料未接入或讀取不完整' };
+  }
   const flow=(library as ReplacementLibrary & {workflow?:{generation:string}}).workflow;
   const activeMap = new Map(liveItems(active).map(item => [item.id, item]));
   const draftMap = new Map(liveItems(open).map(item => [item.id, item]));
   const ids = new Set([...activeMap, ...draftMap]
     .filter(([, item]) => item.equipmentId === sourceId).map(([id]) => id));
   const scopedPending = pending.filter(row => (row.scopeKey || '') === scopeKey);
-  for (const record of scopedPending) if (record.moduleId === moduleId && record.sourceEquipmentId === sourceId &&
-    record.status !== 'applied') ids.add(record.itemId);
   return { moduleId, connected: true, label: replacementModules[moduleId].label,
     activeVersion: active ? { id: active.id, number: active.number, status: active.status } : null,
     openVersion: open ? { id: open.id, number: open.number, status: open.status, revision: open.revision } : null,
@@ -114,7 +116,7 @@ export async function GET(request: Request) {
       if (moduleId !== 'ipqc-ab') return describe(moduleId, libraryFor(libraries,moduleId),sourceId,pending);
       const scopes = Object.entries(ipqcAB?.scopes || {}).map(([key,scope]) =>
         describe(moduleId,scope,sourceId,pending,key));
-      return {moduleId,connected:!!ipqcAB,label:'IPQC-AB',items:scopes.flatMap(scope=>scope.items),
+      return {moduleId,connected:!!ipqcAB && scopes.every(scope=>scope.connected),label:'IPQC-AB',items:scopes.flatMap(scope=>scope.items),
         scopes,reason:ipqcAB?'':'尚未接入正式版本與草稿'};
     });
     const editable=await can(request,state,'approval.submit');

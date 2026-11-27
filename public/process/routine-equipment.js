@@ -2092,6 +2092,7 @@
     const refs={active:[],pending:[],draft:[],superseded:[]},seen=new Set();
     const add=(lib,scope='')=>{
       if(!lib||!Array.isArray(lib.versions)||!(lib.activeVersionId===null||typeof lib.activeVersionId==='string'))throw Error('EQUIPMENT_REFERENCE_RESPONSE_INVALID');
+      if(lib.activeVersionId && !lib.versions.some(version=>version?.id===lib.activeVersionId && version.status==='approved'))throw Error('EQUIPMENT_REFERENCE_RESPONSE_INVALID');
       for(const version of lib.versions){
         if(typeof version?.id!=='string'||typeof version.status!=='string'||!Array.isArray(version.snapshot?.items))throw Error('EQUIPMENT_REFERENCE_RESPONSE_INVALID');
         for(const item of version.snapshot.items){
@@ -2145,6 +2146,7 @@
       if(row.status==='loaded'){
         const groups=Object.entries(row.result),count=groups.reduce((n,[,rows])=>n+rows.length,0);status=t('已查詢','Đã tra cứu')+' · '+count;
         body='<small>'+h(t('資料修訂','Bản sửa dữ liệu'))+' '+h(row.revision)+'</small>'+groups.filter(([,rows])=>rows.length).map(([group,rows])=>'<div class="routine-ref-subgroup"><b>'+h(labels[group])+' ('+rows.length+')</b>'+rows.map(item=>'<div class="routine-ref-row">'+(kind==='fqc'?'<button type="button" class="button ghost" data-view-ref-detail="'+h(item.itemId)+'" data-view-ref-version="'+h(item.versionId)+'">'+h(item.checkNo)+'</button>':kind==='ipqcAB'?'<button type="button" class="button ghost" data-view-ab-detail="'+h(item.itemId)+'" data-view-ab-version="'+h(item.versionId)+'" data-view-ab-scope="'+h(item.scope)+'">'+h(item.checkNo)+'</button>':'<code>'+h(item.checkNo)+'</code>')+'<span data-i18n-skip="true">'+h(item.itemName)+'</span><small>V'+h(String(item.versionNumber??'—').replace(/^V/i,''))+' · '+h(item.status)+(item.scope?' · '+h(item.scope):'')+(item.moduleId?' · '+h(item.moduleId):'')+'</small>'+(item.reason?'<small>'+h(item.reason)+'</small>':'')+'</div>').join('')+'</div>').join('');
+        if(count && row.result.superseded?.length===count)body+='<p>'+h(t('這次查到的引用全屬歷史版本。','Tất cả tham chiếu trong lần tra cứu này thuộc các phiên bản lịch sử.'))+'</p>';
         if(!count)body+='<p>'+h(t('本次授權查詢範圍內沒有引用。','Không có tham chiếu trong phạm vi được phép của lần tra cứu này.'))+'</p>';
         if(row.detailError)body+='<p role="alert">'+h(row.detailError)+'</p>';
         body+='<p>'+h(t('完整標準請至對應模組查閱。','Xem tiêu chuẩn đầy đủ tại mô-đun tương ứng.'))+'</p>';
@@ -2596,6 +2598,11 @@
     void loadTransferPreview();
   }
 
+  function transferPreviewItems(preview, moduleId) {
+    const entry=preview?.modules?.find(row=>row?.moduleId===moduleId);
+    return entry?.connected===true && Array.isArray(entry.items) ? entry.items : [];
+  }
+
   async function loadTransferPreview() {
     const dialog = transferDialog;
     if (!dialog || !transferOwnerCurrent(dialog.owner)) return;
@@ -2606,14 +2613,16 @@
       const data = await response.json();
       if (!response.ok) throw Error(data.error || `HTTP ${response.status}`);
       if (!owns()) return;
+      if(!Number.isSafeInteger(data?.revision)||!Array.isArray(data.modules)) throw Error('EQUIPMENT_REFERENCE_RESPONSE_INVALID');
       const firstPreview = !dialog.preview;
       dialog.preview = data;
       dialog.previewError = '';
       if (firstPreview) for (const [uiKey, apiKey] of [['fqc','fqc'],['iqc','iqc'],['ipqcC','ipqc-c'],['ipqcAB','ipqc-ab']])
-        dialog.selection[uiKey] = new Set(data.modules.find(row => row.moduleId === apiKey)?.items.filter(item=>item.selectable!==false).map(item => item.id) || []);
+        dialog.selection[uiKey] = new Set(transferPreviewItems(data,apiKey).filter(item=>item.selectable!==false).map(item=>item.id));
       render();
     } catch (error) {
       if (!owns()) return;
+      dialog.preview = null;
       dialog.previewError = error.message;
       render();
     }
@@ -3022,7 +3031,20 @@
     const availableTargets = (approvedVer?.equipment || []).filter(e => e.id !== sourceId && e.enabled !== false && (!transferDialog.targetCat || e.categoryId === transferDialog.targetCat || e.categoryCode === transferDialog.targetCat));
     const targetEq = (approvedVer?.equipment || []).find(e => e.id === targetEqId);
 
-    const previewItems = moduleId => transferDialog.preview?.modules?.find(row => row.moduleId === moduleId)?.items || [];
+    const previewItems = moduleId => transferPreviewItems(transferDialog.preview,moduleId);
+    const summary = moduleId => {
+      if(transferDialog.previewError)return t('查詢失敗','Tra cứu thất bại');
+      if(!transferDialog.preview)return t('查詢中…','Đang tra cứu…');
+      const entry=transferDialog.preview.modules.find(row=>row?.moduleId===moduleId);
+      if(entry?.connected!==true||!Array.isArray(entry.items))return t('模組未接入或資料不完整','Mô-đun chưa kết nối hoặc dữ liệu chưa đầy đủ');
+      const direct=entry.items.length,selectable=entry.items.filter(row=>row.selectable!==false).length;
+      return t('直接引用 '+direct+' 筆，可選 '+selectable+' 筆','Tham chiếu trực tiếp '+direct+', có thể chọn '+selectable);
+    };
+    const emptyHint = moduleId => {
+      const entry=transferDialog.preview?.modules?.find(row=>row?.moduleId===moduleId);
+      return transferDialog.previewError || !transferDialog.preview || entry?.connected!==true || !Array.isArray(entry.items) ? summary(moduleId) :
+        t('生效或開啟版本沒有直接引用此分件。','Không có tham chiếu trực tiếp đến chi tiết này trong phiên bản hiệu lực hoặc đang mở.');
+    };
     const fqcItems = previewItems('fqc'),fqcRecovery=hasFqcTransfer();
     const iqcItems = previewItems('iqc'),iqcRecovery=hasIqcTransfer();
     const ipqcCItems = previewItems('ipqc-c');
@@ -3032,7 +3054,7 @@
         <label><input type="checkbox" data-transfer-check="${key}" value="${h(it.id)}" ${inFlight||it.selectable===false?'disabled':transferDialog.selection[key].has(it.id) ? 'checked' : ''}>${t('選取', 'Chọn')}</label>
         <code>${h(it.code)}</code><span class="name" data-i18n-skip="true">${h(it.name)}</span>${it.scopeKey?`<small>${h(it.scopeKey)}</small>`:''}
         <small>${t('生效', 'Hiệu lực')}: ${h(it.activeEquipmentId || '—')} · ${t('草稿', 'Bản nháp')}: ${h(it.draftEquipmentId || '—')} · ${h(it.openStatus || '—')}</small>
-        ${it.selectable===false?`<small role="status">${h(t(it.unavailableReason || '目前不可編輯',['pending','pending-test'].includes(it.openStatus)?'Phạm vi đang chờ duyệt; hãy chọn lại sau khi kết thúc.':it.unavailableReason?.includes('V3')?'Phạm vi dùng bản nháp chung V3; hãy chọn thiết bị trong bản nháp chung.':'Không có quyền sửa bản nháp của mô-đun đích.'))}</small>`:''}
+        ${it.selectable===false?`<small role="status">${h(t(it.unavailableReason?.includes('待審')?'待審已鎖定；請依原流程撤回或結案後重新選取。':it.unavailableReason || '目前不可編輯',it.unavailableReason?.includes('待審')?'Đang chờ duyệt; hãy rút theo quy trình hoặc chọn lại sau khi kết thúc.':it.unavailableReason?.includes('V3')?'Phạm vi dùng bản nháp chung V3; hãy chọn thiết bị trong bản nháp chung.':'Không có quyền sửa bản nháp của mô-đun đích.'))}</small>`:''}
         ${it.draftEquipmentId && it.draftEquipmentId !== sourceId && it.draftEquipmentId !== targetEqId ?
           `<small class="routine-transfer-warning">${t('草稿已改選其他設備；確認移轉時會提示取代。', 'Bản nháp đã chọn thiết bị khác; xác nhận chuyển sẽ thông báo ghi đè.')}</small>` : ''}
         ${(it.pending || []).map(row => `<small>${t('歷史待處理紀錄（不自動套用）', 'Yêu cầu lịch sử (không tự áp dụng)')}: ${h(row.reason)} · ${h(row.pendingVersionId)}</small>`).join('')}
@@ -3102,6 +3124,8 @@
 
             <!-- 2. 逐模組確認移轉清單 -->
             <div class="routine-transfer-modules">
+              <p>${t('只比對此分件的穩定設備 ID。群組、名稱或工具文字無法指定分件。','Chỉ đối chiếu ID thiết bị cố định của chi tiết. Nhóm, tên hoặc văn bản dụng cụ không xác định chi tiết.')}</p>
+              ${Number.isSafeInteger(transferDialog.preview?.revision) ? `<small>${t('資料修訂','Bản sửa dữ liệu')} ${transferDialog.preview.revision}</small>` : ''}
               <h4>${t('移轉標準清單（採逐模組確認保存）', 'Danh sách tiêu chuẩn (Lưu riêng từng module)')}</h4>
 
               <!-- FQC Module -->
@@ -3109,13 +3133,13 @@
                 <div class="routine-transfer-module-head">
                   <div>
                     <b>FQC 最終品質檢驗</b>
-                    <small>（${fqcItems.length} ${t('筆標準引用', 'mục tham chiếu')}）</small>
+                    <small>${h(summary('fqc'))}</small>
                   </div>
                   <div class="routine-transfer-module-action">
                     ${transferDialog.moduleStatus.fqc === 'success' ? `
                       <span class="routine-transfer-success-tag">✓ ${t('已移轉並存取草稿', 'Đã chuyển và lưu bản nháp')}</span>
                     ` : `
-                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-fqc" ${inFlight||!fqcRecovery&&(!targetEq||!fqcItems.length)?'disabled':''}>
+                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-fqc" ${inFlight||!fqcRecovery&&(!targetEq||!fqcItems.some(row=>row.selectable!==false))?'disabled':''}>
                         ${transferDialog.moduleStatus.fqc === 'saving' ? t('儲存中…', 'Đang lưu...') : fqcRecovery?t('查詢原移轉／存取收據','Kiểm tra biên nhận chuyển/lưu gốc'):t('確認移轉並存取 FQC 草稿', 'Xác nhận chuyển và lưu FQC')}
                       </button>
                     `}
@@ -3126,7 +3150,7 @@
                   <div class="routine-transfer-item-table">
                     ${fqcItems.map(it => replacementRow(it, 'fqc')).join('')}
                   </div>
-                ` : `<p class="routine-empty-hint">${t('無引用 FQC 標準', 'Không có tiêu chuẩn FQC tham chiếu')}</p>`}
+                ` : `<p class="routine-empty-hint">${h(emptyHint('fqc'))}</p>`}
               </div>
 
               <!-- IPQC-C Module -->
@@ -3134,13 +3158,13 @@
                 <div class="routine-transfer-module-head">
                   <div>
                     <b>IPQC-C 製程品質檢驗</b>
-                    <small>（${ipqcCItems.length} ${t('筆標準引用', 'mục tham chiếu')}）</small>
+                    <small>${h(summary('ipqc-c'))}</small>
                   </div>
                   <div class="routine-transfer-module-action">
                     ${transferDialog.moduleStatus.ipqcC === 'success' ? `
                       <span class="routine-transfer-success-tag">✓ ${t('已成功移轉至草稿', 'Đã chuyển thành công')}</span>
                     ` : `
-                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-ipqc-c" ${!targetEq || !ipqcCItems.length || inFlight ? 'disabled' : ''}>
+                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-ipqc-c" ${!targetEq || !ipqcCItems.some(row=>row.selectable!==false) || inFlight ? 'disabled' : ''}>
                         ${transferDialog.moduleStatus.ipqcC === 'saving' ? t('儲存中…', 'Đang lưu...') : t('確認移轉至 IPQC-C 草稿', 'Xác nhận chuyển sang IPQC-C')}
                       </button>
                     `}
@@ -3151,7 +3175,7 @@
                   <div class="routine-transfer-item-table">
                     ${ipqcCItems.map(it => replacementRow(it, 'ipqcC')).join('')}
                   </div>
-                ` : `<p class="routine-empty-hint">${t('無引用 IPQC-C 標準', 'Không có tiêu chuẩn IPQC-C tham chiếu')}</p>`}
+                ` : `<p class="routine-empty-hint">${h(emptyHint('ipqc-c'))}</p>`}
               </div>
 
               <!-- IQC Module -->
@@ -3159,13 +3183,13 @@
                 <div class="routine-transfer-module-head">
                   <div>
                     <b>IQC 進料品質檢驗</b>
-                    <small>（${iqcItems.length} ${t('筆標準引用', 'mục tham chiếu')}）</small>
+                    <small>${h(summary('iqc'))}</small>
                   </div>
                   <div class="routine-transfer-module-action">
                     ${transferDialog.moduleStatus.iqc === 'success' ? `
                       <span class="routine-transfer-success-tag">✓ ${t('已成功移轉至草稿', 'Đã chuyển thành công')}</span>
                     ` : `
-                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-iqc" ${inFlight||!iqcRecovery&&(!targetEq||!iqcItems.length)?'disabled':''}>
+                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-iqc" ${inFlight||!iqcRecovery&&(!targetEq||!iqcItems.some(row=>row.selectable!==false))?'disabled':''}>
                         ${transferDialog.moduleStatus.iqc === 'saving' ? t('儲存中…', 'Đang lưu...') : iqcRecovery?t('查詢原移轉／存取收據','Kiểm tra biên nhận chuyển/lưu gốc'):t('確認移轉並存取 IQC 草稿', 'Xác nhận chuyển và lưu IQC')}
                       </button>
                     `}
@@ -3176,13 +3200,13 @@
                   <div class="routine-transfer-item-table">
                     ${iqcItems.map(it => replacementRow(it, 'iqc')).join('')}
                   </div>
-                ` : `<p class="routine-empty-hint">${t('無引用 IQC 標準', 'Không có tiêu chuẩn IQC tham chiếu')}</p>`}
+                ` : `<p class="routine-empty-hint">${h(emptyHint('iqc'))}</p>`}
               </div>
               <div class="routine-transfer-module-card ${transferDialog.moduleStatus.ipqcAB}">
-                <div class="routine-transfer-module-head"><div><b>IPQC-AB</b><small>（${ipqcABItems.length} ${t('筆標準引用','mục tham chiếu')}）</small></div>
-                  <button type="button" class="button signal master-small" id="routine-confirm-transfer-ipqc-ab" ${!targetEq||!ipqcABItems.length||inFlight?'disabled':''}>${transferDialog.moduleStatus.ipqcAB==='saving'?t('儲存中…','Đang lưu...'):t('確認移轉至 IPQC-AB 草稿','Xác nhận chuyển sang IPQC-AB')}</button></div>
+                <div class="routine-transfer-module-head"><div><b>IPQC-AB</b><small>${h(summary('ipqc-ab'))}</small></div>
+                  <button type="button" class="button signal master-small" id="routine-confirm-transfer-ipqc-ab" ${!targetEq||!ipqcABItems.some(row=>row.selectable!==false)||inFlight?'disabled':''}>${transferDialog.moduleStatus.ipqcAB==='saving'?t('儲存中…','Đang lưu...'):t('確認移轉至 IPQC-AB 草稿','Xác nhận chuyển sang IPQC-AB')}</button></div>
                 ${transferDialog.moduleMessages.ipqcAB?`<p class="routine-transfer-mod-msg">${h(transferDialog.moduleMessages.ipqcAB)}</p>`:''}
-                ${ipqcABItems.length?`<div class="routine-transfer-item-table">${ipqcABItems.map(it=>replacementRow(it,'ipqcAB')).join('')}</div>`:`<p class="routine-empty-hint">${t('無引用 IPQC-AB 標準','Không có tiêu chuẩn IPQC-AB tham chiếu')}</p>`}
+                ${ipqcABItems.length?`<div class="routine-transfer-item-table">${ipqcABItems.map(it=>replacementRow(it,'ipqcAB')).join('')}</div>`:`<p class="routine-empty-hint">${h(emptyHint('ipqc-ab'))}</p>`}
               </div>
             </div>
           </div>

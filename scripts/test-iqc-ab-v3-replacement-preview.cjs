@@ -46,7 +46,7 @@ const scopeQ = group => '&scope=' + encodeURIComponent('A:' + group);
       insert('suppliers', { id: 'supplier', nameVi: 'Synthetic supplier' }),
       insert('parts', { id: 'part', code: 'PART1', nameVi: 'Synthetic part', specificationVi: '10 mm', categoryId: 'category', supplierIds: ['supplier'], supplierRaw: '', standardCode: '', photos: [] }),
     ] });
-    await h.command('iqc', 'apply', { moduleAction: 'createError', input: { partCode: 'PART1', nameVi: 'Synthetic error' } });
+    await h.command('iqc', 'apply', { moduleAction: 'createError', input: { partCode: 'PART1', code: 'PART1-IQC-L1', nameVi: 'Synthetic error' } });
     const errorId = h.flow(await h.read('iqc')).working.errors[0].id;
     await h.command('iqc', 'apply', { moduleAction: 'createItem', input: { errorId, nameVi: 'Synthetic item', methodVi: 'Keep method',
       rules: [{ id: 'rule', cadence: 'batch', kind: 'aql', value: '0.25' }], inspectionMode: 'equipment', equipmentId: 'source' } });
@@ -54,7 +54,7 @@ const scopeQ = group => '&scope=' + encodeURIComponent('A:' + group);
     for (const [i, group] of ['G-A', 'G-L'].entries()) {
       const q = scopeQ(group);
       await h.begin('ipqc-ab', 'editor', 200, q);
-      await h.command('ipqc-ab', 'apply', { moduleAction: 'create-error', input: { stageCode: 'A-CUT', name: 'Synthetic error ' + group } }, 'editor', 200, q);
+      await h.command('ipqc-ab', 'apply', { moduleAction: 'create-error', input: { stageCode: 'A-CUT', code: group + '-CUT-L1', name: 'Synthetic error ' + group } }, 'editor', 200, q);
       const errorId = h.flow(await h.read('ipqc-ab', 'editor', q)).working.errors[0].id;
       await h.command('ipqc-ab', 'apply', { moduleAction: 'create-item', input: { errorId, item: { standard: '10 mm', methodText: 'Keep method',
         inspectionMode: 'equipment', equipmentId: 'source', productCodes: ['A' + (100 + i)], rules: [{ id: 'rule-' + i, cadence: 'batch', kind: 'aql', value: '0.25' }] } } }, 'editor', 200, q);
