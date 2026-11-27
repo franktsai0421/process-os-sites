@@ -11,9 +11,41 @@
       row.id !== id && !row.deleted && !row.isDeleted && row.code.trim().toLowerCase() === key
     )) ? 'ERROR_CODE_DUPLICATE' : '';
   };
+  // Suggestions are previews. Only the workflow can accept the requested code.
+  window.suggestQualityItemCode = (parentCode, codes) => {
+    const prefix = parentCode + '-';
+    let max = 0;
+    for (const code of codes) {
+      if (typeof code !== 'string' || !code.startsWith(prefix)) continue;
+      const suffix = code.slice(prefix.length);
+      if (/^\d+$/.test(suffix)) max = Math.max(max, Number(suffix));
+    }
+    return prefix + String(max + 1).padStart(2, '0');
+  };
+  window.readQualityItemCode = (input, id, previous, items) => {
+    const value = input.value.trim();
+    // A legacy duplicate may still have unrelated edits. Preserve its original spelling.
+    if (previous !== undefined && input.value === previous) return previous;
+    const key = value.toLowerCase(), field = input.name;
+    if (value && typeof previous === 'string' && previous.trim().toLowerCase() === key) return value;
+    const owner = value && items.find(row => (row.id !== id || row.scope) && (field === 'checkNo' || !row.deleted && !row.isDeleted) &&
+      typeof row[field] === 'string' && row[field].trim().toLowerCase() === key);
+    const error = !value ? 'ITEM_CODE_REQUIRED' : owner && {
+      message:'ITEM_CODE_DUPLICATE', details:{code:value, scope:owner.scope, occupiedName:owner.nameVi || owner.name || owner.standard, occupiedBy:owner.id},
+    };
+    if (error) {
+      input.setCustomValidity(window.sharedDraftErrorMessage(error));
+      input.reportValidity();
+      input.addEventListener('input', () => input.setCustomValidity(''), {once:true});
+      return null;
+    }
+    return value;
+  };
   // Display only: retain raw transport/classifier/receipt errors.
   window.sharedDraftErrorMessage = (error, language = document.documentElement.lang) => {
     const messages = {
+      ITEM_CODE_REQUIRED:['請輸入檢查項目編號。','Vui lòng nhập mã hạng mục kiểm tra.'],
+      ITEM_CODE_DUPLICATE:['此檢查項目編號已被使用。','Mã hạng mục kiểm tra này đã được sử dụng.'],
       ERROR_CODE_REQUIRED:['請輸入錯誤代碼。','Vui lòng nhập mã lỗi.'],
       ERROR_CODE_DUPLICATE:['此錯誤代碼已由另一筆資料使用。','Một bản ghi khác đang dùng mã lỗi này.'],
       ERROR_CODE_BASE_UNAVAILABLE:['無法核對正式版代碼，請重新載入。','Không thể đối chiếu mã đang hiệu lực. Vui lòng tải lại.'],
@@ -53,7 +85,12 @@
     };
     const raw = typeof error === 'string' ? error : error?.message || String(error ?? '');
     const code = Object.hasOwn(messages, error?.code) ? error.code : raw;
-    return Object.hasOwn(messages, code) ? messages[code][language === 'vi' ? 1 : 0] : raw;
+    const message = Object.hasOwn(messages, code) ? messages[code][language === 'vi' ? 1 : 0] : raw;
+    if (code === 'ITEM_CODE_DUPLICATE' && error?.details) {
+      const {code:occupiedCode, occupiedName, occupiedBy, scope} = error.details;
+      return [message, scope, occupiedCode, occupiedName || occupiedBy].filter(value => typeof value === 'string' && value.trim()).join(' · ');
+    }
+    return message;
   };
   // Read-loop admission only. Never infer logout or mutate recovery/write state.
   window.createScopedReadPause = label => {
@@ -550,7 +587,7 @@
     function abResponse(error,command,result){const entry=abSelected.get(command?.operationId);if(!entry||!abCurrent(entry)||entry.raw!==JSON.stringify(command)||!entry.flight||typeof result.error!=='string'||result.error!==error.message)return;
       const code=error.message,status=error.status,requestId=error.requestId,action=command.moduleAction;
       if(typeof requestId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId))return;
-      const allowed=action==='create-error'?status===422&&code==='STAGE_INVALID':action==='create-item'&&(status===409&&code==='ERROR_REMOVED'||status===422&&['INVALID_EQUIPMENT_PAIR','EQUIPMENT_REQUIRED','EQUIPMENT_UNAVAILABLE','PHOTO_NOT_UPLOADED'].includes(code));
+      const allowed=action==='create-error'?status===422&&code==='STAGE_INVALID':action==='create-item'&&(status===409&&code==='ERROR_REMOVED'||status===422&&['ITEM_CODE_REQUIRED','ITEM_CODE_DUPLICATE','INVALID_EQUIPMENT_PAIR','EQUIPMENT_REQUIRED','EQUIPMENT_UNAVAILABLE','PHOTO_NOT_UPLOADED'].includes(code));
       if(allowed)abResponses.set(error,{entry,code,status,requestId,flight:entry.flight});
     }
     function abMarker(entry,command){abAssert(entry,command);const owns=()=>unknown?.operationId===command.operationId&&JSON.stringify(unknown)===entry.raw&&!!entry.markerRaw;if(!owns())throw Error('RECOVERY_RECORD_CHANGED');const stored=sessionStorage.getItem(key);abAssert(entry,command);if(!owns()||stored!==entry.markerRaw&&!(entry.removeAttempted&&stored===null))throw Error('RECOVERY_RECORD_CHANGED');return stored;}
@@ -742,6 +779,8 @@
       const proof=boundedResponses.get(error),id=error.requestId,code=error.message,action=command.action;
       const iqcLocalSave=boundedScope==='iqc'&&action==='save'&&['save-local-v1','save-local-revive-v1'].includes(command.moduleAction)&&Array.isArray(command.patches);
       if(!proof||proof.record!==boundedRecord||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||!externalCurrent()||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||''))return false;
+      if (['fqc','iqc','ipqc-ab:module','ipqc-c'].includes(boundedScope) && ['apply','save','submit','approve'].includes(action) &&
+          error.status === 422 && ['ITEM_CODE_DUPLICATE','ITEM_CODE_REQUIRED'].includes(code)) return true;
       if(['fqc','iqc','tooling'].includes(boundedScope)&&['apply','save','restore'].includes(action)&&error.status===422&&code==='CUSTOM_TIME_FREQUENCY_READ_ONLY')return true;
       if(boundedScope==='tooling'&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.patches)&&Array.isArray(command.guards)){
         if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return Array.isArray(error.details?.path)&&command.guards.some(guard=>JSON.stringify(guard.path)===JSON.stringify(error.details.path));

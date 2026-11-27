@@ -80,6 +80,16 @@ void test('real route: IQC four scope guards and independent multi-batch approva
     const plan=(await cmd('create-plan',create)).result.documentId;
     await cmd('create-plan',create,editor.id,409);
     const get=id=>control.documents.find(doc=>doc.id===id);
+
+    // The source is renumbered after the original plan has already opened.
+    const renamed=structuredClone(version);
+    renamed.id='source-renumbered';renamed.number=2;
+    renamed.snapshot.items.forEach((item,index)=>{item.checkNo='REPLACEMENT '+(731+index);});
+    const approvedMaster=JSON.stringify({schemaVersion:1,versions:[{...version,status:'superseded'},renamed],activeVersionId:renamed.id});
+    await f.mutate(values=>{values.iqcMasterControl=approvedMaster;});
+    control=await read();
+    assert.equal(get(plan).jobs[0].source.code,'CHECK-0');
+
     async function draft(id,action,details={},fields,actor=editor.id,status=200){
       const flow=get(id).flow,operationId=randomUUID();
       return cmd('draft',{documentId:id,operationId,draft:{action,operationId,clientId:randomUUID(),sequence:1,
@@ -175,6 +185,11 @@ void test('real route: IQC four scope guards and independent multi-batch approva
     await cmd('create-report',{documentId:retestPlan},editor.id,409);
     await save(retestPlan,{start:today,end:today,reason:'TEST ONLY repeat test'});await submit(retestPlan);await approve(retestPlan);
     const retest=(await cmd('create-report',{documentId:retestPlan})).result.documentId;
+    const originalLine=get(plan).jobs.find(job=>job.id===defective.jobId);
+    for(const id of [retestPlan,retest]){
+      assert.equal(get(id).jobs[0].source.code,originalLine.source.code);
+      assert.equal(get(id).jobs[0].source.iqc.itemId,originalLine.source.iqc.itemId);
+    }
     assert.deepEqual(get(retest).flow.working.inspections.map(row=>[row.jobId,row.batch]),[[defective.jobId,defective.batch]]);
     await save(retest,{inspections:get(retest).flow.working.inspections.map(row=>({...row,outcome:'fail',notes:'TEST ONLY failed again',photos:[photo]}))});
     await submit(retest);await approve(retest);
@@ -204,7 +219,7 @@ void test('real route: IQC four scope guards and independent multi-batch approva
     assert.deepEqual(get(report).flow.active.content,fixedReport);
     assert.equal((await request('GET',{handler:photos,url:endpoint+'/photo?id='+photo,actor:denied.id})).status,403);
     const state=(await f.core.readState({deferHistory:false})).values;
-    assert.equal(state.routineFqcControl,originalFqc);assert.deepEqual(JSON.parse(state.iqcMasterControl),JSON.parse(master));
+    assert.equal(state.routineFqcControl,originalFqc);assert.deepEqual(JSON.parse(state.iqcMasterControl),JSON.parse(approvedMaster));
     await cmd('reset',{},admin.id,422);
   }finally{f.close();}
 });

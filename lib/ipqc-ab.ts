@@ -14,6 +14,7 @@ export type AbItem = { id: string; code: string; errorId: string; standard: stri
   sourceFrequency: string; sourceVersion?: string; sourceChangedAt?: string;
   sourceReason?: string; sourceCreator?: string; sourceNote?: string;
   reason: string; deleted: boolean;
+  sourceCode?:string;
   sourceImport?: { key: string; sha256: string; sourceItemCodes: string[];
     baseline: Partial<AbItem>; previousKeys: string[] } };
 export type AbSnapshot = { errors: AbError[]; items: AbItem[] };
@@ -69,6 +70,15 @@ export function catalogFromMaster(raw?: string): AbCatalog {
 export function candidateProducts(catalog: AbCatalog, line: string, group: string, stageCode: string) {
   return catalog.products.filter(p => p.line === line && p.category === group && p.stages.includes(stageCode));
 }
+export function abItemCodePeers(control:AbControl, current:string) {
+  return Object.entries(control.scopes).filter(([key]) => key !== current).map(([scope,group]) => {
+    const workflow = (group as AbScope & {workflow?:{working:AbSnapshot;active:{id:string|null;content:AbSnapshot}}}).workflow;
+    const approved = activeAb(group)?.snapshot?.items ?? workflow?.active.content?.items;
+    const draft = workflow?.working?.items ?? openAb(group)?.snapshot?.items;
+    return {scope,items:[...(approved || []),...(draft || [])]};
+  });
+}
+
 export function nextAbCode(control: AbControl, kind: 'error' | 'item', prefix: string, index?:import('./state-records').AllocationIndex) {
   const reserved = kind === 'error' ? control.reservedErrorCodes : control.reservedItemCodes;
   const known = new Set([...reserved, ...(index?(kind==='error'?index.errors:index.items).map(row=>row.code):Object.values(control.scopes).flatMap(scope =>
@@ -119,7 +129,7 @@ export function checkedAbSnapshot(version: AbVersion, incoming: unknown, catalog
   });
   const items = raw.items.map(i => {
     const prior = oldItems.get(i?.id);
-    if (!prior || i.code !== prior.code || i.errorId !== prior.errorId ||
+    if (!prior || typeof i.code !== 'string' || i.errorId !== prior.errorId ||
         typeof i.standard !== 'string' || typeof i.methodText !== 'string' ||
         typeof i.sourceTool !== 'string' || i.sourceTool !== prior.sourceTool ||
         i.sourceMethod !== prior.sourceMethod || i.sourceFrequency !== prior.sourceFrequency ||
@@ -142,7 +152,7 @@ export function checkedAbSnapshot(version: AbVersion, incoming: unknown, catalog
           // submission/approval still fail. Never silently delete old products.
           return invalid&&!(working&&prior.productCodes.includes(code));
         })) throw Error(`${prior.code} 的產品與中控線別、群組或工段不符`);
-    return { ...prior, standard: i.standard, methodText: i.methodText,
+    return { ...prior, ...(i.code!==prior.code && !prior.sourceCode && (prior.sourceImport || prior.sourceRows.length) ? {sourceCode:prior.code} : {}), code:i.code, standard: i.standard, methodText: i.methodText,
       inspectionMode: i.inspectionMode, equipmentId: i.inspectionMode === 'equipment' ? i.equipmentId : '',
       isEnabled: i.isEnabled, rules: i.rules, standardPhotos: i.standardPhotos,
       methodPhotos: i.methodPhotos, productCodes: i.productCodes, reason: i.reason, deleted: i.deleted };

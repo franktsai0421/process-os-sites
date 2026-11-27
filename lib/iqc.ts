@@ -130,8 +130,7 @@ export function checkedIqcSnapshot(previous: IqcSnapshot, value: unknown, workin
   for (const rows of [next.categories, next.suppliers, next.parts, next.errors, next.items])
     if (!unique(ids(rows)) || rows.some(row => !text(row.id).trim())) throw Error('IQC 資料 ID 重複或空白');
   validateErrorCodeChanges(next.errors,previous.errors,activeErrors);
-  if (!unique(next.parts.map(part => part.code)) ||
-      !unique(next.items.map(item => item.checkNo))) throw Error('IQC 原始編號或新增編號重複');
+  if (!unique(next.parts.map(part => part.code))) throw Error('IQC 原始編號或新增編號重複');
   for (const [oldRows, newRows, key] of [
     [previous.parts, next.parts, 'code'], [previous.errors, next.errors, 'code'],
     [previous.items, next.items, 'checkNo'],
@@ -139,7 +138,7 @@ export function checkedIqcSnapshot(previous: IqcSnapshot, value: unknown, workin
     const newById = new Map((newRows as { id: string }[]).map(row => [row.id, row]));
     for (const old of oldRows as { id: string; code?: string; checkNo?: string }[]) {
       const current = newById.get(old.id) as typeof old | undefined;
-      if (!current || oldRows !== previous.errors && current[key] !== old[key]) throw Error('既有 IQC 編號不可刪除或重編；請使用停用標記');
+      if (!current || oldRows === previous.parts && current[key] !== old[key]) throw Error('既有 IQC 編號不可刪除或重編；請使用停用標記');
     }
   }
   const nextErrors = new Map(next.errors.map(error => [error.id, error]));

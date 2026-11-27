@@ -1,4 +1,5 @@
-import { activeAb, copyAb, nextAbCode, openAb, scopeKey, type AbCatalog, type AbControl,
+import {validateItemCodes} from './quality-item-code';
+import { abItemCodePeers, activeAb, copyAb, nextAbCode, openAb, scopeKey, type AbCatalog, type AbControl,
   type AbItem, type AbRule, type AbSnapshot, type AbVersion } from './ipqc-ab';
 
 export const AB_LATEST_SHA = 'e5bb57abfbe5ea9221a7e15ed1fd8ab964b9211968fdae872facc7ece8c712b3';
@@ -40,6 +41,21 @@ const unmodified = (item:AbItem, base:Partial<AbItem>) => editable.every(f=>same
 
 const importCode = (parent:AbSnapshot['errors'][number] | undefined) => parent?.sourceCode ?? parent?.code;
 
+function legacyOrigin(version:AbVersion, versions:AbVersion[]):AbSnapshot|undefined {
+  let current:AbVersion|undefined=version;
+  const visited=new Set<string>();
+  while(current && !visited.has(current.id)){
+    visited.add(current.id);
+    if(current.history.some(entry=>entry.action==='initial-import' && entry.comment===AB_LEGACY_SHA))return current.snapshot;
+    const baseId:string|null=current.baseVersionId;
+    if(!baseId)return;
+    const parents:AbVersion[]=versions.filter(entry=>entry.id===baseId);
+    if(parents.length!==1 || !['approved','superseded'].includes(parents[0].status))return;
+    current=parents[0];
+  }
+}
+
+
 /** Pure, atomic group-draft merger. No assets or approved snapshots are ever rewritten. */
 export function mergeAbImport(input:AbControl, catalog:AbCatalog, payload:AbImportPayload,
   actor:{id:string;name:string}, at:string) {
@@ -80,13 +96,19 @@ export function mergeAbImport(input:AbControl, catalog:AbCatalog, payload:AbImpo
     throw Error('舊資料僅能作已匯入身分核對');
   const legacyItems=new Map((legacy?.items||[]).map(i=>[i.id,i]));
   const legacyErrors=new Map((legacy?.errors||[]).map(e=>[e.id,e]));
-  const legacyBase=(item:AbItem, version:AbVersion):AbItem|undefined => {
-    const prior=legacyItems.get(item.id), error=version.snapshot.errors.find(e=>e.id===item.errorId);
-    const parent=legacyErrors.get(prior?.errorId||'');
-    return prior && error && parent && prior.id===`ipqc-ab-item:${prior.code}` && prior.code===item.code &&
-      prior.errorId===item.errorId && parent.code===importCode(error) && same(prior.sourceRows,item.sourceRows) &&
-      version.history.some(h=>h.action==='initial-import'&&h.comment===AB_LEGACY_SHA) ? prior : undefined;
-  };
+  if(legacy && (legacyItems.size!==legacy.items.length || legacyErrors.size!==legacy.errors.length))
+    throw Error('舊來源身分重複；停止匯入');
+  function legacyBase(item:AbItem, snapshot:AbSnapshot, origin:AbSnapshot|undefined) {
+    const prior=legacyItems.get(item.id), parent=prior && legacyErrors.get(prior.errorId);
+    if(!prior || !parent || !origin || prior.id!==`ipqc-ab-item:${prior.code}`)return;
+    for(const revision of [origin,snapshot]){
+      const items=revision.items.filter(row=>row.id===prior.id), errors=revision.errors.filter(row=>row.id===prior.errorId);
+      if(items.length!==1 || errors.length!==1 || items[0].errorId!==prior.errorId ||
+        (items[0].sourceCode??items[0].code)!==prior.code || importCode(errors[0])!==parent.code ||
+        !same(prior.sourceRows,items[0].sourceRows))return;
+    }
+    return prior;
+  }
   const scopeKeys=new Set([...payload.variants.filter(v=>v.productCodes.length).map(v=>scopeKey(v.line,v.group)),
     ...Object.keys(control.scopes)]);
   for(const key of [...scopeKeys].sort()) {
@@ -109,7 +131,8 @@ export function mergeAbImport(input:AbControl, catalog:AbCatalog, payload:AbImpo
     }
     const before=JSON.stringify(version.snapshot), snapshot=version.snapshot;
     const oldItems=[...snapshot.items];
-    const bases=new Map(oldItems.map(i=>[i.id,i.sourceImport?.baseline||legacyBase(i,version!)]));
+    const origin=legacy && legacyOrigin(version,scope.versions);
+    const bases=new Map(oldItems.map(i=>[i.id,i.sourceImport?.baseline||legacyBase(i,snapshot,origin)]));
     const used=new Set<string>();
     for(const v of valid) {
       const baseName=norm(v.standard);
@@ -123,7 +146,7 @@ export function mergeAbImport(input:AbControl, catalog:AbCatalog, payload:AbImpo
       if(!candidates.length && relevant.filter(o=>o.errorCode===v.errorCode).length===1) {
         const clean=oldItems.filter(item=>{
           const parent=snapshot.errors.find(e=>e.id===item.errorId), base=bases.get(item.id);
-          const aliases=item.sourceImport?.sourceItemCodes||[item.code];
+          const aliases=item.sourceImport?.sourceItemCodes||[item.sourceCode??item.code];
           return importCode(parent)===v.errorCode && base && aliases.some(c=>v.sourceItemCodes.includes(c)) && unmodified(item,base);
         });
         if(clean.length===1) candidates.push(clean[0]);
@@ -172,7 +195,7 @@ export function mergeAbImport(input:AbControl, catalog:AbCatalog, payload:AbImpo
           sourceTool:v.sourceTool,sourceMethod:v.sourceMethod,sourceFrequency:v.sourceFrequency,reason:'',deleted:false};
         snapshot.items.push(item);
       }
-      const old=JSON.stringify(item), prior=bases.get(item.id), nextBase=baseline(v,item.code);
+      const old=JSON.stringify(item), prior=bases.get(item.id), nextBase=baseline(v,item.sourceCode??item.code);
       if(!isNew) for(const field of editable) {
         const equal=field==='productCodes' ? same([...(item[field] as string[])].sort(),[...((prior?.[field]||[]) as string[])].sort()) : same(item[field],prior?.[field]);
         if(equal) Object.assign(item,{[field]:nextBase[field]});
@@ -193,7 +216,8 @@ export function mergeAbImport(input:AbControl, catalog:AbCatalog, payload:AbImpo
       const parent=snapshot.errors.find(e=>e.id===item.errorId), base=bases.get(item.id);
       const stillPresent=relevant.some(v=>v.errorCode===importCode(parent) &&
         (norm(v.standard)===norm(base?.standard||item.standard) || v.sourceRows.some(r=>item.sourceRows.includes(r))));
-      if(base && !stillPresent && unmodified(item,base)) {
+      const manuallyRenumbered=item.sourceCode!==undefined && item.code!==item.sourceCode;
+      if(base && !stillPresent && !manuallyRenumbered && unmodified(item,base)) {
         item.deleted=true;entries.push({code:item.code,status:'deleted',reasons:['confirmed_import_absent_unmodified']});
       } else entries.push({code:item.code,status:'preserved',reasons:[stillPresent?'excluded_or_deferred_source_preserved':base?'manual_content_preserved':'manual_or_unknown_origin']});
     }
@@ -204,6 +228,7 @@ export function mergeAbImport(input:AbControl, catalog:AbCatalog, payload:AbImpo
       else if(sourceRows.length && errors.some(e=>e.code===parent.code)) parent.sourceRows=sourceRows;
     }
     if(before!==JSON.stringify(snapshot)) {
+      validateItemCodes(snapshot,{items:oldItems},activeAb(scope)?.snapshot||{items:[]},'code',()=>abItemCodePeers(control,key));
       if(newlyOpened) scope.versions.push(version); else version.revision+=1;
       version.updatedAt=at; version.history.push({action:'reimport',actorId:actor.id,actorName:actor.name,at,comment:payload.source.sha256});
       control.scopes[key]=scope;

@@ -134,7 +134,7 @@
     finally{if(activeMutation===owner&&owner.attempt===mutationSequence){activeMutation=null;busy=false;if(inputOwnerCurrent(owner))renderAccessBlocked(host);}}
   }
   function applyBase(){if(localBatch){if(!inputOwnerCurrent(localBatch.owner)||scope()?.workflow?.pendingId)throw Error('LOCAL_BATCH_RECONFIRM');return localBatch.base;}return modalBase||opened().snapshot;}
-  const createItemFields=['standard','methodText','inspectionMode','equipmentId','isEnabled','rules','standardPhotos','methodPhotos','productCodes','reason'];
+  const createItemFields=['code','standard','methodText','inspectionMode','equipmentId','isEnabled','rules','standardPhotos','methodPhotos','productCodes','reason'];
   function createdInputPlan(proof,result){
     const {operation,owner,base,sent,target,targetValue,flowRevision}=proof,flow=result.control?.workflow,receipt=result.receipt;
     if(!mutationCurrent(owner)||modal!==target||!target||target.readonly||operation.action!=='apply'||operation.generation!==owner.generation||
@@ -147,7 +147,7 @@
     const rows=flow.working[collection].filter(row=>row?.id===id),row=rows[0];
     if(rows.length!==1||row.deleted!==false||typeof row.code!=='string'||!row.code||flow.working[collection].filter(value=>value.code===row.code).length!==1||base[collection].some(value=>value.id===id)||working[collection].some(value=>value.id===id))throw Error('LOCAL_BATCH_RECONFIRM');
     const defaults=isItem?{standard:'',methodText:'',inspectionMode:'visual',equipmentId:'',isEnabled:true,rules:[],standardPhotos:[],methodPhotos:[],productCodes:[],reason:''}:{name:''};
-    const fields=isItem?createItemFields:['name'],expected={...defaults};
+    const fields=isItem?createItemFields.filter(field=>field!=='code'):['name'],expected={...defaults};
     for(const field of fields)if((isItem?operation.input?.item:operation.input)?.[field]!==undefined)expected[field]=(isItem?operation.input.item:operation.input)[field];
     if(fields.some(field=>!sameInput(row[field],expected[field])))throw Error('LOCAL_BATCH_RECONFIRM');
     const readonly=isItem?{id,code:row.code,errorId:operation.input?.errorId,equipmentSnapshot:row.equipmentSnapshot,sourceRows:[],sourceTool:'',sourceMethod:'',sourceFrequency:'',deleted:false}:{id,code:row.code,line,group,stageCode:operation.input?.stageCode,sourceRows:[],deleted:false};
@@ -156,7 +156,7 @@
     if(isItem){
       if(targetValue.type!=='item'||target.type!=='item'||target.id!==targetValue.id||!target.id?.startsWith('temp-')||operation.input?.item?.id!==target.id||base.items.some(value=>value.id===target.id))throw Error('LOCAL_BATCH_RECONFIRM');
       const originals=sent.items.filter(value=>value.id===target.id),locals=working.items.filter(value=>value.id===target.id);live=locals[0];
-      if(originals.length!==1||locals.length!==1||live.deleted!==false||!sameInput(originals[0],operation.input.item)||Object.keys(originals[0]).some(field=>!fields.includes(field)&&field!=='equipmentSnapshot'&&!sameInput(live[field],originals[0][field])))throw Error('LOCAL_BATCH_RECONFIRM');
+      if(originals.length!==1||locals.length!==1||live.deleted!==false||!sameInput(originals[0],operation.input.item)||Object.keys(originals[0]).some(field=>!fields.includes(field)&&field!=='equipmentSnapshot'&&field!=='code'&&!sameInput(live[field],originals[0][field])))throw Error('LOCAL_BATCH_RECONFIRM');
       const originalParent=sent.errors.find(value=>value.id===row.errorId);
       if(typeof originalParent?.code!=='string'||!originalParent.code)throw Error('LOCAL_BATCH_RECONFIRM');prefix=originalParent.code+'-';
       for(const content of [base,sent,working,flow.working]){
@@ -169,7 +169,10 @@
       if(live.inspectionMode!==row.inspectionMode||live.equipmentId!==row.equipmentId)delete readonly.equipmentSnapshot;
     }else if(targetValue.type!=='new-error'||target.type!=='new-error'||typeof target.name!=='string'||targetValue.name!==operation.input?.name)throw Error('LOCAL_BATCH_RECONFIRM');
     const suffix=row.code.slice(prefix.length),allocated=Number(suffix);
-    if(!isItem && typeof operation.input?.code==='string'){
+    if(isItem && typeof operation.input?.item?.code==='string'){
+      if(row.code!==operation.input.item.code.trim())throw Error('LOCAL_BATCH_RECONFIRM');
+      if(live.code!==operation.input.item.code)delete readonly.code;
+    }else if(!isItem && typeof operation.input?.code==='string'){
       if(row.code!==operation.input.code || targetValue.code!==operation.input.code)throw Error('LOCAL_BATCH_RECONFIRM');
     }else if(!row.code.startsWith(prefix)||!/^\d+$/.test(suffix)||!Number.isSafeInteger(allocated)||allocated<1||String(allocated).padStart(isItem?2:1,'0')!==suffix)throw Error('LOCAL_BATCH_RECONFIRM');
     const nextBase=clone(base);nextBase[collection].push(clone(row));
@@ -294,7 +297,7 @@
       window.dispatchEvent(new CustomEvent('quality-equipment-references-updated'));return result;
     }catch(error){
       if(createProof&&createFlight&&!createResolved)rejectedCreates.set(createProof.reservation,{...createProof,client,error,flight:createFlight});
-      if(mutationCurrent(owner,false)){message=error.message;if(createProof&&createFlight&&!createResolved)settleRejectedCreate(createProof.reservation);}return null;
+      if(mutationCurrent(owner,false)){message=displayDraftError(error);if(createProof&&createFlight&&!createResolved)settleRejectedCreate(createProof.reservation);}return null;
     }
     finally{if(activeMutation===owner&&owner.attempt===mutationSequence){if(!capturedCompletion&&inputOwnerCurrent(owner)&&modal===owner.modal){captureBatchInput(owner.modal);retainInputBase(owner);}activeMutation=null;busy=false;if(inputOwnerCurrent(owner)&&redraw&&modal===owner.modal){if(!cancelled){draw();drawReview();}restoreView();}}}
   }
@@ -427,7 +430,7 @@
           if(await load(true)===false)return null;
           working = unsaved;
         }
-        throw Error(body.error || `HTTP ${response.status}`);
+        throw Object.assign(Error(body.error || `HTTP ${response.status}`), {details:body.details});
       }
       control = body.control; revision = body.revision;
       versionId = opened()?.id || active()?.id || versionId;
@@ -436,7 +439,7 @@
       void window.ProcessSync?.refresh?.().catch(() => { /* Dedicated CAS response confirms this write. */ });
       window.dispatchEvent(new CustomEvent('quality-equipment-references-updated'));
       return body;
-    } catch (error) { message = error.message || t('儲存失敗','Lưu thất bại'); return null; }
+    } catch (error) { message = displayDraftError(error) || t('儲存失敗','Lưu thất bại'); return null; }
     finally { busy = false;if(!cancelled){draw();drawReview();}restoreView(); }
   }
   // Page-local snapshots. The original group bases are never replaced by polls.
@@ -650,7 +653,7 @@
   }
   function localConflictHTML(){
     const rows=localConflictSet();if(!rows)return '';
-    const labels={name:t('錯誤名稱','Tên lỗi'),standard:t('檢查標準','Tiêu chuẩn'),methodText:t('檢查方式','Phương pháp'),inspectionMode:t('檢查模式','Chế độ kiểm tra'),equipmentId:t('檢具','Thiết bị'),isEnabled:t('啟用','Sử dụng'),rules:t('頻率','Tần suất'),standardPhotos:t('標準照片','Ảnh tiêu chuẩn'),methodPhotos:t('方式照片','Ảnh phương pháp'),productCodes:t('產品對照','Liên kết sản phẩm'),reason:t('原因','Lý do')};
+    const labels={code:t('編號','Mã'),name:t('錯誤名稱','Tên lỗi'),standard:t('檢查標準','Tiêu chuẩn'),methodText:t('檢查方式','Phương pháp'),inspectionMode:t('檢查模式','Chế độ kiểm tra'),equipmentId:t('檢具','Thiết bị'),isEnabled:t('啟用','Sử dụng'),rules:t('頻率','Tần suất'),standardPhotos:t('標準照片','Ảnh tiêu chuẩn'),methodPhotos:t('方式照片','Ảnh phương pháp'),productCodes:t('產品對照','Liên kết sản phẩm'),reason:t('原因','Lý do')};
     const position=({entry,path,before})=>{const parent=path[0]==='items'?entry.base.errors.find(e=>e.id===before.errorId):before;return [entry.scope,parent?.stageCode,parent?.code,path[0]==='items'?before.code:null,labels[path[2]]||t('整筆刪除','Xóa bản ghi')].filter(Boolean).join(' / ');};
     const item=rows=>{const {path,before,mine,current,kind}=rows,value=row=>row?JSON.stringify(kind==='field'?row[path[2]]:row):t('不存在','Không tồn tại'),restore=localRestoreState(rows);
       const notice=kind==='edit-deleted'?restore.allowed?t('對方已刪除此項目；用我的將恢復同一筆項目並在此次存取保存修改，不恢復父層或其他項目。','Mục đã bị xóa; dùng của tôi sẽ khôi phục đúng mục này và lưu chỉnh sửa trong lần lưu hiện tại, không khôi phục mục cha hay mục khác.'):restore.reason:['missing','ambiguous'].includes(kind)?t('權威資料缺失或身分不明；保留本機內容，未恢復或覆寫資料。','Dữ liệu chung thiếu hoặc không rõ định danh; giữ nội dung cục bộ, không khôi phục hay ghi đè.'):'';
@@ -820,7 +823,7 @@
       acknowledged=true;lastCommandAcknowledgement={actor:owner,epoch,action:'save',result:response};
       clearLocalEditing();pin.modal=null;pin.setSent(null);pin.refresh();if(await load(false,null,null,pin)===false||!owns())return null;
       message=t('整份草稿已存取。','Đã lưu toàn bộ bản nháp.');return response;
-    }catch(error){const owned=owns();if(owned||initialized&&!saveDispatched&&pin.current()&&localSaveIntent===intent){message=acknowledged?t('已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Đã lưu nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):initialized&&!saveDispatched?t('草稿已初始化，但本次尚未存取；本機修改仍保留，請再次按存取以重新比較。','Bản nháp đã được khởi tạo nhưng lần này chưa lưu; thay đổi cục bộ vẫn giữ. Hãy nhấn lưu lại để so sánh.')+' ('+error.message+')':error.message;if(owned&&!client.hasUnknown()&&localSent&&client.isConfirmedRejection(error,localSent.command)){client.discardRejectedLocalSave(localSent.command);pin.setSent(null);if(['DRAFT_REVISION_CHANGED_RECONFIRM','MODULE_CHANGED_RECONFIRM'].includes(error.message)&&(intent.recomparisons||0)<2){intent.recomparisons=(intent.recomparisons||0)+1;intent.dispatched=false;intent.resolution=null;recompare=true;}}}
+    }catch(error){const owned=owns();if(owned||initialized&&!saveDispatched&&pin.current()&&localSaveIntent===intent){message=acknowledged?t('已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Đã lưu nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):initialized&&!saveDispatched?t('草稿已初始化，但本次尚未存取；本機修改仍保留，請再次按存取以重新比較。','Bản nháp đã được khởi tạo nhưng lần này chưa lưu; thay đổi cục bộ vẫn giữ. Hãy nhấn lưu lại để so sánh.')+' ('+error.message+')':displayDraftError(error);if(owned&&!client.hasUnknown()&&localSent&&client.isConfirmedRejection(error,localSent.command)){client.discardRejectedLocalSave(localSent.command);pin.setSent(null);if(['DRAFT_REVISION_CHANGED_RECONFIRM','MODULE_CHANGED_RECONFIRM'].includes(error.message)&&(intent.recomparisons||0)<2){intent.recomparisons=(intent.recomparisons||0)+1;intent.dispatched=false;intent.resolution=null;recompare=true;}}}
       // No Save was sent: a verified media ACK followed by revision drift can
       // re-enter comparison under the same owner/File pins. Confirmed Begin
       // receipts remain bound; unknown Begin/media/Save never enter this path.
@@ -859,7 +862,7 @@
       const operation=client.prepare(commandGeneration,commandAction,fields);pendingOperations.set(client,operation);result=await client.sendPrepared(operation);check();if(pendingOperations.get(client)===operation)pendingOperations.delete(client);acknowledged=true;lastCommandAcknowledgement={actor:owner.actor,epoch:owner.epoch,action,result};
       captureBatchInput(owner.modal);retainInputBase();if(await load(false,owner)===false)return null;
       if(!mutationCurrent(owner,false))return null;owner.generation=scope()?.workflow?.generation||null;check();message=hasPrivateInput()?batchNotice():'';toast(hasPrivateInput()?batchNotice():t('IPQC-AB 整份操作已完成','Đã hoàn tất thao tác toàn bộ IPQC-AB'));return result;
-    }catch(error){if(mutationCurrent(owner,false)){const rejected=pendingOperations.get(client),knownConflict=action==='submit'&&error.message==='MODULE_CHANGED_RECONFIRM'&&rejected&&client.isConfirmedRejection(error,rejected)&&!client.hasUnknown();if(knownConflict){pendingOperations.delete(client);message=t('伺服器資料已變動，本次送審未寫入；已存草稿保留。請重新讀取並再次確認後送審。','Dữ liệu máy chủ đã thay đổi; lần gửi duyệt này chưa ghi. Giữ bản nháp đã lưu; đọc lại và xác nhận trước khi gửi duyệt.');}else message=acknowledged?t(action==='save'?'已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。':'操作已由伺服器確認，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Thao tác đã được máy chủ xác nhận nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):error.message;}return null;}
+    }catch(error){if(mutationCurrent(owner,false)){const rejected=pendingOperations.get(client),knownConflict=action==='submit'&&error.message==='MODULE_CHANGED_RECONFIRM'&&rejected&&client.isConfirmedRejection(error,rejected)&&!client.hasUnknown();if(knownConflict){pendingOperations.delete(client);message=t('伺服器資料已變動，本次送審未寫入；已存草稿保留。請重新讀取並再次確認後送審。','Dữ liệu máy chủ đã thay đổi; lần gửi duyệt này chưa ghi. Giữ bản nháp đã lưu; đọc lại và xác nhận trước khi gửi duyệt.');}else message=acknowledged?t(action==='save'?'已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。':'操作已由伺服器確認，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Thao tác đã được máy chủ xác nhận nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):displayDraftError(error);}return null;}
     finally{if(activeMutation===owner&&owner.attempt===mutationSequence){activeMutation=null;busy=false;if(inputOwnerCurrent(owner)&&modal===owner.modal){draw();drawReview();restoreView();}}}
   }
   async function save(action = 'save') {
@@ -972,9 +975,21 @@
       ${batch||custom?`<label>${batch?t('對應數量或文字內容','Số lượng hoặc nội dung'):t('自訂週期內容','Chu kỳ tùy chỉnh')}<input class="ab-rule-value" value="${h(rule.value || '')}" ${readonly?'readonly':''}></label>`:''}
       ${readonly?'':`<button type="button" data-ab-remove-rule="${index}">${t('移除規則','Xóa quy tắc')}</button>`}</div>`;
   }
+  function moduleItemRows(history = false) {
+    const rows = [];
+    for (const [scopeKey, source] of Object.entries(control.scopes)) {
+      const versions = source.versions.filter(v => history || v.id === source.activeVersionId || ['draft','pending','pending-test'].includes(v.status));
+      const local = scopeKey === key() ? working : localScopes.get(scopeKey)?.snapshot;
+      for (const snapshot of [local, source.workflow?.working, ...versions.map(v => v.snapshot)]) {
+        for (const row of snapshot?.items || []) rows.push(scopeKey === key() ? row : {...row, scope:scopeKey});
+      }
+    }
+    return rows;
+  }
   function itemModal(i,readonly) {
     const eq = equipment.find(e=>e.id===i.equipmentId) || i.equipmentSnapshot;
-    return `<div class="ipqcab-modal-title">${readonly?t('查看檢查項目','Xem hạng mục'):t('修改檢查項目','Sửa hạng mục')} · ${h(i.code)}</div>
+    return `<div class="ipqcab-modal-title">${readonly?t('查看檢查項目','Xem hạng mục'):t('修改檢查項目','Sửa hạng mục')}${readonly?' · '+h(i.code):''}</div>
+      <label>${t('檢查項目編號','Mã hạng mục kiểm tra')}<input name="code" data-quality-item-code value="${h(i.code)}" ${readonly?'readonly':''} data-i18n-skip="true"></label>
       <label>${t('項目標準（越文）','Tiêu chuẩn (tiếng Việt)')}<textarea id="ab-standard" ${readonly?'readonly':''}>${h(i.standard)}</textarea></label>
       ${photoEditor(i,readonly)}
       <label>${t('檢查方式敘述','Mô tả cách kiểm tra')}<textarea id="ab-method" ${readonly?'readonly':''}>${h(i.methodText)}</textarea></label>
@@ -1088,6 +1103,7 @@
     if (!root) return;
     const item = working.items.find(i=>i.id===modal.id);
     if (!item) return;
+    item.code = root.querySelector('[data-quality-item-code]')?.value ?? item.code;
     item.standard = root.querySelector('#ab-standard')?.value ?? item.standard;
     item.methodText = root.querySelector('#ab-method')?.value ?? item.methodText;
     item.inspectionMode = root.querySelector('[name="ab-mode"]:checked')?.value || item.inspectionMode;
@@ -1135,7 +1151,8 @@
     listenWorking(q('#ipqcab-add-item'),'click',async()=>{
       if(!permittedAction('create'))return;startLocal();
       const id='local-'+crypto.randomUUID();modalBase=clone(working);modalGeneration=scope()?.workflow?.generation||null;
-      working.items.push({id,code:t('存取時分配編號','Cấp mã khi lưu'),errorId,standard:'',methodText:'',inspectionMode:'visual',equipmentId:'',equipmentSnapshot:null,isEnabled:true,rules:[],standardPhotos:[],methodPhotos:[],productCodes:[],sourceRows:[],sourceTool:'',sourceMethod:'',sourceFrequency:'',reason:'',deleted:false});modal={type:'item',id};draw();
+      const code = window.suggestQualityItemCode(chosenError().code, [...(control.reservedItemCodes || []), ...moduleItemRows(true).map(row=>row.code)]);
+      working.items.push({id,code,errorId,standard:'',methodText:'',inspectionMode:'visual',equipmentId:'',equipmentSnapshot:null,isEnabled:true,rules:[],standardPhotos:[],methodPhotos:[],productCodes:[],sourceRows:[],sourceTool:'',sourceMethod:'',sourceFrequency:'',reason:'',deleted:false});modal={type:'item',id};draw();
     });
     host.querySelectorAll('[data-ab-error]').forEach(el=>listenWorking(el,'click',()=>{errorId=el.dataset.abError;draw();}));
     host.querySelectorAll('[data-ab-view-error],[data-ab-edit-error]').forEach(el=>listenWorking(el,'click',()=>{
@@ -1185,7 +1202,13 @@
         const name=q('#ab-error-name')?.value?.trim();if(!name){q('#ab-error-name')?.reportValidity();return;}
         const id='local-'+crypto.randomUUID();working.errors.push({id,code:q('#ab-error-code').value,line,group,stageCode:stage,name,sourceRows:[],deleted:false});errorId=id;
       }else if(modal.type==='error')Object.assign(working.errors.find(e=>e.id===modal.id),{code:q('#ab-error-code').value,name:q('#ab-error-name').value});
-      else captureModal();
+      else {
+        const row = working.items.find(item=>item.id===modal.id);
+        const code = window.readQualityItemCode(q('[data-quality-item-code]'), row.id, modal.initial?.code, moduleItemRows());
+        if (code === null) return;
+        captureModal();
+        row.code = code;
+      }
       localEntry().snapshot=working;modal=null;modalBase=null;message=t('已完成本機編輯，請按存取草稿。','Đã hoàn tất chỉnh sửa cục bộ; hãy lưu bản nháp.');draw();
     });
     listenWorking(q('#ab-add-rule'),'click',()=>{captureModal();working.items.find(i=>i.id===modal.id).rules.push({id:crypto.randomUUID(),cadence:'batch',kind:'aql',value:'0.25'});draw();});
