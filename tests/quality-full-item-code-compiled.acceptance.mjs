@@ -67,6 +67,15 @@ function seed(values, target, line) {
       for (const v of group.versions) decorate(v.snapshot);
       decorate(group.workflow.working);
       decorate(group.workflow.active.content);
+      if (config.module === 'fqc') {
+        const retain = (s,working) => {
+          for (const [id,code,deleted] of [['former','Former item',working],['retired','Retired item',true]])
+            s.items.push({...s.items[0],id,checkNo:code,name:code,isDeleted:deleted});
+        };
+        for (const v of group.versions) retain(v.snapshot,v.id!==group.activeVersionId);
+        retain(group.workflow.working,true);
+        retain(group.workflow.active.content,false);
+      }
     }
     values[fixture.key] = JSON.stringify(control);
   }
@@ -167,7 +176,11 @@ for (const language of ['zh','vi']) for (const config of modules) {
         const original = await raw(), bucket = await fixture.mf.getR2Bucket('STATE_ARCHIVE');
         const values = await decode(frozen), control = JSON.parse(values[key]);
         const owner = line ? control.scopes[line === 'A' ? 'B:GB' : 'A:G'] : group(control);
-        const addPeer = snapshot => snapshot.items.push({...snapshot.items[0],id:'competing-item',[field]:targetCode.toLowerCase(),isEnabled:false});
+        const parentRace = module==='fqc' && targetCode===changedParent;
+        const addPeer = snapshot => {
+          if (parentRace) snapshot.errors.push({...snapshot.errors[0],id:'competing-error',code:targetCode.toLowerCase(),name:'Synthetic concurrent defect'});
+          else snapshot.items.push({...snapshot.items[0],id:'competing-item',[field]:targetCode.toLowerCase(),isEnabled:false});
+        };
         addPeer(effective(owner)); addPeer(owner.workflow.active.content);
         values[key] = JSON.stringify(control);
         const encoded = await fixture.load('lib/state-records.ts').encodeRecordValues(bucket,values);
@@ -188,8 +201,12 @@ for (const language of ['zh','vi']) for (const config of modules) {
           const rejected = await run();
           const error = await rejected.json();
           assert.ok([409,422].includes(rejected.status()),JSON.stringify(error));
-          assert.equal(error.error,'ITEM_CODE_DUPLICATE',JSON.stringify(error));
-          assert.equal(error.details?.occupiedBy,'competing-item',JSON.stringify(error));
+          assert.equal(error.error,parentRace?'ERROR_CODE_DUPLICATE':'ITEM_CODE_DUPLICATE',JSON.stringify(error));
+          if (!parentRace) assert.equal(error.details?.occupiedBy,'competing-item',JSON.stringify(error));
+          if (module==='fqc') {
+            assert.equal(error.details.fqcOwnerSource,'approved');
+            assert.ok(error.details.line && error.details.category);
+          }
           assert.deepEqual(await raw(),before);
           assert.deepEqual(await objects(),archive);
         } finally { await install(original.revision,original.values); }
@@ -209,7 +226,22 @@ for (const language of ['zh','vi']) for (const config of modules) {
       const duplicateMessage = await manual.input.evaluate(el=>el.validationMessage);
       assert.match(duplicateMessage,language === 'vi' ? /đã được sử dụng/i : /已被使用/);
       assert.match(duplicateMessage,/Đường kính|Chiều dài|10 mm|disabled|row0/);
-      await manual.input.fill('  '+sharedCode+'  '); await close(manual);
+      if (module==='fqc') {
+        assert.match(duplicateMessage,language==='vi'?/Bản nháp hiện tại và phiên bản đã duyệt/:/目前草稿及現行核准版/);
+        await manual.input.fill(' FORMER ITEM ');
+        await manual.done.click();
+        const message = await manual.input.evaluate(el=>el.validationMessage);
+        assert.match(message,language==='vi'?/đã duyệt đang áp dụng vẫn giữ/:/現行核准版仍占用/);
+        assert.ok(message.includes('Former item'));
+      }
+      if (module==='fqc') {
+        await manual.input.fill('  Retired ITEM  ');
+        await close(manual);
+        const another = await openItem(true);
+        await another.input.fill(sharedCode); await close(another);
+      } else {
+        await manual.input.fill('  '+sharedCode+'  '); await close(manual);
+      }
       const existing = await openItem(false);
       assert.equal(await existing.input.inputValue(),originalActive.items.find(i=>i.id==='row0')[field]);
       await existing.input.fill(newCode); await close(existing);
@@ -218,6 +250,7 @@ for (const language of ['zh','vi']) for (const config of modules) {
       await parent.locator('[name=code],#ab-error-code').fill(changedParent);
       await parent.locator('button[type=submit],#ab-apply').last().click();
       await parent.waitFor({state:'hidden'});
+      if (module==='fqc') await save(changedParent);
       await save(language === 'zh' ? suggested : newCode);
       const retained = await openItem(false);
       assert.equal(await retained.input.inputValue(),newCode);
@@ -260,6 +293,12 @@ for (const language of ['zh','vi']) for (const config of modules) {
       const approved = await waiting;
       assert.equal(approved.status(),200,await approved.text());
       const after = group(await get());
+      if (module==='fqc') {
+        const reused = effective(after).items.filter(i=>i.checkNo.trim().toLowerCase()==='retired item');
+        assert.equal(reused.length,2);
+        assert.deepEqual(reused.find(i=>i.id==='retired'),originalActive.items.find(i=>i.id==='retired'));
+        assert.ok(reused.some(i=>i.id!=='retired' && !i.isDeleted && i.checkNo==='Retired ITEM'));
+      }
       assert.equal(effective(after).items.find(i=>i.id==='row0')[field],newCode+' 2');
       assert.equal(effective(after).errors.find(i=>i.id===rows.find(r=>r.id==='row0').errorId).code,changedParent);
       assert.deepEqual(after.versions.find(v=>v.id===original.activeVersionId).snapshot,originalActive);

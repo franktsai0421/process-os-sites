@@ -21,6 +21,10 @@
     return Object.prototype.toString.call(value);
   }
 
+  let codeOwnerModule;
+  function loadCodeOwner() {
+    return codeOwnerModule ||= import('/process/fqc-code-owner.mjs?v=1').catch(() => { codeOwnerModule = null; return null; });
+  }
   const STORAGE = 'qualityMasterControl';
   const dbKeys = ['fqc', 'iqc', 'ipqc', 'routineReports'];
   const h = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -1611,7 +1615,7 @@
       if(localSaveAttempt&&result.receipt.operationId===localSaveAttempt.command.operationId){if(read.control?.workflow?.generation!==localSaveAttempt.generation){if(!superseded)throw Error('STALE_GENERATION');adopt(read);localSaveAttempt=null;localRejection=null;}else retainLaterSaveInput(localSaveAttempt,read);}else{adopt(read);if(matrixOwner()&&!matrixBatch.pending){matrixBatch.rows.clear();matrixBatch.count=0;matrixChoiceRevision++;}}ui.lastError=null;
       confirmFormRecovery(result);
       if(superseded){client.acknowledgeSupersededRecovery(result);ui.recoveryNotice='FQC_PREVIOUS_GENERATION_CONFIRMED';}
-    }catch(error){if(owned()){ui.lastError=error.message;if(overlay?.isConnected)showModalAlert(overlay,'error',error.message);else toast(displayDraftError(error));}}
+    }catch(error){if(owned()){ui.lastError=error.message;if(overlay?.isConnected)showModalAlert(overlay,'error',error);else toast(displayDraftError(error));}}
     finally{if(activeSharedAction===operation){activeSharedAction=null;ui.saving=false;if(owned())render();}buttons.forEach(button=>{if(button.isConnected)button.disabled=false;});}
   }
   function formWriteCurrent(overlay) { return !!formOwners.get(overlay)?.current(); }
@@ -1679,7 +1683,13 @@
       }
       const code = nativeFormValueText(form.get('code') || '');
       const issue = window.manualErrorCodeIssue(code, existing?.id || newId, errors, approved()?.snapshot?.errors);
-      if (issue) { showModalFieldError(overlay,'code',displayDraftError(issue)); return; }
+      if (issue) {
+        const module = issue === 'ERROR_CODE_DUPLICATE' && await loadCodeOwner();
+        if (!formWriteCurrent(overlay) || event.target.elements.code.value !== code) return;
+        const details = module && module.fqcCodeOwner('code',code,existing?.id || newId,errors,approved()?.snapshot?.errors || []);
+        showModalFieldError(overlay,'code',displayDraftError({message:issue,details}));
+        return;
+      }
       const release=lockFormWrite(overlay);
       const value = existing || errors.find(row=>row.id===newId) || { id: newId, category, line: filteredCategories(version).find(item => item.name === category)?.line || '', code, isDeleted: false };
       Object.assign(value, { code, name });
@@ -1690,7 +1700,7 @@
         if(formWriteCurrent(overlay))closeModal(overlay);
       } catch (error) {
         if(!formWriteCurrent(overlay))return;
-        showModalAlert(overlay, 'error', error.message || (vi ? 'Lưu thất bại' : '儲存失敗'));
+        showModalAlert(overlay, 'error', error);
       } finally { release(); }
     });
   }
@@ -2415,11 +2425,15 @@
     ownFormWrite(overlay,version);
     overlay.querySelector('form').onsubmit = guardWorking(overlay.querySelector('form'),async event => {
       event.preventDefault();
+      const module = await loadCodeOwner();
+      if (!overlay.isConnected) return;
       if(!admitFormWrite(overlay))return;
       clearModalErrors(overlay);
       try { assertFormCurrent(); } catch(error) { showModalAlert(overlay,'error',error.message); return; }
       const form = new FormData(event.target);
-      const code = window.readQualityItemCode(event.target.querySelector('[data-quality-item-code]'), existing?.id, existing?.checkNo, [...items, ...(approved()?.snapshot?.items || [])]);
+      const approvedItems = approved()?.snapshot?.items || [];
+      const code = window.readQualityItemCode(event.target.querySelector('[data-quality-item-code]'), existing?.id, existing?.checkNo, [...items, ...approvedItems].filter(row => !row.isDeleted && !row.deleted),
+        value => module?.fqcCodeOwner('checkNo',value,existing?.id,items,approvedItems));
       if (code === null) return;
       const name = nativeFormValueText(form.get('name') || '').trim();
       if (!name) {
@@ -2556,7 +2570,7 @@
         Object.assign(version, beforeSave);
         if(!library().workflow)localStorage.setItem(STORAGE, JSON.stringify(control));
         render();
-        showModalAlert(overlay, 'error', error.message || (vi ? 'Lưu thất bại' : '儲存失敗'));
+        showModalAlert(overlay, 'error', error);
       } finally { release(); }
     });
   }

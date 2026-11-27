@@ -5,6 +5,8 @@ import test from 'node:test';
 import {chromium} from 'playwright';
 import {createABCFixture} from './ab-c-native-fixture.mjs';
 
+import {fqcCodeOwner} from '../public/process/fqc-code-owner.mjs';
+
 const require = createRequire(import.meta.url);
 const qualityFixture = require('../scripts/v3-quality-growth-fixture.cjs');
 const cases = [
@@ -27,6 +29,16 @@ function seed(values) {
     });
     if (config.module === 'ipqc-ab') {
       control.scopes['B:GB'] = makeB(control.scopes['A:G']);
+    }
+    if (config.module === 'fqc') {
+      const group = control.libraries.fqc;
+      const addOwner = (snapshot,deleted) => snapshot.errors.push({
+        ...snapshot.errors[0],id:'synthetic-other',code:'Hidden claim',name:'Synthetic active defect',
+        line:'B',category:'GB',isDeleted:deleted,
+      });
+      for (const v of group.versions) addOwner(v.snapshot,v.id!==group.activeVersionId);
+      addOwner(group.workflow.active.content,false);
+      addOwner(group.workflow.working,true);
     }
     values[data.key] = JSON.stringify(control);
     if (config.module === 'fqc') {
@@ -92,13 +104,35 @@ for (const language of ['zh','vi']) for (const c of cases) {
     async function expectDuplicate() {
       await apply.click();
       assert.ok(await form.isVisible());
-      const message = await form.evaluate(el => el.innerText+' '+Array.from(el.querySelectorAll('input'),item=>item.validationMessage).join(' '));
-      assert.match(message,language==='vi'?/bản ghi khác/i:/另一筆/);
+      const duplicateText = language==='vi' ? 'bản ghi khác' : '另一筆';
+      await page.waitForFunction(({selector, text}) => {
+        const form = document.querySelector(selector);
+        if (!form) return false;
+        const validation = Array.from(form.querySelectorAll('input'), input => input.validationMessage);
+        return [form.innerText, ...validation].join(' ').toLowerCase().includes(text);
+      }, {selector:c.form, text:duplicateText});
     }
     await enter();
     const original = await persisted(), before = original.workflow.working;
     const originalCode = before.errors.find(row => row.id === c.id).code;
     const active = original.versions.find(v => v.id === original.activeVersionId);
+    if (c.module === 'fqc') {
+      await page.locator(c.edit).click();
+      await name.fill('Locally held name');
+      await code.fill('  HIDDEN CLAIM  ');
+      await expectDuplicate();
+      const issue = form.locator('[data-field-error=code]');
+      await issue.getByText(/Synthetic active defect/).waitFor();
+      assert.match(await issue.innerText(),language==='vi'?/đã duyệt.*Dây chuyền B.*GB/:/現行核准版仍占用.*B 線.*GB/);
+      assert.equal(await name.inputValue(),'Locally held name');
+      assert.deepEqual(await persisted(),original);
+      await form.locator('[data-close]').last().click();
+      await page.locator('[data-quality-tab="quality-iqc"]').click();
+      await page.waitForURL(/dataTab=quality-iqc/);
+      await page.locator('[data-quality-tab="quality-fqc"]').click();
+      await page.locator(c.add).waitFor();
+      assert.deepEqual(await persisted(),original);
+    }
     await page.locator(c.add).click();
     assert.equal(await code.inputValue(),'');
     await name.fill('Synthetic manually entered');
@@ -124,7 +158,12 @@ for (const language of ['zh','vi']) for (const c of cases) {
         patches:[{op:'set',path:codePath,value:invalid}],guards:[{path:codePath,value:raw}]
       }}});
       assert.equal(result.status(),422);
-      assert.equal((await result.json()).error,reason);
+      const rejected = await result.json();
+      assert.equal(rejected.error,reason);
+      if (c.module === 'fqc' && reason === 'ERROR_CODE_DUPLICATE') {
+        assert.equal(rejected.details.fqcOwnerSource,'approved');
+        assert.equal(rejected.details.occupiedName,before.errors.find(row=>row.id===c.id).name);
+      }
       assert.deepEqual(await persisted(),stored);
     }
     await page.locator('#'+c.prefix+'-submit').click();
@@ -136,8 +175,48 @@ for (const language of ['zh','vi']) for (const c of cases) {
     assert.ok(pending.pendingId);
     assert.equal(pending.cases.find(row=>row.id===pending.pendingId).savedId,pending.saved.id);
     const content = c.line ? pending.saved.content.scopes[scope] : pending.saved.content;
+    if (c.module === 'fqc') {
+      // A different owner claims the pending code in the still-current active version.
+      const db = fixture.db, read = () => db.prepare('SELECT revision,"values" FROM shared_state WHERE id=1').first();
+      const raw = await read(), values = await fixture.load('lib/process-state.ts').decodeValues(raw.values);
+      const data = JSON.parse(values[c.key]), group = data.libraries.fqc;
+      for (const snap of [group.versions.find(v=>v.id===group.activeVersionId).snapshot,group.workflow.active.content])
+        snap.errors.push({...snap.errors[0],id:'late-owner',line:'B',category:'GB',code:renamed,name:'Late owner'});
+      values[c.key] = JSON.stringify(data);
+      const bucket = await fixture.mf.getR2Bucket('STATE_ARCHIVE');
+      const encoded = await fixture.load('lib/state-records.ts').encodeRecordValues(bucket,values);
+      await db.prepare('UPDATE shared_state SET "values"=? WHERE id=1').bind(encoded).run();
+      const objects = async () => (await bucket.list()).objects.map(({key,etag,version}) => [key,etag,version]);
+      const frozen = await read(), archive = await objects();
+      const result = await page.request.post(origin+workflow,{headers:{Origin:origin,'X-Process-Expected-Actor':'frank'},data:{command:{
+        action:'approve',caseId:pending.pendingId,selfReviewConfirmed:true,operationId:randomUUID(),clientId:'upper-race',sequence:1,generation:pending.generation,
+      }}});
+      const rejection = await result.json();
+      assert.equal(result.status(),422,JSON.stringify(rejection));
+      assert.equal(rejection.error,'ERROR_CODE_DUPLICATE');
+      assert.deepEqual(rejection.details,{fqcOwnerSource:'approved',occupiedName:'Late owner',line:'B',category:'GB'});
+      assert.deepEqual(await read(),frozen);
+      assert.deepEqual(await objects(),archive);
+    }
     assert.deepEqual(content.items,before.items);
     assert.equal(content.errors.find(row=>row.id===c.id).code,renamed);
   });
 }
 
+
+test('FQC code owner honors stable ID, version, retention policy and scoped disclosure', () => {
+  const row = (id, extra={}) => ({id,code:' Tag ',checkNo:' Tag ',category:'Example',line:'B',name:'Example owner',privateNote:'omit',...extra});
+  const owner = (field,draft,active) => fqcCodeOwner(field,' TAG ','self',draft,active);
+  for (const field of ['code','checkNo']) {
+    assert.equal(owner(field,[row('self')],[row('self')]),undefined);
+    assert.equal(owner(field,[row('peer')],[row('peer')]).fqcOwnerSource,'both');
+    assert.equal(owner(field,[row('peer',{isDeleted:true})],[row('peer')]).fqcOwnerSource,'approved');
+    const distinct = owner(field,[row('peer')],[row('other',{line:'A',category:'Other group'})]);
+    assert.equal(distinct.fqcOwnerSource,'draft');
+    assert.deepEqual(distinct.otherApproved,{occupiedName:'Example owner',line:'A',category:'Other group'});
+    assert.ok(!JSON.stringify(distinct).includes('omit'));
+  }
+  assert.equal(owner('code',[row('peer',{isDeleted:true})],[row('peer',{deleted:true})]),undefined);
+  assert.equal(owner('checkNo',[],[row('peer',{deleted:true})]),undefined);
+  assert.equal(owner('checkNo',[row('peer',{isEnabled:false})],[]).fqcOwnerSource,'draft');
+});

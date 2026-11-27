@@ -1,4 +1,5 @@
 import {itemCodeReview,approvedCodes,requireItemCode,prepareItemCodes,validateItemCodes} from './quality-item-code';
+import {fqcCodeOwner} from '../public/process/fqc-code-owner.mjs';
 import {activeErrorRows,validateErrorCodeChanges} from './manual-error-code';
 import {checkFqcTime} from './time-frequency-policy';
 import {assertFqcLocalSaveCommand} from './fqc-local-save';
@@ -35,14 +36,28 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
    const eq=parse(state.values.routineEquipmentControl,{}) as {activeVersionId?:string;versions?:{id:string;status:string;equipment:{id:string;enabled?:boolean;assetCode:string;pieceMark:string;name?:string;nameVi?:string;spec?:string;photoId?:string}[]}[]};
    const choices=new Map((eq.versions?.find(v=>v.id===eq.activeVersionId&&v.status==='approved')?.equipment||[]).map(e=>[e.id,e]));
    effectiveEquipment=choices;
+   const itemCodePolicy = {reserveDeleted:false, describe:fqcCodeOwner.bind(null,'checkNo')};
+   const itemReview = itemCodeReview(control,'checkNo',undefined,itemCodePolicy);
+   const checkErrors = (next:FqcSnapshot, previous:FqcSnapshot['errors']) => {
+     const active = activeErrorRows(control);
+     validateErrorCodeChanges(next.errors,previous,active,(code,id) =>
+       fqcCodeOwner('code',code,id,next.errors,active || []));
+   };
    const result:DraftContext<FqcSnapshot>={...base,activeId:control.activeVersionId,
-    ...itemCodeReview(control,'checkNo'),
+    checkSave(proposed) {
+      itemReview.checkSave(proposed);
+      checkErrors(proposed,activeErrorRows(control) || []);
+    },
+    checkApproval(before,proposed) {
+      itemReview.checkApproval(before,proposed);
+      checkErrors(proposed,before.errors);
+    },
     semantic:content=>({errors:content.errors.filter(e=>!e.isDeleted),items:content.items.filter(i=>!i.isDeleted)}),
     restoreContent(historical,current){for(const collection of ['errors','items'] as const)for(const row of current[collection])if(!historical[collection].some(old=>old.id===row.id))(historical[collection] as Row[]).push({...cloneDraft(row),isDeleted:true});return historical;},
     structure(content,previous){
      // Per-structure, lazy first-match indexes; malformed prior rows retain find's failure/order semantics.
-     prepareItemCodes(content,previous,approvedCodes(control),'checkNo');
-     validateErrorCodeChanges(content.errors,previous.errors,activeErrorRows(control));
+     prepareItemCodes(content,previous,approvedCodes(control),'checkNo',undefined,itemCodePolicy);
+     checkErrors(content,previous.errors);
      const previousIndexes=new Map<'errors'|'items',Map<string,Row>|null>();
      const previousRow=(key:'errors'|'items',id:string):Row|undefined=>{
       let index=previousIndexes.get(key);
@@ -77,7 +92,7 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
       }else if(old&&!old.equipmentId){if(Object.hasOwn(old,'equipmentSnapshot'))row.equipmentSnapshot=old.equipmentSnapshot;else delete row.equipmentSnapshot;}else row.equipmentSnapshot=null;
      }
     },
-    validate(content){const active=approvedCodes(control);validateItemCodes(content,active,active,'checkNo');const issues:DraftIssue[]=[];
+    validate(content){const active=approvedCodes(control);validateItemCodes(content,active,active,'checkNo',undefined,itemCodePolicy);const issues:DraftIssue[]=[];
      for(const row of content.errors)if(!row.isDeleted&&!row.name.trim())issues.push({kind:'missing',path:['errors',{id:row.id},'name'],message:'NAME_REQUIRED'});
      for(const i of content.items.filter(i=>!i.isDeleted)){
       if(!i.name.trim())issues.push({kind:'missing',path:['items',{id:i.id},'name'],message:'NAME_REQUIRED'});

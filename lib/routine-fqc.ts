@@ -425,14 +425,31 @@ export const docContent = (d: Document) =>
     : d.flow.active.id && !d.reopened
       ? d.flow.active.content
       : d.flow.working;
+// A code can be reassigned after deletion. Only a unique, stable item ID
+// may refresh a saved job from the effective catalog.
+export function fqcSourcesById(sources:Source[]) {
+  const result = new Map<string,Source>();
+  const seen = new Set<string>();
+  for (const source of sources) {
+    if (typeof source.id !== 'string' || !source.id.trim()) continue;
+    if (seen.has(source.id)) result.delete(source.id);
+    else result.set(source.id,source);
+    seen.add(source.id);
+  }
+  return result;
+}
+function matchesJobItem(job:Job, source:Source|undefined):source is Source {
+  return !!source && !!job.itemId && job.source.id === job.itemId && source.id === job.itemId;
+}
 export function fqcPlannerJobs(control:Pick<RoutineFqc,'jobs'|'documents'>, sources:Source[], pageDocuments?:Content[]):Job[] {
-  const latest = new Map(sources.map(source => [source.id, source]));
+  const latest = fqcSourcesById(sources);
   const documented = new Set<string>();
   for (const snapshot of [...control.documents.filter(doc => !doc.cancelled).map(docContent), ...(pageDocuments || [])]) {
     for (const line of snapshot.lines || []) documented.add(line.jobId);
   }
   return control.jobs.map(job => {
-    const approved = latest.get(job.itemId);
+    const current = latest.get(job.itemId);
+    const approved = matchesJobItem(job,current) ? current : undefined;
     const projected = periodItemCode(job, approved, documented.has(job.id));
     // Whole-page clients seed their local document from this very row.
     return pageDocuments && approved && projected !== job ? {...job,source:renumberedPlanSource(job,approved)} : projected;
@@ -442,7 +459,7 @@ export function fqcPlannerJobs(control:Pick<RoutineFqc,'jobs'|'documents'>, sour
 // Old planners create their document from the saved job. Pin the approved
 // revision at creation if its code changed after the period was generated.
 export function renumberedPlanSource(job:Job, latest:Source|undefined):Source {
-  if (!latest || periodItemCode(job,latest,false) === job) return job.source;
+  if (!matchesJobItem(job,latest) || periodItemCode(job,latest,false) === job) return job.source;
   const approved = cloneDraft(latest);
   const products = new Map(approved.products.map(product => [product.code,product]));
   return {...approved, products:job.source.products.map(product => products.get(product.code) || product)};
@@ -1252,14 +1269,14 @@ export function executeRoutine(
           'JOB_ALREADY_ASSIGNED',
           409,
         );
+        const byItem = fqcSourcesById(sources);
         if(c.calendarPolicy){
           demand(new Set(jobs.map(j=>!!j!.calendar?.retestCaseId)).size===1,'MIXED_INITIAL_RETEST_PLAN',422);
           validatePlanDates(jobs as Job[],cmd.startDate||'',cmd.endDate||'',ctx.today);
-          for(const j of jobs as Job[]){if(j.calendar?.retestCaseId)continue;const latest=sources.find(s=>s.id===j.itemId&&s.line===j.source.line&&s.products.some(p=>p.code===j.calendar?.productCode)&&s.frequency===j.calendar?.frequency);demand(latest,'SOURCE_CHANGED_RELOAD',409);j.source={...cloneDraft(latest),products:latest.products.filter(p=>p.code===j.calendar?.productCode)};}
+          for(const j of jobs as Job[]){if(j.calendar?.retestCaseId)continue;const latest=byItem.get(j.itemId);demand(matchesJobItem(j,latest)&&latest.line===j.source.line&&latest.products.some(p=>p.code===j.calendar?.productCode)&&latest.frequency===j.calendar?.frequency,'SOURCE_CHANGED_RELOAD',409);j.source={...cloneDraft(latest),products:latest.products.filter(p=>p.code===j.calendar?.productCode)};}
         }
         if (!c.calendarPolicy) {
-          const latest = new Map(sources.map(source => [source.id,source]));
-          for (const job of jobs as Job[]) job.source = renumberedPlanSource(job,latest.get(job.itemId));
+          for (const job of jobs as Job[]) job.source = renumberedPlanSource(job,byItem.get(job.itemId));
         }
         const d = addDocument(c, 'plan', jobs as Job[], ctx);
         if(c.calendarPolicy){d.calendarVersion=2;d.flow.working.planStart=cmd.startDate;d.flow.working.planEnd=cmd.endDate;d.flow.active.content=cloneDraft({...d.flow.working,lines:[]});}

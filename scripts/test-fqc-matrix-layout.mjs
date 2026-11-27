@@ -120,7 +120,7 @@ check('CSS contract: matrix toolbar keeps 44px targets under the actual Vietname
 });
 check('JS and CSS retain their independently versioned local references',()=>{
   const html=fs.readFileSync(path.join(root,'public/process/index.html'),'utf8');
-  const expected={'fqc-master.js':'20261126-full-item-code1','fqc-master.css':'20261126-full-item-code1'};
+  const expected={'fqc-master.js':'20261127-fqc-code-owner1','fqc-master.css':'20261126-full-item-code1'};
   const references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
   for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
 });

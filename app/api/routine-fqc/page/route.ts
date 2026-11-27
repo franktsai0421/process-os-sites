@@ -7,7 +7,7 @@ import {env} from 'cloudflare:workers';
 import {readState,identity,can,sameOrigin,encodeValues,stateRevisionIsCurrent,responseHeaders} from '@/lib/process-state';
 import {workflowAccess,sharedCaseMetadata} from '@/lib/versioned-shared-workflow';
 import {DraftConflict,cloneDraft} from '@/lib/shared-draft';
-import {RF_KEY,parseRoutine,companyDate,routineSources,routineCatalog,fqcPlannerJobs} from '@/lib/routine-fqc';
+import {RF_KEY,parseRoutine,companyDate,routineSources,routineCatalog,fqcPlannerJobs,fqcSourcesById} from '@/lib/routine-fqc';
 import {parseRoutinePage,executeRoutinePage,executeRoutinePageDomain,assertRoutinePageReceiptAccess,routinePageDocuments,routinePageAvailability,routinePageReviewContext,routineWholePagePhotoIds,type RoutineWholePageCommand,type RoutinePageDomainCommand,type RoutinePageReceiptOwner} from '@/lib/routine-fqc-page';
 const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:responseHeaders});
 const enabled=(request:Request,state:Awaited<ReturnType<typeof readState>>)=>state.values.routineFqcEnabled==='1'||['localhost','127.0.0.1'].includes(new URL(request.url).hostname)&&new URL(request.url).port==='3040';
@@ -49,7 +49,7 @@ export async function POST(request:Request){if(new URL(request.url).pathname!=='
   if(command.moduleAction==='domain-v1'&&command.input?.action==='configure'&&!isRoutineAdmin(actor))
     return reply({error:'FORBIDDEN',requestId},403);
   const source=parseRoutinePage(parseRoutine(state.values[RF_KEY])),at=new Date().toISOString();const context={actor:{id:actor.id,name:actor.name,admin:actor.role==='admin'},at,today:companyDate(),allowed:(permission:import('@/lib/shared-draft').DraftPermission)=>permissions[permission],create:permissions.create,delete:permissions.delete,revise:permissions.revise,revoke:permissions.revoke,settings:permissions.settings};assertNotResetRetired(source,command.operationId);const result=command.moduleAction==='domain-v1'?executeRoutinePageDomain(source,command,routineSources(state),context):executeRoutinePage(source,command,command.input?.creates?.some(intent=>intent.type==='plan')?
-    {...context,approvedSources:new Map(routineSources(state).map(item=>[item.id,item]))}:context);
+    {...context,approvedSources:fqcSourcesById(routineSources(state))}:context);
   if(result.replayed)return reply({receipt:result.receipt,result:result.receipt,revision:state.revision,replayed:true,scope:'routine-fqc:page'});
   for(const id of new Set([...routineWholePagePhotoIds(result.root.page.workflow.working),...(command.moduleAction==='domain-v1'?command.input.photos||[]:command.input?.creates.flatMap(create=>create.photos||[])||[])]))if(!/^[a-f0-9]{64}$/.test(id)||!await env.STATE_ARCHIVE.head('routine-fqc/photos/'+id))throw new DraftConflict('PHOTO_NOT_UPLOADED',422);
   const values={...state.values,[RF_KEY]:JSON.stringify(result.root)},encoded=await encodeValues(values,state);
