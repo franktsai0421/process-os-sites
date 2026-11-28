@@ -1,3 +1,4 @@
+import {calibrationEquipmentDependency} from '@/lib/equipment-catalog.mjs';
 import {approvedVersion,approvedVersions,approvedVersionEvidence} from '@/lib/approved-history';
 import {ipqcCFinalReviewAllowed} from '@/lib/ipqc-c-access';
 import {beginBasis,parseBeginIdentity,replayBegin,assertBeginBasis,recordBegin} from '@/lib/workflow-begin';
@@ -183,7 +184,7 @@ export async function POST(request:Request) {
       if(body.command&&(!existingReceipt||isWorkflowDigestFingerprint(existingReceipt.fingerprint)))context.commandFingerprint=await workflowCommandFingerprint(body.command);
       const originalStructure=context.structure;
       const preserveStructuralEquipment=body.command?.action==='save'&&body.command.localChanges?.some(change=>['revive-error','revive-item','delete-error','delete-item'].includes(change.moduleAction||''));
-      const equipment=parse(state.values.routineEquipmentControl,{}) as {activeVersionId?:string;versions?:EquipmentVersion[]};
+      const equipment=calibrationEquipmentDependency(parse(state.values.routineEquipmentControl,{})) as {activeVersionId?:string;versions?:EquipmentVersion[]};
       const effective=equipment.versions?.find(v=>v.id===equipment.activeVersionId&&v.status==='approved');
       const selected=new Map((effective?.equipment||[]).map(e=>[e.id,e]));
       context.structure=(content,previous)=>{

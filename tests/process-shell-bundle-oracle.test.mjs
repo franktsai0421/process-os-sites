@@ -11,10 +11,10 @@ const html=combineProcessStyles(read('index.html'),read).html,result=combineProc
 const copy=()=>result.assets.map(asset=>({...asset,sources:[...asset.sources]}));
 void test('reviewed main50 plus independently named modules and one reviewed dependency move produces the independently ordered current bundles',()=>{
  assert.equal(processBundleBaselineCommit,'9fbba823090f03da8385c8d92f5e59293d19d2f1');
- assert.deepEqual(proposedProcessBundleAdditions,['routine-reset.js']);
+ assert.deepEqual(proposedProcessBundleAdditions,['routine-reset.js','piece-calibration.js']);
  assert.equal(historicalProcessBundleGroups.flat().length,59);
- assert.equal(expectedProcessBundleGroups.flat().length,60);
- assert.deepEqual(expectedProcessBundleGroups.map(group=>group.filter(name=>name!=='routine-reset.js')),historicalProcessBundleGroups);
+ assert.equal(expectedProcessBundleGroups.flat().length,61);
+ assert.deepEqual(expectedProcessBundleGroups.map(group=>group.filter(name=>name!=='routine-reset.js' && name!=='piece-calibration.js')),historicalProcessBundleGroups);
  assert.deepEqual(reviewedProcessBundleAdditions,['canvas-approved-history.js','page-draft-merge.js','master-page-transfer.js','master-page-approved-history.js','master-page-editor.js','routine-page-approved-history.js','routine-fqc-page.js','routine-iqc.js','account-write-receipt.js']);
  assert.deepEqual(reviewedProcessBundleMoves,[{name:'version-draft-ui.js',fromBefore:'process-authoring-v3.js',toBefore:'master-data.js'}]);
  assertProcessScriptBundles(result.assets,read);
@@ -87,9 +87,9 @@ for(const name of [...reviewedProcessBundleAdditions,...proposedProcessBundleAdd
  assert.notDeepEqual(assets.map(asset=>asset.sources),expectedProcessBundleGroups);
  assert.throws(()=>assertProcessScriptBundles(assets,read),{code:'ERR_ASSERTION'});
 });
-void test('restoring the obsolete VersionDraftUI location is rejected even with all 60 modules',()=>{
+void test('restoring the obsolete VersionDraftUI location is rejected even with all 61 modules',()=>{
  const assets=copy(),group=assets[1].sources;group.splice(group.indexOf('version-draft-ui.js'),1);group.splice(group.indexOf('process-authoring-v3.js'),0,'version-draft-ui.js');
- assert.equal(assets.flatMap(asset=>asset.sources).length,60);assert.throws(()=>assertProcessScriptBundles(assets,read),{code:'ERR_ASSERTION'});
+ assert.equal(assets.flatMap(asset=>asset.sources).length,61);assert.throws(()=>assertProcessScriptBundles(assets,read),{code:'ERR_ASSERTION'});
 });
 for(const failed of [...reviewedProcessBundleAdditions,...proposedProcessBundleAdditions])void test('a failed specified addition cannot issue its receipt: '+failed,()=>{
  const read=syntheticRead(failed),built=combineProcessScripts(html,read),context={window:{order:[]}};assertProcessScriptBundles(built.assets,read);vm.createContext(context);

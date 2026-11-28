@@ -8,7 +8,7 @@ import {manualUI} from './fixtures/routine-fqc-manual-ui.mjs';
 
 const fixtureOrigin = 'https://synthetic.invalid';
 
-function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirmAction=false,fqcPending=null,listNavigation={},displayDocument=null,manualDialog=false,pageDraft=false,badgeAvailability={fqc:false,iqc:false}}={}){
+function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirmAction=false,fqcPending=null,listNavigation={},displayDocument=null,manualDialog=false,pageDraft=false,nativeIqc=false,badgeAvailability={fqc:false,iqc:false}}={}){
  let onClick, changed, iqcClick, iqcChange, fqcMounts=0, epoch=1, allowed=false;
  let recoveryText={textContent:''}, badgeChanged, adminModal;
  let dialogCount=0, closeDialog,clickPreview,changeDate;
@@ -24,6 +24,10 @@ function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirm
  const errorText={nodeType:3,nodeValue:'OPERATION_NOT_FOUND'};
  retry.parentElement={firstChild:errorText};
  const pageDom=canvasDOM(),pagePanel=pageDom.document.createElement('section');
+ const iqcButton=pageDom.document.createElement('button');
+ iqcButton.setAttribute(review?'data-review-module':'data-module','1');
+ entry.matches=selector=>iqcButton.matches(selector);
+ if(nativeIqc)pagePanel.append(iqcButton);
  const fqcRoot={hasAttribute:name=>pageDraft&&name==='data-routine-page',matches:()=>false,contains:node=>node===retry||node===entry,
   querySelector:selector=>selector==='[data-routine-page-panel]'&&pageDraft?pagePanel:selector.includes('[data-module')?entry:
    selector.endsWith('[data-action="retry"]')?retry:recoveryText
@@ -34,7 +38,8 @@ function switchFixture(lang,{data=null,review=false,simulateRequest=null,confirm
    querySelector(selector){return selector.includes('routine-fqc-root')?fqcRoot:switchButton;}};
  const iqc={matches:()=>false,contains:node=>node===iqcRoot,
    querySelector:selector=>selector==='.ri-app'?iqcRoot:switchButton};
- const root={isConnected:true,querySelector:selector=>selector==='[data-ri-fqc]'?fqc:iqc};
+ const containers={'[data-ri-fqc]':fqc,'[data-ri-iqc]':iqc,'[data-ri-calibration]':{hidden:true,inert:true}};
+ const root={isConnected:true,querySelector:selector=>containers[selector]||null};
  const container={querySelector:()=>root};
  const document={documentElement:{lang},querySelector:()=>pendingBadge,addEventListener(_name,handler){onClick=handler;},
    createElement(tag){
@@ -130,6 +135,15 @@ void test('whole-page FQC provides one IQC entry after rendering, without replac
   assert.equal(entries()[0].textContent,'IQC');
   assert.equal(ui.localForm.value,'TEST ONLY unsaved notes');
  }
+});
+
+void test('whole-page FQC preserves an existing native IQC module button after rendering',()=>{
+ const ui=switchFixture('zh',{pageDraft:true,nativeIqc:true});
+ const button=ui.pagePanel.querySelector('[data-module="1"]');
+ assert.ok(button);
+ ui.changed();
+ assert.deepEqual(ui.pagePanel.querySelectorAll('[data-module="1"]'),[button]);
+ assert.equal(ui.pagePanel.querySelector('nav[data-routine-module-switch]'),null);
 });
 
 void test('only the original module control switches during lookup, and never reopens a stale owner',()=>{

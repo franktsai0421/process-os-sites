@@ -1352,7 +1352,8 @@
           if (!version) throw Error(t('目前沒有生效檢具版本','Chưa có phiên bản thiết bị hiệu lực'));
           if(!owner.current()||!pickerOwner.current())return;
           catalog = { categories: version.categories || [], subcategories: version.subcategories || [], groups: version.groups || [] };
-          equipmentChoices = version.equipment || [];
+          const unavailable=new Set(data.control.calibrationUnavailable||[]);
+          equipmentChoices=(version.equipment||[]).map(eq=>unavailable.has(eq.id)?{...eq,enabled:false}:eq);
           const current = equipmentChoices.find(eq => eq.id === selectedEqId);
           if (current) { selectedEq = current; selectedCategory = current.categoryId || ''; selectedSubcategory = current.subcategoryId || ''; selectedGroup = current.groupId || ''; drawSelectedEquipment(); }
           category.innerHTML = option('', t('全部類別','Tất cả nhóm'), selectedCategory) + catalog.categories.map(row => option(row.id, `${row.code || ''} · ${row.name || row.nameVi || row.id}`, selectedCategory)).join('');

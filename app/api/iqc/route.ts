@@ -1,3 +1,4 @@
+import {calibrationEquipmentDependency} from '@/lib/equipment-catalog.mjs';
 import {requireItemCode,prepareItemCodes,validateItemCodes} from '../../../lib/quality-item-code';
 import {DraftConflict} from '../../../lib/shared-draft';
 import {manualErrorCode} from '../../../lib/manual-error-code';
@@ -40,7 +41,7 @@ type Body = { code?: string; checkNo?:string; action?: string; baseRevision?: nu
   mediaItems?: unknown; isEnabled?: boolean };
 
 function checkEquipment(snapshot: IqcSnapshot, previous: IqcSnapshot, values: Record<string, string>) {
-  const routine = parse(values.routineEquipmentControl, null) as
+  const routine = calibrationEquipmentDependency(parse(values.routineEquipmentControl, null)) as
     { activeVersionId?: string; versions?: { id: string; status: string; equipment?: {
       id: string; enabled?: boolean; assetCode?: string; pieceMark?: string; name?: string; nameVi?: string; spec?: string; photoId?: string
     }[] }[] } | null;

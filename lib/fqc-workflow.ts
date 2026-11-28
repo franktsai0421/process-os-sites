@@ -1,3 +1,4 @@
+import {calibrationEquipmentDependency} from './equipment-catalog.mjs';
 import {itemCodeReview,approvedCodes,requireItemCode,prepareItemCodes,validateItemCodes} from './quality-item-code';
 import {fqcCodeOwner} from '../public/process/fqc-code-owner.mjs';
 import {activeErrorRows,validateErrorCodeChanges} from './manual-error-code';
@@ -33,7 +34,7 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
    abGuard=effective&&stableDraftJSON(effective.snapshot)===stableDraftJSON(master.active?.AB)?{versionId:effective.id,codes:master.active.AB.products.map((p:{code:string})=>p.code).sort()}:null;
    // Retain this CAS attempt's parsed catalog without cloning or mutating it for ordinary operations.
    const matrixProducts=abGuard&&Array.isArray(master?.active?.AB?.products)?master.active.AB.products:null;
-   const eq=parse(state.values.routineEquipmentControl,{}) as {activeVersionId?:string;versions?:{id:string;status:string;equipment:{id:string;enabled?:boolean;assetCode:string;pieceMark:string;name?:string;nameVi?:string;spec?:string;photoId?:string}[]}[]};
+   const eq=calibrationEquipmentDependency(parse(state.values.routineEquipmentControl,{})) as {activeVersionId?:string;versions?:{id:string;status:string;equipment:{id:string;enabled?:boolean;assetCode:string;pieceMark:string;name?:string;nameVi?:string;spec?:string;photoId?:string}[]}[]};
    const choices=new Map((eq.versions?.find(v=>v.id===eq.activeVersionId&&v.status==='approved')?.equipment||[]).map(e=>[e.id,e]));
    effectiveEquipment=choices;
    const itemCodePolicy = {reserveDeleted:false, describe:fqcCodeOwner.bind(null,'checkNo')};
@@ -184,7 +185,7 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
     if(collection!=='errors'&&collection!=='items')throw new DraftConflict('INVALID_COLLECTION',422);
     if(p.op==='insert'&&p.path.length===1){
      if(collection==='errors'){const row=p.value as Row&{code:string};if(typeof row.category!=='string'||typeof row.line!=='string')throw new DraftConflict('CATEGORY_REQUIRED',422);}
-     else{const row=p.value as Item,parent=flow.working.errors.find(e=>e.id===row.errorId&&!e.isDeleted)||patches.filter(q=>q.op==='insert'&&q.path[0]==='errors').map(q=>(q as Extract<DraftPatch,{op:'insert'}>).value as Row&{code:string}).find(e=>e.id===row.errorId&&!e.isDeleted);if(!parent)throw new DraftConflict('ERROR_PARENT_INVALID',422);row.category=parent.category;row.line=parent.line;if(row.checkNo===undefined){const match=parent.code.match(/^(.*-FQC-L)0?(\d+)$/i),prefix=match?match[1]+Number(match[2])+'-':parent.code+'-';row.checkNo=prefix+String(Math.max(0,...allItems.filter(i=>i.errorId===row.errorId || typeof i.checkNo==='string' && i.checkNo.startsWith(prefix) && /^\d+$/.test(i.checkNo.slice(prefix.length))).map(i=>Number(i.checkNo?.match(/-(\d+)$/)?.[1])||0))+1).padStart(2,'0');}else row.checkNo=requireItemCode(row.checkNo);allItems.push(row);}
+     else{const row=p.value as Item,parent=flow.working.errors.find(e=>e.id===row.errorId&&!e.isDeleted)||patches.filter(q=>q.op==='insert'&&q.path[0]==='errors').map(q=>(q as Extract<DraftPatch,{op:'insert'}>).value as Row&{code:string}).find(e=>e.id===row.errorId&&!e.isDeleted);if(!parent)throw new DraftConflict('ERROR_PARENT_INVALID',422);row.category=parent.category;row.line=parent.line;if(row.checkNo===undefined){if(typeof parent.code!=='string'||!parent.code.trim())throw new DraftConflict('ERROR_CODE_REQUIRED',422);const match=parent.code.match(/^(.*-FQC-L)0?(\d+)$/i),prefix=match?match[1]+Number(match[2])+'-':parent.code+'-';row.checkNo=prefix+String(Math.max(0,...allItems.filter(i=>i.errorId===row.errorId || typeof i.checkNo==='string' && i.checkNo.startsWith(prefix) && /^\d+$/.test(i.checkNo.slice(prefix.length))).map(i=>Number(i.checkNo?.match(/-(\d+)$/)?.[1])||0))+1).padStart(2,'0');}else row.checkNo=requireItemCode(row.checkNo);allItems.push(row);}
     }else{if(p.op!=='set'||p.path.length!==3||!entity||typeof entity==='string'||typeof field!=='string'||!fields[collection].includes(field))throw new DraftConflict('UNSUPPORTED_ITEM_PATCH',422);
      if(!flow.working[collection].some(r=>r.id===entity.id&&(!r.isDeleted||retainedTargets?.has(JSON.stringify([collection,entity.id])))))throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS');
      if(!(command.guards||[]).some(g=>stableDraftJSON(g.path)===stableDraftJSON(p.path)))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);

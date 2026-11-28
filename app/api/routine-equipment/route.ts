@@ -1,3 +1,4 @@
+import {calibrationFacts,lockedDateChanges} from '@/lib/piece-calibration-master';
 import {restoreEffects} from '@/lib/draft-restore-access';
 import { env } from 'cloudflare:workers';
 import { readState, identity, can, sameOrigin, encodeValues, parse, maintenanceCredential, responseHeaders as headers } from '@/lib/process-state';
@@ -59,12 +60,12 @@ export async function GET(request: Request) {
   try {
     if (new URL(request.url).searchParams.get('catalog') === 'effective') return await effectiveCatalog(request);
     const caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
-    const state = await readState({aggregateReadAhead:true,keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY],modelKey:KEY,deferHistory:true,deferDependencyHistory:true});
+    const state = await readState({aggregateReadAhead:true,keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY,'pieceCalibrationLedger'],modelKey:KEY,deferHistory:true,deferDependencyHistory:true});
     const actor = await identity(request, state);
     if (!actor || !(await can(request, state, 'equipment.view')))
       return reply({ error: '沒有查看檢具資料的權限' }, 403);
     const prepared=state.recordStorage?.models.get(KEY),control=prepared?parseEquipmentWorkflow(state.values[KEY],prepared):controlFrom(state.values[KEY]);
-    const body={ revision: state.revision, control:'workflow'in control?visibleSharedControl(parseEquipmentWorkflow(state.values[KEY],prepared),await can(request,state,'approval.compare'),caseMetadata):control };
+    const body={ revision: state.revision, calibrationFacts:calibrationFacts(control.versions.find(v=>v.id===control.activeVersionId)?.equipment||[],state.values.pieceCalibrationLedger),control:'workflow'in control?visibleSharedControl(parseEquipmentWorkflow(state.values[KEY],prepared),await can(request,state,'approval.compare'),caseMetadata):control };
     return state.recordStorage&&!caseMetadata?recordJSONResponse(body,env.STATE_ARCHIVE,headers):reply(body);
   } catch (error) {
     console.error('[routine-equipment] load failed', error);
@@ -181,6 +182,7 @@ export async function POST(request: Request) {
       let snapshot: ReturnType<typeof checkedSnapshot>;
       try { snapshot = checkedSnapshot(version, body.snapshot); }
       catch (error) { return reply({ error: error instanceof Error ? error.message : '草稿驗證失敗' }, 422); }
+      if(lockedDateChanges(active?.equipment||[],snapshot.equipment,state.values.pieceCalibrationLedger).length)return reply({error:'CALIBRATION_DATES_LOCKED'},422);
       const effects=restoreEffects({equipment:version.equipment,groups:version.groups,categories:version.categories,subcategories:version.subcategories},snapshot);
       for(const op of ['create','delete'] as const)if(effects[op]&&!await can(request,state,'equipment.'+op))return reply({error:'FORBIDDEN'},403);
       const previousPhotos = new Map(version.equipment.map(item => [item.id, item.photoId]));
@@ -250,6 +252,7 @@ export async function POST(request: Request) {
       if (body.versionRevision !== version.revision) return reply({ error: '審核畫面已過期' }, 409);
       const comment = String(body.comment || '').trim();
       if (action === 'approve') {
+        if(lockedDateChanges(active?.equipment||[],version.equipment,state.values.pieceCalibrationLedger).length)return reply({error:'CALIBRATION_DATES_LOCKED'},422);
         if (active) active.status = 'superseded';
         version.status = 'approved';
         version.equipment.forEach(item => item.effectiveAt ||= time);

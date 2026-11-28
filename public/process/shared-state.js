@@ -241,7 +241,7 @@
       }
     if(shared.deliveryProjection===true){
       api.deliveryProjection=true;
-      api.features=Object.freeze({webFeedback:shared.features?.webFeedback===true,accessEvents:Array.isArray(shared.features?.accessEvents)?shared.features.accessEvents.filter(value=>typeof value==='string'):[]});
+      api.features=Object.freeze({pieceCalibration:shared.features?.pieceCalibration===true,webFeedback:shared.features?.webFeedback===true,accessEvents:Array.isArray(shared.features?.accessEvents)?shared.features.accessEvents.filter(value=>typeof value==='string'):[]});
       api.writableKeys=Array.isArray(shared.writableKeys)?shared.writableKeys:[];
       api.catalog=shared.catalog;
       api.destination=shared.destination||null;

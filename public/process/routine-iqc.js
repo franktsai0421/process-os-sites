@@ -769,10 +769,10 @@
         return doc?docButton(doc,doc.number+' · '+docState(doc)):'';
       }).join('')}</section>`:''}`;
   }
-  function moduleNavigation() {
+  function moduleNavigation(activeIndex=1) {
     const names=['FQC','IQC',t('模具檢查','Kiểm tra khuôn'),t('檢具與測試設備校準','Hiệu chuẩn thiết bị')];
-    return `<nav class="rf-modules" aria-label="${t('例行檢查模組','Mô-đun kiểm tra định kỳ')}">${names.map((name,index)=>
-      `<button type="button" class="${index===1?'active':''}" data-ri-action="module:${index}" aria-current="${index===1?'page':'false'}">${h(name)}</button>`).join('')}</nav>`;
+    return `<nav class="rf-modules" aria-label="${t('例行檢查模組','Mô-đun kiểm tra định kỳ')}">${names.map((name,index)=>index===3&&!calibrationEnabled()?'':
+      `<button type="button" class="${index===activeIndex?'active':''}" data-ri-action="module:${index}" aria-current="${index===activeIndex?'page':'false'}">${h(name)}</button>`).join('')}</nav>`;
   }
   function workflowNavigation(v) {
     const steps=['sources','plan','report'];
@@ -1400,6 +1400,7 @@
         if(!workspace?.iqc.contains(v.root))return;
         const index=action.slice('module:'.length);
         if(index==='1')return;
+        if(index==='3'){switchModule(workspace,'calibration');return;}
         const pair=workspace;
         const ready=switchModule(pair,'fqc');
         if(index!=='0')void Promise.resolve(ready).then(()=>{
@@ -1495,6 +1496,7 @@
     catch(error){if(current(v)){v.error=errorText(error.message);render(v);}}
   }
   const html=()=>'<section class="ri-app rf-app" data-i18n-skip="true"></section>';
+  const calibrationEnabled=()=>window.ProcessSync?.features?.pieceCalibration===true&&window.hasPermission?.('routine.view')&&window.hasPermission?.('equipment.view');
   const fqcModuleSwitch='[data-module="1"],[data-review-module="1"]';
   let fqcReceiptView;
   // This workspace only adapts the visible receipt feedback. FQC owns the actual
@@ -1507,18 +1509,19 @@
     const state={root,checking:false,observer:null};
     const update=()=>{
       // The whole-page FQC controller has its own protected editor and no module row.
-      if(root.hasAttribute?.('data-routine-page')&&window.hasPermission?.('iqc.view')){
+      if(root.hasAttribute?.('data-routine-page')&&(calibrationEnabled()||window.hasPermission?.('iqc.view'))){
         const panel=root.querySelector('[data-routine-page-panel]');
-        if(panel&&!panel.querySelector(fqcModuleSwitch)){
+        if(panel&&!panel.querySelector('nav[data-routine-module-switch]')){
           const nav=document.createElement('nav');
-          nav.className='rf-modules';
+          nav.className='rf-modules';nav.setAttribute('data-routine-module-switch','true');
           nav.setAttribute('aria-label',t('例行檢查模組','Mô-đun kiểm tra định kỳ'));
           const entry=document.createElement('button');
           entry.type='button';
           entry.setAttribute(root.id==='review-routine-fqc'?'data-review-module':'data-module','1');
           entry.textContent='IQC';
-          nav.append(entry);
-          panel.prepend(nav);
+          if(window.hasPermission?.('iqc.view')&&!panel.querySelector(fqcModuleSwitch))nav.append(entry);
+          if(calibrationEnabled()&&!panel.querySelector('[data-module="3"],[data-review-module="3"]')){const calibration=entry.cloneNode(false);calibration.setAttribute(root.id==='review-routine-fqc'?'data-review-module':'data-module','3');calibration.textContent=t('檢具與測試設備校準','Hiệu chuẩn thiết bị');nav.append(calibration);}
+          if(nav.children.length)panel.prepend(nav);
         }
       }
       // The existing module button only switches views. Keep it available
@@ -1550,31 +1553,44 @@
   }
   const pairHtml = fqc => `<div class="ri-workspaces" data-ri-workspaces>
     <div data-ri-fqc hidden inert>${fqc}</div>
-    <div data-ri-iqc hidden inert>${html()}</div></div>`;
+    <div data-ri-iqc hidden inert>${html()}</div><div data-ri-calibration hidden inert></div></div>`;
   const visible = (panel, show) => {panel.hidden=!show;panel.inert=!show;};
   const mountedCurrent = pair => !!pair&&pair===workspace&&pair.root.isConnected&&sameOwner(pair.owner);
   function switchModule(pair, name, moveFocus=true) {
-    if(!mountedCurrent(pair)||view?.adminDialog)return;
+    if(!mountedCurrent(pair)||view?.adminDialog||pair.calibrationPage?.busy())return;
+    if(name==='calibration'&&!calibrationEnabled())name='fqc';
     if(pair.active===name)return pair.ready[name];
     if(pair.active)pair.scroll[pair.active]=window.scrollY;
     pair.active=name;
     visible(pair.fqc,name==='fqc');
     visible(pair.iqc,name==='iqc');
+    if(pair.calibration)visible(pair.calibration,name==='calibration');
     if(moveFocus){
       const url=new URL(location.href);
-      if(name==='iqc')url.searchParams.set('rfModule','iqc');
-      else{url.searchParams.delete('rfModule');url.searchParams.delete('riDocument');}
+      if(name!=='fqc'){url.searchParams.set('rfModule',name);if(name==='calibration'){url.searchParams.delete('riDocument');if(pair.calibrationPage)url.searchParams.set('calStage',pair.calibrationPage.stage());}}
+      if(name!=='calibration')url.searchParams.delete('calStage');
+      if(name==='fqc'){url.searchParams.delete('rfModule');url.searchParams.delete('riDocument');}
       if(!window.ProcessDeliveryNavigation?.replaceDisplayURL?.(url))history.replaceState(history.state,'',url);
     }
     if(!pair.ready[name]){
       if(name==='fqc'){
         pair.ready.fqc=Promise.resolve(pair.mountFqc(pair.fqc));
         watchFqcReceipt(pair.fqc);
+      }else if(name==='calibration'){
+        pair.calibrationPage=window.PieceCalibration.mount(pair.calibration,{
+          moduleNav:()=>moduleNavigation(3),review:pair.review,recordCount:(rev,n)=>approvalBadge.recordCalibration(pair.owner,rev,n),current:()=>mountedCurrent(pair),
+          switchTo:index=>{
+            if(index==='3')return;
+            if(index==='1'){switchModule(pair,'iqc');return;}
+            const ready=switchModule(pair,'fqc');
+            if(index==='2')Promise.resolve(ready).then(()=>pair.fqc.querySelector(pair.review?'[data-review-module="2"]':'[data-module="2"]')?.click());
+          }});
+        pair.ready.calibration=pair.calibrationPage.ready;
       }else pair.ready.iqc=Promise.resolve(mount(pair.iqc,pair.review));
     }
     if(moveFocus){
       window.scrollTo(0,pair.scroll[name]||0);
-      const focus=name==='iqc'?'[data-ri-action="module:0"]':fqcModuleSwitch;
+      const focus=name==='calibration'?'[aria-current="page"]':name==='iqc'?'[data-ri-action="module:0"]':fqcModuleSwitch;
       pair[name].querySelector(focus)?.focus({preventScroll:true});
     }
     return pair.ready[name];
@@ -1589,14 +1605,14 @@
     fqcReceiptView?.observer.disconnect();
     fqcReceiptView=null;view?.adminDialog?.close();view?.flowObserver?.disconnect();view=null;
     workspace={root,review,mountFqc,owner:owner(),active:null,ready:{},scroll:{},
-      fqc:root.querySelector('[data-ri-fqc]'),iqc:root.querySelector('[data-ri-iqc]')};
-    return switchModule(workspace,selected()?'iqc':'fqc',false);
+      fqc:root.querySelector('[data-ri-fqc]'),iqc:root.querySelector('[data-ri-iqc]'),calibration:root.querySelector('[data-ri-calibration]')};
+    return switchModule(workspace,new URL(location.href).searchParams.get('rfModule')==='calibration'?'calibration':selected()?'iqc':'fqc',false);
   }
   const iqcCanLeave = () => !view||!current(view)||!view.busy&&!view.pending&&!view.adminDialog&&!edited(view);
   function approvalCounts(original) {
-    let iqc=null,fqc=null,badge=null,observer=null,read=null;
+    let iqc=null,fqc=null,badge=null,observer=null,read=null,cal=null,calRead=null;
     const count=(value)=>value&&sameOwner(value.pin)?value.count:0;
-    const total=()=>(fqc&&sameOwner(fqc.pin)?fqc.count:original.pendingCount?.()||0)+count(iqc);
+    const total=()=>(fqc&&sameOwner(fqc.pin)?fqc.count:original.pendingCount?.()||0)+count(iqc)+count(cal);
     function paint() {
       const next=document.querySelector?.('#approval-tab-routine .approval-tab-count');
       if(next!==badge){
@@ -1652,24 +1668,52 @@
       read=request;
       return request.promise;
     }
-    return {paint,recordIqc,refresh,total,reset(){observer?.disconnect();iqc=fqc=badge=observer=read=null;}};
+    function recordCalibration(pin,revision,value){
+      if(!sameOwner(pin)||!Number.isSafeInteger(revision)||!Number.isSafeInteger(value)||value<0)return;
+      if(cal&&sameOwner(cal.pin)&&cal.revision>revision)return;
+      cal={pin,revision,count:value};paint();
+    }
+    async function refreshCalibration(){
+      if(!calibrationEnabled())return;
+      const pin=owner();if(!pin.actor)return;
+      if(calRead&&sameOwner(calRead.pin))return calRead.promise;
+      const next={pin};calRead=next;
+      try{
+        next.promise=fetch('/api/piece-calibration?pending-count=1',{cache:'no-store'}).then(async response=>{
+          if(calRead!==next||!sameOwner(pin))return;
+          if(!response.ok){cal=null;paint();return;}
+          const result=await response.json();
+          if(calRead===next&&result.identityId===pin.actor)recordCalibration(pin,result.revision,result.pendingCount);
+        });
+        await next.promise;
+      }finally{if(calRead===next)calRead=null;}
+    }
+    return {paint,recordIqc,recordCalibration,refreshCalibration,refresh,total,reset(){observer?.disconnect();iqc=fqc=badge=observer=read=cal=calRead=null;}};
   }
   function attach(original) {
     approvalBadge=approvalCounts(original);
     async function refreshPending({ fqc = true, iqc = true } = {}) {
       const pin = owner();
+      const calibration=approvalBadge.refreshCalibration().catch(()=>{});
       try {
         const enabled = await original.approvalPendingAvailability();
         if (!sameOwner(pin)) return;
         await Promise.all([
           fqc && original.refreshPending(enabled.fqc),
           iqc && approvalBadge.refresh(enabled.iqc),
+          calibration,
         ]);
       } catch (error) {
         if (sameOwner(pin) && error.message !== 'DELIVERY_SUPERSEDED')
           console.warn('Routine approval pending counts could not be refreshed', error);
       }
     }
+    // Initial shell renders can precede establishment of the actor/delivery identity.
+    // Re-read the numeric badge only after the approval destination is ready.
+    window.addEventListener('process-destination-ready',()=>{
+      if(document.querySelector('#approval-tab-routine')&&window.hasPermission?.('routine.view'))
+        void approvalBadge.refreshCalibration().catch(()=>{});
+    });
     const wrapped={...original,html:()=>pairHtml(original.html()),reviewHTML:()=>pairHtml(original.reviewHTML()),
       mount:(container,history)=>mountPair(container,false,area=>original.mount(area,history)),
       bindReview:container=>{
@@ -1683,7 +1727,7 @@
       refreshPending,
       navigation:{
         get departure(){return workspace?.ready.fqc&&iqcCanLeave()?original.navigation.departure:null;},
-        canLeave:()=>iqcCanLeave()&&(!workspace?.ready.fqc||original.navigation.canLeave()),
+        canLeave:()=>workspace?.calibrationPage?.canLeave()!==false&&iqcCanLeave()&&(!workspace?.ready.fqc||original.navigation.canLeave()),
         reset(){approvalBadge.reset();view?.adminDialog?.close();view?.flowObserver?.disconnect();view=null;workspace=null;fqcReceiptView?.observer.disconnect();fqcReceiptView=null;original.navigation.reset();},
         error:()=>workspace?.active==='fqc'?original.navigation.error():null,
       },
@@ -1692,10 +1736,10 @@
       if(!(event.target instanceof Element))return;
       const retry=event.target.closest('[data-action="retry"]');
       if(retry&&!retry.disabled&&fqcReceiptView?.root.contains(retry))fqcReceiptView.checking=true;
-      const entry=event.target.closest(fqcModuleSwitch);
+      const entry=event.target.closest(fqcModuleSwitch+',[data-module="3"],[data-review-module="3"]');
       if(!entry||entry.disabled||!fqcReceiptView?.root.contains(entry))return;
       event.preventDefault();event.stopImmediatePropagation();
-      switchModule(workspace,'iqc');
+      switchModule(workspace,entry.matches(fqcModuleSwitch)?'iqc':'calibration');
     },true);
     return wrapped;
   }
@@ -1705,5 +1749,6 @@
   else Object.defineProperty(window,'RoutineFQCUI',{configurable:true,set(original){
     Object.defineProperty(window,'RoutineFQCUI',{configurable:true,writable:true,enumerable:true,value:attach(original)});
   }});
-  window.addEventListener('process-language-change',()=>{if(view&&current(view))render(view);});
+  window.addEventListener('click',event=>{if(event.target?.closest?.('.language-switch'))workspace?.calibrationPage?.captureLanguage();},true);
+  window.addEventListener('process-language-change',()=>{if(view&&current(view))render(view);workspace?.calibrationPage?.languageChanged();});
 })();

@@ -1,3 +1,4 @@
+import {lockedDateChanges} from './piece-calibration-master';
 import {emptyEquipmentControl,hierarchy,checkedSnapshot,submitProblems,reserveMarks,nextPieceMark,manualPieceMark,type EquipmentControl,type EquipmentVersion,type Equipment,type EquipmentGroup,type EquipmentCategory,type EquipmentSubcategory,type EquipmentIssue} from './routine-equipment';
 import {env} from 'cloudflare:workers';
 import {parse,readSharedStateRow} from './process-state';
@@ -63,6 +64,7 @@ export const equipmentWorkflowAdapter:WorkflowAdapter<EquipmentSnapshot,Equipmen
      },
      semantic:content=>({...content,issues:content.issues.map(({resolvedAt:_at,resolvedBy:_by,resolvedById:_id,...issue})=>issue)}),
      structure(content,previous){
+       if(lockedDateChanges(active?.equipment||[],content.equipment,state.values.pieceCalibrationLedger).length)throw new DraftConflict('CALIBRATION_DATES_LOCKED',422);
        const removed=previous.equipment.filter(row=>!content.equipment.some(next=>next.id===row.id));
        if(removed.length){
          const references=(value:unknown,id:string):boolean=>!!value&&typeof value==='object'&&(Array.isArray(value)?value.some(row=>references(row,id)):Object.entries(value).some(([key,row])=>['equipmentId','sourceEquipmentId','targetEquipmentId','activeEquipmentId'].includes(key)&&row===id||typeof row==='object'&&references(row,id)));
@@ -76,6 +78,7 @@ export const equipmentWorkflowAdapter:WorkflowAdapter<EquipmentSnapshot,Equipmen
      },
      validate(content){const available=new Map(content.equipment.map(e=>[e.id,e]));return[
        ...submitProblems(asVersion(content),active).map(p=>({kind:p.blocking?'error' as const:'missing' as const,path:['equipment',{id:p.id},p.field],message:p.message})),
+        ...lockedDateChanges(active?.equipment||[],content.equipment,state.values.pieceCalibrationLedger).map(id=>({kind:'error' as const,path:['equipment',{id}],message:'CALIBRATION_DATES_LOCKED'})),
        ...[...referenced].filter(id=>!available.has(id!)||available.get(id!)?.enabled===false).map(id=>({kind:'error' as const,path:['equipment',{id:id!}],message:'EQUIPMENT_STILL_REFERENCED'}))];}
    };
  },
