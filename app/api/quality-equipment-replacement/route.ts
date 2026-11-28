@@ -1,3 +1,4 @@
+import { transferDraftState, reversibleTransferRows, transferChoiceKey } from '@/lib/equipment-transfer-guard';
 import { env } from 'cloudflare:workers';
 import { readState, identity, can, sameOrigin, encodeValues, stateRevisionIsCurrent, parse, responseHeaders as headers } from '@/lib/process-state';
 import { activeReplacementVersion, equipmentSnapshot, itemName, itemNumber, liveItems,
@@ -195,7 +196,11 @@ export async function GET(request: Request) {
     const readableModules = await Promise.all(modules.map(async entry => {
       const referenceVisible = entry.moduleId === 'ipqc-ab' || await can(request,state,entry.moduleId+'.view');
       if (!referenceVisible) for (const item of entry.items) {item.effectiveReference = null;item.savedChoice=null;}
-      return {...entry, referenceVisible};
+      const ab=entry.moduleId==='ipqc-ab' ? ipqcAB as import('@/lib/ipqc-ab-module-workflow').AbModuleRoot|null : null;
+      const control=entry.moduleId==='ipqc-ab' ? ab?.moduleDraft : libraryFor(libraries,entry.moduleId);
+      const reverse=referenceVisible?reversibleTransferRows(control??undefined,state.revision):new Set<string>();
+      for(const row of entry.items) Object.assign(row,{canUndoTransfer:reverse.has(transferChoiceKey(row.scopeKey,row.itemId,row.draftEquipmentId||'',row.activeEquipmentId||''))});
+      return {...entry, referenceVisible, transferDraft:referenceVisible ? transferDraftState(control??undefined,ab??undefined) : 'unverified'};
     }));
     const relatedPending = pending.filter(row =>
       (row.sourceEquipmentId === sourceId || row.targetEquipmentId === sourceId) && row.status !== 'applied')

@@ -6,7 +6,7 @@ const empty = { AB: { products: [], lines: [], categoryGroups: [] }, C: { produc
 const master = { active: json(empty), versions: Object.entries(empty).map(([scope, snapshot]) => ({ id: 'initial-empty-' + scope, scope, number: 1, status: 'approved', snapshot, revision: 1, creatorId: 'fixture-initializer', creatorName: 'Synthetic empty initialization', createdAt: 'synthetic', updatedAt: 'synthetic', history: [] })) };
 const emptyC = { schemaVersion: 1, activeVersionId: null, source: null, issues: [], reservedErrorCodes: [], reservedItemCodes: [], versions: [{ id: 'synthetic-empty-draft', number: 1, status: 'draft', snapshot: { errors: [], items: [] }, baseVersionId: null, revision: 1, creatorId: 'fixture-initializer', creatorName: 'Synthetic empty initialization', createdAt: 'synthetic', updatedAt: 'synthetic', history: [] }] };
 const scopeQ = '&scope=' + encodeURIComponent('A:G-A');
-async function createTransferFixture({paired=false,calibrated=false,externalTarget=false,offRoute=false}={}){
+async function createTransferFixture({paired=false,calibrated=false,externalTarget=false,offRoute=false,secondABGroup=false}={}){
   const itemIds = paired ? ['fqc-item','fqc-other'] : ['fqc-item'];
   const h = await fixture({ masterDataControl: JSON.stringify(master), processMasterData: '{}', ipqcCMasterControl: JSON.stringify(emptyC) }, { includeIPQCC: true });
   const fullRead = async(moduleId, q) => moduleId === 'ipqc-c' ? {control:JSON.parse((await h.core.readState()).values.ipqcCMasterControl)} : h.read(moduleId, 'editor', q);
@@ -37,7 +37,13 @@ async function createTransferFixture({paired=false,calibrated=false,externalTarg
     await h.command('iqc', 'apply', { moduleAction: 'createError', input: { partCode: 'PART1', code: 'PART1-IQC-L1', nameVi: 'Synthetic defect' } });
     for (let i=0;i<itemIds.length;i++) await h.command('iqc', 'apply', { moduleAction: 'createItem', input: { errorId: h.flow(await h.read('iqc')).working.errors[0].id, nameVi: 'Synthetic standard', methodVi: 'Preserve method', inspectionMode: 'equipment', equipmentId: 'source', rules: [{ id: 'rule', cadence: 'batch', kind: 'aql', value: '0.25' }] } });
     await h.promote('iqc');
-    for (const [moduleId, q, product, stage] of [['ipqc-ab', scopeQ, 'A100', 'A-CUT'], ['ipqc-c', '', 'C100', 'C-CUT']]) {
+    if(secondABGroup){
+      await h.begin('master','editor',200,'&scope=AB');
+      await h.command('master','apply',{patches:[insert('categoryGroups',{id:'group-G-OTHER',line:'A',name:'G-OTHER',defaultStages:['A-CUT']})]},'editor',200,'&scope=AB');await h.promote('master','&scope=AB');
+      await h.begin('master','editor',200,'&scope=AB');
+      await h.command('master','apply',{patches:[insert('products',{id:'product-A200',code:'A200',name:'Synthetic A200',line:'A',category:'G-OTHER',routeMode:'group',stages:['A-CUT'],specification:'10 mm',unit:'PCS'})]},'editor',200,'&scope=AB');await h.promote('master','&scope=AB');
+    }
+    for (const [moduleId, q, product, stage] of [['ipqc-ab', scopeQ, 'A100', 'A-CUT'],...(secondABGroup?[['ipqc-ab','&scope=A%3AG-OTHER','A200','A-CUT']]:[]), ['ipqc-c', '', 'C100', 'C-CUT']]) {
       await h.begin(moduleId, 'editor', 200, q); await h.command(moduleId, 'apply', { moduleAction: 'create-error', input: { productCode: product, stageCode: stage, code: product + '-L1', name: 'Synthetic defect' } }, 'editor', 200, q);
       const errorId = h.flow(await fullRead(moduleId, q)).working.errors[0].id;
       const item = moduleId === 'ipqc-ab' ? { standard: '10 mm', methodText: 'Preserve method', inspectionMode: 'equipment', equipmentId: 'source', productCodes: [product], rules: [{ id: 'rule', cadence: 'batch', kind: 'aql', value: '0.25' }] } : { standard: '10 mm', standardEnabled: true, description: 'Preserve method', equipmentId: 'source', equipmentGroupId: 'group', rule: { cadence: 'batch', batchKind: 'aql', aqlValue: '0.25' }, mediaItems: [] };

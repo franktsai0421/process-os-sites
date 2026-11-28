@@ -614,6 +614,7 @@
       abClear(entry,command);return true;
     }
     const boundedPrefix='shared-draft-receipt-only-v1:',boundedSentinel='receipt-only-v1',boundedSelected=new Map(),boundedSelectedObjects=new WeakMap(),boundedCapabilities=new Map(),boundedProofs=new Map(),boundedResponses=new WeakMap(),boundedRejected=new WeakSet(),boundedReadbacks=new WeakMap(),boundedPostAuthorities=new WeakMap();
+    let transferOpeningBasis=null;
     let boundedRecord=null,boundedKnown=null,boundedKnownVersion=0,boundedLegacy=false,boundedDiscovered=[];
     // Navigation-only coverage. It never settles an operation or alters write
     // admission, the account's unknown flag, receipts or native unload warnings.
@@ -769,8 +770,11 @@
       boundedKnown={scope:flow.scope,generation:flow.generation,revision:flow.revision,savedId:flow.saved?.id||null,pendingId:flow.pendingId||null};boundedKnownVersion++;
     }
     function boundedArm(command){
-      if(!boundedKnown||boundedKnown.generation!==command.generation)throw Error('BOUNDED_READBACK_REQUIRED');
-      const fields=[actorId,endpoint,location.origin,location.pathname,clientId,externalOwner.epoch,command.operationId,command.action,command.generation,boundedKnown.revision,boundedKnown.savedId,command.caseId||null,command.savedId||null,command.expectedRevision??null,command.restoreSaveId||null];
+      const first=externalDurableBounded?.equipmentTransfer===true&&command.equipmentTransferOpen===true&&command.action==='save'&&
+        command.expectedRevision===0&&transferOpeningBasis?.generation===command.generation&&transferOpeningBasis.stateRevision===command.equipmentTransferRevision;
+      const before=first?{revision:0,savedId:null}:boundedKnown;
+      if(!first&&(!boundedKnown||boundedKnown.generation!==command.generation))throw Error('BOUNDED_READBACK_REQUIRED');
+      const fields=[actorId,endpoint,location.origin,location.pathname,clientId,externalOwner.epoch,command.operationId,command.action,command.generation,before.revision,before.savedId,command.caseId||null,command.savedId||null,command.expectedRevision??null,command.restoreSaveId||null];
       const record=boundedParse(boundedPrefix+JSON.stringify(fields));if(!record)throw Error('RECOVERY_RECORD_INVALID');
       if(sessionStorage.getItem(record.key)!==null)throw Error('RECOVERY_RECORD_EXISTS');
       boundedRecord={...record,historical:false,owner:departureOwner(),command};unknown=command;unknownOwner=boundedRecord.owner;
@@ -1140,6 +1144,15 @@
         const flow=result.control?.workflow;
         if(flow&&Number.isSafeInteger(result.revision)&&typeof flow.generation==='string'&&Number.isSafeInteger(flow.revision)&&(!conditionalRead||result.revision>=conditionalRead.revision))conditionalRead={flowToken:flow.generation+':'+flow.revision,revision:result.revision};
         const canUsePost=postPin&&bomPostPinCurrent(postPin)&&postPin.record===boundedRecord&&postPin.modelVersion===boundedKnownVersion&&JSON.stringify(body.command)===postPin.commandRaw&&result.unchanged!==true&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(result.requestId||'')&&Number.isSafeInteger(result.revision)&&result.revision>postPin.globalRevision&&Array.isArray(result.control?.versions)&&flow?.scope==='bom'&&flow.generation===body.command.generation&&flow.revision===result.receipt?.revision&&flow.generation===result.receipt?.generation&&(flow.saved?.id||null)===result.receipt?.savedId&&flow.pendingId===null&&result.receipt?.caseId===null&&flow.working?.bom&&typeof flow.working.bom==='object'&&!Array.isArray(flow.working.bom);
+        if(externalDurableBounded?.equipmentTransfer===true&&!body&&!result.receipt&&boundedPin===boundedKnownVersion){
+          // Only a current, authorized destination read can arm a first-generation Save.
+          // A server receipt and fresh saved readback are still required to settle it.
+          const c=result.control,b=result.beginBasis;
+          const absent=c ? !c.workflow&&Array.isArray(c.versions)&&!c.versions.some(v=>['pending','pending-test'].includes(v.status))
+            : b?.generation===null&&!['pending','pending-test'].includes(b.openVersionStatus)&&result.workflow===null;
+          transferOpeningBasis=absent&&Number.isSafeInteger(result.revision)&&result.permissions?.view===true&&result.permissions?.edit===true
+            ? {stateRevision:result.revision,generation:'equipment-transfer-'+boundedScope+'-'+result.revision}:null;
+        }
         boundedObserve(result,boundedPin);
         if(canUsePost){freezeBomAuthority(result.control);freezeBomAuthority(result.receipt);boundedPostAuthorities.set(result,{...postPin,globalRevision:result.revision,control:result.control,receiptRaw:JSON.stringify(result.receipt),generation:flow.generation,revision:flow.revision,modelVersion:boundedKnownVersion});}
         if(canvasObserving)try{canvasObserveResponse(result,body,response.ok,canvasObserved,canvasRequestOwner,kind);canvasObservePost(result,body,canvasObserved);}catch{canvasBasis=null;canvasPosts.delete(result);}

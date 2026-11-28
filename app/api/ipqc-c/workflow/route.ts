@@ -1,4 +1,5 @@
 import {calibrationEquipmentDependency} from '@/lib/equipment-catalog.mjs';
+import { firstTransferGeneration, transferDraftState, requireTransferDraft, planCleanTransfer, type TransferProof } from '@/lib/equipment-transfer-guard';
 import {approvedVersion,approvedVersions,approvedVersionEvidence} from '@/lib/approved-history';
 import {ipqcCFinalReviewAllowed} from '@/lib/ipqc-c-access';
 import {beginBasis,parseBeginIdentity,replayBegin,assertBeginBasis,recordBegin} from '@/lib/workflow-begin';
@@ -224,6 +225,22 @@ export async function POST(request:Request) {
         beginIpqcWorkflow(control,context);
       } else {
         if(!body.command)return reply({error:'COMMAND_REQUIRED'},422);
+        let transferProof:TransferProof|undefined;
+        if(body.command.equipmentTransferOpen!==undefined&&(body.command.equipmentTransferOpen!==true||body.command.equipmentTransferRevision===undefined))throw new DraftConflict('INVALID_LOCAL_SAVE',422);
+        if (body.command.equipmentTransferRevision!==undefined && !control.workflow?.receipts[body.command.operationId]) {
+            if(!permissions.view||!permissions.edit)return reply({error:'FORBIDDEN'},403);
+          if (body.command.action!=='save'||!Array.isArray(body.command.localChanges)) throw new DraftConflict('INVALID_LOCAL_SAVE',422);
+          const opening=body.command.equipmentTransferOpen===true;
+          requireTransferDraft(state.revision,body.command.equipmentTransferRevision,transferDraftState(control),opening);
+          if(opening){
+            if(!permissions.save||!control.workflow&&!await can(request,state,'approval.submit'))return reply({error:'FORBIDDEN'},403);
+            if(!activeIpqc(control)&&!openIpqc(control))return reply({error:'INITIAL_BUILD_REQUIRED'},409);
+            beginIpqcWorkflow(control,{...context,id:()=>firstTransferGeneration('ipqc-c',state.revision)});
+            projection(control,actor,at);
+            requireTransferDraft(state.revision,body.command.equipmentTransferRevision,transferDraftState(control));
+          }
+          transferProof=planCleanTransfer('ipqc-c',control,undefined,body.command,state.revision,state.values.routineEquipmentControl);
+        }
         if(!openIpqc(control)&&!control.workflow?.receipts[body.command.operationId])return reply({error:'BEGIN_REQUIRED'},409);
         if(body.command.moduleAction?.startsWith('delete')&&!permissions.delete)return reply({error:'FORBIDDEN'},403);
         if(body.command.moduleAction?.startsWith('create')&&!permissions.create)return reply({error:'FORBIDDEN'},403);
@@ -237,6 +254,7 @@ export async function POST(request:Request) {
         }
         const alreadyAccepted=control.workflow?.receipts[body.command.operationId],beforeChange=copyIpqc(control.workflow?.working||openIpqc(control)?.snapshot||{errors:[],items:[]});
         receipt=applyIpqcWorkflow(control,body.command,context);
+        if(transferProof)control.workflow!.receipts[body.command.operationId].equipmentTransfer=transferProof;
         if(!alreadyAccepted&&body.command.action==='restore')await assertRestoreAccess(request,state,beforeChange,control.workflow!.working);
         if(!alreadyAccepted&&(body.command.action==='apply'||body.command.localChanges)){const effects=restoreEffects(beforeChange,control.workflow!.working);if(effects.create&&!permissions.create||effects.delete&&!permissions.delete)return reply({error:'FORBIDDEN'},403);}
         if(alreadyAccepted){if(!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);return reply({revision:state.revision,control:publicIpqcWorkflow(control,permissions.history,caseMetadata),receipt,unchanged:true,requestId});}

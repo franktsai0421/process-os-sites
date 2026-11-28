@@ -1,3 +1,6 @@
+import { firstTransferGeneration, transferDraftState, requireTransferDraft, planCleanTransfer, type TransferProof } from './equipment-transfer-guard';
+import { parseAbControl } from './ipqc-ab';
+import type { AbSharedScope } from './ipqc-ab-workflow';
 import {inventoryReadAhead} from './inventory-read-ahead.mjs';
 import {approvedHistoryQuery} from './approved-history-query';
 import {approvedVersion,approvedVersions,approvedVersionEvidence} from './approved-history';
@@ -315,6 +318,12 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         context.allocationIndex=state.recordStorage?.allocations.get(adapter.key);
         const previous=control.workflow?.working||openedVersion(control)?.snapshot||effectiveVersion(control)?.snapshot||adapter.empty();
         const knownPhotos=new Set(adapter.photoIds(previous));let receipt;const begin=parseBeginIdentity(body);let beginAlreadyOpen=false;
+        const openWorkflow=(id:()=>string)=>{
+          if(control.workflow)return;
+          const active=effectiveVersion(control),open=openedVersion(control);
+          control.workflow=createSharedDraft(adapter.scope,active?.snapshot||adapter.empty(),active?.id||null,id());
+          if(open)control.workflow.working=cloneDraft(open.snapshot);
+        };
         if(body.action==='begin'||begin){
           if(!permissions.edit)return reply({error:'FORBIDDEN'},403);
           if(begin){if(!['fqc','iqc','tooling','bom','process:platform','master:AB','master:C','master:PROCESS','master:AB.catalog','master:C.catalog','master:LINES','routine-equipment','ipqc-ab:module'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}
@@ -323,9 +332,29 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
           if(!begin&&control.workflow&&open)return reply({revision:state.revision,control:visibleSharedControl(control,permissions.history,caseMetadata,adapter.draftMissing),unchanged:true});
           beginAlreadyOpen=!!control.workflow&&!!open;
           if(!beginAlreadyOpen&&open&&open.status!=='draft')throw new DraftConflict('LEGACY_PENDING_REQUIRES_REVIEW');
-          if(!control.workflow){const active=effectiveVersion(control);control.workflow=createSharedDraft(adapter.scope,active?.snapshot||adapter.empty(),active?.id||null,context.id());if(open)control.workflow.working=cloneDraft(open.snapshot);}
+          openWorkflow(context.id);
         }else{
           const command=body.command;if(!command)throw new DraftConflict('COMMAND_REQUIRED',422);
+          let transferProof:TransferProof|undefined;
+          if(command.equipmentTransferOpen!==undefined&&(command.equipmentTransferOpen!==true||command.equipmentTransferRevision===undefined))throw new DraftConflict('INVALID_LOCAL_SAVE',422);
+          if (command.equipmentTransferRevision!==undefined && !existingReceipt) {
+            if(!permissions.view||!permissions.edit)return reply({error:'FORBIDDEN'},403);
+            if (command.action!=='save'||command.moduleAction!=='save-local-v1'||!['fqc','iqc','ipqc-ab:module'].includes(adapter.scope)) throw new DraftConflict('INVALID_LOCAL_SAVE',422);
+            const ab=adapter.scope==='ipqc-ab:module' ? parseAbControl(state.values[adapter.key],state.recordStorage?.models.get(adapter.key)) : undefined;
+            const opening=command.equipmentTransferOpen===true;
+            requireTransferDraft(state.revision,command.equipmentTransferRevision,transferDraftState(control,ab),opening);
+            if(opening){
+              if(!permissions.save)return reply({error:'FORBIDDEN'},403);
+              const input=command.input as {scopes?:{scope?:string}[]}|undefined;
+              const needsAdoption=ab ? Array.isArray(input?.scopes)&&input.scopes.some(s=>!(ab.scopes[s?.scope||''] as AbSharedScope|undefined)?.workflow) : !control.workflow;
+              if(needsAdoption&&(!await can(request,state,'approval.submit')||adapter.scope==='fqc'&&actor.role!=='admin'))return reply({error:'FORBIDDEN'},403);
+              adapter.beforeBegin?.(control,state);
+              openWorkflow(()=>firstTransferGeneration(adapter.scope,state.revision));
+              projectSharedVersion(control,actor,at);
+              requireTransferDraft(state.revision,command.equipmentTransferRevision,transferDraftState(control,ab));
+            }
+            transferProof=planCleanTransfer(adapter.scope,control,ab,command,state.revision,state.values.routineEquipmentControl);
+          }
           adapter.beforeCommand?.(control,command,state);
           if(!control.workflow||!openedVersion(control)&&!control.workflow.receipts[command.operationId])throw new DraftConflict('BEGIN_REQUIRED');
           const deletes=adapter.requiresDelete?.(control,command)||command.moduleAction?.startsWith('delete')||command.patches?.some(p=>p.op==='remove'||p.op==='set'&&(p.path.at(-1)==='isDeleted'||p.path.at(-1)==='deleted')&&p.value===true);
@@ -337,6 +366,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
           const already=control.workflow.receipts[command.operationId],beforeRestore=command.action==='restore'?cloneDraft(control.workflow.working):null;const result=await adapter.apply(control,command,context);
           if(command.action==='restore'&&!already)await assertRestoreAccess(request,state,beforeRestore,result.state.working);
           control.workflow=result.state;receipt=result.receipt;
+          if(transferProof)control.workflow.receipts[command.operationId].equipmentTransfer=transferProof;
           if(requiredState&&!already)captureFqcRequiredResult(state,command,result.state,result.receipt);
           if(already){if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);return reply({revision:state.revision,control:visibleSharedControl(control,permissions.history,caseMetadata,adapter.draftMissing),receipt,unchanged:true});}
           timing.mark('photo-validation');
