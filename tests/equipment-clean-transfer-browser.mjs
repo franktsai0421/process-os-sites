@@ -1,18 +1,25 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
+import {fork} from 'node:child_process';
+import {once} from 'node:events';
 import {randomBytes,randomUUID} from 'node:crypto';
 import fs from 'node:fs';
 const out=process.env.EQUIPMENT_TEST_REPORT;
 const modules=['fqc','iqc','ipqc-ab','ipqc-c'];
 const requestedModule=process.argv[2];
 if(requestedModule)assert(modules.includes(requestedModule),'Unknown quality module');
-import {chromium} from 'playwright';
+import {chromium,webkit,devices} from 'playwright';
+import {testTransferDismissal} from './equipment-transfer-dismiss-cases.mjs';
 import {createABCFixture} from './ab-c-native-fixture.mjs';
 const require=createRequire(import.meta.url);
-const {createTransferFixture}=require('../scripts/equipment-transfer-fixture.cjs');
-const seed=await createTransferFixture({paired:true,secondABGroup:true});
-let values,objects;
-try{values=(await seed.core.readState()).values;objects=new Map(seed.objects);}finally{seed.close();}
+const seedProcess=fork(require.resolve('../scripts/equipment-transfer-fixture.cjs'),process.env.EQUIPMENT_DISMISS_ONLY==='1'?['--third-target']:[],{serialization:'advanced'});
+let seed;
+seedProcess.once('message',message=>{seed=message;});
+const [exitCode]=await once(seedProcess,'exit');
+console.log('Synthetic seed ready');
+assert.equal(exitCode,0);
+let {values,objects}=seed;
+seed=null;
 if(process.env.EQUIPMENT_SYNTHETIC_SCALE==='1')require('../scripts/benchmark-equipment-transfer-cost.cjs').scaleTransferValues(values);
 const pass=randomBytes(24).toString('hex');
 const keys=['masterDataControl','processMasterData','routineEquipmentControl','qualityMasterControl','iqcMasterControl','ipqcCMasterControl','ipqcABMasterControl'];
@@ -37,20 +44,28 @@ const f=await createABCFixture({products:1,async decorate(v,load,bucket){
  }
  for(const [k,b] of objects)await bucket.put(k,b);
 }});
-const browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,headless:true});
+values=null;objects=null;global.gc?.();
+const webkitPath=process.env.PLAYWRIGHT_WEBKIT_EXECUTABLE;
+const equipmentPath='/process/?system=quality&view=data&dataTab=quality-routine-equipment';
+const browser=await (webkitPath?webkit:chromium).launch({executablePath:webkitPath||process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,headless:true,
+ ...!webkitPath && process.env.EQUIPMENT_BROWSER_HEAP_MB && {args:['--js-flags=--max-old-space-size='+Number(process.env.EQUIPMENT_BROWSER_HEAP_MB)]}});
 try{
  const origin=f.url.origin;
  async function signIn(id){
   const language=process.env.EQUIPMENT_TEST_LANGUAGE==='zh'?'zh':'vi';
-  const ctx=await browser.newContext({baseURL:origin,serviceWorkers:'block',viewport:language==='zh'?{width:1280,height:900}:{width:390,height:844}});
+  const ctx=await browser.newContext({...webkitPath&&devices['iPhone 13'],baseURL:origin,serviceWorkers:'block',viewport:language==='zh'?{width:1280,height:900}:{width:390,height:844}});
   await ctx.addInitScript(lang=>localStorage.setItem('processUILanguage',lang),language);await ctx.route('**/*',r=>new URL(r.request().url()).origin===origin?r.continue():r.abort());
   const p=await ctx.newPage();p.setDefaultTimeout(25000);p.on('dialog',d=>d.accept());
-  await p.goto('/login');await p.getByLabel('帳號 / Tài khoản',{exact:true}).fill(id);await p.getByLabel('密碼 / Mật khẩu',{exact:true}).fill(pass);
+  await p.goto('/login'+equipmentPath.slice(equipmentPath.indexOf('?')),{waitUntil:'domcontentloaded'});await p.getByLabel('帳號 / Tài khoản',{exact:true}).fill(id);await p.getByLabel('密碼 / Mật khẩu',{exact:true}).fill(pass);
   const logged=p.waitForResponse(r=>new URL(r.url()).pathname==='/api/platform-login'&&r.request().method()==='POST');
   await p.getByRole('button',{name:'登入平台 / Đăng nhập'}).click();assert.equal((await logged).status(),200);
   await p.waitForURL(url=>url.pathname.startsWith('/process/'));return {ctx,p,id};
  }
- const operator=await signIn('frank'),peer=await signIn('synthetic-peer');
+ const operator=await signIn('frank');
+ console.log('Synthetic equipment session ready');
+ let initialEquipmentPage=new URL(operator.p.url()).searchParams.get('dataTab')==='quality-routine-equipment';
+ const peer={id:'synthetic-peer',ctx:await browser.newContext({baseURL:origin})};
+ assert.equal((await peer.ctx.request.post('/api/platform-login',{headers:{Origin:origin},data:{id:peer.id,password:pass}})).status(),200);
  let seq=0;
  async function storage(m,key='A:G-A'){
   const r=await f.db.prepare('SELECT revision,"values" FROM shared_state WHERE id=1').first();
@@ -74,11 +89,14 @@ try{
   const st=await storage(m,typeof scope==='string'?scope:'A:G-A'),current=st.group.working.items.find(r=>r.id===id)[key],path=['items',{id},key];
   await cmd(peer,m,scope,'apply',{patches:[{op:'set',path,value}],guards:[{path,value:current}]});
  }
- async function modal(m,source='source',target='target',pickId=null){
+ async function modal(m,source='source',target='target',pickId=null,stay=false){
   const p=operator.p;
-  await p.goto('/process/?system=quality&view=data&dataTab=quality-routine-equipment');
-  await p.locator('[data-node-select="category"]').first().click();await p.locator('[data-node-select="subcategory"]').first().click();
-  if(await p.locator('[data-node-select="group"]').count())await p.locator('[data-node-select="group"]').first().click();
+  if(!stay){
+    if(!initialEquipmentPage)await p.goto(equipmentPath,{waitUntil:'domcontentloaded'});
+    initialEquipmentPage=false;
+    await p.locator('[data-node-select="category"]').first().click();await p.locator('[data-node-select="subcategory"]').first().click();
+    if(await p.locator('[data-node-select="group"]').count())await p.locator('[data-node-select="group"]').first().click();
+  }
   await p.locator('[data-equipment-transfer="'+source+'"]').click();
   const code={'ipqc-ab':'ipqcAB','ipqc-c':'ipqcC'}[m]||m;
   const checks=p.locator('[data-transfer-check="'+code+'"]');await checks.first().waitFor({state:'attached'});
@@ -93,7 +111,10 @@ try{
   for(let i=0;i<ids.length;i++) {
     const box=checks.nth(i);
     if(!(await box.isVisible()))continue;
-    if(i===chosen)await box.check();else await box.uncheck();
+    if(webkitPath) {
+      if(await box.isChecked()!==(i===chosen))await box.tap();
+      assert.equal(await box.isChecked(),i===chosen);
+    }else if(i===chosen)await box.check();else await box.uncheck();
   }
   await p.locator('#routine-target-eq-select').selectOption(target);
   return {choice:ids[chosen],click:async()=>{
@@ -104,6 +125,10 @@ try{
 
  const p=operator.p;
  for(const m of requestedModule?[requestedModule]:modules){
+  if (process.env.EQUIPMENT_DISMISS_ONLY === '1') {
+    await testTransferDismissal({p, m, modal, storage, cmd, operator, peer, field});
+    continue;
+  }
   const events=[];const watch=r=>{if(r.method()==='POST'&&new URL(r.url()).pathname==='/api/'+m+'/workflow')events.push(r.postDataJSON());};p.on('request',watch);
   const msg=regex=>p.locator('.routine-transfer-mod-msg').filter({hasText:regex}).first().waitFor({timeout:9000});
   const click=()=>p.locator('#routine-confirm-transfer-'+m).click();
@@ -130,6 +155,8 @@ try{
   const committed=await delivered.json();assert(committed.receipt?.savedId);
   try{await msg(/SYNTHETIC|尚未確認|待確認|chưa xác nhận|Chưa xác nhận|UNKNOWN/i);}
   catch(e){console.error('AFTER LOST',m,await p.locator('.routine-transfer-mod-msg').allTextContents());throw e;}
+  await p.locator('#routine-transfer-dismiss').click();
+  await p.locator('#routine-transfer-backdrop').waitFor({state:'detached'});
   const lookups=[];const observe=r=>{if(new URL(r.url()).searchParams.get('operationId')===committed.receipt.operationId)lookups.push(r);};
   p.on('response',observe);
   try{
