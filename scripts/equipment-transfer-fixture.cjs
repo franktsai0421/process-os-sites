@@ -6,7 +6,7 @@ const empty = { AB: { products: [], lines: [], categoryGroups: [] }, C: { produc
 const master = { active: json(empty), versions: Object.entries(empty).map(([scope, snapshot]) => ({ id: 'initial-empty-' + scope, scope, number: 1, status: 'approved', snapshot, revision: 1, creatorId: 'fixture-initializer', creatorName: 'Synthetic empty initialization', createdAt: 'synthetic', updatedAt: 'synthetic', history: [] })) };
 const emptyC = { schemaVersion: 1, activeVersionId: null, source: null, issues: [], reservedErrorCodes: [], reservedItemCodes: [], versions: [{ id: 'synthetic-empty-draft', number: 1, status: 'draft', snapshot: { errors: [], items: [] }, baseVersionId: null, revision: 1, creatorId: 'fixture-initializer', creatorName: 'Synthetic empty initialization', createdAt: 'synthetic', updatedAt: 'synthetic', history: [] }] };
 const scopeQ = '&scope=' + encodeURIComponent('A:G-A');
-async function createTransferFixture({paired=false,calibrated=false,externalTarget=false,offRoute=false,secondABGroup=false}={}){
+async function createTransferFixture({paired=false,thirdTarget=false,calibrated=false,externalTarget=false,offRoute=false,secondABGroup=false}={}){
   const itemIds = paired ? ['fqc-item','fqc-other'] : ['fqc-item'];
   const h = await fixture({ masterDataControl: JSON.stringify(master), processMasterData: '{}', ipqcCMasterControl: JSON.stringify(emptyC) }, { includeIPQCC: true });
   const fullRead = async(moduleId, q) => moduleId === 'ipqc-c' ? {control:JSON.parse((await h.core.readState()).values.ipqcCMasterControl)} : h.read(moduleId, 'editor', q);
@@ -31,7 +31,7 @@ async function createTransferFixture({paired=false,calibrated=false,externalTarg
     }
     await h.begin('routine-equipment');
     await h.command('routine-equipment', 'apply', { patches: [insert('categories', { id: 'category', name: 'Synthetic category' }), insert('subcategories', { id: 'subcategory', categoryId: 'category', name: 'Synthetic subcategory' }), insert('groups', { id: 'group', categoryId: 'category', subcategoryId: 'subcategory', name: 'Synthetic group' })] });
-    await h.command('routine-equipment', 'apply', { patches: ['source', 'target'].map((id, i) => insert('equipment', { id, assetCode: 'SYN-X-' + i, photoId: photos[i], name: 'Synthetic ' + id, groupId: 'group', unit: '支', enabled: true, confirmed: true, calibrationMethod: externalTarget&&id==='target'?'external':calibrated?'internal':'none', calibrationCycle:calibrated?'monthly':'', calibratedAt:calibrated?'2025-12-12':'', expiresAt:calibrated?'2030-12-12':'' })) }); await h.promote('routine-equipment');
+    await h.command('routine-equipment', 'apply', { patches: (thirdTarget ? ['source', 'target', 'alternate'] : ['source', 'target']).map((id, i) => insert('equipment', { id, assetCode: 'SYN-X-' + i, photoId: photos[i % photos.length], name: 'Synthetic ' + id, groupId: 'group', unit: '支', enabled: true, confirmed: true, calibrationMethod: externalTarget&&id==='target'?'external':calibrated?'internal':'none', calibrationCycle:calibrated?'monthly':'', calibratedAt:calibrated?'2025-12-12':'', expiresAt:calibrated?'2030-12-12':'' })) }); await h.promote('routine-equipment');
     await h.begin('fqc'); await h.command('fqc', 'apply', { patches: [insert('errors', { id: 'fqc-error', code: 'SYN-FQC-L1', name: 'Synthetic defect', line: 'A', category: 'G-A' }), ...itemIds.map(id => insert('items', { id, errorId: 'fqc-error', name: 'Synthetic standard', description: 'Preserve method', line: 'A', category: 'G-A', isEnabled: true, equipmentId: 'source', tool: '01', mediaItems: [], productCodes: ['A100'], rule: { cadence: 'batch', batchKind: 'aql', aqlValue: '0.25' } }))] }); await h.promote('fqc');
     await h.begin('iqc'); await h.command('iqc', 'apply', { patches: [insert('categories', { id: 'iqc-category', nameVi: 'Synthetic' }), insert('suppliers', { id: 'supplier', nameVi: 'Synthetic' }), insert('parts', { id: 'part', code: 'PART1', nameVi: 'Synthetic part', specificationVi: '10 mm', categoryId: 'iqc-category', supplierIds: ['supplier'], supplierRaw: '', standardCode: '', photos: [] })] });
     await h.command('iqc', 'apply', { moduleAction: 'createError', input: { partCode: 'PART1', code: 'PART1-IQC-L1', nameVi: 'Synthetic defect' } });
@@ -61,3 +61,12 @@ async function createTransferFixture({paired=false,calibrated=false,externalTarg
   } catch(error){h.close();throw error;}
 }
 module.exports={createTransferFixture};
+
+// Release the fixture's transpiler and pre-approval history before launching a browser.
+if (require.main === module && process.send) {
+  (async () => {
+    const seed = await createTransferFixture({paired:true,secondABGroup:true,thirdTarget:process.argv.includes('--third-target')});
+    try { process.send({values:(await seed.core.readState()).values,objects:new Map(seed.objects)}); }
+    finally { seed.close(); }
+  })().catch(error => { console.error(error); process.exitCode = 1; });
+}

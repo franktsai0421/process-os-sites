@@ -125,6 +125,10 @@ void test('the proposed shell delta is confined to the four routine asset tags',
     assert.equal(expected.split(from).length, 2, from);
     expected = expected.replace(from, script(file + '?v=20261128-transfer-cost'));
   }
+  for (const previous of ['routine-equipment.js?v=20261128-transfer-cost', 'routine-equipment.css?v=20261126-mobile-apply']) {
+    assert.equal(expected.split(previous).length, 2, previous);
+    expected = expected.replace(previous, previous.split('?')[0] + '?v=20261128-transfer-dialog');
+  }
   assert.equal(shell.replace(/\r\n/g,'\n'),expected.replace(/\r\n/g,'\n'));
 });
 

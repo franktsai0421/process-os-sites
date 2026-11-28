@@ -2668,7 +2668,8 @@
       host === owner.page && routineTabIsActive() && selectedVersionId === owner.versionId &&
       control?.workflow?.generation === owner.generation && control?.activeVersionId === owner.activeVersionId;
   }
-  function transferBusy(dialog = transferDialog) { return !!dialog && Object.values(dialog.moduleStatus).includes('saving'); }
+  function transferSaving(dialog = transferDialog) { return !!dialog && Object.values(dialog.moduleStatus).includes('saving'); }
+  function transferBusy(dialog = transferDialog) { return !!dialog && Object.values(dialog.moduleStatus).some(status => status === 'checking' || status === 'saving'); }
 
   function openTransferModal(sourceId) {
     if (editingEquipmentId && isFormDirty()) {
@@ -2696,7 +2697,7 @@
     return entry?.connected===true && Array.isArray(entry.items) ? entry.items : [];
   }
 
-  async function loadTransferPreview() {
+  async function loadTransferPreview(renderAfter = true) {
     const dialog = transferDialog;
     if (!dialog || !transferOwnerCurrent(dialog.owner)) return;
     const request = dialog.previewRequest = (dialog.previewRequest || 0) + 1;
@@ -2715,13 +2716,13 @@
           try{dialog.selection[uiKey]=new Set(effectiveRows(data,apiKey,dialog.sourceId).filter(item=>item.selectable).map(item=>item.id));}
           catch{dialog.selection[uiKey]=new Set();}
         }
-      render();
+      if (renderAfter) render();
     } catch (error) {
       if (!owns()) return;
       dialog.preview = null;
       for(const selection of Object.values(dialog.selection))selection.clear();
       dialog.previewError = error.message;
-      render();
+      if (renderAfter) render();
     }
   }
 
@@ -3023,7 +3024,7 @@
     const coveredGroups=moduleId==='ipqc-ab'?t('範圍包含其他群組已套用的修改。','Phạm vi bao gồm các thay đổi đã áp dụng trong nhóm khác.') : '';
     if(!confirm(t(`確認移轉 ${ids.length} 筆並存取 ${moduleId.toUpperCase()} 共用草稿？沒有草稿時會自動開稿。這次會一併儲存同事已套用到此共用草稿的修改。${coveredGroups}其他分頁未送出的表單會保留。${overrideNote}本次不送審。`,`Chuyển ${ids.length} mục và lưu bản nháp chung ${moduleId.toUpperCase()}? Nếu chưa có bản nháp, hệ thống sẽ tự mở. Lần lưu này bao gồm cả thay đổi đồng nghiệp đã áp dụng vào bản nháp chung. ${coveredGroups} Dữ liệu chưa gửi ở trang khác vẫn được giữ.${overrideNote} Không gửi duyệt.`)))return;
     assertIntent();
-    dialog.moduleStatus[uiKey] = 'saving'; render();
+    dialog.moduleStatus[uiKey] = 'checking'; render();
     try {
       const localSync=window.ProcessSync?.pendingState?.();
       if(!localSync||localSync.dirty||localSync.inFlight||localSync.paused||localSync.blocked)
@@ -3062,6 +3063,10 @@
       const matchesSaved=row=>row.openStatus==='draft' && !needsTransfer(row) && row.savedChoice?.id && row.savedChoice.equipmentId===targetEqId &&
         (!['iqc','ipqc-ab'].includes(moduleId)||row.savedChoice.mode==='equipment') && (moduleId!=='fqc'||row.savedChoice.tool===(target.pieceMark||target.assetCode));
       const chosen=latest.filter(row=>ids.includes(row.id)),already=chosen.filter(matchesSaved),changed=chosen.filter(row=>!matchesSaved(row));
+      if (changed.length) {
+        dialog.moduleStatus[uiKey] = 'saving';
+        render();
+      }
       if(!changed.length){
         if(moduleId.startsWith('ipqc'))await readyIpqcTransfer(moduleId,dialog,already,assertIntent);
         else{
@@ -3091,22 +3096,32 @@
       if(data.savedId&&!data.alreadySaved)dialog.moduleMessages[uiKey]+=' · '+t('本次只存此模組；其他模組請重開清單後分別確認。','Lần này chỉ lưu mô-đun này. Hãy mở lại danh sách để xác nhận từng mô-đun khác.');
       // The qualified command/receipt above settles the write. Refresh failures
       // describe stale display data and must never turn that receipt into failure.
+      if (data.alreadySaved) {
+        // The preflight just read these references and confirmed this saved choice.
+        dialog.preview = current;
+        render();
+        return;
+      }
       invalidateEquipmentReferences([dialog.sourceId, targetEqId]);
       dialog.refreshing = true;
       dialog.refreshError = '';
       render();
       void (async () => {
+        const current = () => transferDialog === dialog && transferOwnerCurrent(dialog.owner);
         try {
-          if(!['fqc','iqc'].includes(moduleId))await window.ProcessSync?.refresh?.();
-          if (!owns()) return;
-          await loadTransferPreview();
-          if (owns() && host?.querySelector('[data-routine-reference-id]')) await loadEquipmentReferences(dialog.sourceId);
+          // Read the authorized reference projection directly. Reloading the entire
+          // platform here replaces the identity object held by the history view.
+          if (!current()) return;
+          await loadTransferPreview(false);
+          if (current() && dialog.previewError) dialog.refreshError = dialog.previewError;
+          if (current() && !dialog.previewError && host?.querySelector('[data-routine-reference-id]')) await loadEquipmentReferences(dialog.sourceId);
         } catch (error) {
-          if (owns()) dialog.refreshError = error.message || 'REFERENCE_REFRESH_FAILED';
+          if (current()) dialog.refreshError = error.message || 'REFERENCE_REFRESH_FAILED';
         } finally {
-          if (owns()) { dialog.refreshing = false; render(); }
+          if (current()) { dialog.refreshing = false; render(); }
         }
       })();
+      return;
     } catch (error) {
       const unresolved=moduleId==='fqc'?hasFqcTransfer():moduleId==='iqc'?hasIqcTransfer():hasIpqcReceipt(moduleId);
       const denied=error.status===401||error.status===403;
@@ -3114,6 +3129,16 @@
       dialog.moduleMessages[uiKey] = unresolved?(denied?error.message+' · ':'')+unresolvedTransfer():(error.message==='DRAFT_REVISION_CHANGED_RECONFIRM'||error.message==='MODULE_CHANGED_RECONFIRM'?transferBlockMessage('stale'):(error.message || t('替換失敗', 'Thay thế thất bại')));
     }
     if (transferDialog === dialog && transferOwnerCurrent(dialog.owner)) render();
+  }
+
+  function transferRowState(row, moduleId) {
+    if (['pending', 'pending-test'].includes(row.openStatus) || row.selectable === false && row.unavailableReason?.includes('待審')) return t('待審', 'Chờ duyệt');
+    if (row.openStatus !== 'draft') return row.effectiveReference ? t('已生效', 'Đang có hiệu lực') : '';
+    const saved = row.savedChoice;
+    if (saved?.id && saved.equipmentId === row.draftEquipmentId &&
+        (!['iqc', 'ipqc-ab'].includes(moduleId) || saved.mode === row.draftInspectionMode) &&
+        (moduleId !== 'fqc' || saved.tool === row.draftTool)) return t('草稿已存取', 'Đã lưu bản nháp');
+    return t('草稿', 'Bản nháp');
   }
 
   function transferDialogHTML() {
@@ -3148,7 +3173,7 @@
       <div class="routine-transfer-item-row">
         <label><input type="checkbox" data-transfer-check="${key}" value="${h(it.id)}" ${inFlight||it.selectable===false?'disabled':transferDialog.selection[key].has(it.id) ? 'checked' : ''}>${t('選取', 'Chọn')}</label>
         ${it.effectiveReference?'<button type="button" class="button ghost" data-transfer-reference="'+key+'" data-transfer-locator="'+h(it.id)+'">'+h(it.effectiveReference.checkNo)+'</button>':'<code>'+h(it.code)+'</code>'}<span class="name" data-i18n-skip="true">${h(it.effectiveReference?.itemName??it.name)}</span>${it.scopeKey?`<small>${h(it.scopeKey)}</small>`:''}
-        <small>${t('生效', 'Hiệu lực')}: ${h(it.activeEquipmentId || '—')} · ${t('草稿', 'Bản nháp')}: ${h(it.draftEquipmentId || '—')} · ${h(it.openStatus || '—')}</small>
+        <small>${t('生效', 'Hiệu lực')}: ${h(it.activeEquipmentId || '—')} · ${t('草稿', 'Bản nháp')}: ${h(it.draftEquipmentId || '—')} · ${h(transferRowState(it, referenceModule[key]))}</small>
         ${it.selectable===false?`<small role="status">${h(t(it.unavailableReason?.includes('待審')?'待審已鎖定；請依原流程撤回或結案後重新選取。':it.unavailableReason || '目前不可編輯',it.unavailableReason?.includes('待審')?'Đang chờ duyệt; hãy rút theo quy trình hoặc chọn lại sau khi kết thúc.':it.unavailableReason?.includes('V3')?'Phạm vi dùng bản nháp chung V3; hãy chọn thiết bị trong bản nháp chung.':'Không có quyền sửa bản nháp của mô-đun đích.'))}</small>`:''}
         ${it.draftEquipmentId && it.draftEquipmentId !== sourceId && it.draftEquipmentId !== targetEqId ?
           `<small class="routine-transfer-warning">${t('草稿已改選其他設備；確認移轉時會提示取代。', 'Bản nháp đã chọn thiết bị khác; xác nhận chuyển sẽ thông báo ghi đè.')}</small>` : ''}
@@ -3176,11 +3201,11 @@
         <div class="routine-view-dialog routine-transfer-dialog" role="dialog" aria-modal="true" aria-label="${t('設備替換與標準批次移轉', 'Thay thế thiết bị & Chuyển tiêu chuẩn')}">
           <div class="routine-dialog-head">
             <h3>${t('設備替換／標準批次移轉', 'Thay thế thiết bị & Chuyển tiêu chuẩn')}</h3>
-            <button type="button" id="routine-transfer-close" style="border:none;background:transparent;font-size:1.2rem;cursor:pointer">✕</button>
+            <button type="button" id="routine-transfer-close" aria-label="${t('關閉', 'Đóng')}" ${transferSaving() ? 'disabled' : ''}>✕</button>
           </div>
           <div class="routine-view-body routine-transfer-body">
-            ${transferDialog.refreshing ? `<p role="status">${t('移轉結果已確認；關聯資料更新中…','Đã xác nhận kết quả chuyển; đang cập nhật tham chiếu…')}</p>` : ''}${transferDialog.refreshError ? `<p role="alert">${t('移轉結果已確認；關聯更新失敗，請關閉後重開以核對。','Đã xác nhận kết quả chuyển; lỗi cập nhật tham chiếu, đóng rồi mở lại để kiểm tra.')} ${h(transferDialog.refreshError)}</p>` : ''}${transferDialog.previewError ? `<p role="alert">${h(transferDialog.previewError)}</p>` : ''}
-            ${!transferDialog.preview ? `<p>${t('載入生效與草稿差異中…', 'Đang tải khác biệt phiên bản…')}</p>` : ''}
+            ${transferDialog.refreshing ? `<p role="status">${t('草稿已存取，可關閉視窗。正在更新關聯資料…','Đã lưu bản nháp. Có thể đóng cửa sổ trong khi cập nhật tham chiếu…')}</p>` : ''}${transferDialog.refreshError ? `<p role="alert">${t('移轉結果已確認；關聯更新失敗，請關閉後重開以核對。','Đã xác nhận kết quả chuyển; lỗi cập nhật tham chiếu, đóng rồi mở lại để kiểm tra.')} ${h(transferDialog.refreshError)}</p>` : ''}${transferDialog.previewError && !transferDialog.refreshError ? `<p role="alert">${h(transferDialog.previewError)}</p>` : ''}
+            ${!transferDialog.preview && !transferDialog.previewError ? `<p>${t('載入生效與草稿差異中…', 'Đang tải khác biệt phiên bản…')}</p>` : ''}
             <!-- 1. 原設備 vs 目標設備 對照卡片 -->
             <div class="routine-transfer-compare-grid">
               <div class="routine-transfer-box source">
@@ -3249,7 +3274,7 @@
                       <span class="routine-transfer-success-tag">✓ ${t('已移轉並存取草稿', 'Đã chuyển và lưu bản nháp')}</span>
                     ` : `
                       <button type="button" class="button signal master-small" id="routine-confirm-transfer-fqc" ${inFlight||!fqcRecovery&&(!targetEq||!transferDialog.selection.fqc.size)?'disabled':''}>
-                        ${transferDialog.moduleStatus.fqc === 'saving' ? t('儲存中…', 'Đang lưu...') : fqcRecovery?t('查詢原移轉／存取收據','Kiểm tra biên nhận chuyển/lưu gốc'):t('確認移轉並存取 FQC 草稿', 'Xác nhận chuyển và lưu FQC')}
+                        ${transferDialog.moduleStatus.fqc === 'checking' ? t('正在核對…','Đang kiểm tra…') : transferDialog.moduleStatus.fqc === 'saving' ? t('儲存中…', 'Đang lưu...') : fqcRecovery?t('查詢原移轉／存取收據','Kiểm tra biên nhận chuyển/lưu gốc'):t('確認移轉並存取 FQC 草稿', 'Xác nhận chuyển và lưu FQC')}
                       </button>
                     `}
                   </div>
@@ -3270,7 +3295,7 @@
                       <span class="routine-transfer-success-tag">✓ ${t('已存取草稿', 'Đã lưu bản nháp')}</span>
                     ` : `
                       <button type="button" class="button signal master-small" id="routine-confirm-transfer-ipqc-c" ${inFlight || !hasIpqcReceipt('ipqc-c') && (!targetEq || !transferDialog.selection.ipqcC.size) ? 'disabled' : ''}>
-                        ${transferDialog.moduleStatus.ipqcC === 'saving' ? t('儲存中…', 'Đang lưu...') : hasIpqcReceipt('ipqc-c')?receiptLabel():t('確認移轉並存取 IPQC-C 草稿', 'Xác nhận chuyển và lưu IPQC-C')}
+                        ${transferDialog.moduleStatus.ipqcC === 'checking' ? t('正在核對…','Đang kiểm tra…') : transferDialog.moduleStatus.ipqcC === 'saving' ? t('儲存中…', 'Đang lưu...') : hasIpqcReceipt('ipqc-c')?receiptLabel():t('確認移轉並存取 IPQC-C 草稿', 'Xác nhận chuyển và lưu IPQC-C')}
                       </button>
                     `}
                   </div>
@@ -3291,7 +3316,7 @@
                       <span class="routine-transfer-success-tag">✓ ${t('已存取草稿', 'Đã lưu bản nháp')}</span>
                     ` : `
                       <button type="button" class="button signal master-small" id="routine-confirm-transfer-iqc" ${inFlight||!iqcRecovery&&(!targetEq||!transferDialog.selection.iqc.size)?'disabled':''}>
-                        ${transferDialog.moduleStatus.iqc === 'saving' ? t('儲存中…', 'Đang lưu...') : iqcRecovery?t('查詢原移轉／存取收據','Kiểm tra biên nhận chuyển/lưu gốc'):t('確認移轉並存取 IQC 草稿', 'Xác nhận chuyển và lưu IQC')}
+                        ${transferDialog.moduleStatus.iqc === 'checking' ? t('正在核對…','Đang kiểm tra…') : transferDialog.moduleStatus.iqc === 'saving' ? t('儲存中…', 'Đang lưu...') : iqcRecovery?t('查詢原移轉／存取收據','Kiểm tra biên nhận chuyển/lưu gốc'):t('確認移轉並存取 IQC 草稿', 'Xác nhận chuyển và lưu IQC')}
                       </button>
                     `}
                   </div>
@@ -3301,7 +3326,7 @@
               </div>
               <div class="routine-transfer-module-card ${transferDialog.moduleStatus.ipqcAB}">
                 <div class="routine-transfer-module-head"><div><b>IPQC-AB</b><small>${h(summary('ipqc-ab'))}</small></div>
-                  <button type="button" class="button signal master-small" id="routine-confirm-transfer-ipqc-ab" ${inFlight||!hasIpqcReceipt('ipqc-ab')&&(!targetEq||!transferDialog.selection.ipqcAB.size)?'disabled':''}>${transferDialog.moduleStatus.ipqcAB==='saving'?t('儲存中…','Đang lưu...'):hasIpqcReceipt('ipqc-ab')?receiptLabel():t('確認移轉並存取 IPQC-AB 草稿','Xác nhận chuyển và lưu IPQC-AB')}</button></div>
+                  <button type="button" class="button signal master-small" id="routine-confirm-transfer-ipqc-ab" ${inFlight||!hasIpqcReceipt('ipqc-ab')&&(!targetEq||!transferDialog.selection.ipqcAB.size)?'disabled':''}>${transferDialog.moduleStatus.ipqcAB === 'checking' ? t('正在核對…','Đang kiểm tra…') : transferDialog.moduleStatus.ipqcAB==='saving'?t('儲存中…','Đang lưu...'):hasIpqcReceipt('ipqc-ab')?receiptLabel():t('確認移轉並存取 IPQC-AB 草稿','Xác nhận chuyển và lưu IPQC-AB')}</button></div>
                 ${transferDialog.moduleMessages.ipqcAB?`<p class="routine-transfer-mod-msg">${h(transferDialog.moduleMessages.ipqcAB)}</p>`:''}
                 ${moduleList('ipqc-ab','ipqcAB',ipqcABItems)}
               </div>
@@ -3309,7 +3334,7 @@
           </div>
 
           <div class="routine-dialog-foot">
-            <button type="button" class="button ghost" id="routine-transfer-dismiss">
+            <button type="button" class="button ghost" id="routine-transfer-dismiss" ${transferSaving() ? 'disabled' : ''}>
               ${Object.values(transferDialog.moduleStatus).some(s => s === 'success') ? t('完成並關閉', 'Hoàn tất và đóng') : t('取消', 'Hủy')}
             </button>
           </div>
@@ -3693,6 +3718,11 @@
   function fitEquipmentEditor() {
     const backdrop = host?.querySelector('#routine-backdrop');
     const viewport = window.visualViewport;
+    const transfer = host?.querySelector('#routine-transfer-backdrop');
+    if (transfer && viewport) {
+      for (const [name, value] of Object.entries({top: viewport.offsetTop, left: viewport.offsetLeft,
+        width: viewport.width, height: viewport.height})) transfer.style.setProperty('--transfer-' + name, value + 'px');
+    }
     if (!backdrop || !viewport) return;
     backdrop.style.setProperty('--equipment-editor-top', viewport.offsetTop + 'px');
     backdrop.style.setProperty('--equipment-editor-height', viewport.height + 'px');
@@ -3803,12 +3833,21 @@
       if (event.target?.id === 'routine-view-modal-backdrop') { viewDialog?.references?.closeDetail?.();viewDialog = null; render(); }
     }));
 
-    // Transfer dialog bindings
-    root.querySelector('#routine-transfer-close')?.addEventListener('click', guardWorking(root.querySelector('#routine-transfer-close'),() => { transferDialog = null; render(); }));
-    root.querySelector('#routine-transfer-dismiss')?.addEventListener('click', guardWorking(root.querySelector('#routine-transfer-dismiss'),() => { transferDialog = null; render(); }));
-    root.querySelector('#routine-transfer-backdrop')?.addEventListener('click', guardWorking(root.querySelector('#routine-transfer-backdrop'),event => {
-      if (event.target?.id === 'routine-transfer-backdrop') { transferDialog = null; render(); }
-    }));
+    const backdrop = root.querySelector('#routine-transfer-backdrop'), displayed = transferDialog;
+    if (backdrop && displayed) {
+      const dismiss = () => {
+        if (!backdrop.isConnected || transferDialog !== displayed || transferSaving(displayed)) return;
+        transferDialog = null;
+        backdrop.remove();
+        approvedHistoryView?.refreshControls?.();
+        root.querySelector('[data-equipment-transfer="' + CSS.escape(displayed.sourceId) + '"]')?.focus({preventScroll:true});
+      };
+      for (const id of ['#routine-transfer-close', '#routine-transfer-dismiss']) backdrop.querySelector(id)?.addEventListener('click', dismiss);
+      backdrop.addEventListener('click', event => { if (event.target === backdrop) dismiss(); });
+      backdrop.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !event.defaultPrevented && !event.isComposing) dismiss();
+      });
+    }
 
     root.querySelector('#routine-target-cat')?.addEventListener('change', guardWorking(root.querySelector('#routine-target-cat'),event => {
       if (!transferDialog || transferBusy()) return;

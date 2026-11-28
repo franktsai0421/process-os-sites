@@ -190,8 +190,14 @@
 .routine-view-refs-row{border-top:1px solid #e5ede7;border-bottom:1px solid #e5ede7;padding:8px 0;margin:6px 0}
 
 /* Equipment Transfer Dialog */
-.routine-transfer-dialog{width:min(820px,100vw)!important;max-height:92vh}
-.routine-transfer-body{max-height:calc(92vh - 120px);overflow-y:auto;gap:14px}
+#routine-transfer-backdrop{inset:auto;top:var(--transfer-top,0);left:var(--transfer-left,0);width:var(--transfer-width,100%);height:100vh;height:var(--transfer-height,100dvh);box-sizing:border-box;z-index:11003;
+  padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}
+.routine-transfer-dialog{width:min(820px,100%)!important;max-height:100%;box-sizing:border-box}
+.routine-transfer-dialog .routine-dialog-head,.routine-transfer-dialog .routine-dialog-foot{flex:none}
+.routine-transfer-dialog .routine-dialog-head h3{min-width:0;overflow-wrap:anywhere}
+#routine-transfer-close,#routine-transfer-dismiss{min-width:44px;min-height:44px}
+#routine-transfer-close{flex:none;border:0;background:transparent;font-size:1.2rem;cursor:pointer}
+.routine-transfer-body{min-height:0;overflow:auto;overscroll-behavior:contain;gap:14px}
 .routine-transfer-compare-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;background:#f8faf9;border:1px solid #d1ddd5;border-radius:8px;padding:12px}
 .routine-transfer-box{display:flex;flex-direction:column;gap:6px;min-width:0}
 .routine-transfer-box h4{margin:0;font-size:.84rem;color:#52695d;font-weight:700}
