@@ -1,9 +1,8 @@
-const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict'),{pathToFileURL}=require('node:url'),{webcrypto,createHash}=require('node:crypto');
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict'),{pathToFileURL}=require('node:url'),{webcrypto}=require('node:crypto');
 const source=path.resolve(process.env.REFERENCE_SOURCE||path.join(__dirname,'..')),read=n=>fs.readFileSync(path.join(source,'public/process',n),'utf8'),copy=structuredClone,tick=()=>new Promise(setImmediate);
 const actor={id:'synthetic-admin',role:'admin',name:'Synthetic'},at='2026-10-27T00:00:00Z';
 const eqs=[{id:'eq',assetCode:'SYN-EQ',pieceMark:'01',name:'Synthetic equipment',groupId:'group',enabled:true},{id:'eq2',assetCode:'SYN-OTHER',pieceMark:'02',name:'Other synthetic',groupId:'group',enabled:true}];
 function dto(){const items=Array.from({length:4},(_,i)=>({id:'item'+i,errorId:'error',checkNo:'SYN-'+i,name:'Active check '+i,equipmentId:'eq',equipmentSnapshot:{id:'eq',assetCode:'SNAPSHOT-EQ',pieceMark:'01',name:'Original tool'},rule:{cadence:'batch',batchKind:'fixed_count',fixedCount:7},productCodes:['SYN-P'],mediaItems:[{id:'photo'+i,src:'/synthetic/photo-'+i+'.png',name:'Synthetic photo'}],isEnabled:true}));const snap={errors:[{id:'error',code:'SYN-E',name:'Synthetic defect'}],items};const version=(id,number,status,snapshot)=>({id,number,status,snapshot,history:[]});return{revision:7,permissions:{view:true,history:true},control:{activeVersionId:'active',versions:[version('active',23,'approved',snap),version('old',19,'superseded',{errors:copy(snap.errors),items:[{...copy(items[0]),name:'Historical exact',equipmentSnapshot:{id:'eq',assetCode:'HIST-EQ',pieceMark:'07'},rule:{cadence:'time',timeFrequency:'custom',customTimeText:'Every two hours'},mediaItems:[{id:'oldphoto',src:'/synthetic/historical.png',name:'Historical photo'}]}]}),version('draft',24,'draft',{errors:copy(snap.errors),items:[copy(items[0])]}),version('pending',25,'pending',{errors:copy(snap.errors),items:[copy(items[1])]})]}};}
-function freeze(v){if(v&&typeof v==='object'){Object.values(v).forEach(freeze);Object.freeze(v);}return v;}
 async function fixture(){
  const{canvasDOM}=await import(pathToFileURL(path.join(source,'scripts/login-reentry-dom.mjs')).href),dom=canvasDOM(),doc=dom.document;doc.documentElement.lang='zh';doc.hidden=false;doc.visibilityState='visible';const main=doc.createElement('main');main.id='data-content';main.dataset.activeTab='quality-routine-equipment';doc.body.append(main);
  let epoch=1,delivery=1;const requests=[],pending=[],writes=[],notices=[];
@@ -16,26 +15,77 @@ async function fixture(){
  c.__eqViewTest.install(main,{activeVersionId:'equipment-active',versions:[{id:'equipment-active',number:11,status:'approved',history:[],equipment:copy(eqs),categories:[{id:'cat',name:'Synthetic'}],subcategories:[{id:'sub',name:'Synthetic sub',categoryId:'cat'}],groups:[{id:'group',name:'Synthetic group',categoryId:'cat',subcategoryId:'sub'}],issues:[]}]});c.__eqViewTest.render();
  return{c,doc,main,requests,pending,writes,notices,open(id='eq'){const button=main.querySelector('[data-equipment-view="'+id+'"]');assert(button,'Actual view button');return button.click();},expand(kind){const details=main.querySelector('[data-view-ref-kind="'+kind+'"]');assert(details);details.open=true;details.dispatchEvent({type:'toggle'});},async respond(data=dto(),status=200,index=0){assert(pending[index]);pending[index]({ok:status>=200&&status<300,status,json:async()=>data});await tick();},async malformed(status=403,index=0){pending[index]({ok:false,status,json:async()=>{throw Error('nonJSON');}});await tick();},rotate(){epoch++;},newDelivery(){delivery++;},close(){main.querySelector('#routine-view-close').click();},tick};
 }
-const results=[],selected=process.argv.slice(2);async function check(name,fn){if(selected.length&&!selected.some(n=>name.startsWith(n)))return;await fn();results.push({name,status:'PASS'});console.log(name,'PASS');}
-(async()=>{
- await check('V1 actual view opens immediately with zero GET; duplicate click keeps one owned view',async()=>{const f=await fixture();f.open();assert(f.main.querySelector('#routine-view-close'));assert.equal(f.requests.length,0);assert.match(f.main.textContent,/尚未查詢/);assert(!f.main.textContent.includes('已查詢 · 0'));const view=f.c.__eqViewTest.view;f.open();f.open();assert.equal(f.c.__eqViewTest.view,view);assert.equal(f.requests.length,0);});
- await check('V2 FQC full authoritative GET is single flight; active/history separation and no editor adoption',async()=>{const f=await fixture(),before=JSON.stringify(f.c.__fqcViewTest.getControl());f.open();f.expand('fqc');f.expand('fqc');f.expand('fqc');await tick();assert.equal(f.requests.length,1);assert.equal(f.requests[0].url,'/api/fqc/workflow');assert.match(f.main.textContent,/查詢中/);const data=freeze(dto());await f.respond(data);const row=f.c.__eqViewTest.view.references.states.fqc;assert.equal(row.status,'loaded');assert.deepEqual(Array.from(Object.values(row.result),x=>x.length),[4,1,1,1]);assert.equal(row.control,data.control);assert.match(f.main.textContent,/目前生效中 \(4\)/);assert.match(f.main.textContent,/歷史版本 \(1\)/);assert.equal(JSON.stringify(f.c.__fqcViewTest.getControl()),before);assert.equal(f.requests.length,1);assert.equal(f.writes.length,0);});
- for(const versionId of ['active','old'])await check('V3 '+versionId+' exact snapshot row opens readonly photo/tool/rule despite poisoned editor/cache',async()=>{const f=await fixture();f.open();f.expand('fqc');await tick();const data=freeze(dto()),before=JSON.stringify(f.c.__fqcViewTest.getControl());await f.respond(data);f.main.querySelector('[data-view-ref-detail="item0"][data-view-ref-version="'+versionId+'"]').click();const detail=f.doc.querySelector('.fqc-readonly-item-modal');assert(detail);assert.match(detail.textContent,versionId==='active'?/Active check 0/:/Historical exact/);assert.match(detail.textContent,versionId==='active'?/SNAPSHOT-EQ／01/:/HIST-EQ／07/);assert(!detail.textContent.includes('POISON'));assert.match(detail.textContent,versionId==='active'?/7/:/Every two hours/);assert.equal(detail.querySelector('img').src,versionId==='active'?'/synthetic/photo-0.png':'/synthetic/historical.png');assert.equal(detail.querySelectorAll('input,select,textarea,[data-restore],[type="submit"]').length,0);detail.querySelector('[data-view-idx]').click();const viewer=f.doc.querySelector('.fqc-viewer-overlay');assert(viewer);assert.equal(viewer.querySelectorAll('input,[data-restore],[type="submit"]').length,0);f.close();assert(!detail.isConnected);assert(!viewer.isConnected);assert.equal(JSON.stringify(f.c.__fqcViewTest.getControl()),before);assert.equal(f.writes.length,0);assert.equal(f.requests.length,1);});
- for(const status of [401,403,503])await check('V4 '+status+' is unavailable not zero; no automatic retry; explicit retry is one GET',async()=>{const f=await fixture();f.open();f.expand('fqc');await tick();await f.respond({error:'SYNTHETIC_DENIED'},status);assert.match(f.main.textContent,/查詢未完成，不代表沒有引用/);assert(!f.main.textContent.includes('已查詢 · 0'));f.expand('fqc');await tick();assert.equal(f.requests.length,1);f.main.querySelector('[data-view-ref-retry="fqc"]').click();f.main.querySelector('[data-view-ref-retry="fqc"]')?.click();await tick();assert.equal(f.requests.length,2);await f.respond(dto(),200,1);assert.equal(f.c.__eqViewTest.view.references.states.fqc.result.active.length,4);assert.equal(f.writes.length,0);});
- await check('V5 malformed denied JSON and incomplete successful DTO never become empty references',async()=>{const f=await fixture();f.open();f.expand('fqc');await tick();await f.malformed();assert.match(f.main.textContent,/HTTP 403/);f.main.querySelector('[data-view-ref-retry]').click();await tick();await f.respond({revision:8,permissions:{view:true},control:{}},200,1);assert.match(f.main.textContent,/EQUIPMENT_REFERENCE_RESPONSE_INVALID/);assert(!f.main.textContent.includes('已查詢 · 0'));});
- for(const change of ['epoch','actor','delivery','revision','requiresReload','close','device','same-device-reopen'])await check('V6 '+change+' ignores late GET without contaminating newer view',async()=>{const f=await fixture();f.open();const old=f.c.__eqViewTest.view.references;f.expand('fqc');await tick();if(change==='epoch')f.rotate();if(change==='actor')f.c.ProcessSync.identity={id:'other'};if(change==='delivery')f.newDelivery();if(change==='revision')f.c.__eqViewTest.bump();if(change==='requiresReload')f.c.ProcessSync.requiresReload=true;if(change==='close'||change==='same-device-reopen')f.close();if(change==='device')f.open('eq2');if(change==='same-device-reopen')f.open();const before=f.main.innerHTML;await f.respond();assert.equal(f.main.innerHTML,before);assert.notEqual(old.states.fqc.status,'loaded');assert.equal(f.doc.querySelectorAll('.fqc-readonly-item-modal').length,0);assert.equal(f.requests.length,1);assert.equal(f.writes.length,0);});
- await check('V7 missing exact version/item or different equipment never falls back to active detail',async()=>{const f=await fixture();f.open();f.expand('fqc');await tick();const data=dto();data.control.versions[0].snapshot.items.push({...copy(data.control.versions[0].snapshot.items[0]),id:'foreign-item',equipmentId:'eq2'});await f.respond(freeze(data));const button=f.main.querySelector('[data-view-ref-detail]');button.dataset.viewRefVersion='missing';button.click();assert.equal(f.doc.querySelectorAll('.fqc-readonly-item-modal').length,0);assert.match(f.main.textContent,/FQC_REFERENCE_VIEW_UNAVAILABLE/);const next=f.main.querySelector('[data-view-ref-detail]');next.dataset.viewRefDetail='missing';next.click();assert.equal(f.doc.querySelectorAll('.fqc-readonly-item-modal').length,0);const foreign=f.main.querySelector('[data-view-ref-detail]');foreign.dataset.viewRefDetail='foreign-item';foreign.click();assert.equal(f.doc.querySelectorAll('.fqc-readonly-item-modal').length,0);assert.throws(()=>f.c.FQCQualityAPI.openAuthorizedItemView(dto().control.versions[0],'missing',()=>true),/FQC_REFERENCE_ITEM_UNAVAILABLE/);});
- await check('V8 advertised active version must exist before reporting historical-only or zero',async()=>{
-   for(const versions of [[],[dto().control.versions[1]]]){
-     const f=await fixture();f.open();f.expand('fqc');await tick();
-     await f.respond({revision:7,permissions:{view:true},control:{activeVersionId:'missing',versions}});
-     assert.match(f.main.textContent,/EQUIPMENT_REFERENCE_RESPONSE_INVALID/);
-     assert.doesNotMatch(f.main.textContent,/本次授權查詢範圍內沒有引用|這次查到的引用全屬歷史版本/);
-   }
+function currentDTO(){
+ const source='eq',active=dto().control.versions.find(v=>v.id==='active');
+ const byModule=['fqc','iqc','ipqc-ab','ipqc-c'].map(moduleId=>{
+  const scopes=moduleId==='ipqc-ab'?['A:SYN','B:SYN']:[''];
+  return {moduleId,connected:true,referenceVisible:true,items:scopes.flatMap(scope=>active.snapshot.items.map(i=>({
+    id:scope?JSON.stringify([scope,i.id]):i.id,itemId:i.id,scopeKey:scope,activeEquipmentId:source,draftEquipmentId:'',
+    selectable:true,effectiveReference:{versionId:active.id,versionNumber:active.number,status:'approved',itemId:i.id,scope,checkNo:i.checkNo,itemName:i.name}
+  })))};
  });
- await check('V8 FQC permission not confirmed and valid scoped empty remain distinct',async()=>{const f=await fixture();f.open();f.expand('fqc');await tick();const data=dto();data.permissions.view=false;await f.respond(data);assert.match(f.main.textContent,/EQUIPMENT_REFERENCE_ACCESS_UNCONFIRMED/);f.main.querySelector('[data-view-ref-retry]').click();await tick();await f.respond({revision:8,permissions:{view:true},control:{activeVersionId:null,versions:[]}},200,1);assert.match(f.main.textContent,/本次授權查詢範圍內沒有引用/);});
- await check('V9 IQC/C/AB/planned are independent explicit reads with stable ID and AB scope separation',async()=>{const f=await fixture();f.open();for(const [index,kind]of ['iqc','ipqcC','ipqcAB','planned'].entries()){f.expand(kind);await tick();assert.equal(f.requests.length,index+1);const d=dto();if(kind==='ipqcAB')d.control={scopes:{'A:SYN':d.control,'B:SYN':copy(d.control)}};if(kind==='planned'){d.pending=[{moduleId:'fqc',pendingVersionId:'planned',pendingVersionNumber:26,itemId:'item0',itemCode:'SYN-0',status:'pending',reason:'Synthetic pending transfer'}];d.modules=[];}await f.respond(d,200,index);const row=f.c.__eqViewTest.view.references.states[kind];assert.equal(row.status,'loaded');if(kind==='ipqcAB')assert.equal(row.result.active.length,8);if(kind==='planned')assert.equal(row.result.planned.length,1);}assert.equal(f.c.__eqViewTest.view.references.states.fqc.status,'unloaded');assert.equal(f.requests.filter(r=>r.url==='/api/fqc/workflow').length,0);});
- await check('V10 late row click and quality update cannot trigger hidden reads or detail after context invalidation',async()=>{const f=await fixture();f.open();f.expand('fqc');await tick();await f.respond(freeze(dto()));const button=f.main.querySelector('[data-view-ref-detail]');await f.c.__eqViewTest.refreshOpenEquipmentReferences();assert.equal(f.requests.length,1);f.rotate();button.click();assert.equal(f.doc.querySelectorAll('.fqc-readonly-item-modal').length,0);assert.equal(f.requests.length,1);});
- await check('V11 AB row preserves actual normal tab delegate with exact scope/version/item; stale or foreign rows do not dispatch',async()=>{const f=await fixture();f.c.MutationObserver=class{observe(){}};vm.runInContext(read('ipqc-ab.js').replace(/\}\)\(\);\s*$/,'window.__abRefTest={pending:()=>pendingItemView,control:()=>control};})();'),f.c);const abBefore=f.c.__abRefTest.control(),tab=f.doc.createElement('button');tab.setAttribute('data-quality-tab','quality-ipqc-ab');let navigations=0;tab.onclick=()=>navigations++;f.doc.body.append(tab);f.open();f.expand('ipqcAB');await tick();const d=dto();d.control={scopes:{'A:SYN':d.control,'B:SYN':copy(d.control)}};await f.respond(freeze(d));const button=f.main.querySelector('[data-view-ab-detail="item0"][data-view-ab-version="old"][data-view-ab-scope="B:SYN"]');assert(button);button.click();assert.equal(navigations,1);assert.deepEqual(JSON.parse(JSON.stringify(f.c.__abRefTest.pending())),{versionId:'old',itemId:'item0',scope:'B:SYN'});assert.equal(f.c.__abRefTest.control(),abBefore,'caller must not adopt external reference DTO into AB');button.dataset.viewAbScope='missing';button.click();assert.equal(navigations,1);button.dataset.viewAbScope='B:SYN';f.rotate();button.click();assert.equal(navigations,1);assert.equal(f.requests.length,1);assert.equal(f.writes.length,0);});
- assert(results.length);console.log(JSON.stringify({status:'PASS_BOUNDED_REFERENCE_VIEW',groups:results.length,results,source,sourceHashes:Object.fromEntries(['routine-equipment.js','fqc-master.js','shared-draft-client.js','ipqc-ab.js'].map(n=>[n,createHash('sha256').update(read(n)).digest('hex')])),limits:['Actual full frontend JS and event handlers with synthetic DOM/HTTP; no native rendering or live timings','Synthetic read DTOs, not normal approved producer or actual API/ACL/database test','No automatic writes; strict edit/delete/replacement source remains independently fenced']}));
+ return {referenceSourceId:source,revision:7,modules:byModule,pending:[]};
+}
+const results=[];
+async function check(name,fn){await fn();results.push(name);console.log(name,'PASS');}
+(async()=>{
+ await check('Four closed modules make no requests. Four expanded modules share one pinned preview.',async()=>{
+  const f=await fixture();f.open();assert.equal(f.requests.length,0);
+  for(const k of ['fqc','iqc','ipqcAB','ipqcC','planned'])f.expand(k);
+  await tick();assert.equal(f.requests.length,1);assert.match(f.requests[0].url,/quality-equipment-replacement\?sourceId=eq$/);
+  const data=currentDTO();data.modules[0].items[0].selectable=false;data.modules[0].items[0].unavailableReason='待審';
+  await f.respond(data);const states=f.c.__eqViewTest.view.references.states;
+  assert(Object.values(states).every(r=>r.revision===7&&r.status==='loaded'));
+  assert.equal(states.ipqcAB.result.active.length,8);
+  assert.match(f.main.querySelector('[data-view-ref-kind="fqc"] summary').textContent,/直接引用 4 筆，可選 3 筆/);
+  assert.match(f.main.textContent,/待審已鎖定/);assert.equal(f.writes.length,0);
+ });
+ await check('History-only standards yield effective zero. Open draft and pending stay separate.',async()=>{
+  const f=await fixture();f.open();f.expand('iqc');await tick();const data=currentDTO();
+  const items=data.modules.find(m=>m.moduleId==='iqc').items;
+  for(const [n,r] of items.entries())Object.assign(r,{activeEquipmentId:'elsewhere',effectiveReference:null,draftEquipmentId:'eq',openStatus:n%2?'draft':'pending',openVersionId:'v-open',code:'DRAFT-'+n,openVersionNumber:4,selectable:!!(n%2)});
+  await f.respond(data);
+  const node=f.main.querySelector('[data-view-ref-kind="iqc"]');assert.match(node.querySelector('summary').textContent,/直接引用 0 筆，可選 0 筆/);
+  const extra=node.querySelector('.routine-ref-extra');assert(extra&&!extra.open);assert.match(extra.textContent,/草稿中 \(2\)/);assert.match(extra.textContent,/主管審核中 \(2\)/);
+  assert.equal(node.querySelectorAll('.routine-ref-extra [data-view-exact]').length,4);
+ });
+ for(const failure of ['aborted','bad DTO','disconnected','permission','wrong piece','HTTP 503']){
+  await check(failure+' stays unknown; retry fetches a fresh snapshot',async()=>{
+   const f=await fixture();f.open();f.expand('ipqcC');await tick();const data=currentDTO(),m=data.modules.find(m=>m.moduleId==='ipqc-c');
+   if(failure==='aborted'){f.pending[0](Promise.reject(new DOMException('Fetch is aborted','AbortError')));await tick();}
+   else{
+    if(failure==='bad DTO')delete m.items[0].effectiveReference;
+    if(failure==='disconnected')m.connected=false;
+    if(failure==='permission')m.referenceVisible=false;
+    if(failure==='wrong piece')data.referenceSourceId='other-piece';
+    await f.respond(data,failure==='HTTP 503'?503:200);
+   }
+   const summary=()=>f.main.querySelector('[data-view-ref-kind="ipqcC"] summary').textContent;
+   assert.match(summary(),/查詢未完成/);assert.doesNotMatch(summary(),/0/);
+   f.main.querySelector('[data-view-ref-retry="ipqcC"]').click();await tick();
+   const fresh=currentDTO();fresh.revision=8;fresh.modules.find(m=>m.moduleId==='ipqc-c').items=[];
+   await f.respond(fresh,200,1);assert.match(summary(),/直接引用 0/);assert.equal(f.c.__eqViewTest.view.references.states.ipqcC.revision,8);
+  });
+ }
+ for(const change of ['actor','close','device','delivery','revision']){
+  await check('late common preview ignored after '+change,async()=>{
+   const f=await fixture();f.open();f.expand('fqc');await tick();
+   if(change==='actor')f.rotate();if(change==='close')f.close();if(change==='device')f.open('eq2');if(change==='delivery')f.newDelivery();if(change==='revision')f.c.__eqViewTest.bump();
+   const before=f.main.innerHTML;await f.respond(currentDTO());assert.equal(f.main.innerHTML,before);assert.equal(f.writes.length,0);
+  });
+ }
+ await check('FQC exact effective item opens its approved snapshot; stale locator never falls back',async()=>{
+  const f=await fixture();f.open();f.expand('fqc');await tick();await f.respond(currentDTO());
+  const link=()=>f.main.querySelector('[data-view-exact="fqc"][data-iid="item0"]');link().click();await tick();
+  const q=new URL(f.requests[1].url,'https://synthetic.invalid').searchParams;
+  assert.deepEqual([q.get('revision'),q.get('sourceId'),q.get('versionId'),q.get('itemId')],['7','eq','active','item0']);
+  const v=copy(dto().control.versions.find(v=>v.id==='active'));v.snapshot.items=[v.snapshot.items[0]];
+  await f.respond({revision:7,version:v},200,1);
+  const modal=f.doc.querySelector('.fqc-readonly-item-modal');assert(modal);assert.match(modal.textContent,/Active check 0/);assert(!modal.textContent.includes('POISON'));
+  f.close();assert(!modal.isConnected);
+  f.open();f.expand('iqc');await tick();await f.respond(currentDTO(),200,2);
+  f.main.querySelector('[data-view-exact="iqc"]').click();await tick();await f.respond({revision:8,version:v},200,3);
+  assert.match(f.main.textContent,/EQUIPMENT_REFERENCE_RESPONSE_INVALID/);assert.equal(f.writes.length,0);
+ });
+ console.log(JSON.stringify({status:'PASS_EFFECTIVE_REFERENCE_VIEW',groups:results.length}));
 })().catch(e=>{console.error(e);process.exitCode=1;});

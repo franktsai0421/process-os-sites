@@ -13,9 +13,11 @@ const copy = value => JSON.parse(JSON.stringify(value));
 const tick = () => new Promise(setImmediate);
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
 const actor = { id: 'synthetic-editor', name: 'Synthetic editor', role: 'admin' };
-const qualityAtomic = moduleId => ['fqc','iqc'].includes(moduleId);
 const uiKey = moduleId => moduleId === 'ipqc-ab' ? 'ipqcAB' : moduleId === 'ipqc-c' ? 'ipqcC' : moduleId;
 
+const changesOf=command=>command.localChanges || command.input?.scopes?.flatMap(s=>s.changes) || [command];
+const patchesOf=command=>changesOf(command).flatMap(change=>change.patches||[]);
+const guardsOf=command=>changesOf(command).flatMap(change=>change.guards||[]);
 async function fixture({ moduleId = 'fqc', editable = true, scopes = ['A:G'], pause = '', rejectScope = '', openTransfer = true, establishInputOwner = false } = {}) {
   const { canvasDOM } = await import(pathToFileURL(path.join(source, 'scripts/login-reentry-dom.mjs')).href);
   const dom = canvasDOM(), document = dom.document;
@@ -27,7 +29,8 @@ async function fixture({ moduleId = 'fqc', editable = true, scopes = ['A:G'], pa
   const snapshot = { equipment: [tool('source', 'Synthetic source'), tool('target', 'Synthetic target'), tool('other', 'Synthetic other')], categories: [{ id: 'cat', code: 'C01', name: 'Synthetic category' }], subcategories: [{ id: 'sub', categoryId: 'cat', name: 'Synthetic subcategory' }], groups: [{ id: 'group', categoryId: 'cat', subcategoryId: 'sub', name: 'Synthetic group' }], issues: [] };
   const control = { schemaVersion: 1, activeVersionId: 'active', reservedMarks: {}, issues: [], versions: [{ id: 'active', number: 1, status: 'approved', history: [], ...copy(snapshot) }, { id: 'draft', number: 2, status: 'draft', history: [], ...copy(snapshot) }], workflow: { generation: 'equipment-gen', revision: 1, working: copy(snapshot), cases: [], saved: null } };
   const rows = (moduleId === 'ipqc-ab' ? scopes : ['']).map((scopeKey, index) => ({ id: scopeKey ? JSON.stringify([scopeKey, 'item']) : 'item', itemId: 'item', scopeKey, code: 'SYN-' + index, name: 'Synthetic item', selectable: true, activeEquipmentId: 'source', draftEquipmentId: editable ? 'source' : '', activeInspectionMode: 'equipment', draftInspectionMode: editable ? 'equipment' : '', activeTool: '01', draftTool: editable ? '01' : '', openStatus: editable ? 'draft' : '', openVersionId: editable ? 'quality-draft' : '' }));
-  const preview = { revision, modules: [{ moduleId, connected: true, workflow: { editable, generation: 'quality-gen' }, items: rows }], pending: [] };
+  for(const row of rows)row.effectiveReference={versionId:'active',versionNumber:1,status:'approved',itemId:row.itemId,scope:row.scopeKey,checkNo:row.code,itemName:row.name};
+  const preview = { revision, referenceSourceId:'source', modules: [{ moduleId, connected: true, workflow: { editable, generation: 'quality-gen' }, items: rows }], pending: [] };
   const timers = new Map(); let timer = 0;
   const c = { ...dom, console: { error() {}, warn() {} }, crypto: webcrypto, URL, URLSearchParams, Response, AbortController, AbortSignal, structuredClone, Map, Set, Promise, JSON, Date, Math, Intl, Number, Error,
     location: { href: 'https://synthetic.invalid/process/', pathname: '/process/', origin: 'https://synthetic.invalid' }, CSS: { escape: String }, scrollX: 0, scrollY: 0, scrollTo() {}, requestAnimationFrame() {},
@@ -43,10 +46,11 @@ async function fixture({ moduleId = 'fqc', editable = true, scopes = ['A:G'], pa
   let fqcRevision=1,fqcDraft=editable,fqcSaved=null;
   const fqcReceipts=new Map();
   const fqcData=()=>{
-    const items=preview.modules[0].items.map(row=>({id:row.itemId,equipmentId:row.draftEquipmentId||row.activeEquipmentId,tool:row.draftTool||row.activeTool,inspectionMode:row.draftInspectionMode||row.activeInspectionMode}));
-    return {revision,permissions:{view:allowed,edit:allowed,save:allowed,create:allowed,delete:allowed,submit:allowed,withdraw:allowed,approve:allowed,return:allowed,history:allowed},control:{activeVersionId:null,versions:fqcDraft?[{id:'quality-draft',status:'draft',revision:fqcRevision,baseVersionId:null,snapshot:{items}}]:[],workflow:{scope:moduleId,generation:'quality-gen',revision:fqcRevision,pendingId:null,baseId:null,saved:fqcSaved,active:{id:null,content:{items:[]}},working:{items}}}};
+    const items=preview.modules[0].items.map(row=>({id:row.itemId,equipmentId:fqcDraft?row.draftEquipmentId:row.activeEquipmentId,tool:fqcDraft?row.draftTool:row.activeTool,inspectionMode:fqcDraft?row.draftInspectionMode:row.activeInspectionMode}));
+    return {revision,permissions:{view:allowed,edit:allowed,save:allowed,create:allowed,delete:allowed,submit:allowed,withdraw:allowed,approve:allowed,return:allowed,history:allowed},control:{activeVersionId:null,versions:fqcDraft?[{id:'quality-draft',status:'draft',revision:fqcRevision,baseVersionId:null,snapshot:{items}}]:[],workflow:{scope:moduleId==='ipqc-ab'?'ipqc-ab:module':moduleId,generation:'quality-gen',revision:fqcRevision,pendingId:null,baseId:null,saved:fqcSaved,active:{id:null,content:{items:[]}},working:{items}}}};
   };
-  if(qualityAtomic(moduleId))Object.assign(preview.modules[0],{activeVersion:null,openVersion:editable?{id:'quality-draft',status:'draft',revision:1}:null});
+  Object.assign(preview.modules[0],{activeVersion:null,openVersion:editable?{id:'quality-draft',status:'draft',revision:1}:null});
+  if(moduleId==='ipqc-ab')preview.modules[0].scopes=scopes.map(key=>({scopeKey:key,connected:true,workflow:{generation:'scope-gen',editable},activeVersion:null,items:rows.filter(row=>row.scopeKey===key)}));
   c.fetch = async (url, options = {}) => {
     const parsed = new URL(url, c.location.origin), method = options.method || 'GET', body = options.body ? JSON.parse(options.body) : null;
     calls.push({ path: parsed.pathname, query: parsed.search, method, actor: options.headers?.['X-Test-Actor'], body });
@@ -54,16 +58,16 @@ async function fixture({ moduleId = 'fqc', editable = true, scopes = ['A:G'], pa
       if (pause === 'preview') { paused.resolve(); await wait.promise; }
       return respond(preview);
     }
-    if(parsed.pathname==='/api/'+moduleId+'/workflow'&&qualityAtomic(moduleId)){
+    if(parsed.pathname==='/api/'+moduleId+'/workflow'){
       if(method==='GET')return parsed.searchParams.has('operationId')?respond(fqcReceipts.get(parsed.searchParams.get('operationId'))||{error:'OPERATION_NOT_FOUND'},fqcReceipts.has(parsed.searchParams.get('operationId'))?200:404):respond(fqcData());
       if(body.action==='begin-v1'){
         if(pause==='begin'){paused.resolve();await wait.promise;}fqcDraft=true;fqcRevision++;revision++;
         for(const row of preview.modules[0].items){row.openStatus='draft';row.openVersionId='quality-draft';row.draftEquipmentId=row.activeEquipmentId;row.draftTool=row.activeTool;}
-        preview.modules[0].workflow.editable=true;preview.modules[0].openVersion={id:'quality-draft',status:'draft',revision:fqcRevision};
+        preview.revision=revision;preview.modules[0].workflow.editable=true;preview.modules[0].openVersion={id:'quality-draft',status:'draft',revision:fqcRevision};
         const receipt={operationId:body.begin.operationId,generation:'quality-gen',revision:fqcRevision,savedId:null,caseId:null,unchanged:false},result={...fqcData(),receipt,operationKind:'begin-v1'};fqcReceipts.set(receipt.operationId,result);return respond(result);
       }
-      const command=body.command;fqcRevision++;revision++;
-      for(const patch of command.patches||[]){const row=preview.modules[0].items.find(row=>row.itemId===patch.path[1].id);row[patch.path[2]==='tool'?'draftTool':patch.path[2]==='inspectionMode'?'draftInspectionMode':'draftEquipmentId']=patch.value;}
+      const command=body.command;if(rejectScope&&command.input?.scopes?.some(s=>s.scope===rejectScope))return respond({error:'DEPENDENCY_CHANGED_RECONFIRM'},409);fqcRevision++;revision++;preview.revision=revision;
+      for(const patch of patchesOf(command)){const row=preview.modules[0].items.find(row=>row.itemId===patch.path[1].id);row[patch.path[2]==='tool'?'draftTool':patch.path[2]==='inspectionMode'?'draftInspectionMode':'draftEquipmentId']=patch.value;}
       fqcSaved={id:'synthetic-saved-'+command.operationId,revision:fqcRevision,content:copy(fqcData().control.workflow.working)};
       const receipt={operationId:command.operationId,generation:command.generation,revision:fqcRevision,savedId:fqcSaved.id,caseId:null,unchanged:false},result={...fqcData(),receipt};fqcReceipts.set(receipt.operationId,result);return respond(result);
     }
@@ -100,7 +104,7 @@ if (require.main === module) (async () => {
     assert.doesNotMatch(rendered(), /直接引用 0/);
     f.preview.modules.push({moduleId:'iqc',connected:false,items:[]},
       {moduleId:'ipqc-ab',connected:true,items:[]},
-      {moduleId:'ipqc-c',connected:true,items:[{id:'locked',itemId:'locked',selectable:false}]});
+      {moduleId:'ipqc-c',connected:true,items:[{id:'locked',itemId:'locked',activeEquipmentId:'source',draftEquipmentId:'',selectable:false,effectiveReference:{versionId:'v',versionNumber:1,status:'approved',itemId:'locked',scope:'',checkNo:'Locked'}}]});
     f.release();
     await f.tick();
     for (const message of [/模組未接入或資料不完整/, /直接引用 0 筆，可選 0 筆/, /直接引用 1 筆，可選 0 筆/, /直接引用 1 筆，可選 1 筆/]) assert.match(rendered(),message);
@@ -113,11 +117,11 @@ if (require.main === module) (async () => {
   for (const moduleId of ['fqc', 'iqc', 'ipqc-c', 'ipqc-ab']) for (const editable of [true, false]) await check(`${moduleId} ${editable ? 'editable' : 'new'} draft uses its confirmed guarded transaction`, async () => {
     const f = await fixture({ moduleId, editable }), before = JSON.stringify(f.test.model); await f.execute();
     const writes = f.writes(), commands = writes.filter(row => row.body.command);
-    assert.equal(commands.length, 1); assert.equal(commands[0].body.command.action, qualityAtomic(moduleId)?'save':'apply');
-    assert.equal(writes.filter(row => row.body.action === (qualityAtomic(moduleId)?'begin-v1':'begin')).length, !editable ? 1 : 0);
-    assert(commands[0].body.command.guards.length); assert(commands[0].body.command.patches.some(patch => patch.value === 'target'));
+    assert.equal(commands.length, 1); assert.equal(commands[0].body.command.action, 'save');
+    assert.equal(writes.filter(row => row.body.action === 'begin-v1').length, !editable ? 1 : 0);
+    assert(guardsOf(commands[0].body.command).length); assert(patchesOf(commands[0].body.command).some(patch => patch.value === 'target'));
     assert.equal(JSON.stringify(f.test.model), before, 'source equipment active/draft/history remain unchanged');
-    assert.match(f.test.dialog.moduleMessages[uiKey(moduleId)], qualityAtomic(moduleId)?/已移轉並存取/:/尚未手動儲存/);
+    assert.match(f.test.dialog.moduleMessages[uiKey(moduleId)], /已移轉並存取/);
   });
   for (const change of ['actor', 'epoch', 'delivery', 'requiresReload', 'close', 'version', 'target']) await check(`pending flush ${change} invalidates transfer before POST`, async () => {
     const f = await fixture({ pause: 'flush' }), task = f.execute(); await f.paused;
@@ -127,28 +131,73 @@ if (require.main === module) (async () => {
   });
   await check('Begin ACK after dialog close does not send Apply', async () => { const f = await fixture({ editable: false, pause: 'begin' }), task = f.execute(); await f.paused; f.close(); f.release(); await task; assert.equal(f.writes().filter(row => row.body.command).length, 0); });
   await check('duplicate or concurrent transfer entry is single flight', async () => { const f = await fixture({ pause: 'flush' }), first = f.execute(); await f.paused; const second = f.execute(); f.release(); await Promise.all([first, second]); assert.equal(f.writes().filter(row => row.body.command).length, 1); });
+  await check('draft-only equipment can still be explicitly selected and saved',async()=>{
+    const f=await fixture({moduleId:'fqc',pause:'preview'});
+    const row=f.preview.modules[0].items[0];
+    Object.assign(row,{activeEquipmentId:'other',effectiveReference:null,draftEquipmentId:'source',openStatus:'draft',openVersionId:'quality-draft'});
+    f.release();await tick();
+    const extra=f.host.querySelector('[data-transfer-extra="fqc"]');assert(extra && !extra.open);
+    assert.match(f.host.querySelector('.routine-transfer-module-head').textContent,/直接引用 0 筆，可選 0 筆/);
+    assert.equal(f.test.dialog.selection.fqc.size,0);
+    extra.open=true;const check=extra.querySelector('[data-transfer-check]');check.checked=true;check.onchange();
+    assert(f.test.dialog.selection.fqc.has(row.id));await f.execute();
+    assert.equal(f.writes().filter(call=>call.body?.command?.action==='save').length,1);
+  });
   await check('fresh pending/stale preview requires explicit reconfirmation and zero POST', async () => { const f = await fixture(); f.preview.modules[0].items[0].selectable = false; await f.execute(); assert.equal(f.writes().length, 0); assert.match(f.test.dialog.moduleMessages.fqc, /項目已變更/); });
+  for(const moduleId of ['fqc','iqc','ipqc-ab','ipqc-c']){
+    for(const visual of (['iqc','ipqc-ab'].includes(moduleId)?[false,true]:[false])){
+      await check(moduleId+' protects a concurrently '+(visual?'visual':'cleared')+' equipment choice',async()=>{
+        const f=await fixture({moduleId}),row=f.preview.modules[0].items[0],key=uiKey(moduleId);
+        row.draftEquipmentId='';if(visual)row.draftInspectionMode='visual';
+        let message;f.c.confirm=text=>{if(text.includes('開頁時')){message=text;return false;}return true;};
+        await f.execute();assert.equal(f.writes().length,0);assert.match(message,visual?/目視/:/已清空檢具/);
+        assert(message.includes(row.code)&&message.includes('SYN-target')&&message.includes('保留目前'));
+        assert.equal(row.draftEquipmentId,'');f.c.confirm=()=>true;await f.execute();
+        const command=f.writes().find(call=>call.body?.command)?.body.command;
+        assert.equal(command?.action,'save');
+        assert(guardsOf(command).some(g=>g.path.at(-1)==='equipmentId' && g.value===''));
+        if(visual)assert(guardsOf(command).some(g=>g.path.at(-1)==='inspectionMode' && g.value==='visual'));
+        assert.match(f.test.dialog.moduleMessages[key],/已移轉並存取草稿/);
+      });
+    }
+  }
+  for(const moduleId of ['fqc','iqc','ipqc-ab','ipqc-c']){
+    await check(moduleId+' keeps edits to a different field and a different item',async()=>{
+      const f=await fixture({moduleId}),items=f.preview.modules[0].items,row=items[0];
+      row.name='Latest shared name';
+      const sibling={...row,id:row.scopeKey?JSON.stringify([row.scopeKey,'sibling']):'sibling',itemId:'sibling',effectiveReference:{...row.effectiveReference,itemId:'sibling'},name:'Other shared edit',draftEquipmentId:'other'};
+      items.push(sibling);await f.execute();
+      const command=f.writes().find(call=>call.body?.command)?.body.command;
+      assert(command && patchesOf(command).length);
+      const fields=moduleId==='fqc'?['equipmentId','tool']:moduleId==='ipqc-c'?['equipmentId']:['equipmentId','inspectionMode'];
+      assert(patchesOf(command).every(p=>p.path[1].id===row.itemId && fields.includes(p.path[2])));
+      assert.equal(row.name,'Latest shared name');assert.equal(sibling.draftEquipmentId,'other');assert.equal(sibling.name,'Other shared edit');
+    });
+  }
   await check('unavailable target is rejected before Begin', async () => { const f = await fixture({ moduleId: 'iqc', editable: false }); f.test.dialog.targetEqId = 'missing'; await f.execute(); assert.equal(f.writes().length, 0); });
-  await check('AB partial conflict retains exact scope and successful unsaved result', async () => { const f = await fixture({ moduleId: 'ipqc-ab', scopes: ['A:G', 'B:G'], rejectScope: 'B:G' }); await f.execute(); assert.match(f.test.dialog.moduleMessages.ipqcAB, /已套用 1/); assert.match(f.test.dialog.moduleMessages.ipqcAB, /衝突 1/); assert.match(f.test.dialog.moduleMessages.ipqcAB, /B:G \/ item/); assert.match(f.test.dialog.moduleMessages.ipqcAB, /尚未手動儲存/); });
+  await check('AB named scope conflict rejects its entire module Save',async()=>{
+    const f=await fixture({moduleId:'ipqc-ab',scopes:['A:G','B:G'],rejectScope:'B:G'});await f.execute();assert.equal(f.test.dialog.moduleStatus.ipqcAB,'error');
+    assert(!f.test.dialog.moduleMessages.ipqcAB.includes('已移轉並存取'));assert.equal(f.writes().filter(r=>r.body?.command?.action==='save').length,1);
+  });
   await check('late preview from old identity does not populate new actor UI', async () => { const f = await fixture({ pause: 'preview' }); await f.paused; f.rotateEpoch(); f.release(); await tick(); assert.equal(f.test.dialog.preview, null); assert.equal(f.writes().length, 0); });
-  await check('display reference reads dispatch together; strict destructive check stays sequential', async () => {
+  await check('display uses one common revision; strict destructive check stays sequential', async () => {
     for (const strict of [false, true]) {
       const f = await fixture(), pending = [], dispatched = [];
       f.c.fetch = url => { dispatched.push(String(url)); return new Promise(resolve => pending.push({ url: String(url), resolve })); };
       let done = false; const task = f.test.queryAllQualityReferences('source', { strict }).then(() => { done = true; });
       await tick(); const initial = dispatched.length;
       while (!done) { for (const request of pending.splice(0)) request.resolve({ ok: true, json: async () => request.url.includes('replacement') ? { modules: [], pending: [] } : request.url.includes('ipqc-ab') ? { control: { scopes: {} } } : { control: { versions: [] } } }); await tick(); }
-      await task; assert.equal(initial, strict ? 1 : 4); assert.equal(dispatched.length, 4);
+      await task; assert.equal(initial,1);assert.equal(dispatched.length,strict?4:1);
     }
   });
   await check('duplicate display read is single flight with independent per-module failures', async () => {
     const f = await fixture({ openTransfer: false }); const pending = [], urls = [];
     f.c.fetch = url => { urls.push(String(url)); return new Promise(resolve => pending.push({ url: String(url), resolve })); };
     const a = f.test.loadEquipmentReferences('source', { renderAfter: false }), b = f.test.loadEquipmentReferences('source', { renderAfter: false });
-    await tick(); assert.equal(urls.length, 4);
-    for(const request of pending) request.resolve({ ok: !request.url.includes('iqc'), status: 403, json: async () => request.url.includes('replacement') ? { modules: [], pending: [] } : {} });
+    await tick(); assert.equal(urls.length, 1);
+    for(const request of pending)request.resolve({ok:true,json:async()=>f.preview});
     const [first, second] = await Promise.all([a,b]); assert.equal(first, second); assert(first.iqc.unavailable); assert(first.ipqcC.unavailable); assert(first.ipqcAB.unavailable);
-    assert.match(f.test.equipmentReferencesSectionHTML('source','edit'), /查詢未完成/); assert.equal(urls.length, 4);
+    assert.match(f.test.equipmentReferencesSectionHTML('source','edit'), /查詢未完成/); assert.equal(urls.length, 1);
   });
   for(const change of ['actor','epoch','delivery','version','cancel']) await check('display read '+change+' drops stale cache completion', async () => {
     const f = await fixture({ openTransfer: false }); const pending=[];
@@ -159,28 +208,10 @@ if (require.main === module) (async () => {
     await task;assert.equal(f.test.refs.has('source'),false);assert.equal(f.writes().length,0);
   });
   for (const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab']) for (const recovery of ['matching','other-creator','wrong-scope','pending','read-failure']) await check(`${moduleId} target Begin unknown ${recovery}: no blind retry or automatic Apply`, async()=>{
-    const f=await fixture({moduleId,editable:false}), raw=f.c.fetch; let begin=0,commands=0,reads=0;
-    if(qualityAtomic(moduleId)){const endpoint='/api/'+moduleId+'/workflow?caseMetadata=1',key='routine-equipment-target-begin:synthetic-editor:'+endpoint,marker=JSON.stringify({actorId:'synthetic-editor',endpoint,scope:moduleId,intent:JSON.stringify({sourceId:'source',targetEqId:'target',ids:['item']}),activeVersionId:null,generation:'quality-gen',draftId:null});f.storage.set(key,marker);await f.execute();await f.execute();assert.equal(f.writes().length,0);assert.equal(f.storage.get(key),marker);assert.match(f.test.dialog.moduleMessages[uiKey(moduleId)],/待確認/);return;}
-    const scope=moduleId==='ipqc-ab'?'ipqc-ab:A:G':moduleId;
-    f.c.fetch=async(url, options={})=>{
-      const method=options.method||'GET', body=options.body&&JSON.parse(options.body);
-      if(method==='POST'&&body.action==='begin'){begin++;throw Object.assign(Error('signal is aborted without reason'),{name:'AbortError'});}
-      if(method==='POST'&&body.command)commands++;
-      if(method==='GET'&&String(url).includes('/workflow')){
-        reads++; if(recovery==='read-failure')return {ok:false,status:503,json:async()=>({error:'READ_FAILED'})};
-        return {ok:true,status:200,json:async()=>({revision:11,permissions:{view:true,edit:true},control:{activeVersionId:null,versions:[{id:'shared-quality-gen',status:'draft',baseVersionId:null,creatorId:recovery==='other-creator'?'other':'synthetic-editor',snapshot:{items:[]}}],workflow:{scope:recovery==='wrong-scope'?'other':scope,generation:'quality-gen',active:{id:null},baseId:null,working:{items:[]},pendingId:recovery==='pending'?'case':null}}})};
-      }
-      return raw(url,options);
-    };
-    await f.execute(); assert.equal(begin,1);assert.equal(commands,0);assert.equal(f.storage.size,1);
-    if(moduleId==='ipqc-ab'){
-      assert.equal(f.test.dialog.refreshing,true,'AB conflict result paints before independent display refresh completes');
-      await f.execute();assert.equal(reads,1,'duplicate entry while display refresh is active cannot start recovery or resend');
-      await tick();assert.equal(f.test.dialog.refreshing,false,'settled independent display refresh restores explicit readonly recovery entry');
-    }
-    await f.execute(); assert.equal(begin,1);assert.equal(commands,0);assert.equal(reads,2);
-    assert.equal(f.storage.size,1,'a matching projection cannot settle an unidentified Begin');
-    assert.match(f.test.dialog.moduleMessages[uiKey(moduleId)],/尚未確認/);
+    const f=await fixture({moduleId,editable:false});
+    const endpoint=moduleId==='ipqc-ab'?'/api/ipqc-ab/workflow?scope=A%3AG&caseMetadata=1':'/api/'+moduleId+'/workflow?caseMetadata=1';
+    const key='routine-equipment-target-begin:synthetic-editor:'+endpoint,marker=JSON.stringify({actorId:'synthetic-editor',endpoint,recovery});
+    f.storage.set(key,marker);await f.execute();await f.execute();assert.equal(f.writes().length,0);assert.equal(f.storage.get(key),marker);assert.equal(f.test.dialog.moduleStatus[uiKey(moduleId)],'error');
   });
   for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab'])for (const change of ['close','epoch','delivery']) await check(moduleId+' target queued submit drains then '+change+' prevents transfer Apply',async()=>{
     const f=await fixture({moduleId,scopes:['B:G']}), raw=f.c.fetch; let release,started;
@@ -194,47 +225,28 @@ if (require.main === module) (async () => {
   for(const invalidation of ['successful-transfer','reference-event'])await check(invalidation+' invalidates pre-write in-flight reference reads',async()=>{
     const f=await fixture({moduleId:'iqc'}),raw=f.c.fetch,pending=[];let reads=0,hold=true;
     f.c.fetch=async(url,options={})=>{if((options.method||'GET')==='GET'&&!String(url).includes('/workflow')){
-      if(String(url)==='/api/iqc')reads++;
+      if(String(url).includes('/api/quality-equipment-replacement'))reads++;
       if(hold)return new Promise(resolve=>pending.push({url:String(url),resolve}));
     }return raw(url,options);};
-    const stale=f.test.loadEquipmentReferences('source',{renderAfter:false});await tick();assert.equal(pending.length,4);hold=false;
+    const stale=f.test.loadEquipmentReferences('source',{renderAfter:false});await tick();assert.equal(pending.length,1);hold=false;
     if(invalidation==='successful-transfer')await f.execute();else {await f.test.refreshOpenEquipmentReferences();await f.test.loadEquipmentReferences('source',{renderAfter:false});}
-    assert.equal(reads,2);
+    assert.equal(reads,invalidation==='successful-transfer'?4:2);
     for(const request of pending)request.resolve({ok:true,json:async()=>request.url.includes('replacement')?{modules:[],pending:[]}:request.url.includes('ipqc-ab')?{control:{scopes:{}}}:{control:{versions:[{id:'stale-before-transfer',status:'draft',snapshot:{items:[{id:'old',equipmentId:'source'}]}}]}}});
     await stale;assert(!f.test.refs.get('source').iqc.draft.some(row=>row.versionId==='stale-before-transfer'));
   });
-  for(const uncertainScope of ['A:G','B:G'])await check('AB '+uncertainScope+' uncertain Apply stops later scopes and retains confirmed partial success',async()=>{
-    const f=await fixture({moduleId:'ipqc-ab',scopes:['A:G','B:G','B:H']}),raw=f.c.fetch,posts=[];
-    f.c.fetch=async(url,options={})=>{const u=new URL(url,f.c.location.origin),body=options.body&&JSON.parse(options.body);
-      if(body?.command?.action==='apply'){posts.push(u.searchParams.get('scope'));if(u.searchParams.get('scope')===uncertainScope)throw Object.assign(Error('signal is aborted without reason'),{name:'AbortError'});}
-      if(u.searchParams.has('operationId'))return {ok:false,status:503,json:async()=>({error:'RECEIPT_UNAVAILABLE'})};return raw(url,options);};
-    await f.execute();assert.deepEqual(posts,uncertainScope==='A:G'?['A:G']:['A:G','B:G']);assert(f.storage.size>0);
-    assert.match(f.test.dialog.moduleMessages.ipqcAB,/RESULT_UNKNOWN_CHECK_BEFORE_RETRY/);assert.match(f.test.dialog.moduleMessages.ipqcAB,/B:H \/ item: 前一範圍需先唯讀核對，本次未執行/);
-    assert.match(f.test.dialog.moduleMessages.ipqcAB,uncertainScope==='A:G'?/已套用 0/:/已套用 1/);
+  await check('AB multi-scope Save uses one atomic guarded command',async()=>{
+    const f=await fixture({moduleId:'ipqc-ab',scopes:['A:G','B:G']});await f.execute();const writes=f.writes().filter(r=>r.body?.command);assert.equal(writes.length,1);assert.equal(writes[0].body.command.action,'save');assert.deepEqual(writes[0].body.command.input.scopes.map(s=>s.scope),['A:G','B:G']);
   });
   for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab'])await check(moduleId+' already matching target does not resend Apply or Begin',async()=>{
-    const f=await fixture({moduleId}),row=f.preview.modules[0].items[0];row.draftEquipmentId='target';row.draftTool='02';await f.test.loadTransferPreview();await f.execute();
-    assert.equal(f.writes().length,qualityAtomic(moduleId)?1:0);assert.match(f.test.dialog.moduleMessages[uiKey(moduleId)],qualityAtomic(moduleId)?/已移轉並存取/:/已相同 1/);
+    const f=await fixture({moduleId}),row=f.preview.modules[0].items[0];row.draftEquipmentId='target';row.draftTool='02';row.savedChoice={id:'existing-save',equipmentId:'target',mode:'equipment',tool:'02'};await f.test.loadTransferPreview();await f.execute();
+    assert.equal(f.writes().length,0);assert.match(f.test.dialog.moduleMessages[uiKey(moduleId)],/已相同 1/);
   });
   for(const field of ['draftInspectionMode','draftTool'])await check('same equipment still repairs selected '+field+' with original guard',async()=>{
     const moduleId=field==='draftTool'?'fqc':'iqc',f=await fixture({moduleId}),row=f.preview.modules[0].items[0];row.draftEquipmentId='target';row[field]='manual';await f.test.loadTransferPreview();await f.execute();
-    const command=f.writes().find(row=>row.body.command).body.command;assert.equal(command.action,qualityAtomic(moduleId)?'save':'apply');assert(command.guards.some(row=>row.value==='manual'));
-  });
-  await check('AB partial success survives page reopen; retry sends only failed scope',async()=>{
-    const f=await fixture({moduleId:'ipqc-ab',scopes:['A:G','B:G']}),raw=f.c.fetch,posted=[];
-    f.c.fetch=async(url,options={})=>{const u=new URL(url,f.c.location.origin),body=options.body&&JSON.parse(options.body);if(body?.command?.action==='apply'){
-      const scope=u.searchParams.get('scope');posted.push(scope);if(scope==='B:G')return Response.json({error:'DEPENDENCY_CHANGED_RECONFIRM'},{status:409});
-      const response=await raw(url,options);f.preview.modules[0].items.find(row=>row.scopeKey===scope).draftEquipmentId='target';return response;
-    }return raw(url,options);};
-    await f.execute();assert.deepEqual(posted,['A:G','B:G']);assert.match(f.test.dialog.moduleMessages.ipqcAB,/已套用 1/);assert.match(f.test.dialog.moduleMessages.ipqcAB,/衝突 1/);
-    // A fresh page has new transports; do not clear another client's failed commands.
-    const reopened=await fixture({moduleId:'ipqc-ab',scopes:['A:G','B:G']}),nextFetch=reopened.c.fetch;
-    reopened.preview.modules=copy(f.preview.modules);await reopened.test.loadTransferPreview();
-    reopened.c.fetch=async(url,options={})=>{const body=options.body&&JSON.parse(options.body);if(body?.command?.action==='apply')posted.push(new URL(url,reopened.c.location.origin).searchParams.get('scope'));return nextFetch(url,options);};
-    await reopened.execute();assert.deepEqual(posted,['A:G','B:G','B:G']);assert.match(reopened.test.dialog.moduleMessages.ipqcAB,/已套用 1/);assert.match(reopened.test.dialog.moduleMessages.ipqcAB,/已相同 1/);assert.equal(reopened.test.dialog.moduleStatus.ipqcAB,'success');
+    const command=f.writes().find(row=>row.body.command).body.command;assert.equal(command.action,'save');assert(guardsOf(command).some(row=>row.value==='manual'));
   });
   for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab'])await check(moduleId+' stale target generation rejects before POST',async()=>{
-    const f=await fixture({moduleId});f.preview.modules[0].workflow.generation='peer-generation';await f.execute();assert.equal(f.writes().length,0);assert.match(f.test.dialog.moduleMessages[uiKey(moduleId)],/世代/);
+    const f=await fixture({moduleId});(moduleId==='ipqc-ab'?f.preview.modules[0].scopes[0]:f.preview.modules[0]).workflow.generation='peer-generation';await f.execute();assert.equal(f.writes().length,0);assert.match(f.test.dialog.moduleMessages[uiKey(moduleId)],/世代/);
   });
   for(const rawMarker of ['{invalid',JSON.stringify({actorId:'synthetic-editor',scope:'fqc',endpoint:'/api/fqc/workflow?caseMetadata=1',intent:'other',generation:null,activeVersionId:null})])await check('unidentified target marker remains byte-identical through departure',async()=>{
     const f=await fixture(),key='routine-equipment-target-begin:synthetic-editor:/api/fqc/workflow?caseMetadata=1';f.storage.set(key,rawMarker);await f.execute();assert.equal(f.writes().length,0);assert.equal(f.storage.get(key),rawMarker);
@@ -246,15 +258,15 @@ if (require.main === module) (async () => {
   });
   for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab'])await check(moduleId+' matching current target cannot bypass unknown Apply or 404 receipt',async()=>{
     const f=await fixture({moduleId}),raw=f.c.fetch;let posts=0;
-    f.c.fetch=async(url,options={})=>{const u=new URL(url,f.c.location.origin),body=options.body&&JSON.parse(options.body);if(u.searchParams.has('operationId'))return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});if(body?.command?.action===(qualityAtomic(moduleId)?'save':'apply')){
+    f.c.fetch=async(url,options={})=>{const u=new URL(url,f.c.location.origin),body=options.body&&JSON.parse(options.body);if(u.searchParams.has('operationId'))return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});if(body?.command?.action===('save')){
       posts++;await raw(url,options);const row=f.preview.modules[0].items[0];row.draftEquipmentId='target';row.draftTool='02';throw Error('Synthetic committed ACK lost');
     }return raw(url,options);};
     await f.execute();const marker=[...f.storage];assert(marker.length);await f.test.loadTransferPreview();await f.execute();assert.equal(posts,1);assert.deepEqual([...f.storage],marker);assert.equal(f.test.dialog.moduleStatus[uiKey(moduleId)],'error');
   });
-  await check('AB same-scope failed change retains an already matching successful item',async()=>{
-    const f=await fixture({moduleId:'ipqc-ab',rejectScope:'A:G'}),entry=f.preview.modules[0],first=entry.items[0];entry.items.push({...copy(first),id:JSON.stringify(['A:G','other']),itemId:'other'});first.draftEquipmentId='target';await f.test.loadTransferPreview();f.test.dialog.selection.ipqcAB.add(JSON.stringify(['A:G','other']));await f.execute();
-    assert.match(f.test.dialog.moduleMessages.ipqcAB,/已相同 1/);assert.match(f.test.dialog.moduleMessages.ipqcAB,/衝突 1/);assert(!f.test.dialog.moduleMessages.ipqcAB.includes('A:G / item:'));
-    const command=f.writes().find(row=>row.body.command).body.command;assert(command.patches.every(patch=>patch.path[1].id==='other'));
+  await check('AB same-scope failure preserves a previously saved row',async()=>{
+    const f=await fixture({moduleId:'ipqc-ab',rejectScope:'A:G'}),entry=f.preview.modules[0],first=entry.items[0];entry.items.push({...copy(first),id:JSON.stringify(['A:G','other']),itemId:'other',effectiveReference:{...first.effectiveReference,itemId:'other'}});first.draftEquipmentId='target';first.savedChoice={id:'previous',equipmentId:'target',mode:'equipment'};
+    await f.test.loadTransferPreview();f.test.dialog.selection.ipqcAB.add(JSON.stringify(['A:G','other']));await f.execute();assert.equal(f.test.dialog.moduleStatus.ipqcAB,'error');
+    const cmd=f.writes().find(row=>row.body.command).body.command;assert(patchesOf(cmd).every(patch=>patch.path[1].id==='other'));
   });
   const summary = { status: results.every(row => row.status === 'PASS') ? 'PASS_BOUNDED_TRANSFER_INTENT' : 'FAIL_BOUNDED_TRANSFER_INTENT', cases: results.length, passed: results.filter(row => row.status === 'PASS').length, failed: results.filter(row => row.status === 'FAIL').length, source, hashes: Object.fromEntries(['routine-equipment.js', 'shared-draft-client.js'].map(name => [name, createHash('sha256').update(read(name)).digest('hex')])), results,
     limits: ['Actual unmodified frontend functions and shared transport run in synthetic DOM/HTTP, not actual server authorization or CAS acceptance', 'Fixture requests are in-memory; no browser, network, live records, native render/page-load or assistive-technology claim', 'Timings are isolated JavaScript handler durations only; waits and fixture setup are included'] };
