@@ -23,7 +23,7 @@ export type SharedDraft<T> = {
   working: T; saved: DraftSave<T> | null; pendingId: string | null;
   contributors: Record<string, Stamp>; saves: DraftSave<T>[]; cases: DraftCase<T>[];
   tombstones: string[]; sequences: Record<string, number>;
-  receipts: Record<string, { actorId: string; fingerprint: string; result: DraftReceipt }>;
+  receipts: Record<string, { actorId: string; fingerprint: string; result: DraftReceipt; equipmentTransfer?:import('./equipment-transfer-guard').TransferProof }>;
 };
 export type DraftReceipt = { operationId: string; generation: string; revision: number; savedId: string | null; caseId: string | null; unchanged: boolean };
 export type DraftCommand = {
@@ -32,6 +32,8 @@ export type DraftCommand = {
   patches?: DraftPatch[]; guards?: { path: DraftPath; value: unknown }[];
   savedId?: string; caseId?: string; reason?: string; selfReviewConfirmed?: boolean;
   restoreSaveId?: string; expectedRevision?: number;
+  equipmentTransferOpen?:true;
+  equipmentTransferRevision?:number;
   acknowledgedContentIssues?:DraftIssue[]; source?:string;
 };
 export type DraftContext<T> = {

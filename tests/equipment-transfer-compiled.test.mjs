@@ -1,9 +1,12 @@
 // Full compiled Worker/SPA, private D1/R2 and synthetic producer approvals only.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createHash} from 'node:crypto';
+import {createHash,randomBytes} from 'node:crypto';
 import {createRequire} from 'node:module';
-import {chromium,request as browserRequest} from 'playwright';
+import {readFileSync,readdirSync} from 'node:fs';
+import path from 'node:path';
+import {execFileSync} from 'node:child_process';
+import {chromium} from 'playwright';
 import {createABCFixture} from './ab-c-native-fixture.mjs';
 const require=createRequire(import.meta.url),{createTransferFixture}=require('../scripts/equipment-transfer-fixture.cjs');
 const keys=['masterDataControl','processMasterData','routineEquipmentControl','qualityMasterControl','iqcMasterControl','ipqcCMasterControl','ipqcABMasterControl'];
@@ -19,23 +22,58 @@ async function setup(width,language,ports={createTransferFixture,createABCFixtur
  f=await ports.createABCFixture({products:1,async decorate(target,_load,bucket){if(ports.independentReviewer){
    const users=JSON.parse(target.platformUsers);
    users.push({...users.find(user=>user.primary),id:'fixture-reviewer',name:'Synthetic reviewer',primary:false});
+   if(ports.loginPassword){
+     users.find(user=>user.primary).passwordHash=await _load('lib/passwords.ts').passwordHash(ports.loginPassword);
+   }
    target.platformUsers=JSON.stringify(users);
  }for(const key of keys)target[key]=values[key];for(const [key,bytes]of objects)await bucket.put(key,bytes);}});
  browser=await ports.chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE}:{})});context=await browser.newContext({viewport:{width,height:900},serviceWorkers:'block'});const posts=[],errors=[];
  await context.route('**/*',route=>new URL(route.request().url()).origin===f.url.origin?route.continue():route.abort());await context.addCookies([{name:'process_demo',value:f.cookie(),url:f.url.origin}]);await context.addInitScript(({language,origin})=>{if(location.origin===origin)localStorage.setItem('processUILanguage',language);},{language,origin:f.url.origin});
  context.on('page',page=>{page.setDefaultTimeout(15000);page.on('pageerror',error=>errors.push(error.message));page.on('dialog',dialog=>void dialog.accept());page.on('request',r=>{if(r.method()==='POST')posts.push({path:new URL(r.url()).pathname,body:r.postDataJSON()});});});
  async function page(tab){const p=await context.newPage();await p.goto(f.url.origin+'/process/?system=quality&view=data&dataTab='+tab);await p.waitForFunction(()=>window.ProcessSync?.identity&&document.documentElement.dataset.processNavigationStatus==='ready');return p;}
+ // The first navigation in these compatibility tests represents an already open
+ // V107 tab. Reload and every API call use the current build. Source-only
+ // runners may supply the same pinned historical file without Git history.
+ let v107Tab=!!ports.v107EquipmentTab;
+ if(v107Tab){
+  const old=process.env.V107_EQUIPMENT_TEST_CLIENT?readFileSync(process.env.V107_EQUIPMENT_TEST_CLIENT):
+    execFileSync('git',['show','e55f6fea316d1c0fe173860d6c52abb2618564a9:public/process/routine-equipment.js'],{maxBuffer:4*1024*1024});
+  assert.equal(createHash('sha256').update(old).digest('hex'),'f68e621aca2b92cf3e19dd85e443f86d031c08dca46cda1096b9d3c642776ce1');
+  // The compiled Site groups classic scripts. Give the fixture's mixed shell
+  // its own content address and point only this isolated old tab at that shell.
+  const root=path.resolve(import.meta.dirname,'..'), assets=path.resolve(process.env.PROCESS_TEST_BUILD_DIR||path.join(root,'dist'),'client/process');
+  const current=readFileSync(path.join(root,'public/process/routine-equipment.js'));
+  const matches=readdirSync(assets).filter(n=>/^shell-scripts\.[0-9a-f]+\.js$/.test(n)).map(name=>({name,body:readFileSync(path.join(assets,name))})).filter(b=>b.body.includes(current));
+  assert.equal(matches.length,1);const shell=matches[0],offset=shell.body.indexOf(current);
+  assert.equal(shell.body.indexOf(current,offset+1),-1);
+  const mixed=Buffer.concat([shell.body.subarray(0,offset),old,shell.body.subarray(offset+current.length)]);
+  const legacyName='shell-scripts.'+createHash('sha256').update(mixed).digest('hex').slice(0,20)+'.js';
+  await context.route(url=>url.origin===f.url.origin&&url.pathname==='/process/'+legacyName,r=>r.fulfill({body:mixed,contentType:'text/javascript'}));
+  await context.route(url=>url.origin===f.url.origin&&url.pathname==='/process/',async r=>{
+   if(!v107Tab)return r.continue();
+   const res=await r.fetch(),html=await res.text();assert(html.includes(shell.name));
+   return r.fulfill({response:res,body:html.replaceAll(shell.name,legacyName)});
+  });
+ }
  const source=await page('quality-routine-equipment');await source.locator('#routine-search').waitFor();
  async function controls(){const row=await f.db.prepare('SELECT "values" FROM shared_state WHERE id=1').first();const decoded=await f.load('lib/state-records.ts').decodeRecordValues(await f.mf.getR2Bucket('STATE_ARCHIVE'),JSON.parse(row.values));return Object.fromEntries(keys.filter(key=>decoded.values[key]).map(key=>[key,JSON.parse(decoded.values[key])]));}
- return{f,context,page,source,posts,errors,controls,close};
+ return{f,context,page,source,posts,errors,controls,close,retireV107(){v107Tab=false;}};
  }catch(error){try{await close();}catch(cleanup){throw new AggregateError([error,cleanup],'Compiled transfer setup failed and cleanup reported errors',{cause:error});}throw error;}
+}
+async function openTargetDraft(page,moduleId){
+ const queries=moduleId==='ipqc-ab'?['scope=A%3AG-A&caseMetadata=1','module=1&caseMetadata=1']:['caseMetadata=1'];
+ for(const q of queries){
+  const status=await page.evaluate(async({moduleId,q})=>(await fetch('/api/'+moduleId+'/workflow?'+q,{
+   method:'POST',headers:{'Content-Type':'application/json','X-Process-Expected-Actor':ProcessSync.identity.id},body:JSON.stringify({action:'begin'})
+  })).status,{moduleId,q});assert.equal(status,200);
+ }
 }
 const flow=(controls,moduleId)=>moduleId==='fqc'?controls.qualityMasterControl.libraries.fqc.workflow:moduleId==='iqc'?controls.iqcMasterControl.workflow:moduleId==='ipqc-c'?controls.ipqcCMasterControl.workflow:controls.ipqcABMasterControl.scopes['A:G-A'].workflow;
 for(const [width,language]of [[1280,'zh'],[390,'vi']])void test(`compiled four-module transfer preserves open local forms; all four save ${width} ${language}`,async t=>{
  const s=await setup(width,language);try{
  await s.source.locator('[data-node-select="category"]').first().click();await s.source.locator('[data-node-select="subcategory"]').first().click();if(await s.source.locator('[data-node-select="group"]').count())await s.source.locator('[data-node-select="group"]').first().click();
  // Establish the real shared drafts before opening another page's unsent form.
- for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab']){const q=moduleId==='ipqc-ab'?'scope=A%3AG-A&caseMetadata=1':'caseMetadata=1';assert.equal(await s.source.evaluate(async({moduleId,q})=>(await fetch('/api/'+moduleId+'/workflow?'+q,{method:'POST',headers:{'Content-Type':'application/json','X-Process-Expected-Actor':ProcessSync.identity.id},body:JSON.stringify({action:'begin'})})).status,{moduleId,q}),200);}
+ for(const [moduleId,q] of [['fqc','caseMetadata=1'],['iqc','caseMetadata=1'],['ipqc-c','caseMetadata=1'],['ipqc-ab','scope=A%3AG-A&caseMetadata=1'],['ipqc-ab','module=1&caseMetadata=1']]){assert.equal(await s.source.evaluate(async({moduleId,q})=>(await fetch('/api/'+moduleId+'/workflow?'+q,{method:'POST',headers:{'Content-Type':'application/json','X-Process-Expected-Actor':ProcessSync.identity.id},body:JSON.stringify({action:'begin'})})).status,{moduleId,q}),200);}
  const targetPages=[];
  for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab']){
   const p=await s.page('quality-'+moduleId);
@@ -63,6 +101,7 @@ for(const [width,language]of [[1280,'zh'],[390,'vi']])void test(`compiled four-m
 
 void test('compiled unknown FQC transfer Save leaves locally, returns/reloads, and checks the original receipt only',async()=>{
  const s=await setup(390,'zh');let releasePreview=()=>{};try{
+ await openTargetDraft(s.source,'fqc');
  const p=s.source;await p.locator('[data-node-select="category"]').first().click();await p.locator('[data-node-select="subcategory"]').first().click();if(await p.locator('[data-node-select="group"]').count())await p.locator('[data-node-select="group"]').first().click();
  // Normal identified target Begin happens before the uncertain Save.
  let lost=false,down=true,posts=0;
@@ -96,18 +135,18 @@ void test('compiled idle FQC target issues no poll, retains its form and chooses
 });
 
 void test('compiled Begin handoff storage failure keeps the source identity through departure/reload and receipt-only recovery',async()=>{
- const s=await setup(390,'zh');try{
+ const s=await setup(390,'zh',{createTransferFixture,createABCFixture,chromium,v107EquipmentTab:true});try{
  const p=s.source;await p.evaluate(()=>{const original=Object.getOwnPropertyDescriptor(Storage.prototype,'setItem').value;window.__fqcSourceWrites=0;Storage.prototype.setItem=function(key,value){if(this===sessionStorage&&key.startsWith('routine-equipment-fqc-transfer-v1:')&&++window.__fqcSourceWrites===2)throw Error('Synthetic source journal quota');return original.call(this,key,value);};});
  async function open(){await p.locator('[data-node-select="category"]').first().click();await p.locator('[data-node-select="subcategory"]').first().click();if(await p.locator('[data-node-select="group"]').count())await p.locator('[data-node-select="group"]').first().click();await p.locator('[data-equipment-transfer="source"]').click();}
  const marker=()=>p.evaluate(()=>Object.entries(sessionStorage).find(([key])=>key.startsWith('routine-equipment-fqc-transfer-v1:'))),posts=()=>s.posts.filter(r=>r.path==='/api/fqc/workflow');await open();await p.locator('#routine-target-eq-select').selectOption('target');await p.locator('#routine-confirm-transfer-fqc').click();await p.waitForFunction(()=>window.__fqcSourceWrites===2&&!window.sharedDraftAccountState().queued);const original=await marker(),record=JSON.parse(original[1]);assert.equal(record.phase,'begin');assert.match(record.operationId,/^[0-9a-f-]{36}$/);assert.deepEqual(posts().map(r=>r.body.action||r.body.command?.action),['begin-v1']);assert.equal(flow(await s.controls(),'fqc').saved,null);assert.equal(await p.evaluate(()=>Object.keys(sessionStorage).some(k=>k.startsWith('shared-draft-begin-v1:'))),false);
- await p.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('dashboard'));await p.waitForFunction(()=>window.ProcessSync.destination.view==='dashboard'&&document.documentElement.dataset.processNavigationStatus==='ready');assert.deepEqual(await marker(),original);await p.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('data','quality-routine-equipment'));await p.locator('#routine-search').waitFor();await p.reload();await p.locator('#routine-search').waitFor();assert.deepEqual(await marker(),original);
+ await p.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('dashboard'));await p.waitForFunction(()=>window.ProcessSync.destination.view==='dashboard'&&document.documentElement.dataset.processNavigationStatus==='ready');assert.deepEqual(await marker(),original);await p.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('data','quality-routine-equipment'));await p.locator('#routine-search').waitFor();s.retireV107();await p.reload();await p.locator('#routine-search').waitFor();assert.deepEqual(await marker(),original);
  await open();const receipt=p.waitForRequest(r=>new URL(r.url()).searchParams.get('operationId')===record.operationId);await p.locator('#routine-confirm-transfer-fqc').click();await receipt;await p.waitForFunction(()=>!Object.keys(sessionStorage).some(k=>k.startsWith('routine-equipment-fqc-transfer-v1:')));assert.deepEqual(posts().map(r=>r.body.action||r.body.command?.action),['begin-v1']);assert.equal(flow(await s.controls(),'fqc').saved,null);assert.match(await p.locator('#routine-transfer-backdrop').innerText(),/尚未移轉或存取/);
  const saved=p.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/api/fqc/workflow'&&r.request().postDataJSON().command?.action==='save');await p.locator('#routine-target-eq-select').selectOption('target');await p.locator('#routine-confirm-transfer-fqc').click();assert.equal((await saved).status(),200);await p.waitForFunction(()=>!window.sharedDraftAccountState().queued);assert.deepEqual(posts().map(r=>r.body.action||r.body.command?.action),['begin-v1','save']);assert.equal(flow(await s.controls(),'fqc').saved.content.items[0].equipmentId,'target');assert.deepEqual(s.errors,[]);
  }finally{await s.close();}
 });
 
 void test('compiled pre-dispatch Begin GET503 removes only the proven unsent intent and a fresh explicit attempt succeeds',async()=>{
- const s=await setup(390,'zh');try{
+ const s=await setup(390,'zh',{createTransferFixture,createABCFixture,chromium,v107EquipmentTab:true});try{
  const p=s.source;let reads=0,receiptGETs=0,down=true;await p.evaluate(()=>{const set=Object.getOwnPropertyDescriptor(Storage.prototype,'setItem').value;window.__beginIntents=[];Storage.prototype.setItem=function(key,value){if(this===sessionStorage&&key.startsWith('routine-equipment-fqc-transfer-v1:')){const record=JSON.parse(value);if(record.phase==='begin')window.__beginIntents.push(record.operationId);}return set.call(this,key,value);};});
  await p.route('**/api/fqc/workflow?*',route=>{const r=route.request(),u=new URL(r.url());if(r.method()==='GET'){if(u.searchParams.has('operationId'))receiptGETs++;else if(++reads===2&&down)return route.fulfill({status:503,json:{error:'SYNTHETIC_PREFLIGHT_UNAVAILABLE'}});}return route.continue();});const before=await s.controls();
  await p.locator('[data-node-select="category"]').first().click();await p.locator('[data-node-select="subcategory"]').first().click();if(await p.locator('[data-node-select="group"]').count())await p.locator('[data-node-select="group"]').first().click();await p.locator('[data-equipment-transfer="source"]').click();await p.locator('#routine-target-eq-select').selectOption('target');await p.locator('#routine-confirm-transfer-fqc').click();await p.waitForFunction(()=>window.__beginIntents.length===1&&!window.sharedDraftAccountState().queued&&document.querySelector('#routine-transfer-backdrop')?.textContent.includes('SYNTHETIC_PREFLIGHT_UNAVAILABLE'));assert.equal(s.posts.filter(r=>r.path==='/api/fqc/workflow').length,0);assert.equal(await p.evaluate(()=>Object.keys(sessionStorage).some(k=>k.startsWith('routine-equipment-fqc-transfer-v1:')||k.startsWith('shared-draft-begin-v1:'))),false);assert.equal(await p.evaluate(()=>window.sharedDraftAccountState().unknown),false);assert.deepEqual(await s.controls(),before);
@@ -126,6 +165,7 @@ void test('batch3 equipment Save, FQC atomic transfer and IPQC AB guarded Save c
  const ab=await s.page('quality-ipqc-ab');await ab.locator('#ipqcab-begin').click();await ab.locator('[data-ab-edit-item]').first().click();await ab.locator('#ab-standard').fill('Batch3 unsent AB standard');
  const start=s.posts.length;
  for(const moduleId of ['fqc','ipqc-ab']){
+  await openTargetDraft(s.source,moduleId);
   const source=await s.page('quality-routine-equipment');await source.locator('[data-node-select="category"]').first().click();await source.locator('[data-node-select="subcategory"]').first().click();if(await source.locator('[data-node-select="group"]').count())await source.locator('[data-node-select="group"]').first().click();
   await source.locator('[data-equipment-transfer="source"]').click();await source.locator('#routine-target-eq-select').selectOption('target');
   const action='save',response=source.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/api/'+moduleId+'/workflow'&&r.request().postDataJSON().command?.action===action);
@@ -141,14 +181,14 @@ void test('batch3 equipment Save, FQC atomic transfer and IPQC AB guarded Save c
 });
 
 void test('compiled IQC lost identified Begin leaves silently and settles only its original receipt without automatic Save',async()=>{
- const s=await setup(390,'zh');try{
+ const s=await setup(390,'zh',{createTransferFixture,createABCFixture,chromium,v107EquipmentTab:true});try{
  const p=s.source;let down=true,lost=false,posts=0;
  await p.route('**/api/iqc/workflow?*',async route=>{const r=route.request(),url=new URL(r.url());if(url.searchParams.has('operationId')&&down)return route.fulfill({status:404,json:{error:'OPERATION_NOT_FOUND'}});if(r.method()==='POST'){posts++;assert.equal(r.postDataJSON().action,'begin-v1');if(!lost){lost=true;assert.equal((await route.fetch()).status(),200);return route.abort('failed');}}return route.continue();});
  async function openTransfer(){await p.locator('[data-node-select="category"]').first().click();await p.locator('[data-node-select="subcategory"]').first().click();if(await p.locator('[data-node-select="group"]').count())await p.locator('[data-node-select="group"]').first().click();await p.locator('[data-equipment-transfer="source"]').click();}
  await openTransfer();await p.locator('#routine-target-eq-select').selectOption('target');await p.locator('#routine-confirm-transfer-iqc').click();await p.waitForFunction(()=>window.sharedDraftAccountState().unknown&&!window.sharedDraftAccountState().queued);
  const markers=()=>p.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('routine-equipment-iqc-transfer-v1:')||key.startsWith('shared-draft-')))),original=await markers();assert(Object.keys(original).some(key=>key.startsWith('routine-equipment-iqc-transfer-v1:')));assert.equal(posts,1);assert.match(await p.locator('#routine-transfer-backdrop').innerText(),/待確認/);
  await p.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('dashboard'));await p.waitForFunction(()=>window.ProcessSync.destination.view==='dashboard'&&document.documentElement.dataset.processNavigationStatus==='ready');assert.deepEqual(await markers(),original);assert.equal(posts,1);
- await p.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('data','quality-routine-equipment'));await p.locator('#routine-search').waitFor();await p.reload();await p.locator('#routine-search').waitFor();assert.deepEqual(await markers(),original);
+ await p.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('data','quality-routine-equipment'));await p.locator('#routine-search').waitFor();s.retireV107();await p.reload();await p.locator('#routine-search').waitFor();assert.deepEqual(await markers(),original);
  await openTransfer();down=false;await p.locator('#routine-confirm-transfer-iqc').click();await p.waitForFunction(()=>!window.sharedDraftAccountState().unknown);assert.equal(posts,1);assert.equal(Object.keys(await markers()).length,0);await p.waitForFunction(()=>document.querySelector('#routine-transfer-backdrop')?.textContent.includes('尚未移轉或存取'));assert.match(await p.locator('#routine-transfer-backdrop').innerText(),/尚未移轉或存取/);
  const current=flow(await s.controls(),'iqc');assert.equal(current.saved,null);assert.equal(current.working.items[0].equipmentId,'source');assert.deepEqual(s.errors,[]);
  }finally{await s.close();}
@@ -259,9 +299,10 @@ async function restoreApprovedTestRoute(session) {
 
 async function verifyReferenceJourney(width, lang, options={}) {
   const all = options.selectAll === true;
+  const loginPassword=all?randomBytes(24).toString('hex'):undefined;
   const session = await setup(width,lang,{
     createTransferFixture:()=>createTransferFixture({paired:!all,offRoute:options.offRoute}),
-    createABCFixture, chromium, independentReviewer:true
+    createABCFixture, chromium, independentReviewer:true, loginPassword
   });
   try {
     const page=session.source, origin=session.f.url.origin;
@@ -302,6 +343,7 @@ async function verifyReferenceJourney(width, lang, options={}) {
     await verifyPhotos();
     await options.before?.(session);
     for (const mod of transferModules) {
+      await openTargetDraft(page,mod);
       const initial=reviewFlow(await session.controls(),mod);
       snapshots[mod]=initial.active;
       const originals=rowsOf(initial.active);
@@ -340,12 +382,21 @@ async function verifyReferenceJourney(width, lang, options={}) {
         const endpoint='/api/'+mod+'/workflow?'+(mod==='ipqc-ab'?'module=1&':'')+'caseMetadata=1';
         const fromPage=await page.evaluate(async path=>{const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw Error('Saved draft reload failed');return r.json();},endpoint);
         assert.equal((fromPage.control?.workflow||fromPage.workflow).saved.id,stored.id);
-        const reader=await browserRequest.newContext({baseURL:origin,extraHTTPHeaders:{Cookie:'process_demo='+session.f.cookie('frank')}});
+        const reader=await session.context.browser().newContext({baseURL:origin,serviceWorkers:'block'});
         try{
-          const read=await reader.get(endpoint);assert.equal(read.status(),200);
+          await reader.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
+          const login=await reader.newPage();
+          await login.goto('/login');
+          await login.getByLabel('帳號 / Tài khoản',{exact:true}).fill('frank');
+          await login.getByLabel('密碼 / Mật khẩu',{exact:true}).fill(loginPassword);
+          const signedIn=login.waitForResponse(r=>new URL(r.url()).pathname==='/api/platform-login' && r.request().method()==='POST');
+          await login.getByRole('button',{name:'登入平台 / Đăng nhập'}).click();
+          assert.equal((await signedIn).status(),200);
+          await login.waitForURL(url=>url.pathname.startsWith('/process/'));
+          const read=await reader.request.get(endpoint);assert.equal(read.status(),200);
           const authority=await read.json(),seen=authority.control?.workflow||authority.workflow;
           assert.equal(seen.saved.id,stored.id);assert.equal(seen.pendingId,null);
-        }finally{await reader.dispose();}
+        }finally{await reader.close();}
       }
       const submitting=ack(mod,'submit');
       await page.locator('#'+toolbarId(mod)+'-submit').click();

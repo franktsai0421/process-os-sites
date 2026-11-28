@@ -13,6 +13,11 @@ export type RecordRead={
  deferHistory?:boolean;caseId?:string|null;saveId?:string|null;versionId?:string|null;keys?:string[];modelKey?:string;
  // Include dynamically named legacy editor workspaces in selected reference reads.
  includeProcessEditors?:boolean;
+ // Equipment preview consumes several prepared owners in one read-only revision.
+ readOnlyModelKeys?:string[];
+ // An authorized receipt/basis or version-reference reader resolves only the
+ // immutable bodies it actually delivers. Never use this state for a write.
+ metadataOnlyModel?:boolean;
  // Server-owned, read-only projection after aggregate SHA verification, before
  // body hydration. It is never accepted from HTTP input or a write adapter.
  projectValue?:(key:string,raw:string)=>string|undefined|Promise<string|undefined>;
@@ -275,14 +280,14 @@ async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:Re
   if(bodyKeys&&!bodyKeys.has(key)){if(original.includes('"__immutableBody"'))JSON.parse(original);continue;}
   known.add(ref.sha256);const raw=options.projectValue?await options.projectValue(key,original):original;
   if(raw===undefined)continue;
-  if(key===options.modelKey&&!options.effectiveOnly&&!options.projectValue){models.set(key,await visit(JSON.parse(raw)));values[key]=raw;}
+  if((key===options.modelKey||options.readOnlyModelKeys?.includes(key))&&!options.effectiveOnly&&!options.projectValue){models.set(key,await visit(JSON.parse(raw),'',[],options.metadataOnlyModel===true&&key===options.modelKey));values[key]=raw;}
   else values[key]=options.effectiveOnly?JSON.stringify(await visit(effectiveDeliveryValue(JSON.parse(raw),key))):raw.includes('"__immutableBody"')?JSON.stringify(await visit(JSON.parse(raw))):raw;
   // Private FQC authority validation must run before an inline maintenance
   // overlay can replace the hydrated aggregate. Other readers are unchanged.
   validateHydrated?.(values[key]);
  }}finally{readAhead?.close();releasePendingIdentity();}
  if(envelope.maintenanceMode!==undefined)values.maintenanceMode=envelope.maintenanceMode;
-  return{values,recordStorage:{envelope,originalValues:{...values},known,partial:!!bodyKeys||!!options.keys||!!options.effectiveOnly||!!options.projectValue,models,allocations} satisfies RecordStorage};
+  return{values,recordStorage:{envelope,originalValues:{...values},known,partial:!!options.metadataOnlyModel||!!options.readOnlyModelKeys||!!bodyKeys||!!options.keys||!!options.effectiveOnly||!!options.projectValue,models,allocations} satisfies RecordStorage};
 }
 
 // Prepare only the IQC calendar target. Keep other modules' immutable refs
@@ -377,6 +382,31 @@ async function prepareRoutineStart(bucket:Bucket,raw:string,key:'routineIqcContr
 
 // The PROCESS master owns its versioned control and the approved catalog mirror.
 // Retain all other manifest entries by reference under the route's revision CAS.
+// A replacement is an ordinary guarded Save on exactly one quality owner.
+// The canonical manifest, including all sibling references, stays pinned to the D1 CAS.
+export async function prepareEquipmentTransfer(bucket:Bucket,row:{revision:number;values:string},key:string){
+ const targets=['qualityMasterControl','iqcMasterControl','ipqcABMasterControl','ipqcCMasterControl'];
+ if(!targets.includes(key))throw Error('Invalid equipment transfer owner');
+ const original=await canonicalOverlayEnvelope(row.values);
+ if(!original||!original.__processRecords.values[key])return null;
+ const manifest=original.__processRecords;
+ const keys=[...identityReadKeys,'processAccessControl','routineEquipmentControl',key];
+ if(key!=='iqcMasterControl')keys.push('masterDataControl');
+ const selected=await decodeRecordValues(bucket,original,{keys,modelKey:key,deferHistory:true,
+   deferDependencyHistory:true,aggregateReadAhead:true,
+   ...(['ipqcABMasterControl','ipqcCMasterControl'].includes(key)?{allocationKey:key}:{})});
+ let consumed=false;
+ return {state:{revision:row.revision,...selected},async encode(model:unknown){
+   if(consumed||!object(model))throw Error('Invalid equipment transfer mutation');
+   consumed=true;
+   const encoded:Envelope=JSON.parse(await encodeRecordValuesCore(bucket,{[key]:selected.values[key]},
+     selected.recordStorage,new Map([[key,model]])));
+   const updated=encoded.__processRecords;
+   return JSON.stringify({...original,__processRecords:{...manifest,values:{...manifest.values,[key]:updated.values[key]},
+     ...(updated.allocations?.[key]?{allocations:{...manifest.allocations,[key]:updated.allocations[key]}}:{})}});
+ }};
+}
+
 export async function prepareProcessMasterWrite(bucket:Bucket,row:{revision:number;values:string},caseId?:string){
  const original=await canonicalOverlayEnvelope(row.values);
  if(!original)return null;

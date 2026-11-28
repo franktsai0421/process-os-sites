@@ -25,7 +25,7 @@ async function run(){
  }
  const seed=JSON.parse(fs.readFileSync(seedPath));const sample=[];
  const p=local('test-routine-equipment-transfer-intent.cjs');let src=fs.readFileSync(p,'utf8');
- src=src.replace('window.__equipmentIntentTest = { render,','window.__equipmentIntentTest = {benchView(id){viewDialog={data:{id}};const session=newViewReferences(id);viewDialog.references=session;return session;},async benchKind(session,kind){await readViewReferences(session,kind);return session.states[kind].status;}, render,');
+ src=src.replace('window.__equipmentIntentTest = {','window.__equipmentIntentTest = {benchView(id){viewDialog={data:{id}};const session=newViewReferences(id);viewDialog.references=session;return session;},async benchKind(session,kind){await readViewReferences(session,kind);return session.states[kind].status;},');
  const testMod=new Module(p);testMod.filename=p;testMod.paths=Module._nodeModulePaths(path.dirname(p));require.cache[p]=testMod;testMod._compile(src,p);
  const {fixture}=require(local('quality-replacement-preview-fixture.cjs')),{connect}=require(local('test-routine-equipment-isolated-workflow.cjs'));
  for(let n=0;n<3;n++){
@@ -44,6 +44,12 @@ async function run(){
     await measure('detail-same-open-panel',m,()=>f.test.benchKind(session,ui(m)));}
    const all=f.test.benchView('source');
    await measure('all-four-details','all',()=>Promise.all(mods.map(m=>f.test.benchKind(all,ui(m)))));
+   // Both versions start with the same editable shared drafts. Native Begin
+   // is a separate action and is outside the timed replacement confirmation.
+   for(const m of mods){
+    await h.begin(m,'editor',200,m==='ipqc-ab'?'&scope=A%3AG-A':'');
+    if(m==='ipqc-ab')await h.begin(m,'editor',200,'&module=1');
+   }
    for(const m of mods){
     await measure('replacement-preview',m,async()=>{f.test.openTransferModal('source');await waitFor(()=>f.test.dialog?.preview||f.test.dialog?.previewError);const entry=f.test.dialog.preview.modules.find(v=>v.moduleId===m);assert(entry.connected);return entry.items.length;});
     f.test.dialog.targetEqId='target';

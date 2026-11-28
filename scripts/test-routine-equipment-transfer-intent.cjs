@@ -30,7 +30,7 @@ async function fixture({ moduleId = 'fqc', editable = true, scopes = ['A:G'], pa
   const control = { schemaVersion: 1, activeVersionId: 'active', reservedMarks: {}, issues: [], versions: [{ id: 'active', number: 1, status: 'approved', history: [], ...copy(snapshot) }, { id: 'draft', number: 2, status: 'draft', history: [], ...copy(snapshot) }], workflow: { generation: 'equipment-gen', revision: 1, working: copy(snapshot), cases: [], saved: null } };
   const rows = (moduleId === 'ipqc-ab' ? scopes : ['']).map((scopeKey, index) => ({ id: scopeKey ? JSON.stringify([scopeKey, 'item']) : 'item', itemId: 'item', scopeKey, code: 'SYN-' + index, name: 'Synthetic item', selectable: true, activeEquipmentId: 'source', draftEquipmentId: editable ? 'source' : '', activeInspectionMode: 'equipment', draftInspectionMode: editable ? 'equipment' : '', activeTool: '01', draftTool: editable ? '01' : '', openStatus: editable ? 'draft' : '', openVersionId: editable ? 'quality-draft' : '' }));
   for(const row of rows)row.effectiveReference={versionId:'active',versionNumber:1,status:'approved',itemId:row.itemId,scope:row.scopeKey,checkNo:row.code,itemName:row.name};
-  const preview = { revision, referenceSourceId:'source', modules: [{ moduleId, connected: true, workflow: { editable, generation: 'quality-gen' }, items: rows }], pending: [] };
+  const preview = { revision, referenceSourceId:'source', modules: [{ moduleId, connected: true, transferDraft:editable?'ready':'open-required', workflow: { editable, generation: 'quality-gen' }, items: rows }], pending: [] };
   const timers = new Map(); let timer = 0;
   const c = { ...dom, console: { error() {}, warn() {} }, crypto: webcrypto, URL, URLSearchParams, Response, AbortController, AbortSignal, structuredClone, Map, Set, Promise, JSON, Date, Math, Intl, Number, Error,
     location: { href: 'https://synthetic.invalid/process/', pathname: '/process/', origin: 'https://synthetic.invalid' }, CSS: { escape: String }, scrollX: 0, scrollY: 0, scrollTo() {}, requestAnimationFrame() {},
@@ -38,12 +38,12 @@ async function fixture({ moduleId = 'fqc', editable = true, scopes = ['A:G'], pa
     hasPermission: () => allowed, confirm: () => true, alert: value => notices.push(value), toast: value => notices.push(value),
     localStorage: { getItem: key => key === 'qualityMasterControl' ? JSON.stringify({ libraries: { fqc: { versions: [] } } }) : null, setItem() {}, removeItem() {} },
     sessionStorage: { get length(){return storage.size;},key:index=>[...storage.keys()][index]??null,getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
-    ProcessSync: { identity: copy(actor), identityGeneration: () => epoch, captureDelivery: () => ({ delivery }), isCurrentDelivery: token => token.delivery === delivery, platformHeaders: () => ({ 'Content-Type': 'application/json', 'X-Test-Actor': c.ProcessSync.identity.id }), requiresReload: false, refresh: async () => {}, flush: async () => { if (pause === 'flush') { paused.resolve(); await wait.promise; } return true; } },
+    ProcessSync: { pendingState:()=>({dirty:0,inFlight:false,paused:false,blocked:false}), identity: copy(actor), identityGeneration: () => epoch, captureDelivery: () => ({ delivery }), isCurrentDelivery: token => token.delivery === delivery, platformHeaders: () => ({ 'Content-Type': 'application/json', 'X-Test-Actor': c.ProcessSync.identity.id }), requiresReload: false, refresh: async () => {}, flush: async () => { if (pause === 'flush') { paused.resolve(); await wait.promise; } return true; } },
     VersionDraftUI: { mount() {}, date: () => 'synthetic-date', t: value => value, updateSync() {}, updateSaved() {} }
   };
   c.window = c; dom.events(c);
-  const respond = (body, status = 200) => ({ ok: status >= 200 && status < 300, status, json: async () => copy(body) });
-  let fqcRevision=1,fqcDraft=editable,fqcSaved=null;
+  const respond = (body, status = 200) => Response.json(body,{status});
+  let fqcRevision=1,fqcDraft=editable,fqcSaved=null,previewReads=0;
   const fqcReceipts=new Map();
   const fqcData=()=>{
     const items=preview.modules[0].items.map(row=>({id:row.itemId,equipmentId:fqcDraft?row.draftEquipmentId:row.activeEquipmentId,tool:fqcDraft?row.draftTool:row.activeTool,inspectionMode:fqcDraft?row.draftInspectionMode:row.activeInspectionMode}));
@@ -55,7 +55,8 @@ async function fixture({ moduleId = 'fqc', editable = true, scopes = ['A:G'], pa
     const parsed = new URL(url, c.location.origin), method = options.method || 'GET', body = options.body ? JSON.parse(options.body) : null;
     calls.push({ path: parsed.pathname, query: parsed.search, method, actor: options.headers?.['X-Test-Actor'], body });
     if (parsed.pathname === '/api/quality-equipment-replacement') {
-      if (pause === 'preview') { paused.resolve(); await wait.promise; }
+      previewReads++;
+      if (pause === 'preview' || (previewReads===2 && pause==='preflight')) { paused.resolve(); await wait.promise; }
       return respond(preview);
     }
     if(parsed.pathname==='/api/'+moduleId+'/workflow'){
@@ -66,7 +67,15 @@ async function fixture({ moduleId = 'fqc', editable = true, scopes = ['A:G'], pa
         preview.revision=revision;preview.modules[0].workflow.editable=true;preview.modules[0].openVersion={id:'quality-draft',status:'draft',revision:fqcRevision};
         const receipt={operationId:body.begin.operationId,generation:'quality-gen',revision:fqcRevision,savedId:null,caseId:null,unchanged:false},result={...fqcData(),receipt,operationKind:'begin-v1'};fqcReceipts.set(receipt.operationId,result);return respond(result);
       }
-      const command=body.command;if(rejectScope&&command.input?.scopes?.some(s=>s.scope===rejectScope))return respond({error:'DEPENDENCY_CHANGED_RECONFIRM'},409);fqcRevision++;revision++;preview.revision=revision;
+      const command=body.command;
+      if(pause==='save-ack'){paused.resolve();await wait.promise;}
+      const rejected=rejectScope&&command.input?.scopes?.find(scope=>scope.scope===rejectScope);
+      if(rejected)return respond({
+        requestId:webcrypto.randomUUID(),error:'DEPENDENCY_CHANGED_RECONFIRM',
+        details:{scope:rejected.scope,path:rejected.changes[0].guards[0].path}
+      },409);
+      if(command.equipmentTransferOpen){fqcDraft=true;preview.modules[0].transferDraft='ready';}
+      fqcRevision++;revision++;preview.revision=revision;
       for(const patch of patchesOf(command)){const row=preview.modules[0].items.find(row=>row.itemId===patch.path[1].id);row[patch.path[2]==='tool'?'draftTool':patch.path[2]==='inspectionMode'?'draftInspectionMode':'draftEquipmentId']=patch.value;}
       fqcSaved={id:'synthetic-saved-'+command.operationId,revision:fqcRevision,content:copy(fqcData().control.workflow.working)};
       const receipt={operationId:command.operationId,generation:command.generation,revision:fqcRevision,savedId:fqcSaved.id,caseId:null,unchanged:false},result={...fqcData(),receipt};fqcReceipts.set(receipt.operationId,result);return respond(result);
@@ -81,7 +90,7 @@ async function fixture({ moduleId = 'fqc', editable = true, scopes = ['A:G'], pa
     return respond({ control: { activeVersionId: null, versions: [] } });
   };
   vm.createContext(c); vm.runInContext(read('shared-draft-client.js'), c);
-  const hook = `window.__equipmentIntentTest = { render, deleteEquipment, deleteNode, openNodeDialog, confirmNodeDialog, openEditEquipment, executeTransfer, loadTransferPreview, openTransferModal, queryAllQualityReferences, loadEquipmentReferences, equipmentReferencesSectionHTML, cancelRead(){equipmentEditRequest++;}, writeShared, read, enterExistingDraft, refreshOpenEquipmentReferences, invalidateEquipmentReferences, get refs(){return equipmentRefCache;}, get readUnavailable(){return readUnavailable;}, get working(){return working;}, get message(){return message;}, get dialog(){return transferDialog;}, install(model){host=document.querySelector('#data-content');control=model;controlActor=identity().id;revision=10;selectedVersionId=open()?.id||active()?.id||'';selectedCategory='cat';selectedSubcategory='sub';selectedGroup='group';working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow?.generation||null;if(${establishInputOwner})rememberInputOwner();}, replaceDialog(){transferDialog=null;}, bumpVersion(){selectedVersionId='different-selected-version';}, get model(){return control;}};`;
+  const hook = `window.__equipmentIntentTest = { targetFqcClient, render, deleteEquipment, deleteNode, openNodeDialog, confirmNodeDialog, openEditEquipment, executeTransfer, loadTransferPreview, openTransferModal, queryAllQualityReferences, loadEquipmentReferences, equipmentReferencesSectionHTML, cancelRead(){equipmentEditRequest++;}, writeShared, read, enterExistingDraft, refreshOpenEquipmentReferences, invalidateEquipmentReferences, get refs(){return equipmentRefCache;}, get readUnavailable(){return readUnavailable;}, get working(){return working;}, get message(){return message;}, get dialog(){return transferDialog;}, install(model){host=document.querySelector('#data-content');control=model;controlActor=identity().id;revision=10;selectedVersionId=open()?.id||active()?.id||'';selectedCategory='cat';selectedSubcategory='sub';selectedGroup='group';working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow?.generation||null;if(${establishInputOwner})rememberInputOwner();}, replaceDialog(){transferDialog=null;}, bumpVersion(){selectedVersionId='different-selected-version';}, get model(){return control;}};`;
   vm.runInContext(read('routine-equipment.js').replace(/\}\)\(\);\s*$/, hook + '})();'), c);
   c.__equipmentIntentTest.install(control); c.__equipmentIntentTest.render(); if(openTransfer)c.__equipmentIntentTest.openTransferModal('source');
   if (pause !== 'preview') await tick();
@@ -93,7 +102,18 @@ async function fixture({ moduleId = 'fqc', editable = true, scopes = ['A:G'], pa
 }
 
 const results = [];
-async function check(name, fn) { const start = performance.now(); try { await fn(); results.push({ name, status: 'PASS', isolatedHandlerMs: +(performance.now() - start).toFixed(2) }); } catch (error) { results.push({ name, status: 'FAIL', error: error.message, isolatedHandlerMs: +(performance.now() - start).toFixed(2) }); } console.log(JSON.stringify(results.at(-1))); }
+async function check(name, fn) {
+  const start=performance.now();
+  let timer,status='PASS',error;
+  try {
+    const deadline=new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Scenario did not settle')),30000);});
+    await Promise.race([fn(),deadline]);
+  } catch (cause) {
+    status='FAIL';error=cause.message;
+  } finally { clearTimeout(timer); }
+  const result={name,status,...(error?{error}:{}),isolatedHandlerMs:+(performance.now()-start).toFixed(2)};
+  results.push(result);console.log(JSON.stringify(result));
+}
 
 module.exports = { fixture, tick, copy };
 if (require.main === module) (async () => {
@@ -118,19 +138,23 @@ if (require.main === module) (async () => {
     const f = await fixture({ moduleId, editable }), before = JSON.stringify(f.test.model); await f.execute();
     const writes = f.writes(), commands = writes.filter(row => row.body.command);
     assert.equal(commands.length, 1); assert.equal(commands[0].body.command.action, 'save');
-    assert.equal(writes.filter(row => row.body.action === 'begin-v1').length, !editable ? 1 : 0);
+    assert.equal(writes.length,1);assert.equal(commands[0].body.command.equipmentTransferOpen,editable?undefined:true);
     assert(guardsOf(commands[0].body.command).length); assert(patchesOf(commands[0].body.command).some(patch => patch.value === 'target'));
     assert.equal(JSON.stringify(f.test.model), before, 'source equipment active/draft/history remain unchanged');
     assert.match(f.test.dialog.moduleMessages[uiKey(moduleId)], /已移轉並存取/);
   });
-  for (const change of ['actor', 'epoch', 'delivery', 'requiresReload', 'close', 'version', 'target']) await check(`pending flush ${change} invalidates transfer before POST`, async () => {
-    const f = await fixture({ pause: 'flush' }), task = f.execute(); await f.paused;
+  for(const field of ['dirty','inFlight','paused','blocked'])await check('pending local '+field+' prevents transfer',async()=>{
+    const f=await fixture();f.c.ProcessSync.pendingState=()=>({[field]:field==='dirty'?1:true});
+    await f.execute();assert.equal(f.writes().length,0);assert.match(f.test.dialog.moduleMessages.fqc,/同步中的變更/);
+  });
+  for (const change of ['actor', 'epoch', 'delivery', 'requiresReload', 'close', 'version', 'target']) await check(`pending reference preflight ${change} invalidates transfer before POST`, async () => {
+    const f = await fixture({ pause: 'preflight' }), task = f.execute(); await f.paused;
     if (change === 'actor') f.rotateActor(); if (change === 'epoch') f.rotateEpoch(); if (change === 'delivery') f.rotateDelivery(); if (change === 'requiresReload') f.c.ProcessSync.requiresReload = true;
     if (change === 'close') f.close(); if (change === 'version') f.test.bumpVersion(); if (change === 'target') f.test.dialog.targetEqId = 'other';
     f.release(); await task; assert.equal(f.writes().length, 0, 'stale intent must not begin/apply');
   });
-  await check('Begin ACK after dialog close does not send Apply', async () => { const f = await fixture({ editable: false, pause: 'begin' }), task = f.execute(); await f.paused; f.close(); f.release(); await task; assert.equal(f.writes().filter(row => row.body.command).length, 0); });
-  await check('duplicate or concurrent transfer entry is single flight', async () => { const f = await fixture({ pause: 'flush' }), first = f.execute(); await f.paused; const second = f.execute(); f.release(); await Promise.all([first, second]); assert.equal(f.writes().filter(row => row.body.command).length, 1); });
+  await check('Atomic Save ACK after dialog close does not send a second write', async () => { const f = await fixture({ editable: false, pause: 'save-ack' }), task = f.execute(); await f.paused; f.close(); f.release(); await task; assert.equal(f.writes().length,1);assert.equal(f.writes()[0].body.command.action,'save'); });
+  await check('duplicate or concurrent transfer entry is single flight', async () => { const f = await fixture({ pause: 'preflight' }), first = f.execute(); await f.paused; const second = f.execute(); f.release(); await Promise.all([first, second]); assert.equal(f.writes().filter(row => row.body.command).length, 1); });
   await check('draft-only equipment can still be explicitly selected and saved',async()=>{
     const f=await fixture({moduleId:'fqc',pause:'preview'});
     const row=f.preview.modules[0].items[0];
@@ -143,13 +167,13 @@ if (require.main === module) (async () => {
     assert(f.test.dialog.selection.fqc.has(row.id));await f.execute();
     assert.equal(f.writes().filter(call=>call.body?.command?.action==='save').length,1);
   });
-  await check('fresh pending/stale preview requires explicit reconfirmation and zero POST', async () => { const f = await fixture(); f.preview.modules[0].items[0].selectable = false; await f.execute(); assert.equal(f.writes().length, 0); assert.match(f.test.dialog.moduleMessages.fqc, /項目已變更/); });
+  await check('fresh pending/stale preview requires explicit reconfirmation and zero POST', async () => { const f = await fixture(); f.preview.modules[0].items[0].selectable = false; await f.execute(); assert.equal(f.writes().length, 0); assert.match(f.test.dialog.moduleMessages.fqc, /草稿或資料修訂已變更/); });
   for(const moduleId of ['fqc','iqc','ipqc-ab','ipqc-c']){
     for(const visual of (['iqc','ipqc-ab'].includes(moduleId)?[false,true]:[false])){
       await check(moduleId+' protects a concurrently '+(visual?'visual':'cleared')+' equipment choice',async()=>{
         const f=await fixture({moduleId}),row=f.preview.modules[0].items[0],key=uiKey(moduleId);
         row.draftEquipmentId='';if(visual)row.draftInspectionMode='visual';
-        let message;f.c.confirm=text=>{if(text.includes('開頁時')){message=text;return false;}return true;};
+        await f.test.loadTransferPreview();let message;f.c.confirm=text=>{message=text;return false;};
         await f.execute();assert.equal(f.writes().length,0);assert.match(message,visual?/目視/:/已清空檢具/);
         assert(message.includes(row.code)&&message.includes('SYN-target')&&message.includes('保留目前'));
         assert.equal(row.draftEquipmentId,'');f.c.confirm=()=>true;await f.execute();
@@ -230,9 +254,9 @@ if (require.main === module) (async () => {
     }return raw(url,options);};
     const stale=f.test.loadEquipmentReferences('source',{renderAfter:false});await tick();assert.equal(pending.length,1);hold=false;
     if(invalidation==='successful-transfer')await f.execute();else {await f.test.refreshOpenEquipmentReferences();await f.test.loadEquipmentReferences('source',{renderAfter:false});}
-    assert.equal(reads,invalidation==='successful-transfer'?4:2);
+    assert.equal(reads,invalidation==='successful-transfer'?3:2);
     for(const request of pending)request.resolve({ok:true,json:async()=>request.url.includes('replacement')?{modules:[],pending:[]}:request.url.includes('ipqc-ab')?{control:{scopes:{}}}:{control:{versions:[{id:'stale-before-transfer',status:'draft',snapshot:{items:[{id:'old',equipmentId:'source'}]}}]}}});
-    await stale;assert(!f.test.refs.get('source').iqc.draft.some(row=>row.versionId==='stale-before-transfer'));
+    await stale;const cached=f.test.refs.get('source');assert(!cached?.iqc?.draft.some(row=>row.versionId==='stale-before-transfer'));
   });
   await check('AB multi-scope Save uses one atomic guarded command',async()=>{
     const f=await fixture({moduleId:'ipqc-ab',scopes:['A:G','B:G']});await f.execute();const writes=f.writes().filter(r=>r.body?.command);assert.equal(writes.length,1);assert.equal(writes[0].body.command.action,'save');assert.deepEqual(writes[0].body.command.input.scopes.map(s=>s.scope),['A:G','B:G']);
@@ -261,7 +285,7 @@ if (require.main === module) (async () => {
     f.c.fetch=async(url,options={})=>{const u=new URL(url,f.c.location.origin),body=options.body&&JSON.parse(options.body);if(u.searchParams.has('operationId'))return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});if(body?.command?.action===('save')){
       posts++;await raw(url,options);const row=f.preview.modules[0].items[0];row.draftEquipmentId='target';row.draftTool='02';throw Error('Synthetic committed ACK lost');
     }return raw(url,options);};
-    await f.execute();const marker=[...f.storage];assert(marker.length);await f.test.loadTransferPreview();await f.execute();assert.equal(posts,1);assert.deepEqual([...f.storage],marker);assert.equal(f.test.dialog.moduleStatus[uiKey(moduleId)],'error');
+    await f.execute();const marker=[...f.storage];assert(marker.length);await f.test.loadTransferPreview();await f.execute();assert.equal(posts,1);assert.deepEqual([...f.storage],marker);assert.equal(f.test.dialog.moduleStatus[uiKey(moduleId)],'unknown');
   });
   await check('AB same-scope failure preserves a previously saved row',async()=>{
     const f=await fixture({moduleId:'ipqc-ab',rejectScope:'A:G'}),entry=f.preview.modules[0],first=entry.items[0];entry.items.push({...copy(first),id:JSON.stringify(['A:G','other']),itemId:'other',effectiveReference:{...first.effectiveReference,itemId:'other'}});first.draftEquipmentId='target';first.savedChoice={id:'previous',equipmentId:'target',mode:'equipment'};

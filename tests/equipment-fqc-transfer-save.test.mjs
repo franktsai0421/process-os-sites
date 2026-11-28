@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
-import {createHash} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 const require=createRequire(import.meta.url),{createTransferFixture}=require('../scripts/equipment-transfer-fixture.cjs'),{connect}=require('../scripts/test-routine-equipment-isolated-workflow.cjs');
 const copy=x=>JSON.parse(JSON.stringify(x)),tick=()=>new Promise(r=>setTimeout(r,5));
 async function setup(t,{draft=true,sourceDraft=false}={}){const h=await createTransferFixture();t.after(()=>h.close());await mutate(h,values=>{const users=JSON.parse(values.platformUsers),peer=users.find(u=>u.id==='preview-edit-only');peer.accessOverrides['fqc.view']=true;peer.accessOverrides['fqc.edit']=true;values.platformUsers=JSON.stringify(users);});if(draft)await h.begin('fqc');if(sourceDraft)await h.begin('routine-equipment');const f=await connect(h);return{h,f};}
@@ -13,16 +13,70 @@ const ownPosts=f=>f.requests.filter(r=>r.path==='/api/fqc/workflow'&&r.method===
 async function state(h){return copy(h.flow(await h.read('fqc')));}
 const journal=f=>[...f.storage].filter(([k])=>k.startsWith('routine-equipment-fqc-transfer-v1:'));
 async function mutate(h,fn){const s=await h.core.readState();fn(s.values);h.db.prepare('UPDATE shared_state SET "values"=?,revision=revision+1').run(await h.load('lib/state-records.ts').encodeRecordValues(h.env.STATE_ARCHIVE,s.values));}
-for(const draft of [true,false])void test(`FQC replacement and all already-applied shared changes save in one CAS; existing draft=${draft}`,async t=>{
- const{h,f}=await setup(t,{draft});if(draft){const before=await state(h),id=before.working.items[0].id;await h.command('fqc','apply',{patches:[{op:'set',path:['items',{id},'description'],value:'Other shared unsaved input'}],guards:[{path:['items',{id},'description'],value:before.working.items[0].description}]},'edit-only');}
- const before=await state(h),equipment=(await h.core.readState()).values.routineEquipmentControl,revision=h.snapshot().row.revision,objects=new Map(h.objects);await transfer(f);assert.equal(f.test.dialog.moduleStatus.fqc,'success',f.test.dialog.moduleMessages.fqc);const after=await state(h);
- assert.equal(after.saved.content.items[0].equipmentId,'target');assert.equal(after.saved.content.items[0].description,draft?'Other shared unsaved input':before.active.content.items[0].description);assert.deepEqual(after.saved.content,after.working);assert.notEqual(after.saved.id,before.saved?.id);assert.deepEqual(after.active,before.active);assert.deepEqual(after.cases,before.cases);assert.equal((await h.core.readState()).values.routineEquipmentControl,equipment);
- assert.deepEqual(ownPosts(f).map(r=>r.action),draft?['save']:['begin-v1','save']);assert.equal(h.snapshot().row.revision,revision+(draft?1:2));assert.equal(journal(f).length,0);for(const[key,bytes]of objects)assert(h.objects.get(key).equals(bytes));
+// Seed the earlier source journal format through the real identified Begin transport.
+// Current replacement cannot create this journal; recovery must still recognize it.
+async function historicalBegin(f){
+ const client=f.test.targetFqcClient(),authority=await client.read(),c=authority.control;
+ const open=c.versions.find(v=>['draft','pending','pending-test'].includes(v.status));
+ const basis={generation:c.workflow?.generation??null,activeVersionId:c.activeVersionId??null,openVersionId:open?.id??null,openVersionStatus:open?.status??null,openVersionRevision:open?.revision??null};
+ const operationId=randomUUID(),actorId=f.c.ProcessSync.identity.id,key='routine-equipment-fqc-transfer-v1:'+actorId;
+ const intent=JSON.stringify({sourceId:'source',targetId:'target',ids:['fqc-item']});
+ const record={version:1,actorId,endpoint:'/api/fqc/workflow?caseMetadata=1',intent,basis,phase:'begin',operationId};
+ const encoded=JSON.stringify(record);
+ f.c.sessionStorage.setItem(key,encoded);
+ try {
+   const result=await client.beginWithIdentity({operationId,basis});
+   assert.equal(result.receipt.operationId,operationId);
+   assert.equal(result.operationKind,'begin-v1');
+   return {key,encoded};
+ }catch(error){
+   if(client.isBeginNotSent(error,{operationId,basis})){
+     assert.equal(f.c.sessionStorage.getItem(key),encoded);
+     f.c.sessionStorage.removeItem(key);
+   }
+   throw error;
+ }
+}
+void test('ordinary Submit refuses dirty content, then an explicitly confirmed replacement co-saves a coworker edit',async t=>{
+ const {h,f}=await setup(t);
+ await h.command('fqc','save');
+ const previous=await state(h),row=previous.working.items[0],path=['items',{id:row.id},'description'];
+ await h.command('fqc','apply',{patches:[{op:'set',path,value:'Unrelated shared working edit'}],guards:[{path,value:row.description}]},'edit-only');
+ const dirty=h.snapshot();
+ const refused=await h.command('fqc','submit',{savedId:previous.saved.id,reason:'Synthetic normal submission'},'editor',409);
+ assert.equal(refused.error,'UNSAVED_CHANGES_SAVE_REQUIRED');
+ for (const [lang,expected] of [['zh-TW',/請先儲存/],['vi',/Hãy lưu/]]) {
+   assert.match(f.c.sharedDraftErrorMessage(Error(refused.error),lang),expected);
+ }
+ assert.deepEqual(h.snapshot(),dirty);
+ await transfer(f);
+ assert.equal(f.test.dialog.moduleStatus.fqc,'success',f.test.dialog.moduleMessages.fqc);
+ assert.deepEqual(ownPosts(f).map(r=>r.action),['save']);
+ const final=await state(h);
+ assert.equal(final.saved.content.items[0].description,'Unrelated shared working edit');
+ assert.equal(final.saved.content.items[0].equipmentId,'target');
+ assert.deepEqual(final.active,previous.active);
+ assert.deepEqual(final.cases,previous.cases);
+ assert.equal(journal(f).length,0);
+});
+void test('an unopened FQC draft opens and saves in a single commit',async t=>{
+ const {h,f}=await setup(t,{draft:false});
+ const draft=await state(h),revision=h.snapshot().row.revision,equipment=(await h.core.readState()).values.routineEquipmentControl;
+ await transfer(f);
+ assert.equal(f.test.dialog.moduleStatus.fqc,'success',f.test.dialog.moduleMessages.fqc);
+ const after=await state(h);
+ assert.equal(after.saved.content.items[0].equipmentId,'target');
+ assert.deepEqual(after.saved.content,after.working);
+ assert.deepEqual(after.active,draft.active);assert.deepEqual(after.cases,draft.cases);
+ assert.equal((await h.core.readState()).values.routineEquipmentControl,equipment);
+ assert.deepEqual(ownPosts(f).map(r=>r.action),['save']);
+ assert.equal(h.snapshot().row.revision,revision+1);
+ assert.equal(journal(f).length,0);
 });
 void test('a same-field peer change rejects the entire transfer/Save with no partial candidate or fake unknown',async t=>{
  const{h,f}=await setup(t),raw=f.c.fetch;let peer;
  f.c.fetch=async(url,options={})=>{const b=options.body&&JSON.parse(options.body);if(b?.command?.moduleAction==='save-local-v1'){const flow=await state(h),id=flow.working.items[0].id;await h.command('fqc','apply',{patches:[{op:'set',path:['items',{id},'equipmentId'],value:''},{op:'set',path:['items',{id},'tool'],value:'Peer manual'}],guards:[{path:['items',{id},'equipmentId'],value:'source'},{path:['items',{id},'tool'],value:'01'}]},'edit-only');peer=h.snapshot();}return raw(url,options);};
- await transfer(f);assert.equal(f.test.dialog.moduleStatus.fqc,'error');assert.match(f.test.dialog.moduleMessages.fqc,/DEPENDENCY_CHANGED_RECONFIRM/);assert.deepEqual(h.snapshot(),peer);assert.equal(journal(f).length,0);assert.equal(f.c.sharedDraftAccountState().unknown,false);
+ await transfer(f);assert.equal(f.test.dialog.moduleStatus.fqc,'error');assert.match(f.test.dialog.moduleMessages.fqc,/草稿或資料修訂|đã thay đổi/);assert.deepEqual(h.snapshot(),peer);assert.equal(journal(f).length,0);assert.equal(f.c.sharedDraftAccountState().unknown,false);
 });
 for(const mode of ['receipt-404','receipt-503','readback-503'])void test(`committed FQC Save ${mode} retains exact intent; explicit recovery only GETs original receipt`,async t=>{
  const{h,f}=await setup(t),raw=f.c.fetch;let lost=false,down=true,posts=0;
@@ -31,13 +85,13 @@ for(const mode of ['receipt-404','receipt-503','readback-503'])void test(`commit
   if((options.method||'GET')==='GET'&&!u.searchParams.has('operationId')&&lost&&down&&mode==='readback-503')return Response.json({error:'READ_FAILED'},{status:503});
   if(b?.command?.action==='save'){posts++;const response=await raw(url,options);assert.equal(response.status,200);lost=true;if(mode!=='readback-503')throw Error('Synthetic ACK lost');return response;}
  }return raw(url,options);};
- await transfer(f);assert.equal(f.test.dialog.moduleStatus.fqc,'error');assert.equal(posts,1);const markers=[...f.storage];assert(journal(f).length);const stored=await state(h);assert.equal(stored.saved.content.items[0].equipmentId,'target');
+ await transfer(f);assert.equal(f.test.dialog.moduleStatus.fqc,'unknown');assert.match(f.test.dialog.moduleMessages.fqc,/查詢原操作收據/);assert.equal(posts,1);const markers=[...f.storage];assert(journal(f).length);const stored=await state(h);assert.equal(stored.saved.content.items[0].equipmentId,'target');
  await f.test.executeTransfer('fqc');assert.equal(posts,1);assert.deepEqual([...f.storage],markers);down=false;f.test.dialog.targetEqId='source';await f.test.executeTransfer('fqc');assert.equal(posts,1);assert.equal(f.test.dialog.moduleStatus.fqc,'success',f.test.dialog.moduleMessages.fqc);assert.equal(journal(f).length,0);assert.deepEqual(await state(h),stored);
 });
 void test('identified target Begin unknown keeps original identity and intent; recovery cannot continue Save',async t=>{
  const{h,f}=await setup(t,{draft:false}),raw=f.c.fetch;let lose=true,down=true,posts=0;
  f.c.fetch=async(url,options={})=>{const u=new URL(url,'http://fixture'),b=options.body&&JSON.parse(options.body);if(u.pathname==='/api/fqc/workflow'&&u.searchParams.has('operationId')&&down)return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});if(b?.action==='begin-v1'){posts++;const response=await raw(url,options);if(lose){lose=false;throw Error('Begin ACK lost');}return response;}if(b?.command?.action==='save')posts++;return raw(url,options);};
- await transfer(f);const bytes=[...f.storage];assert.equal(posts,1);assert.equal(journal(f).length,1);await f.test.executeTransfer('fqc');assert.deepEqual([...f.storage],bytes);assert.equal(posts,1);down=false;await f.test.executeTransfer('fqc');assert.equal(posts,1);assert.equal(f.test.dialog.moduleStatus.fqc,'idle');assert.match(f.test.dialog.moduleMessages.fqc,/尚未移轉或存取/);assert.equal((await state(h)).saved,null);await f.test.executeTransfer('fqc');assert.equal(posts,2);assert.equal(f.test.dialog.moduleStatus.fqc,'success');
+ await open(f);await assert.rejects(historicalBegin(f));const bytes=[...f.storage];assert.equal(posts,1);assert.equal(journal(f).length,1);await f.test.executeTransfer('fqc');assert.deepEqual([...f.storage],bytes);assert.equal(posts,1);down=false;await f.test.executeTransfer('fqc');assert.equal(posts,1);assert.equal(f.test.dialog.moduleStatus.fqc,'idle');assert.match(f.test.dialog.moduleMessages.fqc,/尚未移轉或存取/);assert.equal((await state(h)).saved,null);await transfer(f);assert.equal(posts,2);assert.equal(f.test.dialog.moduleStatus.fqc,'success');
 });
 void test('read-only recovery after page recreation retains original Save and sends no new POST',async t=>{
  const{h,f}=await setup(t),raw=f.c.fetch;let down=true;
@@ -68,53 +122,88 @@ void test('FQC replacement neither saves nor discards source equipment local inp
 });
 
 for(const allowed of [false,true])void test(`legacy FQC adoption retains the existing permission gate; authorized=${allowed}`,async t=>{
- const{h}=await setup(t,{draft:false});await mutate(h,values=>{if(allowed){const users=JSON.parse(values.platformUsers),editor=users.find(u=>u.id==='preview-editor');editor.role='admin';editor.permissions=['approval.submit'];editor.accessOverrides['approval.submit']=true;values.platformUsers=JSON.stringify(users);}const q=JSON.parse(values.qualityMasterControl),lib=q.libraries.fqc,active=lib.versions.find(v=>v.id===lib.activeVersionId),draft={...copy(active),id:'synthetic-legacy-fqc',status:'draft',revision:1,baseVersionId:lib.activeVersionId,snapshot:copy(active.snapshot)};draft.snapshot.items[0].equipmentId='';draft.snapshot.items[0].tool='Legacy visual text';draft.snapshot.items[0].description='Legacy other applied change';lib.versions.push(draft);delete lib.workflow;values.qualityMasterControl=JSON.stringify(q);});const f=await connect(h),before=h.snapshot();await transfer(f);if(!allowed){assert.equal(f.test.dialog.preview.modules.find(m=>m.moduleId==='fqc').items[0].selectable,false);assert.equal(ownPosts(f).length,0);assert.deepEqual(h.snapshot(),before);return;}assert.equal(f.test.dialog.moduleStatus.fqc,'success',f.test.dialog.moduleMessages.fqc);const after=await state(h);assert.equal(after.saved.content.items[0].equipmentId,'target');assert.equal(after.saved.content.items[0].description,'Legacy other applied change');assert.deepEqual(ownPosts(f).map(r=>r.action),['begin-v1','save']);
+ const{h}=await setup(t,{draft:false});await mutate(h,values=>{if(allowed){const users=JSON.parse(values.platformUsers),editor=users.find(u=>u.id==='preview-editor');editor.role='admin';editor.permissions=['approval.submit'];editor.accessOverrides['approval.submit']=true;values.platformUsers=JSON.stringify(users);}const q=JSON.parse(values.qualityMasterControl),lib=q.libraries.fqc,active=lib.versions.find(v=>v.id===lib.activeVersionId),draft={...copy(active),id:'synthetic-legacy-fqc',status:'draft',revision:1,baseVersionId:lib.activeVersionId,snapshot:copy(active.snapshot)};draft.snapshot.items[0].equipmentId='';draft.snapshot.items[0].tool='Legacy visual text';draft.snapshot.items[0].description='Legacy other applied change';lib.versions.push(draft);delete lib.workflow;values.qualityMasterControl=JSON.stringify(q);});const f=await connect(h),before=h.snapshot();await transfer(f);if(!allowed){assert.equal(f.test.dialog.preview.modules.find(m=>m.moduleId==='fqc').items[0].selectable,false);assert.equal(ownPosts(f).length,0);assert.deepEqual(h.snapshot(),before);return;}assert.equal(f.test.dialog.moduleStatus.fqc,'success',f.test.dialog.moduleMessages.fqc);assert.equal(h.snapshot().row.revision,before.row.revision+1);const after=await state(h);assert.equal(after.saved.content.items[0].equipmentId,'target');assert.equal(after.saved.content.items[0].description,'Legacy other applied change');assert.deepEqual(ownPosts(f).map(r=>r.action),['save']);
 });
 
-for(const change of ['disabled','no-effective'])void test(`already-selected FQC target ${change} race cannot save the shared draft`,async t=>{
- const{h,f}=await setup(t),row=(await state(h)).working.items[0];
- await h.command('fqc','apply',{patches:[{op:'set',path:['items',{id:row.id},'equipmentId'],value:'target'},{op:'set',path:['items',{id:row.id},'tool'],value:'02'}],guards:[{path:['items',{id:row.id},'equipmentId'],value:row.equipmentId},{path:['items',{id:row.id},'tool'],value:row.tool}]});await h.command('fqc','save');await h.command('fqc','apply',{patches:[{op:'set',path:['items',{id:row.id},'description'],value:'Another shared edit must remain unsaved on rejection'}],guards:[{path:['items',{id:row.id},'description'],value:row.description}]});
+for(const change of ['disabled','no-effective'])void test(`unsaved FQC target ${change} race cannot save the shared draft`,async t=>{
+ const{h,f}=await setup(t);await prepareTarget(h,{saveChoice:false});
  const raw=f.c.fetch;let changed;
  f.c.fetch=async(url,options={})=>{const body=options.body&&JSON.parse(options.body);if(body?.command?.moduleAction==='save-local-v1'){await mutate(h,values=>{const equipment=JSON.parse(values.routineEquipmentControl),active=equipment.versions.find(v=>v.id===equipment.activeVersionId);if(change==='disabled')active.equipment.find(e=>e.id==='target').enabled=false;else equipment.activeVersionId=null;values.routineEquipmentControl=JSON.stringify(equipment);});changed=h.snapshot();}return raw(url,options);};
- await transfer(f);assert.equal(f.test.dialog.moduleStatus.fqc,'error',f.test.dialog.moduleMessages.fqc);assert.match(f.test.dialog.moduleMessages.fqc,/EQUIPMENT_UNAVAILABLE/);assert.deepEqual(h.snapshot(),changed);assert.equal(ownPosts(f).length,1);assert.equal(journal(f).length,0);assert.equal(f.c.sharedDraftAccountState().unknown,false);
+ await transfer(f);assert.equal(f.test.dialog.moduleStatus.fqc,'error',f.test.dialog.moduleMessages.fqc);assert.match(f.test.dialog.moduleMessages.fqc,/草稿或資料修訂|đã thay đổi/);assert.deepEqual(h.snapshot(),changed);assert.equal(ownPosts(f).length,1);assert.equal(journal(f).length,0);assert.equal(f.c.sharedDraftAccountState().unknown,false);
 });
 
-async function alreadyTarget(h){const row=(await state(h)).working.items[0];await h.command('fqc','apply',{patches:[{op:'set',path:['items',{id:row.id},'equipmentId'],value:'target'},{op:'set',path:['items',{id:row.id},'tool'],value:'02'}],guards:[{path:['items',{id:row.id},'equipmentId'],value:row.equipmentId},{path:['items',{id:row.id},'tool'],value:row.tool}]});await h.command('fqc','save');await h.command('fqc','apply',{patches:[{op:'set',path:['items',{id:row.id},'description'],value:'Unrelated shared input'}],guards:[{path:['items',{id:row.id},'description'],value:row.description}]});}
-void test('same-target FQC selection revalidates a target disabled by a real CAS collision',async t=>{
- const{h,f}=await setup(t);await alreadyTarget(h);const before=await state(h),objects=new Map(h.objects),prepare=h.env.DB.prepare.bind(h.env.DB);let missed=false,peerRow;
+async function prepareTarget(h,{saveChoice=true}={}){const row=(await state(h)).working.items[0];await h.command('fqc','apply',{patches:[{op:'set',path:['items',{id:row.id},'equipmentId'],value:'target'},{op:'set',path:['items',{id:row.id},'tool'],value:'02'}],guards:[{path:['items',{id:row.id},'equipmentId'],value:row.equipmentId},{path:['items',{id:row.id},'tool'],value:row.tool}]});if(saveChoice)await h.command('fqc','save');await h.command('fqc','apply',{patches:[{op:'set',path:['items',{id:row.id},'description'],value:'Unrelated shared input'}],guards:[{path:['items',{id:row.id},'description'],value:row.description}]});}
+void test('a previously saved FQC choice preserves later shared edits as working-only through repeated confirmations',async t=>{
+ const {h,f}=await setup(t);
+ await prepareTarget(h);
+ const before=await state(h),snapshot=h.snapshot();
+ assert.notEqual(before.saved.content.items[0].description,before.working.items[0].description);
+ for(let attempt=0;attempt<2;attempt++){
+  await transfer(f);
+  assert.equal(f.test.dialog.moduleStatus.fqc,'success',f.test.dialog.moduleMessages.fqc);
+  assert.match(f.test.dialog.moduleMessages.fqc,/無需重存|không cần lưu lại/);
+  assert.equal(ownPosts(f).length,0);
+  assert.deepEqual(await state(h),before);
+  assert.deepEqual(h.snapshot(),snapshot);
+ }
+});
+void test('unsaved FQC selection revalidates a target disabled by a real CAS collision',async t=>{
+ const{h,f}=await setup(t);await prepareTarget(h,{saveChoice:false});const before=await state(h),objects=new Map(h.objects),prepare=h.env.DB.prepare.bind(h.env.DB);let missed=false,peerRow;
  h.env.DB.prepare=sql=>{const statement=prepare(sql);if(!sql.startsWith('UPDATE shared_state SET revision='))return statement;const bind=statement.bind.bind(statement);statement.bind=(...args)=>{bind(...args);const run=statement.run.bind(statement);statement.run=async()=>{if(!missed){missed=true;await mutate(h,values=>{const eq=JSON.parse(values.routineEquipmentControl);eq.versions.find(v=>v.id===eq.activeVersionId).equipment.find(e=>e.id==='target').enabled=false;values.routineEquipmentControl=JSON.stringify(eq);});peerRow=h.snapshot().row;}return run();};return statement;};return statement;};
- await transfer(f);assert(missed);assert.equal(f.test.dialog.moduleStatus.fqc,'error',f.test.dialog.moduleMessages.fqc);assert.match(f.test.dialog.moduleMessages.fqc,/EQUIPMENT_UNAVAILABLE/);assert.equal(ownPosts(f).length,1);assert.equal(ownPosts(f)[0].status,422);assert.deepEqual(h.snapshot().row,peerRow);assert.deepEqual(await state(h),before);for(const[key,bytes]of objects)assert(h.objects.get(key).equals(bytes));assert.equal(journal(f).length,0);
+ await transfer(f);assert(missed);assert.equal(f.test.dialog.moduleStatus.fqc,'error',f.test.dialog.moduleMessages.fqc);assert.match(f.test.dialog.moduleMessages.fqc,/草稿或資料修訂|đã thay đổi/);assert.equal(ownPosts(f).length,1);assert.equal(ownPosts(f)[0].status,409);assert.deepEqual(h.snapshot().row,peerRow);assert.deepEqual(await state(h),before);for(const[key,bytes]of objects)assert(h.objects.get(key).equals(bytes));assert.equal(journal(f).length,0);
 });
 void test('ordinary FQC Save retains untouched historical equipment snapshots while explicit reselection rejects disabled equipment',async t=>{
- const{h}=await setup(t);await alreadyTarget(h);const before=await state(h);await mutate(h,values=>{const eq=JSON.parse(values.routineEquipmentControl);eq.versions.find(v=>v.id===eq.activeVersionId).equipment.find(e=>e.id==='target').enabled=false;values.routineEquipmentControl=JSON.stringify(eq);});await h.command('fqc','save');const after=await state(h);assert.equal(after.saved.content.items[0].description,'Unrelated shared input');assert.deepEqual(after.saved.content.items[0].equipmentSnapshot,before.working.items[0].equipmentSnapshot);assert.deepEqual(after.active,before.active);assert.deepEqual(after.cases,before.cases);
+ const{h}=await setup(t);await prepareTarget(h);const before=await state(h);await mutate(h,values=>{const eq=JSON.parse(values.routineEquipmentControl);eq.versions.find(v=>v.id===eq.activeVersionId).equipment.find(e=>e.id==='target').enabled=false;values.routineEquipmentControl=JSON.stringify(eq);});await h.command('fqc','save');const after=await state(h);assert.equal(after.saved.content.items[0].description,'Unrelated shared input');assert.deepEqual(after.saved.content.items[0].equipmentSnapshot,before.working.items[0].equipmentSnapshot);assert.deepEqual(after.active,before.active);assert.deepEqual(after.cases,before.cases);
 });
-void test('same-target FQC transfer cannot commit or invent a receipt after session revocation during immutable storage',async t=>{
- const{h,f}=await setup(t);await alreadyTarget(h);h.env.PROCESS_SESSION_REVOCATION_ENABLED='1';const before=copy(JSON.parse((await h.core.readState()).values.qualityMasterControl).libraries.fqc.workflow),row=h.snapshot().row,objects=new Map(h.objects),put=h.env.STATE_ARCHIVE.put.bind(h.env.STATE_ARCHIVE);let revoked=false;
+void test('unsaved FQC transfer cannot commit or invent a receipt after session revocation during immutable storage',async t=>{
+ const{h,f}=await setup(t);await prepareTarget(h,{saveChoice:false});h.env.PROCESS_SESSION_REVOCATION_ENABLED='1';const before=copy(JSON.parse((await h.core.readState()).values.qualityMasterControl).libraries.fqc.workflow),row=h.snapshot().row,objects=new Map(h.objects),put=h.env.STATE_ARCHIVE.put.bind(h.env.STATE_ARCHIVE);let revoked=false;
  h.env.STATE_ARCHIVE.put=async(...args)=>{await put(...args);if(!revoked){revoked=true;const token=h.sessions.editor.Cookie.split('=').slice(1).join('=');h.db.prepare('INSERT OR REPLACE INTO process_revoked_sessions VALUES(?,?,?)').run(createHash('sha256').update(token).digest('hex'),Date.now()+3600000,Date.now());}};
  await transfer(f);assert(revoked);assert.equal(f.test.dialog.moduleStatus.fqc,'error');assert.equal(ownPosts(f).length,1);assert.equal(ownPosts(f)[0].status,401);assert.deepEqual(h.snapshot().row,row);const q=JSON.parse((await h.core.readState()).values.qualityMasterControl);assert.deepEqual(q.libraries.fqc.workflow,before);for(const[key,bytes]of objects)assert(h.objects.get(key).equals(bytes));await f.test.executeTransfer('fqc');assert.equal(ownPosts(f).length,1);
 });
-void test('Begin source journal retains its original identity when the next source write fails after the durable marker is cleared',async t=>{
- const{h,f}=await setup(t,{draft:false}),set=f.c.sessionStorage.setItem;let sourceWrites=0;
- f.c.sessionStorage.setItem=(key,value)=>{if(key.startsWith('routine-equipment-fqc-transfer-v1:')&&++sourceWrites===2)throw Error('Synthetic source handoff quota');set(key,value);};await transfer(f);assert.equal(f.test.dialog.moduleStatus.fqc,'error');assert.deepEqual(ownPosts(f).map(p=>p.action),['begin-v1']);const original=journal(f);assert.equal(original.length,1);const record=JSON.parse(original[0][1]);assert.equal(record.phase,'begin');assert.match(record.operationId,/^[0-9a-f-]{36}$/);assert(![...f.storage.keys()].some(k=>k.startsWith('shared-draft-begin-v1:')));assert.equal((await state(h)).saved,null);
- await f.test.executeTransfer('fqc');assert.deepEqual(ownPosts(f).map(p=>p.action),['begin-v1']);assert.equal(f.test.dialog.moduleStatus.fqc,'idle',f.test.dialog.moduleMessages.fqc);assert.equal(journal(f).length,0);assert.equal((await state(h)).saved,null);
+void test('a previous-client interruption after identified Begin retains the exact source journal; new UI recovers without Save',async t=>{
+ const {h,f}=await setup(t,{draft:false});
+ await open(f);
+ const {key,encoded}=await historicalBegin(f);
+ assert.equal(f.c.sessionStorage.getItem(key),encoded);
+ assert(![...f.storage.keys()].some(k=>k.startsWith('shared-draft-begin-v1:')));
+ assert.equal((await state(h)).saved,null);
+ const after=h.snapshot();
+ await f.test.executeTransfer('fqc');
+ assert.deepEqual(ownPosts(f).map(r=>r.action),['begin-v1']);
+ assert.equal(f.test.dialog.moduleStatus.fqc,'idle',f.test.dialog.moduleMessages.fqc);
+ assert.equal(journal(f).length,0);assert.deepEqual(h.snapshot(),after);
 });
-void test('an enabled same-target selection saves shared edits, and its exact committed receipt replays after later disable without a new Save',async t=>{
- const{h,f}=await setup(t);await alreadyTarget(h);const before=await state(h),raw=f.c.fetch;let command;
+void test('a persisted FQC transfer has an exact receipt that replays after later disable without a new Save',async t=>{
+ const{h,f}=await setup(t);await prepareTarget(h,{saveChoice:false});const before=await state(h),raw=f.c.fetch;let command;
  f.c.fetch=(url,options={})=>{const body=options.body&&JSON.parse(options.body);if(body?.command?.moduleAction==='save-local-v1')command=body.command;return raw(url,options);};await transfer(f);assert.equal(f.test.dialog.moduleStatus.fqc,'success',f.test.dialog.moduleMessages.fqc);const done=await state(h);assert.equal(done.saved.content.items[0].description,'Unrelated shared input');assert.deepEqual(done.saved.content.items[0].equipmentSnapshot,before.working.items[0].equipmentSnapshot);
  await mutate(h,values=>{const eq=JSON.parse(values.routineEquipmentControl);eq.versions.find(v=>v.id===eq.activeVersionId).equipment.find(e=>e.id==='target').enabled=false;values.routineEquipmentControl=JSON.stringify(eq);});const snapshot=h.snapshot(),response=await h.call('fqc/workflow','POST',{command},'editor',200,'?caseMetadata=1');assert.equal(response.receipt.operationId,command.operationId);assert.equal(response.receipt.savedId,done.saved.id);assert.deepEqual(h.snapshot(),snapshot);
 });
-void test('a normal independently approved equipment disable blocks an already-selected FQC target Save',async t=>{
- const{h,f}=await setup(t);await alreadyTarget(h);const before=await state(h),raw=f.c.fetch;let approved=false,peerRow;
+void test('a normal independently approved equipment disable blocks an unsaved FQC target Save',async t=>{
+ const{h,f}=await setup(t);await prepareTarget(h,{saveChoice:false});const before=await state(h),raw=f.c.fetch;let approved=false,peerRow;
  f.c.fetch=async(url,options={})=>{const body=options.body&&JSON.parse(options.body);if(body?.command?.moduleAction==='save-local-v1'&&!approved){approved=true;await h.begin('routine-equipment');await h.command('routine-equipment','apply',{patches:[{op:'set',path:['equipment',{id:'target'},'enabled'],value:false}],guards:[{path:['equipment',{id:'target'},'enabled'],value:true}]});await h.promote('routine-equipment');peerRow=h.snapshot().row;}return raw(url,options);};
- await transfer(f);assert(approved);assert.equal(f.test.dialog.moduleStatus.fqc,'error',f.test.dialog.moduleMessages.fqc);assert.equal(ownPosts(f)[0].status,422);assert.match(f.test.dialog.moduleMessages.fqc,/EQUIPMENT_UNAVAILABLE/);assert.deepEqual(h.snapshot().row,peerRow);assert.deepEqual(await state(h),before);assert.equal(journal(f).length,0);
+ await transfer(f);assert(approved);assert.equal(f.test.dialog.moduleStatus.fqc,'error',f.test.dialog.moduleMessages.fqc);assert.equal(ownPosts(f)[0].status,409);assert.match(f.test.dialog.moduleMessages.fqc,/草稿或資料修訂|đã thay đổi/);assert.deepEqual(h.snapshot().row,peerRow);assert.deepEqual(await state(h),before);assert.equal(journal(f).length,0);
 });
-void test('proven Begin preflight GET 503 retires only its unsent source intent and permits a fresh explicit attempt',async t=>{
- const{h,f}=await setup(t,{draft:false}),raw=f.c.fetch;let reads=0,down=true,receiptReads=0;const captured=[],set=f.c.sessionStorage.setItem;
- f.c.sessionStorage.setItem=(key,value)=>{if(key.startsWith('routine-equipment-fqc-transfer-v1:')){const record=JSON.parse(value);if(record.phase==='begin')captured.push(record.operationId);}set(key,value);};
- f.c.fetch=(url,options={})=>{const u=new URL(url,'http://fixture');if(u.pathname==='/api/fqc/workflow'&&(options.method||'GET')==='GET'){if(u.searchParams.has('operationId'))receiptReads++;else if(++reads===2&&down)return Response.json({error:'SYNTHETIC_PREFLIGHT_UNAVAILABLE'},{status:503});}return raw(url,options);};
- await transfer(f);assert.equal(f.test.dialog.moduleStatus.fqc,'error');assert.equal(ownPosts(f).length,0);assert.equal(captured.length,1);assert.equal(journal(f).length,0);assert.equal(f.c.sharedDraftAccountState().unknown,false);assert.equal((await state(h)).saved,null);down=false;await f.test.executeTransfer('fqc');assert.equal(f.test.dialog.moduleStatus.fqc,'success',f.test.dialog.moduleMessages.fqc);assert.deepEqual(ownPosts(f).map(r=>r.action),['begin-v1','save']);assert.equal(captured.length,2);assert.notEqual(captured[0],captured[1]);assert.equal(receiptReads,0);assert.equal((await state(h)).saved.content.items[0].equipmentId,'target');
-});
-void test('a proven unsent durable Begin storage failure retires the exact source intent without receipt lookup',async t=>{
- const{h,f}=await setup(t,{draft:false}),set=f.c.sessionStorage.setItem,before=h.snapshot();let quota=true;
- f.c.sessionStorage.setItem=(key,value)=>{if(quota&&key.startsWith('shared-draft-begin-v1:'))throw Error('Synthetic durable quota');set(key,value);};await transfer(f);assert.equal(f.test.dialog.moduleStatus.fqc,'error');assert.equal(ownPosts(f).length,0);assert.equal(journal(f).length,0);assert.equal(f.c.sharedDraftAccountState().unknown,false);assert.deepEqual(h.snapshot(),before);quota=false;await f.test.executeTransfer('fqc');assert.equal(f.test.dialog.moduleStatus.fqc,'success',f.test.dialog.moduleMessages.fqc);assert.deepEqual(ownPosts(f).map(r=>r.action),['begin-v1','save']);
+for(const fault of ['preflight-503','durable-storage'])void test('known-unsent historical Begin can be retired; the next confirmation opens and saves atomically: '+fault,async t=>{
+ const {h,f}=await setup(t,{draft:false}),fetch=f.c.fetch,set=f.c.sessionStorage.setItem;
+ const before=h.snapshot();let reads=0,receiptReads=0,firstOperation;
+ f.c.sessionStorage.setItem=(key,value)=>{
+   if(key.startsWith('routine-equipment-fqc-transfer-v1:'))firstOperation=JSON.parse(value).operationId;
+   if(fault==='durable-storage'&&key.startsWith('shared-draft-begin-v1:'))throw Error('Synthetic storage full');set(key,value);
+ };
+ f.c.fetch=(url,options={})=>{
+   const u=new URL(url,'http://fixture');
+   if(u.pathname==='/api/fqc/workflow'&&(options.method||'GET')==='GET'){
+     if(u.searchParams.has('operationId'))receiptReads++;
+     else if(++reads===2&&fault==='preflight-503')return Response.json({error:'PREFLIGHT_UNAVAILABLE'},{status:503});
+   }return fetch(url,options);
+ };
+ await assert.rejects(historicalBegin(f));assert(firstOperation);assert.equal(ownPosts(f).length,0);
+ assert.equal(journal(f).length,0);assert.equal(f.c.sharedDraftAccountState().unknown,false);
+ assert.deepEqual(h.snapshot(),before);
+ f.c.fetch=fetch;f.c.sessionStorage.setItem=set;
+ await transfer(f);
+ assert.equal(f.test.dialog.moduleStatus.fqc,'success',f.test.dialog.moduleMessages.fqc);
+ assert.deepEqual(ownPosts(f).map(r=>r.action),['save']);assert.equal(receiptReads,0);
+ assert.equal((await state(h)).saved.content.items[0].equipmentId,'target');
+ const saved=(await state(h)).receipts;assert.equal(saved[firstOperation],undefined);
 });

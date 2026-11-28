@@ -1,4 +1,3 @@
-const qualityAtomic=moduleId=>['fqc','iqc'].includes(moduleId);
 // Full actual equipment transfer UI -> actual routes, normal synthetic approvals.
 // No browser, HTTP server or live records. IPQC-C test rights are fixture-local.
 const assert = require('node:assert/strict');
@@ -35,6 +34,12 @@ async function check(name, task) { const start = performance.now(); await task()
     }
     const saveQuery = moduleId => moduleId === 'ipqc-ab' ? '&module=1' : '';
     const savedItem = (moduleId, saved) => (moduleId === 'ipqc-ab' ? saved.content.scopes['A:G-A'] : saved.content).items[0];
+    async function restoreInDestination(moduleId){
+      const src=h.flow(await fullRead(moduleId,stateQ(moduleId))).working.items[0];
+      const desired={equipmentId:'source',...(moduleId==='fqc'?{tool:'01'}:{} )};
+      const patches=Object.entries(desired).map(([k,value])=>({op:'set',path:['items',{id:src.id},k],value}));
+      await h.command(moduleId,'apply',{patches,guards:patches.map(p=>({path:p.path,value:src[p.path[2]]}))},'editor',200,stateQ(moduleId));
+    }
     async function manualSave(moduleId, equipmentId) {
       const start = performance.now(), q = saveQuery(moduleId);
       // This is an explicit destination Save action, never part of executeTransfer.
@@ -60,17 +65,21 @@ async function check(name, task) { const start = performance.now(); await task()
       try {
         const lostUI=await connect(lostH),rawFetch=lostUI.c.fetch;let lost=false;
         lostUI.c.fetch=async(url,options={})=>{const body=options.body&&JSON.parse(options.body),response=await rawFetch(url,options);if(!lost&&String(url).startsWith('/api/'+moduleId+'/workflow')&&body?.action==='begin-v1'){lost=true;assert.equal(response.status,200);throw Object.assign(Error('signal is aborted without reason'),{name:'AbortError'});}return response;};
-        const key=moduleId==='ipqc-c'?'ipqcC':moduleId==='ipqc-ab'?'ipqcAB':moduleId;
-        let attempts=0;const attempt=async()=>{attempts++;lostUI.test.openTransferModal('source');for(let i=0;!lostUI.test.dialog?.preview&&i<1000;i++)await tick();assert(lostUI.test.dialog?.preview);lostUI.test.dialog.targetEqId='target';await lostUI.test.executeTransfer(key);assert.match(lostUI.test.dialog.moduleMessages[key],attempts===1?/待確認|UNKNOWN|aborted|FAILED|尚未確認/i:/尚未移轉或存取|已核對原操作|PREVIOUS_OPERATION_UNKNOWN/);lostUI.close();};
-        await attempt();const marker=[...lostUI.storage];assert.equal(marker.length,qualityAtomic(moduleId)?2:1);assert.equal(lostUI.posts().length,1);
-        await attempt();assert.equal(lostUI.posts().length,1);assert.equal(lostUI.storage.size,0,'identified Begin only settles through its original receipt');
+        // Exercise the separate native Begin receipt path on an independent unopened fixture.
+        const endpoint=moduleId==='ipqc-ab'?'/api/ipqc-ab/workflow?module=1&caseMetadata=1':'/api/'+moduleId+'/workflow?caseMetadata=1';
+        const client=lostUI.c.createSharedDraftClient({endpoint,actorId:lostUI.c.ProcessSync.identity.id,durableBegin:true,...(moduleId==='ipqc-ab'?{externalDurableBounded:{scope:'IPQC-AB'}}:{}),headers:()=>lostUI.c.ProcessSync.platformHeaders()});
+        await assert.rejects(client.begin());assert(lost);assert.equal(lostUI.posts().length,1);assert(client.hasUnknownBegin());
+        const originalBegin=lostUI.requests.find(r=>r.action==='begin-v1');
+        const resolved=await client.resolveUnknown();assert.equal(resolved.operationKind,'begin-v1');assert(resolved.receipt.operationId);
+        assert(originalBegin);assert(!client.hasUnknownBegin());assert.equal(lostUI.posts().length,1);
         const afterLost=lostH.flow(moduleId==='ipqc-c'?{control:JSON.parse((await lostH.core.readState()).values.ipqcCMasterControl)}:await lostH.read(moduleId,'editor',q));assert.equal(afterLost.working.items[0].equipmentId,'source');assert.deepEqual(afterLost.saved,before.saved);assert.deepEqual(afterLost.active,before.active);assert.deepEqual(afterLost.cases,before.cases);
       } finally {lostH.close();}
-      await runTransfer(moduleId, 'target'); let after = h.flow(await fullRead(moduleId, q)); assert.equal(after.working.items[0].equipmentId, 'target');
+      const closedRevision=h.snapshot().row.revision;
+      await runTransfer(moduleId, 'target'); assert.equal(h.snapshot().row.revision,closedRevision+1); let after = h.flow(await fullRead(moduleId, q)); assert.equal(after.working.items[0].equipmentId, 'target');
       assert.deepEqual(after.active, before.active);const transferredSave=h.flow(await fullRead(moduleId,saveQuery(moduleId))).saved;assert(transferredSave?.id);assert.equal(savedItem(moduleId,transferredSave).equipmentId,'target');assert.deepEqual(after.cases,before.cases);
       const unrelated = row => Object.fromEntries(Object.entries(row).filter(([key]) => !['equipmentId', 'equipmentSnapshot', 'inspectionMode', 'tool'].includes(key)));
       assert.deepEqual(unrelated(after.working.items[0]), unrelated(original));
-      const firstSaved = await manualSave(moduleId, 'target'), savedObjects = new Map(h.objects);
+      const firstSaved = transferredSave, savedObjects = new Map(h.objects);
       const savesBeforeTransfer = f.requests.filter(row => row.method==='POST'&&row.action === 'save').length;
       const beginsBeforeTransfer = f.requests.filter(row => row.path === '/api/' + moduleId + '/workflow' && row.action === 'begin').length;
       await runTransfer(moduleId, 'source'); after = h.flow(await fullRead(moduleId, q)); assert.equal(after.working.items[0].equipmentId, 'source');
@@ -89,7 +98,7 @@ async function check(name, task) { const start = performance.now(); await task()
         const scope=stateQ(moduleId),q=saveQuery(moduleId),key=moduleId==='ipqc-c'?'ipqcC':moduleId==='ipqc-ab'?'ipqcAB':moduleId;
         const locked=(await peer.preview('reviewer')).modules.find(m=>m.moduleId===moduleId);
         assert(locked.items.every(row=>!row.selectable && row.unavailableReason),'read-only reviewer cannot transfer');
-        await peer.begin(moduleId,'editor',200,scope);
+        await peer.begin(moduleId,'editor',200,scope);if(moduleId==='ipqc-ab')await peer.begin(moduleId,'editor',200,q);
         const source=await connect(peer);
         const open=async()=>{source.test.openTransferModal('source');while(!source.test.dialog?.preview)await tick();source.test.dialog.targetEqId='target';};
         await open();
@@ -103,9 +112,12 @@ async function check(name, task) { const start = performance.now(); await task()
         const note=moduleId==='ipqc-ab'?'standard':moduleId==='iqc'?'nameVi':'description';
         const manual=(moduleId==='ipqc-ab'||moduleId==='iqc')?{inspectionMode:'visual',equipmentId:''}:{equipmentId:''};
         await edit({...manual,[note]:'Peer unrelated change'});
-        const prompts=[];source.c.confirm=t=>{prompts.push(t);return !t.includes('開頁時');};
-        await source.test.executeTransfer(key);assert.equal(source.posts().length,0);assert(prompts.some(t=>t.includes('開頁時')&&t.includes(moduleId==='iqc'||moduleId==='ipqc-ab'?'目視':'已清空檢具')));
+        await source.test.executeTransfer(key);
+        assert.equal(source.posts().length,0);assert.match(source.test.dialog.moduleMessages[key],/資料修訂已變更/);
         assert((await peer.preview()).modules.find(m=>m.moduleId===moduleId).items.some(row=>row.draftEquipmentId===''));
+        source.close();await open();const prompts=[];source.c.confirm=t=>{prompts.push(t);return false;};
+        await source.test.executeTransfer(key);assert.equal(source.posts().length,0);
+        assert(prompts.some(t=>t.includes('取消可保留目前設定')&&t.includes(moduleId==='iqc'||moduleId==='ipqc-ab'?'目視':'已清空檢具')));
         source.c.confirm=()=>true;await source.test.executeTransfer(key);assert.equal(source.test.dialog.moduleStatus[key],'success',source.test.dialog.moduleMessages[key]);
         const data=moduleId==='ipqc-c'?{control:JSON.parse((await peer.core.readState()).values.ipqcCMasterControl)}:await peer.read(moduleId,'editor',q);
         const saved=peer.flow(data).saved,item=savedItem(moduleId,saved);assert(saved.id);assert.equal(item.equipmentId,'target');assert.equal(item[note],'Peer unrelated change');
@@ -113,7 +125,7 @@ async function check(name, task) { const start = performance.now(); await task()
         const count=source.posts().length;await source.test.executeTransfer(key);assert.equal(source.posts().length,count,'matching successful Save is not reissued');assert.match(source.test.dialog.moduleMessages[key],/已相同 1/);
         while(source.test.dialog?.refreshing)await tick();source.close();await open();
         const lastSaved=peer.flow(data).saved.id;
-        await edit(manual);await source.test.loadTransferPreview();
+        await edit(manual);source.close();await open();
         const send=source.c.fetch;let raced=false;
         source.c.fetch=async(url,opts={})=>{
           const command=opts.body&&JSON.parse(opts.body).command;
@@ -137,7 +149,12 @@ async function check(name, task) { const start = performance.now(); await task()
       const client = f.c.createSharedDraftClient({ endpoint, actorId: f.c.ProcessSync.identity.id, headers: () => f.c.ProcessSync.platformHeaders() });
       for (const unavailable of [false, true]) {
         const expectedEquipmentId = unavailable ? 'source' : 'target';
-        await runTransfer(moduleId, expectedEquipmentId);
+        if(!unavailable)await runTransfer(moduleId,expectedEquipmentId);
+        else{
+          // The preceding ordinary Save invalidates the transfer's undo proof.
+          // A deliberate change back must use the group's normal workflow.
+          await restoreInDestination(moduleId);
+        }
         const peerQ=stateQ(moduleId),peer=h.flow(await fullRead(moduleId,peerQ)),row=peer.working.items[0],field=moduleId==='iqc'?'nameVi':moduleId==='ipqc-ab'?'standard':'description';
         await h.command(moduleId,'apply',{patches:[{op:'set',path:['items',{id:row.id},field],value:'Explicit destination correction '+unavailable}],guards:[{path:['items',{id:row.id},field],value:row[field]}]},'editor',200,peerQ);
         const oldSaveHistory = json((await storedWorkflow(moduleId)).saves), oldSaveObjects = new Map(h.objects);
@@ -200,8 +217,8 @@ async function check(name, task) { const start = performance.now(); await task()
         await runTransfer(moduleId, 'new-two', 'success', 'new-one'); await manualSave(moduleId, 'new-two');
         const final = h.flow(await fullRead(moduleId, stateQ(moduleId))); assert.equal(final.working.items[0].equipmentId, 'new-two');
         assert.deepEqual(final.active, initial.active); assert.deepEqual(final.cases, initial.cases);
-        // Return fixture working to source with a normal explicit transfer; no history or saved snapshot is deleted.
-        await runTransfer(moduleId, 'source', 'success', 'new-two'); await manualSave(moduleId, 'source');
+        // This ordinary Save follows another write. Restore through the native module.
+        await restoreInDestination(moduleId); await manualSave(moduleId, 'source');
       }
       await f.test.read(); assert(await f.test.writeShared('begin'));
       const beforeDelete = h.snapshot(), postCount = f.posts().length; await f.test.deleteEquipment('new-one');
@@ -246,8 +263,9 @@ async function check(name, task) { const start = performance.now(); await task()
         const q=saveQuery(moduleId), original=json(h.flow(await fullRead(moduleId,q)).active);
         assert(!(await fullRead(moduleId,stateQ(moduleId))).control.versions.some(version=>version.status==='draft'),'new approved-tool transfer starts with no destination draft');
         const beginCount=f.requests.filter(row=>row.path==='/api/'+moduleId+'/workflow'&&['begin','begin-v1'].includes(row.action)).length;
+        await h.begin(moduleId,'editor',200,stateQ(moduleId));if(moduleId==='ipqc-ab')await h.begin(moduleId,'editor',200,q);
         await runTransfer(moduleId, 'new-two', 'success', 'new-one');
-        assert.equal(f.requests.filter(row=>row.path==='/api/'+moduleId+'/workflow'&&['begin','begin-v1'].includes(row.action)).length,beginCount+1,'no-draft transfer performs one authorized Begin');
+        assert.equal(f.requests.filter(row=>row.path==='/api/'+moduleId+'/workflow'&&['begin','begin-v1'].includes(row.action)).length,beginCount,'replacement leaves Begin to the destination module');
         const saved=await manualSave(moduleId,'new-two');
         const submitted=await h.command(moduleId,'submit',{savedId:saved.id,reason:'Synthetic move references before disabling used tool'},'editor',200,q);
         assert.deepEqual(h.flow(await fullRead(moduleId,q)).active,original);
@@ -281,6 +299,7 @@ async function check(name, task) { const start = performance.now(); await task()
       for(const [key,bytes] of objects)assert(h.objects.get(key)?.equals(bytes),'disable does not delete old records or object bytes');
     });
     await check('actual pending scope remains unavailable and stale confirmed selection sends no POST', async () => {
+      await h.begin('fqc');
       await runTransfer('fqc', 'target', 'success', 'new-two'); const saved = h.flow(await h.command('fqc', 'save')).saved;
       f.test.openTransferModal('new-two'); await tick(); for (let i = 0; !f.test.dialog?.preview && i < 1000; i++) await tick(); assert(f.test.dialog?.preview);
       f.test.dialog.targetEqId = 'target'; const submitted = await h.command('fqc', 'submit', { savedId: saved.id, reason: 'Synthetic pending race' });

@@ -117,6 +117,14 @@ void test('the proposed shell delta is confined to the four routine asset tags',
   expected=expected.replace('routine-equipment.js?v=20261126-mobile-apply','routine-equipment.js?v=20261127-calibration');
   const iqc=script('routine-iqc.js?v=20261127-calibration');
   expected=expected.replace(iqc, ['    <link rel="stylesheet" href="piece-calibration.css?v=20261127" />',script('piece-calibration.js?v=20261127'),iqc].join('\n'));
+  for (const [file, previous] of [
+    ['shared-draft-client.js', '20261127-fqc-code-owner1'],
+    ['routine-equipment.js', '20261127-calibration'],
+  ]) {
+    const from = script(file + '?v=' + previous);
+    assert.equal(expected.split(from).length, 2, from);
+    expected = expected.replace(from, script(file + '?v=20261128-transfer-cost'));
+  }
   assert.equal(shell.replace(/\r\n/g,'\n'),expected.replace(/\r\n/g,'\n'));
 });
 

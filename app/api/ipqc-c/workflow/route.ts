@@ -1,4 +1,5 @@
 import {calibrationEquipmentDependency} from '@/lib/equipment-catalog.mjs';
+import { equipmentTransferRead,equipmentTransferView,equipmentTransferMetadata,firstTransferGeneration, transferDraftState, requireTransferDraft, planCleanTransfer, type TransferProof } from '@/lib/equipment-transfer-guard';
 import {approvedVersion,approvedVersions,approvedVersionEvidence} from '@/lib/approved-history';
 import {ipqcCFinalReviewAllowed} from '@/lib/ipqc-c-access';
 import {beginBasis,parseBeginIdentity,replayBegin,assertBeginBasis,recordBegin} from '@/lib/workflow-begin';
@@ -6,7 +7,8 @@ import {ipqcCCreateCommand,readIpqcCCreateMutationState,encodeIpqcCCreateMutatio
 import {ipqcCSaveCommand,readIpqcCSaveMutationState,encodeIpqcCSaveMutationState} from '@/lib/ipqc-c-save-record-mutation';
 import {restoreAllowed,assertRestoreAccess,restoreEffects} from '@/lib/draft-restore-access';
 import { env } from 'cloudflare:workers';
-import { readState, identity, can, createIpqcCPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, parse, responseHeaders, type State } from '@/lib/process-state';
+import {prepareEquipmentTransfer} from '@/lib/state-records';
+import { readSharedStateRow, readState, identity, can, createIpqcCPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, parse, responseHeaders, type State } from '@/lib/process-state';
 import { parseIpqcControl, activeIpqc, openIpqc, copyIpqc } from '@/lib/ipqc-c';
 import { beginIpqcWorkflow, applyIpqcWorkflow, ipqcWorkflowContext, publicIpqcWorkflow, type IpqcWorkflowControl, type IpqcWorkflowCommand } from '@/lib/ipqc-c-workflow';
 import { DraftConflict, type DraftPermission } from '@/lib/shared-draft';
@@ -64,9 +66,10 @@ export async function GET(request:Request) {
     // The create terminal check needs current authority and C workflow only.
     // Keep its full response/fresh GET; do not reuse POST authority or narrow
     // history/restore/receipt queries when selectors are combined.
+    const transferRead=equipmentTransferRead(request);
     const createReadback=query.get('readback')==='ipqc-c-create-v1'&&[...query.keys()].every(key=>['readback','caseMetadata','compact'].includes(key));
     // All selected aggregates/checks remain; only GET metadata overlaps (max five).
-    const state=await readState({aggregateReadAhead:true,...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:createReadback?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY]}:{}),modelKey:KEY,deferDependencyHistory:true,deferHistory:true,caseId:query.get('caseId'),saveId:query.get('restoreSaveId'),versionId:query.get('versionId')||query.get('legacyVersionId')}),phase=await createIpqcCPermissionPhase(request,state),actor=phase.actor,permissions=await access(request,state,phase);
+    const state=await readState({aggregateReadAhead:true,...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:createReadback||transferRead?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY]}:{}),modelKey:KEY,metadataOnlyModel:transferRead,deferDependencyHistory:true,deferHistory:true,caseId:query.get('caseId'),saveId:query.get('restoreSaveId'),versionId:query.get('versionId')||query.get('legacyVersionId')}),phase=await createIpqcCPermissionPhase(request,state),actor=phase.actor,permissions=await access(request,state,phase);
     if(!actor||!permissions.view||!await phase.current())return reply({error:'FORBIDDEN'},403);
     if(query.has('permissions'))return reply({permissions,revision:state.revision,otherReviewerAvailable:otherReviewerAvailable(state,actor.id)});
     const control=readControl(state),flow=control.workflow;
@@ -130,6 +133,7 @@ export async function GET(request:Request) {
     }
     const since=new URL(request.url).searchParams.get('since');
     if(flow&&since===`${flow.generation}:${flow.revision}`)return reply({revision:state.revision,permissions,unchanged:true});
+    if(transferRead)return reply({revision:state.revision,permissions,beginBasis:beginBasis(control),workflow:equipmentTransferMetadata(control).workflow});
     return reply({revision:state.revision,permissions,beginBasis:beginBasis(control),workflow:flow ? {
       scope:flow.scope,generation:flow.generation,revision:flow.revision,working:flow.working,
       saved:flow.saved ? {id:flow.saved.id,revision:flow.saved.revision,actor:flow.saved.actor,at:flow.saved.at}:null,
@@ -169,7 +173,10 @@ export async function POST(request:Request) {
     for(let attempt=0;attempt<4;attempt++) {
       const saveMutationState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&ipqcCSaveCommand(body.command)?await readIpqcCSaveMutationState(body.command):null;
       const createMutationState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&ipqcCCreateCommand(body.command)?await readIpqcCCreateMutationState(body.command):null;
-      const state=createMutationState||saveMutationState||await readState({aggregateReadAhead:true,modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:body.command?.localChanges||['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=await createIpqcCPermissionPhase(request,state),actor=phase.actor;streamRecords=!!state.recordStorage;
+      const transferSave=body.action===undefined&&body.command?.action==='save'&&body.command.equipmentTransferRevision!==undefined;
+      const row=transferSave?await readSharedStateRow():null;
+      const transferWrite=row?await prepareEquipmentTransfer(env.STATE_ARCHIVE,row,KEY):null;
+      const state=transferWrite?.state||createMutationState||saveMutationState||await readState({aggregateReadAhead:true,modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:body.command?.localChanges||['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=await createIpqcCPermissionPhase(request,state),actor=phase.actor;streamRecords=!!state.recordStorage;
       if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
       if(state.values.maintenanceMode==='1')return reply({error:'MAINTENANCE'},503);
       const permissions=await access(request,state,phase),control=readControl(state);
@@ -224,6 +231,22 @@ export async function POST(request:Request) {
         beginIpqcWorkflow(control,context);
       } else {
         if(!body.command)return reply({error:'COMMAND_REQUIRED'},422);
+        let transferProof:TransferProof|undefined;
+        if(body.command.equipmentTransferOpen!==undefined&&(body.command.equipmentTransferOpen!==true||body.command.equipmentTransferRevision===undefined))throw new DraftConflict('INVALID_LOCAL_SAVE',422);
+        if (body.command.equipmentTransferRevision!==undefined && !control.workflow?.receipts[body.command.operationId]) {
+            if(!permissions.view||!permissions.edit)return reply({error:'FORBIDDEN'},403);
+          if (body.command.action!=='save'||!Array.isArray(body.command.localChanges)) throw new DraftConflict('INVALID_LOCAL_SAVE',422);
+          const opening=body.command.equipmentTransferOpen===true;
+          requireTransferDraft(state.revision,body.command.equipmentTransferRevision,transferDraftState(control),opening);
+          if(opening){
+            if(!permissions.save||!control.workflow&&!await can(request,state,'approval.submit'))return reply({error:'FORBIDDEN'},403);
+            if(!activeIpqc(control)&&!openIpqc(control))return reply({error:'INITIAL_BUILD_REQUIRED'},409);
+            beginIpqcWorkflow(control,{...context,id:()=>firstTransferGeneration('ipqc-c',state.revision)});
+            projection(control,actor,at);
+            requireTransferDraft(state.revision,body.command.equipmentTransferRevision,transferDraftState(control));
+          }
+          transferProof=planCleanTransfer('ipqc-c',control,undefined,body.command,state.revision,state.values.routineEquipmentControl);
+        }
         if(!openIpqc(control)&&!control.workflow?.receipts[body.command.operationId])return reply({error:'BEGIN_REQUIRED'},409);
         if(body.command.moduleAction?.startsWith('delete')&&!permissions.delete)return reply({error:'FORBIDDEN'},403);
         if(body.command.moduleAction?.startsWith('create')&&!permissions.create)return reply({error:'FORBIDDEN'},403);
@@ -237,9 +260,12 @@ export async function POST(request:Request) {
         }
         const alreadyAccepted=control.workflow?.receipts[body.command.operationId],beforeChange=copyIpqc(control.workflow?.working||openIpqc(control)?.snapshot||{errors:[],items:[]});
         receipt=applyIpqcWorkflow(control,body.command,context);
+        if(transferProof)control.workflow!.receipts[body.command.operationId].equipmentTransfer=transferProof;
         if(!alreadyAccepted&&body.command.action==='restore')await assertRestoreAccess(request,state,beforeChange,control.workflow!.working);
         if(!alreadyAccepted&&(body.command.action==='apply'||body.command.localChanges)){const effects=restoreEffects(beforeChange,control.workflow!.working);if(effects.create&&!permissions.create||effects.delete&&!permissions.delete)return reply({error:'FORBIDDEN'},403);}
-        if(alreadyAccepted){if(!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);return reply({revision:state.revision,control:publicIpqcWorkflow(control,permissions.history,caseMetadata),receipt,unchanged:true,requestId});}
+        if(alreadyAccepted){if(!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
+          if(transferSave&&equipmentTransferView(request))return reply({revision:state.revision,receipt,unchanged:true,requestId});
+          return reply({revision:state.revision,control:publicIpqcWorkflow(control,permissions.history,caseMetadata),receipt,unchanged:true,requestId});}
         for(const item of control.workflow!.working.items)for(const photo of item.mediaItems)
           if(!knownPhotos.has(photo.id)&&!await env.STATE_ARCHIVE.head(`ipqc-c/photos/${photo.id}`))return reply({error:'PHOTO_NOT_UPLOADED'},422);
       }
@@ -249,7 +275,7 @@ export async function POST(request:Request) {
       if(!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
       const prepared=state.recordStorage?new Map([[KEY,control]]):undefined;
       const values={...state.values,...(!prepared?{[KEY]:JSON.stringify(control)}:{})};
-      const encoded=await (createMutationState?encodeIpqcCCreateMutationState(state,values,prepared):saveMutationState?encodeIpqcCSaveMutationState(state,values,prepared):encodeValues(values,state,prepared));
+      const encoded=await (transferWrite?transferWrite.encode(control):createMutationState?encodeIpqcCCreateMutationState(state,values,prepared):saveMutationState?encodeIpqcCSaveMutationState(state,values,prepared):encodeValues(values,state,prepared));
       // Recheck session revocation after slow photo/immutable storage I/O.
       // Account/permission changes remain fenced by the state revision CAS.
       if(!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
@@ -261,6 +287,7 @@ export async function POST(request:Request) {
         const {content:_savedContent,...savedMetadata}=saved,{snapshot:_draftSnapshot,...draftMetadata}=draft;
         return reply({revision:state.revision+1,receipt,requestId,permissions,cSaveProjection:{version:1,baseStateRevision:saveProjectionBase.revision,baseFlowRevision:saveProjectionBase.flowRevision,generation:saveProjectionBase.generation,activeVersionId:saveProjectionBase.activeVersionId,flowRevision:control.workflow.revision,saved:savedMetadata,contributors:control.workflow.contributors,draft:draftMetadata}});
       }
+      if(transferSave&&equipmentTransferView(request))return reply({revision:state.revision+1,requestId,receipt});
       return reply({revision:state.revision+1,control:publicIpqcWorkflow(control,permissions.history,caseMetadata),receipt,requestId,...(begin?{operationKind:'begin-v1'}:{})});
     }
     return reply({error:'CONCURRENT_CHANGE_RETRY',requestId},409);
