@@ -30,7 +30,7 @@ async function run(){
  try{
   const values=(await seed.core.readState()).values;
   for(const m of Object.keys(names)){
-   for(const mode of (process.argv.includes('--v107-begin')?['v107-native-begin']:['revoked','peer-opens','replayed','first-adoption'])){
+   for(const mode of (process.argv.includes('--v107-begin')?['v107-native-begin']:['revoked','peer-opens','replayed','first-adoption','calibration-blocked'])){
     const h=await fixture(values,{includeIPQCC:true});
     try{
      for(const [key,bytes] of seed.objects)h.objects.set(key,Buffer.from(bytes));
@@ -46,6 +46,10 @@ async function run(){
       s.values[names[m]]=JSON.stringify(control);
       editor.accessOverrides['approval.submit']=true;editor.permissions.push('approval.submit');
       if(m==='fqc')editor.role='admin';
+     }
+     if(mode==='calibration-blocked'){
+      const catalog=JSON.parse(s.values.routineEquipmentControl);catalog.calibrationUnavailable=['target'];
+      s.values.routineEquipmentControl=JSON.stringify(catalog);
      }
      s.values.platformUsers=JSON.stringify(users);
      const encoded=await h.load('lib/state-records.ts').encodeRecordValues(h.env.STATE_ARCHIVE,s.values);
@@ -68,6 +72,11 @@ async function run(){
      const command=await replacement(h,m),q=m==='ipqc-ab'?'&module=1':'',query='?caseMetadata=1'+q;
      const send=(who,code,cmd=command)=>h.call(m+'/workflow','POST',{command:cmd},who,code,query);
      const before=h.snapshot().row,baseline=await readFlow(h,m);
+     if(mode==='calibration-blocked'){
+      assert.equal((await send('editor',422)).error,'EQUIPMENT_UNAVAILABLE');
+      assert.deepEqual(h.snapshot().row,before);assert.deepEqual(await readFlow(h,m),baseline);
+      console.log('VERIFIED',JSON.stringify({module:m,mode}));continue;
+     }
      if(mode==='v107-native-begin'){
       // Simulate the same winning peer at the last D1 check. V107 normally
       // opens first and saves via another request. Measure only that first Begin.

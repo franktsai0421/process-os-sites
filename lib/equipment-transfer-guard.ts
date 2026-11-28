@@ -1,4 +1,26 @@
+import { calibrationEquipmentDependency } from './equipment-catalog.mjs';
 import { DraftConflict, sameDraftValue } from './shared-draft';
+
+// Transport view used only by the equipment dialog. It still follows a fresh
+// permission check and the original operation's receipt for settlement.
+export function equipmentTransferMetadata(control:{
+  activeVersionId?:string|null;versions:{id:string;revision?:number;status:string}[];
+  workflow?:{scope:string;generation:string;revision:number;pendingId:string|null;saved?:{id:string}|null};
+}) {
+  const flow=control.workflow;
+  return {activeVersionId:control.activeVersionId??null,
+    versions:control.versions.filter(v=>v.id===control.activeVersionId||['draft','pending','pending-test'].includes(v.status))
+      .map(({id,revision,status})=>({id,revision,status})),
+    workflow:flow?{scope:flow.scope,generation:flow.generation,revision:flow.revision,pendingId:flow.pendingId,
+      saved:flow.saved?{id:flow.saved.id}:null}:null};
+}
+export const equipmentTransferView=(request:Request)=>request.headers.get('X-Process-Equipment-Transfer')==='metadata-v1';
+
+export function equipmentTransferRead(request:Request){
+  if(!equipmentTransferView(request))return false;
+  const query=new URL(request.url).searchParams;
+  return [...query.keys()].every(key=>['caseMetadata','compact','module','operationId','accessEvent'].includes(key)&&query.getAll(key).length===1);
+}
 
 export type TransferProof={revision:number;reverseKeys:string[]};
 type ReceiptRecord={result:{generation:string;savedId:string|null};equipmentTransfer?:TransferProof};
@@ -132,7 +154,7 @@ export function planCleanTransfer(module:string,control:Control,ab:GroupRoot|und
     if([...columns.values()].some(cols=>cols.size!==allowed.length))return invalid();
   }
   if(targets.size!==1||reverseKeys.length>256)return invalid();
-  const catalog:unknown=JSON.parse(catalogRaw??'null');
+  const catalog:unknown=calibrationEquipmentDependency(JSON.parse(catalogRaw??'null'));
   const version=record(catalog)&&Array.isArray(catalog.versions)?catalog.versions.find(v=>v.id===catalog.activeVersionId&&v.status==='approved'):null;
   const equipment=version&&Array.isArray(version.equipment)?version.equipment.filter((v:{id?:string;enabled?:boolean})=>v.id===[...targets][0]&&v.enabled!==false):[];
   if(equipment.length!==1 || (module==='fqc'&&(toolValues.size!==1||!toolValues.has(equipment[0].pieceMark||equipment[0].assetCode))))

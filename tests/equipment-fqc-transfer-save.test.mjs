@@ -85,7 +85,7 @@ for(const mode of ['receipt-404','receipt-503','readback-503'])void test(`commit
   if((options.method||'GET')==='GET'&&!u.searchParams.has('operationId')&&lost&&down&&mode==='readback-503')return Response.json({error:'READ_FAILED'},{status:503});
   if(b?.command?.action==='save'){posts++;const response=await raw(url,options);assert.equal(response.status,200);lost=true;if(mode!=='readback-503')throw Error('Synthetic ACK lost');return response;}
  }return raw(url,options);};
- await transfer(f);assert.equal(f.test.dialog.moduleStatus.fqc,'error');assert.equal(posts,1);const markers=[...f.storage];assert(journal(f).length);const stored=await state(h);assert.equal(stored.saved.content.items[0].equipmentId,'target');
+ await transfer(f);assert.equal(f.test.dialog.moduleStatus.fqc,'unknown');assert.match(f.test.dialog.moduleMessages.fqc,/查詢原操作收據/);assert.equal(posts,1);const markers=[...f.storage];assert(journal(f).length);const stored=await state(h);assert.equal(stored.saved.content.items[0].equipmentId,'target');
  await f.test.executeTransfer('fqc');assert.equal(posts,1);assert.deepEqual([...f.storage],markers);down=false;f.test.dialog.targetEqId='source';await f.test.executeTransfer('fqc');assert.equal(posts,1);assert.equal(f.test.dialog.moduleStatus.fqc,'success',f.test.dialog.moduleMessages.fqc);assert.equal(journal(f).length,0);assert.deepEqual(await state(h),stored);
 });
 void test('identified target Begin unknown keeps original identity and intent; recovery cannot continue Save',async t=>{

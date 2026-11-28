@@ -43,7 +43,13 @@ export function mergeAbLocalFields(content:AbSnapshot,change:AbLocalChange):AbLo
 }
 /** Request-private root. Caller publishes it only with the final module Save CAS. */
 export function applyAbLocalScopes(root:AbControl,command:ModuleDraftCommand,state:State,base:Omit<DraftContext<AbSnapshot>,'structure'|'validate'|'semantic'|'activeId'>,restoreAuthorized=false):AbControl{
- const entries=abLocalScopes(command),candidate=cloneDraft(root);let index=0;
+ const entries=abLocalScopes(command);
+ // Group edits mutate their version projections. Clone the touched scopes
+ // before applying them; the module Save still validates every group's content.
+ const transfer=command.equipmentTransferRevision!==undefined;
+ const candidate=transfer?{...root,scopes:{...root.scopes}}:cloneDraft(root);
+ if(transfer)for(const {scope} of entries)if(root.scopes[scope])candidate.scopes[scope]=cloneDraft(root.scopes[scope]);
+ let index=0;
  for(const entry of entries){
   const adapter=abWorkflowAdapter(entry.scope,'legacy-origin'),scope=adapter.parse('{}',candidate) as AbSharedScope;
   if(scope.activeVersionId!==entry.baseId||(scope.workflow?.generation||null)!==entry.generation)throw new DraftConflict('DRAFT_GENERATION_CHANGED');

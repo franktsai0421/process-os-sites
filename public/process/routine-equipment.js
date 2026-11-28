@@ -2732,7 +2732,7 @@
   function hasFqcTransfer(){try{return sessionStorage.getItem(fqcTransferKey(identity()?.id))!==null;}catch{return true;}}
   function targetFqcClient(){
     if(!fqcTransferClient||!fqcTransferClient.isRuntimeCurrent()||!fqcTransferClient.isBeginRuntimeCurrent())
-      fqcTransferClient=window.createSharedDraftClient({endpoint:fqcTransferEndpoint,actorId:identity()?.id,durableBegin:true,externalDurableBounded:{scope:'FQC',equipmentTransfer:true},headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});
+      fqcTransferClient=window.createSharedDraftClient({endpoint:fqcTransferEndpoint,actorId:identity()?.id,durableBegin:true,externalDurableBounded:{scope:'FQC',equipmentTransfer:true},headers:()=>({...window.ProcessSync?.platformHeaders?.(),'X-Process-Equipment-Transfer':'metadata-v1','Content-Type':'application/json'})});
     return fqcTransferClient;
   }
   function readFqcTransfer(){
@@ -2792,7 +2792,7 @@
         if(!transferOwnerCurrent(owner)||transferDialog!==dialog)throw Error(fqcTransferUnknown());
         const done=finishFqcTransfer(client,record,result,fresh);dialog.moduleStatus.fqc='success';dialog.moduleMessages.fqc=t('原 FQC 移轉並存取已確認','Đã xác nhận chuyển và lưu FQC gốc')+' · '+done.savedId+(done.historical?' · '+t('目前已有後續草稿；本次未套用其他修改','Hiện có bản nháp mới; lần này không áp dụng thay đổi khác'):'');
       }
-    }catch(error){dialog.moduleStatus.fqc='error';dialog.moduleMessages.fqc=fqcTransferUnknown()+' '+error.message;}
+    }catch(error){dialog.moduleStatus.fqc='unknown';dialog.moduleMessages.fqc=fqcTransferUnknown()+' '+error.message;}
     if(transferDialog===dialog&&transferOwnerCurrent(owner))render();
   }
   async function saveFqcTransfer(dialog,target,entry,rows,intent,owns){
@@ -2829,7 +2829,7 @@
   function hasIqcTransfer(){try{return sessionStorage.getItem(iqcTransferKey(identity()?.id))!==null;}catch{return true;}}
   function targetIqcClient(){
     if(!iqcTransferClient||!iqcTransferClient.isRuntimeCurrent()||!iqcTransferClient.isBeginRuntimeCurrent())
-      iqcTransferClient=window.createSharedDraftClient({endpoint:iqcTransferEndpoint,actorId:identity()?.id,durableBegin:true,externalDurableBounded:{scope:'IQC',equipmentTransfer:true},headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});
+      iqcTransferClient=window.createSharedDraftClient({endpoint:iqcTransferEndpoint,actorId:identity()?.id,durableBegin:true,externalDurableBounded:{scope:'IQC',equipmentTransfer:true},headers:()=>({...window.ProcessSync?.platformHeaders?.(),'X-Process-Equipment-Transfer':'metadata-v1','Content-Type':'application/json'})});
     return iqcTransferClient;
   }
   function readIqcTransfer(){
@@ -2880,7 +2880,7 @@
         if(!transferOwnerCurrent(owner)||transferDialog!==dialog)throw Error(iqcTransferUnknown());
         const done=finishIqcTransfer(client,record,result,fresh);dialog.moduleStatus.iqc='success';dialog.moduleMessages.iqc=t('原 IQC 移轉並存取已確認','Đã xác nhận chuyển và lưu IQC gốc')+' · '+done.savedId+(done.historical?' · '+t('目前已有後續草稿；本次未套用其他修改','Hiện có bản nháp mới; lần này không áp dụng thay đổi khác'):'');
       }
-    }catch(error){dialog.moduleStatus.iqc='error';dialog.moduleMessages.iqc=iqcTransferUnknown()+' '+error.message;}
+    }catch(error){dialog.moduleStatus.iqc='unknown';dialog.moduleMessages.iqc=iqcTransferUnknown()+' '+error.message;}
     if(transferDialog===dialog&&transferOwnerCurrent(owner))render();
   }
   async function saveIqcTransfer(dialog,target,entry,rows,intent,owns){
@@ -2909,11 +2909,15 @@
   }
 
   class SettledPriorEquipmentOperation extends Error {}
-  async function readyIpqcTransfer(moduleId,dialog,rows,assertIntent){
-    const ab=moduleId==='ipqc-ab',endpoint='/api/'+moduleId+'/workflow?'+(ab?'module=1&':'')+'caseMetadata=1';
+  const ipqcTransferEndpoint=moduleId=>'/api/'+moduleId+'/workflow?'+(moduleId==='ipqc-ab'?'module=1&':'')+'caseMetadata=1';
+  const hasIpqcReceipt=moduleId=>window.hasSharedDraftReceiptMarker?.(identity()?.id,ipqcTransferEndpoint(moduleId));
+  const receiptLabel=()=>t('查詢原操作收據','Kiểm tra biên nhận gốc');
+  const unresolvedTransfer=()=>t('儲存結果待確認。請查詢原操作收據；查無收據時仍須保留原操作。','Chưa xác nhận kết quả lưu. Hãy kiểm tra biên nhận gốc. Nếu chưa thấy biên nhận, hãy giữ nguyên thao tác.');
+  async function readyIpqcTransfer(moduleId,dialog,rows,assertIntent,recoveryOnly=false){
+    const ab=moduleId==='ipqc-ab',endpoint=ipqcTransferEndpoint(moduleId);
     const actorId=dialog.owner.actorId;
     const client=window.createSharedDraftClient({endpoint,actorId,durableBegin:true,externalDurableBounded:{scope:moduleId.toUpperCase(),equipmentTransfer:true},allowUnknownDeparture:true,
-      headers:()=>({...headers(),'Content-Type':'application/json','X-Process-Expected-Actor':actorId})});
+      headers:()=>({...headers(),'X-Process-Equipment-Transfer':'metadata-v1','Content-Type':'application/json','X-Process-Expected-Actor':actorId})});
     for(const scope of new Set(rows.map(row=>row.scopeKey))){
       const oldEndpoint=ab?'/api/ipqc-ab/workflow?scope='+encodeURIComponent(scope)+'&caseMetadata=1':endpoint;
       if(sessionStorage.getItem('routine-equipment-target-begin:'+actorId+':'+oldEndpoint)!==null)throw Error('PREVIOUS_OPERATION_UNKNOWN');
@@ -2927,6 +2931,7 @@
       throw new SettledPriorEquipmentOperation(t('已核對原操作收據；請重開清單後再決定是否移轉。','Đã xác nhận biên nhận gốc. Hãy mở lại danh sách trước khi quyết định chuyển.')+
         (original.receipt.savedId?' · '+original.receipt.savedId:''));
     }
+    if(recoveryOnly)throw Error(unresolvedTransfer());
     await client.flush();assertIntent();
     return client;
   }
@@ -2980,6 +2985,21 @@
     // Original receipt recovery does not depend on the new preview finishing.
     if(uiKey==='fqc'&&hasFqcTransfer()){await recoverFqcTransfer(dialog);return;}
     if(uiKey==='iqc'&&hasIqcTransfer()){await recoverIqcTransfer(dialog);return;}
+    if(['ipqcAB','ipqcC'].includes(uiKey)){
+      const moduleId=uiKey==='ipqcAB'?'ipqc-ab':'ipqc-c';
+      if(hasIpqcReceipt(moduleId)){
+        const owns=()=>transferDialog===dialog&&transferOwnerCurrent(dialog.owner);
+        dialog.moduleStatus[uiKey]='saving';render();
+        try{await readyIpqcTransfer(moduleId,dialog,[],()=>{if(!owns())throw Error('ACCOUNT_CHANGED');},true);}
+        catch(error){if(owns()){
+          const confirmed=error instanceof SettledPriorEquipmentOperation;
+          dialog.moduleStatus[uiKey]=confirmed?'success':'unknown';
+          dialog.moduleMessages[uiKey]=confirmed?error.message:unresolvedTransfer();
+        }}
+        if(owns())render();
+        return;
+      }
+    }
     if (!dialog.preview) return;
     const targetEqId = dialog.targetEqId;
     const target = control?.versions.find(version => version.id === control.activeVersionId && version.status === 'approved')?.equipment.find(item => item.id === targetEqId && item.enabled !== false);
@@ -3079,7 +3099,8 @@
         try {
           if(!['fqc','iqc'].includes(moduleId))await window.ProcessSync?.refresh?.();
           if (!owns()) return;
-          await Promise.all([loadEquipmentReferences(dialog.sourceId), loadTransferPreview()]);
+          await loadTransferPreview();
+          if (owns() && host?.querySelector('[data-routine-reference-id]')) await loadEquipmentReferences(dialog.sourceId);
         } catch (error) {
           if (owns()) dialog.refreshError = error.message || 'REFERENCE_REFRESH_FAILED';
         } finally {
@@ -3087,8 +3108,10 @@
         }
       })();
     } catch (error) {
-      dialog.moduleStatus[uiKey] = error instanceof SettledPriorEquipmentOperation?'success':'error';
-      dialog.moduleMessages[uiKey] = (moduleId==='fqc'&&hasFqcTransfer()?fqcTransferUnknown()+' ':moduleId==='iqc'&&hasIqcTransfer()?iqcTransferUnknown()+' ':'')+(error.message==='DRAFT_REVISION_CHANGED_RECONFIRM'||error.message==='MODULE_CHANGED_RECONFIRM'?transferBlockMessage('stale'):(error.message || t('替換失敗', 'Thay thế thất bại')));
+      const unresolved=moduleId==='fqc'?hasFqcTransfer():moduleId==='iqc'?hasIqcTransfer():hasIpqcReceipt(moduleId);
+      const denied=error.status===401||error.status===403;
+      dialog.moduleStatus[uiKey] = error instanceof SettledPriorEquipmentOperation?'success':unresolved&&!denied?'unknown':'error';
+      dialog.moduleMessages[uiKey] = unresolved?(denied?error.message+' · ':'')+unresolvedTransfer():(error.message==='DRAFT_REVISION_CHANGED_RECONFIRM'||error.message==='MODULE_CHANGED_RECONFIRM'?transferBlockMessage('stale'):(error.message || t('替換失敗', 'Thay thế thất bại')));
     }
     if (transferDialog === dialog && transferOwnerCurrent(dialog.owner)) render();
   }
@@ -3246,8 +3269,8 @@
                     ${transferDialog.moduleStatus.ipqcC === 'success' ? `
                       <span class="routine-transfer-success-tag">✓ ${t('已存取草稿', 'Đã lưu bản nháp')}</span>
                     ` : `
-                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-ipqc-c" ${!targetEq || !transferDialog.selection.ipqcC.size || inFlight ? 'disabled' : ''}>
-                        ${transferDialog.moduleStatus.ipqcC === 'saving' ? t('儲存中…', 'Đang lưu...') : t('確認移轉並存取 IPQC-C 草稿', 'Xác nhận chuyển và lưu IPQC-C')}
+                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-ipqc-c" ${inFlight || !hasIpqcReceipt('ipqc-c') && (!targetEq || !transferDialog.selection.ipqcC.size) ? 'disabled' : ''}>
+                        ${transferDialog.moduleStatus.ipqcC === 'saving' ? t('儲存中…', 'Đang lưu...') : hasIpqcReceipt('ipqc-c')?receiptLabel():t('確認移轉並存取 IPQC-C 草稿', 'Xác nhận chuyển và lưu IPQC-C')}
                       </button>
                     `}
                   </div>
@@ -3278,7 +3301,7 @@
               </div>
               <div class="routine-transfer-module-card ${transferDialog.moduleStatus.ipqcAB}">
                 <div class="routine-transfer-module-head"><div><b>IPQC-AB</b><small>${h(summary('ipqc-ab'))}</small></div>
-                  <button type="button" class="button signal master-small" id="routine-confirm-transfer-ipqc-ab" ${!targetEq||!transferDialog.selection.ipqcAB.size||inFlight?'disabled':''}>${transferDialog.moduleStatus.ipqcAB==='saving'?t('儲存中…','Đang lưu...'):t('確認移轉並存取 IPQC-AB 草稿','Xác nhận chuyển và lưu IPQC-AB')}</button></div>
+                  <button type="button" class="button signal master-small" id="routine-confirm-transfer-ipqc-ab" ${inFlight||!hasIpqcReceipt('ipqc-ab')&&(!targetEq||!transferDialog.selection.ipqcAB.size)?'disabled':''}>${transferDialog.moduleStatus.ipqcAB==='saving'?t('儲存中…','Đang lưu...'):hasIpqcReceipt('ipqc-ab')?receiptLabel():t('確認移轉並存取 IPQC-AB 草稿','Xác nhận chuyển và lưu IPQC-AB')}</button></div>
                 ${transferDialog.moduleMessages.ipqcAB?`<p class="routine-transfer-mod-msg">${h(transferDialog.moduleMessages.ipqcAB)}</p>`:''}
                 ${moduleList('ipqc-ab','ipqcAB',ipqcABItems)}
               </div>
@@ -3826,7 +3849,7 @@
         if (chk.checked) transferDialog.selection[mod]?.add(id);
         else transferDialog.selection[mod]?.delete(id);
         const confirmButton=root.querySelector('#routine-confirm-transfer-'+referenceModule[mod]);
-        const recovering=(mod==='fqc' && hasFqcTransfer()) || (mod==='iqc' && hasIqcTransfer());
+        const recovering=mod==='fqc'?hasFqcTransfer():mod==='iqc'?hasIqcTransfer():hasIpqcReceipt(referenceModule[mod]);
         if(confirmButton)confirmButton.disabled=!recovering && (!transferDialog.targetEqId || !transferDialog.selection[mod]?.size);
       });
     });

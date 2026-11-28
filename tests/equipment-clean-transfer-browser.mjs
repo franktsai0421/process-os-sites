@@ -3,6 +3,9 @@ import {createRequire} from 'node:module';
 import {randomBytes,randomUUID} from 'node:crypto';
 import fs from 'node:fs';
 const out=process.env.EQUIPMENT_TEST_REPORT;
+const modules=['fqc','iqc','ipqc-ab','ipqc-c'];
+const requestedModule=process.argv[2];
+if(requestedModule)assert(modules.includes(requestedModule),'Unknown quality module');
 import {chromium} from 'playwright';
 import {createABCFixture} from './ab-c-native-fixture.mjs';
 const require=createRequire(import.meta.url);
@@ -10,6 +13,7 @@ const {createTransferFixture}=require('../scripts/equipment-transfer-fixture.cjs
 const seed=await createTransferFixture({paired:true,secondABGroup:true});
 let values,objects;
 try{values=(await seed.core.readState()).values;objects=new Map(seed.objects);}finally{seed.close();}
+if(process.env.EQUIPMENT_SYNTHETIC_SCALE==='1')require('../scripts/benchmark-equipment-transfer-cost.cjs').scaleTransferValues(values);
 const pass=randomBytes(24).toString('hex');
 const keys=['masterDataControl','processMasterData','routineEquipmentControl','qualityMasterControl','iqcMasterControl','ipqcCMasterControl','ipqcABMasterControl'];
 const dbkey={fqc:'qualityMasterControl',iqc:'iqcMasterControl','ipqc-ab':'ipqcABMasterControl','ipqc-c':'ipqcCMasterControl'};
@@ -20,6 +24,7 @@ const f=await createABCFixture({products:1,async decorate(v,load,bucket){
  users.push({...owner,id:'synthetic-peer',name:'Synthetic peer',primary:false});
  v.platformUsers=JSON.stringify(users);
  for(const k of keys)v[k]=values[k];
+ if(process.env.EQUIPMENT_SYNTHETIC_SCALE==='1')for(const k of Object.keys(values).filter(k=>k.startsWith('processEditor:synthetic-')))v[k]=values[k];
  // Exercise both supported closed states. Desktop preserves the native workflow
  // following approval. Mobile starts with approved versions predating shared drafts.
  if(process.env.EQUIPMENT_TEST_LANGUAGE!=='zh'){
@@ -49,7 +54,7 @@ try{
  let seq=0;
  async function storage(m,key='A:G-A'){
   const r=await f.db.prepare('SELECT revision,"values" FROM shared_state WHERE id=1').first();
-  const payload=await f.load('lib/state-records.ts').decodeRecordValues(await f.mf.getR2Bucket('STATE_ARCHIVE'),JSON.parse(r.values));
+  const payload=await f.load('lib/state-records.ts').decodeRecordValues(await f.mf.getR2Bucket('STATE_ARCHIVE'),JSON.parse(r.values),{keys:[dbkey[m]]});
   const ctl=JSON.parse(payload.values[dbkey[m]]);
   const mod=m==='fqc'?ctl.libraries.fqc:m==='ipqc-ab'?ctl.moduleDraft:ctl;
   const group=m==='ipqc-ab'?ctl.scopes[key]:mod;
@@ -79,6 +84,11 @@ try{
   const checks=p.locator('[data-transfer-check="'+code+'"]');await checks.first().waitFor({state:'attached'});
   if(!(await checks.first().isVisible()))await p.locator('[data-transfer-extra="'+code+'"] > summary').click();
   const ids=await checks.evaluateAll(boxes=>boxes.map(b=>b.value));
+  if(target===null){
+    for(const box of await checks.all())if(await box.isVisible())await box.uncheck();
+    assert.equal(await p.locator('#routine-confirm-transfer-'+m).isEnabled(),true);
+    return;
+  }
   const chosen=pickId?ids.findIndex(x=>x.includes(pickId)):0;assert(chosen>=0);
   for(let i=0;i<ids.length;i++) {
     const box=checks.nth(i);
@@ -93,7 +103,7 @@ try{
  }
 
  const p=operator.p;
- for(const m of ['fqc','iqc','ipqc-ab','ipqc-c']){
+ for(const m of requestedModule?[requestedModule]:modules){
   const events=[];const watch=r=>{if(r.method()==='POST'&&new URL(r.url()).pathname==='/api/'+m+'/workflow')events.push(r.postDataJSON());};p.on('request',watch);
   const msg=regex=>p.locator('.routine-transfer-mod-msg').filter({hasText:regex}).first().waitFor({timeout:9000});
   const click=()=>p.locator('#routine-confirm-transfer-'+m).click();
@@ -123,7 +133,7 @@ try{
   const lookups=[];const observe=r=>{if(new URL(r.url()).searchParams.get('operationId')===committed.receipt.operationId)lookups.push(r);};
   p.on('response',observe);
   try{
-    await modal(m);console.log('REOPENED',m);await click();await msg(new RegExp(committed.receipt.savedId));
+    await modal(m,'source',null);console.log('REOPENED',m);await click();await msg(new RegExp(committed.receipt.savedId));
   }catch(e){console.error('RECOVERY',m,new URL(p.url()).pathname,await p.locator('.routine-transfer-mod-msg').allTextContents(),
     await p.locator('body').innerText().then(t=>t.slice(0,550)),lookups.map(r=>r.status()));throw e;}
   p.off('response',observe);assert(lookups.length);const looked=lookups[0];assert.equal(looked.status(),200);

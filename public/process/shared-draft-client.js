@@ -392,6 +392,15 @@
     const paint=()=>{if(!box.isConnected){cleanup();return;}const pending=client.requestProgress().filter(value=>value.noFixedDeadline),seconds=Math.floor(Math.max(0,...pending.map(value=>value.elapsedMs))/1000);box.hidden=!pending.length;stop.disabled=!pending.length;status.textContent=!pending.length?'':language==='vi'?`Đang xử lý (ít nhất ${seconds}s), chưa xác nhận kết quả. Dừng chờ không hủy thao tác trên máy chủ; chỉ kiểm tra biên nhận gốc.`:`處理中（至少 ${seconds} 秒），結果尚未確認。停止等候不會撤銷伺服器操作；已送操作只查原回執，勿重複存取。`;};
     unwatch=client.watchRequestProgress(paint);window.addEventListener?.('process-delivery-invalidated',retire);window.addEventListener?.('pagehide',retire);window.addEventListener?.('process-destination-ready',destination);masterProgressMounts.set(root,cleanup);masterProgressRetirements.add(retire);paint();
   };
+  const boundedPrefix='shared-draft-receipt-only-v1:';
+  // Read-only button hint. Only the destination client may validate or settle its journal.
+  window.hasSharedDraftReceiptMarker=(actor,endpoint)=>{
+    try{
+      const prefix=boundedPrefix+JSON.stringify([actor,endpoint]).slice(0,-1)+',';
+      for(let i=0;i<sessionStorage.length;i++)if(sessionStorage.key(i)?.startsWith(prefix))return true;
+      return false;
+    }catch{return true;}
+  };
   window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections,allowUnknownDeparture=false,durableBegin=false,equipmentLocalSave=false,processLocalSave=false,fqcComparedSave=false,iqcComparedSave=false}) => {
     // Hosted FQC Apply can legitimately finish after the old 15s cutoff. The
     // exact bounded FQC and IQC routes share authoring's 45s budget, not an unbounded
@@ -613,7 +622,7 @@
       const failure=syncFailures.get(command.operationId);if(!failure||failure.error!==error||JSON.stringify(failure.command)!==entry.raw)throw Error('AB_CREATE_REJECTION_PROOF_REQUIRED');
       abClear(entry,command);return true;
     }
-    const boundedPrefix='shared-draft-receipt-only-v1:',boundedSentinel='receipt-only-v1',boundedSelected=new Map(),boundedSelectedObjects=new WeakMap(),boundedCapabilities=new Map(),boundedProofs=new Map(),boundedResponses=new WeakMap(),boundedRejected=new WeakSet(),boundedReadbacks=new WeakMap(),boundedPostAuthorities=new WeakMap();
+    const boundedSentinel='receipt-only-v1',boundedSelected=new Map(),boundedSelectedObjects=new WeakMap(),boundedCapabilities=new Map(),boundedProofs=new Map(),boundedResponses=new WeakMap(),boundedRejected=new WeakSet(),boundedReadbacks=new WeakMap(),boundedPostAuthorities=new WeakMap();
     let transferOpeningBasis=null;
     let boundedRecord=null,boundedKnown=null,boundedKnownVersion=0,boundedLegacy=false,boundedDiscovered=[];
     // Navigation-only coverage. It never settles an operation or alters write

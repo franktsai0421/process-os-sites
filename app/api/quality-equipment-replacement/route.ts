@@ -18,12 +18,13 @@ type Body = { action?: 'apply' | 'reconcile'; baseRevision?: number; moduleId?: 
   sourceEquipmentId?: string; targetEquipmentId?: string; itemIds?: string[];
   overrideItemIds?: string[] };
 
-function controls(values: Record<string, string>,preparedAb?:unknown) {
-  const routine = parse(values.routineEquipmentControl, null) as EquipmentControl | null;
+function controls(values: Record<string, string>,preparedAb?:unknown,models?:Map<string,unknown>) {
+  const owner=(key:string)=>models?.get(key)??parse(values[key],null);
+  const routine = owner('routineEquipmentControl') as EquipmentControl | null;
   if (!routine || !Array.isArray(routine.versions)) throw Error('檢具資料無法讀取，沒有進行替換');
-  const quality = parse(values.qualityMasterControl, null) as QualityControl | null;
-  const iqc = parse(values.iqcMasterControl, null) as ReplacementLibrary | null;
-  const ipqcC = parse(values.ipqcCMasterControl, null) as ReplacementLibrary | null;
+  const quality = owner('qualityMasterControl') as QualityControl | null;
+  const iqc = owner('iqcMasterControl') as ReplacementLibrary | null;
+  const ipqcC = owner('ipqcCMasterControl') as ReplacementLibrary | null;
   let ipqcAB: AbControl | null = null;
   try { if (values.ipqcABMasterControl) ipqcAB=parseAbControl(values.ipqcABMasterControl,preparedAb); }
   catch { /* Fail closed for AB without disabling the other adapters. */ }
@@ -72,8 +73,10 @@ function describe(moduleId: ReplacementModule, library: ReplacementLibrary | nul
   const savedMap = new Map((Array.isArray(savedItems)?savedItems:[]).filter(row=>!row.isDeleted&&!row.deleted).map(row=>[row.id,row]));
   const activeMap = new Map(liveItems(active).map(item => [item.id, item]));
   const draftMap = new Map(liveItems(open).map(item => [item.id, item]));
-  const ids = new Set([...activeMap, ...draftMap]
-    .filter(([, item]) => item.equipmentId === sourceId).map(([id]) => id));
+  const ids = new Set<string>();
+  for (const rows of [activeMap,draftMap]) {
+    for (const [id,item] of rows) if (item.equipmentId===sourceId) ids.add(id);
+  }
   const scopedPending = pending.filter(row => (row.scopeKey || '') === scopeKey);
   return { moduleId, scopeKey, connected: true, label: replacementModules[moduleId].label,
     activeVersion: active ? { id: active.id, number: active.number, status: active.status } : null,
@@ -129,12 +132,15 @@ function updateItem(item: ReplacementItem, moduleId: ReplacementModule, target: 
 
 export async function GET(request: Request) {
   try {
-    const state = await readState({modelKey:'ipqcABMasterControl',deferHistory:true,deferDependencyHistory:true});
+    const keys = ['platformUsers', 'processCustomRoles', 'processRoleTemplateOverrides', 'processAccessControl', 'maintenanceMode',
+      'routineEquipmentControl', ...Object.values(replacementModules).map(module => module.key)];
+    const state = await readState({keys, aggregateReadAhead:true,
+      readOnlyModelKeys:['routineEquipmentControl','qualityMasterControl','iqcMasterControl','ipqcCMasterControl'], modelKey:'ipqcABMasterControl',deferHistory:true,deferDependencyHistory:true});
     const actor = await identity(request, state);
     if (!actor || (request.headers.has('X-Process-Expected-Actor') && request.headers.get('X-Process-Expected-Actor')!==actor.id) || !(await can(request, state, 'view:data'))) return reply({ error: '沒有查看資料的權限' }, 403);
     const query = new URL(request.url).searchParams;
     const sourceId = query.get('sourceId') || '';
-    const { routine, libraries, ipqcAB } = controls(state.values,state.recordStorage?.models.get('ipqcABMasterControl'));
+    const { routine, libraries, ipqcAB } = controls(state.values,state.recordStorage?.models.get('ipqcABMasterControl'),state.recordStorage?.models);
     if(query.has('referenceModule')){
       const moduleId=query.get('referenceModule') as ReplacementModule;
       if(!Object.hasOwn(replacementModules,moduleId) || !sourceId || !query.get('itemId') || !query.get('versionId'))return reply({error:'INVALID_REFERENCE_LOCATOR'},400);

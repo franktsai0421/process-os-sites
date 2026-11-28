@@ -120,7 +120,7 @@ export async function GET(request: Request) {
     const caseMetadata=query.get('caseMetadata')==='1';
     const identityKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
     const keys=equipmentOnly?[...identityKeys,'routineEquipmentControl']:[...identityKeys,KEY,'masterDataControl',...(deferred?[]:['routineEquipmentControl'])];
-    const state=await readState({aggregateReadAhead:true,keys,modelKey:equipmentOnly?undefined:KEY,deferHistory:true,deferDependencyHistory:true}),phase=await createIpqcReadPermissionPhase(request,state),actor=phase.actor;
+    const state=await readState({aggregateReadAhead:true,keys,modelKey:equipmentOnly?undefined:KEY,metadataOnlyModel:!!referenceEquipment,deferHistory:true,deferDependencyHistory:true}),phase=await createIpqcReadPermissionPhase(request,state),actor=phase.actor;
     if(!actor||request.headers.has('X-Process-Expected-Actor')&&request.headers.get('X-Process-Expected-Actor')!==actor.id||!phase.allowed('view:data')&&!phase.allowed('view:approval'))return reply({error:'沒有查看 IPQC-AB 權限'},403);
     if(equipmentOnly){if(!await phase.current())return reply({error:'沒有查看 IPQC-AB 權限'},403);return reply({revision:state.revision,equipment:equipmentChoices(state.values)});}
     const catalog = catalogFromMaster(state.values.masterDataControl);
@@ -130,25 +130,36 @@ export async function GET(request: Request) {
     const localLineage=query.get('localLineage')==='1'?await abLocalLineage(control as AbModuleRoot,state.revision,catalog.groups.map(g=>g.line+':'+g.name),resolveLineage):undefined;
     if(localLineage){const current=await identity(request,state);if(!current||current.id!==actor.id)return reply({error:'ACCOUNT_CHANGED_REOPEN_REQUIRED'},403);if(!await stateRevisionIsCurrent(state))return reply({error:'MODULE_CHANGED_RECONFIRM'},409);}
     for(const [key,scope]of Object.entries(control.scopes))control.scopes[key]=visibleSharedControl(scope as AbSharedScope,history,caseMetadata);
-    const moduleControl=(control as AbModuleRoot).moduleDraft;if(moduleControl)(control as AbModuleRoot).moduleDraft=visibleSharedControl(moduleControl,history,caseMetadata);
     if(referenceEquipment){
       // This reader needs stable relationships, not entire standard/photo bodies
       // repeated through active/working/saved/cases. Validate each historical
       // immutable snapshot serially, retain summaries only, and keep the same
       // visible versions and SHA/missing-object failure policy as the full GET.
+      const summarize=(snapshot:AbSnapshot)=>{
+        if(!Array.isArray(snapshot?.errors)||!Array.isArray(snapshot?.items))throw Error('IPQC_AB_REFERENCE_SNAPSHOT_INVALID');
+        return snapshot.items.filter(item=>!item.deleted&&item.equipmentId===referenceEquipment)
+          .map(({id,code,standard,equipmentId,isEnabled})=>({id,code,standard,equipmentId,isEnabled}));
+      };
+      // Several versions may share one immutable body. Keep only matching rows.
+      const matches=new Map<string,ReturnType<typeof summarize>>();
       const scopes:Record<string,unknown>={};
       for(const [key,scope]of Object.entries(control.scopes)){
         const versions=[];
         for(const version of scope.versions){
-          const snapshot=(isImmutableRecordBody(version.snapshot)?JSON.parse(await readImmutableRecord(env.STATE_ARCHIVE,version.snapshot.__immutableBody)):version.snapshot) as AbSnapshot;
-          if(!Array.isArray(snapshot?.errors)||!Array.isArray(snapshot?.items))throw Error('IPQC_AB_REFERENCE_SNAPSHOT_INVALID');
-          versions.push({id:version.id,number:version.number,status:version.status,snapshot:{items:snapshot.items.filter(item=>!item.deleted&&item.equipmentId===referenceEquipment).map(item=>({id:item.id,code:item.code,standard:item.standard,equipmentId:item.equipmentId,isEnabled:item.isEnabled}))}});
+          let items;
+          if(isImmutableRecordBody(version.snapshot)){
+            const ref=version.snapshot.__immutableBody;
+            items=matches.get(ref.sha256);
+            if(!items){items=summarize(JSON.parse(await readImmutableRecord(env.STATE_ARCHIVE,ref)));matches.set(ref.sha256,items);}
+          }else items=summarize(version.snapshot);
+          versions.push({id:version.id,number:version.number,status:version.status,snapshot:{items}});
         }
         scopes[key]={line:scope.line,group:scope.group,activeVersionId:scope.activeVersionId,versions};
       }
       if(!await phase.current())return reply({error:'沒有查看 IPQC-AB 權限'},403);
       return reply({revision:state.revision,equipmentReferenceProjection:'ipqc-ab-equipment-v1',control:{scopes}});
     }
+    const moduleControl=(control as AbModuleRoot).moduleDraft;if(moduleControl)(control as AbModuleRoot).moduleDraft=visibleSharedControl(moduleControl,history,caseMetadata);
     const body={ revision:state.revision, control, catalog,...(localLineage?{localLineage}:{}), ...(deferred?{equipmentDeferred:true}:{equipment}) };
     if(!await phase.current())return reply({error:'沒有查看 IPQC-AB 權限'},403);
     if(state.recordStorage){const response=recordJSONResponse(body,env.STATE_ARCHIVE,headers,{boundedContainers:true});if(caseMetadata)response.headers.set('Content-Type',headers['Content-Type']);return response;}

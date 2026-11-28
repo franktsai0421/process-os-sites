@@ -1,4 +1,4 @@
-import { firstTransferGeneration, transferDraftState, requireTransferDraft, planCleanTransfer, type TransferProof } from './equipment-transfer-guard';
+import { equipmentTransferRead,equipmentTransferView,equipmentTransferMetadata,firstTransferGeneration, transferDraftState, requireTransferDraft, planCleanTransfer, type TransferProof } from './equipment-transfer-guard';
 import { parseAbControl } from './ipqc-ab';
 import type { AbSharedScope } from './ipqc-ab-workflow';
 import {inventoryReadAhead} from './inventory-read-ahead.mjs';
@@ -14,7 +14,8 @@ import {restoreAllowed,assertRestoreAccess} from './draft-restore-access';
 import {fqcLifecycle8Command,readFqcLifecycle8MutationState,encodeFqcLifecycle8MutationState} from './fqc-lifecycle8-record-mutation';
 import {processFlowCommand,readProcessFlowMutationState,encodeProcessFlowMutationState} from './process-flow-record-mutation';
 import { env } from 'cloudflare:workers';
-import { readState, identity, can, createMasterABPermissionPhase, createFqcPermissionPhase, createIpqcABPermissionPhase, createInventoryPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, responseHeaders, type State } from './process-state';
+import {prepareEquipmentTransfer} from './state-records';
+import { readSharedStateRow, readState, identity, can, createMasterABPermissionPhase, createFqcPermissionPhase, createIpqcABPermissionPhase, createInventoryPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, responseHeaders, type State } from './process-state';
 import { createSharedDraft, applyDraftCommand, DraftConflict, cloneDraft, type SharedDraft, type DraftCommand, type DraftContext, type DraftPermission } from './shared-draft';
 import {compactWorkflowPayload,expandWorkflowCommand,workflowCommandFingerprint,isWorkflowDigestFingerprint} from './workflow-wire';
 import {effectiveAccess} from './user-access';
@@ -193,8 +194,9 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       // hydration and validation. Restore previews keep full dependencies.
       // Recheck identity on the newly selected snapshot.
       // Legacy formats already read the entire snapshot; avoid reading it twice.
+      const transferRead=equipmentTransferRead(request)&&['ipqc-ab:module','fqc','iqc'].includes(adapter.scope);
       const selectedKeys=adapter.permissionOnlyRead&&!selectors.has('restoreSaveId')?['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',adapter.key]:undefined;
-      const state=preflight&&!preflight.recordStorage?preflight:await readState({aggregateReadAhead:fqcReadAhead,keys:selectedKeys,deferDependencyHistory:true,modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:true,caseId:selectors.get('caseId'),saveId:selectors.get('restoreSaveId'),versionId:selectors.get('versionId')||selectors.get('legacyVersionId')}),phase=await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state),permissions=await currentPermissions(request,state,phase);
+      const state=preflight&&!preflight.recordStorage?preflight:await readState({aggregateReadAhead:fqcReadAhead,keys:selectedKeys,metadataOnlyModel:transferRead,deferDependencyHistory:true,modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:true,caseId:selectors.get('caseId'),saveId:selectors.get('restoreSaveId'),versionId:selectors.get('versionId')||selectors.get('legacyVersionId')}),phase=await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state),permissions=await currentPermissions(request,state,phase);
       if(!actor||!permissions.view||phase&&!await phase.current())return reply({error:'FORBIDDEN'},403);
       const query=new URL(request.url).searchParams;
       if(query.has('permissions'))return reply({permissions,revision:state.revision,otherReviewerAvailable:otherReviewerAvailable(state,actor.id)});
@@ -258,6 +260,8 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         if(before&&!start)return reply({error:'HISTORY_CURSOR_INVALID'},409);return reply({cases:rows.slice(start,start+20).map(sharedCaseMetadata),next:rows.length>start+20?rows[start+19].id:null,total:rows.length});}
       if(query.has('caseId')){if(!permissions.history)return reply({error:'FORBIDDEN'},403);const reviewCase=flow?.cases.find(c=>c.id===query.get('caseId'));return reviewCase?reply({reviewCase}):reply({error:'CASE_NOT_FOUND'},404);}
       if(flow&&query.get('since')===`${flow.generation}:${flow.revision}`)return reply({revision:state.revision,permissions,unchanged:true});
+      if(transferRead)
+        return reply({revision:state.revision,permissions,control:equipmentTransferMetadata(control)});
       const body={revision:state.revision,permissions,control:visibleSharedControl(control,permissions.history,query.get('caseMetadata')==='1',adapter.draftMissing),workflow:flow?{generation:flow.generation,revision:flow.revision,pendingId:flow.pendingId}:null};
       return state.recordStorage&&query.get('caseMetadata')!=='1'?recordJSONResponse(compactWorkflowPayload(body,query.get('compact')==='1'),env.STATE_ARCHIVE,responseHeaders):reply(body);
     }catch(error){return reply({error:error instanceof DraftConflict?error.code:'WORKFLOW_LOAD_FAILED'},error instanceof DraftConflict?error.status:503);}},
@@ -301,7 +305,11 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         const processFlowState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.processFlowMutation===true&&adapter.key==='processAuthoringControl'&&adapter.scope==='process:platform'&&processFlowCommand(body.command)?await readProcessFlowMutationState(body.command):null;
         const fqcLifecycle8State=!requiredFqc&&body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.fqcLifecycle8Mutation===true&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&fqcLifecycle8Command(body.command)?await readFqcLifecycle8MutationState(body.command):null;
         if(adapter.scope==='fqc'&&body.command?.moduleAction==='save-local-v1')stage('business-read');
-        const scopedWrite=await adapter.prepareWrite?.(body.command);
+        const transferSave=body.action===undefined&&body.command?.action==='save'&&
+          body.command.moduleAction==='save-local-v1'&&body.command.equipmentTransferRevision!==undefined&&
+          ['fqc','iqc','ipqc-ab:module'].includes(adapter.scope);
+        const row=transferSave?await readSharedStateRow():null;
+        const scopedWrite=(row?await prepareEquipmentTransfer(env.STATE_ARCHIVE,row,adapter.key):null)||await adapter.prepareWrite?.(body.command);
         const state=scopedWrite?.state||requiredState||mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({aggregateReadAhead:inventoryReadAhead(request,adapter.key,adapter.scope,body)||body.action===undefined&&Object.keys(body).every(key=>key==='command')&&(isIpqcAB(request)&&['apply','restore','save','submit','withdraw','approve','return'].includes(body.command?.action||'')||fqcAggregateReadAheadCommand(body.command)&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope')),deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=requiredPhase||await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
         if(state.values.maintenanceMode==='1')return reply({error:'MAINTENANCE'},503);
         stage('authorization');
@@ -368,7 +376,9 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
           control.workflow=result.state;receipt=result.receipt;
           if(transferProof)control.workflow.receipts[command.operationId].equipmentTransfer=transferProof;
           if(requiredState&&!already)captureFqcRequiredResult(state,command,result.state,result.receipt);
-          if(already){if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);return reply({revision:state.revision,control:visibleSharedControl(control,permissions.history,caseMetadata,adapter.draftMissing),receipt,unchanged:true});}
+          if(already){if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
+            if(transferSave&&equipmentTransferView(request))return reply({revision:state.revision,receipt,unchanged:true});
+            return reply({revision:state.revision,control:visibleSharedControl(control,permissions.history,caseMetadata,adapter.draftMissing),receipt,unchanged:true});}
           timing.mark('photo-validation');
           for(const photo of adapter.photoIds(control.workflow.working))if(!knownPhotos.has(photo)&&!await env.STATE_ARCHIVE.head(adapter.photoPrefix+photo))throw new DraftConflict('PHOTO_NOT_UPLOADED',422);
         }
@@ -392,6 +402,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,encoded,at,state.revision).run();
         if(changed.meta.changes!==1)continue;
         stage('response');
+        if(transferSave&&equipmentTransferView(request))return reply({revision:state.revision+1,requestId,receipt});
         return reply({revision:state.revision+1,control:visibleSharedControl(control,permissions.history,caseMetadata,adapter.draftMissing),receipt,requestId,...(begin?{operationKind:'begin-v1'}:{})});
       }return reply({error:'CONCURRENT_CHANGE_RETRY',requestId},409);
     }catch(error){if(admissionReply&&error===admissionReply)return admissionReply;if(error instanceof DraftConflict)return reply({error:error.code,details:error.details,requestId},error.status);if(error instanceof SyntaxError)return reply({error:'INVALID_JSON',requestId},422);

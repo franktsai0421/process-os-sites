@@ -55,3 +55,5 @@ IPQC-AB 後續人工編輯可於目的模組另行存取。存取須核對開啟
 隔離重現使用 Node、專案相依套件和 Playwright Chromium。共用草稿存取與最終 CAS 競態執行 `node scripts/test-equipment-clean-transfer-cas.cjs`。建置後可分別以 `EQUIPMENT_TEST_LANGUAGE=zh` 與 `EQUIPMENT_TEST_LANGUAGE=vi` 執行 `node tests/equipment-clean-transfer-browser.mjs`。舊版測試亦記錄了先前移轉規則。先執行 `npm run build`，再執行 `node --test --test-isolation=none tests/equipment-transfer-compiled.test.mjs`。控制器與實際 SQLite 路由的錯誤、衝突、回執及報廢保護以 `node scripts/test-routine-equipment-four-module-transfer.cjs` 與 `node scripts/test-routine-equipment-transfer-intent.cjs` 重驗。
 
 效能對照只使用合成資料。用候選中的 `scripts/benchmark-equipment-reference-views.cjs` 依序執行 `seed 候選目錄 seed.json`、`baseline V107目錄 seed.json old.json`、`candidate 候選目錄 seed.json new.json`。同一份資料含每模組 42 個歷史版本，每項重複三次。輸出保存每次控制器耗時、請求與 POST 次數、資料修訂增量、封存讀取筆數及歷史本文數。另列 V107 的 AB、C 從套用至另行存取的時間，以成功取得已存草稿作共同終點。共用驗收站延遲應另行量測。
+
+設備替換在 FQC、IQC、IPQC-AB 與 IPQC-C 共用草稿中保留原操作收據。結果待確認時，可重新開啟設備替換，直接查詢原操作，無須重新選取目標或標準。查無收據時保留待確認狀態，避免重送仍有可能完成的寫入。
